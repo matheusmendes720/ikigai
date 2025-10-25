@@ -38,7 +38,9 @@ class DeleteTaskCommand(TUICommandBase):
 
         # Show confirmation dialog
         dialog = ConfirmationDialog(
-            title="Confirm Deletion",
-            message=f"Are you sure you want to delete task '{task_name}' (ID: {task_id})?\n(Soft delete - can be restored)",
+            title="Archive Task",
+            message=f"Archive task '{task_name}' (ID: {task_id})?\n\n"
+            f"The task will be soft-deleted and can be restored later.\n"
+            f"(Use Shift+X for permanent deletion)",
         )
         self.app.push_screen(dialog, handle_confirmation)
