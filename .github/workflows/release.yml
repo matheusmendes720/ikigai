@@ -26,3 +26,41 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-pypi:
+    name: Publish ${{ matrix.package }} to PyPI
+    runs-on: ubuntu-latest
+    needs: [release]
+    environment: pypi
+    permissions:
+      id-token: write
+    strategy:
+      max-parallel: 1
+      matrix:
+        package:
+          - taskdog-core
+          - taskdog-client
+          - taskdog-server
+          - taskdog-ui
+          - taskdog-mcp
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Build package
+        run: uv build packages/${{ matrix.package }}
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: packages/${{ matrix.package }}/dist/
