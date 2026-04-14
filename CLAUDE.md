@@ -175,7 +175,7 @@ Clean Architecture with 5 layers across five packages: **Domain** ← **Applicat
 **Domain** (`packages/taskdog-core/src/taskdog_core/domain/`): Core business logic, no external dependencies
 
 - `entities/`: Task, TaskStatus
-- `services/`: ILogger, ITimeProvider, IHolidayChecker (interfaces for testability)
+- `services/`: ITimeProvider, IHolidayChecker (interfaces for testability)
 - `exceptions/`: TaskNotFoundException, TaskValidationError, TaskAlreadyFinishedError, TaskNotStartedError
 - `constants.py`: Domain constants (DEFAULT_PRIORITY, etc.)
 
@@ -317,7 +317,6 @@ Clean Architecture with 5 layers across five packages: **Domain** ← **Applicat
 
 - `ITimeProvider`: Interface for current time (enables testing with fixed timestamps)
 - `IHolidayChecker`: Interface for holiday checking (used by workload calculations)
-- `ILogger`: Interface for logging abstraction
 
 **Renderers** (`packages/taskdog-ui/src/taskdog/renderers/`)
 
