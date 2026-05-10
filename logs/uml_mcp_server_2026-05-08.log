@@ -1,0 +1,30 @@
+2026-05-08 10:40:52,448 - mcp_core.core.cli - INFO - Starting UML-MCP Server with transport: stdio
+2026-05-08 10:40:57,358 - mcp_core.server.fastmcp_wrapper - INFO - Using production FastMCP implementation
+2026-05-08 10:40:57,404 - mcp_core.core.server - INFO - Creating MCP server: uml_mcp
+2026-05-08 10:40:57,410 - mcp_core.tools.diagram_tools - INFO - Registering diagram tools
+2026-05-08 10:40:57,411 - mcp_core.tools.tool_decorator - INFO - Registering 4 tools with the MCP server
+2026-05-08 10:40:57,419 - mcp_core.tools.diagram_tools - INFO - Registered 4 diagram tools successfully
+2026-05-08 10:40:57,420 - mcp_core.resources.diagram_resources - INFO - Registering diagram resources
+2026-05-08 10:40:57,421 - mcp_core.resources.diagram_resources - INFO - Registering 7 resources with the MCP server
+2026-05-08 10:40:57,423 - mcp_core.resources.diagram_resources - INFO - Diagram resources registered successfully
+2026-05-08 10:40:57,425 - mcp_core.prompts.diagram_prompts - INFO - Registering diagram prompts
+2026-05-08 10:40:57,426 - mcp_core.prompts.diagram_prompts - INFO - Registering 13 prompts with the MCP server
+2026-05-08 10:40:57,441 - mcp_core.prompts.diagram_prompts - INFO - Registered 13 diagram prompts successfully
+2026-05-08 10:40:57,442 - mcp_core.core.server - INFO - MCP server created with 4 tools, 13 prompts, and 7 resources
+2026-05-08 10:40:57,567 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-08 10:41:04,294 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-08 10:41:04,298 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-08 10:41:04,937 - mcp.server.lowlevel.server - INFO - Processing request of type GetPromptRequest
+2026-05-08 10:41:05,153 - mcp.server.lowlevel.server - INFO - Processing request of type GetPromptRequest
+2026-05-08 10:41:05,176 - mcp.server.lowlevel.server - INFO - Processing request of type GetPromptRequest
+2026-05-08 10:41:05,200 - mcp.server.lowlevel.server - INFO - Processing request of type GetPromptRequest
+2026-05-08 10:41:05,219 - mcp.server.lowlevel.server - INFO - Processing request of type GetPromptRequest
+2026-05-08 10:41:05,242 - mcp.server.lowlevel.server - INFO - Processing request of type GetPromptRequest
+2026-05-08 10:41:05,264 - mcp.server.lowlevel.server - INFO - Processing request of type GetPromptRequest
+2026-05-08 10:41:05,285 - mcp.server.lowlevel.server - INFO - Processing request of type GetPromptRequest
+2026-05-08 10:41:05,309 - mcp.server.lowlevel.server - INFO - Processing request of type GetPromptRequest
+2026-05-08 10:41:05,329 - mcp.server.lowlevel.server - INFO - Processing request of type GetPromptRequest
+2026-05-08 10:41:05,349 - mcp.server.lowlevel.server - INFO - Processing request of type GetPromptRequest
+2026-05-08 10:41:05,369 - mcp.server.lowlevel.server - INFO - Processing request of type GetPromptRequest
+2026-05-08 10:41:05,389 - mcp.server.lowlevel.server - INFO - Processing request of type GetPromptRequest
+2026-05-08 10:41:31,942 - mcp_core.core.cli - INFO - Server shut down

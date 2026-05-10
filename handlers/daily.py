@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Any, Optional
 
 import typer
-from life.config import load_config
-from life.log import get_logger
+from life.cli.config import load_config
+from life.cli.log import get_logger
 
 app = typer.Typer(help="Daily flow: task today, finance report, optional centrals.")
 logger = get_logger("life.handlers.daily")
@@ -27,7 +27,12 @@ def _run_life_cmd(args: list[str], cwd: Path) -> dict[str, Any]:
                 data = json.loads(r.stdout)
             except Exception:
                 pass
-        return {"ok": r.returncode == 0, "stdout": r.stdout, "stderr": r.stderr, "data": data}
+        return {
+            "ok": r.returncode == 0,
+            "stdout": r.stdout,
+            "stderr": r.stderr,
+            "data": data,
+        }
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -35,7 +40,9 @@ def _run_life_cmd(args: list[str], cwd: Path) -> dict[str, Any]:
 @app.command()
 def run(
     skip_task: bool = typer.Option(False, "--skip-task", help="Skip task central"),
-    skip_finance: bool = typer.Option(False, "--skip-finance", help="Skip finance report"),
+    skip_finance: bool = typer.Option(
+        False, "--skip-finance", help="Skip finance report"
+    ),
     finance_period: str = typer.Option("day", "--finance-period", help="day|week"),
     json_out: bool = typer.Option(False, "--json"),
 ):
@@ -49,24 +56,34 @@ def run(
         out = _run_life_cmd(["task", "today"], root)
         results["task"] = out.get("data") or out
         if not out.get("ok"):
-            results["errors"].append("task: " + (out.get("error") or out.get("stderr", "failed")))
+            results["errors"].append(
+                "task: " + (out.get("error") or out.get("stderr", "failed"))
+            )
 
     if not skip_finance:
         logger.info("Daily: running finance report")
         out = _run_life_cmd(["finance", "report", "--period", finance_period], root)
         results["finance"] = out.get("data") or out
         if not out.get("ok"):
-            results["errors"].append("finance: " + (out.get("error") or out.get("stderr", "failed")))
+            results["errors"].append(
+                "finance: " + (out.get("error") or out.get("stderr", "failed"))
+            )
 
     if json_out:
         print(json.dumps(results))
     else:
-        if results["task"] and isinstance(results["task"], dict) and results["task"].get("stdout"):
+        if (
+            results["task"]
+            and isinstance(results["task"], dict)
+            and results["task"].get("stdout")
+        ):
             typer.echo(results["task"]["stdout"])
         if results["finance"] and isinstance(results["finance"], dict):
             d = results["finance"].get("data") or results["finance"]
             if isinstance(d, dict):
-                typer.echo(f"Finance ({finance_period}): total={d.get('total', 'n/a')} count={d.get('count', 0)}")
+                typer.echo(
+                    f"Finance ({finance_period}): total={d.get('total', 'n/a')} count={d.get('count', 0)}"
+                )
         for err in results["errors"]:
             typer.echo(err, err=True)
 

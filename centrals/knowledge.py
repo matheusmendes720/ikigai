@@ -6,13 +6,15 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from life.config import LifeConfig, load_config
+from life.cli.config import LifeConfig, load_config
 from life.centrals.base import BaseCentral
 
 app = typer.Typer(help="Knowledge central: leitura, mindmaps, notes.")
 
 
-def _run_sub(cfg: LifeConfig, name: str, module: str, args: list[str], json_out: bool = True) -> dict:
+def _run_sub(
+    cfg: LifeConfig, name: str, module: str, args: list[str], json_out: bool = True
+) -> dict:
     path = cfg.get_submodule_path(name)
     if not path or not path.exists():
         return {"ok": False, "error": f"Submodule {name} not found"}
@@ -33,6 +35,7 @@ def read(
     out = _run_sub(cfg, "leitura", "leitura.cli", args, json_out=json_out)
     if json_out:
         import json
+
         print(json.dumps(out.get("data") or out))
     else:
         if out.get("stdout"):
@@ -51,6 +54,7 @@ def list_sections(
     out = _run_sub(cfg, "leitura", "leitura.cli", ["list", path], json_out=json_out)
     if json_out:
         import json
+
         print(json.dumps(out.get("data") or out))
     else:
         if out.get("stdout"):
@@ -76,6 +80,7 @@ def note_add(
     out = _run_sub(cfg, "notes", "notes.cli", args, json_out=json_out)
     if json_out:
         import json
+
         print(json.dumps(out.get("data") or out))
     else:
         if out.get("stdout"):
@@ -97,6 +102,7 @@ def note_list(
     out = _run_sub(cfg, "notes", "notes.cli", args, json_out=json_out)
     if json_out:
         import json
+
         print(json.dumps(out.get("data") or out))
     else:
         if out.get("stdout"):
@@ -119,6 +125,7 @@ def mindmap_phase0(
     out = _run_sub(cfg, "mindmaps", "mindmaps.cli", args, json_out=json_out)
     if json_out:
         import json
+
         print(json.dumps(out.get("data") or out))
     else:
         if out.get("stdout"):
@@ -141,6 +148,7 @@ def mindmap_phase1(
     out = _run_sub(cfg, "mindmaps", "mindmaps.cli", args, json_out=json_out)
     if json_out:
         import json
+
         print(json.dumps(out.get("data") or out))
     else:
         if out.get("stdout"):

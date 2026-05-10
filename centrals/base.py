@@ -8,7 +8,7 @@ from abc import ABC
 from pathlib import Path
 from typing import Any, Optional
 
-from life.config import LifeConfig, load_config
+from life.cli.config import LifeConfig, load_config
 
 
 class BaseCentral(ABC):
@@ -42,6 +42,7 @@ class BaseCentral(ABC):
             if json_out and r.stdout.strip():
                 try:
                     import json
+
                     data = json.loads(r.stdout)
                 except Exception:
                     pass
