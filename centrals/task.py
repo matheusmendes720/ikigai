@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import typer
-from life.config import load_config
+from life.cli.config import load_config
 
 from .base import BaseCentral
 
@@ -28,10 +28,16 @@ def _run_task(args: list[str], json_out: bool = False) -> dict[str, Any]:
         if json_out and r.stdout.strip():
             try:
                 import json
+
                 data = json.loads(r.stdout)
             except Exception:
                 pass
-        return {"ok": r.returncode == 0, "stdout": r.stdout, "stderr": r.stderr, "data": data}
+        return {
+            "ok": r.returncode == 0,
+            "stdout": r.stdout,
+            "stderr": r.stderr,
+            "data": data,
+        }
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -44,6 +50,7 @@ def today(
     out = _run_task(["list"], json_out=json_out)
     if json_out:
         import json
+
         print(json.dumps(out))
     else:
         if out.get("stdout"):
@@ -110,7 +117,12 @@ def metrics(
         )
         if json_out:
             import json
-            print(json.dumps({"ok": r.returncode == 0, "stdout": r.stdout, "stderr": r.stderr}))
+
+            print(
+                json.dumps(
+                    {"ok": r.returncode == 0, "stdout": r.stdout, "stderr": r.stderr}
+                )
+            )
         else:
             if r.stdout:
                 typer.echo(r.stdout)

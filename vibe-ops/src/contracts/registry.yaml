@@ -1,0 +1,136 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Schema Registry — vibe-ops Data-Mesh Contract Catalog
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# Mapeia: domain.product.version → contract YAML path + metadados
+# Regra: breaking change = versão nova. Nunca mutação silenciosa.
+# Ref: ADR-001 §2.1 (Schema-First), ADR-002 §Q1
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+registry_version: "1.0.0"
+updated_at: "2026-05-09"
+
+domains:
+  planning:
+    description: "Metadados YAML de arquivos Markdown (sonhos, objetivos, metas, tarefas)"
+    owner: "humano"
+    source_of_truth: "Markdown + YAML Frontmatter"
+    products:
+      entities:
+        versions:
+          v1:
+            contract_path: "src/contracts/planning.v1.yaml"
+            status: "active"
+            breaking_changes: []
+            pydantic_models:
+              - "Wave"
+              - "Cycle"
+              - "Phase"
+              - "Project"
+              - "Habit"
+              - "StudyMaterial"
+              - "StudyTopic"
+              - "StudySession"
+              - "StudyProject"
+              - "BacklogTask"
+              - "RoadmapItem"
+              - "ChangelogEntry"
+              - "ReviewEvent"
+              - "PolicyDecision"
+              - "DecisionRecord"
+              - "TimeBlock"
+
+  execution:
+    description: "Tasks operacionais gerenciadas pelo Taskwarrior"
+    owner: "taskwarrior"
+    source_of_truth: "Taskwarrior .task binary DB"
+    products:
+      tasks:
+        versions:
+          v1:
+            contract_path: "src/contracts/execution.v1.yaml"
+            status: "draft"
+            breaking_changes: []
+            pydantic_models:
+              - "BacklogTask"
+
+  temporal:
+    description: "Intervalos de tempo rastreados pelo Timewarrior"
+    owner: "timewarrior"
+    source_of_truth: "Timewarrior .timew files"
+    products:
+      intervals:
+        versions:
+          v1:
+            contract_path: "src/contracts/temporal.v1.yaml"
+            status: "draft"
+            breaking_changes: []
+            pydantic_models:
+              - "Wave"
+              - "Cycle"
+              - "Phase"
+
+  analytics:
+    description: "Snapshots derivados, KPIs e métricas consolidadas"
+    owner: "pipeline"
+    source_of_truth: "SQLite analytics DB"
+    products:
+      snapshots:
+        versions:
+          v1:
+            contract_path: "src/contracts/analytics.v1.yaml"
+            status: "draft"
+            breaking_changes: []
+            pydantic_models:
+              - "DailyLog"
+              - "DailyConsolidation"
+              - "WeeklyAggregate"
+              - "DailyMetrics"
+
+  ikigai:
+    description: "Vetores de alinhamento IKIGAi e oportunidades"
+    owner: "humano"
+    source_of_truth: "Markdown (vectors/) + Pydantic computed"
+    products:
+      vectors:
+        versions:
+          v1:
+            contract_path: "src/contracts/ikigai.v1.yaml"
+            status: "draft"
+            breaking_changes: []
+            pydantic_models:
+              - "IKIGAiVectorEntity"
+              - "IKIGAiProfile"
+              - "SkillNode"
+              - "OpportunitySignal"
+
+  study:
+    description: "Domínio focado em aprendizagem, tópicos e notas de estudo"
+    owner: "humano"
+    source_of_truth: "Markdown + YAML Frontmatter"
+    products:
+      entities:
+        versions:
+          v1:
+            contract_path: "src/contracts/planning.v1.yaml"
+            status: "active"
+            breaking_changes: []
+            pydantic_models:
+              - "StudyProject"
+              - "StudyTopic"
+              - "StudyMaterial"
+              - "StudyNoteIndex"
+              - "StudySession"
+
+  finance:
+    description: "Contabilidade, receitas, despesas e ROI"
+    owner: "gnucash/fin_ops"
+    source_of_truth: "GnuCash SQLite + fin_ops CSV"
+    products:
+      ledger:
+        versions:
+          v1:
+            contract_path: "src/contracts/finance.v1.yaml"
+            status: "draft"
+            breaking_changes: []
+            pydantic_models: []

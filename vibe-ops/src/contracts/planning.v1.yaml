@@ -1,0 +1,258 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Contract: planning.entities.v1
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# Contrato tipado para entidades do domínio Planning (Markdown frontmatter).
+# Gerado a partir dos modelos Pydantic — NÃO editar manualmente.
+# Para atualizar: rodar `schema_registry.py generate planning`
+#
+# Ref: ADR-002 §Q1, specs/schema-frontmatter-contract-v2.md
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+contract:
+  domain: "planning"
+  product: "entities"
+  version: "v1"
+  status: "active"
+  created_at: "2026-05-09"
+  sla:
+    max_staleness_hours: 168  # 7 dias — refresh semanal mínimo
+    validation_mode: "strict"  # strict | lenient
+
+# ── Entidades cobertas por este contrato ──
+entity_types:
+
+  wave:
+    required_fields:
+      - entity_type
+      - id
+      - title
+      - phase_id
+    optional_fields:
+      - start_date
+      - end_date
+      - status
+      - description
+      - tags
+    field_types:
+      entity_type: {type: string, const: "wave"}
+      id: {type: string, pattern: "^[a-z0-9_-]+$"}
+      title: {type: string, minLength: 1}
+      phase_id: {type: string}
+      start_date: {type: string, format: date}
+      end_date: {type: string, format: date}
+      status: {type: string, enum: [active, completed, planned, cancelled]}
+      tags: {type: array, items: {type: string}}
+
+  cycle:
+    required_fields:
+      - entity_type
+      - id
+      - title
+      - wave_id
+    optional_fields:
+      - start_date
+      - end_date
+      - focus
+      - status
+      - tags
+    field_types:
+      entity_type: {type: string, const: "cycle"}
+      id: {type: string}
+      title: {type: string, minLength: 1}
+      wave_id: {type: string}
+      focus: {type: string}
+      status: {type: string, enum: [active, completed, planned]}
+
+  phase:
+    required_fields:
+      - entity_type
+      - id
+      - title
+    optional_fields:
+      - start_date
+      - end_date
+      - description
+      - status
+    field_types:
+      entity_type: {type: string, const: "phase"}
+      id: {type: string}
+      title: {type: string, minLength: 1}
+      status: {type: string, enum: [active, completed, planned]}
+
+  project:
+    required_fields:
+      - entity_type
+      - id
+      - title
+    optional_fields:
+      - description
+      - status
+      - priority
+      - tags
+      - tw_project_key
+      - parent_project_id
+      - start_date
+      - due_date
+    field_types:
+      entity_type: {type: string, const: "project"}
+      id: {type: string}
+      title: {type: string, minLength: 1}
+      status: {type: string, enum: [active, completed, on_hold, cancelled, planned]}
+      priority: {type: string, enum: [H, M, L]}
+      tw_project_key: {type: string}
+
+  habit:
+    required_fields:
+      - entity_type
+      - id
+      - title
+    optional_fields:
+      - frequency
+      - streak_current
+      - streak_best
+      - active
+      - category
+      - tags
+    field_types:
+      entity_type: {type: string, const: "habit"}
+      id: {type: string}
+      title: {type: string, minLength: 1}
+      frequency: {type: string, enum: [daily, weekly, monthly]}
+      active: {type: boolean}
+
+  study_material:
+    required_fields:
+      - entity_type
+      - id
+      - title
+      - topic_id
+    optional_fields:
+      - url
+      - format
+      - status
+      - difficulty
+      - tags
+    field_types:
+      entity_type: {type: string, const: "study_material"}
+      id: {type: string}
+      title: {type: string, minLength: 1}
+      topic_id: {type: string}
+      format: {type: string, enum: [video, article, book, course, podcast, documentation]}
+      status: {type: string, enum: [not_started, in_progress, completed, archived]}
+
+  study_topic:
+    required_fields:
+      - entity_type
+      - id
+      - title
+    optional_fields:
+      - description
+      - skill_id
+      - priority
+      - status
+      - tags
+    field_types:
+      entity_type: {type: string, const: "study_topic"}
+      id: {type: string}
+      title: {type: string, minLength: 1}
+
+  study_session:
+    required_fields:
+      - entity_type
+      - id
+      - topic_id
+      - duration_minutes
+    optional_fields:
+      - date
+      - material_id
+      - notes
+      - quality_score
+      - tags
+    field_types:
+      entity_type: {type: string, const: "study_session"}
+      id: {type: string}
+      topic_id: {type: string}
+      duration_minutes: {type: integer, minimum: 1}
+      quality_score: {type: number, minimum: 0.0, maximum: 1.0}
+
+  backlog_task:
+    required_fields:
+      - entity_type
+      - id
+      - title
+    optional_fields:
+      - description
+      - project_id
+      - status
+      - priority
+      - due_date
+      - tags
+      - tw_uuid
+    field_types:
+      entity_type: {type: string, const: "backlog_task"}
+      id: {type: string}
+      title: {type: string, minLength: 1}
+      status: {type: string, enum: [pending, active, completed, deleted, waiting]}
+      priority: {type: string, enum: [H, M, L]}
+
+  review_event:
+    required_fields:
+      - entity_type
+      - id
+      - review_type
+    optional_fields:
+      - date
+      - cycle_id
+      - wave_id
+      - summary
+      - decisions
+      - tags
+    field_types:
+      entity_type: {type: string, const: "review_event"}
+      id: {type: string}
+      review_type: {type: string, enum: [daily, weekly, monthly, quarterly, annual]}
+
+  policy_decision:
+    required_fields:
+      - entity_type
+      - id
+      - title
+    optional_fields:
+      - description
+      - category
+      - severity
+      - status
+      - date
+      - rationale
+    field_types:
+      entity_type: {type: string, const: "policy_decision"}
+      id: {type: string}
+      title: {type: string, minLength: 1}
+
+# ── Regras de Validação Cross-Entity ──
+cross_entity_rules:
+  - rule: "wave.phase_id must reference existing phase.id"
+    type: "fk_integrity"
+    from: {entity: "wave", field: "phase_id"}
+    to: {entity: "phase", field: "id"}
+
+  - rule: "cycle.wave_id must reference existing wave.id"
+    type: "fk_integrity"
+    from: {entity: "cycle", field: "wave_id"}
+    to: {entity: "wave", field: "id"}
+
+  - rule: "study_material.topic_id must reference existing study_topic.id"
+    type: "fk_integrity"
+    from: {entity: "study_material", field: "topic_id"}
+    to: {entity: "study_topic", field: "id"}
+
+  - rule: "study_session.topic_id must reference existing study_topic.id"
+    type: "fk_integrity"
+    from: {entity: "study_session", field: "topic_id"}
+    to: {entity: "study_topic", field: "id"}
+
+  - rule: "backlog_task.project_id must reference existing project.id"
+    type: "fk_integrity"
+    from: {entity: "backlog_task", field: "project_id"}
+    to: {entity: "project", field: "id"}

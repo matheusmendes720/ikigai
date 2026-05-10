@@ -1,0 +1,27 @@
+domains:
+  study:
+    owner: "epistemic_architect"
+    products:
+      study_topics:
+        versions:
+          "1.0.0":
+            contract_path: "contracts/study_topic_v1.json"
+            status: "active"
+            pydantic_models: ["StudyTopic"]
+            slas:
+              freshness: "daily"
+              availability: "99.9%"
+          "1.1.0":
+            contract_path: "contracts/study_topic_v1.json"
+            status: "draft"
+            breaking_changes: ["Adição de metric_id obrigatório em v2"]
+
+  development:
+    owner: "software_architect"
+    products:
+      roadmaps:
+        versions:
+          "1.0.0":
+            contract_path: "contracts/roadmap_v1.json"
+            status: "active"
+            pydantic_models: ["RoadmapItem"]

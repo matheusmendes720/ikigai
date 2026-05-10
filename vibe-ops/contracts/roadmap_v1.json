@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Roadmap Contract v1",
+  "type": "object",
+  "properties": {
+    "entity_type": { "type": "string", "const": "roadmap_item" },
+    "id": { "type": "string", "pattern": "^rdm_[a-z0-9_]+$" },
+    "goal_id": { "type": "string", "pattern": "^G\\d+$" },
+    "title": { "type": "string", "minLength": 3 },
+    "storypoints": { "type": "integer", "minimum": 1 },
+    "status": { "enum": ["planned", "in_progress", "completed"] }
+  },
+  "required": ["entity_type", "id", "goal_id", "title"]
+}

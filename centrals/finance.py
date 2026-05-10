@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from life.config import load_config
+from life.cli.config import load_config
 from life.centrals.base import BaseCentral
 
 app = typer.Typer(help="Finance central: fin_ops track, report, simulate, derivatives.")
@@ -29,12 +29,21 @@ def track(
     json_out: bool = typer.Option(True, "--json/--no-json"),
 ):
     """Record expense via fin_ops."""
-    args = ["track", "--amount", str(amount), "--category", category, "--expense_type", expense_type]
+    args = [
+        "track",
+        "--amount",
+        str(amount),
+        "--category",
+        category,
+        "--expense_type",
+        expense_type,
+    ]
     if description:
         args += ["--desc", description]
     out = _run_fin_ops(args, json_out=json_out)
     if json_out:
         import json
+
         print(json.dumps(out.get("data") or out))
     else:
         if out.get("stdout"):
@@ -52,6 +61,7 @@ def report(
     out = _run_fin_ops(["report", "--period", period], json_out=json_out)
     if json_out:
         import json
+
         print(json.dumps(out.get("data") or out))
     else:
         if out.get("stdout"):
@@ -69,6 +79,7 @@ def simulate(
     out = _run_fin_ops(["simulate", "--scenario", scenario], json_out=json_out)
     if json_out:
         import json
+
         print(json.dumps(out.get("data") or out))
     else:
         if out.get("stdout"):
@@ -83,6 +94,7 @@ def derivatives(json_out: bool = typer.Option(True, "--json/--no-json")):
     out = _run_fin_ops(["derivatives"], json_out=json_out)
     if json_out:
         import json
+
         print(json.dumps(out.get("data") or out))
     else:
         if out.get("stdout"):

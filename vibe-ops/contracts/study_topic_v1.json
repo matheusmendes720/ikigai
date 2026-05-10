@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "StudyTopic Contract v1",
+  "description": "Contrato de dados para nós de conhecimento no Data Mesh Epistêmico.",
+  "type": "object",
+  "properties": {
+    "entity_type": { "type": "string", "const": "study_topic" },
+    "id": { "type": "string", "pattern": "^tp_[a-z0-9_]+$" },
+    "title": { "type": "string", "minLength": 3 },
+    "parent_study_project": { "type": "string", "pattern": "^sp_[a-z0-9_]+$" },
+    "importance_level": { "enum": ["primary", "secondary", "tertiary"] },
+    "depth_level": { "type": "number", "minimum": 0.0, "maximum": 5.0 },
+    "target_depth": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "transferability": { "enum": ["high", "medium", "low"] },
+    "cognitive_debt": {
+      "type": "object",
+      "properties": {
+        "level": { "enum": ["low", "medium", "high", "critical"] },
+        "interest_rate": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "reason": { "type": "string" }
+      },
+      "required": ["level", "interest_rate"]
+    }
+  },
+  "required": ["entity_type", "id", "title", "parent_study_project", "depth_level"]
+}

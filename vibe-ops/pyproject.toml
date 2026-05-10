@@ -1,0 +1,13 @@
+[project]
+name = "vibe-ops"
+version = "0.1.0"
+dependencies = [
+    "pydantic",
+    "sqlalchemy",
+    "rich",
+    "typer",
+    "pyyaml",
+    "chromadb",
+    "tasklib",
+    "python-frontmatter",
+]

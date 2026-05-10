@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from life.config import load_config
+from life.cli.config import load_config
 from life.centrals.base import BaseCentral
 
 app = typer.Typer(help="Research central: map URLs, crawl, search.")
@@ -17,7 +17,9 @@ def _run_research(module_args: list[str], json_out: bool = True) -> dict:
     path = cfg.get_submodule_path("research")
     if not path or not path.exists():
         return {"ok": False, "error": "research submodule not found"}
-    return BaseCentral(config=cfg).run_cli(path, "research.cli", module_args, json_out=json_out)
+    return BaseCentral(config=cfg).run_cli(
+        path, "research.cli", module_args, json_out=json_out
+    )
 
 
 @app.command("map")
@@ -34,6 +36,7 @@ def map_urls(
     out = _run_research(args, json_out=json_out)
     if json_out:
         import json
+
         print(json.dumps(out.get("data") or out))
     else:
         if out.get("stdout"):
@@ -55,6 +58,7 @@ def crawl(
     out = _run_research(args, json_out=json_out)
     if json_out:
         import json
+
         print(json.dumps(out.get("data") or out))
     else:
         if out.get("stdout"):
@@ -74,6 +78,7 @@ def search(
     out = _run_research(args, json_out=json_out)
     if json_out:
         import json
+
         print(json.dumps(out.get("data") or out))
     else:
         if out.get("stdout"):
