@@ -20,7 +20,6 @@ DEFAULT_CONFIG_DIR = ROOT / "config"
 DEFAULT_LOG_DIR = Path(os.environ.get("LIFE_LOG_DIR", str(ROOT / ".life" / "logs")))
 DEFAULT_PLUGIN_DIRS = [ROOT / "life" / "plugins" / "builtin", ROOT / "plugins"]
 DEFAULT_SUBMODULES = {
-    "fin_ops": ROOT / "fin_ops",
     "job_offers": ROOT / "system" / "raise_data" / "job-offers",
     "leitura": ROOT / "system" / "knowledge" / "leitura",
     "mindmaps": ROOT / "system" / "knowledge" / "mindmaps",
@@ -41,8 +40,6 @@ class LifeConfig:
     plugin_dirs: list[Path] = field(default_factory=lambda: list(DEFAULT_PLUGIN_DIRS))
     submodules: dict[str, Path] = field(default_factory=lambda: dict(DEFAULT_SUBMODULES))
     task_scripts: Path = field(default_factory=lambda: TASK_SCRIPTS)
-    # Per-central overrides (e.g. store paths)
-    finance_store: Optional[Path] = None
     notes_store: Optional[Path] = None
     extra: dict[str, Any] = field(default_factory=dict)
 
@@ -89,8 +86,7 @@ def load_config(path: Optional[Path] = None) -> LifeConfig:
         plugin_dirs=[_root / p if not Path(p).is_absolute() else Path(p) for p in plug.get("dirs", [])] or [ROOT / "life" / "plugins" / "builtin", ROOT / "plugins"],
         submodules={k: (p if (p := Path(v)).is_absolute() else _root / p) for k, v in (subs or DEFAULT_SUBMODULES).items()},
         task_scripts=task_scripts_path,
-        finance_store=Path(data["finance_store"]) if data.get("finance_store") else None,
         notes_store=Path(data["notes_store"]) if data.get("notes_store") else None,
-        extra={k: v for k, v in data.items() if k not in ("root", "log", "plugins", "submodules", "task_scripts", "finance_store", "notes_store")},
+        extra={k: v for k, v in data.items() if k not in ("root", "log", "plugins", "submodules", "task_scripts", "notes_store")},
     )
     return cfg

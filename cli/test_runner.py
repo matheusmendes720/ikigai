@@ -7,8 +7,8 @@ import sys
 from pathlib import Path
 from typing import Any, List, Optional
 
-from life.config import load_config
-from life.log import get_logger
+from life.cli.config import load_config
+from life.cli.log import get_logger
 
 logger = get_logger("life.test_runner")
 

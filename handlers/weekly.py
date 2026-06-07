@@ -1,4 +1,4 @@
-"""Weekly handler: weekly review script, finance report week, optional metrics."""
+"""Weekly handler: weekly review script, optional metrics."""
 
 from __future__ import annotations
 
@@ -9,10 +9,10 @@ from pathlib import Path
 from typing import Any
 
 import typer
-from life.config import load_config
-from life.log import get_logger
+from life.cli.config import load_config
+from life.cli.log import get_logger
 
-app = typer.Typer(help="Weekly flow: weekly review, finance report (week), metrics.")
+app = typer.Typer(help="Weekly flow: weekly review, metrics.")
 logger = get_logger("life.handlers.weekly")
 
 
@@ -34,14 +34,13 @@ def _run_life_cmd(args: list[str], cwd: Path) -> dict[str, Any]:
 @app.command()
 def run(
     skip_review: bool = typer.Option(False, "--skip-review", help="Skip weekly-review script"),
-    skip_finance: bool = typer.Option(False, "--skip-finance"),
     skip_metrics: bool = typer.Option(False, "--skip-metrics"),
     json_out: bool = typer.Option(False, "--json"),
 ):
-    """Run weekly flow: weekly review + finance report (week) + optional metrics."""
+    """Run weekly flow: weekly review + optional metrics."""
     cfg = load_config()
     root = cfg.root
-    results = {"review": None, "finance": None, "metrics": None, "errors": []}
+    results: dict[str, Any] = {"review": None, "metrics": None, "errors": []}
 
     if not skip_review:
         logger.info("Weekly: running task weekly-review")
@@ -49,13 +48,6 @@ def run(
         results["review"] = out.get("data") or out
         if not out.get("ok"):
             results["errors"].append("review: " + (out.get("error") or out.get("stderr", "failed")))
-
-    if not skip_finance:
-        logger.info("Weekly: running finance report (week)")
-        out = _run_life_cmd(["finance", "report", "--period", "week"], root)
-        results["finance"] = out.get("data") or out
-        if not out.get("ok"):
-            results["errors"].append("finance: " + (out.get("error") or out.get("stderr", "failed")))
 
     if not skip_metrics:
         logger.info("Weekly: running metrics")
@@ -66,13 +58,8 @@ def run(
 
     if json_out:
         print(json.dumps(results))
-    else:
-        if results["finance"] and isinstance(results["finance"], dict):
-            d = results["finance"].get("data") or results["finance"]
-            if isinstance(d, dict):
-                typer.echo(f"Weekly finance: total={d.get('total', 'n/a')} count={d.get('count', 0)}")
-        for err in results["errors"]:
-            typer.echo(err, err=True)
+    for err in results["errors"]:
+        typer.echo(err, err=True)
 
 
 weekly_handler = app
