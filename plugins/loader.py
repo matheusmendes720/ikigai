@@ -9,8 +9,8 @@ from typing import Any, List, Optional
 
 import typer
 
-from life.config import load_config
-from life.log import get_logger
+from life.cli.config import load_config
+from life.cli.log import get_logger
 from .protocol import PluginProtocol
 
 logger = get_logger("life.plugins")
@@ -62,13 +62,14 @@ def load_plugins(plugin_dirs: Optional[List[Path]] = None) -> List[PluginProtoco
     plugins: List[PluginProtocol] = []
     seen: set[str] = set()
 
+    _SKIP = {"loader.py", "protocol.py", "__init__.py"}
     for dir_path in dirs:
         dir_path = Path(dir_path)
         if not dir_path.exists():
             continue
         # Single-file plugins: *.py
         for path in dir_path.glob("*.py"):
-            if path.name.startswith("_"):
+            if path.name.startswith("_") or path.name in _SKIP:
                 continue
             mod = _load_plugin_module(path)
             if mod is None:

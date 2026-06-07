@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import typer
-from life.config import load_config
+from life.cli.config import load_config
 from life.plugins.protocol import PluginProtocol
 
 app = typer.Typer(help="Health: check submodules and paths.")

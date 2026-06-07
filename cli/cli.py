@@ -11,11 +11,11 @@ from typing import Any, Optional
 
 import typer
 from life import __version__
-from life.config import load_config
-from life.centrals import task_central, finance_central, knowledge_central, research_central
+from life.cli.config import load_config
+from life.centrals import task_central, knowledge_central, research_central
 from life.handlers import daily_handler, weekly_handler
 from life.plugins.loader import load_plugins, register_plugins
-from life.test_runner import find_test_dirs, run_pytest
+from life.cli.test_runner import find_test_dirs, run_pytest
 
 
 def _submodule_ref(path: Path) -> Optional[str]:
@@ -61,13 +61,12 @@ app = typer.Typer(
 
 # --- Centrals (different hubs) ---
 app.add_typer(task_central, name="task", help="Task central: Taskwarrior, reviews, metrics.")
-app.add_typer(finance_central, name="finance", help="Finance central: fin_ops.")
 app.add_typer(knowledge_central, name="knowledge", help="Knowledge central: leitura, mindmaps, notes.")
 app.add_typer(research_central, name="research", help="Research central: map, crawl, search.")
 
 # --- Handlers (daily/weekly usage) ---
-app.add_typer(daily_handler, name="daily", help="Daily flow: task today + finance report.")
-app.add_typer(weekly_handler, name="weekly", help="Weekly flow: review + finance + metrics.")
+app.add_typer(daily_handler, name="daily", help="Daily flow: task today + optional centrals.")
+app.add_typer(weekly_handler, name="weekly", help="Weekly flow: review + metrics.")
 
 
 # --- Config ---
