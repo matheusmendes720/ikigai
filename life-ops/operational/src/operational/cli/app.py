@@ -25,6 +25,7 @@ from operational.cli.commands.routine_cmd import app as routine_app
 from operational.cli.commands.state_cmd import app as state_app
 from operational.cli.commands.reflect_cmd import app as reflect_app
 from operational.cli.commands.lunch_cmd import app as lunch_app
+from operational.cli.commands.doctor_cmd import app as doctor_app
 
 __all__ = ["app"]
 
@@ -45,6 +46,7 @@ app.add_typer(report_app, name="report", help="Gerar relatórios diário/semanal
 app.add_typer(state_app, name="state", help="Dashboard do dia corrente (onde estou, o que está logado).")
 app.add_typer(reflect_app, name="reflect", help="OKRs V3 — reflexão de entrada/saída.")
 app.add_typer(lunch_app, name="lunch", help="Registrar almoço (eat + rest + flag pesado).")
+app.add_typer(doctor_app, name="doctor", help="Diagnóstico completo do ambiente.")
 
 
 @app.command()
