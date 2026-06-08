@@ -104,3 +104,53 @@ day_contexts: _PersistentRepo = _PersistentRepo(DayContext, "day_contexts.json")
 daily_reflections: _PersistentRepo = _PersistentRepo(DailyReflection, "daily_reflections.json")
 lunch_records: _PersistentRepo = _PersistentRepo(LunchRecord, "lunch_records.json")
 transicoes: _PersistentRepo = _PersistentRepo(TransicaoRegistrada, "transicoes.json")
+
+
+# ---------------------------------------------------------------------------
+# Auto-load dataset on boot (if requested via env var)
+# ---------------------------------------------------------------------------
+def _auto_load_dataset() -> None:
+    """If TIME_TASKER_DATASET is set and the state dir is empty, load from CSV.
+
+    Skips if any state file already exists (don't overwrite user data).
+    Skips silently on errors (the user can run ``operational demo import-csv``
+    manually if needed).
+    """
+    dataset_name = os.environ.get("TIME_TASKER_DATASET")
+    if not dataset_name or dataset_name == "production":
+        return
+    if any(_STATE_DIR.glob("*.json")):
+        return
+    try:
+        from operational.cli.csv_loader import import_from_csv_as_entities
+        from operational.cli.dataset_selector import resolve_dataset
+
+        ref = resolve_dataset(dataset_name)
+        if not ref.csv_path or not ref.csv_path.exists():
+            return
+        groups = import_from_csv_as_entities(ref.csv_path)
+        repo_map = {
+            "routine": routines,
+            "routine_log": routine_logs,
+            "time_block": time_blocks,
+            "journal_entry": journals,
+            "habit": habits,
+            "sleep_record": sleep_records,
+            "pomodoro_round": pomodoros,
+            "policy_decision": policy_decisions,
+            "policy_setpoints": policy_setpoints,
+            "ajuste_fino": ajustes_finos,
+            "day_context": day_contexts,
+            "daily_reflection": daily_reflections,
+            "lunch_record": lunch_records,
+            "transicao": transicoes,
+        }
+        for etype, entities in groups.items():
+            if etype in repo_map:
+                for ent in entities:
+                    repo_map[etype].upsert(ent)
+    except Exception:  # noqa: BLE001
+        pass  # silent — let the user debug via `operational doctor`
+
+
+_auto_load_dataset()
