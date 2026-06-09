@@ -236,6 +236,11 @@ def _dispatch(choice: str) -> None:
     args = dispatch_map.get(choice, ["--help"])
     _run_cmd(args)
     console.print()
+    if choice != "q":
+        # Pause so the user can read the command output before
+        # the next menu render overwrites it.
+        from rich.prompt import Prompt
+        Prompt.ask("[dim]Press Enter to continue[/dim]", default="")
     # Recurse for next action
     run()
 
