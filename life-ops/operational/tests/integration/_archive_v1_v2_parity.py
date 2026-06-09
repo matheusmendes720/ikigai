@@ -45,9 +45,12 @@ runner = CliRunner()
 
 @pytest.mark.parametrize("mock_name", ["q1", "q2", "q3", "q4", "burnout", "peak", "empty"])
 def test_daily_v1_and_v2_contain_same_key_data(mock_name: str) -> None:
-    """``pav report daily`` and ``pav report daily --v2`` both show regime, sleep, pomodoros."""
-    v1 = runner.invoke(app, ["report", "daily", "--mock", mock_name])
-    v2 = runner.invoke(app, ["report", "daily", "--mock", mock_name, "--v2"])
+    """``pav report daily --v1`` and ``pav report daily --v2`` both show regime, sleep, pomodoros.
+
+    v2 is now the default (no flag). The v1 path requires ``--v1``.
+    """
+    v1 = runner.invoke(app, ["report", "daily", "--mock", mock_name, "--v1"])
+    v2 = runner.invoke(app, ["report", "daily", "--mock", mock_name])
 
     # Both must succeed
     assert v1.exit_code == 0, f"v1 failed: {v1.output}"
@@ -68,18 +71,18 @@ def test_daily_v1_and_v2_contain_same_key_data(mock_name: str) -> None:
 
 @pytest.mark.parametrize("mock_name", ["q1", "q3", "burnout"])
 def test_state_show_v1_and_v2_both_work(mock_name: str) -> None:
-    """``pav state show`` and ``pav state show --v2`` both work with mock."""
-    v1 = runner.invoke(app, ["state", "show", "--mock", mock_name])
-    v2 = runner.invoke(app, ["state", "show", "--mock", mock_name, "--v2"])
+    """``pav state show --v1`` and ``pav state show`` (default v2) both work with mock."""
+    v1 = runner.invoke(app, ["state", "show", "--mock", mock_name, "--v1"])
+    v2 = runner.invoke(app, ["state", "show", "--mock", mock_name])
 
     assert v1.exit_code == 0, f"v1 failed: {v1.output}"
     assert v2.exit_code == 0, f"v2 failed: {v2.output}"
 
 
 def test_weekly_v1_and_v2_both_work() -> None:
-    """``pav report weekly`` and ``pav report weekly --v2`` both run."""
-    v1 = runner.invoke(app, ["report", "weekly"])
-    v2 = runner.invoke(app, ["report", "weekly", "--v2"])
+    """``pav report weekly --v1`` and ``pav report weekly`` (default v2) both run."""
+    v1 = runner.invoke(app, ["report", "weekly", "--v1"])
+    v2 = runner.invoke(app, ["report", "weekly"])
 
     assert v1.exit_code == 0, f"v1 failed: {v1.output}"
     assert v2.exit_code == 0, f"v2 failed: {v2.output}"
@@ -90,16 +93,16 @@ def test_weekly_v1_and_v2_both_work() -> None:
 # ===========================================================================
 
 def test_v1_daily_has_no_v2_chrome() -> None:
-    """v1 daily does NOT have the v2 '──' bar separator."""
-    result = runner.invoke(app, ["report", "daily", "--mock", "q1", "--date", "2026-06-01"])
+    """v1 daily (--v1) does NOT have the v2 '──' bar separator."""
+    result = runner.invoke(app, ["report", "daily", "--mock", "q1", "--date", "2026-06-01", "--v1"])
     assert result.exit_code == 0
     long_bar = "─" * 60
     assert long_bar not in result.output, "v1 should NOT render v2 chrome (long ─ bar)"
 
 
 def test_v2_daily_has_v2_chrome() -> None:
-    """v2 daily has the v2 '──' bar separator."""
-    result = runner.invoke(app, ["report", "daily", "--mock", "q1", "--date", "2026-06-01", "--v2"])
+    """v2 daily (default) has the v2 '──' bar separator."""
+    result = runner.invoke(app, ["report", "daily", "--mock", "q1", "--date", "2026-06-01"])
     assert result.exit_code == 0
     long_bar = "─" * 60
     if result.output:  # stdout may not be captured depending on console state
@@ -116,10 +119,10 @@ def test_v2_daily_has_v2_chrome() -> None:
     ["report", "weekly"],
 ])
 def test_mock_q1_appears_in_output(cmd_args: list) -> None:
-    """When --mock q1 is used, the output should contain the Q1 indicator."""
-    result = runner.invoke(app, cmd_args + ["--mock", "q1", "--v2"])
+    """When --mock q1 is used (default v2), the output should contain the Q1 indicator."""
+    result = runner.invoke(app, cmd_args + ["--mock", "q1"])
     assert result.exit_code == 0
     # Q1 (green quadrant) should be visible in v2 output (when stdout is captured)
     if result.output:
         assert "Q1" in result.output, \
-            f"{cmd_args} --v2 should show Q1: {result.output[:300]}"
+            f"{cmd_args} (default v2) should show Q1: {result.output[:300]}"

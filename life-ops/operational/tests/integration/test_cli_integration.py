@@ -7,7 +7,7 @@ Focus areas:
   * monkeypatch on repos for canned data
   * Domain exception hierarchy
   * Validator functions
-  * error_panel UI component
+  * error_panel_v2 UI component
 
 All tests use :class:`typer.testing.CliRunner` and run in-process
 (``catch_exceptions=True`` is the default). State is isolated per-test
@@ -39,7 +39,7 @@ from operational.core.services import (
     validate_pomodoro_count,
     validate_required_fields,
 )
-from operational.ui.components import error_panel
+from operational.ui.components_v2 import error_panel_v2
 
 
 # ---------------------------------------------------------------------------
@@ -320,33 +320,35 @@ def test_state_show_json_with_mocked_sleep(
 
 
 # ---------------------------------------------------------------------------
-# J. error_panel UI component
+# J. error_panel_v2 UI component
 # ---------------------------------------------------------------------------
 
 
-def test_error_panel_returns_rich_panel() -> None:
-    """``error_panel`` is a pure factory — returns a ``rich.panel.Panel``."""
+def test_error_panel_v2_returns_rich_panel() -> None:
+    """``error_panel_v2`` is a pure factory — returns a ``rich.panel.Panel``."""
     # Act
-    panel = error_panel("Algo deu errado", hint="Use --help")
+    panel = error_panel_v2(
+        "Algo deu errado",
+        context="pav test --help",
+        expected="valid args",
+        suggestion="pav test --json",
+    )
 
     # Assert
     assert isinstance(panel, Panel)
     rendered = str(panel.renderable)
     assert "Algo deu errado" in rendered
-    assert "--help" in rendered
+    assert "pav test --help" in rendered
+    assert "pav test --json" in rendered
 
 
-def test_error_panel_supports_severity_levels() -> None:
-    """``error_panel`` picks a title by severity (Erro / Aviso / Informação)."""
+def test_error_panel_v2_contains_erro_title() -> None:
+    """``error_panel_v2`` always renders the ERRO title bar."""
     # Act
-    crit = error_panel("Critical error", severity="crit")
-    warn = error_panel("Be careful", severity="warn")
-    info = error_panel("FYI", severity="ok")
+    panel = error_panel_v2("Be careful")
 
-    # Assert — all are valid Panels with severity-specific titles
-    assert isinstance(crit, Panel)
-    assert isinstance(warn, Panel)
-    assert isinstance(info, Panel)
-    assert "Erro" in str(crit.renderable)
-    assert "Aviso" in str(warn.renderable)
-    assert "Informa" in str(info.renderable)
+    # Assert
+    assert isinstance(panel, Panel)
+    # The title contains the 'ERRO' marker
+    title_str = str(panel.title) if panel.title else ""
+    assert "ERRO" in title_str

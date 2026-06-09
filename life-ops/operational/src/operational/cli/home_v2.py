@@ -1,25 +1,16 @@
 """V2 Home Menu — uses rich.layout.Layout for a structured dashboard.
 
-Differences from v1 home:
-- 3-zone Layout (header / menu / footer) with explicit size
-- Menu grouped in 5 themed sections (FLUXO, DASHBOARD, RELATORIOS, DADOS, SISTEMA)
-- Today's snapshot visible at the top (no need to run state show)
-- Regime context (PUSH/MAINTAIN/REDUCE/RECOVER) shown in header
-- Console.rule dividers between sections
-- Backward compat: v1 home is still the default; opt-in via --v2 flag
+The PAV-OS v2 home menu (definitive edition). 3-zone Layout (header /
+menu / footer) with explicit size, 5 themed sections
+(FLUXO, DASHBOARD, RELATORIOS, DADOS, SISTEMA), today's snapshot
+visible at the top, regime context shown in header.
 """
 from __future__ import annotations
 
 import io
-import re
 from contextlib import redirect_stdout
 from datetime import date
-from typing import NoReturn
 
-from rich.console import Group
-from rich.layout import Layout
-from rich.padding import Padding
-from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.rule import Rule
 from rich.table import Table
@@ -29,8 +20,7 @@ from operational import __version__
 from operational.cli.app import app as typer_app
 from operational.cli.console import console
 from operational.ui import strip_ansi
-from operational.ui.components_v2 import header_v2, kpi_v2
-from operational.ui.tokens import CONSOLE_WIDTH_V2, Glyph, SEVERITY
+from operational.ui.tokens import SEVERITY
 
 
 # Menu groups (key, label, subtitle) - organized by human workflow, not CRUD
@@ -59,49 +49,6 @@ MENU_GROUPS: list[tuple[str, str, list[tuple[str, str, str]]]] = [
 ]
 
 
-def _make_header_bar() -> Text:
-    """Top bar: PAV-OS name + regime context + date."""
-    return Text()
-
-
-def _render_group_table(group_key: str, group_label: str, items: list) -> Table:
-    """Render one menu group as a Table."""
-    t = Table.grid(expand=False, padding=(0, 1))
-    t.add_column(min_width=4, justify="left", style="bold cyan")
-    t.add_column(min_width=40, justify="left")
-    t.add_column(justify="left", style="grey58")
-    for key, label, sub in items:
-        t.add_row(f"  {key} ", label, sub)
-    return t
-
-
-def _today_snapshot() -> RenderableType:
-    """Build the today's-snapshot row at the top of the home menu."""
-    from operational.core.services import get_day_snapshot
-    try:
-        snap = get_day_snapshot(date.today())
-    except Exception:
-        return Text("  (snapshot unavailable — run 'demo seed' to populate)", style="grey58")
-
-    sleep_dur = snap.sleep.duration_hours
-    sleep_str = f"{sleep_dur:.1f}h" if sleep_dur is not None else "—"
-    pomo_str = f"{snap.n_pomodoros}/{snap.pomodoros_meta}" if snap.pomodoros_meta else "—/—"
-
-    t = Table.grid(expand=False, padding=(0, 3))
-    t.add_column(justify="left", style="bold cyan")
-    t.add_column(justify="left")
-    t.add_column(justify="left", style="bold cyan")
-    t.add_column(justify="left")
-    t.add_column(justify="left", style="bold cyan")
-    t.add_column(justify="left")
-    t.add_row(
-        "Hoje:", date.today().isoformat(),
-        "Sono:", sleep_str,
-        "Pomodoros:", pomo_str,
-    )
-    return t
-
-
 def _make_today_snapshot_renderable():
     """Today's snapshot as a renderable. Avoids circular import.
 
@@ -109,12 +56,10 @@ def _make_today_snapshot_renderable():
     shows that (e.g. when running on synthetic/golden dataset which
     contains historical days).
     """
-    from rich.console import Group
     from operational.core.services import get_day_snapshot
-    from operational.cli.state import day_contexts, sleep_records
+    from operational.cli.state import day_contexts
 
     target_date = date.today()
-    # If no data for today, use the most recent day with data
     ctx_list = day_contexts.list()
     if ctx_list and not any(c.date == target_date for c in ctx_list):
         target_date = max(c.date for c in ctx_list)
@@ -142,18 +87,6 @@ def _make_today_snapshot_renderable():
         "Pomodoros:", pomo_str,
     )
     return t
-
-
-def _make_menu_layout() -> Layout:
-    """Build the v2 home menu layout (3 zones: header / menu / footer)."""
-    layout = Layout()
-    layout.split_column(
-        Layout(name="header", size=3),
-        Layout(name="snapshot", size=2),
-        Layout(name="menu"),
-        Layout(name="footer", size=1),
-    )
-    return layout
 
 
 def _run_cmd(args: list[str]) -> None:
@@ -237,16 +170,8 @@ def _dispatch(choice: str) -> None:
     _run_cmd(args)
     console.print()
     if choice != "q":
-        # Pause so the user can read the command output before
-        # the next menu render overwrites it.
-        from rich.prompt import Prompt
         Prompt.ask("[dim]Press Enter to continue[/dim]", default="")
-    # Recurse for next action
     run()
 
 
 __all__ = ["run", "MENU_GROUPS"]
-
-
-# Avoid forward reference issue with RenderableType
-from rich.console import RenderableType  # noqa: E402

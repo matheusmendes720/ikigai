@@ -1,21 +1,21 @@
-"""V2 daily renderer — shared between ``report_v2_cmd.py`` and
-``report_cmd.py --v2`` and ``state_cmd.py --v2``.
+"""V2 daily/state renderer — shared between ``report daily`` and
+``state show``.
 
-This is the v2 equivalent of ``ui.daily_report.render_daily_report``.
 Takes a DaySnapshot and renders it with v2 components.
 """
 from __future__ import annotations
 
+import json
+from dataclasses import asdict, is_dataclass
 from datetime import date
-from typing import Any
 
 from rich.console import Group
-from rich.json import JSON as RichJSON
 
 from operational.cli.console import console
 from operational.core.services import DaySnapshot, compute_day_quadrant
 from operational.ui.components_v2 import (
     cartesian_v2,
+    header_v2,
     kpi_grid_2x2,
     kpi_v2,
     next_step_v2,
@@ -65,7 +65,6 @@ def render_daily_v2(snap: DaySnapshot, target_date: date) -> None:
     }[regime]
     context = f"[{regime_color}]regime: {regime}[/]"
 
-    from operational.ui.components_v2 import header_v2
     header = header_v2("Daily Report", target_date.isoformat(), context=context)
 
     kpi_grid = kpi_grid_2x2([k1, k2, k3, k4])
@@ -101,8 +100,6 @@ def render_daily_v2(snap: DaySnapshot, target_date: date) -> None:
 
 def snapshot_to_json_str(snap: DaySnapshot, quadrant: str, x: float, y: float) -> str:
     """Serialize a DaySnapshot to a JSON string."""
-    import json
-    from dataclasses import asdict, is_dataclass
     d = asdict(snap) if is_dataclass(snap) else snap.__dict__
     d["quadrant"] = quadrant
     d["x"] = x
@@ -110,41 +107,8 @@ def snapshot_to_json_str(snap: DaySnapshot, quadrant: str, x: float, y: float) -
     return json.dumps(d, indent=2, default=str, ensure_ascii=False)
 
 
-def _wrap_v1_in_v2_page(title: str, body=None, subtitle: str = "", v1_renderable=None, footer=None) -> None:
-    """Wrap a v1 Rich renderable in v2 chrome (header + footer).
-
-    Accepts either ``body=`` (preferred) or legacy ``v1_renderable=``.
-    """
-    from operational.ui.components_v2 import header_v2
-    from rich.console import Group
-    from rich.padding import Padding
-
-    if body is None and v1_renderable is not None:
-        body = v1_renderable
-
-    parts = [
-        header_v2(title, subtitle, width=CONSOLE_WIDTH_V2),
-        Padding(body, (1, 0)),
-    ]
-    if footer is not None:
-        parts.append(Padding(footer, (1, 0)))
-    console.print(Group(*parts))
-
-
-def render_state_v2(snap: DaySnapshot, target_date=None, period_label: str = "", d=None) -> None:
-    """Render the v2 state dashboard from a DaySnapshot.
-
-    Accepts either ``target_date=`` (preferred) or legacy ``d=`` alias.
-    """
-    from operational.core.services import compute_day_quadrant
-    from operational.ui.components_v2 import (
-        cartesian_v2, kpi_grid_2x2, kpi_v2, next_step_v2, page, section_v2,
-    )
-
-    # Backwards-compat: accept d= as alias for target_date=
-    if target_date is None and d is not None:
-        target_date = d
-
+def render_state_v2(snap: DaySnapshot, target_date: date, period_label: str = "") -> None:
+    """Render the v2 state dashboard from a DaySnapshot."""
     try:
         q_code, x, y = compute_day_quadrant(snap)
     except Exception:
@@ -181,4 +145,4 @@ def render_state_v2(snap: DaySnapshot, target_date=None, period_label: str = "",
     console.print(page("State Dashboard", d_str, body, footer=footer))
 
 
-__all__ = ["render_daily_v2", "snapshot_to_json_str", "_wrap_v1_in_v2_page", "render_state_v2"]
+__all__ = ["render_daily_v2", "snapshot_to_json_str", "render_state_v2"]
