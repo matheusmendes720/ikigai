@@ -123,6 +123,9 @@ def import_csv(
     """Import entities from a CSV file into the current state."""
     from pathlib import Path
 
+    from rich.progress import Progress
+
+    from operational.cli.console import console
     from operational.cli.csv_loader import import_from_csv_as_entities
 
     csv_path = Path(path)
@@ -165,11 +168,14 @@ def import_csv(
         "transicao": transicoes,
     }
     counts: dict[str, int] = {}
-    for etype, entities in groups.items():
-        if etype in repo_map:
-            for ent in entities:
-                repo_map[etype].upsert(ent)
-            counts[etype] = len(entities)
+    with Progress(console=console, transient=True) as progress:
+        for etype, entities in groups.items():
+            if etype in repo_map:
+                task = progress.add_task(f"  {etype}", total=len(entities))
+                for ent in entities:
+                    repo_map[etype].upsert(ent)
+                    progress.update(task, advance=1)
+                counts[etype] = len(entities)
     if json:
         typer.echo(format_as_json({"imported": counts}))
     else:
