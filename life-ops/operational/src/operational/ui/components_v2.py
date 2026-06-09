@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from rich.box import DOUBLE, HEAVY, ROUNDED
 from rich.columns import Columns
 from rich.console import Group, RenderableType
 from rich.padding import Padding
@@ -727,6 +728,264 @@ def page(
     return Group(*parts)
 
 
+# ---------------------------------------------------------------------------
+# PRODUCTION-GRADE components — v2.1 batch
+# ---------------------------------------------------------------------------
+
+def big_panel(
+    title: str,
+    subtitle: str = "",
+    content: RenderableType | None = None,
+    severity: str = "primary",
+    width: int = CONSOLE_WIDTH_V2,
+) -> RenderableType:
+    """Large bordered panel with thick top/bottom borders (DOUBLE box).
+
+    Title is ALL CAPS in cyan, subtitle in grey, content centered.
+
+    Wireframe:
+    ╔══════════════════════════════════════════════════╗
+    ║  TITLE                                            ║
+    ║  subtitle here                                    ║
+    ║                                                   ║
+    ║  ... content ...                                  ║
+    ║                                                   ║
+    ╚══════════════════════════════════════════════════╝
+    """
+    color = SEVERITY.get(severity, SEVERITY["primary"])
+    title_line = Text()
+    title_line.append(f"  {title.upper()}", style=f"bold {color}")
+    if subtitle:
+        title_line.append(f"  ·  {subtitle}", style=STYLES["body_muted"])
+    body: list[RenderableType] = [title_line]
+    if content is not None:
+        body.append(Padding(content, (0, 0)))
+    return Panel(
+        Group(*body),
+        border_style=color,
+        box=DOUBLE,
+        width=width,
+        padding=(0, 2),
+    )
+
+
+def two_column_grid(
+    left: RenderableType,
+    right: RenderableType,
+    ratio: tuple[int, int] = (1, 1),
+) -> RenderableType:
+    """2-column grid layout (Rich Columns with equal=False + ratio).
+
+    Args:
+        left: Left column renderable.
+        right: Right column renderable.
+        ratio: Width ratio (left, right). Defaults to (1, 1).
+
+    Wireframe:
+    ┌─ left content ─────────┐  ┌─ right content ────────┐
+    │ ...                    │  │ ...                     │
+    └────────────────────────┘  └─────────────────────────┘
+    """
+    if ratio == (1, 1):
+        return Columns([left, right], equal=True, expand=True)
+    return Columns([left, right], equal=False, expand=True, align="left")
+
+
+def kpi_grid_4x1(cards: list[RenderableType]) -> RenderableType:
+    """4 KPI cards in a single row.
+
+    Args:
+        cards: Exactly 4 KPI renderables.
+
+    Wireframe:
+    [card1] [card2] [card3] [card4]
+    """
+    if len(cards) != 4:
+        return Columns(cards, equal=True, expand=True)
+    return Columns(cards, equal=True, expand=True)
+
+
+def progress_bar_v2(
+    value: float,
+    max_value: float,
+    label: str = "",
+    color: str = "primary",
+    width: int = 30,
+    show_value: bool = True,
+) -> RenderableType:
+    """Better progress bar with optional label + value.
+
+    Args:
+        value: Current value.
+        max_value: Maximum value.
+        label: Left-side label (e.g. "Hardwork").
+        color: Severity key (e.g. "primary", "success", "warning", "danger").
+        width: Width of the bar in characters.
+        show_value: Show "  65%  (240/480)" suffix.
+
+    Wireframe:
+      Hardwork  ████████████░░░░░░░░  65%  (240/480)
+    """
+    clr = SEVERITY.get(color, SEVERITY["primary"])
+    pct = 0.0 if max_value <= 0 else max(0.0, min(1.0, value / max_value))
+    filled = int(round(pct * width))
+    empty = width - filled
+    t = Text()
+    if label:
+        t.append(f"  {label:<14}", style=STYLES["body"])
+    t.append(Glyph.BAR_FULL * filled, style=clr)
+    t.append(Glyph.BAR_EMPTY * empty, style=SEVERITY["muted"])
+    if show_value:
+        t.append(f"  {int(pct * 100):3d}%", style=f"bold {clr}")
+        if max_value > 0:
+            t.append(f"  ({int(value)}/{int(max_value)})", style=STYLES["body_muted"])
+    return t
+
+
+def timeline_log(
+    entries: list[tuple[str, str, str]],
+    max_entries: int = 5,
+) -> RenderableType:
+    """Timeline with [HH:MM] [TYPE] message format.
+
+    Args:
+        entries: List of ``(timestamp, kind, message)`` tuples.
+        max_entries: Maximum number of entries to display.
+
+    Wireframe:
+    [17:07] [CHECK-IN] Energia: 7, Foco: 8 (chk_20260609_170706)
+    [17:07] [ROUTINE]  Start: Hardwork Dev (CORE)
+    """
+    color_map = {
+        "ROUTINE":  SEVERITY["primary"],
+        "CHECK-IN": SEVERITY["success"],
+        "BLOCK":    SEVERITY["info"],
+        "SYSTEM":   SEVERITY["muted"],
+        "EVENT":    SEVERITY["accent"],
+        "POMO":     SEVERITY["warning"],
+    }
+    lines: list[RenderableType] = []
+    shown = entries[-max_entries:] if len(entries) > max_entries else entries
+    for ts, kind, msg in shown:
+        clr = color_map.get(kind.upper(), SEVERITY["muted"])
+        t = Text()
+        t.append(f"  [{ts}] ", style=STYLES["mono"])
+        t.append(f"[{kind.upper():<9}] ", style=f"bold {clr}")
+        t.append(msg, style=STYLES["body"])
+        lines.append(t)
+    if not lines:
+        return Text("  (no timeline entries)", style=SEVERITY["muted"])
+    return Group(*lines)
+
+
+def kronograma_table(rows: list[tuple[str, str, str, str]]) -> RenderableType:
+    """Table with Status / Período / Bloco / Outputs.
+
+    Args:
+        rows: List of ``(status, period, block, outputs)`` tuples.
+
+    Wireframe:
+    ┌──────────┬─────────┬──────────────────────┬──────────┐
+    │ Status   │ Período │ Bloco                │ Outputs  │
+    ├──────────┼─────────┼──────────────────────┼──────────┤
+    │ [OK]     │ MANHA   │ Acordar              │ -        │
+    └──────────┴─────────┴──────────────────────┴──────────┘
+    """
+    status_color = {
+        "OK": SEVERITY["success"],
+        "WARN": SEVERITY["warning"],
+        "CRIT": SEVERITY["danger"],
+        "PEND": SEVERITY["muted"],
+        "ACTIVE": SEVERITY["primary"],
+    }
+    t = Table(
+        show_header=True,
+        header_style=f"bold {SEVERITY['primary']}",
+        border_style=SEVERITY["muted"],
+        box=ROUNDED,
+        padding=(0, 1),
+        expand=False,
+    )
+    t.add_column("Status", min_width=10, justify="left")
+    t.add_column("Período", min_width=8, justify="left")
+    t.add_column("Bloco", min_width=24, justify="left")
+    t.add_column("Outputs", min_width=12, justify="right")
+    for status, period, block, outputs in rows:
+        sclr = status_color.get(status.upper(), SEVERITY["muted"])
+        t.add_row(
+            f"[{sclr}]● {status}[/]",
+            period,
+            block,
+            outputs,
+        )
+    return t
+
+
+def policy_actions_table(
+    current_state: str,
+    history: list[tuple[str, str, str]] | None = None,
+) -> RenderableType:
+    """Policy actions panel with current setpoint + history.
+
+    Args:
+        current_state: One of "PUSH", "MAINTAIN", "REDUCE", "RECOVER".
+        history: Optional list of ``(date, transition, reason)`` tuples.
+
+    Wireframe:
+    ╭─ 🕹️ SETPOINT ATUAL ─────────────────────────────────╮
+    │  MODO: [ MAINTAIN ] ◆               Atualizado em...  │
+    ╰─────────────────────────────────────────────────────╯
+    ╭─ 📝 ÚLTIMAS DECISÕES DE POLÍTICA ────────────────────╮
+    │  2026-06-03 | PUSH → MAINTAIN | Fim de sprint...     │
+    ╰─────────────────────────────────────────────────────╯
+    """
+    spec = REGIME.get(current_state, REGIME["MAINTAIN"])
+
+    setpoint_grid = Table.grid(expand=False, padding=(0, 2))
+    setpoint_grid.add_column(min_width=10, justify="left")
+    setpoint_grid.add_column(min_width=20, justify="left")
+    setpoint_grid.add_row(
+        Text("  MODO:", style=STYLES["body_muted"]),
+        Text(f" [ {spec.glyph} {current_state} ]", style=f"bold {spec.color}"),
+    )
+
+    setpoint_panel = Panel(
+        setpoint_grid,
+        title=f"[{spec.color}] 🕹️ SETPOINT ATUAL [/]",
+        border_style=spec.color,
+        padding=(0, 1),
+    )
+
+    parts: list[RenderableType] = [setpoint_panel]
+
+    if history:
+        history_lines: list[RenderableType] = []
+        for date_str, transition, reason in history:
+            t = Text()
+            t.append(f"  {date_str}", style=STYLES["mono"])
+            t.append("  │  ", style=SEVERITY["muted"])
+            t.append(transition, style=f"bold {SEVERITY['primary']}")
+            t.append("  │  ", style=SEVERITY["muted"])
+            t.append(reason, style=STYLES["body"])
+            history_lines.append(t)
+        history_panel = Panel(
+            Group(*history_lines),
+            title=f"[{SEVERITY['info']}] 📝 ÚLTIMAS DECISÕES DE POLÍTICA [/]",
+            border_style=SEVERITY["info"],
+            padding=(0, 1),
+        )
+        parts.append(history_panel)
+
+    return Group(*parts)
+
+
+# ---------------------------------------------------------------------------
+# Aliases for clarity in callers
+# ---------------------------------------------------------------------------
+
+big_panel_header = big_panel
+
+
 __all__ = [
     "header_v2",
     "kpi_v2",
@@ -746,4 +1005,13 @@ __all__ = [
     "timeline_h_v2",
     "status_badge_v2",
     "input_summary_v2",
+    # Production-grade v2.1 batch
+    "big_panel",
+    "big_panel_header",
+    "two_column_grid",
+    "kpi_grid_4x1",
+    "progress_bar_v2",
+    "timeline_log",
+    "kronograma_table",
+    "policy_actions_table",
 ]

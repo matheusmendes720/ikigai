@@ -13,12 +13,12 @@ def test_full_daily_workflow() -> None:
     # 1. Record sleep
     r1 = runner.invoke(app, ["metric", "sleep", "--quality", "9", "--bed-hour", "22", "--wake-hour", "6"])
     assert r1.exit_code == 0
-    assert ("Sono registrado" in r1.stdout) or ("Sleep record" in r1.stdout)
+    assert ("SLEEP RECORD" in r1.stdout) or ("Sleep logged" in r1.stdout)
 
     # 2. Create routines
     r2 = runner.invoke(app, ["routine", "create", "Morning routine", "MANHA", "ENTRY", "--start-hour", "4", "--end-hour", "5"])
     assert r2.exit_code == 0
-    assert ("✓" in r2.stdout) or ("Created routine" in r2.stdout)
+    assert ("NOVA ROTINA" in r2.stdout) or ("Rotina" in r2.stdout)
 
     r3 = runner.invoke(app, ["routine", "create", "Deep work", "TARDE", "CORE", "--start-hour", "8", "--end-hour", "12"])
     assert r3.exit_code == 0

@@ -63,7 +63,24 @@ def entrada(
     if json:
         typer.echo(format_as_json(ref))
     else:
-        console.print("\n[bold green]✔ OKRs de entrada registrados![/bold green]")
+        from operational.ui.receipt import receipt_panel
+        receipt = receipt_panel(
+            title="REFLECTION DE ENTRADA",
+            icon="✅",
+            success_message=f"OKRs de entrada ({ref.estado_geral.value}) registrados.",
+            detail_pairs=[
+                ("ID", str(ref.id)),
+                ("Data", ref.date.isoformat()),
+                ("Estado", ref.estado_geral.value),
+                ("Big-Win", ref.big_win or "—"),
+                ("# Parar de fazer", str(len(ref.parar_de_fazer))),
+                ("# Repetir", str(len(ref.repetir))),
+                ("# Sempre fazer", str(len(ref.sempre_fazer))),
+            ],
+            severity="success",
+            footer=f"Detalhes: ID {ref.id} | {ref.date.isoformat()}",
+        )
+        console.print(receipt)
 
 
 @app.command()
@@ -114,7 +131,24 @@ def saida(
     if json:
         typer.echo(format_as_json(ref))
     else:
-        console.print("\n[bold green]✔ OKRs de saída registrados![/bold green]")
+        from operational.ui.receipt import receipt_panel
+        receipt = receipt_panel(
+            title="REFLECTION DE SAÍDA",
+            icon="🌙",
+            success_message=f"OKRs de saída ({ref.estado_geral.value}) registrados.",
+            detail_pairs=[
+                ("ID", str(ref.id)),
+                ("Data", ref.date.isoformat()),
+                ("Estado", ref.estado_geral.value),
+                ("Maior Aprendizado", ref.maior_aprendizado or "—"),
+                ("# Deu certo", str(len(ref.deu_certo))),
+                ("# Deu errado", str(len(ref.deu_errado))),
+                ("# Ajustes amanhã", str(len(ref.ajustes_para_amanha))),
+            ],
+            severity="success",
+            footer=f"Detalhes: ID {ref.id} | {ref.date.isoformat()}",
+        )
+        console.print(receipt)
 
 
 @app.command(name="list")

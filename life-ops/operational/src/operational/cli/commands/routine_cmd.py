@@ -71,13 +71,23 @@ def create(
     if json:
         typer.echo(format_as_json(routine))
     else:
-        tipo_color = ROUTINE_TYPE_COLOR.get(routine_type.value, "white")
-        console.print(
-            f"  [bold {tipo_color}]✓[/bold {tipo_color}] "
-            f"Rotina criada: [bold]{routine.name}[/bold] "
-            f"[dim]({period.value} · {routine_type.value})[/dim]"
+        from operational.ui.receipt import receipt_panel
+        range_str = f"{routine.start_time.strftime('%H:%M:%S')} → {routine.end_time.strftime('%H:%M:%S')}"
+        receipt = receipt_panel(
+            title="NOVA ROTINA",
+            icon="📝",
+            success_message=f"Rotina \"{routine.name}\" ({period.value} · {routine_type.value}) registrada no banco.",
+            detail_pairs=[
+                ("Nome (name)", routine.name),
+                ("Turno (period)", period.value),
+                ("Tipo (type)", routine_type.value),
+                ("Início (start)", f"{start_hour:02d}:{start_minute:02d}"),
+                ("Fim (end)", f"{end_hour:02d}:{end_minute:02d}"),
+            ],
+            severity="success",
+            footer=f"Detalhes: ID {routine.id} | Range: {range_str}",
         )
-        console.print(f"    [dim]id: {routine.id}  ·  {routine.start_time.isoformat()}→{routine.end_time.isoformat()}[/dim]")
+        console.print(receipt)
 
 
 @app.command(name="list")

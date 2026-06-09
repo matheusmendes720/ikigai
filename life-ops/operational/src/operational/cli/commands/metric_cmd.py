@@ -83,10 +83,25 @@ def sleep(
     if json:
         typer.echo(format_as_json(record))
     else:
+        from operational.ui.receipt import receipt_panel
         emoji = _sleep_emoji(quality)
         label = _sleep_label(quality)
-        console.print(f"  [bold blue]✓[/bold blue] Sono registrado: [bold]{record.id}[/bold]")
-        console.print(f"    [dim]data: {d.isoformat()}  ·  Q={quality}/10 {emoji} {label}  ·  {record.duration_hours:.1f}h[/dim]")
+        receipt = receipt_panel(
+            title="SLEEP RECORD",
+            icon="😴",
+            success_message=f"Sleep logged {record.duration_hours:.1f}h ({emoji} {label}).",
+            detail_pairs=[
+                ("ID", str(record.id)),
+                ("Data", d.isoformat()),
+                ("Qualidade", f"{quality}/10 ({emoji} {label})"),
+                ("Dormiu", f"{bed_hour:02d}:{bed_minute:02d}"),
+                ("Acordou", f"{wake_hour:02d}:{wake_minute:02d}"),
+                ("Duração", f"{record.duration_hours:.1f}h"),
+            ],
+            severity="success",
+            footer=f"Detalhes: ID {record.id} | {d.isoformat()}",
+        )
+        console.print(receipt)
 
 
 @app.command(name="list")

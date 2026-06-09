@@ -44,11 +44,27 @@ def create(
     if json:
         typer.echo(format_as_json(record))
     else:
+        from operational.ui.receipt import receipt_panel
         emoji = "⚠️ PESADO" if pesado else "✅ OK"
-        dentro = "✓" if record.within_budget else "✗ estourou"
-        console.print(f"[bold]Lunch {d.isoformat()}[/bold]")
-        console.print(f"  eat={eat}min  rest={rest}min  total={record.duracao_total}min  ({dentro})")
-        console.print(f"  {emoji}")
+        within_severity = "success" if record.within_budget else "warning"
+        within_msg = "dentro do orçamento" if record.within_budget else "estourou orçamento"
+        receipt = receipt_panel(
+            title="LUNCH RECORD",
+            icon="🍽️",
+            success_message=f"Almoço registrado ({emoji}) — {within_msg}.",
+            detail_pairs=[
+                ("ID", str(record.id)),
+                ("Data", d.isoformat()),
+                ("Eat", f"{eat}min"),
+                ("Rest", f"{rest}min"),
+                ("Total", f"{record.duracao_total}min"),
+                ("Pesado", "Sim" if pesado else "Não"),
+                ("Within budget", "✓" if record.within_budget else "✗"),
+            ],
+            severity=within_severity,
+            footer=f"Detalhes: ID {record.id} | {d.isoformat()} | Total {record.duracao_total}min",
+        )
+        console.print(receipt)
 
 
 @app.command(name="list")
