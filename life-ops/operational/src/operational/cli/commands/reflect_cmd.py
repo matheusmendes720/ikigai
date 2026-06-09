@@ -122,12 +122,45 @@ def saida(
 def list_reflections(
     target_date: str | None = typer.Option(None, "--date", "-d", help="Filtrar por data"),
     json: bool = typer.Option(False, "--json", help="JSON output"),
+    md: bool = typer.Option(False, "--md", help="Render big_win and maior_aprendizado as Markdown"),
 ) -> None:
-    """Lista todas as reflexões diárias registradas."""
+    """Lista todas as reflexões diárias registradas.
+
+    With --md: renders big_win and maior_aprendizado with rich.markdown.Markdown
+    for richer formatting (headings, lists, emphasis). Requires a target_date.
+    """
     items = daily_reflections.list()
     if target_date:
         d = date.fromisoformat(target_date)
         items = [r for r in items if r.date == d]
+
+    if md and items:
+        # Render the first matching reflection as a Markdown document
+        from rich.markdown import Markdown
+        from rich.panel import Panel
+        r = items[0]
+        md_text = f"""# Reflexão {r.date.isoformat()}
+
+**Estado geral:** {r.estado_geral.value}
+
+## Big-Win
+{r.big_win or "_vazio_"}
+
+## Maior Aprendizado
+{r.maior_aprendizado or "_vazio_"}
+
+## Ajustes para Amanhã
+{chr(10).join('- ' + a for a in r.ajustes_para_amanha) if r.ajustes_para_amanha else "_vazio_"}
+"""
+        console.print(Panel(
+            Markdown(md_text, justify="left"),
+            title=f"[bold cyan]REFLECTION {r.date.isoformat()}[/]",
+            border_style="cyan",
+        ))
+        return
+    elif md and not items:
+        console.print(f"[yellow]Nenhuma reflexão em {target_date}. Use 'reflect entrada' ou 'reflect saida'.[/]")
+        return
 
     if json:
         typer.echo(format_as_json(items))
