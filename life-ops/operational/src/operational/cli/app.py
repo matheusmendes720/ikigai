@@ -52,7 +52,13 @@ app.add_typer(report_v2_app, name="v2", help="[BETA] PAV-OS v2 reports (design s
 
 
 @app.command()
-def home() -> None:
+def home(
+    v2: bool = typer.Option(False, "--v2", help="Use PAV-OS v2 menu (BETA)"),
+) -> None:
     """Menu interativo — interface principal do PAV-OS."""
+    if v2:
+        from operational.cli.home_v2 import run as run_home_v2
+        run_home_v2()
+        return
     from operational.cli.home import run as run_home
     run_home()
