@@ -53,8 +53,7 @@ class TestCliApp:
     def test_routine_create(self) -> None:
         result = runner.invoke(app, ["routine", "create", "TestRoutine", "MANHA", "CORE"])
         assert result.exit_code == 0
-        # Rich-rendered: ✓ Rotina criada
-        assert ("✓" in result.stdout) or ("Created routine" in result.stdout)
+        assert ("NOVA ROTINA" in result.stdout) or ("Rotina" in result.stdout)
 
     def test_block_create(self) -> None:
         result = runner.invoke(app, ["block", "create", "MANHA", "--label", "Test"])
@@ -74,8 +73,7 @@ class TestCliApp:
     def test_metric_sleep(self) -> None:
         result = runner.invoke(app, ["metric", "sleep"])
         assert result.exit_code == 0
-        # Rich-rendered sleep output contains the record id
-        assert ("Sono registrado" in result.stdout) or ("Sleep record" in result.stdout)
+        assert ("SLEEP RECORD" in result.stdout) or ("Sleep logged" in result.stdout)
 
     def test_report_daily(self) -> None:
         # Use a specific date so the report has a deterministic empty-state output

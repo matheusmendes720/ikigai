@@ -27,9 +27,11 @@ from operational.ui.tokens import (  # noqa: E402
     CONSOLE_WIDTH_V2, Glyph, PADDING, QUADRANT, REGIME, SEVERITY, STYLES,
 )
 from operational.ui.components_v2 import (  # noqa: E402
-    cartesian_v2, header_v2, input_summary_v2, kpi_v2, metric_v2,
-    next_step_v2, page, pomodoros_v2, progress_v2, regime_bar, section_v2,
+    big_panel, cartesian_v2, header_v2, input_summary_v2, kpi_v2, kpi_grid_4x1,
+    kronograma_table, metric_v2, next_step_v2, page, policy_actions_table,
+    pomodoros_v2, progress_bar_v2, progress_v2, regime_bar, section_v2,
     severity_text_v2, sparkline_v2, status_badge_v2, timeline_h_v2,
+    timeline_log, two_column_grid,
 )
 from operational.ui.mock_profiles import PROFILES, get_profile  # noqa: E402
 from operational.ui.mock_snapshot import build_mock_snapshot  # noqa: E402
@@ -401,3 +403,231 @@ class TestInputSummaryV2:
         items = [("a", "1"), ("b", "2")]
         out = _render(input_summary_v2(items))
         assert "\x1b[" not in out
+
+
+# ===========================================================================
+# PRODUCTION-GRADE v2.1 components
+# ===========================================================================
+
+class TestBigPanel:
+    def test_big_panel_renders(self) -> None:
+        out = _render(big_panel("CABEÇALHO", subtitle="detalhe"))
+        assert "CABEÇALHO" in out
+        assert "detalhe" in out
+
+    def test_big_panel_with_content(self) -> None:
+        out = _render(big_panel("Title", content="Body text"))
+        assert "TITLE" in out
+        assert "Body text" in out
+
+    def test_big_panel_no_ansi_leak(self) -> None:
+        out = _render(big_panel("Test", severity="warning"))
+        assert "\x1b[" not in out
+
+
+class TestTwoColumnGrid:
+    def test_two_column_renders(self) -> None:
+        from rich.text import Text
+        out = _render(two_column_grid(Text("LEFT"), Text("RIGHT")))
+        assert "LEFT" in out
+        assert "RIGHT" in out
+
+    def test_two_column_ratio_2_1(self) -> None:
+        from rich.text import Text
+        out = _render(two_column_grid(Text("AAA"), Text("B"), ratio=(2, 1)))
+        assert "AAA" in out
+        assert "B" in out
+
+
+class TestKpiGrid4x1:
+    def test_kpi_grid_4x1_renders(self) -> None:
+        cards = [kpi_v2(f"K{i}", f"V{i}") for i in range(4)]
+        out = _render(kpi_grid_4x1(cards))
+        for i in range(4):
+            assert f"K{i}" in out
+            assert f"V{i}" in out
+
+    def test_kpi_grid_4x1_fallback_for_other_count(self) -> None:
+        cards = [kpi_v2("X", "1"), kpi_v2("Y", "2")]
+        out = _render(kpi_grid_4x1(cards))
+        assert "X" in out
+        assert "Y" in out
+
+
+class TestProgressBarV2:
+    def test_progress_bar_v2_renders(self) -> None:
+        out = _render(progress_bar_v2(50, 100, "Hardwork", "primary", 30))
+        assert "Hardwork" in out
+        assert "50%" in out
+        assert "(50/100)" in out
+        assert Glyph.BAR_FULL in out
+        assert Glyph.BAR_EMPTY in out
+
+    def test_progress_bar_v2_no_label(self) -> None:
+        out = _render(progress_bar_v2(75, 100, color="success", width=20))
+        assert "75%" in out
+        assert Glyph.BAR_FULL in out
+
+    def test_progress_bar_v2_no_value(self) -> None:
+        out = _render(progress_bar_v2(50, 100, "Test", "primary", 20, show_value=False))
+        assert "50%" not in out
+        assert "Test" in out
+
+    def test_progress_bar_v2_zero_max(self) -> None:
+        out = _render(progress_bar_v2(0, 0, "x", "warning", 20))
+        assert "0%" in out
+        assert "\x1b[" not in out
+
+
+class TestTimelineLog:
+    def test_timeline_log_renders(self) -> None:
+        entries = [
+            ("17:07", "CHECK-IN", "Energia: 7, Foco: 8"),
+            ("17:07", "ROUTINE", "Start: Hardwork Dev"),
+            ("04:00", "SYSTEM", "Sleep logged"),
+        ]
+        out = _render(timeline_log(entries))
+        assert "17:07" in out
+        assert "CHECK-IN" in out
+        assert "ROUTINE" in out
+        assert "SYSTEM" in out
+        assert "Hardwork Dev" in out
+
+    def test_timeline_log_max_entries(self) -> None:
+        entries = [(f"10:0{i}", "EVENT", f"msg{i}") for i in range(10)]
+        out = _render(timeline_log(entries, max_entries=3))
+        assert "msg0" not in out
+        assert "msg7" in out
+        assert "msg9" in out
+
+    def test_timeline_log_empty(self) -> None:
+        out = _render(timeline_log([]))
+        assert "no timeline" in out
+
+
+class TestKronogramaTable:
+    def test_kronograma_renders(self) -> None:
+        rows = [
+            ("OK", "MANHA", "Acordar", "-"),
+            ("ACTIVE", "TARDE", "Deep Work", "5 outputs"),
+        ]
+        out = _render(kronograma_table(rows))
+        assert "Acordar" in out
+        assert "Deep Work" in out
+        assert "5 outputs" in out
+
+    def test_kronograma_all_severities(self) -> None:
+        rows = [
+            ("OK", "MANHA", "A", "-"),
+            ("WARN", "TARDE", "B", "1"),
+            ("CRIT", "NOITE", "C", "0"),
+            ("PEND", "MANHA", "D", "-"),
+        ]
+        out = _render(kronograma_table(rows))
+        for label in ("A", "B", "C", "D"):
+            assert label in out
+
+
+class TestPolicyActionsTable:
+    def test_policy_maintain(self) -> None:
+        out = _render(policy_actions_table("MAINTAIN"))
+        assert "MAINTAIN" in out
+        assert "MODO" in out
+
+    def test_policy_with_history(self) -> None:
+        history = [
+            ("2026-06-03", "PUSH → MAINTAIN", "Fim de sprint"),
+            ("2026-05-20", "MAINTAIN → PUSH", "Competição"),
+        ]
+        out = _render(policy_actions_table("MAINTAIN", history))
+        assert "MAINTAIN" in out
+        assert "PUSH" in out
+        assert "Fim de sprint" in out
+        assert "Competição" in out
+
+    def test_policy_no_ansi_leak(self) -> None:
+        out = _render(policy_actions_table("PUSH"))
+        assert "\x1b[" not in out
+
+
+class TestReceipt:
+    """The transaction receipt helper used by routine/reflect/metric/lunch."""
+
+    def test_receipt_basic(self) -> None:
+        from operational.ui.receipt import receipt_panel
+        out = _render(receipt_panel(
+            title="NOVA ROTINA",
+            icon="📝",
+            success_message="Rotina criada.",
+            detail_pairs=[("Nome", "Wake Up"), ("Período", "MANHA")],
+            severity="success",
+        ))
+        assert "NOVA ROTINA" in out
+        assert "Wake Up" in out
+        assert "MANHA" in out
+        assert "SUCESSO" in out
+        assert "Rotina criada." in out
+
+    def test_receipt_with_footer(self) -> None:
+        from operational.ui.receipt import receipt_panel
+        out = _render(receipt_panel(
+            title="LUNCH",
+            icon="🍽️",
+            success_message="Almoço logado.",
+            detail_pairs=[("ID", "lun_2026_06_09")],
+            severity="warning",
+            footer="Detalhes: ID lun_2026_06_09",
+        ))
+        assert "Detalhes" in out
+        assert "lun_2026_06_09" in out
+
+    def test_receipt_no_ansi_leak(self) -> None:
+        from operational.ui.receipt import receipt_panel
+        out = _render(receipt_panel(
+            title="X",
+            icon="✓",
+            success_message="Done",
+            detail_pairs=[("k", "v")],
+            severity="danger",
+        ))
+        assert "\x1b[" not in out
+
+
+class TestRenderersProduction:
+    """End-to-end smoke tests on the production-grade renderers."""
+
+    def test_render_state_v2_produces_canonical_sections(self) -> None:
+        from operational.ui.v2_renderers import render_state_v2
+        from io import StringIO
+        from operational.cli.console import console
+        snap = build_mock_snapshot(PROFILES["q1"])
+        buf = StringIO()
+        save = console.file
+        console.file = buf
+        try:
+            render_state_v2(snap, snap.date, period_label="MANHA")
+        finally:
+            console.file = save
+        out = buf.getvalue()
+        assert "STATE DASHBOARD" in out
+        assert "STATUS ATUAL" in out
+        assert "TELEMETRIA" in out
+        assert "POMODOROS" in out
+        assert "TIMELINE" in out
+        assert "NEXT STEP" in out
+
+    def test_render_state_v2_burnout_shows_danger(self) -> None:
+        from operational.ui.v2_renderers import render_state_v2
+        from io import StringIO
+        from operational.cli.console import console
+        snap = build_mock_snapshot(PROFILES["burnout"])
+        buf = StringIO()
+        save = console.file
+        console.file = buf
+        try:
+            render_state_v2(snap, snap.date, period_label="NOITE")
+        finally:
+            console.file = save
+        out = buf.getvalue()
+        assert "STATE DASHBOARD" in out
+        assert "Drift" in out or "urgente" in out.lower() or "urgência" in out.lower() or "Atenção" in out

@@ -31,7 +31,7 @@ __all__ = ["app"]
 
 app = typer.Typer(
     name="pav-os",
-    help="◆ PAV-OS — Cybernetic Life OS — Target. Sense. Adjust.",
+    help="◆ PAV-OS v2 — production-grade visual. Cybernetic Life OS — Target. Sense. Adjust.",
     no_args_is_help=True,
 )
 
