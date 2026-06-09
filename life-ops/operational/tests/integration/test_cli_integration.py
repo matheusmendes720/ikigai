@@ -63,7 +63,7 @@ def test_app_help_runs() -> None:
 
     # Assert
     assert result.exit_code == 0
-    assert "TIME-TASKER" in result.output
+    assert "PAV-OS" in result.output
 
 
 def test_report_help_shows_subcommands() -> None:
