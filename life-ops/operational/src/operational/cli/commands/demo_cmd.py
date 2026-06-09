@@ -32,11 +32,14 @@ def seed(
     json: bool = typer.Option(False, "--json", help="JSON output"),
 ) -> None:
     """Populate 7 days of realistic PAV mock data."""
-    summary = seed_demo_data()
     if json:
+        summary = seed_demo_data()
         typer.echo(format_as_json({"status": "seeded", "summary": summary}))
     else:
-        typer.echo(summary)
+        from operational.cli.console import console
+        with console.status("[cyan]Seeding 7 days of PAV mock data...[/]", spinner="dots"):
+            summary = seed_demo_data()
+        console.print(summary)
 
 
 @app.command()
@@ -44,11 +47,14 @@ def clear(
     json: bool = typer.Option(False, "--json", help="JSON output"),
 ) -> None:
     """Remove all demo data."""
-    msg = clear_demo_data()
     if json:
+        msg = clear_demo_data()
         typer.echo(format_as_json({"status": "cleared"}))
     else:
-        typer.echo(msg)
+        from operational.cli.console import console
+        with console.status("[yellow]Clearing all state...[/]", spinner="dots"):
+            msg = clear_demo_data()
+        console.print(msg)
 
 
 @app.command()
@@ -107,11 +113,14 @@ def export_csv(
         for ent in repo:
             data = ent.model_dump(mode="python")
             rows.append((etype, str(ent.id), data))
-    written = export_to_csv(rows, Path(path))
     if json:
+        written = export_to_csv(rows, Path(path))
         typer.echo(format_as_json({"path": str(path), "rows": written}))
     else:
-        typer.echo(f"Exported {written} rows to {path}")
+        from operational.cli.console import console
+        with console.status(f"[cyan]Exporting to {path}...[/]", spinner="dots"):
+            written = export_to_csv(rows, Path(path))
+        console.print(f"[green]OK[/] Exported {written} rows to {path}")
 
 
 @app.command()
