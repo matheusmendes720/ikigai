@@ -27,10 +27,10 @@ runner = CliRunner()
 
 class TestHomeV2:
     def test_v2_home_runs(self, monkeypatch) -> None:
-        """``pav home --v2`` runs without error (shows menu then prompts)."""
+        """``pav home`` (v2 is default) runs without error (shows menu then prompts)."""
         from rich.prompt import Prompt
         monkeypatch.setattr(Prompt, "ask", lambda *a, **kw: "q")
-        result = runner.invoke(app, ["home", "--v2"])
+        result = runner.invoke(app, ["home"])
         if result.stdout:
             assert "PAV-OS" in result.stdout
             assert "FLUXO DO DIA" in result.stdout
@@ -40,23 +40,24 @@ class TestHomeV2:
             assert "SISTEMA" in result.stdout
 
     def test_v2_home_contains_5_grouped_sections(self, monkeypatch) -> None:
-        """v2 home groups the 10 options into 5 themed sections."""
+        """v2 home (default) groups the 10 options into 5 themed sections."""
         from rich.prompt import Prompt
         monkeypatch.setattr(Prompt, "ask", lambda *a, **kw: "q")
-        result = runner.invoke(app, ["home", "--v2"])
+        result = runner.invoke(app, ["home"])
         if result.stdout:
             for group_key, group_label, items in MENU_GROUPS:
                 assert group_label in result.stdout, f"Missing group: {group_label}"
                 for k, lbl, sub in items:
                     assert k in result.stdout, f"Missing option: {k}"
 
-    def test_v1_home_still_works(self, monkeypatch) -> None:
-        """v1 home (no flag) still works."""
+    def test_home_help_does_not_mention_v1(self, monkeypatch) -> None:
+        """``pav home --help`` does not mention the v1 home option."""
         from rich.prompt import Prompt
         monkeypatch.setattr(Prompt, "ask", lambda *a, **kw: "q")
-        result = runner.invoke(app, ["home"])
-        if result.stdout:
-            assert "Iniciar Manhã" in result.stdout or "PAV" in result.stdout
+        result = runner.invoke(app, ["home", "--help"])
+        assert result.exit_code == 0
+        assert "--v1" not in result.output
+        assert "--v2" not in result.output
 
 
 class TestProgressInCsvImport:
@@ -101,20 +102,20 @@ class TestProgressInCsvImport:
 
 class TestRichAdvancedFeatures:
     def test_console_rule_in_home(self, monkeypatch) -> None:
-        """v2 home uses console.rule for section dividers."""
+        """v2 home (default) uses console.rule for section dividers."""
         # Bypass the prompt to avoid EOF in capture
         from rich.prompt import Prompt
         monkeypatch.setattr(Prompt, "ask", lambda *a, **kw: "q")
-        result = runner.invoke(app, ["home", "--v2"])
+        result = runner.invoke(app, ["home"])
         if result.stdout:
             # The output should contain '─' (rule characters)
             assert "─" in result.stdout
 
     def test_pav_os_branding_in_header(self, monkeypatch) -> None:
-        """v2 home header shows PAV-OS branding."""
+        """v2 home (default) header shows PAV-OS branding."""
         from rich.prompt import Prompt
         monkeypatch.setattr(Prompt, "ask", lambda *a, **kw: "q")
-        result = runner.invoke(app, ["home", "--v2"])
+        result = runner.invoke(app, ["home"])
         if result.stdout:
             assert "PAV-OS" in result.stdout
             assert "Cybernetic Life OS" in result.stdout

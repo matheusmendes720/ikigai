@@ -2,7 +2,7 @@
 
 Usage:
     operational --help           # See all commands
-    operational home             # Interactive menu
+    operational home             # Interactive menu (PAV-OS v2)
     operational routine create "Morning run" MANHA CORE
     operational block create TARDE --label "Deep work"
     operational journal create --date 2026-06-07 --text "Good day"
@@ -26,7 +26,6 @@ from operational.cli.commands.state_cmd import app as state_app
 from operational.cli.commands.reflect_cmd import app as reflect_app
 from operational.cli.commands.lunch_cmd import app as lunch_app
 from operational.cli.commands.doctor_cmd import app as doctor_app
-from operational.cli.commands.report_v2_cmd import app as report_v2_app
 
 __all__ = ["app"]
 
@@ -43,22 +42,15 @@ app.add_typer(habit_app, name="habit", help="Gerenciar hábitos com Q_HE.")
 app.add_typer(metric_app, name="metric", help="Registrar métricas (sono, energia).")
 app.add_typer(policy_app, name="policy", help="Gerenciar setpoints e decisões PUSH/MAINTAIN/REDUCE/RECOVER.")
 app.add_typer(demo_app, name="demo", help="Gerenciar dados de demonstração (seed/clear/show).")
-app.add_typer(report_app, name="report", help="Gerar relatórios diário/semanal.")
-app.add_typer(state_app, name="state", help="Dashboard do dia corrente (onde estou, o que está logado).")
-app.add_typer(reflect_app, name="reflect", help="OKRs V3 — reflexão de entrada/saída.")
+app.add_typer(report_app, name="report", help="Gerar relatórios diário/semanal (PAV-OS v2 design system).")
+app.add_typer(state_app, name="state", help="Dashboard do dia corrente (PAV-OS v2 design system).")
+app.add_typer(reflect_app, name="reflect", help="OKRs — reflexão de entrada/saída.")
 app.add_typer(lunch_app, name="lunch", help="Registrar almoço (eat + rest + flag pesado).")
 app.add_typer(doctor_app, name="doctor", help="Diagnóstico completo do ambiente.")
-app.add_typer(report_v2_app, name="v2", help="[BETA] PAV-OS v2 reports (design system v2 + mock data).")
 
 
 @app.command()
-def home(
-    v2: bool = typer.Option(False, "--v2", help="Use PAV-OS v2 menu (BETA)"),
-) -> None:
-    """Menu interativo — interface principal do PAV-OS."""
-    if v2:
-        from operational.cli.home_v2 import run as run_home_v2
-        run_home_v2()
-        return
-    from operational.cli.home import run as run_home
-    run_home()
+def home() -> None:
+    """Menu interativo — PAV-OS v2 menu (definitive edition)."""
+    from operational.cli.home_v2 import run as run_home_v2
+    run_home_v2()

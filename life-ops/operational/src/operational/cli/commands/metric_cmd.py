@@ -4,20 +4,15 @@ from __future__ import annotations
 from datetime import date, datetime, time, timedelta, timezone
 
 import typer
-from rich.console import Console
 from rich.table import Table
 
+from operational.cli._compat import make_console, maybe_print_input_summary, progress_bar
 from operational.cli.formatters import format_as_json
-from operational.cli.input_summary import maybe_print_input_summary
-from operational.cli.renderers import make_console, progress_bar
 from operational.cli.state import sleep_records, time_blocks
-from operational.core.services import parse_iso_date
 from operational.entities.time_block import TimeBlock
 from operational.enums import Period
 from operational.meta.factories import make_sleep_record
 from operational.types import UEID
-from operational.ui.components import error_panel
-from operational.ui.logging_setup import log_error
 
 app = typer.Typer(help="Manage metrics (sleep, energy, daily logs).")
 console = make_console(width=120)

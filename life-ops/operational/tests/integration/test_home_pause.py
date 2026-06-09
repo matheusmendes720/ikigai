@@ -35,8 +35,8 @@ class TestHomeV2Pause:
 
         monkeypatch.setattr(Prompt, "ask", fake_ask)
 
-        # Run 'home --v2' and provide input: "5" then Enter (via fake_ask)
-        result = runner.invoke(app, ["home", "--v2"], input="5\n")
+        # Run 'home' (v2 is default) and provide input: "5" then Enter (via fake_ask)
+        result = runner.invoke(app, ["home"], input="5\n")
         # The fake_ask should have been called for both the menu choice
         # and the pause prompt
         assert len(prompt_calls) >= 2, f"Expected at least 2 prompt calls, got {len(prompt_calls)}"
@@ -79,7 +79,7 @@ class TestHomeV2Pause:
         monkeypatch.setattr(Prompt, "ask", tracker)
 
         try:
-            runner.invoke(app, ["home", "--v2"])
+            runner.invoke(app, ["home"])
         except Exception:
             pass
 

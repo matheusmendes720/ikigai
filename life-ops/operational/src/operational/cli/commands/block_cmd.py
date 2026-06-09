@@ -2,12 +2,10 @@
 from __future__ import annotations
 
 import typer
-from rich.console import Console
 from rich.table import Table
 
+from operational.cli._compat import make_console, maybe_print_input_summary
 from operational.cli.formatters import format_as_json
-from operational.cli.input_summary import maybe_print_input_summary
-from operational.cli.renderers import COLORS, make_console
 from operational.cli.state import time_blocks
 from operational.enums import Period
 from operational.meta.factories import make_time_block

@@ -1,4 +1,4 @@
-﻿"""Report generation CLI commands — thin orchestrators (MVC controller layer).
+"""Report generation CLI commands — thin orchestrators (MVC controller layer).
 
 Per architecture rules:
 - This file ONLY captures CLI args, calls ``core.services`` for data,
@@ -7,21 +7,21 @@ Per architecture rules:
 - NO Rich construction here (no Table, Panel, Text building).
 - NO string concatenation for visual layout.
 
-The ``--v2``, ``--mock``, and ``--watch`` opt-in flags enable the
-PAV-OS v2 design system on top of the v1 commands. v1 behavior is
-preserved as the default — these flags are A/B-test plumbing for
-the v2 migration.
+The PAV-OS v2 design system is the **only** renderer for ``daily``
+and ``weekly``. ``--mock`` and ``--watch`` are preserved.
 """
 from __future__ import annotations
 
-from datetime import date, timedelta
 import time as time_module
+from datetime import date, timedelta
 from typing import Optional
 
 import typer
+from rich.console import Group
 from rich.live import Live
 
 from operational.cli.console import console
+from operational.cli.formatters import format_as_json
 from operational.cli.state import (
     daily_reflections,
     day_contexts,
@@ -30,20 +30,26 @@ from operational.cli.state import (
     sleep_records,
     time_blocks,
 )
-from operational.cli.formatters import format_as_json
-from operational.core.budget import (
-    classify_quadrant,
-    productivity_pct,
-)
+from operational.core.budget import productivity_pct
 from operational.core.services import (
     DaySnapshot,
     compute_day_quadrant,
     get_day_snapshot,
 )
-from operational.ui.components_v2 import error_panel_v2
-from operational.ui.daily_report import render_daily_report
+from operational.enums import TipoDia
+from operational.ui.components_v2 import (
+    error_panel_v2,
+    kpi_grid_2x2,
+    kpi_v2,
+    metric_v2,
+    next_step_v2,
+    page,
+    section_v2,
+    sparkline_v2,
+)
+from operational.ui.tokens import QUADRANT, SEVERITY
 
-app = typer.Typer(help="Generate reports (V3 — Cartesian, recovery, OKRs).")
+app = typer.Typer(help="Generate reports (PAV-OS v2 design system — definitive edition).")
 
 
 # ---------------------------------------------------------------------------
@@ -55,28 +61,16 @@ app = typer.Typer(help="Generate reports (V3 — Cartesian, recovery, OKRs).")
 def daily(
     report_date: str | None = typer.Option(None, "--date", "-d", help="Data (YYYY-MM-DD)"),
     json: bool = typer.Option(False, "--json", help="JSON output"),
-    v2: bool = typer.Option(False, "--v2", help="Use PAV-OS v2 design system (BETA)"),
     mock: Optional[str] = typer.Option(None, "--mock", help="Use mock profile (q1, q2, q3, q4, empty, burnout, peak)"),
-    watch: int = typer.Option(0, "--watch", help="Auto-refresh every N seconds (requires --v2)"),
+    watch: int = typer.Option(0, "--watch", help="Auto-refresh every N seconds"),
 ) -> None:
-    """Relatório diário V3 — Cartesian + recovery + OKRs.
+    """Relatório diário — PAV-OS v2 design system.
 
-    Opt-in flags for v2 A/B testing:
-    - ``--v2``: render with the PAV-OS v2 design system.
+    Flags:
     - ``--mock <profile>``: synthesize a DaySnapshot from a mock profile.
-    - ``--watch N``: auto-refresh every N seconds (requires ``--v2``).
+    - ``--watch N``: auto-refresh every N seconds (v2 Live loop).
+    - ``--json``: machine-readable JSON output.
     """
-    # --- Validation: --watch without --v2 ---
-    if watch and not v2:
-        console.print(error_panel_v2(
-            "--watch requires --v2",
-            context=f"pav report daily --watch {watch}",
-            expected="--watch N --v2",
-            suggestion="pav report daily --v2 --watch 5",
-        ))
-        raise typer.Exit(code=1)
-
-    # --- Resolve date ---
     try:
         d = date.fromisoformat(report_date) if report_date else date.today()
     except ValueError:
@@ -88,7 +82,6 @@ def daily(
         ))
         raise typer.Exit(code=1)
 
-    # --- Resolve mock profile (if any) ---
     profile = None
     if mock:
         from operational.ui.mock_profiles import get_profile, list_profiles
@@ -103,14 +96,12 @@ def daily(
             ))
             raise typer.Exit(code=1)
 
-    # --- Build snapshot (mock or live) ---
     if profile is not None:
         from operational.ui.mock_snapshot import build_mock_snapshot
         snap: DaySnapshot = build_mock_snapshot(profile)
     else:
         snap = get_day_snapshot(d)
 
-    # --- JSON output (always v1 payload shape for backwards compat) ---
     if json:
         q_code, x, y = compute_day_quadrant(snap)
         payload = {
@@ -145,59 +136,207 @@ def daily(
             "maior_aprendizado": snap.maior_aprendizado,
             "quadrant": q_code,
             "x": x, "y": y,
-            "design_system": "v2" if v2 else "v1",
+            "design_system": "v2",
             "mock": mock,
         }
         typer.echo(format_as_json(payload))
         return
 
-    # --- v2 rendering path ---
-    if v2:
-        from operational.ui.v2_renderers import render_daily_v2
+    from operational.ui.v2_renderers import render_daily_v2
 
-        if watch > 0:
-            # Auto-refresh loop: re-fetch snapshot, re-render
-            from io import StringIO
+    if watch > 0:
+        from io import StringIO
 
-            from operational.cli.console import console as _console
+        from operational.cli.console import console as _console
 
-            def _build() -> str:
-                # Re-fetch the snapshot (mock or live) on each refresh
-                if profile is not None:
-                    current_snap = build_mock_snapshot(profile)
-                else:
-                    current_snap = get_day_snapshot(d)
-                # Capture into a string buffer so Live can re-render it
-                buf = StringIO()
-                save_file = _console.file
-                _console.file = buf
-                try:
-                    render_daily_v2(current_snap, d)
-                finally:
-                    _console.file = save_file
-                return buf.getvalue()
+        def _build() -> str:
+            if profile is not None:
+                current_snap = build_mock_snapshot(profile)
+            else:
+                current_snap = get_day_snapshot(d)
+            buf = StringIO()
+            save_file = _console.file
+            _console.file = buf
+            try:
+                render_daily_v2(current_snap, d)
+            finally:
+                _console.file = save_file
+            return buf.getvalue()
 
-            with Live(_build(), refresh_per_second=1, transient=False) as live:
-                # Loop: allow tests to exit via KeyboardInterrupt / SystemExit
-                try:
-                    while True:
-                        time_module.sleep(watch)
-                        live.update(_build())
-                except (KeyboardInterrupt, SystemExit):
-                    pass
-            return
-
-        render_daily_v2(snap, d)
+        with Live(_build(), refresh_per_second=1, transient=False) as live:
+            try:
+                while True:
+                    time_module.sleep(watch)
+                    live.update(_build())
+            except (KeyboardInterrupt, SystemExit):
+                pass
         return
 
-    # --- v1 default rendering path ---
-    report = render_daily_report(snap)
-    console.print(report)
+    render_daily_v2(snap, d)
 
 
 # ---------------------------------------------------------------------------
-# Weekly (kept lighter — delegate to daily report for now)
+# Weekly
 # ---------------------------------------------------------------------------
+
+
+def _quadrant_for_pct(x: float) -> str:
+    if x >= 80:
+        return "Q1"
+    if x >= 50:
+        return "Q2"
+    if x >= 20:
+        return "Q4"
+    return "Q3"
+
+
+def _build_weekly_v2(ws: date, we: date, profile):
+    """Build the v2 weekly report body and footer."""
+    daily_data: list[tuple[date, int, int, int]] = []
+    n_pomodoros = 0
+    for offset in range((we - ws).days + 1):
+        d = ws + timedelta(days=offset)
+        if profile is not None and d == we:
+            from operational.ui.mock_snapshot import build_mock_snapshot
+            snap = build_mock_snapshot(profile)
+        else:
+            snap = get_day_snapshot(d)
+        n_pomodoros += snap.n_pomodoros
+        daily_data.append(
+            (d, snap.hardwork_orcado_min, snap.hardwork_realizado_min, snap.n_pomodoros)
+        )
+
+    sleeps = [s for s in sleep_records.list() if ws <= s.date <= we]
+    sleep_hours = [s.duration_hours for s in sleeps if s.duration_hours]
+    avg_sleep = sum(sleep_hours) / len(sleep_hours) if sleep_hours else 0.0
+    min_sleep = min(sleep_hours) if sleep_hours else 0.0
+    max_sleep = max(sleep_hours) if sleep_hours else 0.0
+    orcado_total = sum(o for _, o, _, _ in daily_data)
+    realizado_total = sum(r for _, _, r, _ in daily_data)
+    n_days = (we - ws).days + 1
+    avg_x = (
+        sum(productivity_pct(r, o) for _, o, r, _ in daily_data) / max(1, len(daily_data))
+    )
+
+    k1 = kpi_v2(
+        "Hardwork",
+        f"{realizado_total // 60}h{realizado_total % 60:02d}",
+        "ok" if realizado_total >= orcado_total * 0.8 else "warning",
+        delta=f"orcado {orcado_total // 60}h · {int(realizado_total / max(orcado_total, 1) * 100)}%",
+        icon="💻",
+    )
+    k2 = kpi_v2(
+        "Pomodoros",
+        str(n_pomodoros),
+        "ok" if n_pomodoros >= 12 else "warning",
+        delta=f"média {n_pomodoros / max(1, n_days):.1f}/dia",
+        icon="🍅",
+    )
+    k3 = kpi_v2(
+        "Sono Médio",
+        f"{avg_sleep:.1f}h",
+        "ok" if avg_sleep >= 7 else "warning" if avg_sleep >= 5 else "danger",
+        delta=f"min {min_sleep:.1f}h · max {max_sleep:.1f}h",
+        icon="😴",
+    )
+    k4 = kpi_v2(
+        "Reflexões",
+        f"{len([r for r in daily_reflections.list() if ws <= r.date <= we])}/{n_days}",
+        "ok",
+        delta="dias com OKRs",
+        icon="🎯",
+    )
+
+    pom_by_day: list[float] = []
+    sleep_by_day: list[float] = []
+    prod_by_day: list[float] = []
+    for d, orcado, realizado, n_pom in daily_data:
+        sleep_by_day.append(
+            next((s.duration_hours for s in sleeps if s.date == d), 0) or 0
+        )
+        prod_by_day.append(productivity_pct(realizado, orcado))
+        pom_by_day.append(float(min(n_pom, 11)))
+
+    spark_block = Group(
+        sparkline_v2(sleep_by_day, "Sono"),
+        sparkline_v2(prod_by_day, "Produtividade"),
+        sparkline_v2(pom_by_day, "Pomodoros"),
+    )
+
+    tipo_count: dict[str, int] = {t.value: 0 for t in TipoDia}
+    for ctx in day_contexts.list():
+        if ws <= ctx.date <= we:
+            tipo_count[ctx.tipo_dia.value] = tipo_count.get(ctx.tipo_dia.value, 0) + 1
+
+    tipo_rows: list[tuple[str, str, str | None]] = [
+        (tipo.upper(), str(n), "ok" if n > 0 else "muted")
+        for tipo, n in tipo_count.items()
+    ]
+
+    q_count: dict[str, int] = {"Q1": 0, "Q2": 0, "Q3": 0, "Q4": 0}
+    for _, orcado, realizado, _ in daily_data:
+        q_count[_quadrant_for_pct(productivity_pct(realizado, orcado))] += 1
+
+    quad_rows: list[tuple[str, str, str | None]] = [
+        (q, str(n), "ok" if q == "Q1" else "warning" if q in ("Q2", "Q4") else "danger")
+        for q, n in q_count.items()
+    ]
+
+    daily_rows: list[tuple[str, str, str | None]] = []
+    for d, orcado, realizado, n_pom in daily_data:
+        code = _quadrant_for_pct(productivity_pct(realizado, orcado))
+        ctx = next((c for c in day_contexts.list() if c.date == d), None)
+        tipo = ctx.tipo_dia.value if ctx else ("curso" if d.weekday() < 5 else "livre")
+        sev = "ok" if code == "Q1" else "warning" if code in ("Q2", "Q4") else "danger"
+        daily_rows.append((d.isoformat(), f"{tipo} · {code} · 🍅{n_pom}", sev))
+
+    body = Group(
+        kpi_grid_2x2([k1, k2, k3, k4]),
+        "",
+        section_v2("TENDENCIAS", icon="📈", subtitle="7 dias", content=spark_block, severity="primary"),
+        "",
+        section_v2(
+            "DISTRIBUICAO POR TIPO DE DIA",
+            icon="🗓️",
+            content=metric_v2(tipo_rows, headers=["Tipo", "Dias"]),
+            severity="primary",
+        ),
+        "",
+        section_v2(
+            "DISTRIBUICAO POR QUADRANTE",
+            icon="📊",
+            content=metric_v2(quad_rows, headers=["Quadrante", "Dias"]),
+            severity="primary",
+        ),
+        "",
+        section_v2(
+            "POSICAO DIARIA",
+            icon="📅",
+            content=metric_v2(daily_rows, headers=["Data", "Tipo · Q · 🍅"]),
+            severity="primary",
+        ),
+    )
+
+    if q_count.get("Q3", 0) > 0:
+        footer = next_step_v2(
+            f"{q_count['Q3']} dia(s) em Q3 (Crítico). Revisar padrão sono+trabalho urgente.",
+            "Revisão urgente do sistema",
+            severity="danger",
+        )
+    elif avg_x < 50:
+        footer = next_step_v2(
+            f"Produtividade média {avg_x:.0f}% (abaixo de 50%). Aumentar volume de trabalho.",
+            "Aumentar carga gradualmente",
+            severity="warning",
+        )
+    else:
+        footer = next_step_v2(
+            f"Semana dentro do padrão ({avg_x:.0f}% médio). Manter ritmo.",
+            "Manter ritmo",
+            severity="success",
+        )
+
+    return body, footer
 
 
 @app.command()
@@ -205,32 +344,14 @@ def weekly(
     start: str | None = typer.Option(None, "--start", "-s", help="Início da semana (YYYY-MM-DD)"),
     end: str | None = typer.Option(None, "--end", "-e", help="Fim da semana (YYYY-MM-DD)"),
     json: bool = typer.Option(False, "--json", help="JSON output"),
-    v2: bool = typer.Option(False, "--v2", help="Use PAV-OS v2 design system (BETA)"),
-    mock: Optional[str] = typer.Option(None, "--mock", help="[BETA, daily only] Reuse a mock profile for the latest day in the range"),
+    mock: Optional[str] = typer.Option(None, "--mock", help="[daily only] Reuse a mock profile for the latest day in the range"),
 ) -> None:
-    """Relatório semanal V3 — distribuição por TipoDia + quadrante dominante.
+    """Relatório semanal — PAV-OS v2 design system.
 
-    Opt-in flags for v2 A/B testing:
-    - ``--v2``: render the dashboard chrome with v2 components (mock-aware).
+    Flags:
     - ``--mock <profile>``: feed a mock profile's snapshot into the latest day
-      in the range. (Weekly aggregation is v1; mock only affects the per-day
-      data, not the layout.)
+      in the range.
     """
-    from rich.console import Group
-    from rich.table import Table
-    from rich.text import Text
-
-    from operational.cli.console import CONSOLE_WIDTH
-    from operational.core.budget import budget_for_date
-    from operational.enums import TipoDia
-    from operational.ui.components import (
-        COLORS,
-        TIPO_DIA_COLOR,
-        QUADRANT_COLOR,
-        sparkline,
-    )
-
-    # --- Mock profile resolution (option a: just use v1 with mock data) ---
     profile = None
     if mock:
         from operational.ui.mock_profiles import get_profile, list_profiles
@@ -248,223 +369,33 @@ def weekly(
     ws = date.fromisoformat(start) if start else date.today() - timedelta(days=6)
     we = date.fromisoformat(end) if end else date.today()
 
-    # Core data
-    sleeps = [s for s in sleep_records.list() if ws <= s.date <= we]
-    daily_data: list[tuple[date, int, int, int]] = []
-    n_pomodoros = 0
-    pom_by_day: list[int] = []
-    sleep_by_day: list[float] = []
-    prod_by_day: list[float] = []
-    for offset in range((we - ws).days + 1):
-        d = ws + timedelta(days=offset)
-        # If a mock profile is set, override the LAST day in the range
-        if profile is not None and d == we:
-            from operational.ui.mock_snapshot import build_mock_snapshot
-            snap = build_mock_snapshot(profile)
-        else:
-            snap = get_day_snapshot(d)
-        orcado = snap.hardwork_orcado_min
-        realizado = snap.hardwork_realizado_min
-        n_pomodoros += snap.n_pomodoros
-        pom_by_day.append(snap.n_pomodoros)
-        sleep_by_day.append(snap.sleep.duration_hours or 0)
-        prod_by_day.append(productivity_pct(realizado, orcado))
-        daily_data.append((d, orcado, realizado, snap.n_pomodoros))
-
-    # JSON
     if json:
+        n_pomodoros = 0
+        for offset in range((we - ws).days + 1):
+            d = ws + timedelta(days=offset)
+            if profile is not None and d == we:
+                from operational.ui.mock_snapshot import build_mock_snapshot
+                snap = build_mock_snapshot(profile)
+            else:
+                snap = get_day_snapshot(d)
+            n_pomodoros += snap.n_pomodoros
         payload = {
             "start": ws.isoformat(),
             "end": we.isoformat(),
             "n_days": (we - ws).days + 1,
             "n_pomodoros": n_pomodoros,
             "n_reflections": len([r for r in daily_reflections.list() if ws <= r.date <= we]),
-            "design_system": "v2" if v2 else "v1",
+            "design_system": "v2",
             "mock": mock,
         }
         typer.echo(format_as_json(payload))
         return
 
-    # Aggregate stats
-    sleep_hours = [s.duration_hours for s in sleeps if s.duration_hours]
-    avg_sleep = sum(sleep_hours) / len(sleep_hours) if sleep_hours else 0
-    min_sleep = min(sleep_hours) if sleep_hours else 0
-    max_sleep = max(sleep_hours) if sleep_hours else 0
-    orcado_total = sum(o for _, o, _, _ in daily_data)
-    realizado_total = sum(r for _, _, r, _ in daily_data)
-    avg_x = sum(productivity_pct(r, o) for _, o, r, _ in daily_data) / len(daily_data) if daily_data else 0
-
-    parts: list = []
-    # Header
-    header = Table.grid(expand=False, padding=(0, 1))
-    header.add_column(min_width=4, justify="left")
-    header.add_column(justify="left")
-    header.add_row(
-        Text("  📈  ", style="bold cyan"),
-        Text(f"WEEKLY REPORT  ·  {ws.isoformat()} → {we.isoformat()}  ·  {(we - ws).days + 1} dias", style="bold white"),
+    body, footer = _build_weekly_v2(ws, we, profile)
+    full_page = page(
+        "Weekly Report",
+        f"{ws.isoformat()} → {we.isoformat()}",
+        body,
+        footer=footer,
     )
-    parts.append(_panel("⚡ WEEKLY", header, "primary"))
-
-    # 2x2 KPI grid
-    k1 = _kpi("Hardwork", f"{realizado_total // 60}h{realizado_total % 60:02d}", "hardwork",
-             f"orçado {orcado_total // 60}h · {int(realizado_total / max(orcado_total, 1) * 100)}%", "💻")
-    k2 = _kpi("Pomodoros", str(n_pomodoros), "hardwork",
-             f"média {n_pomodoros / max(1, (we - ws).days + 1):.1f}/dia", "🍅")
-    k3 = _kpi("Sono Médio", f"{avg_sleep:.1f}h", "sleep",
-             f"min {min_sleep:.1f}h · max {max_sleep:.1f}h", "😴")
-    k4 = _kpi("Reflexões",
-             f"{len([r for r in daily_reflections.list() if ws <= r.date <= we])}/{(we - ws).days + 1}",
-             "ease", "dias com OKRs", "🎯")
-    kpi_grid = Table.grid(expand=False, padding=(0, 1))
-    kpi_grid.add_column(justify="left")
-    kpi_grid.add_column(justify="left")
-    kpi_grid.add_row(k1, k2)
-    kpi_grid.add_row(k3, k4)
-    parts.append(kpi_grid)
-
-    # Sparklines
-    day_labels = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"]
-    label_text = "  " + "  ".join(day_labels[i % 7] for i in range(len(pom_by_day)))
-    spark_table = Table.grid(expand=False, padding=(0, 1))
-    spark_table.add_column(min_width=14, justify="left")
-    spark_table.add_column(justify="left")
-    spark_table.add_row(Text("😴 Sono", style="bold"), sparkline(sleep_by_day, color="sleep", label=f"min {min_sleep:.0f}h / max {max_sleep:.0f}h"))
-    spark_table.add_row(Text("📈 Produtividade", style="bold"), sparkline(prod_by_day, color="hardwork", label=f"média {avg_x:.0f}%"))
-    spark_table.add_row(Text("🍅 Pomodoros", style="bold"), sparkline([min(p, 11) for p in pom_by_day], color="hardwork", label=f"total {n_pomodoros}"))
-    spark_block = Table.grid(expand=False, padding=(0, 0))
-    spark_block.add_column(justify="left")
-    spark_block.add_row(spark_table)
-    spark_block.add_row(Text(label_text, style="grey58"))
-    parts.append(_panel("📈 Tendências 7-dias", spark_block, "primary"))
-
-    # TipoDia distribution
-    tipo_count: dict[str, int] = {t.value: 0 for t in TipoDia}
-    for ctx in day_contexts.list():
-        if ws <= ctx.date <= we:
-            tipo_count[ctx.tipo_dia.value] = tipo_count.get(ctx.tipo_dia.value, 0) + 1
-    tipo_table = Table(show_header=True, header_style="bold magenta", box=None, padding=(0, 1), expand=False)
-    tipo_table.add_column("Tipo", style="bold", min_width=10, no_wrap=True)
-    tipo_table.add_column("Dias", justify="right", min_width=6, no_wrap=True)
-    tipo_table.add_column("Bar", min_width=24)
-    for tipo, n in tipo_count.items():
-        clr = TIPO_DIA_COLOR.get(tipo, "white")
-        bar_len = max(0, n) * 3
-        tipo_table.add_row(
-            Text(tipo.upper(), style=f"bold {clr}"),
-            Text(str(n), style=clr),
-            Text("█" * bar_len, style=clr) if bar_len else Text("—", style="grey58"),
-        )
-    parts.append(_panel("🗓️ Distribuição por TipoDia", tipo_table, "ease"))
-
-    # Quadrant distribution
-    q_count: dict[str, int] = {"Q1": 0, "Q2": 0, "Q3": 0, "Q4": 0}
-    for _, orcado, realizado, _ in daily_data:
-        x = productivity_pct(realizado, orcado)
-        y = x
-        code, _, _ = classify_quadrant(x, y)
-        q_count[code] = q_count.get(code, 0) + 1
-    q_table = Table(show_header=True, header_style="bold cyan", box=None, padding=(0, 1), expand=False)
-    q_table.add_column("Quadrante", style="bold", min_width=10, no_wrap=True)
-    q_table.add_column("Dias", justify="right", min_width=6, no_wrap=True)
-    q_table.add_column("Bar", min_width=24)
-    for q, n in q_count.items():
-        clr = QUADRANT_COLOR.get(q, "white")
-        bar_len = max(0, n) * 3
-        q_table.add_row(
-            Text(q, style=f"bold {clr}"),
-            Text(str(n), style=clr),
-            Text("█" * bar_len, style=clr) if bar_len else Text("—", style="grey58"),
-        )
-    parts.append(_panel("📊 Distribuição por Quadrante", q_table, "primary"))
-
-    # Daily positions
-    daily_table = Table(show_header=True, header_style="bold green3", box=None, padding=(0, 1), expand=False)
-    daily_table.add_column("Data", style="bold white", min_width=12, no_wrap=True)
-    daily_table.add_column("Tipo", min_width=10, no_wrap=True)
-    daily_table.add_column("X", justify="right", min_width=5, no_wrap=True)
-    daily_table.add_column("Y", justify="right", min_width=5, no_wrap=True)
-    daily_table.add_column("Quadrante", justify="center", min_width=10, no_wrap=True)
-    daily_table.add_column("🍅", justify="right", min_width=4, no_wrap=True)
-    for d, orcado, realizado, n_pom in daily_data:
-        x = productivity_pct(realizado, orcado)
-        y = x
-        code, _, _ = classify_quadrant(x, y)
-        clr = QUADRANT_COLOR.get(code, "white")
-        ctx = next((c for c in day_contexts.list() if c.date == d), None)
-        tipo = ctx.tipo_dia.value if ctx else ("curso" if d.weekday() < 5 else "livre")
-        tipo_clr = TIPO_DIA_COLOR.get(tipo, "white")
-        daily_table.add_row(
-            Text(d.isoformat(), style="bold white"),
-            Text(tipo, style=f"bold {tipo_clr}"),
-            Text(f"{x:.0f}%", style=clr),
-            Text(f"{y:.0f}%", style=clr),
-            Text(code, style=f"bold {clr}"),
-            Text(str(n_pom)),
-        )
-    parts.append(_panel("🗓️ Posição Diária (X, Y, Quadrante)", daily_table, "hardwork"))
-
-    # Sleep breakdown
-    sev_avg = "ok" if avg_sleep >= 7 else "warn" if avg_sleep >= 5 else "crit"
-    sev_min = "ok" if min_sleep >= 7 else "warn" if min_sleep >= 4 else "crit"
-    sleep_table = Table.grid(expand=False, padding=(0, 1))
-    sleep_table.add_column(min_width=22, justify="left")
-    sleep_table.add_column(min_width=10, justify="left")
-    for label, val, sev in [
-        ("Média", f"{avg_sleep:.1f}h", sev_avg),
-        ("Mínimo", f"{min_sleep:.1f}h", sev_min),
-        ("Máximo", f"{max_sleep:.1f}h", "ok"),
-        ("Dias < 6h", str(sum(1 for h in sleep_hours if h < 6)), "ok" if sum(1 for h in sleep_hours if h < 6) == 0 else "warn"),
-        ("Dias 7-9h", str(sum(1 for h in sleep_hours if 7 <= h <= 9)), "ok"),
-        ("Dias > 9h", str(sum(1 for h in sleep_hours if h > 9)), "ok"),
-    ]:
-        from operational.ui.components import severity_text
-        sleep_table.add_row(Text(label, style="bold white"), severity_text(val, sev))
-    parts.append(_panel("😴 Distribuição do Sono (7 dias)", sleep_table, "sleep"))
-
-    # Next step
-    if q_count.get("Q3", 0) > 0:
-        from operational.ui.components import next_step_panel
-        parts.append(next_step_panel(
-            f"⚠️  {q_count['Q3']} dia(s) em Q3 (Crítico). Revisar padrão sono+trabalho urgente.",
-            severity="crit", icon="!",
-        ))
-    elif avg_x < 50:
-        from operational.ui.components import next_step_panel
-        parts.append(next_step_panel(
-            f"Produtividade média {avg_x:.0f}% (abaixo de 50%). Aumentar volume de trabalho.",
-            severity="warn", icon="↑",
-        ))
-    else:
-        from operational.ui.components import next_step_panel
-        parts.append(next_step_panel(
-            f"Semana dentro do padrão ({avg_x:.0f}% médio). Manter ritmo.",
-            severity="ok", icon="✓",
-        ))
-
-    # --- v2 chrome: wrap the v1 body in a v2 page (header + body + footer) ---
-    if v2:
-        from operational.ui.v2_renderers import _wrap_v1_in_v2_page
-        page_renderable = _wrap_v1_in_v2_page(
-            title="Weekly Report",
-            subtitle=f"{ws.isoformat()} → {we.isoformat()}",
-            body=Group(*parts),
-        )
-        console.print(page_renderable)
-        return
-
-    console.print(Group(*parts))
-
-
-# ---------------------------------------------------------------------------
-# Local helpers
-# ---------------------------------------------------------------------------
-
-
-def _kpi(title: str, value: str, color: str, footer: str, icon: str) -> "object":
-    from operational.ui.components import kpi_card
-    return kpi_card(title, value, color=color, footer=footer, icon=icon, width=30)
-
-
-def _panel(title: str, body, color: str):
-    from operational.ui.components import section_panel
-    return section_panel(title, body, color=color)
+    console.print(full_page)

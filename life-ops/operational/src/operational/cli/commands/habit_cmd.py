@@ -2,12 +2,10 @@
 from __future__ import annotations
 
 import typer
-from rich.console import Console
 from rich.table import Table
 
+from operational.cli._compat import make_console, maybe_print_input_summary, progress_bar
 from operational.cli.formatters import format_as_json
-from operational.cli.input_summary import maybe_print_input_summary
-from operational.cli.renderers import make_console, progress_bar
 from operational.cli.state import habits
 from operational.enums import HabitCategory
 from operational.meta.factories import make_habit

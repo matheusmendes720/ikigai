@@ -84,11 +84,9 @@ class TestCliApp:
         # We just verify the command runs without raising; the v2 flag tests
         # in tests/integration/test_report_v2_flags.py cover the actual output.
         assert result.exit_code == 0
-        # If the v1 path is taken, "EASE" appears; if v2 (shouldn't be here),
-        # "DAILY REPORT" appears. Accept either or empty (in case of stdout
-        # capture edge cases).
+        # After the v1/v2 merge, only v2 chrome is rendered → "DAILY REPORT" appears.
         if result.stdout:
-            assert ("EASE" in result.stdout) or ("Daily" in result.stdout) or ("DAILY REPORT" in result.stdout)
+            assert "DAILY REPORT" in result.stdout
 
     def test_json_flag(self) -> None:
         result = runner.invoke(app, ["routine", "create", "JR", "MANHA", "CORE", "--json"])

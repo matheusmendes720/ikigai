@@ -4,12 +4,10 @@ from __future__ import annotations
 from datetime import date
 
 import typer
-from rich.console import Console
 from rich.table import Table
 
+from operational.cli._compat import make_console, maybe_print_input_summary
 from operational.cli.formatters import format_as_json
-from operational.cli.input_summary import maybe_print_input_summary
-from operational.cli.renderers import make_console
 from operational.cli.state import journals
 from operational.meta.factories import make_journal_entry
 

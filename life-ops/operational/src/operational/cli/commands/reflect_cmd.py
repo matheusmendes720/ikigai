@@ -4,12 +4,11 @@ from __future__ import annotations
 from datetime import date, datetime, UTC
 
 import typer
-from rich.console import Console
 from rich.prompt import Prompt
 from rich.table import Table
 
+from operational.cli._compat import make_console
 from operational.cli.formatters import format_as_json
-from operational.cli.renderers import make_console
 from operational.cli.state import daily_reflections
 from operational.enums import EstadoPsicomatico
 from operational.types import UEID
