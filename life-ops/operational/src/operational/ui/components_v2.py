@@ -441,6 +441,275 @@ def error_panel_v2(
 
 
 # ---------------------------------------------------------------------------
+# Progress v2 — horizontal bar with severity color + absolute value
+# ---------------------------------------------------------------------------
+
+def progress_v2(
+    value: float,
+    max_value: float,
+    label: str = "",
+    severity: str = "primary",
+    width: int = 20,
+) -> RenderableType:
+    """Horizontal progress bar with severity color and absolute value.
+
+    Wireframe:
+      Hardwork   ████████████░░░░░░░░  50%  (240/480)
+
+    Args:
+        value: Current value.
+        max_value: Maximum value (total).
+        label: Optional left-side label.
+        severity: One of "primary", "success", "warning", "danger".
+        width: Width of the bar in characters.
+
+    Returns:
+        A :class:`rich.text.Text` renderable.
+    """
+    color = SEVERITY.get(severity, SEVERITY["primary"])
+    pct = 0.0 if max_value <= 0 else max(0.0, min(1.0, value / max_value))
+    filled = int(round(pct * width))
+    empty = width - filled
+    t = Text()
+    if label:
+        t.append(f"  {label:<10}", style=STYLES["body"])
+    t.append(Glyph.BAR_FULL * filled, style=color)
+    t.append(Glyph.BAR_EMPTY * empty, style=SEVERITY["muted"])
+    t.append(f"  {int(pct * 100):3d}%", style=f"bold {color}")
+    t.append(f"  ({int(value)}/{int(max_value)})", style=STYLES["body_muted"])
+    return t
+
+
+# ---------------------------------------------------------------------------
+# Metric v2 — table of metric values with optional severity-based coloring
+# ---------------------------------------------------------------------------
+
+def metric_v2(
+    rows: list[tuple[str, str, str | None]],
+    headers: list[str] | None = None,
+    severity_col: int | None = None,
+) -> RenderableType:
+    """Table of metric values with optional severity-based row coloring.
+
+    Wireframe:
+       Métrica             Valor
+       ─────────           ─────
+       Sono                8.0h
+       Pomodoros           12/12
+       Energia             10/10
+
+    Args:
+        rows: List of ``(label, value, severity)`` tuples. Severity is
+            optional (``None`` to skip coloring). One of "ok", "warn",
+            "crit", "muted".
+        headers: Optional column headers. Defaults to ``["Métrica", "Valor"]``.
+        severity_col: Column index to color (default: the last column).
+
+    Returns:
+        A :class:`rich.table.Table` renderable.
+    """
+    if headers is None:
+        headers = ["Métrica", "Valor"]
+    sev_to_color = {
+        "ok": SEVERITY["success"],
+        "warn": SEVERITY["warning"],
+        "crit": SEVERITY["danger"],
+        "muted": SEVERITY["muted"],
+    }
+    target_col = severity_col if severity_col is not None else (len(headers) - 1)
+    t = Table(
+        show_header=bool(headers),
+        header_style=f"bold {SEVERITY['primary']}",
+        border_style=SEVERITY["muted"],
+        box=None,
+        padding=(0, 1),
+        expand=False,
+    )
+    for h in headers:
+        t.add_column(header=h, justify="left", no_wrap=False)
+    for row in rows:
+        # Pad to header length
+        cells: list[str] = [str(c) for c in row[: len(headers)]]
+        while len(cells) < len(headers):
+            cells.append("")
+        severity = row[2] if len(row) > 2 else None
+        if severity and target_col < len(cells):
+            color = sev_to_color.get(severity, SEVERITY["primary"])
+            cells[target_col] = f"[{color}]{cells[target_col]}[/]"
+        t.add_row(*cells)
+    return t
+
+
+# ---------------------------------------------------------------------------
+# Severity Text v2 — simple colored Text factory
+# ---------------------------------------------------------------------------
+
+def severity_text_v2(
+    text: str,
+    severity: str = "info",
+) -> RenderableType:
+    """Simple colored :class:`rich.text.Text`.
+
+    Args:
+        text: The text to render.
+        severity: One of "primary", "success", "warning", "danger",
+            "info", "muted", "accent".
+
+    Returns:
+        A :class:`rich.text.Text` renderable.
+    """
+    color = SEVERITY.get(severity, SEVERITY["info"])
+    return Text(text, style=color)
+
+
+# ---------------------------------------------------------------------------
+# Timeline Horizontal v2 — events on a horizontal axis with status glyphs
+# ---------------------------------------------------------------------------
+
+def timeline_h_v2(
+    events: list[tuple[str, str, str]],
+    width: int = 80,
+) -> RenderableType:
+    """Horizontal timeline with timestamp dots, labels, and status glyphs.
+
+    Wireframe:
+    ─ 06:00 ─── 07:00 ─── 09:00 ─── 12:00 ─── 14:00 ─── 18:00 ─── 22:00 ───
+      ● wake     ● coffee   ● class    ● lunch     ● work     ● dinner    ● sleep
+      ✓          ✓          ✓          ⚠ heavy     ✓          ✓          ◌
+
+    Args:
+        events: List of ``(timestamp, label, status)`` tuples.
+            Status is one of "done", "warning", "pending", "active".
+        width: Total display width.
+
+    Returns:
+        A :class:`rich.console.Group` renderable with 3 lines.
+    """
+    status_glyph = {
+        "done": Glyph.CHECK,
+        "warning": Glyph.CROSS,
+        "pending": Glyph.PENDING,
+        "active": Glyph.ACTIVE,
+    }
+    status_color = {
+        "done": SEVERITY["success"],
+        "warning": SEVERITY["warning"],
+        "pending": SEVERITY["muted"],
+        "active": SEVERITY["primary"],
+    }
+    if not events:
+        return Text("  (no events)", style=SEVERITY["muted"])
+
+    # Compute the time line: place each event's timestamp evenly-spaced
+    # (the spec is a fixed-width wireframe — we just distribute slots).
+    n = len(events)
+    slot = max(8, (width - 2) // n)
+
+    # Top row: ── timestamps connected by dashes
+    top = Text("  ")
+    for i, (ts, _label, _status) in enumerate(events):
+        top.append(f"{Glyph.AXIS_X} {ts}", style=STYLES["body_muted"])
+        if i < n - 1:
+            pad = max(0, slot - len(ts) - 2)
+            top.append(Glyph.AXIS_X * pad, style=SEVERITY["muted"])
+
+    # Middle row: ● event label, left-aligned per slot
+    mid = Text("  ")
+    for i, (_ts, label, status) in enumerate(events):
+        g = status_glyph.get(status, Glyph.MUTED_DOT)
+        c = status_color.get(status, SEVERITY["muted"])
+        mid.append(f"{g} {label}", style=c)
+        if i < n - 1:
+            pad = max(0, slot - len(label) - 2)
+            mid.append(" " * pad, style=STYLES["body_muted"])
+
+    # Bottom row: status glyphs (done/warning/pending/active)
+    bot = Text("  ")
+    for i, (_ts, _label, status) in enumerate(events):
+        g = status_glyph.get(status, Glyph.MUTED_DOT)
+        c = status_color.get(status, SEVERITY["muted"])
+        bot.append(g, style=c)
+        if i < n - 1:
+            pad = max(0, slot - 1)
+            bot.append(" " * pad, style=STYLES["body_muted"])
+
+    return Group(top, mid, bot)
+
+
+# ---------------------------------------------------------------------------
+# Status Badge v2 — colored pill indicator
+# ---------------------------------------------------------------------------
+
+def status_badge_v2(
+    label: str,
+    severity: str = "info",
+) -> RenderableType:
+    """Colored pill status indicator.
+
+    Wireframe:
+      [ ● ACTIVE ]
+
+    Args:
+        label: Text to display inside the badge (will be uppercased).
+        severity: One of "primary", "success", "warning", "danger",
+            "info", "muted".
+
+    Returns:
+        A :class:`rich.text.Text` renderable.
+    """
+    color = SEVERITY.get(severity, SEVERITY["info"])
+    use_active = severity == "success" or severity == "primary"
+    glyph = Glyph.ACTIVE if use_active else Glyph.MUTED_DOT
+    t = Text()
+    t.append("  [ ", style=color)
+    t.append(glyph, style=f"bold {color}")
+    t.append(f" {label.upper()} ", style=f"bold {color}")
+    t.append("] ", style=color)
+    return t
+
+
+# ---------------------------------------------------------------------------
+# Input Summary v2 — echo what the user typed
+# ---------------------------------------------------------------------------
+
+def input_summary_v2(
+    items: list[tuple[str, str]],
+    title: str = "Você digitou",
+) -> RenderableType:
+    """Two-column table that echoes back the user's input.
+
+    Wireframe:
+    ╭─ Você digitou ─────────────────────────────────╮
+    │  Nome           Morning workout                  │
+    │  Período        MANHA                           │
+    │  Tipo           CORE                            │
+    │  Início         06:00                           │
+    ╰─────────────────────────────────────────────────╯
+
+    Args:
+        items: List of ``(field, value)`` tuples.
+        title: Panel title (default Portuguese).
+
+    Returns:
+        A :class:`rich.panel.Panel` renderable.
+    """
+    grid = Table.grid(expand=False, padding=(0, 1))
+    grid.add_column(min_width=14, justify="left")
+    grid.add_column(min_width=24, justify="left")
+    for field, value in items:
+        grid.add_row(
+            Text(f"  {field}", style=STYLES["body_muted"]),
+            Text(str(value), style=STYLES["emphasis"]),
+        )
+    return Panel(
+        grid,
+        title=f"[{SEVERITY['info']}] {title} [/]",
+        border_style=SEVERITY["info"],
+        padding=(0, 1),
+    )
+
+
+# ---------------------------------------------------------------------------
 # Page (NEW) — composes header + body + footer
 # ---------------------------------------------------------------------------
 
@@ -470,4 +739,11 @@ __all__ = [
     "next_step_v2",
     "error_panel_v2",
     "page",
+    # v1 port — new in this batch
+    "progress_v2",
+    "metric_v2",
+    "severity_text_v2",
+    "timeline_h_v2",
+    "status_badge_v2",
+    "input_summary_v2",
 ]

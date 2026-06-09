@@ -27,8 +27,9 @@ from operational.ui.tokens import (  # noqa: E402
     CONSOLE_WIDTH_V2, Glyph, PADDING, QUADRANT, REGIME, SEVERITY, STYLES,
 )
 from operational.ui.components_v2 import (  # noqa: E402
-    cartesian_v2, header_v2, kpi_v2, next_step_v2, page, pomodoros_v2,
-    regime_bar, section_v2, sparkline_v2,
+    cartesian_v2, header_v2, input_summary_v2, kpi_v2, metric_v2,
+    next_step_v2, page, pomodoros_v2, progress_v2, regime_bar, section_v2,
+    severity_text_v2, sparkline_v2, status_badge_v2, timeline_h_v2,
 )
 from operational.ui.mock_profiles import PROFILES, get_profile  # noqa: E402
 from operational.ui.mock_snapshot import build_mock_snapshot  # noqa: E402
@@ -252,3 +253,151 @@ class TestNoAnsiLeak:
             out = _render(k)
             assert "\x1b" not in out
             assert "\x1b[" not in out
+
+
+# ===========================================================================
+# v1 ports — widgets added in this batch
+# ===========================================================================
+
+class TestProgressV2:
+    def test_progress_v2_renders(self) -> None:
+        out = _render(progress_v2(50, 100, "Hardwork", severity="success"))
+        assert "Hardwork" in out
+        assert "50%" in out
+        assert "(50/100)" in out
+
+    def test_progress_v2_uses_tokens(self) -> None:
+        out = _render(progress_v2(10, 20, severity="success"))
+        assert Glyph.BAR_FULL in out
+        assert Glyph.BAR_EMPTY in out
+
+    def test_progress_v2_zero_max_no_crash(self) -> None:
+        out = _render(progress_v2(0, 0, "x", severity="warning"))
+        assert "0%" in out
+        assert "\x1b[" not in out
+
+    def test_progress_v2_full_bar(self) -> None:
+        out = _render(progress_v2(100, 100, "Done", severity="success"))
+        assert "100%" in out
+        assert Glyph.BAR_EMPTY not in out
+
+
+class TestMetricV2:
+    def test_metric_v2_renders(self) -> None:
+        rows = [("Sono", "8.0h", "ok"), ("Pomodoros", "12/12", "ok"), ("Energia", "10/10", "ok")]
+        out = _render(metric_v2(rows))
+        assert "Sono" in out
+        assert "8.0h" in out
+        assert "Pomodoros" in out
+        assert "Energia" in out
+
+    def test_metric_v2_severity_optional(self) -> None:
+        rows = [("Sono", "8.0h", None), ("Energia", "3", "warn")]
+        out = _render(metric_v2(rows))
+        assert "Sono" in out
+        assert "Energia" in out
+        assert "3" in out
+
+    def test_metric_v2_custom_headers(self) -> None:
+        rows = [("a", "1", "ok")]
+        out = _render(metric_v2(rows, headers=["Key", "Value"]))
+        assert "Key" in out
+        assert "Value" in out
+
+    def test_metric_v2_no_ansi_leak(self) -> None:
+        rows = [("x", "1", "ok"), ("y", "2", "warn"), ("z", "3", "crit")]
+        out = _render(metric_v2(rows))
+        assert "\x1b[" not in out
+
+
+class TestSeverityTextV2:
+    def test_severity_text_v2_renders(self) -> None:
+        out = _render(severity_text_v2("OK", "success"))
+        assert "OK" in out
+
+    def test_severity_text_v2_danger(self) -> None:
+        out = _render(severity_text_v2("FAIL", "danger"))
+        assert "FAIL" in out
+        assert "\x1b[" not in out
+
+    def test_severity_text_v2_default_info(self) -> None:
+        out = _render(severity_text_v2("hi"))
+        assert "hi" in out
+
+
+class TestTimelineHV2:
+    def test_timeline_h_v2_renders(self) -> None:
+        events = [
+            ("06:00", "wake", "done"),
+            ("07:00", "coffee", "done"),
+            ("09:00", "class", "active"),
+            ("12:00", "lunch", "warning"),
+            ("18:00", "dinner", "pending"),
+        ]
+        out = _render(timeline_h_v2(events))
+        assert "06:00" in out
+        assert "wake" in out
+        assert "12:00" in out
+        assert "lunch" in out
+        assert Glyph.CHECK in out
+        assert Glyph.ACTIVE in out
+        assert Glyph.PENDING in out
+
+    def test_timeline_h_v2_empty(self) -> None:
+        out = _render(timeline_h_v2([]))
+        assert "no events" in out
+
+    def test_timeline_h_v2_no_ansi_leak(self) -> None:
+        events = [("06:00", "a", "done"), ("12:00", "b", "warning")]
+        out = _render(timeline_h_v2(events))
+        assert "\x1b[" not in out
+
+
+class TestStatusBadgeV2:
+    def test_status_badge_v2_renders(self) -> None:
+        out = _render(status_badge_v2("active", "success"))
+        assert "ACTIVE" in out
+        assert Glyph.ACTIVE in out
+
+    def test_status_badge_v2_muted_uses_dot(self) -> None:
+        out = _render(status_badge_v2("paused", "muted"))
+        assert "PAUSED" in out
+        assert Glyph.MUTED_DOT in out
+
+    def test_status_badge_v2_no_ansi_leak(self) -> None:
+        out = _render(status_badge_v2("ok", "info"))
+        assert "\x1b[" not in out
+
+
+class TestInputSummaryV2:
+    def test_input_summary_v2_renders(self) -> None:
+        items = [
+            ("Nome", "Morning workout"),
+            ("Período", "MANHA"),
+            ("Tipo", "CORE"),
+            ("Início", "06:00"),
+        ]
+        out = _render(input_summary_v2(items))
+        assert "Nome" in out
+        assert "Morning workout" in out
+        assert "Período" in out
+        assert "MANHA" in out
+        assert "Tipo" in out
+        assert "CORE" in out
+        assert "Início" in out
+        assert "06:00" in out
+
+    def test_input_summary_v2_custom_title(self) -> None:
+        items = [("x", "1")]
+        out = _render(input_summary_v2(items, title="Echo"))
+        assert "Echo" in out
+
+    def test_input_summary_v2_empty(self) -> None:
+        out = _render(input_summary_v2([]))
+        assert "Você digitou" in out  # default title still in the panel
+        assert "\x1b[" not in out
+
+    def test_input_summary_v2_no_ansi_leak(self) -> None:
+        items = [("a", "1"), ("b", "2")]
+        out = _render(input_summary_v2(items))
+        assert "\x1b[" not in out
