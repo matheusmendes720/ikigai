@@ -6,12 +6,20 @@ Per architecture rules:
 - NO business logic here.
 - NO Rich construction here (no Table, Panel, Text building).
 - NO string concatenation for visual layout.
+
+The ``--v2``, ``--mock``, and ``--watch`` opt-in flags enable the
+PAV-OS v2 design system on top of the v1 commands. v1 behavior is
+preserved as the default — these flags are A/B-test plumbing for
+the v2 migration.
 """
 from __future__ import annotations
 
 from datetime import date, timedelta
+import time as time_module
+from typing import Optional
 
 import typer
+from rich.live import Live
 
 from operational.cli.console import console
 from operational.cli.state import (
@@ -32,6 +40,7 @@ from operational.core.services import (
     compute_day_quadrant,
     get_day_snapshot,
 )
+from operational.ui.components_v2 import error_panel_v2
 from operational.ui.daily_report import render_daily_report
 
 app = typer.Typer(help="Generate reports (V3 — Cartesian, recovery, OKRs).")
@@ -46,15 +55,63 @@ app = typer.Typer(help="Generate reports (V3 — Cartesian, recovery, OKRs).")
 def daily(
     report_date: str | None = typer.Option(None, "--date", "-d", help="Data (YYYY-MM-DD)"),
     json: bool = typer.Option(False, "--json", help="JSON output"),
+    v2: bool = typer.Option(False, "--v2", help="Use PAV-OS v2 design system (BETA)"),
+    mock: Optional[str] = typer.Option(None, "--mock", help="Use mock profile (q1, q2, q3, q4, empty, burnout, peak)"),
+    watch: int = typer.Option(0, "--watch", help="Auto-refresh every N seconds (requires --v2)"),
 ) -> None:
-    """Relatório diário V3 — Cartesian + recovery + OKRs."""
-    d = date.fromisoformat(report_date) if report_date else date.today()
+    """Relatório diário V3 — Cartesian + recovery + OKRs.
 
-    # 1. Core: load data
-    snap: DaySnapshot = get_day_snapshot(d)
+    Opt-in flags for v2 A/B testing:
+    - ``--v2``: render with the PAV-OS v2 design system.
+    - ``--mock <profile>``: synthesize a DaySnapshot from a mock profile.
+    - ``--watch N``: auto-refresh every N seconds (requires ``--v2``).
+    """
+    # --- Validation: --watch without --v2 ---
+    if watch and not v2:
+        console.print(error_panel_v2(
+            "--watch requires --v2",
+            context=f"pav report daily --watch {watch}",
+            expected="--watch N --v2",
+            suggestion="pav report daily --v2 --watch 5",
+        ))
+        raise typer.Exit(code=1)
 
+    # --- Resolve date ---
+    try:
+        d = date.fromisoformat(report_date) if report_date else date.today()
+    except ValueError:
+        console.print(error_panel_v2(
+            f"Data invalida: {report_date}",
+            context=f"pav report daily --date {report_date}",
+            expected="YYYY-MM-DD (ano-mes-dia, mes 01-12, dia 01-31)",
+            suggestion="pav report daily --date 2026-06-08",
+        ))
+        raise typer.Exit(code=1)
+
+    # --- Resolve mock profile (if any) ---
+    profile = None
+    if mock:
+        from operational.ui.mock_profiles import get_profile, list_profiles
+        try:
+            profile = get_profile(mock)
+        except ValueError:
+            console.print(error_panel_v2(
+                f"Perfil mock desconhecido: {mock!r}",
+                context=f"pav report daily --mock {mock}",
+                expected=f"One of: {', '.join(list_profiles())}",
+                suggestion="pav report daily --mock q1",
+            ))
+            raise typer.Exit(code=1)
+
+    # --- Build snapshot (mock or live) ---
+    if profile is not None:
+        from operational.ui.mock_snapshot import build_mock_snapshot
+        snap: DaySnapshot = build_mock_snapshot(profile)
+    else:
+        snap = get_day_snapshot(d)
+
+    # --- JSON output (always v1 payload shape for backwards compat) ---
     if json:
-        # Plain dict for machine consumption
         q_code, x, y = compute_day_quadrant(snap)
         payload = {
             "date": d.isoformat(),
@@ -88,11 +145,52 @@ def daily(
             "maior_aprendizado": snap.maior_aprendizado,
             "quadrant": q_code,
             "x": x, "y": y,
+            "design_system": "v2" if v2 else "v1",
+            "mock": mock,
         }
         typer.echo(format_as_json(payload))
         return
 
-    # 2. UI: render
+    # --- v2 rendering path ---
+    if v2:
+        from operational.ui.v2_renderers import render_daily_v2
+
+        if watch > 0:
+            # Auto-refresh loop: re-fetch snapshot, re-render
+            from io import StringIO
+
+            from operational.cli.console import console as _console
+
+            def _build() -> str:
+                # Re-fetch the snapshot (mock or live) on each refresh
+                if profile is not None:
+                    current_snap = build_mock_snapshot(profile)
+                else:
+                    current_snap = get_day_snapshot(d)
+                # Capture into a string buffer so Live can re-render it
+                buf = StringIO()
+                save_file = _console.file
+                _console.file = buf
+                try:
+                    render_daily_v2(current_snap, d)
+                finally:
+                    _console.file = save_file
+                return buf.getvalue()
+
+            with Live(_build(), refresh_per_second=1, transient=False) as live:
+                # Loop: allow tests to exit via KeyboardInterrupt / SystemExit
+                try:
+                    while True:
+                        time_module.sleep(watch)
+                        live.update(_build())
+                except (KeyboardInterrupt, SystemExit):
+                    pass
+            return
+
+        render_daily_v2(snap, d)
+        return
+
+    # --- v1 default rendering path ---
     report = render_daily_report(snap)
     console.print(report)
 
@@ -107,8 +205,17 @@ def weekly(
     start: str | None = typer.Option(None, "--start", "-s", help="Início da semana (YYYY-MM-DD)"),
     end: str | None = typer.Option(None, "--end", "-e", help="Fim da semana (YYYY-MM-DD)"),
     json: bool = typer.Option(False, "--json", help="JSON output"),
+    v2: bool = typer.Option(False, "--v2", help="Use PAV-OS v2 design system (BETA)"),
+    mock: Optional[str] = typer.Option(None, "--mock", help="[BETA, daily only] Reuse a mock profile for the latest day in the range"),
 ) -> None:
-    """Relatório semanal V3 — distribuição por TipoDia + quadrante dominante."""
+    """Relatório semanal V3 — distribuição por TipoDia + quadrante dominante.
+
+    Opt-in flags for v2 A/B testing:
+    - ``--v2``: render the dashboard chrome with v2 components (mock-aware).
+    - ``--mock <profile>``: feed a mock profile's snapshot into the latest day
+      in the range. (Weekly aggregation is v1; mock only affects the per-day
+      data, not the layout.)
+    """
     from rich.console import Group
     from rich.table import Table
     from rich.text import Text
@@ -123,6 +230,21 @@ def weekly(
         sparkline,
     )
 
+    # --- Mock profile resolution (option a: just use v1 with mock data) ---
+    profile = None
+    if mock:
+        from operational.ui.mock_profiles import get_profile, list_profiles
+        try:
+            profile = get_profile(mock)
+        except ValueError:
+            console.print(error_panel_v2(
+                f"Perfil mock desconhecido: {mock!r}",
+                context=f"pav report weekly --mock {mock}",
+                expected=f"One of: {', '.join(list_profiles())}",
+                suggestion="pav report weekly --mock q1",
+            ))
+            raise typer.Exit(code=1)
+
     ws = date.fromisoformat(start) if start else date.today() - timedelta(days=6)
     we = date.fromisoformat(end) if end else date.today()
 
@@ -135,7 +257,12 @@ def weekly(
     prod_by_day: list[float] = []
     for offset in range((we - ws).days + 1):
         d = ws + timedelta(days=offset)
-        snap = get_day_snapshot(d)
+        # If a mock profile is set, override the LAST day in the range
+        if profile is not None and d == we:
+            from operational.ui.mock_snapshot import build_mock_snapshot
+            snap = build_mock_snapshot(profile)
+        else:
+            snap = get_day_snapshot(d)
         orcado = snap.hardwork_orcado_min
         realizado = snap.hardwork_realizado_min
         n_pomodoros += snap.n_pomodoros
@@ -152,6 +279,8 @@ def weekly(
             "n_days": (we - ws).days + 1,
             "n_pomodoros": n_pomodoros,
             "n_reflections": len([r for r in daily_reflections.list() if ws <= r.date <= we]),
+            "design_system": "v2" if v2 else "v1",
+            "mock": mock,
         }
         typer.echo(format_as_json(payload))
         return
@@ -311,6 +440,17 @@ def weekly(
             f"Semana dentro do padrão ({avg_x:.0f}% médio). Manter ritmo.",
             severity="ok", icon="✓",
         ))
+
+    # --- v2 chrome: wrap the v1 body in a v2 page (header + body + footer) ---
+    if v2:
+        from operational.ui.v2_renderers import _wrap_v1_in_v2_page
+        page_renderable = _wrap_v1_in_v2_page(
+            title="Weekly Report",
+            subtitle=f"{ws.isoformat()} → {we.isoformat()}",
+            body=Group(*parts),
+        )
+        console.print(page_renderable)
+        return
 
     console.print(Group(*parts))
 
