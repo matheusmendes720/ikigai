@@ -26,12 +26,13 @@ from operational.cli.commands.state_cmd import app as state_app
 from operational.cli.commands.reflect_cmd import app as reflect_app
 from operational.cli.commands.lunch_cmd import app as lunch_app
 from operational.cli.commands.doctor_cmd import app as doctor_app
+from operational.cli.commands.report_v2_cmd import app as report_v2_app
 
 __all__ = ["app"]
 
 app = typer.Typer(
-    name="time-tasker",
-    help="⚡ TIME-TASKER — Algorítmica Visual: rotinas, blocos, hábitos, métricas, policy.",
+    name="pav-os",
+    help="◆ PAV-OS — Cybernetic Life OS — Target. Sense. Adjust.",
     no_args_is_help=True,
 )
 
@@ -47,10 +48,11 @@ app.add_typer(state_app, name="state", help="Dashboard do dia corrente (onde est
 app.add_typer(reflect_app, name="reflect", help="OKRs V3 — reflexão de entrada/saída.")
 app.add_typer(lunch_app, name="lunch", help="Registrar almoço (eat + rest + flag pesado).")
 app.add_typer(doctor_app, name="doctor", help="Diagnóstico completo do ambiente.")
+app.add_typer(report_v2_app, name="v2", help="[BETA] PAV-OS v2 reports (design system v2 + mock data).")
 
 
 @app.command()
 def home() -> None:
-    """Menu interativo — interface principal do Time-Tasker."""
+    """Menu interativo — interface principal do PAV-OS."""
     from operational.cli.home import run as run_home
     run_home()
