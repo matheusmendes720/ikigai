@@ -86,8 +86,9 @@ def create(
 def list_routines(
     period: Period | None = typer.Option(None, "--period", "-p", help="Filter by period"),
     json: bool = typer.Option(False, "--json", help="JSON output"),
+    tree: bool = typer.Option(False, "--tree", help="Render as Rich Tree grouped by period (MANHA/TARDE/NOITE)"),
 ) -> None:
-    """List saved routines — Rich Table."""
+    """List saved routines — Rich Table or Tree (with --tree)."""
     filters = {}
     if period:
         filters["period"] = period
@@ -104,6 +105,25 @@ def list_routines(
     # Sort by period then by start time
     period_order = {Period.MANHA: 0, Period.TARDE: 1, Period.NOITE: 2}
     items_sorted = sorted(items, key=lambda r: (period_order.get(r.period, 9), r.start_time))
+
+    # --tree: render as a Rich Tree grouped by period
+    if tree:
+        from rich.tree import Tree
+        root = Tree(f"[bold cyan]🕐 Rotinas ({len(items_sorted)})[/bold cyan]")
+        period_groups: dict[Period, list] = {}
+        for r in items_sorted:
+            period_groups.setdefault(r.period, []).append(r)
+        for p in [Period.MANHA, Period.TARDE, Period.NOITE]:
+            if p not in period_groups:
+                continue
+            period_node = root.add(f"[bold]{p.value}[/bold]  [grey58]({len(period_groups[p])})[/grey58]")
+            for r in period_groups[p]:
+                label = f"[cyan]{r.start_time.strftime('%H:%M')}[/cyan]-[cyan]{r.end_time.strftime('%H:%M')}[/cyan]  {r.name}"
+                if r.mandatory:
+                    label += "  [bold red]*[/bold red]"
+                period_node.add(label)
+        console.print(root)
+        return
 
     table = Table(
         title=f"[bold cyan]🕐 Rotinas ({len(items)})[/bold cyan]",
