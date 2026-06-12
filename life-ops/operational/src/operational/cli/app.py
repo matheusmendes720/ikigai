@@ -54,3 +54,12 @@ def home() -> None:
     """Menu interativo — PAV-OS v2 menu (definitive edition)."""
     from operational.cli.home_v2 import run as run_home_v2
     run_home_v2()
+
+
+@app.command()
+def tui() -> None:
+    """Launch the PAV TUI (Textual-based 7-screen terminal UI)."""
+    from operational.tui.app import PAVApp
+    import asyncio
+    app = PAVApp()
+    asyncio.run(app.run_async())
