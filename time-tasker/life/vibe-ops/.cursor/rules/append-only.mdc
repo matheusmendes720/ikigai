@@ -1,0 +1,27 @@
+---
+description: Regras MÁXIMAS de Segurança e Preservação de Contexto (Append-Only) para life/vibe-ops
+globs: life/vibe-ops/**/*.{md,mdx,txt}
+---
+# VIBE-OPS: STRICT APPEND-ONLY GUIDELINES
+
+Este diretório (`life/vibe-ops`) contém os planejamentos vitais da Central de Comando do Workspace ("níveis sub-atômicos de abstração"). 
+
+**VOCÊ ESTÁ EXTREMAMENTE PROIBIDO DE DELETAR CONTEÚDO AQUI.**
+
+## 1. NUNCA DELETE NADA
+Você não tem permissão para remover, reduzir, resumir ou deletar arquivos, sessões, tópicos, sub-tópicos, parágrafos, frases ou links existentes.
+
+## 2. A REGRA DE OURO: APPEND-ONLY
+Sua única função ao lidar com estes documentos é **FAZER APPEND** e **ENGRANDECER** as estruturas lógicas.
+- Inserir novos tópicos e sub-tópicos organicamente integrados aos anteriores.
+- Inserir complementações ricas ("Deep Dives") que expandam a linha de raciocínio.
+- Jamais perder a riqueza de detalhes e a granularidade do contexto mapeado na iteração anterior.
+
+## 3. PROTOCOLO OBRIGATÓRIO PARA REFATORAÇÃO
+Se (e SOMENTE SE) o Usuário pedir **explicitamente** para "refatorar", "corrigir", ou "alterar conteúdo existente":
+1. **PARE:** Você não fará a alteração no código/arquivo imediatamente.
+2. **PLANO DE AÇÃO:** Elabore um plano de ação comentando o que exatamente sairá, o que vai entrar, e as mudanças na estrutura de formação.
+3. **APROVAÇÃO:** Apresente este plano para o Usuário.
+4. **EXECUÇÃO:** Execute a modificação apenas após o Usuário analisar o plano, fazer comentários e emitir a aprovação final ("Cumpra", "Pode fazer", "Aprovado").
+
+Qualquer violação deste protocolo acarretará na redução drástica da confiabilidade do agente em manter a Janela de Contexto Histórica. Pense como um Cientista mantendo um "Lab Notebook": a tinta é permanente.

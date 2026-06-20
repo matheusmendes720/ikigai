@@ -1,0 +1,38 @@
+flowchart TB
+    subgraph UP["Upstream (Necessidades)"]
+        ROADMAP["Roadmap de Projetos<br/>CLUSTER_PROJ.md"]
+        IKIGAI_SK["IKIGAi Skill Vector<br/>CONCEPTUAL_MODEL.md"]
+        MARKET["Vector Market<br/>vibe-ops/vectors/"]
+    end
+
+    subgraph STUDY["Cluster STUDY (este doc)"]
+        SK["Skill"]
+        TOP["StudyTopic"]
+        MAT["StudyMaterial"]
+        SES["StudySession"]
+        PRE["Prerequisite Graph<br/>(DAG)"]
+        NLP["NLP Index<br/>notas semânticas"]
+    end
+
+    subgraph DOWN["Downstream (Aplicação)"]
+        PROJ["Cluster PROJ<br/>CLUSTER_PROJ.md"]
+        PORTFOLIO["Portfolio pessoal<br/>GitHub + LinkedIn"]
+        IKIGAI_REV["IKIGAi Vector Skill<br/>atualizado"]
+    end
+
+    ROADMAP -->|skill gap| TOP
+    IKIGAI_SK --> TOP
+    MARKET --> TOP
+    SK --> TOP
+    TOP --> MAT
+    MAT --> SES
+    SES --> NLP
+    TOP -.->|requires| PRE
+    PRE -.->|required by| TOP
+    SES --> IKIGAI_REV
+    SK --> PORTFOLIO
+    TOP --> PROJ
+
+    style STUDY fill:#1a1a2e,stroke:#ff6b6b,color:#fff
+    style UP fill:#2d2d44,stroke:#4a4a6a,color:#fff
+    style DOWN fill:#16213e,stroke:#4a6fa5,color:#fff

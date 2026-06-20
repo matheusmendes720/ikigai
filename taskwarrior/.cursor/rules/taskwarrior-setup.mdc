@@ -1,0 +1,8 @@
+---
+description: Taskwarrior full setup; follow SPEC.md for layout and main-repo usage.
+globs: ["**"]
+---
+
+# Taskwarrior workspace
+
+This folder is the **full Taskwarrior setup** (config, scripts, help, docs, pwsh). Follow [SPEC.md](../SPEC.md) for layout and how the main repo uses it. Paths are relative to this folder or to repo root (taskwarrior/...).

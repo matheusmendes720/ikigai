@@ -1,0 +1,21 @@
+flowchart LR
+    subgraph EXT["Cluster PLAN (este doc)"]
+        R["Routine Diária"]
+        B["Bloco de Tempo"]
+        P["Pomodoro 50+10"]
+        TR["Ritual de Transição"]
+        SW["Janela de Sono 18-21h → 3-5h"]
+    end
+
+    EXT -->|aloca tempo para| PROJ["Cluster PROJ<br/>CLUSTER_PROJ.md"]
+    EXT -->|aloca tempo para| STUDY["Cluster STUDY<br/>CLUSTER_STUDY.md"]
+    EXT -->|reage ao regime| IKIGAI["IKIGAi Vectors<br/>CONCEPTUAL_MODEL.md"]
+    EXT -->|emite telemetria| METRICS["PRD-05<br/>Metrics & Health"]
+    EXT -->|configura hooks| PLUGINS["plugins/<br/>lifecycle"]
+
+    style EXT fill:#1a1a2e,stroke:#4a4a6a,color:#fff
+    style PROJ fill:#16213e,stroke:#4a6fa5,color:#fff
+    style STUDY fill:#16213e,stroke:#4a6fa5,color:#fff
+    style IKIGAI fill:#2d2d44,stroke:#ff6b6b,color:#fff
+    style METRICS fill:#2d2d44,stroke:#ff6b6b,color:#fff
+    style PLUGINS fill:#2d2d44,stroke:#ff6b6b,color:#fff

@@ -1,0 +1,34 @@
+flowchart LR
+    subgraph T["5 TENSÕES (fricção humana)"]
+        T01["T01<br/>Fricção<br/>de Contexto"]
+        T02["T02<br/>Dualidade<br/>Learn/Earn"]
+        T03["T03<br/>Esforço<br/>vs ROI"]
+        T04["T04<br/>Inércia<br/>vs Streak"]
+        T05["T05<br/>Caos<br/>Não Modelado"]
+    end
+
+    subgraph B["COMPORTAMENTOS (operação emergente)"]
+        B1["Blocos pomodoro<br/>+ rituais curtos"]
+        B2["Decisão Learn/Earn<br/>por fase da onda"]
+        B3["Vetor Ikigai<br/>agregado |I|"]
+        B4["Rotinas-âncora<br/>+ streak indexado"]
+        B5["Regime<br/>PUSH MAINTAIN<br/>REDUCE RECOVER"]
+    end
+
+    subgraph S["SOLUÇÕES (middlewares + outputs)"]
+        S1["M2 CommitTaskLinker<br/>M3 HabitEngine"]
+        S2["M1 StoryPointDecomposer<br/>M8 StreamlitBI"]
+        S3["M5 OrphanTriage<br/>M8 StreamlitBI"]
+        S4["M3 HabitEngine Q_HE<br/>+ rotinas âncora"]
+        S5["M4 ReviewOperator R_n<br/>+ policy π s_t"]
+    end
+
+    T01 --> B1 --> S1
+    T02 --> B2 --> S2
+    T03 --> B3 --> S3
+    T04 --> B4 --> S4
+    T05 --> B5 --> S5
+
+    style T fill:#1a1a2e,stroke:#4a4a6a,color:#fff
+    style B fill:#16213e,stroke:#4a6fa5,color:#fff
+    style S fill:#2d2d44,stroke:#ff6b6b,color:#fff

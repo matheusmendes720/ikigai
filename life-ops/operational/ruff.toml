@@ -1,0 +1,49 @@
+target-version = "py311"
+line-length = 100
+extend-exclude = ["**/__pycache__", ".venv", "build", "dist", "tests/fixtures"]
+
+[lint]
+select = ["ALL"]
+ignore = [
+    "D203",
+    "D213",
+    "COM812",
+    "ISC001",
+    "G004",
+    "TRY003",
+]
+
+[lint.per-file-ignores]
+"src/operational/types.py" = [
+    "A002",      # `id` builtin shadowing is required by the Repository spec
+    "ANN401",    # `**fields: Any` is the correct Logger protocol shape
+]
+"tests/**/*.py" = [
+    "S101",      # asserts
+    "PLR2004",   # magic values
+    "ARG",       # unused args
+    "FBT",       # booleans as args
+    "PT011",     # raises in except
+    "SLF001",    # private access
+    "ANN",       # annotations
+    "A002",      # id builtin shadowing in fake repos
+    "D102",      # missing docstring on test methods
+    "DTZ001",    # datetime() without tzinfo in tests
+    "DTZ005",    # datetime.now() without tz in tests
+    "DTZ011",    # date.today() in tests
+    "I001",      # unsorted imports
+    "N802",      # function name casing (test_T_xxx)
+    "PLC0415",   # inline imports in tests
+    "SIM300",    # yoda conditions in tests
+]
+"**/__init__.py" = ["F401"]
+"scripts/**" = ["T201", "INP001", "EXE001"]
+
+[lint.pydocstyle]
+convention = "google"
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = true

@@ -1,73 +1,19 @@
 [build-system]
-requires = ["poetry-core>=1.9.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[project]
-name = "operational"
-version = "0.1.0"
-description = "Standalone operational/cybernetic program: PAV routines, habit engine, Q_HE, policy FSM, journal log"
-readme = "README.md"
-license = { text = "MIT" }
-authors = [
-    { name = "Matheus", email = "mathe@example.com" },
-]
-requires-python = ">=3.11"
-keywords = ["productivity", "habits", "qhe", "policy-fsm", "pomodoro", "journal", "routines"]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Office/Business",
-    "Topic :: Sociology",
-    "Typing :: Typed",
-]
-dependencies = [
-    "pydantic>=2.10,<2.14",
-    "typer>=0.12,<1.0",
-    "rich>=13.7,<14.0",
-    "python-frontmatter>=1.1,<2.0",
-    "pyyaml>=6.0,<7.0",
-    "textual>=0.8",
-    "textual-dev>=0.8",
-    "plotext>=4.2",
-]
+[tool.uv.workspace]
+members = ["packages/core", "apps/cli", "apps/tui"]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0,<9.0",
-    "pytest-cov>=4.1,<6.0",
-    "pytest-mock>=3.12,<4.0",
-    "hypothesis>=6.100,<7.0",
-    "mypy>=1.10,<2.0",
-    "ruff>=0.4.0,<1.0",
-    "pre-commit>=3.7,<5.0",
-    "types-PyYAML>=6.0,<7.0",
-]
+[tool.uv.sources]
+operational-core = { workspace = true }
+operational-cli = { workspace = true }
+operational-tui = { workspace = true }
 
-[project.scripts]
-# PAV-OS v2 — definitive edition
-pav = "operational.cli.app:app"
-pav-os = "operational.cli.app:app"
-# Legacy v1 alias (kept for backward compatibility)
-operational = "operational.cli.app:app"
-
-[project.urls]
-"Source" = "https://github.com/anomalyco/life-ops-operational"
-"Issues" = "https://github.com/anomalyco/life-ops-operational/issues"
-
-[tool.poetry.requires-plugins]
-poetry-plugin-export = ">=1.8"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/operational"]
 
 [tool.coverage.run]
 branch = true
-source = ["src/operational"]
+source = ["packages/core/src/operational"]
 omit = [
     "*/tests/*",
     "*/__pycache__/*",
@@ -87,4 +33,4 @@ exclude_lines = [
 ]
 
 [tool.coverage.paths]
-source = ["src/operational", "*/site-packages/operational"]
+source = ["packages/core/src/operational", "*/site-packages/operational"]

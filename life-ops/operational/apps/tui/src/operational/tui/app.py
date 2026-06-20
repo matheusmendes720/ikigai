@@ -1,0 +1,109 @@
+"""PAV TUI Application — main Textual app with 7 screens."""
+from __future__ import annotations
+
+from typing import ClassVar, Never
+
+from textual import events
+from textual.app import App
+from textual.binding import Binding
+
+from operational.tui.screens.daily_flow_screen import DailyFlowScreen
+from operational.tui.screens.dashboard_screen import DashboardScreen
+from operational.tui.screens.habits_screen import HabitsScreen
+from operational.tui.screens.help_screen import HelpScreen
+from operational.tui.screens.journal_screen import JournalScreen
+from operational.tui.screens.metrics_screen import MetricsScreen
+from operational.tui.screens.policy_screen import PolicyScreen
+from operational.tui.screens.pomodoro_timer_screen import PomodoroTimerScreen
+from operational.tui.theme import get_tui_theme
+
+BINDINGS = [
+    Binding("q", "quit", "Quit", priority=True),
+    Binding("ctrl+h", "show_help", "Help"),
+    Binding("escape", "go_back", "Back", priority=True),
+    Binding("1", "switch_dashboard", "Dashboard", priority=True),
+    Binding("2", "switch_daily_flow", "Daily Flow", priority=True),
+    Binding("3", "switch_pomodoro_timer", "Pomodoro", priority=True),
+    Binding("4", "switch_habits", "Habits", priority=True),
+    Binding("5", "switch_metrics", "Metrics", priority=True),
+    Binding("6", "switch_policy", "Policy", priority=True),
+    Binding("7", "switch_journal", "Journal", priority=True),
+]
+
+
+class PAVApp(App[Never]):
+    """Main PAV-OS TUI application with 7 screens."""
+
+    TITLE = "PAV-OS"
+    BINDINGS = BINDINGS  # type: ignore[assignment]
+
+    # Textual SCREENS accepts classes (or callables) — it auto-instantiates on switch
+    SCREENS: ClassVar = {
+        "dashboard":      DashboardScreen,
+        "daily_flow":     DailyFlowScreen,
+        "pomodoro_timer": PomodoroTimerScreen,
+        "habits":         HabitsScreen,
+        "metrics":        MetricsScreen,
+        "policy":         PolicyScreen,
+        "journal":        JournalScreen,
+        "help":           HelpScreen,
+    }
+
+    def __init__(
+        self,
+        initial_screen: str | None = None,
+        data_file: str | None = None,
+        golden: bool = False,
+        **kwargs: Never,
+    ) -> None:
+        super().__init__(**kwargs)
+        self._initial_screen = initial_screen or "dashboard"
+        self._data_file = data_file
+        self._golden = golden
+
+    def on_mount(self) -> None:
+        theme = get_tui_theme()
+        self.register_theme(theme)
+        self.theme = theme.name
+        # Push the initial screen first (populates the stack).
+        # Subsequent navigations via switch_screen() replace it cleanly.
+        self.push_screen(self._initial_screen)
+
+    async def on_event(self, event: events.Event) -> None:
+        """Intercept global keys (q, ctrl+h) before Input widgets steal them."""
+        if isinstance(event, events.Key):
+            if event.key == "q":
+                self.exit()
+                return None
+            if event.key == "ctrl+h":
+                self.push_screen("help")
+                return None
+        return await super().on_event(event)
+
+    def action_switch_dashboard(self) -> None:
+        self.push_screen("dashboard")
+
+    def action_switch_daily_flow(self) -> None:
+        self.push_screen("daily_flow")
+
+    def action_switch_pomodoro_timer(self) -> None:
+        self.push_screen("pomodoro_timer")
+
+    def action_switch_habits(self) -> None:
+        self.push_screen("habits")
+
+    def action_switch_metrics(self) -> None:
+        self.push_screen("metrics")
+
+    def action_switch_policy(self) -> None:
+        self.push_screen("policy")
+
+    def action_switch_journal(self) -> None:
+        self.push_screen("journal")
+
+    def action_show_help(self) -> None:
+        self.push_screen("help")
+
+    def action_go_back(self) -> None:
+        if len(self.screen_stack) > 1:
+            self.pop_screen()

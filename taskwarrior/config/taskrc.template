@@ -1,0 +1,132 @@
+# Taskwarrior config template — PAE + Hierarquia de Objetivos
+# Copy to ~/.taskrc and adjust (e.g. context.work project) if needed.
+# See TASKWARRIOR_SETUP_COMPLETE.md and th reports / th contexts.
+
+# --- Settings ---
+dateformat=Y-M-D
+default.command=next
+verbosity=2
+
+# --- UDAs (strategics-tailored) ---
+uda.sonho_id.label=Sonho ID
+uda.sonho_id.type=string
+
+uda.objetivo_id.label=Objetivo ID
+uda.objetivo_id.type=string
+
+uda.objetivo_trimestre.label=Trimestre
+uda.objetivo_trimestre.type=string
+uda.objetivo_trimestre.values=Q1,Q2,Q3,Q4
+
+uda.meta_ciclo.label=Meta Ciclo
+uda.meta_ciclo.type=numeric
+
+uda.tarefa_microciclo.label=Microciclo
+uda.tarefa_microciclo.type=numeric
+
+uda.bloco_tempo.label=Bloco Tempo
+uda.bloco_tempo.type=string
+uda.bloco_tempo.values=Manhã,Tarde,Noite,Planejamento,Revisão
+
+uda.ciclo.label=Ciclo
+uda.ciclo.type=numeric
+
+uda.onda_numero.label=Onda
+uda.onda_numero.type=numeric
+
+uda.taxa_conclusao.label=Taxa Conclusão
+uda.taxa_conclusao.type=numeric
+
+uda.barreira.label=Barreira
+uda.barreira.type=string
+uda.barreira.values=Estrutural,Recurso,Habilidade,Motivacional
+
+uda.teste_fogo_dimensao.label=Teste Fogo Dimensão
+uda.teste_fogo_dimensao.type=string
+uda.teste_fogo_dimensao.values=Resiliência,Coerência,Eficiência,Adaptabilidade
+
+# --- Custom reports ---
+report.narrativa.description=Revisão Diária
+report.narrativa.columns=id,bloco_tempo,priority,description,due
+report.narrativa.labels=ID,Bloco,Pri,Descrição,Devido
+report.narrativa.sort=bloco_tempo+,priority-,due+
+report.narrativa.filter=+narrativa due:today
+
+report.relatorios.description=Relatório Semanal
+report.relatorios.columns=id,tarefa_microciclo,description,status,due
+report.relatorios.labels=ID,Microciclo,Descrição,Status,Devido
+report.relatorios.sort=tarefa_microciclo+,due+
+report.relatorios.filter=+relatorios modified.after:today-7d
+
+report.revisao.description=Revisão Quinzenal
+report.revisao.columns=id,meta_ciclo,description,status,due,barreira
+report.revisao.labels=ID,Ciclo,Descrição,Status,Devido,Barreira
+report.revisao.sort=meta_ciclo+,due+
+report.revisao.filter=+revisao meta_ciclo:
+
+report.supervisao.description=Supervisão Mensal
+report.supervisao.columns=id,sonho_id,objetivo_id,description,status
+report.supervisao.labels=ID,Sonho,Objetivo,Descrição,Status
+report.supervisao.sort=sonho_id+,objetivo_id+
+report.supervisao.filter=+supervisao modified.after:today-30d
+
+report.blocos.description=Tarefas por Bloco de Tempo
+report.blocos.columns=id,bloco_tempo,priority,description,due
+report.blocos.labels=ID,Bloco,Pri,Descrição,Devido
+report.blocos.sort=bloco_tempo+,priority-
+report.blocos.filter=status:pending bloco_tempo: due:today
+
+report.sonho.description=Tarefas por Sonho
+report.sonho.columns=id,active,sonho_id,description,due,priority
+report.sonho.labels=ID,Act,Sonho,Descrição,Devido,Pri
+report.sonho.sort=sonho_id+,due+
+report.sonho.filter=status:pending
+
+report.objetivo.description=Objetivos Trimestrais
+report.objetivo.columns=id,objetivo_id,objetivo_trimestre,meta_ciclo,description,urgency
+report.objetivo.labels=ID,Objetivo,Q,Ciclo,Descrição,Urgência
+report.objetivo.sort=objetivo_trimestre+,due+
+report.objetivo.filter=status:pending
+
+report.meta.description=Metas por Ciclo
+report.meta.columns=id,meta_ciclo,description,due,status
+report.meta.labels=ID,Ciclo,Descrição,Devido,Status
+report.meta.sort=meta_ciclo+,due+
+report.meta.filter=status:pending meta_ciclo:
+
+report.tarefa.description=Tarefas por Microciclo
+report.tarefa.columns=id,tarefa_microciclo,description,due,bloco_tempo
+report.tarefa.labels=ID,Microciclo,Descrição,Devido,Bloco
+report.tarefa.sort=tarefa_microciclo+,due+
+report.tarefa.filter=status:pending
+
+report.ready.description=Ready
+report.ready.filter=status:pending +READY
+report.blocked.description=Blocked
+report.blocked.filter=status:pending +BLOCKED
+report.active.description=Active
+report.active.filter=status:pending +ACTIVE
+report.waiting.description=Waiting
+report.waiting.filter=status:pending +WAITING
+report.teste_fogo.description=Teste Fogo
+report.teste_fogo.filter=+teste_fogo status:pending
+report.overdue.description=Overdue
+report.overdue.filter=+OVERDUE
+
+# --- Contexts ---
+context.work.read=project:sonho:publicar-livro
+context.work.write=project:sonho:publicar-livro
+context.focus_today.read=due:today
+context.focus_today.write=
+context.week.read=due.after:today due.before:today+7d
+context.week.write=
+context.review.read=+relatorios or +revisao or +supervisao
+context.review.write=
+context.ciclo.read=meta_ciclo.any:
+context.ciclo.write=
+context.onda.read=onda_numero.any:
+context.onda.write=
+context.teste_fogo.read=+teste_fogo
+context.teste_fogo.write=
+context.none.read=
+context.none.write=

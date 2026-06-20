@@ -34,7 +34,7 @@ from operational.core.exceptions import (
     RepositorioVazioError,
     ValorForaRangeError,
 )
-from operational.core.services import (
+from operational.cli.services import (
     parse_iso_date,
     validate_pomodoro_count,
     validate_required_fields,
@@ -295,8 +295,10 @@ def test_state_show_json_with_mocked_sleep(
 ) -> None:
     """``monkeypatch`` ``sleep_records.list`` to return a fake record."""
     # Arrange — a duck-typed sleep record (state_cmd only reads these fields)
+    # Use date.today() so the record is found when state show runs without --date
+    today = date.today()
     fake = SimpleNamespace(
-        date=date(2026, 6, 7),
+        date=today,
         bedtime=time(22, 30),
         wake_time=time(6, 0),
         quality_score=9,
