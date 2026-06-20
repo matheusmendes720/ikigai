@@ -1,0 +1,95 @@
+
+flowchart TB
+    subgraph T0["TIER 0 — Intenção"]
+        IKIGAI["IKIGAi Vectors<br/>(vibe-ops/base/IKIGAi.md)"]
+        HYP["Hypervisor / Setpoints<br/>(base/Produtividade Algorítmica Visual)"]
+        STRAT["Strategics/ docs<br/>(Modelagem, Hierarquia,<br/>Desempenho, Integração)"]
+        MATH["life-ops/planner/<br/>(27 modelos matemáticos,<br/>5×3×3 fractal)"]
+    end
+
+    subgraph T1["TIER 1 — Orquestração (life CLI)"]
+        CLIdaily["handlers/daily.py<br/>(subprocess aggregator)"]
+        CLIweek["handlers/weekly.py"]
+        CENT["centrals/<br/>task · finance · knowledge · research"]
+        PLG["plugins/builtin/health_check<br/>(+ lifecycle hooks stubs)"]
+    end
+
+    subgraph T2["TIER 2 — Mesh Cibernético (vibe-ops/src/)"]
+        LOOP["CyberneticDailyLoop<br/>execute_daily_cycle()"]
+        POL["PolicyEngine<br/>PUSH/MAINTAIN/REDUCE/RECOVER"]
+        IKS["IkigaiScorer<br/>(GAP: vetores divergentes)"]
+        SYNC["SyncEngine<br/>upstream_id = SHA256[:12]"]
+        RAG["HybridRAGIndexer<br/>SQLite-vec + ChromaDB"]
+        GAP["GapSearchEngine<br/>(cognitive + execution debt)"]
+        BKT["BinaryKnowledgeTree"]
+        MVL["MVL Orchestrator<br/>(state machine)"]
+    end
+
+    subgraph T3["TIER 3 — Storage & Contratos"]
+        SQL[("vibe_ops.db<br/>(SQLite schema.sql)")]
+        CHR[("chroma_db/<br/>(vector store)")]
+        OBS[("Obsidian Vault<br/>(Markdown + YAML)")]
+        PYD["Pydantic v2 Models<br/>12 clusters"]
+        YML["YAML Contracts<br/>registry + planning.v1"]
+    end
+
+    subgraph T4["TIER 4 — Execução"]
+        TW["Taskwarrior<br/>(binário + .task DB)"]
+        TIMEW["Timewarrior<br/>(.timew files)"]
+        LIFET["life-tatics CLI<br/>(time blocks + screentime)"]
+        TUI["Rust TUI<br/>(vibeops-tui/, 1Hz polling)"]
+    end
+
+    %% Fluxos de intenção
+    IKIGAI -->|alvo motivacional| HYP
+    MATH -->|constantes WORK_RATIO, Q_HE| HYP
+    STRAT -->|diretrizes, templates| HYP
+    HYP -->|setpoints diários| LOOP
+
+    %% Orquestração → Centrals
+    CLIdaily --> CENT
+    CLIweek --> CENT
+    CENT -.-> PLG
+
+    %% Centrals → Taskwarrior
+    CENT -->|task/scripts/*| TW
+    CENT -->|fin_ops, leitura, etc.| TIMEW
+
+    %% Obsidian → Sync (core do Data-Mesh)
+    OBS -->|frontmatter YAML| SYNC
+    SYNC -->|upstream_id FK| SQL
+    SYNC -->|push compliant tasks| TW
+    TW -->|"reverse sync (status, time)"| SYNC
+    TIMEW -->|tags + durations| SYNC
+
+    %% Sync → Cybernetic Loop
+    SYNC -->|planning_entities| LOOP
+    SQL -->|study_sessions, habit_states| LOOP
+
+    %% Loop interno
+    LOOP --> POL
+    LOOP --> IKS
+    LOOP --> RAG
+    LOOP --> GAP
+    LOOP --> MVL
+    POL -->|policy_decisions row| SQL
+    MVL -->|enrichment de entidades| SQL
+
+    %% RAG
+    OBS -->|chunks| RAG
+    RAG --> CHR
+    RAG --> SQL
+
+    %% Read paths (consulta)
+    BKT -->|prereqs resolvidos| GAP
+    GAP -->|gaps report| LOOP
+    TUI -->|SELECT * FROM policy_decisions| SQL
+    TUI -->|read-only display| TUI
+    LIFET -->|time_blocks, screentime| SQL
+    IKS -->|aggregates habit+dev+study| SQL
+
+    %% Contratos atravessando tudo
+    PYD -.->|validação| SYNC
+    PYD -.->|validação| MVL
+    YML -.->|registry| PYD
+    YML -.->|schema-first| S

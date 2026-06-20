@@ -25,8 +25,8 @@ from typing import Any, Callable
 
 import pytest
 
-from operational.core import services as services_mod
-from operational.core.services import (
+from operational.cli import services as services_mod
+from operational.cli.services import (
     DaySnapshot,
     SleepSnapshot,
     _infer_tipo_dia,

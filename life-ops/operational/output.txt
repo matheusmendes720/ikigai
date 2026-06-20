@@ -1,0 +1,255 @@
+I001 [*] Import block is un-sorted or un-formatted
+  --> src\operational\__init__.py:27:1
+   |
+25 |   True
+26 |   """
+27 | / from __future__ import annotations
+28 | |
+29 | | from operational.constants import DEFAULT, PAVConstants
+30 | | from operational.enums import (
+31 | |     AlertLevel,
+32 | |     EnergyLevel,
+33 | |     HabitCategory,
+34 | |     Period,
+35 | |     PolicyState,
+36 | |     PomodoroState,
+37 | |     QualityLabel,
+38 | |     RitualType,
+39 | |     RoutineType,
+40 | |     WeekLabel,
+41 | | )
+42 | | from operational.exceptions import (
+43 | |     PAV_ERROR_REGISTRY,
+44 | |     PAVErrorCode,
+45 | |     PAVErrorLookupError,
+46 | |     PAVErrorSpec,
+47 | |     PomodoroSessionError,
+48 | |     ProductivitySystemError,
+49 | |     RoutineCompletionError,
+50 | |     Severity,
+51 | |     SleepTrackingError,
+52 | |     TimeValidationError,
+53 | |     get_pav_error_spec,
+54 | |     raise_pav_error,
+55 | | )
+56 | | from operational.types import (
+57 | |     Clock,
+58 | |     Hour,
+59 | |     Logger,
+60 | |     Minute,
+61 | |     Repository,
+62 | |     Score,
+63 | |     StreakInt,
+64 | |     T,
+65 | |     T_Entity,
+66 | |     T_Enum,
+67 | |     UEID,
+68 | | )
+   | |_^
+69 |
+70 |   __version__ = "0.1.0"
+   |
+help: Organize imports
+
+RUF022 `__all__` is not sorted
+   --> src\operational\__init__.py:72:11
+    |
+ 70 |   __version__ = "0.1.0"
+ 71 |
+ 72 |   __all__ = [
+    |  ___________^
+ 73 | |     # Version
+ 74 | |     "__version__",
+ 75 | |     # Constants
+ 76 | |     "PAVConstants",
+ 77 | |     "DEFAULT",
+ 78 | |     # Enums
+ 79 | |     "Period",
+ 80 | |     "RoutineType",
+ 81 | |     "RitualType",
+ 82 | |     "HabitCategory",
+ 83 | |     "EnergyLevel",
+ 84 | |     "QualityLabel",
+ 85 | |     "PomodoroState",
+ 86 | |     "PolicyState",
+ 87 | |     "WeekLabel",
+ 88 | |     "AlertLevel",
+ 89 | |     # Exceptions
+ 90 | |     "ProductivitySystemError",
+ 91 | |     "TimeValidationError",
+ 92 | |     "SleepTrackingError",
+ 93 | |     "PomodoroSessionError",
+ 94 | |     "RoutineCompletionError",
+ 95 | |     "Severity",
+ 96 | |     "PAVErrorCode",
+ 97 | |     "PAVErrorSpec",
+ 98 | |     "PAVErrorLookupError",
+ 99 | |     "PAV_ERROR_REGISTRY",
+100 | |     "get_pav_error_spec",
+101 | |     "raise_pav_error",
+102 | |     # Types
+103 | |     "Hour",
+104 | |     "Minute",
+105 | |     "UEID",
+106 | |     "StreakInt",
+107 | |     "Score",
+108 | |     "Repository",
+109 | |     "Clock",
+110 | |     "Logger",
+111 | |     "T",
+112 | |     "T_Entity",
+113 | |     "T_Enum",
+114 | | ]
+    | |_^
+    |
+help: Apply an isort-style sorting to `__all__`
+
+D104 Missing docstring in public package
+--> src\operational\cli\__init__.py:1:1
+
+D104 Missing docstring in public package
+--> src\operational\cli\commands\__init__.py:1:1
+
+D104 Missing docstring in public package
+--> src\operational\cli\formatters\__init__.py:1:1
+
+D104 Missing docstring in public package
+--> src\operational\core\__init__.py:1:1
+
+D104 Missing docstring in public package
+--> src\operational\entities\__init__.py:1:1
+
+TC001 Move application import `operational.types.UEID` into a type-checking block
+  --> src\operational\entities\journal.py:46:31
+   |
+44 | from operational.constants import DEFAULT
+45 | from operational.enums import Period, RitualType
+46 | from operational.types import UEID
+   |                               ^^^^
+47 |
+48 | __all__ = ["AutoIndagacao", "JournalEntry"]
+   |
+help: Move into type-checking block
+
+DTZ005 `datetime.datetime.now()` called without a `tz` argument
+   --> src\operational\entities\journal.py:203:48
+    |
+201 |             The model itself, with ``updated_at`` set.
+202 |         """
+203 |         object.__setattr__(self, "updated_at", datetime.now())
+    |                                                ^^^^^^^^^^^^^^
+204 |         return self
+    |
+help: Pass a `datetime.timezone` object to the `tz` parameter
+
+DTZ005 `datetime.datetime.now()` called without a `tz` argument
+   --> src\operational\entities\journal.py:215:48
+    |
+213 |             pipeline.
+214 |         """
+215 |         object.__setattr__(self, "updated_at", datetime.now())
+    |                                                ^^^^^^^^^^^^^^
+216 |         return self
+    |
+help: Pass a `datetime.timezone` object to the `tz` parameter
+
+E501 Line too long (103 > 100)
+   --> src\operational\entities\journal.py:363:101
+    |
+361 | # default values live in ``operational.constants.DEFAULT``; we do not
+362 | # re-export the whole constants module here.
+363 | DEFAULT_LAMBDA: Annotated[float, Field(description="Forward reference to LAMBDA_LEARNING_DEFAULT")] = (
+    |                                                                                                     ^^^
+364 |     DEFAULT.LAMBDA_LEARNING_DEFAULT
+365 | )
+    |
+
+TC001 Move application import `operational.enums.Period` into a type-checking block
+  --> src\operational\entities\routine.py:38:31
+   |
+37 | from operational.constants import DEFAULT
+38 | from operational.enums import Period, RitualType, RoutineType
+   |                               ^^^^^^
+39 | from operational.types import UEID
+   |
+help: Move into type-checking block
+
+TC001 Move application import `operational.enums.RitualType` into a type-checking block
+  --> src\operational\entities\routine.py:38:39
+   |
+37 | from operational.constants import DEFAULT
+38 | from operational.enums import Period, RitualType, RoutineType
+   |                                       ^^^^^^^^^^
+39 | from operational.types import UEID
+   |
+help: Move into type-checking block
+
+TC001 Move application import `operational.enums.RoutineType` into a type-checking block
+  --> src\operational\entities\routine.py:38:51
+   |
+37 | from operational.constants import DEFAULT
+38 | from operational.enums import Period, RitualType, RoutineType
+   |                                                   ^^^^^^^^^^^
+39 | from operational.types import UEID
+   |
+help: Move into type-checking block
+
+TC001 Move application import `operational.types.UEID` into a type-checking block
+  --> src\operational\entities\routine.py:39:31
+   |
+37 | from operational.constants import DEFAULT
+38 | from operational.enums import Period, RitualType, RoutineType
+39 | from operational.types import UEID
+   |                               ^^^^
+40 |
+41 | __all__ = ["Ritual", "Routine", "Transition", "Weekday"]
+   |
+help: Move into type-checking block
+
+TC003 Move standard library import `datetime.datetime` into a type-checking block
+  --> src\operational\entities\time_block.py:24:22
+   |
+22 | from __future__ import annotations
+23 |
+24 | from datetime import datetime
+   |                      ^^^^^^^^
+25 | from typing import Annotated
+   |
+help: Move into type-checking block
+
+TC001 Move application import `operational.enums.Period` into a type-checking block
+  --> src\operational\entities\time_block.py:30:31
+   |
+29 | from operational.constants import DEFAULT
+30 | from operational.enums import Period
+   |                               ^^^^^^
+31 | from operational.types import UEID
+   |
+help: Move into type-checking block
+
+TC001 Move application import `operational.types.UEID` into a type-checking block
+  --> src\operational\entities\time_block.py:31:31
+   |
+29 | from operational.constants import DEFAULT
+30 | from operational.enums import Period
+31 | from operational.types import UEID
+   |                               ^^^^
+32 |
+33 | __all__ = ["TimeBlock"]
+   |
+help: Move into type-checking block
+
+D104 Missing docstring in public package
+--> src\operational\meta\__init__.py:1:1
+
+D104 Missing docstring in public package
+--> src\operational\parsers\__init__.py:1:1
+
+D104 Missing docstring in public package
+--> src\operational\persistence\__init__.py:1:1
+
+D104 Missing docstring in public package
+--> src\operational\reports\__init__.py:1:1
+
+Found 22 errors.
+[*] 1 fixable with the `--fix` option (9 hidden fixes can be enabled with the `--unsafe-fixes` option).

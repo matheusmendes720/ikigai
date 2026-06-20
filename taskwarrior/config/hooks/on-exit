@@ -1,0 +1,17 @@
+#!/bin/bash
+# Time-based reminders for Rotina Inicial (tm), Rotina Final (te), Revisão Semanal (twk).
+# Copy to ~/.task/hooks/on-exit and chmod +x.
+# Taskwarrior calls this hook on every task command exit; we only echo reminders at specific times.
+
+HOUR=$(date +%H)
+DOW=$(date +%u)
+
+if [ "$HOUR" = "08" ]; then
+    echo "⏰ Rotina Inicial: run 'tm' (or 'task narrativa', 'task due:today list', 'task blocos')"
+fi
+if [ "$HOUR" = "20" ]; then
+    echo "⏰ Rotina Final: run 'te' (or 'task completed end:today', 'task due:tomorrow list')"
+fi
+if [ "$DOW" = "7" ] && [ "$HOUR" = "20" ]; then
+    echo "⏰ Revisão Semanal: run 'twk' (or 'task relatorios')"
+fi

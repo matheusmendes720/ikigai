@@ -1,0 +1,42 @@
+flowchart TB
+    subgraph UP["Upstream (Estratégia)"]
+        IKIGAI["IKIGAi Revenue Vector<br/>CONCEPTUAL_MODEL.md"]
+        ROADMAP["Roadmap de Projetos<br/>contracts/roadmap_v1.json"]
+        BUDGET["Orçamento de Tempo<br/>CLUSTER_PLAN.md"]
+    end
+
+    subgraph PMO["PMO (este cluster)"]
+        SP["SoftwareProject"]
+        EP["Epic"]
+        SP2["Sprint"]
+        TK["Task"]
+    end
+
+    subgraph TW["Downstream (Taskwarrior)"]
+        TWC["Task Card TW"]
+        TWT["Timewarrior Tag"]
+        GHC["Git Hooks + Commit"]
+    end
+
+    subgraph OUT["Outputs"]
+        ROI["ROI R$/hora"]
+        BD["Burndown"]
+        VEL["Velocity"]
+    end
+
+    IKIGAI --> SP
+    ROADMAP --> SP
+    BUDGET --> TK
+    SP --> EP --> SP2 --> TK
+    TK -->|sync| TWC
+    TWC -->|time track| TWT
+    TWC -->|commit link| GHC
+
+    TWT --> ROI
+    GHC --> BD
+    SP2 --> VEL
+
+    style PMO fill:#1a1a2e,stroke:#ff6b6b,color:#fff
+    style TW fill:#16213e,stroke:#4a6fa5,color:#fff
+    style UP fill:#2d2d44,stroke:#4a4a6a,color:#fff
+    style OUT fill:#2d2d44,stroke:#4a4a6a,color:#fff

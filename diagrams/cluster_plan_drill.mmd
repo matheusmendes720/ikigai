@@ -1,0 +1,24 @@
+flowchart LR
+    A["3-5h<br/>WAKE<br/>Boot Sequence"] -->|"cold-start<br/>ritual"| B["5-6h<br/>DEEP WORK<br/>phase:learn<br/>❤️→💼"]
+    B -->|"Block Switch<br/>5min"| C["6-12h<br/>SENAI<br/>phase:learn course<br/>🎓"]
+    C -->|"Re-Entry<br/>ritual"| D["14-17h<br/>HARD WORK<br/>phase:earn OU learn<br/>💼 ou 💰"]
+    D -->|"Content Switch<br/>5min"| E["17-18h<br/>CONTENT LAB<br/>phase:share<br/>🎯"]
+    E -->|"Shutdown<br/>ritual"| F["18-21h<br/>SHUTDOWN + ADMIN<br/>phase:earn admin<br/>💰→📝"]
+    F -->|"Sleep Hygiene<br/>15min"| G["21-3h<br/>SLEEP<br/>H t → 1-e^(-λt)"]
+
+    A -.->|"M6 Hook<br/>DailyRoutine"| H[(SQLite<br/>DailyRoutine)]
+    B -.->|"M3 HabitEngine<br/>streak"| H
+    D -.->|"M7 TimewBridge<br/>tags phase:*"| H
+    F -.->|"M4 ReviewOperator<br/>R_n"| H
+
+    H -.->|"regime π(s_t)"| I["Q_HE → PUSH/MAINTAIN<br/>REDUCE/RECOVER"]
+    I -.->|"modula amanhã"| A
+
+    style A fill:#1a1a2e,stroke:#ff6b6b,color:#fff
+    style B fill:#1a1a2e,stroke:#4a4a6a,color:#fff
+    style C fill:#2d2d44,stroke:#4a4a6a,color:#fff
+    style D fill:#1a1a2e,stroke:#4a6fa5,color:#fff
+    style E fill:#1a1a2e,stroke:#4a4a6a,color:#fff
+    style F fill:#2d2d44,stroke:#ff6b6b,color:#fff
+    style G fill:#16213e,stroke:#4a4a6a,color:#fff
+    style I fill:#2d2d44,stroke:#ff6b6b,color:#fff

@@ -1,0 +1,37 @@
+[project]
+name = "operational-cli"
+version = "0.1.0"
+description = "PAV-OS CLI — Typer/Rich interface"
+requires-python = ">=3.11"
+dependencies = [
+    "operational-core",
+    "typer>=0.12,<1.0",
+    "rich>=13.7,<14.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9.0",
+    "pytest-cov>=4.1,<6.0",
+    "pytest-mock>=3.12,<4.0",
+    "hypothesis>=6.100,<7.0",
+    "mypy>=1.10,<2.0",
+    "ruff>=0.4.0,<1.0",
+    "pre-commit>=3.7,<5.0",
+    "types-PyYAML>=6.0,<7.0",
+]
+
+[project.scripts]
+pav = "operational.cli.app:app"
+pav-os = "operational.cli.app:app"
+operational = "operational.cli.app:app"
+
+[tool.uv.sources]
+operational-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/operational"]
