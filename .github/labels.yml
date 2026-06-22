@@ -1,0 +1,95 @@
+# GitHub Labels — authoritative definition
+# Apply via: https://github.com/settings/labels (or import this file)
+---
+# Type
+- name: bug
+  color: d73a4a
+  description: Something is not working
+- name: enhancement
+  color: a2eeef
+  description: New feature or request
+- name: refactoring
+  color: e4e669
+  description: Code restructuring without behavior change
+- name: documentation
+  color: 0075ca
+  description: Improvements to docs, comments, or wikis
+- name: infrastructure
+  color: 6e5494
+  description: CI/CD, tooling, cloud setup
+
+# Subsystem
+- name: subsystem/operational
+  color: "009d00"
+  description: life-ops/operational (PAV kernel)
+- name: subsystem/vibe-ops
+  color: "009d80"
+  description: vibe-ops (cybernetic engine)
+- name: subsystem/life-cli
+  color: "009d60"
+  description: life/ root CLI hub
+- name: subsystem/taskwarrior
+  color: "009d40"
+  description: Taskwarrior integration
+- name: subsystem/docs
+  color: "0073aa"
+  description: Documentation and wiki
+
+# Status
+- name: status/triage
+  color: f9d0c4
+  description: Needs initial assessment
+- name: status/in-progress
+  color: "0052cc"
+  description: Actively being worked
+- name: status/blocked
+  color: "911e42"
+  description: Waiting on external dependency or approval
+- name: status/review
+  color: "fbca04"
+  description: Ready for code review
+- name: status/integration
+  color: "5319e7"
+  description: Being integrated or tested
+
+# Priority
+- name: priority/critical
+  color: b60205
+  description: Blocks all progress — fix immediately
+- name: priority/high
+  color: d93f0b
+  description: Important, address soon
+- name: priority/medium
+  color: ffc000
+  description: Normal priority
+- name: priority/low
+  color: "6a7a96"
+  description: Nice to have
+
+# Size
+- name: size/XS
+  color: "0e8a16"
+  description: Less than 1 hour
+- name: size/S
+  color: "1d9200"
+  description: 1–4 hours
+- name: size/M
+  color: "3dbd00"
+  description: Half a day to 2 days
+- name: size/L
+  color: "8be826"
+  description: 2–5 days
+- name: size/XL
+  color: "e6d700"
+  description: More than a week
+
+# Process
+- name: process/sprint
+  color: "006b75"
+  description: Assigned to current sprint
+- name: process/backlog
+  color: "e6e6e6"
+  description: In the backlog — not yet scheduled
+- name: process/deferred
+  color: "c2e0c6"
+  description: Will not be addressed in current planning cycle
