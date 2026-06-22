@@ -1,0 +1,75 @@
+name: Bug Report
+description: Report something that is broken
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug Report
+
+        > Complete all sections. Incomplete reports may be closed without comment.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened
+      description: Be specific. Include the command you ran, expected vs actual behavior.
+      placeholder: |
+        Command: `pav screen dashboard`
+        Expected: chart renders
+        Actual: [error message]
+    validations:
+      required: true
+
+  - type: dropdown
+    id: subsystem
+    attributes:
+      label: Subsystem
+      options:
+        - life-ops/operational (PAV kernel)
+        - vibe-ops (cybernetic engine)
+        - life/ (root CLI hub)
+        - taskwarrior (TW integration)
+        - documentation
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - critical — blocks all work
+        - high — blocks a feature
+        - medium — degraded experience
+        - low — cosmetic or minor
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Minimal steps to reproduce. Include Python version, OS, package version.
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Traceback
+      description: Paste relevant logs, stderr, or traceback here.
+
+  - type: checkboxes
+    id: env
+    attributes:
+      label: Environment
+      options:
+        - label: WSL2
+        - label: Ubuntu VPS
+        - label: Windows (native)
+        - label: macOS

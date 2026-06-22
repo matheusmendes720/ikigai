@@ -1,0 +1,79 @@
+name: Feature Request
+description: Propose a new feature or enhancement
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Request
+
+        > Complete all sections. A well-specified request gets a response faster.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One-paragraph description of the feature.
+      placeholder: |
+        Short, clear description of what should be possible.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: subsystem
+    attributes:
+      label: Subsystem
+      options:
+        - life-ops/operational (PAV kernel)
+        - vibe-ops (cybernetic engine)
+        - life/ (root CLI hub)
+        - taskwarrior (TW integration)
+        - documentation
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options:
+        - new feature
+        - refactoring
+        - performance improvement
+        - documentation
+        - infrastructure / tooling
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why is this needed? What problem does it solve?
+      placeholder: |
+        Without this, I have to ...
+        This would enable ...
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: How should it work? Include CLI signature if applicable (`pav <cmd> [--flag]`).
+      placeholder: |
+        `pav habit track --name sleep --streak 7`
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What else did you consider? Why not those approaches?
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know when this is done?
+      placeholder: |
+        - [ ] `pav habit track --name sleep --streak 7` persists to JSON store
+        - [ ] `pav habits` shows streak of 7
+        - [ ] Q_HE composite score updates correctly
