@@ -11,7 +11,7 @@
 | Resource | URL |
 |----------|-----|
 | **Repository** | https://github.com/matheusmendes720/ikigai |
-| **Project Board** (Kanban + Roadmap) | https://github.com/users/matheusmendes720/projects/4 |
+| **Project Board** (Kanban + Roadmap) | https://github.com/users/matheusmendes720/projects/5 |
 | **Issues** (backlog, planning) | https://github.com/matheusmendes720/ikigai/issues |
 | **Wiki** | https://github.com/matheusmendes720/ikigai/wiki |
 | **CI/CD** | `.github/workflows/ci.yml` — ruff, mypy --strict, pytest, pre-commit |
