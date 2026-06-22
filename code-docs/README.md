@@ -1,8 +1,20 @@
 # code-docs — Specifications Root
 
 Unified index for all engineering specifications: ADRs, PRDs, BRDs, and ARDs.
+Located at: https://github.com/matheusmendes720/ikigai/tree/master/code-docs
 
 > All specs are **append-only** unless explicitly refactored. Do not delete or rewrite existing sessions, topics, or paragraphs.
+
+---
+
+## GitHub Infrastructure
+
+| Resource | URL |
+|----------|-----|
+| Repository | https://github.com/matheusmendes720/ikigai |
+| Project Board (Kanban + Roadmap) | https://github.com/users/matheusmendes720/projects/4 |
+| Issues | https://github.com/matheusmendes720/ikigai/issues |
+| Wiki | https://github.com/matheusmendes720/ikigai/wiki |
 
 ---
 
