@@ -7,6 +7,45 @@ on:
     branches: [main, master]
 
 jobs:
+  code-review-checks:
+    name: Code Review — Type & Test Checks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # needed for git diff vs base
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Type check — changed files only (mypy strict)
+        run: |
+          python .github/scripts/code_review.py \
+            --base ${{ github.base_ref }} \
+            --type-only \
+            --strict \
+            --github-annotations
+
+      - name: Test suite review — changed files only
+        run: |
+          python .github/scripts/code_review.py \
+            --base ${{ github.base_ref }} \
+            --test-only \
+            --missing \
+            --review-format
+
+      - name: Full master review report
+        run: |
+          python .github/scripts/code_review.py \
+            --base ${{ github.base_ref }} \
+            --review-format || true
+        continue-on-error: true
+
   quality-gates:
     name: Quality Gates (${{ matrix.package }})
     runs-on: ubuntu-latest
