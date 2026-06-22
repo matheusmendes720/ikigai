@@ -1,2 +1,46 @@
-# Local Pi runtime state
+# Agent runtime state
+.pi/
+.omo/
 .atl/
+.life/
+
+# Editor & OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Lint caches
+.mypy_cache/
+.ruff_cache/
+
+# Databases
+*.db
+*.sqlite
+
+# ChromaDB
+chroma_db/
+
+# Node (GitNexus runner)
+node_modules/
+.gitnexus/cache/
+
+# Build artifacts
+life-ops/operational/.venv/
+life-ops/operational/dist/
+life-ops/operational/build/
+life-ops/operational/*.egg-link
+life-ops/operational/.pytest_cache/
