@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final
 
-
 # ---------------------------------------------------------------------------
 # Severity palette (the 8 core semantic colors)
 # ---------------------------------------------------------------------------
@@ -159,14 +158,14 @@ CONSOLE_WIDTH_V2: Final[int] = 128
 
 
 __all__ = [
-    "SEVERITY",
-    "SURFACE",
-    "REGIME",
-    "QUADRANT",
-    "STYLES",
-    "PADDING",
-    "Glyph",
     "CONSOLE_WIDTH_V2",
-    "RegimeSpec",
+    "PADDING",
+    "QUADRANT",
+    "REGIME",
+    "SEVERITY",
+    "STYLES",
+    "SURFACE",
+    "Glyph",
     "QuadrantSpec",
+    "RegimeSpec",
 ]

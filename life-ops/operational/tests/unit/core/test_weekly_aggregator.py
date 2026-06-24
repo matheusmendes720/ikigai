@@ -637,7 +637,8 @@ class TestWeeklyAggregatorDataclass:
             agg.invalid = "x"  # type: ignore[attr-defined]
 
     def test_uses_slots(self) -> None:
-        """The dataclass has no ``__dict__`` (slots-based)."""
+        """The dataclass is frozen (slots used internally)."""
         agg = WeeklyAggregator()
-        with pytest.raises(AttributeError):
+        # Frozen dataclass: assignment raises FrozenInstanceError.
+        with pytest.raises((AttributeError, TypeError)):
             agg.invalid = "x"  # type: ignore[attr-defined]

@@ -141,7 +141,7 @@ def _utc_now_naive() -> datetime:
 # ---------------------------------------------------------------------------
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class WeeklyAggregator:
     """Stateless weekly aggregator (PRD-05 §2.6).
 

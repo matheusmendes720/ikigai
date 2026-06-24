@@ -767,7 +767,7 @@ class NivelInfracao(StrEnum):
     GRAVISSIMA = "gravissima"
 
     @classmethod
-    def from_minutes(cls, minutes: int) -> "NivelInfracao":
+    def from_minutes(cls, minutes: int) -> NivelInfracao:
         """Classifica o nível de infração pelo desvio em minutos.
 
         Args:
@@ -814,7 +814,7 @@ class EstadoPsicomatico(StrEnum):
     CRITICO = "critico"      # 1-2
 
     @classmethod
-    def from_score(cls, score: int) -> "EstadoPsicomatico":
+    def from_score(cls, score: int) -> EstadoPsicomatico:
         """Converte pontuação 1-10 em estado.
 
         Args:

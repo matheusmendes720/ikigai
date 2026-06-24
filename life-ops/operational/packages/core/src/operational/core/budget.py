@@ -9,10 +9,12 @@ so any window change propagates automatically.
 """
 from __future__ import annotations
 
-from datetime import date
+from typing import TYPE_CHECKING
 
-from operational.constants import DEFAULT as PAV
 from operational.enums import TipoDia
+
+if TYPE_CHECKING:
+    from datetime import date
 
 
 def budget_for_day_type(tipo: TipoDia) -> int:

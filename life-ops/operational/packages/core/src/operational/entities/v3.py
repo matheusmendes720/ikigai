@@ -14,24 +14,20 @@ where appropriate.
 from __future__ import annotations
 
 from datetime import date, datetime  # noqa: TC003
-from typing import Annotated, Optional
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
-from operational.enums import (  # noqa: TC001
-    CausaDesvio,
+from operational.enums import (
     EstadoPsicomatico,
-    NivelInfracao,
-    Period,
     RitualType,
     TipoDia,
-    WorkoutTipo,
 )
 from operational.types import UEID  # noqa: TC001
 
 __all__ = [
-    "DayContext",
     "DailyReflection",
+    "DayContext",
     "LunchRecord",
     "TransicaoRegistrada",
 ]

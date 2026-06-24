@@ -1,0 +1,90 @@
+# GitHub Action: medic-pr-review
+#
+# Usage in a workflow:
+#
+#   on: [pull_request]
+#   jobs:
+#     medic:
+#       runs-on: ubuntu-latest
+#       permissions:
+#         contents: read
+#         pull-requests: write
+#         checks: write
+#       steps:
+#         - uses: actions/checkout@v4
+#           with:
+#             fetch-depth: 0
+#         - uses: life-oss/medic-action@v1
+#           with:
+#             target: ./packages/core
+#             repo:   ${{ github.repository }}
+#             token:  ${{ secrets.GITHUB_TOKEN }}
+#             workflow: examples/workflow/pr-review.yaml
+#             post:    true
+
+name: 'medic PR review'
+description: 'Run medic (health + patterns + LLM review) against a PR and post the report.'
+author: 'life-oss'
+
+inputs:
+  target:
+    description: 'Target directory to inspect.'
+    required: true
+    default: '.'
+  repo:
+    description: 'GitHub repo (owner/name). Defaults to the workflow repo.'
+    required: false
+  token:
+    description: 'GitHub token with PR write access.'
+    required: true
+    default: ${{ github.token }}
+  workflow:
+    description: 'Path to the YAML workflow file.'
+    required: false
+    default: 'examples/workflow/pr-review.yaml'
+  post:
+    description: 'Post the review back to the PR.'
+    required: false
+    default: 'false'
+  fail_on:
+    description: 'Health gate threshold; if score < threshold, exit non-zero.'
+    required: false
+    default: '0'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install medic
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "${{ github.action_path }}"
+        make build
+        sudo cp bin/medic /usr/local/bin/medic
+
+    - name: Run workflow
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        MEDIC_GITHUB_TOKEN: ${{ inputs.token }}
+        MEDIC_GITHUB_REPO:  ${{ inputs.repo }}
+        MEDIC_GITHUB_ALLOW_POST: ${{ inputs.post }}
+      run: |
+        set -euo pipefail
+        medic workflow run "${{ inputs.workflow }}" \
+          --target "${{ inputs.target }}" \
+          --verbose \
+          --out .medic/run.json
+
+    - name: Print summary
+      shell: bash
+      if: always()
+      run: |
+        if [ -f .medic/run.json ]; then
+          echo "## medic 🩺 report"  >> "$GITHUB_STEP_SUMMARY"
+          cat .medic/run.json | jq -r '.steps[] | "- \(.id): ok=\(.ok) err=\(.error // "")"' >> "$GITHUB_STEP_SUMMARY"
+        fi
+
+branding:
+  icon: 'activity'
+  color: 'blue'

@@ -1,0 +1,75 @@
+{
+  "version": "1.0",
+  "date_range": {
+    "start": "2025-12-23",
+    "end": "2026-06-21"
+  },
+  "total_days": 180,
+  "generator": "generate_6month_dataset.py v1.0",
+  "seed": "42",
+  "entities": {
+    "sleep_record": {
+      "count": 180
+    },
+    "habit": {
+      "count": 8
+    },
+    "habit_state": {
+      "count": 1398
+    },
+    "qhe_metrics": {
+      "count": 180
+    },
+    "routine": {
+      "count": 22
+    },
+    "routine_log": {
+      "count": 1080
+    },
+    "time_block": {
+      "count": 540
+    },
+    "journal_entry": {
+      "count": 360
+    },
+    "pomodoro_round": {
+      "count": 1659
+    },
+    "day_context": {
+      "count": 180
+    },
+    "daily_reflection": {
+      "count": 180
+    },
+    "lunch_record": {
+      "count": 180
+    },
+    "transicao": {
+      "count": 1620
+    },
+    "ajuste_fino": {
+      "count": 25
+    },
+    "policy_decision": {
+      "count": 180
+    }
+  },
+  "scenarios": {
+    "Padrao_Ouro": 95,
+    "Desvio_Leve": 12,
+    "Fim_de_Semana": 50,
+    "Lunch_Pesado": 6,
+    "Feriado": 5,
+    "Hardcore": 4,
+    "Recuperacao": 4,
+    "Doente": 2,
+    "Visita_Inesperada": 1,
+    "Vigilia": 1
+  },
+  "policy_distribution": {
+    "RECOVER": 31,
+    "REDUCE": 8,
+    "MAINTAIN": 3,
+    "PUSH": 138
+  }
+}

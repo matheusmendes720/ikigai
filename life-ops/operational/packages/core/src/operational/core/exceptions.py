@@ -80,11 +80,11 @@ class ConfiguracaoInvalidaError(DomainError):
 
 
 __all__ = [
+    "ConfiguracaoInvalidaError",
+    "DataInvalidaError",
     "DomainError",
     "FaltaDadosError",
-    "DataInvalidaError",
-    "ValorForaRangeError",
     "LimitePomodoroExcedidoError",
     "RepositorioVazioError",
-    "ConfiguracaoInvalidaError",
+    "ValorForaRangeError",
 ]

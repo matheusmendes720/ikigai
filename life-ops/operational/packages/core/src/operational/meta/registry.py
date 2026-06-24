@@ -120,7 +120,8 @@ def get_entity_class(ueid_or_prefix: str) -> type[BaseModel]:
     """
     cls = entity_registry.get(ueid_or_prefix)
     if cls is None:
-        raise ValueError("Unknown entity type: %r" % ueid_or_prefix)
+        msg = f"Unknown entity type: {ueid_or_prefix!r}"
+        raise ValueError(msg)
     return cls
 
 

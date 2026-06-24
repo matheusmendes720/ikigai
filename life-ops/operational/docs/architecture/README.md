@@ -285,3 +285,122 @@ Pydantic. Everything else is either a dependency-of-a-dependency
 - **Tracing a single command end-to-end** → read [05-DATA-FLOW.md](05-DATA-FLOW.md).
 - **CSV format details** → see [../data/01-CSV-SCHEMA.md](../data/01-CSV-SCHEMA.md).
 - **Built-in datasets** → see [../data/02-DATASETS.md](../data/02-DATASETS.md).
+- **Full component inventory** (file-by-file) → [06-COMPONENT-DECOMPOSITION.md](06-COMPONENT-DECOMPOSITION.md).
+- **Data architecture** (entity graph, JSON contracts, 3 backends, CSV/datasets) → [07-DATA-ARCHITECTURE.md](07-DATA-ARCHITECTURE.md).
+- **CLI interface** (Typer + Rich, 12 subcommands, output formatters) → [08-INTERFACE-CLI.md](08-INTERFACE-CLI.md).
+- **TUI interface** (Textual + plotext, 7 screens, 5 widgets) → [09-INTERFACE-TUI.md](09-INTERFACE-TUI.md).
+- **Rust integration** (Cap'n Proto RPC, ratatui TUI, FFI hot path, shared ring buffer) → [10-RUST-INTEGRATION.md](10-RUST-INTEGRATION.md).
+- **Visual debug pipeline** (medic capture → ANSI parse → SVG → diff → MiniMax critic) → [11-VISUAL-DEBUG-PIPELINE.md](11-VISUAL-DEBUG-PIPELINE.md).
+- **Architecture narrative** (the big picture, RPC evolution, why this shape) → [12-ARCHITECTURE-NARRATIVE.md](12-ARCHITECTURE-NARRATIVE.md).
+- **Evolution timeline** (sprint 0 → sprint 10 → medic Go toolkit) → [13-EVOLUTION-TIMELINE.md](13-EVOLUTION-TIMELINE.md).
+
+---
+
+## 9. medic — the Go devops toolkit
+
+`life-ops/operational/medic/` is a **Go binary** that wraps the Python kernel and provides health gates, code review, visual debugging, and agentic workflow execution for the `operational` project. It is written in a different language **by design** — it cannot import the Python kernel; it interacts with it the way any external tool would: running commands, reading output, asserting exit codes.
+
+```
+medic/                          Go binary, 9.7 MB stripped
+├── cmd/medic/                  root + 13 subcommands
+│   ├── main.go                 14 subcommands registered
+│   ├── cmd_review/             medic review — test + lint + complexity gate
+│   ├── cmd_issue/              medic issue — GitHub issue triage
+│   ├── cmd_pr/                 medic pr — PR review workflow
+│   ├── cmd_health/             medic health — coverage/complexity/health gates
+│   ├── cmd_visualize/          medic visualize — TTY frame capture
+│   ├── cmd_vision/             medic vision — MiniMax VL-01 critic on SVG frames
+│   └── cmd_workflow/           medic workflow — YAML workflow engine
+├── internal/
+│   ├── visual/                 ANSI frame parser + SVG/PNG renderer
+│   │   ├── frame.go            Frame, Cell, Cursor, ParseANSIText, pendingWrap
+│   │   ├── render.go           RenderSVG, RenderTSV, RenderPNG, attrsString
+│   │   ├── diff.go             Diff, Hash (fowler-noll-vo)
+│   │   └── *_test.go           22 tests, all passing
+│   ├── visioncritic/           MiniMax MMX-CLI wrapper
+│   │   ├── critic.go           Critique, Finding, Verdict, ParseCritique
+│   │   └── *_test.go           13 tests, all passing
+│   ├── agentic/                workflow engine + 13 registered actions
+│   │   ├── actions.go          StandardRegistry + vision.critique action
+│   │   └── engine.go           Execute, When guards, RetryPolicy
+│   ├── store/                  JSON-line event store
+│   └── config/                 config file loading
+└── examples/
+    ├── visual_smoketest/        11 sub-test smoke test (golden frame library)
+    └── workflow/
+        ├── pr-review.yaml       PR review pipeline (6 steps)
+        └── visual-critic.yaml  visual debug pipeline (7 steps, guarded)
+```
+
+### medic subcommand tree
+
+```
+medic
+├── review       run test + mypy + ruff + complexity gate
+├── issue        GitHub issue triage (label, milestone, assign)
+├── pr           PR review workflow
+├── health       coverage / complexity / test-count gates
+├── visualize    capture TTY frame → SVG/PNG diff
+├── vision       MiniMax VL-01 critic on SVG frame
+│   ├── capture  run a binary, snapshot one frame, critique it
+│   ├── critique critique a saved frame.svg
+│   └── doctor  check mmx + MINIMAX_API_KEY availability
+├── workflow     YAML workflow runner
+│   ├── list    show registered actions
+│   ├── validate validate a workflow YAML
+│   └── run     execute a workflow
+├── dashboard    ASCII dashboard
+├── doctor       environment + deps check
+├── debug        low-level diagnostic
+└── pat          personal access token manager
+```
+
+### medic + operational — the full stack
+
+```
+                                    medic (Go)
+    ┌─────────────────────────────────────────────────────────────┐
+    │                                                             │
+    │  medic review          medic health         medic visualize │
+    │  ├─ pytest ──────────→ packages/core/      ├─ capture TTY  │
+    │  ├─ mypy ───────────→ packages/core/       ├─ ANSI parse  │
+    │  ├─ ruff ───────────→ packages/core/       ├─ SVG render  │
+    │  └─ complexity gate   19 modules           └─ diff golden  │
+    │                                                             │
+    │  medic vision critique                                      │
+    │  ├─ mmx describe frame.svg "UX critic prompt"              │
+    │  ├─ ParseCritique(raw) → Critique{Score, Verdict, []Fdg}  │
+    │  └─ findings → markdown / JSON                             │
+    │                                                             │
+    │  medic workflow run visual-critic.yaml                     │
+    │  ├─ health (gate)                                          │
+    │  ├─ vision_doctor (gate)                                   │
+    │  ├─ capture (medic visualize)                              │
+    │  ├─ critique (medic vision critique)  ← guarded           │
+    │  ├─ patterns (pattern.scan)                                │
+    │  └─ report (synthesise findings)                          │
+    └─────────────────────────────────────────────────────────────┘
+                           ▲
+                           │ subprocess / env var / exit code
+                           │
+              ┌────────────────────────────────────────────────┐
+              │ operational (Python kernel)                    │
+              │ packages/core/  entities/  persistence/  meta/│
+              │ apps/cli/ (Typer+Rich)  apps/tui/ (Textual)   │
+              └────────────────────────────────────────────────┘
+```
+
+---
+
+## 10. RPC evolution — from TTY to async RPC
+
+The system has progressed through four architectural phases. See [13-EVOLUTION-TIMELINE.md](13-EVOLUTION-TIMELINE.md) for the full sprint-by-sprint narrative, and [10-RUST-INTEGRATION.md](10-RUST-INTEGRATION.md) for the Cap'n Proto RPC design.
+
+| Phase | What it looks like | Analogy |
+|---|---|---|
+| **TTY** (sprints 0-1) | Sequential, single-threaded; one command at a time | `vi` + pipe |
+| **ANSI stream** (sprints 2-4) | In-band metadata; entities carry their own structure | `tmux` panes |
+| **Job/channel** (sprints 5-7) | Background workers; Repository Protocol; CLI/TUI as siblings | `vim 8 jobs` |
+| **RPC-decoupled** (sprint 8+, medic) | Go binary wraps Python kernel; separate process boundary | **Neovim Msgpack-RPC** |
+| **Future: Cap'n Proto** (planned) | Go headless core + Rust ratatui TUI over Unix socket | Neovim + GUI clients |
+

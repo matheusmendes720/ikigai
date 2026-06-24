@@ -7,6 +7,6 @@ they are migrated to ``from operational.ui import console``.
 """
 from __future__ import annotations
 
-from operational.ui import CONSOLE_WIDTH, console  # noqa: F401
+from operational.ui import CONSOLE_WIDTH, console
 
-__all__ = ["console", "CONSOLE_WIDTH"]
+__all__ = ["CONSOLE_WIDTH", "console"]

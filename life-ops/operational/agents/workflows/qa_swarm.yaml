@@ -1,0 +1,400 @@
+# =============================================================================
+# PAV QA Swarm — File-based Workflow Definition
+# =============================================================================
+# LangGraph-style: nodes (agents) + edges (dependencies) + shared state
+#
+# Dataset: datasets/6month/synthetic_180d.csv
+# Target:  life-ops/operational/apps/cli/src/operational/cli/
+#
+# Nodes:
+#   1. ux_io_analyst      — Parse CSV → map CLI command → expected IO patterns
+#   2. tdd_agent          — Generate pytest suite from CSV schemas
+#   3. flow_analyzer      — Trace all CLI call graphs, find dead ends
+#   4. reqs_validator     — Cross-check SPEC.md vs actual behavior
+#   5. style_analyzer     — Validate Rich table output, ANSI colors
+#   6. system_optimizer   — Benchmark latency, memory, keystrokes
+#
+# Execution:
+#   Parallel groups fire concurrently.
+#   ON_COMPLETE edges fire next node when predecessor succeeds.
+# =============================================================================
+
+metadata:
+  name: pav_qa_swarm
+  version: 1.0.0
+  description: |
+    Multi-agent QA swarm for PAV CLI — tests all interfaces using
+    the 180-day synthetic dataset as oracle. Validates IO patterns,
+    generates BDD test suites, traces call flows, verifies spec compliance,
+    audits Rich output, and benchmarks performance.
+  author: hermes-qa-engine
+  created_at: "2026-06-22T00:00:00Z"
+  tags: [qa, cli, integration, synthetic-data, hermes]
+  parallelism: 6
+  retry_policy:
+    max_retries: 2
+    backoff_s: 5
+
+# ── Shared state schema ──────────────────────────────────────────────────────
+state_schema:
+  type: object
+  properties:
+    dataset_path:
+      type: string
+      description: Path to synthetic_180d.csv
+    dataset_rows:
+      type: integer
+    dataset_columns:
+      type: array
+      items:
+        type: string
+    completed_nodes:
+      type: array
+      items:
+        type: string
+    failed_nodes:
+      type: array
+      items:
+        type: string
+    io_patterns:
+      type: object
+      description: "CLI command → expected output pattern map"
+    cli_commands_tested:
+      type: array
+      items:
+        type: string
+    flow_graph:
+      type: object
+      description: "Adjacency list of CLI call graph"
+    spec_gaps:
+      type: array
+      items:
+        type: object
+    style_issues:
+      type: array
+      items:
+        type: object
+    benchmarks:
+      type: object
+
+# ── Agent Nodes ──────────────────────────────────────────────────────────────
+
+nodes:
+
+  # ── 1. UX/IO Analyst ──────────────────────────────────────────────────
+  - id: ux_io_analyst
+    name: UX/IO Analyst
+    description: >
+      Parses synthetic_180d.csv (180 days × 15 entity types). Maps every
+      CLI command (pav habit, pav routine, pav metric, etc.) to its expected
+      output schema. Detects truncation bugs, Rich wrapping issues, and TTY
+      vs non-TTY output divergence.
+    agent_type: ux_io_agent
+    state_key: io_analysis
+    capabilities:
+      - name: cli_command_mapping
+        description: Maps each CLI subcommand to its input/output schema
+      - name: truncation_detection
+        description: Identifies output truncated at 80-char boundaries
+      - name: tty_detection
+        description: Detects Rich Table output vs JSON divergence
+    tools:
+      - command: habit list --json
+        timeout_s: 30
+      - command: routine list --json
+        timeout_s: 30
+      - command: metric list --json
+        timeout_s: 30
+      - command: policy decisions --json
+        timeout_s: 30
+      - command: state show --json
+        timeout_s: 30
+      - command: report daily --json
+        timeout_s: 30
+      - command: report weekly --json
+        timeout_s: 30
+      - command: demo show --json
+        timeout_s: 30
+    triggers:
+      - manual
+      - on_complete
+    depends_on: []
+    parallel_group: phase1
+    output_schema:
+      type: object
+      properties:
+        command_count:
+          type: integer
+        commands_tested:
+          type: array
+        io_patterns:
+          type: object
+        truncation_issues:
+          type: array
+        tty_bugs:
+          type: array
+
+  # ── 2. TDD/BDD Test Engineer ──────────────────────────────────────────
+  - id: tdd_agent
+    name: TDD/BDD Test Engineer
+    description: >
+      Generates a comprehensive pytest + BDD (pytest-bdd) test suite using
+      synthetic_180d.csv as the oracle. Tests happy path for all 12 CLI
+      subcommands, edge cases from the scenario calendar (adversity weeks,
+      mastery weeks), and error paths from RECOVER/REDUCE policy states.
+    agent_type: tdd_agent
+    state_key: tdd_suite
+    capabilities:
+      - name: pytest_generation
+        description: Auto-generates pytest test functions
+      - name: bdd_scenario_authoring
+        description: Writes Gherkin .feature files
+      - name: CSV_schema_validation
+        description: Validates entity CSVs against Pydantic schemas
+      - name: test_oracle
+        description: Uses synthetic_180d.csv rows as expected outputs
+    tools:
+      - command: state show --json
+        timeout_s: 30
+      - command: demo show --json
+        timeout_s: 30
+    triggers:
+      - on_complete
+    depends_on:
+      - ux_io_analyst
+    output_schema:
+      type: object
+      properties:
+        tests_generated:
+          type: integer
+        bdd_scenarios:
+          type: integer
+        edge_cases_covered:
+          type: array
+        csv_validation_errors:
+          type: array
+
+  # ── 3. Flow Analyzer ──────────────────────────────────────────────────
+  - id: flow_analyzer
+    name: Flow Analyzer
+    description: >
+      Traces the complete CLI call graph for all 12 subcommands.
+      Maps entry point (pav <cmd>) → handler → core logic → persistence.
+      Identifies: dead-end routes, circular dependencies, missing error
+      handlers, and missing --json outputs.
+    agent_type: flow_agent
+    state_key: flow_analysis
+    capabilities:
+      - name: call_graph_mapping
+        description: Builds adjacency list from CLI source
+      - name: dead_end_detection
+        description: Finds subcommands that don't produce output
+      - name: circular_dep_finding
+        description: Detects circular imports in CLI module
+      - name: missing_json_detection
+        description: Finds commands without --json flag
+    tools:
+      - command: habit create "Test" physiological --resistance 3
+        timeout_s: 20
+      - command: routine create "Test Routine" MANHA CORE
+        timeout_s: 20
+      - command: reflect entrada --date 2026-06-22 --json
+        timeout_s: 20
+    triggers:
+      - on_complete
+    depends_on:
+      - ux_io_analyst
+    output_schema:
+      type: object
+      properties:
+        commands_with_json:
+          type: array
+        commands_without_json:
+          type: array
+        dead_end_commands:
+          type: array
+        call_graph:
+          type: object
+        circular_deps:
+          type: array
+
+  # ── 4. Functional Reqs Validator ──────────────────────────────────────
+  - id: reqs_validator
+    name: Functional Reqs Validator
+    description: >
+      Reads SPEC.md and cross-references every declared behavior against
+      actual CLI output. Verifies: Q_HE formula matches spec, H(t)
+      streak calculations, Policy FSM transitions (PUSH→MAINTAIN→REDUCE→RECOVER
+      with hysteresis), UEID format (oper_<entity>_<date>), and enum values
+      (HabitCategory.COGNITIVE not MENTAL, RoutineType.CORE not SHALLOW).
+    agent_type: reqs_agent
+    state_key: reqs_validation
+    capabilities:
+      - name: spec_cross_reference
+        description: Compares spec claims vs CLI output
+      - name: algorithm_verification
+        description: Validates Q_HE, H(t), Policy FSM arithmetic
+      - name: enum_validation
+        description: Checks enum values match entity definitions
+      - name: UEID_validation
+        description: Validates ID format against pattern ^[a-z]{3,5}_[a-z0-9_]+
+    tools:
+      - command: policy decisions --json
+        timeout_s: 30
+      - command: habit list --json
+        timeout_s: 30
+      - command: report daily --json
+        timeout_s: 30
+    triggers:
+      - on_complete
+    depends_on:
+      - tdd_agent
+      - flow_analyzer
+    output_schema:
+      type: object
+      properties:
+        spec_gaps:
+          type: array
+          items:
+            type: object
+        algorithm_errors:
+          type: array
+        enum_errors:
+          type: array
+        ueid_errors:
+          type: array
+        passed_checks:
+          type: array
+
+  # ── 5. Interface Styler ───────────────────────────────────────────────
+  - id: style_analyzer
+    name: Interface Styler
+    description: >
+      Validates Rich table output across all list commands.
+      Checks: ANSI color tokens used correctly, column alignment,
+      header formatting, row truncation behavior at 80/120/200 cols,
+      and non-TTY fallback (JSON when piped). Produces before/after
+      comparison for every Rich rendering issue found.
+    agent_type: style_agent
+    state_key: style_audit
+    capabilities:
+      - name: ansi_color_analysis
+        description: Validates ANSI escape sequences in output
+      - name: rich_layout_validation
+        description: Checks Rich Table column widths and alignment
+      - name: terminal_styling
+        description: Tests rendering at 80/120/200 column widths
+      - name: tty_fallback_check
+        description: Verifies JSON fallback when stdout is piped
+    tools:
+      - command: habit list
+        timeout_s: 20
+      - command: routine list
+        timeout_s: 20
+      - command: metric list
+        timeout_s: 20
+      - command: policy setpoints
+        timeout_s: 20
+      - command: state show
+        timeout_s: 20
+    triggers:
+      - on_complete
+    depends_on:
+      - ux_io_analyst
+    output_schema:
+      type: object
+      properties:
+        style_issues:
+          type: array
+        truncation_issues:
+          type: array
+        color_issues:
+          type: array
+        tty_fallback_broken:
+          type: array
+
+  # ── 6. System Optimizer ───────────────────────────────────────────────
+  - id: system_optimizer
+    name: System Optimizer
+    description: >
+      Benchmarks every CLI command: wall-clock latency, memory delta,
+      I/O bytes read/written. Computes hard-user metrics: keystrokes to
+      complete workflow, wait time between commands, total flow length.
+      Proposes caching strategy, lazy-load modules, and parallel preload.
+    agent_type: opt_agent
+    state_key: benchmarks
+    capabilities:
+      - name: latency_benchmarking
+        description: Measures per-command wall-clock time
+      - name: memory_profiling
+        description: Tracks memory delta per command
+      - name: io_cost_analysis
+        description: Counts bytes read/written per command
+      - name: keystroke_analysis
+        description: Counts interactions needed per workflow
+    tools:
+      - command: state show --json
+        timeout_s: 30
+      - command: habit list --json
+        timeout_s: 30
+      - command: report weekly --json
+        timeout_s: 30
+    triggers:
+      - on_complete
+    depends_on:
+      - style_analyzer
+      - reqs_validator
+    output_schema:
+      type: object
+      properties:
+        command_latencies:
+          type: object
+        slowest_commands:
+          type: array
+        memory_deltas:
+          type: object
+        io_costs:
+          type: object
+        optimization_proposals:
+          type: array
+        keystroke_count:
+          type: integer
+        total_flow_time_s:
+          type: number
+
+# ── Edges ────────────────────────────────────────────────────────────────────
+
+edges:
+  # Phase 1: ux_io_analyst is the root — all others depend on it
+  - source: ux_io_analyst
+    target: tdd_agent
+    trigger: on_complete
+    label: "CSV schema + IO patterns ready"
+  - source: ux_io_analyst
+    target: flow_analyzer
+    trigger: on_complete
+    label: "CLI commands mapped"
+  - source: ux_io_analyst
+    target: style_analyzer
+    trigger: on_complete
+    label: "Output patterns known"
+
+  # Phase 2: tdd + flow feed reqs_validator
+  - source: tdd_agent
+    target: reqs_validator
+    trigger: on_complete
+    label: "Test suite generated"
+  - source: flow_analyzer
+    target: reqs_validator
+    trigger: on_complete
+    label: "Call graph complete"
+
+  # Phase 3: reqs + style feed optimizer
+  - source: reqs_validator
+    target: system_optimizer
+    trigger: on_complete
+    label: "Spec gaps identified"
+  - source: style_analyzer
+    target: system_optimizer
+    trigger: on_complete
+    label: "Style issues catalogued"

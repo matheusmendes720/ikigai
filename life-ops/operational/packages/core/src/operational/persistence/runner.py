@@ -75,8 +75,9 @@ class MigrationRunner:
             return False
         path = self._dir / f"{migration_name}.sql"
         if not path.exists():
+            msg = f"Migration file not found: {path}"
             raise MigrationError(
-                "Migration file not found: %s" % path,
+                msg,
                 migration_name=migration_name,
                 reason="file not found",
             )
@@ -152,8 +153,9 @@ class MigrationRunner:
                 (name, now, checksum),
             )
             self._conn.commit()
+            msg = f"Migration {name!r} failed to execute"
             raise MigrationError(
-                "Migration %r failed to execute" % name,
+                msg,
                 migration_name=name,
                 reason=str(exc),
             ) from exc

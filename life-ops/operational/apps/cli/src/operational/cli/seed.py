@@ -104,10 +104,10 @@ SEVEN_DAYS: list[dict[str, Any]] = [
         "name": "Segunda Padrao Ouro",
         "scenario": "Padrao Ouro",
         "tipo_dia": TipoDia.CURSO,
-        "sleep": dict(bedtime=time(20, 30), wake_time=time(4, 0), quality=9,
-                      deep_pct=28, rem_pct=22, interruptions=0,
-                      notes="Sono reparador. Ciclo completo. Acordei naturalmente."),
-        "lunch": dict(eat_min=5, rest_min=30, pesado=False, notas="Salada + frango grelhado."),
+        "sleep": {"bedtime": time(20, 30), "wake_time": time(4, 0), "quality": 9,
+                      "deep_pct": 28, "rem_pct": 22, "interruptions": 0,
+                      "notes": "Sono reparador. Ciclo completo. Acordei naturalmente."},
+        "lunch": {"eat_min": 5, "rest_min": 30, "pesado": False, "notas": "Salada + frango grelhado."},
         "orcado": 240, "realizado": 240, "pomodoros_meta": 12, "pomodoros_done": 11,
         "transicoes_complete": 9,
         "routines": [
@@ -127,29 +127,29 @@ SEVEN_DAYS: list[dict[str, Any]] = [
             ("Preparacao Dia Seguinte", Period.NOITE, (18, 0), (20, 0)),
         ],
         "pomodoros_s1_s2_s3": [4, 4, 3],
-        "ref_entrada": dict(
-            parar_de_fazer=["Dormir apos 21h"],
-            repetir=["Acordar sem alarme", "Hidratacao logo apos acordar"],
-            sempre_fazer=["Meditacao 10min antes do deep work"],
-            big_win="Acordar 1h antes do primeiro compromisso (4h) gera flow state matinal",
-        ),
-        "ref_saida": dict(
-            deu_certo=["Feature JWT completa + testada", "Code review encontrou 3 bugs antes do deploy"],
-            deu_errado=["Sessao 3 reduzida por falta de energia pos-almoco"],
-            maior_aprendizado="Sono define o dia - qualidade 9 leva a energia 9 e foco 9",
-            ajustes_para_amanha=["Reduzir meditacao de 15 para 10min para liberar 5min de deep work"],
-        ),
-        "journal_manha": dict(
-            text=("**DIA PERFEITO**\n\nAcordei 04:00 naturalmente. Sono 8h Q=9. "
+        "ref_entrada": {
+            "parar_de_fazer": ["Dormir apos 21h"],
+            "repetir": ["Acordar sem alarme", "Hidratacao logo apos acordar"],
+            "sempre_fazer": ["Meditacao 10min antes do deep work"],
+            "big_win": "Acordar 1h antes do primeiro compromisso (4h) gera flow state matinal",
+        },
+        "ref_saida": {
+            "deu_certo": ["Feature JWT completa + testada", "Code review encontrou 3 bugs antes do deploy"],
+            "deu_errado": ["Sessao 3 reduzida por falta de energia pos-almoco"],
+            "maior_aprendizado": "Sono define o dia - qualidade 9 leva a energia 9 e foco 9",
+            "ajustes_para_amanha": ["Reduzir meditacao de 15 para 10min para liberar 5min de deep work"],
+        },
+        "journal_manha": {
+            "text": ("**DIA PERFEITO**\n\nAcordei 04:00 naturalmente. Sono 8h Q=9. "
                   "Ritual matinal completo. Pronto para o dia.\n\n"
                   "Sessao 1 (04:30-08:00): 4 rounds de 50min. Feature JWT completa."),
-            energia=9, foco=9, humor_morning=5, humor_evening=5, pomodoros=8,
-        ),
-        "journal_noite": dict(
-            text=("**REVISAO NOTURNA**\n\nChecklist 8/8 rotinas. "
+            "energia": 9, "foco": 9, "humor_morning": 5, "humor_evening": 5, "pomodoros": 8,
+        },
+        "journal_noite": {
+            "text": ("**REVISAO NOTURNA**\n\nChecklist 8/8 rotinas. "
                   "11/12 pomodoros. Energia 9/10. Foco 9/10."),
-            energia=8, foco=9, humor_morning=5, humor_evening=5, pomodoros=11,
-        ),
+            "energia": 8, "foco": 9, "humor_morning": 5, "humor_evening": 5, "pomodoros": 11,
+        },
         "desvios": [],
         "licoes": [
             "Manter hidratacao entre rounds melhora foco na 2a metade da manha.",
@@ -165,10 +165,10 @@ SEVEN_DAYS: list[dict[str, Any]] = [
         "name": "Terca com Atraso",
         "scenario": "Desvio Leve",
         "tipo_dia": TipoDia.CURSO,
-        "sleep": dict(bedtime=time(21, 30), wake_time=time(5, 30), quality=6,
-                      deep_pct=18, rem_pct=20, interruptions=2,
-                      notes="Dormi mais tarde (serie no streaming). Acordei 1h alem do padrao ouro."),
-        "lunch": dict(eat_min=5, rest_min=30, pesado=False, notas="Almoco normal."),
+        "sleep": {"bedtime": time(21, 30), "wake_time": time(5, 30), "quality": 6,
+                      "deep_pct": 18, "rem_pct": 20, "interruptions": 2,
+                      "notes": "Dormi mais tarde (serie no streaming). Acordei 1h alem do padrao ouro."},
+        "lunch": {"eat_min": 5, "rest_min": 30, "pesado": False, "notas": "Almoco normal."},
         "orcado": 240, "realizado": 180, "pomodoros_meta": 8, "pomodoros_done": 6,
         "transicoes_complete": 7,
         "routines": [
@@ -187,29 +187,29 @@ SEVEN_DAYS: list[dict[str, Any]] = [
             ("Jantar + Compensacao", Period.NOITE, (18, 30), (20, 30)),
         ],
         "pomodoros_s1_s2_s3": [2, 2, 2],
-        "ref_entrada": dict(
-            parar_de_fazer=["Assistir serie apos 19h"],
-            repetir=["Hidratacao logo ao acordar"],
-            sempre_fazer=["Higiene sono (sem telas 2h antes)"],
-            big_win="Ja estar na mesa as 5:50, mesmo apos atraso, reduz o impacto total.",
-        ),
-        "ref_saida": dict(
-            deu_certo=["Cumpri os 2 pomodoros da manha apesar do atraso"],
-            deu_errado=["Tentei compensar workout a tarde - quebra o ciclo (nao fazer mais)"],
-            maior_aprendizado="Sono 6h + 1h atraso da energia 7 e foco 7. Funciona, mas com margem minima.",
-            ajustes_para_amanha=["Dormir 20:00 hoje para recuperar 1h de sono"],
-        ),
-        "journal_manha": dict(
-            text=("**DESVIO LEVE**\n\nAcordei 05:30 - 1h alem do padrao ouro. "
+        "ref_entrada": {
+            "parar_de_fazer": ["Assistir serie apos 19h"],
+            "repetir": ["Hidratacao logo ao acordar"],
+            "sempre_fazer": ["Higiene sono (sem telas 2h antes)"],
+            "big_win": "Ja estar na mesa as 5:50, mesmo apos atraso, reduz o impacto total.",
+        },
+        "ref_saida": {
+            "deu_certo": ["Cumpri os 2 pomodoros da manha apesar do atraso"],
+            "deu_errado": ["Tentei compensar workout a tarde - quebra o ciclo (nao fazer mais)"],
+            "maior_aprendizado": "Sono 6h + 1h atraso da energia 7 e foco 7. Funciona, mas com margem minima.",
+            "ajustes_para_amanha": ["Dormir 20:00 hoje para recuperar 1h de sono"],
+        },
+        "journal_manha": {
+            "text": ("**DESVIO LEVE**\n\nAcordei 05:30 - 1h alem do padrao ouro. "
                   "Sono leve (Q=6).\nDecisao: pular workout, manter 2 pomodoros da manha."),
-            energia=7, foco=7, humor_morning=3, humor_evening=4, pomodoros=2,
-        ),
-        "journal_noite": dict(
-            text=("**LICOES DO DESVIO**\n\n1. Compensar workout a tarde foi erro.\n"
+            "energia": 7, "foco": 7, "humor_morning": 3, "humor_evening": 4, "pomodoros": 2,
+        },
+        "journal_noite": {
+            "text": ("**LICOES DO DESVIO**\n\n1. Compensar workout a tarde foi erro.\n"
                   "2. Foco em tarefas CRITICAS reduziu impacto.\n"
                   "3. Decisao: dormir 20:00 hoje."),
-            energia=6, foco=6, humor_morning=3, humor_evening=3, pomodoros=6,
-        ),
+            "energia": 6, "foco": 6, "humor_morning": 3, "humor_evening": 3, "pomodoros": 6,
+        },
         "desvios": [
             "Acordei 1h alem do padrao (5:30 vs limite 5:00). Infracao LEVE.",
         ],
@@ -227,11 +227,11 @@ SEVEN_DAYS: list[dict[str, Any]] = [
         "name": "Quarta Hardcore",
         "scenario": "Modo Hardcore",
         "tipo_dia": TipoDia.HARDCORE,
-        "sleep": dict(bedtime=time(2, 0), wake_time=time(6, 0), quality=4,
-                      deep_pct=12, rem_pct=15, interruptions=1,
-                      notes="Deadline do relatorio trimestral. Dormi so 4h. Cafe as 2h30."),
-        "lunch": dict(eat_min=10, rest_min=20, pesado=False,
-                      notas="Almoco rapido, sem descanso - modo emergencia."),
+        "sleep": {"bedtime": time(2, 0), "wake_time": time(6, 0), "quality": 4,
+                      "deep_pct": 12, "rem_pct": 15, "interruptions": 1,
+                      "notes": "Deadline do relatorio trimestral. Dormi so 4h. Cafe as 2h30."},
+        "lunch": {"eat_min": 10, "rest_min": 20, "pesado": False,
+                      "notas": "Almoco rapido, sem descanso - modo emergencia."},
         "orcado": 660, "realizado": 480, "pomodoros_meta": 11, "pomodoros_done": 8,
         "transicoes_complete": 6,
         "routines": [
@@ -250,29 +250,29 @@ SEVEN_DAYS: list[dict[str, Any]] = [
             ("Finalizacao + Entrega", Period.TARDE, (15, 30), (17, 0)),
         ],
         "pomodoros_s1_s2_s3": [3, 3, 2],
-        "ref_entrada": dict(
-            parar_de_fazer=["Subestimar deadlines"],
-            repetir=["Cafe estrategico as 2:30h para reduzir sonolencia"],
-            sempre_fazer=["Power nap 20min se necessario"],
-            big_win="Adrenalina da deadline segurou o foco 3h seguidas.",
-        ),
-        "ref_saida": dict(
-            deu_certo=["Relatorio entregue as 16:55 (5min antes)"],
-            deu_errado=["Recuperei pouco - sono acumulado vai cobrar"],
-            maior_aprendizado="4h sono e sustentavel para 1 dia, mas cobra na proxima 48h.",
-            ajustes_para_amanha=["RECUPERACAO OBRIGATORIA - dormir 18h hoje"],
-        ),
-        "journal_manha": dict(
-            text=("**MODO HARDCORE ATIVADO**\n\nDormi 02:00 ate 06:00 = 4h. Q=4. "
+        "ref_entrada": {
+            "parar_de_fazer": ["Subestimar deadlines"],
+            "repetir": ["Cafe estrategico as 2:30h para reduzir sonolencia"],
+            "sempre_fazer": ["Power nap 20min se necessario"],
+            "big_win": "Adrenalina da deadline segurou o foco 3h seguidas.",
+        },
+        "ref_saida": {
+            "deu_certo": ["Relatorio entregue as 16:55 (5min antes)"],
+            "deu_errado": ["Recuperei pouco - sono acumulado vai cobrar"],
+            "maior_aprendizado": "4h sono e sustentavel para 1 dia, mas cobra na proxima 48h.",
+            "ajustes_para_amanha": ["RECUPERACAO OBRIGATORIA - dormir 18h hoje"],
+        },
+        "journal_manha": {
+            "text": ("**MODO HARDCORE ATIVADO**\n\nDormi 02:00 ate 06:00 = 4h. Q=4. "
                   "Cafe as 2:30. Adrenalina da deadline.\nEnergia 4, foco 7."),
-            energia=4, foco=5, humor_morning=2, humor_evening=4, pomodoros=3,
-        ),
-        "journal_noite": dict(
-            text=("**RELATORIO ENTREGUE**\n\n16:55h, 5min antes do deadline. "
+            "energia": 4, "foco": 5, "humor_morning": 2, "humor_evening": 4, "pomodoros": 3,
+        },
+        "journal_noite": {
+            "text": ("**RELATORIO ENTREGUE**\n\n16:55h, 5min antes do deadline. "
                   "8/11 pomodoros. Sono cobrado.\n"
                   "RECUPERACAO OBRIGATORIA: dormir 18:00h hoje."),
-            energia=3, foco=4, humor_morning=2, humor_evening=3, pomodoros=8,
-        ),
+            "energia": 3, "foco": 4, "humor_morning": 2, "humor_evening": 3, "pomodoros": 8,
+        },
         "desvios": [
             "Sono 4h. Infracao GRAVE se repetida (max 2x/mes).",
             "Almoco reduzido (5min eat + 20min rest vs 5+30 padrao).",
@@ -291,10 +291,10 @@ SEVEN_DAYS: list[dict[str, Any]] = [
         "name": "Quinta Recuperacao",
         "scenario": "Recuperacao",
         "tipo_dia": TipoDia.DESCANSO,
-        "sleep": dict(bedtime=time(20, 0), wake_time=time(6, 0), quality=10,
-                      deep_pct=32, rem_pct=25, interruptions=0,
-                      notes="Dormi 18:00 ate 06:00 = 10h. Sono restaurador. Q=10."),
-        "lunch": dict(eat_min=5, rest_min=30, pesado=False, notas="Almoco leve + leitura."),
+        "sleep": {"bedtime": time(20, 0), "wake_time": time(6, 0), "quality": 10,
+                      "deep_pct": 32, "rem_pct": 25, "interruptions": 0,
+                      "notes": "Dormi 18:00 ate 06:00 = 10h. Sono restaurador. Q=10."},
+        "lunch": {"eat_min": 5, "rest_min": 30, "pesado": False, "notas": "Almoco leve + leitura."},
         "orcado": 120, "realizado": 90, "pomodoros_meta": 4, "pomodoros_done": 3,
         "transicoes_complete": 7,
         "routines": [
@@ -312,28 +312,28 @@ SEVEN_DAYS: list[dict[str, Any]] = [
             ("Documentacao Opcional", Period.TARDE, (13, 0), (15, 0)),
         ],
         "pomodoros_s1_s2_s3": [2, 1, 0],
-        "ref_entrada": dict(
-            parar_de_fazer=["Ignorar sono de recuperacao"],
-            repetir=["Acordar sem alarme apos sono longo"],
-            sempre_fazer=["Dormir 18h apos dia hardcore"],
-            big_win="10h sono = corpo restaurado para a semana.",
-        ),
-        "ref_saida": dict(
-            deu_certo=["Nada de extenuante. Recuperei a energia."],
-            deu_errado=["Quase forcei um pomodoro extra - parei no tempo."],
-            maior_aprendizado="Descanso e produtividade armazenada.",
-            ajustes_para_amanha=["Voltar ao padrao curso amanha"],
-        ),
-        "journal_manha": dict(
-            text=("**RECUPERACAO**\n\nDormi 18h ate 4am = 10h. Q=10. "
+        "ref_entrada": {
+            "parar_de_fazer": ["Ignorar sono de recuperacao"],
+            "repetir": ["Acordar sem alarme apos sono longo"],
+            "sempre_fazer": ["Dormir 18h apos dia hardcore"],
+            "big_win": "10h sono = corpo restaurado para a semana.",
+        },
+        "ref_saida": {
+            "deu_certo": ["Nada de extenuante. Recuperei a energia."],
+            "deu_errado": ["Quase forcei um pomodoro extra - parei no tempo."],
+            "maior_aprendizado": "Descanso e produtividade armazenada.",
+            "ajustes_para_amanha": ["Voltar ao padrao curso amanha"],
+        },
+        "journal_manha": {
+            "text": ("**RECUPERACAO**\n\nDormi 18h ate 4am = 10h. Q=10. "
                   "Acordei restaurado. Energia 8.\nHoje: 2-3 pomodoros apenas."),
-            energia=8, foco=6, humor_morning=5, humor_evening=5, pomodoros=2,
-        ),
-        "journal_noite": dict(
-            text=("**DIA SUAVE**\n\n3 pomodoros. Nada forcado. "
+            "energia": 8, "foco": 6, "humor_morning": 5, "humor_evening": 5, "pomodoros": 2,
+        },
+        "journal_noite": {
+            "text": ("**DIA SUAVE**\n\n3 pomodoros. Nada forcado. "
                   "Energia recuperada para amanha."),
-            energia=7, foco=5, humor_morning=5, humor_evening=5, pomodoros=3,
-        ),
+            "energia": 7, "foco": 5, "humor_morning": 5, "humor_evening": 5, "pomodoros": 3,
+        },
         "desvios": [],
         "licoes": [
             "Descanso e produtividade armazenada.",
@@ -347,11 +347,11 @@ SEVEN_DAYS: list[dict[str, Any]] = [
         "name": "Sexta Lunch Pesado",
         "scenario": "Lunch Estendido",
         "tipo_dia": TipoDia.CURSO,
-        "sleep": dict(bedtime=time(20, 30), wake_time=time(4, 0), quality=8,
-                      deep_pct=24, rem_pct=21, interruptions=0,
-                      notes="Sono OK. Acordei no horario. Energia 8."),
-        "lunch": dict(eat_min=10, rest_min=60, pesado=True,
-                      notas="Feijoada pesada. Cochilei 30min alem do orcado. 60min total."),
+        "sleep": {"bedtime": time(20, 30), "wake_time": time(4, 0), "quality": 8,
+                      "deep_pct": 24, "rem_pct": 21, "interruptions": 0,
+                      "notes": "Sono OK. Acordei no horario. Energia 8."},
+        "lunch": {"eat_min": 10, "rest_min": 60, "pesado": True,
+                      "notas": "Feijoada pesada. Cochilei 30min alem do orcado. 60min total."},
         "orcado": 240, "realizado": 210, "pomodoros_meta": 8, "pomodoros_done": 7,
         "transicoes_complete": 7,
         "routines": [
@@ -371,29 +371,29 @@ SEVEN_DAYS: list[dict[str, Any]] = [
             ("Deep Work Tarde Reduzido", Period.TARDE, (13, 30), (16, 30)),
         ],
         "pomodoros_s1_s2_s3": [3, 2, 2],
-        "ref_entrada": dict(
-            parar_de_fazer=["Almoco pesado antes de dia de foco"],
-            repetir=["Refeicao leve ao meio dia"],
-            sempre_fazer=["Agua antes do almoco"],
-            big_win="Reconhecer o risco de almoco pesado antes do periodo de foco.",
-        ),
-        "ref_saida": dict(
-            deu_certo=["Cumpri code review mesmo com cochilo"],
-            deu_errado=["Cochilo de 30min alem do orcado. Requer ajuste."],
-            maior_aprendizado="Almoco pesado custa 30min de produtividade + energia por 2h.",
-            ajustes_para_amanha=["Preparar almoco mais leve sabado (frango + salada)"],
-        ),
-        "journal_manha": dict(
-            text=("**ALERTA: ALMOCO PESADO HOJE**\n\nFeijoada no almoco. "
+        "ref_entrada": {
+            "parar_de_fazer": ["Almoco pesado antes de dia de foco"],
+            "repetir": ["Refeicao leve ao meio dia"],
+            "sempre_fazer": ["Agua antes do almoco"],
+            "big_win": "Reconhecer o risco de almoco pesado antes do periodo de foco.",
+        },
+        "ref_saida": {
+            "deu_certo": ["Cumpri code review mesmo com cochilo"],
+            "deu_errado": ["Cochilo de 30min alem do orcado. Requer ajuste."],
+            "maior_aprendizado": "Almoco pesado custa 30min de produtividade + energia por 2h.",
+            "ajustes_para_amanha": ["Preparar almoco mais leve sabado (frango + salada)"],
+        },
+        "journal_manha": {
+            "text": ("**ALERTA: ALMOCO PESADO HOJE**\n\nFeijoada no almoco. "
                   "Ja sei que vou cochilar. Vou antecipar: code review antes do almoco."),
-            energia=8, foco=8, humor_morning=4, humor_evening=4, pomodoros=3,
-        ),
-        "journal_noite": dict(
-            text=("**COCHILO CONFIRMADO**\n\n30min alem do orcado. Energia baixa 13-15h. "
+            "energia": 8, "foco": 8, "humor_morning": 4, "humor_evening": 4, "pomodoros": 3,
+        },
+        "journal_noite": {
+            "text": ("**COCHILO CONFIRMADO**\n\n30min alem do orcado. Energia baixa 13-15h. "
                   "Recuperei 15:30. Tarde reduzida.\n"
                   "Causa raiz: almoco pesado. Ajustar amanha."),
-            energia=5, foco=6, humor_morning=4, humor_evening=4, pomodoros=7,
-        ),
+            "energia": 5, "foco": 6, "humor_morning": 4, "humor_evening": 4, "pomodoros": 7,
+        },
         "desvios": [
             "Lunch extrapolou 35min (60min real, +25min alem). Infracao MEDIA.",
         ],
@@ -411,10 +411,10 @@ SEVEN_DAYS: list[dict[str, Any]] = [
         "name": "Sabado Livre",
         "scenario": "Fim de Semana",
         "tipo_dia": TipoDia.LIVRE,
-        "sleep": dict(bedtime=time(21, 0), wake_time=time(5, 0), quality=9,
-                      deep_pct=28, rem_pct=22, interruptions=0,
-                      notes="Sono otimo. Acordei antes do alarme."),
-        "lunch": dict(eat_min=5, rest_min=30, pesado=False, notas="Salada + proteina."),
+        "sleep": {"bedtime": time(21, 0), "wake_time": time(5, 0), "quality": 9,
+                      "deep_pct": 28, "rem_pct": 22, "interruptions": 0,
+                      "notes": "Sono otimo. Acordei antes do alarme."},
+        "lunch": {"eat_min": 5, "rest_min": 30, "pesado": False, "notas": "Salada + proteina."},
         "orcado": 540, "realizado": 480, "pomodoros_meta": 9, "pomodoros_done": 8,
         "transicoes_complete": 9,
         "routines": [
@@ -434,28 +434,28 @@ SEVEN_DAYS: list[dict[str, Any]] = [
             ("Jantar Familia", Period.NOITE, (18, 0), (20, 0)),
         ],
         "pomodoros_s1_s2_s3": [4, 4, 0],
-        "ref_entrada": dict(
-            parar_de_fazer=["Work no fim de semana sem objetivo"],
-            repetir=["Side project no sabado de manha"],
-            sempre_fazer=["Caminhada no parque 17h"],
-            big_win="Sabado e o dia de maxima produtividade E recarga emocional.",
-        ),
-        "ref_saida": dict(
-            deu_certo=["Contribuicao OSS aceita", "Feature nova implementada"],
-            deu_errado=["Quase pulei a caminhada - deu pra encaixar"],
-            maior_aprendizado="Fim de semana produtivo + recarga emocional = segunda com tanque cheio.",
-            ajustes_para_amanha=["Domingo: preparacao completa para semana"],
-        ),
-        "journal_manha": dict(
-            text=("**FIM DE SEMANA**\n\nSabado. Sem curso. "
+        "ref_entrada": {
+            "parar_de_fazer": ["Work no fim de semana sem objetivo"],
+            "repetir": ["Side project no sabado de manha"],
+            "sempre_fazer": ["Caminhada no parque 17h"],
+            "big_win": "Sabado e o dia de maxima produtividade E recarga emocional.",
+        },
+        "ref_saida": {
+            "deu_certo": ["Contribuicao OSS aceita", "Feature nova implementada"],
+            "deu_errado": ["Quase pulei a caminhada - deu pra encaixar"],
+            "maior_aprendizado": "Fim de semana produtivo + recarga emocional = segunda com tanque cheio.",
+            "ajustes_para_amanha": ["Domingo: preparacao completa para semana"],
+        },
+        "journal_manha": {
+            "text": ("**FIM DE SEMANA**\n\nSabado. Sem curso. "
                   "Maxima produtividade: side project + features.\nEnergia 9, foco 9."),
-            energia=9, foco=9, humor_morning=5, humor_evening=5, pomodoros=4,
-        ),
-        "journal_noite": dict(
-            text=("**DIA PERFEITO**\n\n8 pomodoros. Side project + features. "
+            "energia": 9, "foco": 9, "humor_morning": 5, "humor_evening": 5, "pomodoros": 4,
+        },
+        "journal_noite": {
+            "text": ("**DIA PERFEITO**\n\n8 pomodoros. Side project + features. "
                   "Caminhada com sol. Jantar em familia. Recarregado."),
-            energia=8, foco=8, humor_morning=5, humor_evening=5, pomodoros=8,
-        ),
+            "energia": 8, "foco": 8, "humor_morning": 5, "humor_evening": 5, "pomodoros": 8,
+        },
         "desvios": [],
         "licoes": [
             "Fim de semana pode ser 100% produtivo E recarregante.",
@@ -469,11 +469,11 @@ SEVEN_DAYS: list[dict[str, Any]] = [
         "name": "Domingo Visita Inesperada",
         "scenario": "Interrupcao Social",
         "tipo_dia": TipoDia.LIVRE,
-        "sleep": dict(bedtime=time(20, 0), wake_time=time(5, 0), quality=9,
-                      deep_pct=27, rem_pct=23, interruptions=1,
-                      notes="Sono otimo. Acordei 1x durante a noite (vizinho)."),
-        "lunch": dict(eat_min=10, rest_min=35, pesado=False,
-                      notas="Almoco com visita (amigo veio). Mais longo que o normal."),
+        "sleep": {"bedtime": time(20, 0), "wake_time": time(5, 0), "quality": 9,
+                      "deep_pct": 27, "rem_pct": 23, "interruptions": 1,
+                      "notes": "Sono otimo. Acordei 1x durante a noite (vizinho)."},
+        "lunch": {"eat_min": 10, "rest_min": 35, "pesado": False,
+                      "notas": "Almoco com visita (amigo veio). Mais longo que o normal."},
         "orcado": 540, "realizado": 420, "pomodoros_meta": 9, "pomodoros_done": 7,
         "transicoes_complete": 7,
         "routines": [
@@ -493,29 +493,29 @@ SEVEN_DAYS: list[dict[str, Any]] = [
             ("Jantar Tarde", Period.NOITE, (19, 0), (20, 30)),
         ],
         "pomodoros_s1_s2_s3": [3, 2, 2],
-        "ref_entrada": dict(
-            parar_de_fazer=["Reclamar de visitas - faz parte da vida"],
-            repetir=["Soneca/meditacao 30min antes de comecar"],
-            sempre_fazer=["Plano da semana no domingo de manha"],
-            big_win="Visita inesperada nao destruiu o dia - adaptei e continuei.",
-        ),
-        "ref_saida": dict(
-            deu_certo=["Adaptei o plano. Recuperei 14:30."],
-            deu_errado=["Jantar 19h = luz azul apos 18h. Infracao LEVE."],
-            maior_aprendizado="Visitas sao parte da vida. Perder 2h nao e perder o dia.",
-            ajustes_para_amanha=["Reflexao: como evitar visitas surpresa no domingo?"],
-        ),
-        "journal_manha": dict(
-            text=("**PLANO DA SEMANA**\n\nDomingo. Revisar tarefas da semana. "
+        "ref_entrada": {
+            "parar_de_fazer": ["Reclamar de visitas - faz parte da vida"],
+            "repetir": ["Soneca/meditacao 30min antes de comecar"],
+            "sempre_fazer": ["Plano da semana no domingo de manha"],
+            "big_win": "Visita inesperada nao destruiu o dia - adaptei e continuei.",
+        },
+        "ref_saida": {
+            "deu_certo": ["Adaptei o plano. Recuperei 14:30."],
+            "deu_errado": ["Jantar 19h = luz azul apos 18h. Infracao LEVE."],
+            "maior_aprendizado": "Visitas sao parte da vida. Perder 2h nao e perder o dia.",
+            "ajustes_para_amanha": ["Reflexao: como evitar visitas surpresa no domingo?"],
+        },
+        "journal_manha": {
+            "text": ("**PLANO DA SEMANA**\n\nDomingo. Revisar tarefas da semana. "
                   "Organizar Taskwarrior. Energia 9, foco 9."),
-            energia=9, foco=9, humor_morning=5, humor_evening=5, pomodoros=3,
-        ),
-        "journal_noite": dict(
-            text=("**VISITA INESPERADA**\n\nAmigo chegou 12h. Almoco + cafe ate 14:30. "
+            "energia": 9, "foco": 9, "humor_morning": 5, "humor_evening": 5, "pomodoros": 3,
+        },
+        "journal_noite": {
+            "text": ("**VISITA INESPERADA**\n\nAmigo chegou 12h. Almoco + cafe ate 14:30. "
                   "Retomei 14:30-16h. Jantar 19h (luz azul apos 18h).\n"
                   "Nao destruiu o dia. Adaptei."),
-            energia=7, foco=6, humor_morning=5, humor_evening=5, pomodoros=7,
-        ),
+            "energia": 7, "foco": 6, "humor_morning": 5, "humor_evening": 5, "pomodoros": 7,
+        },
         "desvios": [
             "Visita inesperada roubou 2h30 de trabalho. (Imprevisto social, sem infracao).",
             "Jantar 19h = luz azul 1h apos 18h. Infracao LEVE.",
@@ -566,14 +566,14 @@ def seed_demo_data() -> str:
 
     # Habits (idempotent — check by name)
     DEMO_HABITS: list[dict[str, Any]] = [
-        dict(name="Beber 2L de Agua", category=HabitCategory.PHYSIOLOGICAL, resistance=2.0, weight_in_qhe=0.8),
-        dict(name="Meditar 10min", category=HabitCategory.RITUAL, resistance=3.0, weight_in_qhe=0.6),
-        dict(name="Alongamento Matinal", category=HabitCategory.PHYSIOLOGICAL, resistance=4.0, weight_in_qhe=0.5),
-        dict(name="Ler 30min Tecnico", category=HabitCategory.COGNITIVE, resistance=5.0, weight_in_qhe=0.7),
-        dict(name="Caminhada 20min", category=HabitCategory.PHYSIOLOGICAL, resistance=4.0, weight_in_qhe=0.4),
-        dict(name="Ligar para Familia", category=HabitCategory.SOCIAL, resistance=6.0, weight_in_qhe=0.3),
-        dict(name="Escrever no Diario", category=HabitCategory.CREATIVE, resistance=3.0, weight_in_qhe=0.4),
-        dict(name="Planejar Dia Seguinte", category=HabitCategory.RITUAL, resistance=1.0, weight_in_qhe=0.9),
+        {"name": "Beber 2L de Agua", "category": HabitCategory.PHYSIOLOGICAL, "resistance": 2.0, "weight_in_qhe": 0.8},
+        {"name": "Meditar 10min", "category": HabitCategory.RITUAL, "resistance": 3.0, "weight_in_qhe": 0.6},
+        {"name": "Alongamento Matinal", "category": HabitCategory.PHYSIOLOGICAL, "resistance": 4.0, "weight_in_qhe": 0.5},
+        {"name": "Ler 30min Tecnico", "category": HabitCategory.COGNITIVE, "resistance": 5.0, "weight_in_qhe": 0.7},
+        {"name": "Caminhada 20min", "category": HabitCategory.PHYSIOLOGICAL, "resistance": 4.0, "weight_in_qhe": 0.4},
+        {"name": "Ligar para Familia", "category": HabitCategory.SOCIAL, "resistance": 6.0, "weight_in_qhe": 0.3},
+        {"name": "Escrever no Diario", "category": HabitCategory.CREATIVE, "resistance": 3.0, "weight_in_qhe": 0.4},
+        {"name": "Planejar Dia Seguinte", "category": HabitCategory.RITUAL, "resistance": 1.0, "weight_in_qhe": 0.9},
     ]
     for h in DEMO_HABITS:
         existing = habits.list(filters={"name": h["name"]})
@@ -746,7 +746,7 @@ def seed_demo_data() -> str:
         # DailyReflection (V3)
         ref_entrada = day.get("ref_entrada", {})
         ref_saida = day.get("ref_saida", {})
-        energy_avg = (ref_entrada.get("energia", 7) + ref_saida.get("energia", 7)) // 2 if "energia" in ref_entrada else 7
+        (ref_entrada.get("energia", 7) + ref_saida.get("energia", 7)) // 2 if "energia" in ref_entrada else 7
         # We don't track energia in ref dicts - use heuristica from journal
         jm = day.get("journal_manha", {})
         jn = day.get("journal_noite", {})

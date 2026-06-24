@@ -6,11 +6,13 @@ Provides :class:`RepositoryBase[T_Entity]`, an ABC that fulfills the
 """
 from __future__ import annotations
 
-import builtins
 from abc import ABC, abstractmethod
-from typing import Any, Generic, List
+from typing import TYPE_CHECKING, Any, Generic
 
 from operational.types import UEID, T_Entity
+
+if TYPE_CHECKING:
+    import builtins
 
 __all__ = ["RepositoryBase"]
 

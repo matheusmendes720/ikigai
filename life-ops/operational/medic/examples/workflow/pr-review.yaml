@@ -1,0 +1,71 @@
+# pr-review — the canonical agentic workflow for medic.
+#
+# Steps:
+#   1. local.diff_tree   — gather changed files from the local git tree
+#   2. health.run        — run the health gate on the target
+#   3. pattern.scan      — scan code patterns (todo, debug prints, hardcoded paths)
+#   4. llm.review        — generate a textual summary (uses heuristic if no API key)
+#   5. report.write      — write the combined markdown report
+#   6. github.post_review— post the report as a PR review (guarded by health.ok)
+#
+# Run with:
+#   medic workflow run examples/workflow/pr-review.yaml \
+#     --target ../packages/core \
+#     --verbose
+
+name: pr-review
+description: |
+  Full PR review pipeline: diff → health → patterns → LLM summary → report → post.
+
+defaults:
+  timeout: 5m
+  retries: 1
+
+steps:
+  - id: diff
+    use: local.diff_tree
+    args:
+      target: "{{ .target }}"
+      from:   "main"
+      to:     "HEAD"
+
+  - id: health
+    use: health.run
+    args:
+      target: "{{ .target }}"
+
+  - id: patterns
+    use: pattern.scan
+    args:
+      target: "{{ .target }}"
+      family: "code"
+
+  - id: llm
+    use: llm.review
+    args:
+      provider: "none"            # set to "openai" / "anthropic" to enable
+      prompt:   "Summarise the health + patterns for this PR."
+
+  - id: report
+    use: report.write
+    args:
+      path: ".medic/pr-report.md"
+      body: |
+        # PR review (medic)
+
+        ## Health
+        {{ .steps.health.output | tojson }}
+
+        ## Patterns
+        {{ .steps.patterns.output | tojson }}
+
+        ## LLM
+        {{ .steps.llm.output | tojson }}
+
+  - id: post
+    when: '{{ .steps.health.output.ok }}'
+    use: github.post_review
+    args:
+      number: 142                # set from .pr_number in real runs
+      event:  "COMMENT"
+      body_file: ".medic/pr-report.md"

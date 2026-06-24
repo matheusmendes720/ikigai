@@ -67,7 +67,8 @@ class _PersistentRepo(InMemoryRepository):
                 mode="json",  # date/datetime → iso strings
                 exclude={*self._model_class.model_computed_fields.keys()},
             )
-        self._path.write_text(json.dumps(serialized, indent=2, ensure_ascii=False), "utf-8")
+        text = json.dumps(serialized, indent=2, ensure_ascii=False)
+        self._path.write_text(text.replace("\r\n", "\n"), "utf-8")
 
     # -- override persistence hooks ---------------------------------------
 

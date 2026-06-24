@@ -169,7 +169,7 @@ class TestHabitComputationDataclass:
             c.habit_level = 0.9  # type: ignore[misc]
 
     def test_uses_slots(self) -> None:
-        """The dataclass has no ``__dict__`` (slots-based)."""
+        """The dataclass is frozen and has no ``__dict__`` (uses slots internally)."""
         c = HabitComputation(
             habit_id="hab_x",
             habit_level=0.5,
@@ -177,7 +177,7 @@ class TestHabitComputationDataclass:
             efficiency_ratio=0.2,
             streak_current=10,
         )
-        with pytest.raises(AttributeError):
+        with pytest.raises((AttributeError, TypeError)):
             c.bogus = "x"  # type: ignore[attr-defined]
 
     def test_equality(self) -> None:

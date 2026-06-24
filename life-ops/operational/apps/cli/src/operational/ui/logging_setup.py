@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime, timezone
 
 LOG_DIR: str = "logs"
 LOG_FILE: str = os.path.join(LOG_DIR, "crash_report.log")
@@ -60,10 +59,7 @@ def configure_logging(log_dir: str = LOG_DIR) -> logging.Logger:
 
 def log_event(mensagem: str, **metadados: object) -> None:
     """Convenience: log an info event with structured metadata."""
-    if metadados:
-        msg = f"{mensagem} | {metadados}"
-    else:
-        msg = mensagem
+    msg = f"{mensagem} | {metadados}" if metadados else mensagem
     logger.info(msg)
 
 
@@ -80,10 +76,10 @@ configure_logging()
 
 
 __all__ = [
-    "logger",
     "LOG_DIR",
     "LOG_FILE",
     "configure_logging",
-    "log_event",
     "log_error",
+    "log_event",
+    "logger",
 ]

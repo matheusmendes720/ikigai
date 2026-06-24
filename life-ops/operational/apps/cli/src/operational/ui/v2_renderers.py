@@ -8,18 +8,20 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, is_dataclass
-from datetime import date
+from typing import TYPE_CHECKING
 
 from rich.console import Group
 from rich.padding import Padding
 
 from operational.cli.console import console
-from operational.cli.state import (
-    journals, pomodoros, routine_logs, sleep_records, time_blocks,
-)
 from operational.cli.services import DaySnapshot, compute_day_quadrant
+from operational.cli.state import (
+    pomodoros,
+    routine_logs,
+    sleep_records,
+    time_blocks,
+)
 from operational.ui.components_v2 import (
-    big_panel,
     cartesian_v2,
     kpi_grid_2x2,
     kpi_v2,
@@ -32,6 +34,9 @@ from operational.ui.components_v2 import (
     two_column_grid,
 )
 from operational.ui.tokens import CONSOLE_WIDTH_V2, QUADRANT, SEVERITY, STYLES
+
+if TYPE_CHECKING:
+    from datetime import date
 
 
 def _build_telemetry_panel(snap: DaySnapshot) -> object:
@@ -51,20 +56,20 @@ def _build_telemetry_panel(snap: DaySnapshot) -> object:
     t.add_column(min_width=10, justify="right")
     t.add_row(
         "  ",
-        f"⚡ Energia Média",
+        "⚡ Energia Média",
         f"[{SEVERITY[energy_color]}]{snap.energia or 0}/10[/]",
         f"[{SEVERITY[sleep_color]}]range 1-10[/]",
     )
     t.add_row(
         "  ",
-        f"🎯 Foco Médio",
+        "🎯 Foco Médio",
         f"[{SEVERITY[focus_color]}]{snap.foco or 0}/10[/]",
         f"[{SEVERITY[sleep_color]}]range 1-10[/]",
     )
     debito = max(0, 7.5 - sleep_dur)
     t.add_row(
         "  ",
-        f"😴 Débito de Sono",
+        "😴 Débito de Sono",
         f"{debito:.1f}h",
         f"({sleep_dur:.1f}h hoje)",
     )
@@ -220,7 +225,7 @@ def render_state_v2(snap: DaySnapshot, target_date: date, period_label: str = ""
     try:
         q_code, x, y = compute_day_quadrant(snap)
     except Exception:
-        q_code, x, y = "Q1", 0.0, 0.0
+        q_code, _x, _y = "Q1", 0.0, 0.0
 
     body = Group(
         _build_status_panel(snap, period_label),
@@ -277,11 +282,10 @@ def render_daily_v2(snap: DaySnapshot, target_date: date) -> None:
         "MAINTAIN" if q_code == "Q1" else
         "REDUCE" if q_code == "Q4" else "RECOVER"
     )
-    regime_color = {
+    {
         "PUSH": SEVERITY["success"], "MAINTAIN": SEVERITY["primary"],
         "REDUCE": SEVERITY["warning"], "RECOVER": SEVERITY["danger"],
     }[regime]
-    context = f"[{regime_color}]regime: {regime}[/]"
 
     kpi_grid = kpi_grid_2x2([k1, k2, k3, k4])
     cart = cartesian_v2(x, y, q_code, show_legend=True, show_equation=True)
@@ -323,4 +327,4 @@ def snapshot_to_json_str(snap: DaySnapshot, quadrant: str, x: float, y: float) -
     return json.dumps(d, indent=2, default=str, ensure_ascii=False)
 
 
-__all__ = ["render_daily_v2", "snapshot_to_json_str", "render_state_v2"]
+__all__ = ["render_daily_v2", "render_state_v2", "snapshot_to_json_str"]

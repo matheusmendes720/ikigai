@@ -357,7 +357,7 @@ class TestSleepDecision:
             cell.dormir = 19  # type: ignore[misc]
 
     def test_uses_slots(self) -> None:
-        """Dataclass uses __slots__ (no __dict__)."""
+        """Dataclass is frozen (no __dict__, slots used internally)."""
         cell = SleepDecision(
             dormir=18,
             acordar=3,
@@ -366,7 +366,8 @@ class TestSleepDecision:
             status=STATUS_OK,
             is_optimal=True,
         )
-        with pytest.raises(AttributeError):
+        # Frozen dataclass: assignment raises FrozenInstanceError.
+        with pytest.raises((AttributeError, TypeError)):
             cell.invalid_attribute = "boom"  # type: ignore[attr-defined]
 
     def test_invalid_status_raises(self) -> None:

@@ -1,0 +1,181 @@
+id,date,cluster,parar_de_fazer,repetir,sempre_fazer,big_win,deu_certo,deu_errado,maior_aprendizado,ajustes_para_amanha,estado_geral
+oper_ref_20251223,2025-12-23,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20251224,2025-12-24,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20251225,2025-12-25,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20251226,2025-12-26,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20251227,2025-12-27,oper,['Procrastinar no telemóvel'],[],[],Completou 8 pomodoros,['Foco profundo'],['Soneca longa'],Desvio_Leve exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20251228,2025-12-28,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20251229,2025-12-29,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20251230,2025-12-30,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20251231,2025-12-31,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260101,2026-01-01,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260102,2026-01-02,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260103,2026-01-03,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260104,2026-01-04,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260105,2026-01-05,oper,['Procrastinar no telemóvel'],[],[],Completou 8 pomodoros,['Foco profundo'],['Soneca longa'],Desvio_Leve exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260106,2026-01-06,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260107,2026-01-07,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260108,2026-01-08,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260109,2026-01-09,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260110,2026-01-10,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Sobreviveu Lunch_Pesado,['Foco profundo'],[],Lunch_Pesado exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260111,2026-01-11,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260112,2026-01-12,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260113,2026-01-13,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260114,2026-01-14,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260115,2026-01-15,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260116,2026-01-16,oper,['Procrastinar no telemóvel'],[],[],Completou 8 pomodoros,['Foco profundo'],['Soneca longa'],Desvio_Leve exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260117,2026-01-17,oper,['Procrastinar no telemóvel'],[],[],Completou 8 pomodoros,['Foco profundo'],['Soneca longa'],Desvio_Leve exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260118,2026-01-18,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260119,2026-01-19,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260120,2026-01-20,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260121,2026-01-21,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260122,2026-01-22,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260123,2026-01-23,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260124,2026-01-24,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Sobreviveu Feriado,[],[],Feriado exige ajuste,Recuperar com sono,MAINTAIN
+oper_ref_20260125,2026-01-25,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260126,2026-01-26,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260127,2026-01-27,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260128,2026-01-28,oper,[],[],[],Completou 10 pomodoros,[],[],Hardcore exige ajuste,Recuperar com sono,RECOVER
+oper_ref_20260129,2026-01-29,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Sobreviveu Recuperacao,[],[],Recuperacao exige ajuste,Recuperar com sono,MAINTAIN
+oper_ref_20260130,2026-01-30,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260131,2026-01-31,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260201,2026-02-01,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260202,2026-02-02,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260203,2026-02-03,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260204,2026-02-04,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260205,2026-02-05,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260206,2026-02-06,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260207,2026-02-07,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Sobreviveu Lunch_Pesado,['Foco profundo'],[],Lunch_Pesado exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260208,2026-02-08,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260209,2026-02-09,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260210,2026-02-10,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260211,2026-02-11,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260212,2026-02-12,oper,['Procrastinar no telemóvel'],[],[],Completou 8 pomodoros,['Foco profundo'],['Soneca longa'],Desvio_Leve exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260213,2026-02-13,oper,['Procrastinar no telemóvel'],[],[],Completou 8 pomodoros,['Foco profundo'],['Soneca longa'],Desvio_Leve exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260214,2026-02-14,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260215,2026-02-15,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260216,2026-02-16,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260217,2026-02-17,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260218,2026-02-18,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Sobreviveu Feriado,[],[],Feriado exige ajuste,Recuperar com sono,MAINTAIN
+oper_ref_20260219,2026-02-19,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260220,2026-02-20,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260221,2026-02-21,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260222,2026-02-22,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260223,2026-02-23,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260224,2026-02-24,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260225,2026-02-25,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260226,2026-02-26,oper,[],[],[],Completou 10 pomodoros,[],[],Hardcore exige ajuste,Recuperar com sono,RECOVER
+oper_ref_20260227,2026-02-27,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Sobreviveu Recuperacao,[],[],Recuperacao exige ajuste,Recuperar com sono,MAINTAIN
+oper_ref_20260228,2026-02-28,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260301,2026-03-01,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260302,2026-03-02,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260303,2026-03-03,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260304,2026-03-04,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260305,2026-03-05,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260306,2026-03-06,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Sobreviveu Lunch_Pesado,['Foco profundo'],[],Lunch_Pesado exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260307,2026-03-07,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260308,2026-03-08,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260309,2026-03-09,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260310,2026-03-10,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260311,2026-03-11,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260312,2026-03-12,oper,['Procrastinar no telemóvel'],[],[],Completou 8 pomodoros,['Foco profundo'],['Soneca longa'],Desvio_Leve exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260313,2026-03-13,oper,['Procrastinar no telemóvel'],[],[],Completou 8 pomodoros,['Foco profundo'],['Soneca longa'],Desvio_Leve exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260314,2026-03-14,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260315,2026-03-15,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260316,2026-03-16,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260317,2026-03-17,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260318,2026-03-18,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260319,2026-03-19,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260320,2026-03-20,oper,[],[],[],Sobreviveu Doente,[],[],Doente exige ajuste,Recuperar com sono,RECOVER
+oper_ref_20260321,2026-03-21,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260322,2026-03-22,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260323,2026-03-23,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260324,2026-03-24,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260325,2026-03-25,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Sobreviveu Feriado,[],[],Feriado exige ajuste,Recuperar com sono,MAINTAIN
+oper_ref_20260326,2026-03-26,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260327,2026-03-27,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260328,2026-03-28,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260329,2026-03-29,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260330,2026-03-30,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260331,2026-03-31,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260401,2026-04-01,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260402,2026-04-02,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260403,2026-04-03,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Sobreviveu Lunch_Pesado,['Foco profundo'],[],Lunch_Pesado exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260404,2026-04-04,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260405,2026-04-05,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260406,2026-04-06,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260407,2026-04-07,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260408,2026-04-08,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260409,2026-04-09,oper,['Procrastinar no telemóvel'],[],[],Completou 8 pomodoros,['Foco profundo'],['Soneca longa'],Desvio_Leve exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260410,2026-04-10,oper,['Procrastinar no telemóvel'],[],[],Completou 8 pomodoros,['Foco profundo'],['Soneca longa'],Desvio_Leve exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260411,2026-04-11,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260412,2026-04-12,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260413,2026-04-13,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260414,2026-04-14,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260415,2026-04-15,oper,[],[],[],Completou 10 pomodoros,[],[],Hardcore exige ajuste,Recuperar com sono,RECOVER
+oper_ref_20260416,2026-04-16,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Sobreviveu Recuperacao,[],[],Recuperacao exige ajuste,Recuperar com sono,MAINTAIN
+oper_ref_20260417,2026-04-17,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260418,2026-04-18,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260419,2026-04-19,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260420,2026-04-20,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260421,2026-04-21,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260422,2026-04-22,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260423,2026-04-23,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260424,2026-04-24,oper,[],['Meditar todas as manhãs'],[],Sobreviveu Visita_Inesperada,[],[],Visita_Inesperada exige ajuste,Recuperar com sono,MAINTAIN
+oper_ref_20260425,2026-04-25,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260426,2026-04-26,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260427,2026-04-27,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260428,2026-04-28,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260429,2026-04-29,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260430,2026-04-30,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260501,2026-05-01,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Sobreviveu Lunch_Pesado,['Foco profundo'],[],Lunch_Pesado exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260502,2026-05-02,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260503,2026-05-03,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260504,2026-05-04,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260505,2026-05-05,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260506,2026-05-06,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Sobreviveu Feriado,[],[],Feriado exige ajuste,Recuperar com sono,MAINTAIN
+oper_ref_20260507,2026-05-07,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260508,2026-05-08,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260509,2026-05-09,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260510,2026-05-10,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260511,2026-05-11,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260512,2026-05-12,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260513,2026-05-13,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260514,2026-05-14,oper,['Procrastinar no telemóvel'],[],[],Completou 8 pomodoros,['Foco profundo'],['Soneca longa'],Desvio_Leve exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260515,2026-05-15,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260516,2026-05-16,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260517,2026-05-17,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260518,2026-05-18,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260519,2026-05-19,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260520,2026-05-20,oper,[],[],[],Completou 10 pomodoros,[],[],Hardcore exige ajuste,Recuperar com sono,RECOVER
+oper_ref_20260521,2026-05-21,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Sobreviveu Recuperacao,[],[],Recuperacao exige ajuste,Recuperar com sono,MAINTAIN
+oper_ref_20260522,2026-05-22,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260523,2026-05-23,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260524,2026-05-24,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260525,2026-05-25,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260526,2026-05-26,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260527,2026-05-27,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260528,2026-05-28,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260529,2026-05-29,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Sobreviveu Lunch_Pesado,['Foco profundo'],[],Lunch_Pesado exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260530,2026-05-30,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260531,2026-05-31,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260601,2026-06-01,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260602,2026-06-02,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260603,2026-06-03,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260604,2026-06-04,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260605,2026-06-05,oper,[],[],[],Sobreviveu Doente,[],[],Doente exige ajuste,Recuperar com sono,RECOVER
+oper_ref_20260606,2026-06-06,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260607,2026-06-07,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260608,2026-06-08,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260609,2026-06-09,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260610,2026-06-10,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Sobreviveu Feriado,[],[],Feriado exige ajuste,Recuperar com sono,MAINTAIN
+oper_ref_20260611,2026-06-11,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260612,2026-06-12,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260613,2026-06-13,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260614,2026-06-14,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260615,2026-06-15,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 8 pomodoros,['Foco profundo'],[],Fim_de_Semana exige ajuste,Recuperar com sono,PUSH
+oper_ref_20260616,2026-06-16,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260617,2026-06-17,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH
+oper_ref_20260618,2026-06-18,oper,['Procrastinar no telemóvel'],[],[],Completou 8 pomodoros,['Foco profundo'],['Soneca longa'],Desvio_Leve exige ajuste,Recuperar com sono,REDUCE
+oper_ref_20260619,2026-06-19,oper,[],[],[],Completou 8 pomodoros,[],[],Vigilia exige ajuste,Recuperar com sono,RECOVER
+oper_ref_20260620,2026-06-20,oper,[],['Meditar todas as manhãs'],['Beber 2L de água'],Completou 11 pomodoros,['Foco profundo'],[],Consistência supera intensidade,Manter ritmo,PUSH

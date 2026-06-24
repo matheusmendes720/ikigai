@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 from operational.tui.widgets.kpi_card import KPICard
-from operational.tui.widgets.regime_bar import RegimeBar, REGIME_GLYPHS
+from operational.tui.widgets.regime_bar import REGIME_GLYPHS
 from operational.tui.widgets.pomodoro_grid import PomodoroGrid
-from operational.tui.widgets.time_block import TimeBlockDisplay, STATUS_INDICATORS
+from operational.tui.widgets.time_block import TimeBlockDisplay
 from operational.tui.widgets.habit_streak import HabitStreakDisplay
 
 
@@ -21,8 +21,8 @@ def test_regime_bar_has_glyphs() -> None:
 def test_pomodoro_grid_render() -> None:
     grid = PomodoroGrid()
     output = grid.render()
-    assert "S1 manha" in output
-    assert "S2 tarde" in output
+    assert "S1" in output and "MANHÃ" in output
+    assert "S2" in output and "TARDE" in output
 
 
 def test_time_block_display_render() -> None:

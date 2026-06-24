@@ -229,7 +229,6 @@ def render_cartesian_ascii(produtividade_x: float, eficiencia_y: float) -> str:
         for col in range(11):
             is_point = (col == px and row == py)
             is_origin = (col == 0 and row == 0)
-            is_axis = (col == 0 or row == 0)
             if is_point and not is_origin:
                 line_chars.append("\u2022")
             elif is_origin:

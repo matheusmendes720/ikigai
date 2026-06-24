@@ -1,46 +1,62 @@
-"""Metrics Screen for PAV TUI — maximum plotext data viz."""
+"""Metrics Screen for PAV TUI — data-bound.
+
+Historical charts: sleep, energy, focus over 7d / 30d. Reads from the
+``sleep_records``, ``journals`` (for energy/focus) repos.
+"""
 from __future__ import annotations
 
+from datetime import date, timedelta
 from typing import TYPE_CHECKING
 
+from textual.containers import Vertical
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Static
 
+from operational.cli.state import journals as journals_repo, sleep_records as sleep_repo
 from operational.tui.widgets.sparkline_chart import ChartColors, PlotextChart
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
 
 
-# Mock data — CSV-only (no SQLite yet)
-SLEEP_DATA_7D   = [7.5, 8.0, 7.0, 8.5, 8.0, 7.5, 8.0]
-ENERGY_DATA_7D  = [7.0, 8.0, 6.0, 9.0, 7.0, 8.0, 7.0]
-FOCUS_DATA_7D  = [6.5, 7.0, 8.0, 7.5, 8.5, 7.0, 8.0]
-SLEEP_DATA_30D  = [7.5, 8.0, 7.0, 8.5, 8.0, 7.5, 8.0,
-                   7.0, 8.5, 7.5, 8.0, 7.0, 8.5, 8.0,
-                   7.5, 8.0, 7.0, 8.5, 8.0, 7.5, 8.0,
-                   7.0, 8.0, 7.5, 8.0, 7.0, 8.5, 8.0]
-ENERGY_DATA_30D = [7.0, 8.0, 6.0, 9.0, 7.0, 8.0, 7.0,
-                   6.0, 9.0, 8.0, 7.0, 6.0, 9.0, 8.0,
-                   7.0, 6.0, 9.0, 8.0, 7.0, 6.0, 9.0,
-                   8.0, 7.0, 6.0, 9.0, 8.0, 7.0, 6.0]
-FOCUS_DATA_30D  = [6.5, 7.0, 8.0, 7.5, 8.5, 7.0, 8.0,
-                   6.0, 8.5, 7.5, 8.0, 6.5, 8.5, 7.5,
-                   8.0, 6.5, 8.0, 7.5, 8.5, 6.0, 8.0,
-                   7.0, 8.5, 6.5, 8.0, 7.5, 8.0, 6.5]
-DAYS_7D  = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-DAYS_30D = [f"D{i+1}" for i in range(30)]
+def _sleep_for(d: date) -> float | None:
+    """Return sleep duration in hours for a date, or None if not logged."""
+    try:
+        for s in sleep_repo.list():
+            if getattr(s, "date", None) == d:
+                h = getattr(s, "duration_hours", None)
+                return float(h) if h is not None else None
+    except Exception:
+        pass
+    return None
 
 
-class MetricsScreen(Screen[None]):
-    """Historical charts: sleep, energy, focus over 7d/30d.
+def _energy_for(d: date) -> int | None:
+    """Return energy level 1-10 for a date, or None."""
+    try:
+        for j in journals_repo.list():
+            if getattr(j, "date", None) == d:
+                v = getattr(j, "energia_nivel", None)
+                return int(v) if v is not None else None
+    except Exception:
+        pass
+    return None
 
-    Uses maximum plotext features:
-    - Filled sparklines with period-aware colors
-    - Styled bar charts with grid disabled
-    - Dual-axis for sleep+focus overlay
-    - Subplot grid for 30d overview
-    """
+
+def _focus_for(d: date) -> int | None:
+    """Return focus level 1-10 for a date, or None."""
+    try:
+        for j in journals_repo.list():
+            if getattr(j, "date", None) == d:
+                v = getattr(j, "foco_nivel", None)
+                return int(v) if v is not None else None
+    except Exception:
+        pass
+    return None
+
+
+class MetricsScreen(Screen):
+    """Historical charts: sleep, energy, focus over 7d/30d."""
 
     CSS = """
 MetricsScreen {
@@ -93,7 +109,6 @@ PlotextChart {
 """
 
     def compose(self) -> ComposeResult:
-        """Compose the metrics screen with header, period toggle, charts, and footer."""
         yield Header()
         yield Button("[ 7d ]", id="btn-7d", variant="primary")
         yield Button("[ 30d ]", id="btn-30d", variant="default")
@@ -105,25 +120,33 @@ PlotextChart {
         yield PlotextChart(id="focus-chart")
         yield Static("Sono + Foco sobrepostos (dual-axis)", id="combo-label")
         yield PlotextChart(id="combo-chart")
-        yield Static("Sono déficit: -1.5h esta semana", id="sleep-debt")
+        yield Static(id="sleep-debt")
         yield Footer()
 
     def _render_charts(self, period: str = "7d") -> None:
-        if period == "7d":
-            sleep_vals = SLEEP_DATA_7D
-            energy_vals = ENERGY_DATA_7D
-            focus_vals = FOCUS_DATA_7D
-            labels = DAYS_7D
-        else:
-            sleep_vals = SLEEP_DATA_30D
-            energy_vals = ENERGY_DATA_30D
-            focus_vals = FOCUS_DATA_30D
-            labels = DAYS_30D
+        days = 7 if period == "7d" else 30
+        today = date.today()
+        dates = [today - timedelta(days=i) for i in range(days - 1, -1, -1)]
+        labels = [d.strftime("%d/%m") for d in dates]
+        sleep_vals = [_sleep_for(d) for d in dates]
+        energy_vals = [_energy_for(d) for d in dates]
+        focus_vals = [_focus_for(d) for d in dates]
 
-        # ── Sleep: filled sparkline, cyan period color ──────────────────
-        sleep_chart = self.query_one("#sleep-chart", PlotextChart)
-        sleep_chart.sparkline(
-            sleep_vals,
+        # Replace None with the series mean so the chart doesn't have gaps
+        def fill(series: list[float | None]) -> list[float]:
+            nums = [v for v in series if v is not None]
+            if not nums:
+                return [0.0] * len(series)
+            mean = sum(nums) / len(nums)
+            return [v if v is not None else mean for v in series]
+
+        sleep_filled = fill(sleep_vals)
+        energy_filled = fill(energy_vals)
+        focus_filled = fill(focus_vals)
+
+        # ── Sleep sparkline
+        self.query_one("#sleep-chart", PlotextChart).sparkline(
+            sleep_filled,
             color=ChartColors.SLEEP["primary"],
             fill=True,
             fill_opacity=0.15,
@@ -136,12 +159,9 @@ PlotextChart {
             hide_x_axis=True,
             hide_grid=True,
         )
-
-        # ── Energy: styled bar chart, green period color ──────────────────
-        energy_chart = self.query_one("#energy-chart", PlotextChart)
-        energy_chart.bar_chart(
-            labels,
-            energy_vals,
+        # ── Energy bars
+        self.query_one("#energy-chart", PlotextChart).bar_chart(
+            labels, energy_filled,
             color=ChartColors.ENERGY["primary"],
             orientation="v",
             bar_width=0.5,
@@ -150,11 +170,9 @@ PlotextChart {
             title=f"Energia  {period}",
             hide_grid=True,
         )
-
-        # ── Focus: filled sparkline, magenta period color ──────────────────
-        focus_chart = self.query_one("#focus-chart", PlotextChart)
-        focus_chart.sparkline(
-            focus_vals,
+        # ── Focus sparkline
+        self.query_one("#focus-chart", PlotextChart).sparkline(
+            focus_filled,
             color=ChartColors.FOCUS["primary"],
             fill=True,
             fill_opacity=0.15,
@@ -167,14 +185,12 @@ PlotextChart {
             hide_x_axis=True,
             hide_grid=True,
         )
-
-        # ── Combo: dual-axis sleep + focus overlay ────────────────────────
-        combo_chart = self.query_one("#combo-chart", PlotextChart)
-        x_vals = [float(i) for i in range(1, len(sleep_vals) + 1)]
-        combo_chart.dual_axis(
+        # ── Combo dual-axis
+        x_vals = [float(i) for i in range(1, days + 1)]
+        self.query_one("#combo-chart", PlotextChart).dual_axis(
             x=x_vals,
-            y1=sleep_vals,
-            y2=focus_vals,
+            y1=sleep_filled,
+            y2=focus_filled,
             color1=ChartColors.SLEEP["primary"],
             color2=ChartColors.FOCUS["primary"],
             label1="Sono (h)",
@@ -187,12 +203,23 @@ PlotextChart {
             hide_grid=True,
         )
 
+        # ── Sleep debt summary
+        nums = [v for v in sleep_vals if v is not None]
+        if nums:
+            mean = sum(nums) / len(nums)
+            debt = 8.0 - mean
+            self.query_one("#sleep-debt", Static).update(
+                f"Sono déficit (média {mean:.1f}h vs meta 8.0h): {debt:+.1f}h esta janela"
+            )
+        else:
+            self.query_one("#sleep-debt", Static).update(
+                "[dim]Sem dados de sono nesta janela — registre com `pav metric sleep`.[/dim]"
+            )
+
     def on_mount(self) -> None:
-        """Initialize charts with 7-day data on screen mount."""
         self._render_charts("7d")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Handle period toggle button presses (7d / 30d)."""
         btn_id = event.button.id or ""
         if btn_id in ("btn-7d", "btn-30d"):
             self._render_charts("7d" if btn_id == "btn-7d" else "30d")

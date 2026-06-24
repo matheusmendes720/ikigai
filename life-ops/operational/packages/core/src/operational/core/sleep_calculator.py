@@ -122,7 +122,7 @@ _IDEAL_SLEEP_HOURS: Final[int] = 9
 # ---------------------------------------------------------------------------
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class SleepDecision:
     """One cell of the PAV §7 5x4 sleep decision matrix.
 

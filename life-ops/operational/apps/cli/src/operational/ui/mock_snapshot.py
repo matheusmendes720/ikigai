@@ -8,11 +8,13 @@ exact same output as if the user had 7 Q3 days in production.
 """
 from __future__ import annotations
 
-from datetime import date, time
+from datetime import time
+from typing import TYPE_CHECKING
 
 from operational.cli.services import DaySnapshot, SleepSnapshot
-from operational.enums import PolicyState, TipoDia
-from operational.ui.mock_profiles import MockProfile
+
+if TYPE_CHECKING:
+    from operational.ui.mock_profiles import MockProfile
 
 
 def build_mock_snapshot(profile: MockProfile) -> DaySnapshot:

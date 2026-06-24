@@ -14,7 +14,6 @@ import json
 import sqlite3
 from datetime import UTC, date, datetime, time
 from enum import Enum
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generic
 
 from operational.persistence.base import RepositoryBase
@@ -22,7 +21,7 @@ from operational.persistence.exceptions import StorageBackendError
 from operational.types import T_Entity
 
 if TYPE_CHECKING:
-    from operational.types import T_Entity
+    from pathlib import Path
 
 
 __all__ = ["SqliteRepository", "get_connection"]
@@ -123,8 +122,9 @@ class SqliteRepository(RepositoryBase[T_Entity], Generic[T_Entity]):
             # Table may not exist yet — return empty
             if "no such table" in str(exc):
                 return {}
+            msg = f"Failed to load {self._entity_type} entities"
             raise StorageBackendError(
-                "Failed to load %s entities" % self._entity_type,
+                msg,
                 repository=self._entity_type,
                 original_error=exc,
             ) from exc
@@ -161,8 +161,9 @@ class SqliteRepository(RepositoryBase[T_Entity], Generic[T_Entity]):
             )
             self._conn.commit()
         except sqlite3.OperationalError as exc:
+            msg = f"Failed to persist {self._entity_type} entity {entity_id}"
             raise StorageBackendError(
-                "Failed to persist %s entity %s" % (self._entity_type, entity_id),
+                msg,
                 repository=self._entity_type,
                 original_error=exc,
             ) from exc
@@ -177,8 +178,9 @@ class SqliteRepository(RepositoryBase[T_Entity], Generic[T_Entity]):
             self._conn.execute(query, (entity_id, self._entity_type))
             self._conn.commit()
         except sqlite3.OperationalError as exc:
+            msg = f"Failed to delete {self._entity_type} entity {entity_id}"
             raise StorageBackendError(
-                "Failed to delete %s entity %s" % (self._entity_type, entity_id),
+                msg,
                 repository=self._entity_type,
                 original_error=exc,
             ) from exc
@@ -217,8 +219,9 @@ class SqliteRepository(RepositoryBase[T_Entity], Generic[T_Entity]):
             self._conn.executescript(ddl)
             self._conn.commit()
         except sqlite3.OperationalError as exc:
+            msg = f"Failed to create table {self._table}"
             raise StorageBackendError(
-                "Failed to create table %s" % self._table,
+                msg,
                 repository=self._entity_type,
                 original_error=exc,
             ) from exc

@@ -19,22 +19,24 @@ See ``docs/design-system/DESIGN-SYSTEM.md`` for full spec.
 """
 from __future__ import annotations
 
-from typing import Any
-
-from rich.box import DOUBLE, HEAVY, ROUNDED
+from rich.box import DOUBLE, ROUNDED
 from rich.columns import Columns
 from rich.console import Group, RenderableType
 from rich.padding import Padding
 from rich.panel import Panel
-from rich.table import Column, Table
+from rich.table import Table
 from rich.text import Text
 
-from operational.enums import PolicyState, TipoDia
 from operational.ui.tokens import (
-    CONSOLE_WIDTH_V2, Glyph, PADDING, QUADRANT, REGIME,
-    SEVERITY, STYLES, SURFACE,
+    CONSOLE_WIDTH_V2,
+    PADDING,
+    QUADRANT,
+    REGIME,
+    SEVERITY,
+    STYLES,
+    SURFACE,
+    Glyph,
 )
-
 
 # Silence the linter — these may be used by callers
 _ = (Glyph, SURFACE, PADDING, STYLES)
@@ -187,11 +189,9 @@ def cartesian_v2(
     for i, y_val in enumerate(y_ticks[:-1]):
         line_chars = [" "] * (width - 6)
         # Add the Y-axis tick mark
-        if y_val == 50 or y_val == 52:
+        if y_val in {50, 52}:
             for j in range(len(line_chars)):
-                if j == 0:
-                    line_chars[j] = Glyph.LINE_H
-                elif j % 2 == 0:
+                if j == 0 or j % 2 == 0:
                     line_chars[j] = Glyph.LINE_H
         # Add the point
         if historical and i < len(historical):
@@ -206,9 +206,8 @@ def cartesian_v2(
     # Place the point
     x_pos = int(x / 100 * (width - 7))
     y_pos = int((100 - y) / 100 * (height - 2))
-    if 0 <= y_pos < (height - 2) and 0 <= x_pos < (width - 7):
-        if y_pos < len(plot_chars):
-            plot_chars[y_pos][x_pos] = glyph
+    if 0 <= y_pos < (height - 2) and 0 <= x_pos < (width - 7) and y_pos < len(plot_chars):
+        plot_chars[y_pos][x_pos] = glyph
 
     # Render rows
     for i, y_val in enumerate(y_ticks[:-1]):
@@ -342,7 +341,7 @@ def regime_bar(
     for r in order:
         spec = REGIME[r]
         header_row.append(f"{r:^10}", style=f"bold {spec.color}")
-    grid.add_row(*[r for r in order])
+    grid.add_row(*list(order))
     grid.add_row(*[
         Text(
             f"{spec.glyph}{spec.glyph}{spec.glyph}" if r == current
@@ -469,7 +468,7 @@ def progress_v2(
     """
     color = SEVERITY.get(severity, SEVERITY["primary"])
     pct = 0.0 if max_value <= 0 else max(0.0, min(1.0, value / max_value))
-    filled = int(round(pct * width))
+    filled = round(pct * width)
     empty = width - filled
     t = Text()
     if label:
@@ -659,7 +658,7 @@ def status_badge_v2(
         A :class:`rich.text.Text` renderable.
     """
     color = SEVERITY.get(severity, SEVERITY["info"])
-    use_active = severity == "success" or severity == "primary"
+    use_active = severity in {"success", "primary"}
     glyph = Glyph.ACTIVE if use_active else Glyph.MUTED_DOT
     t = Text()
     t.append("  [ ", style=color)
@@ -828,7 +827,7 @@ def progress_bar_v2(
     """
     clr = SEVERITY.get(color, SEVERITY["primary"])
     pct = 0.0 if max_value <= 0 else max(0.0, min(1.0, value / max_value))
-    filled = int(round(pct * width))
+    filled = round(pct * width)
     empty = width - filled
     t = Text()
     if label:
@@ -987,31 +986,31 @@ big_panel_header = big_panel
 
 
 __all__ = [
-    "header_v2",
-    "kpi_v2",
-    "kpi_grid_2x2",
-    "section_v2",
-    "cartesian_v2",
-    "pomodoros_v2",
-    "regime_bar",
-    "sparkline_v2",
-    "next_step_v2",
-    "error_panel_v2",
-    "page",
-    # v1 port — new in this batch
-    "progress_v2",
-    "metric_v2",
-    "severity_text_v2",
-    "timeline_h_v2",
-    "status_badge_v2",
-    "input_summary_v2",
     # Production-grade v2.1 batch
     "big_panel",
     "big_panel_header",
-    "two_column_grid",
+    "cartesian_v2",
+    "error_panel_v2",
+    "header_v2",
+    "input_summary_v2",
+    "kpi_grid_2x2",
     "kpi_grid_4x1",
-    "progress_bar_v2",
-    "timeline_log",
+    "kpi_v2",
     "kronograma_table",
+    "metric_v2",
+    "next_step_v2",
+    "page",
     "policy_actions_table",
+    "pomodoros_v2",
+    "progress_bar_v2",
+    # v1 port — new in this batch
+    "progress_v2",
+    "regime_bar",
+    "section_v2",
+    "severity_text_v2",
+    "sparkline_v2",
+    "status_badge_v2",
+    "timeline_h_v2",
+    "timeline_log",
+    "two_column_grid",
 ]

@@ -1,0 +1,26 @@
+id,date,cluster,period,minutos,reason
+oper_adj_20251227_01,2025-12-27,oper,TARDE,20,Policy REDUCE: Desvio_Leve
+oper_adj_20260105_01,2026-01-05,oper,TARDE,20,Policy REDUCE: Desvio_Leve
+oper_adj_20260110_01,2026-01-10,oper,TARDE,20,Policy REDUCE: Lunch_Pesado
+oper_adj_20260116_01,2026-01-16,oper,TARDE,20,Policy REDUCE: Desvio_Leve
+oper_adj_20260117_01,2026-01-17,oper,TARDE,20,Policy REDUCE: Desvio_Leve
+oper_adj_20260128_01,2026-01-28,oper,TARDE,40,Policy RECOVER: Hardcore
+oper_adj_20260207_01,2026-02-07,oper,TARDE,20,Policy REDUCE: Lunch_Pesado
+oper_adj_20260212_01,2026-02-12,oper,TARDE,20,Policy REDUCE: Desvio_Leve
+oper_adj_20260213_01,2026-02-13,oper,TARDE,20,Policy REDUCE: Desvio_Leve
+oper_adj_20260226_01,2026-02-26,oper,TARDE,40,Policy RECOVER: Hardcore
+oper_adj_20260306_01,2026-03-06,oper,TARDE,20,Policy REDUCE: Lunch_Pesado
+oper_adj_20260312_01,2026-03-12,oper,TARDE,20,Policy REDUCE: Desvio_Leve
+oper_adj_20260313_01,2026-03-13,oper,TARDE,20,Policy REDUCE: Desvio_Leve
+oper_adj_20260320_01,2026-03-20,oper,TARDE,40,Policy RECOVER: Doente
+oper_adj_20260403_01,2026-04-03,oper,TARDE,20,Policy REDUCE: Lunch_Pesado
+oper_adj_20260409_01,2026-04-09,oper,TARDE,20,Policy REDUCE: Desvio_Leve
+oper_adj_20260410_01,2026-04-10,oper,TARDE,20,Policy REDUCE: Desvio_Leve
+oper_adj_20260415_01,2026-04-15,oper,TARDE,40,Policy RECOVER: Hardcore
+oper_adj_20260501_01,2026-05-01,oper,TARDE,20,Policy REDUCE: Lunch_Pesado
+oper_adj_20260514_01,2026-05-14,oper,TARDE,20,Policy REDUCE: Desvio_Leve
+oper_adj_20260520_01,2026-05-20,oper,TARDE,40,Policy RECOVER: Hardcore
+oper_adj_20260529_01,2026-05-29,oper,TARDE,20,Policy REDUCE: Lunch_Pesado
+oper_adj_20260605_01,2026-06-05,oper,TARDE,40,Policy RECOVER: Doente
+oper_adj_20260618_01,2026-06-18,oper,TARDE,20,Policy REDUCE: Desvio_Leve
+oper_adj_20260619_01,2026-06-19,oper,TARDE,40,Policy RECOVER: Vigilia

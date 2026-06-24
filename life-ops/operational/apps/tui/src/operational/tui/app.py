@@ -3,10 +3,7 @@ from __future__ import annotations
 
 from typing import ClassVar, Never
 
-from textual import events
-from textual.app import App
-from textual.binding import Binding
-
+from operational.tui.screens.analytics_screen import AnalyticsScreen
 from operational.tui.screens.daily_flow_screen import DailyFlowScreen
 from operational.tui.screens.dashboard_screen import DashboardScreen
 from operational.tui.screens.habits_screen import HabitsScreen
@@ -16,6 +13,9 @@ from operational.tui.screens.metrics_screen import MetricsScreen
 from operational.tui.screens.policy_screen import PolicyScreen
 from operational.tui.screens.pomodoro_timer_screen import PomodoroTimerScreen
 from operational.tui.theme import get_tui_theme
+from textual import events
+from textual.app import App
+from textual.binding import Binding
 
 BINDINGS = [
     Binding("q", "quit", "Quit", priority=True),
@@ -28,6 +28,7 @@ BINDINGS = [
     Binding("5", "switch_metrics", "Metrics", priority=True),
     Binding("6", "switch_policy", "Policy", priority=True),
     Binding("7", "switch_journal", "Journal", priority=True),
+    Binding("8", "switch_analytics", "Analytics", priority=True),
 ]
 
 
@@ -46,6 +47,7 @@ class PAVApp(App[Never]):
         "metrics":        MetricsScreen,
         "policy":         PolicyScreen,
         "journal":        JournalScreen,
+        "analytics":      AnalyticsScreen,
         "help":           HelpScreen,
     }
 
@@ -81,25 +83,28 @@ class PAVApp(App[Never]):
         return await super().on_event(event)
 
     def action_switch_dashboard(self) -> None:
-        self.push_screen("dashboard")
+        self.switch_screen("dashboard")
 
     def action_switch_daily_flow(self) -> None:
-        self.push_screen("daily_flow")
+        self.switch_screen("daily_flow")
 
     def action_switch_pomodoro_timer(self) -> None:
-        self.push_screen("pomodoro_timer")
+        self.switch_screen("pomodoro_timer")
 
     def action_switch_habits(self) -> None:
-        self.push_screen("habits")
+        self.switch_screen("habits")
 
     def action_switch_metrics(self) -> None:
-        self.push_screen("metrics")
+        self.switch_screen("metrics")
 
     def action_switch_policy(self) -> None:
-        self.push_screen("policy")
+        self.switch_screen("policy")
 
     def action_switch_journal(self) -> None:
-        self.push_screen("journal")
+        self.switch_screen("journal")
+
+    def action_switch_analytics(self) -> None:
+        self.switch_screen("analytics")
 
     def action_show_help(self) -> None:
         self.push_screen("help")

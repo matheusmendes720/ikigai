@@ -111,7 +111,7 @@ _MINUTES_PER_HOUR: Final[int] = 60
 # ---------------------------------------------------------------------------
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class WakeUpValidation:
     """Immutable result of validating a wake-up hour (PAV §4).
 
