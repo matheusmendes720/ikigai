@@ -1,7 +1,7 @@
 """Daily reflection CLI — OKRs V3 (PAV V3 §2)."""
 from __future__ import annotations
 
-from datetime import date, datetime, UTC
+from datetime import UTC, date, datetime
 
 import typer
 from rich.prompt import Prompt
@@ -10,11 +10,13 @@ from rich.table import Table
 from operational.cli._compat import make_console
 from operational.cli.formatters import format_as_json
 from operational.cli.state import daily_reflections
+from operational.cli.telemetry import get_logger, trace_command
 from operational.enums import EstadoPsicomatico
 from operational.types import UEID
 
 app = typer.Typer(help="OKRs diários (entrada/saída) — PAV V3.")
 console = make_console(width=120)
+log = get_logger("reflect_cmd")
 
 
 def _prompt_list(label: str, default: str = "") -> list[str]:
@@ -34,53 +36,63 @@ def entrada(
 
     Reflete sobre o dia de ontem e define intenção para hoje.
     """
-    d = date.fromisoformat(target_date) if target_date else date.today()
+    with trace_command(log, "reflect.entrada", command="reflect entrada") as ctx:
+        d = date.fromisoformat(target_date) if target_date else date.today()
 
-    console.print(f"\n[bold cyan]🌅 OKRs de Entrada — {d.isoformat()}[/bold cyan]\n")
-    console.print("[dim]Reflita sobre ONTEM para definir intenção de HOJE[/dim]\n")
+        console.print(f"\n[bold cyan]🌅 OKRs de Entrada — {d.isoformat()}[/bold cyan]\n")
+        console.print("[dim]Reflita sobre ONTEM para definir intenção de HOJE[/dim]\n")
 
-    parar = _prompt_list("O que fiz ontem que devo PARAR de fazer")
-    repetir = _prompt_list("O que fiz ontem que devo REPETIR")
-    sempre = _prompt_list("O que devo SEMPRE fazer (indexador de eficácia)")
-    big_win = Prompt.ask("  Big-win (única coisa que torna outras mais fáceis)", default="")
+        parar = _prompt_list("O que fiz ontem que devo PARAR de fazer")
+        repetir = _prompt_list("O que fiz ontem que devo REPETIR")
+        sempre = _prompt_list("O que devo SEMPRE fazer (indexador de eficácia)")
+        big_win = Prompt.ask("  Big-win (única coisa que torna outras mais fáceis)", default="")
 
-    # Estado geral
-    e = Prompt.ask("  Estado geral (1-10)", default="7")
-    estado = EstadoPsicomatico.from_score(int(e))
+        # Estado geral
+        e = Prompt.ask("  Estado geral (1-10)", default="7")
+        estado = EstadoPsicomatico.from_score(int(e))
 
-    ref = __import__("operational.entities.v3", fromlist=["DailyReflection"]).DailyReflection(
-        id=UEID(f"ref_{d.strftime('%Y%m%d')}"),
-        date=d,
-        parar_de_fazer=parar,
-        repetir=repetir,
-        sempre_fazer=sempre,
-        big_win=big_win,
-        estado_geral=estado,
-        created_at=datetime.now(UTC),
-    )
-    daily_reflections.upsert(ref)
-
-    if json:
-        typer.echo(format_as_json(ref))
-    else:
-        from operational.ui.receipt import receipt_panel
-        receipt = receipt_panel(
-            title="REFLECTION DE ENTRADA",
-            icon="✅",
-            success_message=f"OKRs de entrada ({ref.estado_geral.value}) registrados.",
-            detail_pairs=[
-                ("ID", str(ref.id)),
-                ("Data", ref.date.isoformat()),
-                ("Estado", ref.estado_geral.value),
-                ("Big-Win", ref.big_win or "—"),
-                ("# Parar de fazer", str(len(ref.parar_de_fazer))),
-                ("# Repetir", str(len(ref.repetir))),
-                ("# Sempre fazer", str(len(ref.sempre_fazer))),
-            ],
-            severity="success",
-            footer=f"Detalhes: ID {ref.id} | {ref.date.isoformat()}",
+        ref = __import__("operational.entities.v3", fromlist=["DailyReflection"]).DailyReflection(
+            id=UEID(f"ref_{d.strftime('%Y%m%d')}"),
+            date=d,
+            parar_de_fazer=parar,
+            repetir=repetir,
+            sempre_fazer=sempre,
+            big_win=big_win,
+            estado_geral=estado,
+            created_at=datetime.now(UTC),
         )
-        console.print(receipt)
+        daily_reflections.upsert(ref)
+        ctx.info(
+            "reflection.entrada.created",
+            reflection_id=str(ref.id),
+            date=d.isoformat(),
+            estado=estado.value,
+            parar_count=len(parar),
+            repetir_count=len(repetir),
+            sempre_count=len(sempre),
+        )
+
+        if json:
+            typer.echo(format_as_json(ref))
+        else:
+            from operational.ui.receipt import receipt_panel
+            receipt = receipt_panel(
+                title="REFLECTION DE ENTRADA",
+                icon="✅",
+                success_message=f"OKRs de entrada ({ref.estado_geral.value}) registrados.",
+                detail_pairs=[
+                    ("ID", str(ref.id)),
+                    ("Data", ref.date.isoformat()),
+                    ("Estado", ref.estado_geral.value),
+                    ("Big-Win", ref.big_win or "—"),
+                    ("# Parar de fazer", str(len(ref.parar_de_fazer))),
+                    ("# Repetir", str(len(ref.repetir))),
+                    ("# Sempre fazer", str(len(ref.sempre_fazer))),
+                ],
+                severity="success",
+                footer=f"Detalhes: ID {ref.id} | {ref.date.isoformat()}",
+            )
+            console.print(receipt)
 
 
 @app.command()
@@ -89,66 +101,76 @@ def saida(
     json: bool = typer.Option(False, "--json", help="JSON output"),
 ) -> None:
     """OKRs de SAÍDA (noite) — deu certo, deu errado, aprendizado, ajustes."""
-    d = date.fromisoformat(target_date) if target_date else date.today()
+    with trace_command(log, "reflect.saida", command="reflect saida") as ctx:
+        d = date.fromisoformat(target_date) if target_date else date.today()
 
-    console.print(f"\n[bold cyan]🌙 OKRs de Saída — {d.isoformat()}[/bold cyan]\n")
-    console.print("[dim]Reflita sobre HOJE para alimentar o sistema[/dim]\n")
+        console.print(f"\n[bold cyan]🌙 OKRs de Saída — {d.isoformat()}[/bold cyan]\n")
+        console.print("[dim]Reflita sobre HOJE para alimentar o sistema[/dim]\n")
 
-    deu_certo = _prompt_list("O que deu certo hoje (execução sistemática)")
-    deu_errado = _prompt_list("O que deu errado (equívocos)")
-    aprendizado = Prompt.ask("  Maior aprendizado do dia (antítese + síntese)", default="")
-    ajustes = _prompt_list("Ajustes finos para amanhã")
+        deu_certo = _prompt_list("O que deu certo hoje (execução sistemática)")
+        deu_errado = _prompt_list("O que deu errado (equívocos)")
+        aprendizado = Prompt.ask("  Maior aprendizado do dia (antítese + síntese)", default="")
+        ajustes = _prompt_list("Ajustes finos para amanhã")
 
-    # Estado final
-    e = Prompt.ask("  Estado final do dia (1-10)", default="6")
-    estado = EstadoPsicomatico.from_score(int(e))
+        # Estado final
+        e = Prompt.ask("  Estado final do dia (1-10)", default="6")
+        estado = EstadoPsicomatico.from_score(int(e))
 
-    # Try to merge with existing reflection (entrada fields preserved)
-    existing = daily_reflections.get(UEID(f"ref_{d.strftime('%Y%m%d')}"))
-    if existing:
-        ref_data = existing.model_dump()
-        ref_data["deu_certo"] = deu_certo
-        ref_data["deu_errado"] = deu_errado
-        ref_data["maior_aprendizado"] = aprendizado
-        ref_data["ajustes_para_amanha"] = ajustes
-        ref_data["estado_geral"] = estado
-        from operational.entities.v3 import DailyReflection
-        ref = DailyReflection.model_validate(ref_data)
-    else:
-        from operational.entities.v3 import DailyReflection
-        ref = DailyReflection(
-            id=UEID(f"ref_{d.strftime('%Y%m%d')}"),
-            date=d,
-            deu_certo=deu_certo,
-            deu_errado=deu_errado,
-            maior_aprendizado=aprendizado,
-            ajustes_para_amanha=ajustes,
-            estado_geral=estado,
-            created_at=datetime.now(UTC),
+        # Try to merge with existing reflection (entrada fields preserved)
+        existing = daily_reflections.get(UEID(f"ref_{d.strftime('%Y%m%d')}"))
+        if existing:
+            ref_data = existing.model_dump()
+            ref_data["deu_certo"] = deu_certo
+            ref_data["deu_errado"] = deu_errado
+            ref_data["maior_aprendizado"] = aprendizado
+            ref_data["ajustes_para_amanha"] = ajustes
+            ref_data["estado_geral"] = estado
+            from operational.entities.v3 import DailyReflection
+            ref = DailyReflection.model_validate(ref_data)
+        else:
+            from operational.entities.v3 import DailyReflection
+            ref = DailyReflection(
+                id=UEID(f"ref_{d.strftime('%Y%m%d')}"),
+                date=d,
+                deu_certo=deu_certo,
+                deu_errado=deu_errado,
+                maior_aprendizado=aprendizado,
+                ajustes_para_amanha=ajustes,
+                estado_geral=estado,
+                created_at=datetime.now(UTC),
+            )
+        daily_reflections.upsert(ref)
+        ctx.info(
+            "reflection.saida.created",
+            reflection_id=str(ref.id),
+            date=d.isoformat(),
+            estado=estado.value,
+            deu_certo_count=len(deu_certo),
+            deu_errado_count=len(deu_errado),
+            ajustes_count=len(ajustes),
         )
-    daily_reflections.upsert(ref)
 
-    if json:
-        typer.echo(format_as_json(ref))
-    else:
-        from operational.ui.receipt import receipt_panel
-        receipt = receipt_panel(
-            title="REFLECTION DE SAÍDA",
-            icon="🌙",
-            success_message=f"OKRs de saída ({ref.estado_geral.value}) registrados.",
-            detail_pairs=[
-                ("ID", str(ref.id)),
-                ("Data", ref.date.isoformat()),
-                ("Estado", ref.estado_geral.value),
-                ("Maior Aprendizado", ref.maior_aprendizado or "—"),
-                ("# Deu certo", str(len(ref.deu_certo))),
-                ("# Deu errado", str(len(ref.deu_errado))),
-                ("# Ajustes amanhã", str(len(ref.ajustes_para_amanha))),
-            ],
-            severity="success",
-            footer=f"Detalhes: ID {ref.id} | {ref.date.isoformat()}",
-        )
-        console.print(receipt)
+        if json:
+            typer.echo(format_as_json(ref))
+        else:
+            from operational.ui.receipt import receipt_panel
+            receipt = receipt_panel(
+                title="REFLECTION DE SAÍDA",
+                icon="🌙",
+                success_message=f"OKRs de saída ({ref.estado_geral.value}) registrados.",
+                detail_pairs=[
+                    ("ID", str(ref.id)),
+                    ("Data", ref.date.isoformat()),
+                    ("Estado", ref.estado_geral.value),
+                    ("Maior Aprendizado", ref.maior_aprendizado or "—"),
+                    ("# Deu certo", str(len(ref.deu_certo))),
+                    ("# Deu errado", str(len(ref.deu_errado))),
+                    ("# Ajustes amanhã", str(len(ref.ajustes_para_amanha))),
+                ],
+                severity="success",
+                footer=f"Detalhes: ID {ref.id} | {ref.date.isoformat()}",
+            )
+            console.print(receipt)
 
 
 @app.command(name="list")
@@ -162,17 +184,20 @@ def list_reflections(
     With --md: renders big_win and maior_aprendizado with rich.markdown.Markdown
     for richer formatting (headings, lists, emphasis). Requires a target_date.
     """
-    items = daily_reflections.list()
-    if target_date:
-        d = date.fromisoformat(target_date)
-        items = [r for r in items if r.date == d]
+    with trace_command(log, "reflect.list", command="reflect list") as ctx:
+        items = daily_reflections.list()
+        if target_date:
+            d = date.fromisoformat(target_date)
+            items = [r for r in items if r.date == d]
 
-    if md and items:
-        # Render the first matching reflection as a Markdown document
-        from rich.markdown import Markdown
-        from rich.panel import Panel
-        r = items[0]
-        md_text = f"""# Reflexão {r.date.isoformat()}
+        ctx.info("reflections.listed", count=len(items), target_date=target_date, md=md)
+
+        if md and items:
+            # Render the first matching reflection as a Markdown document
+            from rich.markdown import Markdown
+            from rich.panel import Panel
+            r = items[0]
+            md_text = f"""# Reflexão {r.date.isoformat()}
 
 **Estado geral:** {r.estado_geral.value}
 
@@ -185,31 +210,31 @@ def list_reflections(
 ## Ajustes para Amanhã
 {chr(10).join('- ' + a for a in r.ajustes_para_amanha) if r.ajustes_para_amanha else "_vazio_"}
 """
-        console.print(Panel(
-            Markdown(md_text, justify="left"),
-            title=f"[bold cyan]REFLECTION {r.date.isoformat()}[/]",
-            border_style="cyan",
-        ))
-        return
-    elif md and not items:
-        console.print(f"[yellow]Nenhuma reflexão em {target_date}. Use 'reflect entrada' ou 'reflect saida'.[/]")
-        return
+            console.print(Panel(
+                Markdown(md_text, justify="left"),
+                title=f"[bold cyan]REFLECTION {r.date.isoformat()}[/]",
+                border_style="cyan",
+            ))
+            return
+        if md and not items:
+            console.print(f"[yellow]Nenhuma reflexão em {target_date}. Use 'reflect entrada' ou 'reflect saida'.[/]")
+            return
 
-    if json:
-        typer.echo(format_as_json(items))
-    elif not items:
-        console.print("Nenhuma reflexão registrada. Use `reflect entrada` ou `reflect saida`.")
-    else:
-        table = Table(show_header=True, header_style="bold cyan")
-        table.add_column("Data", width=12)
-        table.add_column("Estado", width=12)
-        table.add_column("Big-Win", width=40)
-        table.add_column("Aprendizado", width=40)
-        for r in items:
-            table.add_row(
-                r.date.isoformat(),
-                r.estado_geral.value,
-                r.big_win[:38] + "…" if len(r.big_win) > 40 else r.big_win,
-                r.maior_aprendizado[:38] + "…" if len(r.maior_aprendizado) > 40 else r.maior_aprendizado,
-            )
-        console.print(table)
+        if json:
+            typer.echo(format_as_json(items))
+        elif not items:
+            console.print("Nenhuma reflexão registrada. Use `reflect entrada` ou `reflect saida`.")
+        else:
+            table = Table(show_header=True, header_style="bold cyan")
+            table.add_column("Data", width=12)
+            table.add_column("Estado", width=12)
+            table.add_column("Big-Win", width=40)
+            table.add_column("Aprendizado", width=40)
+            for r in items:
+                table.add_row(
+                    r.date.isoformat(),
+                    r.estado_geral.value,
+                    r.big_win[:38] + "…" if len(r.big_win) > 40 else r.big_win,
+                    r.maior_aprendizado[:38] + "…" if len(r.maior_aprendizado) > 40 else r.maior_aprendizado,
+                )
+            console.print(table)

@@ -24,6 +24,7 @@ from typing import Any
 import typer
 
 from operational.cli.formatters import format_as_json
+from operational.cli.telemetry import get_logger, trace_command
 from operational.constants import DEFAULT as PAV
 from operational.ui import console, is_captured
 
@@ -192,67 +193,70 @@ def _check_files_sanity() -> dict[str, Any]:
 
 def run_health_check(json_out: bool = False) -> None:
     """Run the health check."""
-    results: dict[str, Any] = {
-        "timestamp": datetime.now().isoformat(),
-        "checks": {
-            "python": _check_python(),
-            "packages": _check_packages(),
-            "state_dir": _check_state_dir(),
-            "datasets": _check_datasets(),
-            "constants": _check_constants(),
-            "console": _check_console(),
-            "files_sanity": _check_files_sanity(),
-        },
-    }
-    all_ok = all(c.get("ok", True) for c in results["checks"].values())
-    results["overall_ok"] = all_ok
-    if json_out:
-        typer.echo(format_as_json(results))
-    else:
-        from rich.panel import Panel
-        from rich.table import Table
+    log = get_logger("doctor_cmd")
+    with trace_command(log, "doctor.run", command="pav doctor") as ctx:
+        results: dict[str, Any] = {
+            "timestamp": datetime.now().isoformat(),
+            "checks": {
+                "python": _check_python(),
+                "packages": _check_packages(),
+                "state_dir": _check_state_dir(),
+                "datasets": _check_datasets(),
+                "constants": _check_constants(),
+                "console": _check_console(),
+                "files_sanity": _check_files_sanity(),
+            },
+        }
+        all_ok = all(c.get("ok", True) for c in results["checks"].values())
+        results["overall_ok"] = all_ok
+        ctx.info("health_check.completed", overall_ok=all_ok, checks=len(results["checks"]))
+        if json_out:
+            typer.echo(format_as_json(results))
+        else:
+            from rich.panel import Panel
+            from rich.table import Table
 
-        status_color = "green" if all_ok else "red"
-        status_icon = "OK" if all_ok else "ISSUES"
-        t = Table.grid(padding=(0, 2))
-        t.add_column(min_width=20, justify="left")
-        t.add_column(justify="left")
-        for name, check in results["checks"].items():
-            ok = check.get("ok", True)
-            icon = "[green]OK[/green]" if ok else "[red]FAIL[/red]"
-            if name == "python":
-                summary = f"v{check['version_info']}"
-            elif name == "packages":
-                vs = check["packages"]
-                summary = ", ".join(f"{k}={v}" for k, v in vs.items() if v)
-            elif name == "state_dir":
-                summary = (
-                    f"{check['path']} "
-                    f"({sum(1 for f in check['files'].values() if f.get('exists'))} files)"
-                )
-            elif name == "datasets":
-                summary = f"active={check['active']}"
-            elif name == "constants":
-                summary = f"{sum(1 for v in check['expected'].values())} loaded"
-            elif name == "console":
-                summary = f"captured={check['is_captured']}, encoding={check['encoding']}"
-            elif name == "files_sanity":
-                summary = f"{check['files_checked']} files, {len(check['issues'])} issues"
-            else:
-                summary = ""
-            t.add_row(f"{icon} {name}", summary)
-        panel = Panel(
-            t,
-            title=f"DOCTOR - {status_icon}",
-            border_style=status_color,
-        )
-        console.print(panel)
-        if not all_ok:
-            console.print()
-            console.print("[bold red]Issues:[/bold red]")
+            status_color = "green" if all_ok else "red"
+            status_icon = "OK" if all_ok else "ISSUES"
+            t = Table.grid(padding=(0, 2))
+            t.add_column(min_width=20, justify="left")
+            t.add_column(justify="left")
             for name, check in results["checks"].items():
-                if not check.get("ok", True):
-                    console.print(f"  [red]*[/red] {name}: {check}")
+                ok = check.get("ok", True)
+                icon = "[green]OK[/green]" if ok else "[red]FAIL[/red]"
+                if name == "python":
+                    summary = f"v{check['version_info']}"
+                elif name == "packages":
+                    vs = check["packages"]
+                    summary = ", ".join(f"{k}={v}" for k, v in vs.items() if v)
+                elif name == "state_dir":
+                    summary = (
+                        f"{check['path']} "
+                        f"({sum(1 for f in check['files'].values() if f.get('exists'))} files)"
+                    )
+                elif name == "datasets":
+                    summary = f"active={check['active']}"
+                elif name == "constants":
+                    summary = f"{sum(1 for v in check['expected'].values())} loaded"
+                elif name == "console":
+                    summary = f"captured={check['is_captured']}, encoding={check['encoding']}"
+                elif name == "files_sanity":
+                    summary = f"{check['files_checked']} files, {len(check['issues'])} issues"
+                else:
+                    summary = ""
+                t.add_row(f"{icon} {name}", summary)
+            panel = Panel(
+                t,
+                title=f"DOCTOR - {status_icon}",
+                border_style=status_color,
+            )
+            console.print(panel)
+            if not all_ok:
+                console.print()
+                console.print("[bold red]Issues:[/bold red]")
+                for name, check in results["checks"].items():
+                    if not check.get("ok", True):
+                        console.print(f"  [red]*[/red] {name}: {check}")
 
 
 

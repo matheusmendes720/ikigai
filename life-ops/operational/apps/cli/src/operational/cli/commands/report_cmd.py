@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import time as time_module
 from datetime import date, timedelta
-from typing import Optional
 
 import typer
 from rich.console import Group
@@ -22,20 +21,18 @@ from rich.live import Live
 
 from operational.cli.console import console
 from operational.cli.formatters import format_as_json
-from operational.cli.state import (
-    daily_reflections,
-    day_contexts,
-    journals,
-    pomodoros,
-    sleep_records,
-    time_blocks,
-)
-from operational.core.budget import productivity_pct
 from operational.cli.services import (
     DaySnapshot,
     compute_day_quadrant,
     get_day_snapshot,
 )
+from operational.cli.state import (
+    daily_reflections,
+    day_contexts,
+    sleep_records,
+)
+from operational.cli.telemetry import get_logger, trace_command
+from operational.core.budget import productivity_pct
 from operational.enums import TipoDia
 from operational.ui.components_v2 import (
     error_panel_v2,
@@ -47,7 +44,6 @@ from operational.ui.components_v2 import (
     section_v2,
     sparkline_v2,
 )
-from operational.ui.tokens import QUADRANT, SEVERITY
 
 app = typer.Typer(help="Generate reports (PAV-OS v2 design system — definitive edition).")
 
@@ -61,7 +57,7 @@ app = typer.Typer(help="Generate reports (PAV-OS v2 design system — definitive
 def daily(
     report_date: str | None = typer.Option(None, "--date", "-d", help="Data (YYYY-MM-DD)"),
     json: bool = typer.Option(False, "--json", help="JSON output"),
-    mock: Optional[str] = typer.Option(None, "--mock", help="Use mock profile (q1, q2, q3, q4, empty, burnout, peak)"),
+    mock: str | None = typer.Option(None, "--mock", help="Use mock profile (q1, q2, q3, q4, empty, burnout, peak)"),
     watch: int = typer.Option(0, "--watch", help="Auto-refresh every N seconds"),
 ) -> None:
     """Relatório diário — PAV-OS v2 design system.
@@ -71,108 +67,115 @@ def daily(
     - ``--watch N``: auto-refresh every N seconds (v2 Live loop).
     - ``--json``: machine-readable JSON output.
     """
-    try:
-        d = date.fromisoformat(report_date) if report_date else date.today()
-    except ValueError:
-        console.print(error_panel_v2(
-            f"Data invalida: {report_date}",
-            context=f"pav report daily --date {report_date}",
-            expected="YYYY-MM-DD (ano-mes-dia, mes 01-12, dia 01-31)",
-            suggestion="pav report daily --date 2026-06-08",
-        ))
-        raise typer.Exit(code=1)
-
-    profile = None
-    if mock:
-        from operational.ui.mock_profiles import get_profile, list_profiles
+    log = get_logger("report_cmd")
+    with trace_command(log, "report.daily", command="pav report daily", entity_type="day_snapshot") as ctx:
         try:
-            profile = get_profile(mock)
+            d = date.fromisoformat(report_date) if report_date else date.today()
         except ValueError:
             console.print(error_panel_v2(
-                f"Perfil mock desconhecido: {mock!r}",
-                context=f"pav report daily --mock {mock}",
-                expected=f"One of: {', '.join(list_profiles())}",
-                suggestion="pav report daily --mock q1",
+                f"Data invalida: {report_date}",
+                context=f"pav report daily --date {report_date}",
+                expected="YYYY-MM-DD (ano-mes-dia, mes 01-12, dia 01-31)",
+                suggestion="pav report daily --date 2026-06-08",
             ))
             raise typer.Exit(code=1)
 
-    if profile is not None:
-        from operational.ui.mock_snapshot import build_mock_snapshot
-        snap: DaySnapshot = build_mock_snapshot(profile)
-    else:
-        snap = get_day_snapshot(d)
-
-    if json:
-        q_code, x, y = compute_day_quadrant(snap)
-        payload = {
-            "date": d.isoformat(),
-            "tipo_dia": snap.tipo_dia.value,
-            "wake_hour": snap.wake_hour,
-            "sleep_hour": snap.sleep_hour,
-            "sleep_hours": snap.sleep.duration_hours,
-            "sleep_quality": snap.sleep.quality,
-            "energia": snap.energia,
-            "foco": snap.foco,
-            "hardwork_orcado_min": snap.hardwork_orcado_min,
-            "hardwork_realizado_min": snap.hardwork_realizado_min,
-            "n_blocks": snap.n_blocks,
-            "n_pomodoros": snap.n_pomodoros,
-            "pomodoros_meta": snap.pomodoros_meta,
-            "n_transicoes_completas": snap.n_transicoes_completas,
-            "n_transicoes_total": snap.n_transicoes_total,
-            "workout_done": snap.workout_done,
-            "meditacao_done": snap.meditacao_done,
-            "lunch_eat_min": snap.lunch_eat_min,
-            "lunch_rest_min": snap.lunch_rest_min,
-            "lunch_pesado": snap.lunch_pesado,
-            "desvios": snap.desvios,
-            "licoes": snap.licoes,
-            "ajustes": snap.ajustes,
-            "big_win": snap.big_win,
-            "parar_de_fazer": snap.parar_de_fazer,
-            "repetir": snap.repetir,
-            "deu_certo": snap.deu_certo,
-            "deu_errado": snap.deu_errado,
-            "maior_aprendizado": snap.maior_aprendizado,
-            "quadrant": q_code,
-            "x": x, "y": y,
-            "design_system": "v2",
-            "mock": mock,
-        }
-        typer.echo(format_as_json(payload))
-        return
-
-    from operational.ui.v2_renderers import render_daily_v2
-
-    if watch > 0:
-        from io import StringIO
-
-        from operational.cli.console import console as _console
-
-        def _build() -> str:
-            if profile is not None:
-                current_snap = build_mock_snapshot(profile)
-            else:
-                current_snap = get_day_snapshot(d)
-            buf = StringIO()
-            save_file = _console.file
-            _console.file = buf
+        profile = None
+        if mock:
+            from operational.ui.mock_profiles import get_profile, list_profiles
             try:
-                render_daily_v2(current_snap, d)
-            finally:
-                _console.file = save_file
-            return buf.getvalue()
+                profile = get_profile(mock)
+            except ValueError:
+                console.print(error_panel_v2(
+                    f"Perfil mock desconhecido: {mock!r}",
+                    context=f"pav report daily --mock {mock}",
+                    expected=f"One of: {', '.join(list_profiles())}",
+                    suggestion="pav report daily --mock q1",
+                ))
+                raise typer.Exit(code=1)
 
-        with Live(_build(), refresh_per_second=1, transient=False) as live:
-            try:
-                while True:
-                    time_module.sleep(watch)
-                    live.update(_build())
-            except (KeyboardInterrupt, SystemExit):
-                pass
-        return
+        if profile is not None:
+            from operational.ui.mock_snapshot import build_mock_snapshot
+            snap: DaySnapshot = build_mock_snapshot(profile)
+        else:
+            snap = get_day_snapshot(d)
 
-    render_daily_v2(snap, d)
+        ctx.info("day_snapshot.fetched", date=d.isoformat(), mock=mock, json=json, watch=watch)
+
+        if json:
+            q_code, x, y = compute_day_quadrant(snap)
+            payload = {
+                "date": d.isoformat(),
+                "tipo_dia": snap.tipo_dia.value,
+                "wake_hour": snap.wake_hour,
+                "sleep_hour": snap.sleep_hour,
+                "sleep_hours": snap.sleep.duration_hours,
+                "sleep_quality": snap.sleep.quality,
+                "energia": snap.energia,
+                "foco": snap.foco,
+                "hardwork_orcado_min": snap.hardwork_orcado_min,
+                "hardwork_realizado_min": snap.hardwork_realizado_min,
+                "n_blocks": snap.n_blocks,
+                "n_pomodoros": snap.n_pomodoros,
+                "pomodoros_meta": snap.pomodoros_meta,
+                "n_transicoes_completas": snap.n_transicoes_completas,
+                "n_transicoes_total": snap.n_transicoes_total,
+                "workout_done": snap.workout_done,
+                "meditacao_done": snap.meditacao_done,
+                "lunch_eat_min": snap.lunch_eat_min,
+                "lunch_rest_min": snap.lunch_rest_min,
+                "lunch_pesado": snap.lunch_pesado,
+                "desvios": snap.desvios,
+                "licoes": snap.licoes,
+                "ajustes": snap.ajustes,
+                "big_win": snap.big_win,
+                "parar_de_fazer": snap.parar_de_fazer,
+                "repetir": snap.repetir,
+                "deu_certo": snap.deu_certo,
+                "deu_errado": snap.deu_errado,
+                "maior_aprendizado": snap.maior_aprendizado,
+                "quadrant": q_code,
+                "x": x, "y": y,
+                "design_system": "v2",
+                "mock": mock,
+            }
+            ctx.info("report.rendered", format="json", date=d.isoformat())
+            typer.echo(format_as_json(payload))
+            return
+
+        from operational.ui.v2_renderers import render_daily_v2
+
+        if watch > 0:
+            from io import StringIO
+
+            from operational.cli.console import console as _console
+
+            def _build() -> str:
+                if profile is not None:
+                    current_snap = build_mock_snapshot(profile)
+                else:
+                    current_snap = get_day_snapshot(d)
+                buf = StringIO()
+                save_file = _console.file
+                _console.file = buf
+                try:
+                    render_daily_v2(current_snap, d)
+                finally:
+                    _console.file = save_file
+                return buf.getvalue()
+
+            ctx.info("report.started", format="live", watch_seconds=watch)
+            with Live(_build(), refresh_per_second=1, transient=False) as live:
+                try:
+                    while True:
+                        time_module.sleep(watch)
+                        live.update(_build())
+                except (KeyboardInterrupt, SystemExit):
+                    pass
+            return
+
+        ctx.info("report.rendered", format="v2", date=d.isoformat())
+        render_daily_v2(snap, d)
 
 
 # ---------------------------------------------------------------------------
@@ -344,7 +347,7 @@ def weekly(
     start: str | None = typer.Option(None, "--start", "-s", help="Início da semana (YYYY-MM-DD)"),
     end: str | None = typer.Option(None, "--end", "-e", help="Fim da semana (YYYY-MM-DD)"),
     json: bool = typer.Option(False, "--json", help="JSON output"),
-    mock: Optional[str] = typer.Option(None, "--mock", help="[daily only] Reuse a mock profile for the latest day in the range"),
+    mock: str | None = typer.Option(None, "--mock", help="[daily only] Reuse a mock profile for the latest day in the range"),
 ) -> None:
     """Relatório semanal — PAV-OS v2 design system.
 
@@ -352,50 +355,56 @@ def weekly(
     - ``--mock <profile>``: feed a mock profile's snapshot into the latest day
       in the range.
     """
-    profile = None
-    if mock:
-        from operational.ui.mock_profiles import get_profile, list_profiles
-        try:
-            profile = get_profile(mock)
-        except ValueError:
-            console.print(error_panel_v2(
-                f"Perfil mock desconhecido: {mock!r}",
-                context=f"pav report weekly --mock {mock}",
-                expected=f"One of: {', '.join(list_profiles())}",
-                suggestion="pav report weekly --mock q1",
-            ))
-            raise typer.Exit(code=1)
+    log = get_logger("report_cmd")
+    with trace_command(log, "report.weekly", command="pav report weekly", entity_type="week_snapshot") as ctx:
+        profile = None
+        if mock:
+            from operational.ui.mock_profiles import get_profile, list_profiles
+            try:
+                profile = get_profile(mock)
+            except ValueError:
+                console.print(error_panel_v2(
+                    f"Perfil mock desconhecido: {mock!r}",
+                    context=f"pav report weekly --mock {mock}",
+                    expected=f"One of: {', '.join(list_profiles())}",
+                    suggestion="pav report weekly --mock q1",
+                ))
+                raise typer.Exit(code=1)
 
-    ws = date.fromisoformat(start) if start else date.today() - timedelta(days=6)
-    we = date.fromisoformat(end) if end else date.today()
+        ws = date.fromisoformat(start) if start else date.today() - timedelta(days=6)
+        we = date.fromisoformat(end) if end else date.today()
 
-    if json:
-        n_pomodoros = 0
-        for offset in range((we - ws).days + 1):
-            d = ws + timedelta(days=offset)
-            if profile is not None and d == we:
-                from operational.ui.mock_snapshot import build_mock_snapshot
-                snap = build_mock_snapshot(profile)
-            else:
-                snap = get_day_snapshot(d)
-            n_pomodoros += snap.n_pomodoros
-        payload = {
-            "start": ws.isoformat(),
-            "end": we.isoformat(),
-            "n_days": (we - ws).days + 1,
-            "n_pomodoros": n_pomodoros,
-            "n_reflections": len([r for r in daily_reflections.list() if ws <= r.date <= we]),
-            "design_system": "v2",
-            "mock": mock,
-        }
-        typer.echo(format_as_json(payload))
-        return
+        ctx.info("week_range.resolved", start=ws.isoformat(), end=we.isoformat(), mock=mock)
 
-    body, footer = _build_weekly_v2(ws, we, profile)
-    full_page = page(
-        "Weekly Report",
-        f"{ws.isoformat()} → {we.isoformat()}",
-        body,
-        footer=footer,
-    )
-    console.print(full_page)
+        if json:
+            n_pomodoros = 0
+            for offset in range((we - ws).days + 1):
+                d = ws + timedelta(days=offset)
+                if profile is not None and d == we:
+                    from operational.ui.mock_snapshot import build_mock_snapshot
+                    snap = build_mock_snapshot(profile)
+                else:
+                    snap = get_day_snapshot(d)
+                n_pomodoros += snap.n_pomodoros
+            payload = {
+                "start": ws.isoformat(),
+                "end": we.isoformat(),
+                "n_days": (we - ws).days + 1,
+                "n_pomodoros": n_pomodoros,
+                "n_reflections": len([r for r in daily_reflections.list() if ws <= r.date <= we]),
+                "design_system": "v2",
+                "mock": mock,
+            }
+            ctx.info("report.rendered", format="json", start=ws.isoformat(), end=we.isoformat())
+            typer.echo(format_as_json(payload))
+            return
+
+        body, footer = _build_weekly_v2(ws, we, profile)
+        ctx.info("report.rendered", format="v2", start=ws.isoformat(), end=we.isoformat())
+        full_page = page(
+            "Weekly Report",
+            f"{ws.isoformat()} → {we.isoformat()}",
+            body,
+            footer=footer,
+        )
+        console.print(full_page)
