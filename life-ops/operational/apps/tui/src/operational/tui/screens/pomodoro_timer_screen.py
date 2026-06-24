@@ -17,7 +17,7 @@ class PomodoroTimerScreen(Screen):
     BINDINGS: ClassVar = [
         Binding("s", "start_timer", "Start", show=False),
         Binding("p", "pause_timer", "Pause", show=False),
-        Binding(".", "skip_break", "Skip", show=False),
+        Binding("period", "skip_break", "Skip", show=False),
         Binding("a", "abort_timer", "Abort", show=False),
     ]
 
@@ -40,7 +40,7 @@ PomodoroTimerScreen {
     width: 100%;
     padding: 1 2;
     content-align: center middle;
-    color: $coral;
+    color: $error;
     text-style: bold;
 }
 #pomo-status, #fsm-diagram, #state-label {
