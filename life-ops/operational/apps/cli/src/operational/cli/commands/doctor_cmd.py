@@ -3,7 +3,7 @@
 Checks:
 1. Python version (>= 3.10?)
 2. Required packages (Typer, Rich, Pydantic) installed and version
-3. State directory exists and is writable
+3. State directory exists and writable
 4. JSON files present and parseable
 5. Entity counts per repo
 6. Active dataset (TIME_TASKER_DATASET env var)
@@ -27,7 +27,8 @@ from operational.cli.formatters import format_as_json
 from operational.constants import DEFAULT as PAV
 from operational.ui import console, is_captured
 
-app = typer.Typer(help="Diagnóstico completo do ambiente operacional.")
+doctor_app = typer.Typer(help="Diagnóstico completo do ambiente operacional.")
+app = doctor_app
 
 
 def _check_python() -> dict[str, Any]:
@@ -103,8 +104,6 @@ def _check_state_dir() -> dict[str, Any]:
 def _check_datasets() -> dict[str, Any]:
     """Check TIME_TASKER_DATASET env var and built-in CSV availability."""
     active = os.environ.get("TIME_TASKER_DATASET", "production")
-    # Walk up from this file until we find a docs/ dir, otherwise fall back
-    # to the canonical project root (parents[4] from src/operational/cli/commands/).
     start = Path(__file__).resolve().parent
     project_root = start
     for ancestor in start.parents:
@@ -167,7 +166,12 @@ def _check_console() -> dict[str, Any]:
 
 
 def _check_files_sanity() -> dict[str, Any]:
-    """Sanity check on JSON files: UTF-8, no BOM, no CRLF issues."""
+    """Sanity check on JSON files: UTF-8, no BOM, no CRLF issues.
+
+    CRLF line endings are common and harmless on Windows — json.loads accepts
+    both. We skip the CRLF check to avoid false positives on Windows systems.
+    UTF-8 BOM is still flagged as it can cause issues with some parsers.
+    """
     state_dir = Path(os.environ.get("TIME_TASKER_STATE_DIR", Path.home() / ".time-tasker"))
     issues: list[str] = []
     checked = 0
@@ -179,8 +183,6 @@ def _check_files_sanity() -> dict[str, Any]:
             checked += 1
             if raw[:3] == b"\xef\xbb\xbf":
                 issues.append(f"{f.name}: has UTF-8 BOM (should not)")
-            if b"\r\n" in raw:
-                issues.append(f"{f.name}: has CRLF line endings (should be LF)")
     return {
         "files_checked": checked,
         "issues": issues,
@@ -188,11 +190,8 @@ def _check_files_sanity() -> dict[str, Any]:
     }
 
 
-@app.command(name="doctor")
-def doctor_cmd(
-    json_out: bool = typer.Option(False, "--json", help="Output as JSON"),
-) -> None:
-    """Run a comprehensive health check on the operational CLI."""
+def run_health_check(json_out: bool = False) -> None:
+    """Run the health check."""
     results: dict[str, Any] = {
         "timestamp": datetime.now().isoformat(),
         "checks": {
@@ -254,3 +253,6 @@ def doctor_cmd(
             for name, check in results["checks"].items():
                 if not check.get("ok", True):
                     console.print(f"  [red]*[/red] {name}: {check}")
+
+
+

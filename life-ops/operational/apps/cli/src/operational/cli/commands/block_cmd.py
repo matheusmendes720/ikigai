@@ -1,6 +1,8 @@
 """Time-block CLI commands — Rich Tables."""
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 import typer
 from rich.table import Table
 
@@ -22,19 +24,64 @@ def create(
     period: Period = typer.Argument(Period.MANHA, help="Período (MANHA/TARDE/NOITE)"),
     label: str = typer.Option("", "--label", "-l", help="Rótulo do bloco"),
     routine_id: str | None = typer.Option(None, "--routine", "-r", help="UEID da rotina vinculada"),
+    start: str | None = typer.Option(None, "--start", "-s", help="ISO start datetime (e.g. 2026-06-23T09:00)"),
+    end: str | None = typer.Option(None, "--end", "-e", help="ISO end datetime (e.g. 2026-06-23T10:30)"),
+    duration_minutes: int = typer.Option(60, "--duration", "-d", help="Duration in minutes (used when --start/--end not provided)"),
     json: bool = typer.Option(False, "--json", help="JSON output"),
 ) -> None:
-    """Criar um novo time block (default: agora + 1h)."""
+    """Criar um novo time block.
+
+    Default: agora + 1h (ou --duration minutos).
+    Use --start/--end para datetime explícito (formato ISO, ex: 2026-06-23T09:00).
+    Para blocos no passado use --start com data no passado.
+    """
     maybe_print_input_summary(
         title="Criando time block",
-        params={"period": period.value, "label": label, "routine_id": routine_id or "—"},
-        flag_legend={"-l": "--label", "-r": "--routine"},
+        params={
+            "period": period.value,
+            "label": label,
+            "routine_id": routine_id or "—",
+            "start": start or "agora",
+            "end": end or f"+{duration_minutes}min",
+        },
+        flag_legend={"-l": "--label", "-r": "--routine", "-s": "--start", "-e": "--end", "-d": "--duration"},
     )
+
+    # Parse explicit start/end if provided
+    start_dt: datetime | None = None
+    end_dt: datetime | None = None
+    if start:
+        # Try ISO format, with/without seconds
+        for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+            try:
+                start_dt = datetime.strptime(start, fmt)
+                break
+            except ValueError:
+                continue
+        if start_dt is None:
+            msg = f"Data inválida: {start!r}. Use ISO formato: 2026-06-23T09:00 ou 2026-06-23 09:00"
+            raise typer.BadParameter(msg)
+    if end:
+        for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+            try:
+                end_dt = datetime.strptime(end, fmt)
+                break
+            except ValueError:
+                continue
+        if end_dt is None:
+            msg = f"Data inválida: {end!r}. Use ISO formato: 2026-06-23T09:00 ou 2026-06-23 09:00"
+            raise typer.BadParameter(msg)
+
+    # duration_minutes only used when start is explicit and end is not
+    if start_dt and not end_dt:
+        end_dt = start_dt + timedelta(minutes=duration_minutes)
 
     block = make_time_block(
         period=period,
         label=label,
         routine_id=routine_id,
+        start=start_dt,
+        end=end_dt,
     )
     time_blocks.upsert(block)
     if json:
