@@ -1,21 +1,32 @@
-"""Journal Screen for PAV TUI."""
+"""Journal Screen for PAV TUI — data-bound.
+
+Lists the most recent journal entries with a search input. Reads from
+the ``journals`` repo. The ``Input`` widget at the top filters as you
+type.
+"""
 from __future__ import annotations
 
+from datetime import date
 from typing import TYPE_CHECKING, ClassVar
 
 from textual.binding import Binding
+from textual.containers import Vertical
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Input, Static
+
+from operational.cli.state import journals as journals_repo
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
 
+MAX_ENTRIES = 20
+
 
 class JournalScreen(Screen):
-    """Journal entries list with search, filter, and entry expansion."""
+    """Journal entries list with search and filter."""
 
     BINDINGS: ClassVar = [
-        Binding("/", "focus_search", "Search", show=False),
+        Binding("slash", "focus_search", "Search", show=False),
         Binding("n", "new_entry", "New", show=False),
         Binding("f", "filter_entries", "Filter", show=False),
     ]
@@ -37,9 +48,16 @@ JournalScreen {
     background: $surface;
     color: $text-muted;
 }
-#entry-1, #entry-2, #entry-3 {
+#entries-list {
     width: 100%;
-    height: 3;
+    height: auto;
+    padding: 0 2;
+    background: $surface;
+    border: solid $border;
+}
+JournalScreen Static.entry {
+    width: 100%;
+    height: auto;
     padding: 0 2;
     border-bottom: solid $border;
     background: $surface;
@@ -48,28 +66,87 @@ JournalScreen {
 """
 
     def compose(self) -> ComposeResult:
-        """Compose the journal screen widgets."""
         yield Header()
         yield Input(placeholder="Buscar journal...", id="journal-search")
-        yield Static("[TODAY] [YESTERDAY] [THIS WEEK] [ALL]", id="date-filter")
-        yield Static("[MANHA] [TARDE] [NOITE]", id="period-filter")
-        yield Static("[17:07] [CHECK-IN] Energia: 7, Foco: 8 (chk_20260609_170706)", id="entry-1")
-        yield Static("[17:07] [ROUTINE] Start: Hardwork Dev (CORE)", id="entry-2")
-        yield Static("[14:30] [POMODORO] Completed S2 tarde - 4 rounds", id="entry-3")
+        yield Static(
+            "[TODAY] [YESTERDAY] [THIS WEEK] [ALL]   ·   "
+            "[MANHA] [TARDE] [NOITE]",
+            id="date-filter",
+        )
+        yield Static(id="period-filter")
+        with Vertical(id="entries-list"):
+            yield Static(id="empty-msg")
         yield Footer()
 
     def on_mount(self) -> None:
-        """Initialize journal entries on mount."""
-        entries = [
-            ("[17:07] [CHECK-IN]  Energia: 7, Foco: 8  (chk_20260612_170706)",),
-            ("[17:07] [ROUTINE]   Start: Hardwork Dev (CORE)",),
-            ("[14:30] [POMODORO]  Completed S2 tarde - 4 rounds",),
-            ("[09:00] [CHECK-IN]  Energia: 8, Foco: 9  (chk_20260611_090012)",),
-            ("[20:00] [ROUTINE]  Evening shutdown + journal",),
-        ]
-        for i, (entry_text,) in enumerate(entries, start=1):
-            try:
-                w = self.query_one(f"#entry-{i}", Static)
-                w.update(entry_text)
-            except Exception:  # noqa: BLE001, S110
-                pass
+        self._query = ""
+        self._refresh()
+
+    def _refresh(self) -> None:
+        # Remove previously rendered entry rows (keep the empty-msg)
+        container = self.query_one("#entries-list")
+        for child in list(container.children):
+            if child.id != "empty-msg":
+                child.remove()
+
+        try:
+            entries = sorted(
+                journals_repo.list(),
+                key=lambda e: getattr(e, "date", None) or date.min,
+                reverse=True,
+            )
+        except Exception:
+            entries = []
+
+        if self._query:
+            q = self._query.lower()
+            entries = [
+                e for e in entries
+                if q in str(getattr(e, "entry_text", "")).lower()
+                or q in str(getattr(e, "desvios", "")).lower()
+                or q in str(getattr(e, "licoes_aprendidas", "")).lower()
+            ]
+
+        entries = entries[:MAX_ENTRIES]
+
+        if not entries:
+            empty = self.query_one("#empty-msg", Static)
+            if self._query:
+                empty.update(f"[dim]Nenhum resultado para '{self._query}'.[/dim]")
+            else:
+                empty.update(
+                    "[dim]Nenhuma entrada de diário ainda.[/dim]\n"
+                    "[dim]Adicione com: `pav journal create --text ...`[/dim]"
+                )
+            return
+
+        self.query_one("#empty-msg", Static).update("")
+
+        for e in entries:
+            d = getattr(e, "date", None)
+            ts = d.strftime("%H:%M") if d and hasattr(d, "strftime") else "—"
+            kind = "CHECK-IN" if getattr(e, "energia_nivel", None) is not None else "JOURNAL"
+            text = getattr(e, "entry_text", "")[:80]
+            energia = getattr(e, "energia_nivel", None)
+            foco = getattr(e, "foco_nivel", None)
+            meta = ""
+            if energia is not None or foco is not None:
+                meta = f"  E:{energia or '-'} F:{foco or '-'}"
+            line = f"[{ts}] [{kind:<9}] {text}{meta}"
+            self.query_one("#entries-list").mount(Static(line, classes="entry"))
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        self._query = event.value
+        self._refresh()
+
+    def action_focus_search(self) -> None:
+        self.query_one("#journal-search", Input).focus()
+
+    def action_new_entry(self) -> None:
+        self.app.notify(
+            "Use `pav journal create --text ...` para nova entrada.",
+            title="Nova entrada",
+        )
+
+    def action_filter_entries(self) -> None:
+        self.app.notify("Filtro em breve.", title="Filtrar")
