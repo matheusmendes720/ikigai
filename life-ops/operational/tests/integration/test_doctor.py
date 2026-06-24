@@ -81,7 +81,7 @@ class TestIndividualChecks:
 
 class TestDoctorCommand:
     def test_doctor_json(self) -> None:
-        result = runner.invoke(app, ["doctor", "doctor", "--json"])
+        result = runner.invoke(app, ["doctor", "--json"])
         assert result.exit_code == 0
         data = json.loads(result.stdout)
         assert "checks" in data
@@ -91,7 +91,7 @@ class TestDoctorCommand:
         assert "overall_ok" in data
 
     def test_doctor_human(self) -> None:
-        result = runner.invoke(app, ["doctor", "doctor"])
+        result = runner.invoke(app, ["doctor"])
         assert result.exit_code == 0
         assert "DOCTOR" in result.stdout or "doctor" in result.stdout.lower()
 
