@@ -6,9 +6,10 @@ from datetime import time
 import typer
 from rich.table import Table
 
-from operational.cli._compat import COLORS, make_console, maybe_print_input_summary
+from operational.cli._compat import make_console, maybe_print_input_summary
 from operational.cli.formatters import format_as_json
 from operational.cli.state import routines
+from operational.cli.telemetry import get_logger, trace_command
 from operational.enums import Period, RoutineType
 from operational.meta.factories import make_routine
 
@@ -48,7 +49,9 @@ def create(
     json: bool = typer.Option(False, "--json", help="JSON output"),
 ) -> None:
     """Create a new routine."""
-    maybe_print_input_summary(
+    log = get_logger("routine.create")
+    with trace_command(log, "routine.create", command="routine create", period=period.value, routine_type=routine_type.value) as ctx:
+        maybe_print_input_summary(
         title="Criando rotina",
         params={
             "name": name,
@@ -76,7 +79,7 @@ def create(
         receipt = receipt_panel(
             title="NOVA ROTINA",
             icon="📝",
-            success_message=f"Rotina \"{routine.name}\" ({period.value} · {routine_type.value}) registrada no banco.",
+            success_message=f'Rotina "{routine.name}" ({period.value} · {routine_type.value}) registrada no banco.',
             detail_pairs=[
                 ("Nome (name)", routine.name),
                 ("Turno (period)", period.value),
@@ -97,7 +100,9 @@ def list_routines(
     tree: bool = typer.Option(False, "--tree", help="Render as Rich Tree grouped by period (MANHA/TARDE/NOITE)"),
 ) -> None:
     """List saved routines — Rich Table or Tree (with --tree)."""
-    filters = {}
+    log = get_logger("routine.list")
+    with trace_command(log, "routine.list", command="routine list", period=period.value if period else None) as ctx:
+        filters = {}
     if period:
         filters["period"] = period
     items = routines.list(filters or None)

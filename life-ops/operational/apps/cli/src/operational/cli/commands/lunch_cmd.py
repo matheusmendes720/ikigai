@@ -5,7 +5,7 @@ pesado que correlaciona com cochilos além do orçamento.
 """
 from __future__ import annotations
 
-from datetime import date, datetime, UTC
+from datetime import UTC, date, datetime
 
 import typer
 from rich.table import Table
@@ -13,10 +13,12 @@ from rich.table import Table
 from operational.cli._compat import make_console
 from operational.cli.formatters import format_as_json
 from operational.cli.state import lunch_records
+from operational.cli.telemetry import get_logger, trace_command
 from operational.types import UEID
 
 app = typer.Typer(help="Registrar almoço (eat + rest + flag pesado).")
 console = make_console(width=120)
+log = get_logger("lunch_cmd")
 
 
 @app.command()
@@ -29,42 +31,52 @@ def create(
     json: bool = typer.Option(False, "--json", help="JSON output"),
 ) -> None:
     """Registrar almoço do dia."""
-    d = date.fromisoformat(target_date) if target_date else date.today()
-    from operational.entities.v3 import LunchRecord
-    record = LunchRecord(
-        id=UEID(f"lun_{d.strftime('%Y%m%d')}"),
-        date=d,
-        eat_min=eat,
-        rest_min=rest,
-        pesado=pesado,
-        notas=notas,
-        created_at=datetime.now(UTC),
-    )
-    lunch_records.upsert(record)
-    if json:
-        typer.echo(format_as_json(record))
-    else:
-        from operational.ui.receipt import receipt_panel
-        emoji = "⚠️ PESADO" if pesado else "✅ OK"
-        within_severity = "success" if record.within_budget else "warning"
-        within_msg = "dentro do orçamento" if record.within_budget else "estourou orçamento"
-        receipt = receipt_panel(
-            title="LUNCH RECORD",
-            icon="🍽️",
-            success_message=f"Almoço registrado ({emoji}) — {within_msg}.",
-            detail_pairs=[
-                ("ID", str(record.id)),
-                ("Data", d.isoformat()),
-                ("Eat", f"{eat}min"),
-                ("Rest", f"{rest}min"),
-                ("Total", f"{record.duracao_total}min"),
-                ("Pesado", "Sim" if pesado else "Não"),
-                ("Within budget", "✓" if record.within_budget else "✗"),
-            ],
-            severity=within_severity,
-            footer=f"Detalhes: ID {record.id} | {d.isoformat()} | Total {record.duracao_total}min",
+    with trace_command(log, "lunch.create", command="lunch create") as ctx:
+        d = date.fromisoformat(target_date) if target_date else date.today()
+        from operational.entities.v3 import LunchRecord
+        record = LunchRecord(
+            id=UEID(f"lun_{d.strftime('%Y%m%d')}"),
+            date=d,
+            eat_min=eat,
+            rest_min=rest,
+            pesado=pesado,
+            notas=notas,
+            created_at=datetime.now(UTC),
         )
-        console.print(receipt)
+        lunch_records.upsert(record)
+        ctx.info(
+            "lunch_record.created",
+            record_id=str(record.id),
+            date=d.isoformat(),
+            eat_min=eat,
+            rest_min=rest,
+            pesado=pesado,
+            within_budget=record.within_budget,
+        )
+        if json:
+            typer.echo(format_as_json(record))
+        else:
+            from operational.ui.receipt import receipt_panel
+            emoji = "⚠️ PESADO" if pesado else "✅ OK"
+            within_severity = "success" if record.within_budget else "warning"
+            within_msg = "dentro do orçamento" if record.within_budget else "estourou orçamento"
+            receipt = receipt_panel(
+                title="LUNCH RECORD",
+                icon="🍽️",
+                success_message=f"Almoço registrado ({emoji}) — {within_msg}.",
+                detail_pairs=[
+                    ("ID", str(record.id)),
+                    ("Data", d.isoformat()),
+                    ("Eat", f"{eat}min"),
+                    ("Rest", f"{rest}min"),
+                    ("Total", f"{record.duracao_total}min"),
+                    ("Pesado", "Sim" if pesado else "Não"),
+                    ("Within budget", "✓" if record.within_budget else "✗"),
+                ],
+                severity=within_severity,
+                footer=f"Detalhes: ID {record.id} | {d.isoformat()} | Total {record.duracao_total}min",
+            )
+            console.print(receipt)
 
 
 @app.command(name="list")
@@ -73,30 +85,32 @@ def list_lunch(
     json: bool = typer.Option(False, "--json", help="JSON output"),
 ) -> None:
     """Lista registros de almoço."""
-    items = lunch_records.list()
-    if target_date:
-        d = date.fromisoformat(target_date)
-        items = [r for r in items if r.date == d]
+    with trace_command(log, "lunch.list", command="lunch list") as ctx:
+        items = lunch_records.list()
+        if target_date:
+            d = date.fromisoformat(target_date)
+            items = [r for r in items if r.date == d]
 
-    if json:
-        typer.echo(format_as_json(items))
-    elif not items:
-        console.print("Nenhum almoço registrado. Use `lunch create`.")
-    else:
-        table = Table(show_header=True, header_style="bold cyan")
-        table.add_column("Data", width=12)
-        table.add_column("Eat (min)", width=10)
-        table.add_column("Rest (min)", width=10)
-        table.add_column("Total", width=8)
-        table.add_column("Pesado", width=8)
-        table.add_column("Within budget", width=14)
-        for r in items:
-            table.add_row(
-                r.date.isoformat(),
-                str(r.eat_min),
-                str(r.rest_min),
-                f"{r.duracao_total}min",
-                "⚠️" if r.pesado else "-",
-                "✓" if r.within_budget else "✗",
-            )
-        console.print(table)
+        ctx.info("lunch.records.listed", count=len(items), target_date=target_date)
+        if json:
+            typer.echo(format_as_json(items))
+        elif not items:
+            console.print("Nenhum almoço registrado. Use `lunch create`.")
+        else:
+            table = Table(show_header=True, header_style="bold cyan")
+            table.add_column("Data", width=12)
+            table.add_column("Eat (min)", width=10)
+            table.add_column("Rest (min)", width=10)
+            table.add_column("Total", width=8)
+            table.add_column("Pesado", width=8)
+            table.add_column("Within budget", width=14)
+            for r in items:
+                table.add_row(
+                    r.date.isoformat(),
+                    str(r.eat_min),
+                    str(r.rest_min),
+                    f"{r.duracao_total}min",
+                    "⚠️" if r.pesado else "-",
+                    "✓" if r.within_budget else "✗",
+                )
+            console.print(table)

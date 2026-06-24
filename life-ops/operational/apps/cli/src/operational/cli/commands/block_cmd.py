@@ -9,6 +9,7 @@ from rich.table import Table
 from operational.cli._compat import make_console, maybe_print_input_summary
 from operational.cli.formatters import format_as_json
 from operational.cli.state import time_blocks
+from operational.cli.telemetry import get_logger, trace_command
 from operational.enums import Period
 from operational.meta.factories import make_time_block
 
@@ -35,66 +36,70 @@ def create(
     Use --start/--end para datetime explícito (formato ISO, ex: 2026-06-23T09:00).
     Para blocos no passado use --start com data no passado.
     """
-    maybe_print_input_summary(
-        title="Criando time block",
-        params={
-            "period": period.value,
-            "label": label,
-            "routine_id": routine_id or "—",
-            "start": start or "agora",
-            "end": end or f"+{duration_minutes}min",
-        },
-        flag_legend={"-l": "--label", "-r": "--routine", "-s": "--start", "-e": "--end", "-d": "--duration"},
-    )
-
-    # Parse explicit start/end if provided
-    start_dt: datetime | None = None
-    end_dt: datetime | None = None
-    if start:
-        # Try ISO format, with/without seconds
-        for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
-            try:
-                start_dt = datetime.strptime(start, fmt)
-                break
-            except ValueError:
-                continue
-        if start_dt is None:
-            msg = f"Data inválida: {start!r}. Use ISO formato: 2026-06-23T09:00 ou 2026-06-23 09:00"
-            raise typer.BadParameter(msg)
-    if end:
-        for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
-            try:
-                end_dt = datetime.strptime(end, fmt)
-                break
-            except ValueError:
-                continue
-        if end_dt is None:
-            msg = f"Data inválida: {end!r}. Use ISO formato: 2026-06-23T09:00 ou 2026-06-23 09:00"
-            raise typer.BadParameter(msg)
-
-    # duration_minutes only used when start is explicit and end is not
-    if start_dt and not end_dt:
-        end_dt = start_dt + timedelta(minutes=duration_minutes)
-
-    block = make_time_block(
-        period=period,
-        label=label,
-        routine_id=routine_id,
-        start=start_dt,
-        end=end_dt,
-    )
-    time_blocks.upsert(block)
-    if json:
-        typer.echo(format_as_json(block))
-    else:
-        per_color = PERIOD_COLOR.get(period.value, "white")
-        console.print(
-            f"  [bold {per_color}]✓[/bold {per_color}] "
-            f"Bloco criado: [bold]{block.label or '(sem label)'}[/bold]"
+    log = get_logger("block_cmd")
+    with trace_command(log, "block.create", command="pav block create", entity_type="time_block") as ctx:
+        maybe_print_input_summary(
+            title="Criando time block",
+            params={
+                "period": period.value,
+                "label": label,
+                "routine_id": routine_id or "—",
+                "start": start or "agora",
+                "end": end or f"+{duration_minutes}min",
+            },
+            flag_legend={"-l": "--label", "-r": "--routine", "-s": "--start", "-e": "--end", "-d": "--duration"},
         )
-        console.print(
-            f"    [dim]id: {block.id}  ·  {block.start.isoformat()} → {block.end.isoformat()}[/dim]"
+
+        # Parse explicit start/end if provided
+        start_dt: datetime | None = None
+        end_dt: datetime | None = None
+        if start:
+            # Try ISO format, with/without seconds
+            for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+                try:
+                    start_dt = datetime.strptime(start, fmt)
+                    break
+                except ValueError:
+                    continue
+            if start_dt is None:
+                msg = f"Data inválida: {start!r}. Use ISO formato: 2026-06-23T09:00 ou 2026-06-23 09:00"
+                raise typer.BadParameter(msg)
+        if end:
+            for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+                try:
+                    end_dt = datetime.strptime(end, fmt)
+                    break
+                except ValueError:
+                    continue
+            if end_dt is None:
+                msg = f"Data inválida: {end!r}. Use ISO formato: 2026-06-23T09:00 ou 2026-06-23 09:00"
+                raise typer.BadParameter(msg)
+
+        # duration_minutes only used when start is explicit and end is not
+        if start_dt and not end_dt:
+            end_dt = start_dt + timedelta(minutes=duration_minutes)
+
+        block = make_time_block(
+            period=period,
+            label=label,
+            routine_id=routine_id,
+            start=start_dt,
+            end=end_dt,
         )
+        time_blocks.upsert(block)
+        ctx.info("entity.created", entity_id=block.id, entity_type="time_block", period=period.value)
+
+        if json:
+            typer.echo(format_as_json(block))
+        else:
+            per_color = PERIOD_COLOR.get(period.value, "white")
+            console.print(
+                f"  [bold {per_color}]✓[/bold {per_color}] "
+                f"Bloco criado: [bold]{block.label or '(sem label)'}[/bold]"
+            )
+            console.print(
+                f"    [dim]id: {block.id}  ·  {block.start.isoformat()} → {block.end.isoformat()}[/dim]"
+            )
 
 
 @app.command(name="list")
