@@ -30,15 +30,15 @@ Usage:
 """
 from __future__ import annotations
 
+import itertools
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
-
-from operational.entities.ajuste_fino import AjusteFino
-from operational.entities.time_block import TimeBlock
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
+    from operational.entities.ajuste_fino import AjusteFino
+    from operational.entities.time_block import TimeBlock
     from operational.enums import Period
 
 __all__ = [
@@ -97,9 +97,12 @@ def compute_break_minutes(prev: TimeBlock, next_: TimeBlock) -> float:
     if next_.start < prev.end:
         overlap = (prev.end - next_.start).total_seconds() / 60.0
         if overlap > _BREAK_NEGATIVE_TOLERANCE_MIN:
+            msg = (
+                f"TimeBlocks overlap by {overlap:.1f}min "
+                f"(prev.end={prev.end.isoformat()}, next.start={next_.start.isoformat()})"
+            )
             raise ValueError(
-                "TimeBlocks overlap by %.1fmin "
-                "(prev.end=%s, next.start=%s)" % (overlap, prev.end.isoformat(), next_.start.isoformat())
+                msg
             )
         return 0.0
     return (next_.start - prev.end).total_seconds() / 60.0
@@ -120,7 +123,7 @@ def compute_breaks(blocks: Sequence[TimeBlock]) -> list[BreakInfo]:
         return []
     sorted_blocks = sorted(blocks, key=lambda b: b.start)
     breaks: list[BreakInfo] = []
-    for prev, nxt in zip(sorted_blocks[:-1], sorted_blocks[1:], strict=True):
+    for prev, nxt in itertools.pairwise(sorted_blocks):
         try:
             break_min = compute_break_minutes(prev, nxt)
             breaks.append(BreakInfo(
@@ -248,7 +251,8 @@ def adjusted_net_rest_minutes(
     from operational.core.context_switch import context_switch_overhead_minutes
 
     if gross_break_minutes < 0:
-        raise ValueError("gross_break_minutes must be >= 0, got %s" % gross_break_minutes)
+        msg = f"gross_break_minutes must be >= 0, got {gross_break_minutes}"
+        raise ValueError(msg)
     overhead = context_switch_overhead_minutes(from_period, to_period, custom_overrides)
     net_after_overhead = max(0.0, gross_break_minutes - float(overhead))
     if ajustes_finos is None:

@@ -51,7 +51,8 @@ def _coerce_date(raw: Any) -> date:
         return raw
     if isinstance(raw, str):
         return date.fromisoformat(raw)
-    raise TypeError("Cannot coerce %s to date: %r" % (type(raw).__name__, raw))
+    msg = f"Cannot coerce {type(raw).__name__} to date: {raw!r}"
+    raise TypeError(msg)
 
 
 def _parse_ajuste_fino(raw: dict[str, Any]) -> AjusteFino:

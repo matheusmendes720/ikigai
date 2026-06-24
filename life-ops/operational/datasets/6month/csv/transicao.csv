@@ -1,0 +1,1621 @@
+id,date,cluster,codigo,ritual,duracao_min,completed,notas
+oper_trn_T1_20251223,2025-12-23,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20251223,2025-12-23,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20251223,2025-12-23,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20251223,2025-12-23,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20251223,2025-12-23,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20251223,2025-12-23,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20251223,2025-12-23,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20251223,2025-12-23,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20251223,2025-12-23,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20251224,2025-12-24,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20251224,2025-12-24,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20251224,2025-12-24,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20251224,2025-12-24,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20251224,2025-12-24,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20251224,2025-12-24,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20251224,2025-12-24,oper,T7,Pós-almoço,20,False,Synthetic Padrao_Ouro
+oper_trn_T8_20251224,2025-12-24,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20251224,2025-12-24,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20251225,2025-12-25,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20251225,2025-12-25,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20251225,2025-12-25,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20251225,2025-12-25,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20251225,2025-12-25,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20251225,2025-12-25,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20251225,2025-12-25,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20251225,2025-12-25,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20251225,2025-12-25,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20251226,2025-12-26,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20251226,2025-12-26,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20251226,2025-12-26,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20251226,2025-12-26,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20251226,2025-12-26,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20251226,2025-12-26,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20251226,2025-12-26,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20251226,2025-12-26,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20251226,2025-12-26,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20251227,2025-12-27,oper,T1,Sessão despertar,5,True,Synthetic Desvio_Leve
+oper_trn_T2_20251227,2025-12-27,oper,T2,Entrada MANHA,3,False,Synthetic Desvio_Leve
+oper_trn_T3_20251227,2025-12-27,oper,T3,Início foco #1,2,True,Synthetic Desvio_Leve
+oper_trn_T4_20251227,2025-12-27,oper,T4,Pausa manhã,10,True,Synthetic Desvio_Leve
+oper_trn_T5_20251227,2025-12-27,oper,T5,Entrada TARDE,3,True,Synthetic Desvio_Leve
+oper_trn_T6_20251227,2025-12-27,oper,T6,Almoço,45,True,Synthetic Desvio_Leve
+oper_trn_T7_20251227,2025-12-27,oper,T7,Pós-almoço,20,True,Synthetic Desvio_Leve
+oper_trn_T8_20251227,2025-12-27,oper,T8,Entrada NOITE,3,True,Synthetic Desvio_Leve
+oper_trn_T9_20251227,2025-12-27,oper,T9,Sessão dormir,10,False,Synthetic Desvio_Leve
+oper_trn_T1_20251228,2025-12-28,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20251228,2025-12-28,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20251228,2025-12-28,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20251228,2025-12-28,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20251228,2025-12-28,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20251228,2025-12-28,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20251228,2025-12-28,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20251228,2025-12-28,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20251228,2025-12-28,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20251229,2025-12-29,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20251229,2025-12-29,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20251229,2025-12-29,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20251229,2025-12-29,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20251229,2025-12-29,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20251229,2025-12-29,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20251229,2025-12-29,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20251229,2025-12-29,oper,T8,Entrada NOITE,3,False,Synthetic Fim_de_Semana
+oper_trn_T9_20251229,2025-12-29,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20251230,2025-12-30,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20251230,2025-12-30,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20251230,2025-12-30,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20251230,2025-12-30,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20251230,2025-12-30,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20251230,2025-12-30,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20251230,2025-12-30,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20251230,2025-12-30,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20251230,2025-12-30,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20251231,2025-12-31,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20251231,2025-12-31,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20251231,2025-12-31,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20251231,2025-12-31,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20251231,2025-12-31,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20251231,2025-12-31,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20251231,2025-12-31,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20251231,2025-12-31,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20251231,2025-12-31,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260101,2026-01-01,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260101,2026-01-01,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260101,2026-01-01,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260101,2026-01-01,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260101,2026-01-01,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260101,2026-01-01,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260101,2026-01-01,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260101,2026-01-01,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260101,2026-01-01,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260102,2026-01-02,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260102,2026-01-02,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260102,2026-01-02,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260102,2026-01-02,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260102,2026-01-02,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260102,2026-01-02,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260102,2026-01-02,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260102,2026-01-02,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260102,2026-01-02,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260103,2026-01-03,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260103,2026-01-03,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260103,2026-01-03,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260103,2026-01-03,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260103,2026-01-03,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260103,2026-01-03,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260103,2026-01-03,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260103,2026-01-03,oper,T8,Entrada NOITE,3,False,Synthetic Fim_de_Semana
+oper_trn_T9_20260103,2026-01-03,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260104,2026-01-04,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260104,2026-01-04,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260104,2026-01-04,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260104,2026-01-04,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260104,2026-01-04,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260104,2026-01-04,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260104,2026-01-04,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260104,2026-01-04,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260104,2026-01-04,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260105,2026-01-05,oper,T1,Sessão despertar,5,True,Synthetic Desvio_Leve
+oper_trn_T2_20260105,2026-01-05,oper,T2,Entrada MANHA,3,True,Synthetic Desvio_Leve
+oper_trn_T3_20260105,2026-01-05,oper,T3,Início foco #1,2,True,Synthetic Desvio_Leve
+oper_trn_T4_20260105,2026-01-05,oper,T4,Pausa manhã,10,True,Synthetic Desvio_Leve
+oper_trn_T5_20260105,2026-01-05,oper,T5,Entrada TARDE,3,True,Synthetic Desvio_Leve
+oper_trn_T6_20260105,2026-01-05,oper,T6,Almoço,45,True,Synthetic Desvio_Leve
+oper_trn_T7_20260105,2026-01-05,oper,T7,Pós-almoço,20,False,Synthetic Desvio_Leve
+oper_trn_T8_20260105,2026-01-05,oper,T8,Entrada NOITE,3,True,Synthetic Desvio_Leve
+oper_trn_T9_20260105,2026-01-05,oper,T9,Sessão dormir,10,True,Synthetic Desvio_Leve
+oper_trn_T1_20260106,2026-01-06,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260106,2026-01-06,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260106,2026-01-06,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260106,2026-01-06,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260106,2026-01-06,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260106,2026-01-06,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260106,2026-01-06,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260106,2026-01-06,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260106,2026-01-06,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260107,2026-01-07,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260107,2026-01-07,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260107,2026-01-07,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260107,2026-01-07,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260107,2026-01-07,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260107,2026-01-07,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260107,2026-01-07,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260107,2026-01-07,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260107,2026-01-07,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260108,2026-01-08,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260108,2026-01-08,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260108,2026-01-08,oper,T3,Início foco #1,2,False,Synthetic Padrao_Ouro
+oper_trn_T4_20260108,2026-01-08,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260108,2026-01-08,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260108,2026-01-08,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260108,2026-01-08,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260108,2026-01-08,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260108,2026-01-08,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260109,2026-01-09,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260109,2026-01-09,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260109,2026-01-09,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260109,2026-01-09,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260109,2026-01-09,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260109,2026-01-09,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260109,2026-01-09,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260109,2026-01-09,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260109,2026-01-09,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260110,2026-01-10,oper,T1,Sessão despertar,5,True,Synthetic Lunch_Pesado
+oper_trn_T2_20260110,2026-01-10,oper,T2,Entrada MANHA,3,False,Synthetic Lunch_Pesado
+oper_trn_T3_20260110,2026-01-10,oper,T3,Início foco #1,2,True,Synthetic Lunch_Pesado
+oper_trn_T4_20260110,2026-01-10,oper,T4,Pausa manhã,10,True,Synthetic Lunch_Pesado
+oper_trn_T5_20260110,2026-01-10,oper,T5,Entrada TARDE,3,False,Synthetic Lunch_Pesado
+oper_trn_T6_20260110,2026-01-10,oper,T6,Almoço,45,True,Synthetic Lunch_Pesado
+oper_trn_T7_20260110,2026-01-10,oper,T7,Pós-almoço,20,True,Synthetic Lunch_Pesado
+oper_trn_T8_20260110,2026-01-10,oper,T8,Entrada NOITE,3,True,Synthetic Lunch_Pesado
+oper_trn_T9_20260110,2026-01-10,oper,T9,Sessão dormir,10,True,Synthetic Lunch_Pesado
+oper_trn_T1_20260111,2026-01-11,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260111,2026-01-11,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260111,2026-01-11,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260111,2026-01-11,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260111,2026-01-11,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260111,2026-01-11,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260111,2026-01-11,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260111,2026-01-11,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260111,2026-01-11,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260112,2026-01-12,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260112,2026-01-12,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260112,2026-01-12,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260112,2026-01-12,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260112,2026-01-12,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260112,2026-01-12,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260112,2026-01-12,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260112,2026-01-12,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260112,2026-01-12,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260113,2026-01-13,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260113,2026-01-13,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260113,2026-01-13,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260113,2026-01-13,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260113,2026-01-13,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260113,2026-01-13,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260113,2026-01-13,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260113,2026-01-13,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260113,2026-01-13,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260114,2026-01-14,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260114,2026-01-14,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260114,2026-01-14,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260114,2026-01-14,oper,T4,Pausa manhã,10,False,Synthetic Padrao_Ouro
+oper_trn_T5_20260114,2026-01-14,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260114,2026-01-14,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260114,2026-01-14,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260114,2026-01-14,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260114,2026-01-14,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260115,2026-01-15,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260115,2026-01-15,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260115,2026-01-15,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260115,2026-01-15,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260115,2026-01-15,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260115,2026-01-15,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260115,2026-01-15,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260115,2026-01-15,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260115,2026-01-15,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260116,2026-01-16,oper,T1,Sessão despertar,5,True,Synthetic Desvio_Leve
+oper_trn_T2_20260116,2026-01-16,oper,T2,Entrada MANHA,3,True,Synthetic Desvio_Leve
+oper_trn_T3_20260116,2026-01-16,oper,T3,Início foco #1,2,True,Synthetic Desvio_Leve
+oper_trn_T4_20260116,2026-01-16,oper,T4,Pausa manhã,10,True,Synthetic Desvio_Leve
+oper_trn_T5_20260116,2026-01-16,oper,T5,Entrada TARDE,3,True,Synthetic Desvio_Leve
+oper_trn_T6_20260116,2026-01-16,oper,T6,Almoço,45,True,Synthetic Desvio_Leve
+oper_trn_T7_20260116,2026-01-16,oper,T7,Pós-almoço,20,True,Synthetic Desvio_Leve
+oper_trn_T8_20260116,2026-01-16,oper,T8,Entrada NOITE,3,True,Synthetic Desvio_Leve
+oper_trn_T9_20260116,2026-01-16,oper,T9,Sessão dormir,10,True,Synthetic Desvio_Leve
+oper_trn_T1_20260117,2026-01-17,oper,T1,Sessão despertar,5,True,Synthetic Desvio_Leve
+oper_trn_T2_20260117,2026-01-17,oper,T2,Entrada MANHA,3,True,Synthetic Desvio_Leve
+oper_trn_T3_20260117,2026-01-17,oper,T3,Início foco #1,2,True,Synthetic Desvio_Leve
+oper_trn_T4_20260117,2026-01-17,oper,T4,Pausa manhã,10,True,Synthetic Desvio_Leve
+oper_trn_T5_20260117,2026-01-17,oper,T5,Entrada TARDE,3,True,Synthetic Desvio_Leve
+oper_trn_T6_20260117,2026-01-17,oper,T6,Almoço,45,True,Synthetic Desvio_Leve
+oper_trn_T7_20260117,2026-01-17,oper,T7,Pós-almoço,20,False,Synthetic Desvio_Leve
+oper_trn_T8_20260117,2026-01-17,oper,T8,Entrada NOITE,3,True,Synthetic Desvio_Leve
+oper_trn_T9_20260117,2026-01-17,oper,T9,Sessão dormir,10,True,Synthetic Desvio_Leve
+oper_trn_T1_20260118,2026-01-18,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260118,2026-01-18,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260118,2026-01-18,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260118,2026-01-18,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260118,2026-01-18,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260118,2026-01-18,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260118,2026-01-18,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260118,2026-01-18,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260118,2026-01-18,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260119,2026-01-19,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260119,2026-01-19,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260119,2026-01-19,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260119,2026-01-19,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260119,2026-01-19,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260119,2026-01-19,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260119,2026-01-19,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260119,2026-01-19,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260119,2026-01-19,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260120,2026-01-20,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260120,2026-01-20,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260120,2026-01-20,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260120,2026-01-20,oper,T4,Pausa manhã,10,False,Synthetic Padrao_Ouro
+oper_trn_T5_20260120,2026-01-20,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260120,2026-01-20,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260120,2026-01-20,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260120,2026-01-20,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260120,2026-01-20,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260121,2026-01-21,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260121,2026-01-21,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260121,2026-01-21,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260121,2026-01-21,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260121,2026-01-21,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260121,2026-01-21,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260121,2026-01-21,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260121,2026-01-21,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260121,2026-01-21,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260122,2026-01-22,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260122,2026-01-22,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260122,2026-01-22,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260122,2026-01-22,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260122,2026-01-22,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260122,2026-01-22,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260122,2026-01-22,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260122,2026-01-22,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260122,2026-01-22,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260123,2026-01-23,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260123,2026-01-23,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260123,2026-01-23,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260123,2026-01-23,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260123,2026-01-23,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260123,2026-01-23,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260123,2026-01-23,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260123,2026-01-23,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260123,2026-01-23,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260124,2026-01-24,oper,T1,Sessão despertar,5,True,Synthetic Feriado
+oper_trn_T2_20260124,2026-01-24,oper,T2,Entrada MANHA,3,True,Synthetic Feriado
+oper_trn_T3_20260124,2026-01-24,oper,T3,Início foco #1,2,False,Synthetic Feriado
+oper_trn_T4_20260124,2026-01-24,oper,T4,Pausa manhã,10,True,Synthetic Feriado
+oper_trn_T5_20260124,2026-01-24,oper,T5,Entrada TARDE,3,False,Synthetic Feriado
+oper_trn_T6_20260124,2026-01-24,oper,T6,Almoço,45,True,Synthetic Feriado
+oper_trn_T7_20260124,2026-01-24,oper,T7,Pós-almoço,20,True,Synthetic Feriado
+oper_trn_T8_20260124,2026-01-24,oper,T8,Entrada NOITE,3,False,Synthetic Feriado
+oper_trn_T9_20260124,2026-01-24,oper,T9,Sessão dormir,10,True,Synthetic Feriado
+oper_trn_T1_20260125,2026-01-25,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260125,2026-01-25,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260125,2026-01-25,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260125,2026-01-25,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260125,2026-01-25,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260125,2026-01-25,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260125,2026-01-25,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260125,2026-01-25,oper,T8,Entrada NOITE,3,False,Synthetic Fim_de_Semana
+oper_trn_T9_20260125,2026-01-25,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260126,2026-01-26,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260126,2026-01-26,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260126,2026-01-26,oper,T3,Início foco #1,2,False,Synthetic Fim_de_Semana
+oper_trn_T4_20260126,2026-01-26,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260126,2026-01-26,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260126,2026-01-26,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260126,2026-01-26,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260126,2026-01-26,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260126,2026-01-26,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260127,2026-01-27,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260127,2026-01-27,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260127,2026-01-27,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260127,2026-01-27,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260127,2026-01-27,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260127,2026-01-27,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260127,2026-01-27,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260127,2026-01-27,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260127,2026-01-27,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260128,2026-01-28,oper,T1,Sessão despertar,5,True,Synthetic Hardcore
+oper_trn_T2_20260128,2026-01-28,oper,T2,Entrada MANHA,3,False,Synthetic Hardcore
+oper_trn_T3_20260128,2026-01-28,oper,T3,Início foco #1,2,False,Synthetic Hardcore
+oper_trn_T4_20260128,2026-01-28,oper,T4,Pausa manhã,10,False,Synthetic Hardcore
+oper_trn_T5_20260128,2026-01-28,oper,T5,Entrada TARDE,3,True,Synthetic Hardcore
+oper_trn_T6_20260128,2026-01-28,oper,T6,Almoço,45,True,Synthetic Hardcore
+oper_trn_T7_20260128,2026-01-28,oper,T7,Pós-almoço,20,False,Synthetic Hardcore
+oper_trn_T8_20260128,2026-01-28,oper,T8,Entrada NOITE,3,False,Synthetic Hardcore
+oper_trn_T9_20260128,2026-01-28,oper,T9,Sessão dormir,10,False,Synthetic Hardcore
+oper_trn_T1_20260129,2026-01-29,oper,T1,Sessão despertar,5,True,Synthetic Recuperacao
+oper_trn_T2_20260129,2026-01-29,oper,T2,Entrada MANHA,3,True,Synthetic Recuperacao
+oper_trn_T3_20260129,2026-01-29,oper,T3,Início foco #1,2,True,Synthetic Recuperacao
+oper_trn_T4_20260129,2026-01-29,oper,T4,Pausa manhã,10,True,Synthetic Recuperacao
+oper_trn_T5_20260129,2026-01-29,oper,T5,Entrada TARDE,3,False,Synthetic Recuperacao
+oper_trn_T6_20260129,2026-01-29,oper,T6,Almoço,45,True,Synthetic Recuperacao
+oper_trn_T7_20260129,2026-01-29,oper,T7,Pós-almoço,20,True,Synthetic Recuperacao
+oper_trn_T8_20260129,2026-01-29,oper,T8,Entrada NOITE,3,True,Synthetic Recuperacao
+oper_trn_T9_20260129,2026-01-29,oper,T9,Sessão dormir,10,True,Synthetic Recuperacao
+oper_trn_T1_20260130,2026-01-30,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260130,2026-01-30,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260130,2026-01-30,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260130,2026-01-30,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260130,2026-01-30,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260130,2026-01-30,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260130,2026-01-30,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260130,2026-01-30,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260130,2026-01-30,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260131,2026-01-31,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260131,2026-01-31,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260131,2026-01-31,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260131,2026-01-31,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260131,2026-01-31,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260131,2026-01-31,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260131,2026-01-31,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260131,2026-01-31,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260131,2026-01-31,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260201,2026-02-01,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260201,2026-02-01,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260201,2026-02-01,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260201,2026-02-01,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260201,2026-02-01,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260201,2026-02-01,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260201,2026-02-01,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260201,2026-02-01,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260201,2026-02-01,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260202,2026-02-02,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260202,2026-02-02,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260202,2026-02-02,oper,T3,Início foco #1,2,False,Synthetic Fim_de_Semana
+oper_trn_T4_20260202,2026-02-02,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260202,2026-02-02,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260202,2026-02-02,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260202,2026-02-02,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260202,2026-02-02,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260202,2026-02-02,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260203,2026-02-03,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260203,2026-02-03,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260203,2026-02-03,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260203,2026-02-03,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260203,2026-02-03,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260203,2026-02-03,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260203,2026-02-03,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260203,2026-02-03,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260203,2026-02-03,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260204,2026-02-04,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260204,2026-02-04,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260204,2026-02-04,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260204,2026-02-04,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260204,2026-02-04,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260204,2026-02-04,oper,T6,Almoço,45,False,Synthetic Padrao_Ouro
+oper_trn_T7_20260204,2026-02-04,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260204,2026-02-04,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260204,2026-02-04,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260205,2026-02-05,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260205,2026-02-05,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260205,2026-02-05,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260205,2026-02-05,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260205,2026-02-05,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260205,2026-02-05,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260205,2026-02-05,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260205,2026-02-05,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260205,2026-02-05,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260206,2026-02-06,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260206,2026-02-06,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260206,2026-02-06,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260206,2026-02-06,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260206,2026-02-06,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260206,2026-02-06,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260206,2026-02-06,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260206,2026-02-06,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260206,2026-02-06,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260207,2026-02-07,oper,T1,Sessão despertar,5,True,Synthetic Lunch_Pesado
+oper_trn_T2_20260207,2026-02-07,oper,T2,Entrada MANHA,3,False,Synthetic Lunch_Pesado
+oper_trn_T3_20260207,2026-02-07,oper,T3,Início foco #1,2,True,Synthetic Lunch_Pesado
+oper_trn_T4_20260207,2026-02-07,oper,T4,Pausa manhã,10,True,Synthetic Lunch_Pesado
+oper_trn_T5_20260207,2026-02-07,oper,T5,Entrada TARDE,3,True,Synthetic Lunch_Pesado
+oper_trn_T6_20260207,2026-02-07,oper,T6,Almoço,45,True,Synthetic Lunch_Pesado
+oper_trn_T7_20260207,2026-02-07,oper,T7,Pós-almoço,20,True,Synthetic Lunch_Pesado
+oper_trn_T8_20260207,2026-02-07,oper,T8,Entrada NOITE,3,False,Synthetic Lunch_Pesado
+oper_trn_T9_20260207,2026-02-07,oper,T9,Sessão dormir,10,True,Synthetic Lunch_Pesado
+oper_trn_T1_20260208,2026-02-08,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260208,2026-02-08,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260208,2026-02-08,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260208,2026-02-08,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260208,2026-02-08,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260208,2026-02-08,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260208,2026-02-08,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260208,2026-02-08,oper,T8,Entrada NOITE,3,False,Synthetic Fim_de_Semana
+oper_trn_T9_20260208,2026-02-08,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260209,2026-02-09,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260209,2026-02-09,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260209,2026-02-09,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260209,2026-02-09,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260209,2026-02-09,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260209,2026-02-09,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260209,2026-02-09,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260209,2026-02-09,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260209,2026-02-09,oper,T9,Sessão dormir,10,False,Synthetic Fim_de_Semana
+oper_trn_T1_20260210,2026-02-10,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260210,2026-02-10,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260210,2026-02-10,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260210,2026-02-10,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260210,2026-02-10,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260210,2026-02-10,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260210,2026-02-10,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260210,2026-02-10,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260210,2026-02-10,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260211,2026-02-11,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260211,2026-02-11,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260211,2026-02-11,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260211,2026-02-11,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260211,2026-02-11,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260211,2026-02-11,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260211,2026-02-11,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260211,2026-02-11,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260211,2026-02-11,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260212,2026-02-12,oper,T1,Sessão despertar,5,False,Synthetic Desvio_Leve
+oper_trn_T2_20260212,2026-02-12,oper,T2,Entrada MANHA,3,False,Synthetic Desvio_Leve
+oper_trn_T3_20260212,2026-02-12,oper,T3,Início foco #1,2,True,Synthetic Desvio_Leve
+oper_trn_T4_20260212,2026-02-12,oper,T4,Pausa manhã,10,True,Synthetic Desvio_Leve
+oper_trn_T5_20260212,2026-02-12,oper,T5,Entrada TARDE,3,True,Synthetic Desvio_Leve
+oper_trn_T6_20260212,2026-02-12,oper,T6,Almoço,45,True,Synthetic Desvio_Leve
+oper_trn_T7_20260212,2026-02-12,oper,T7,Pós-almoço,20,False,Synthetic Desvio_Leve
+oper_trn_T8_20260212,2026-02-12,oper,T8,Entrada NOITE,3,True,Synthetic Desvio_Leve
+oper_trn_T9_20260212,2026-02-12,oper,T9,Sessão dormir,10,True,Synthetic Desvio_Leve
+oper_trn_T1_20260213,2026-02-13,oper,T1,Sessão despertar,5,True,Synthetic Desvio_Leve
+oper_trn_T2_20260213,2026-02-13,oper,T2,Entrada MANHA,3,True,Synthetic Desvio_Leve
+oper_trn_T3_20260213,2026-02-13,oper,T3,Início foco #1,2,True,Synthetic Desvio_Leve
+oper_trn_T4_20260213,2026-02-13,oper,T4,Pausa manhã,10,True,Synthetic Desvio_Leve
+oper_trn_T5_20260213,2026-02-13,oper,T5,Entrada TARDE,3,True,Synthetic Desvio_Leve
+oper_trn_T6_20260213,2026-02-13,oper,T6,Almoço,45,True,Synthetic Desvio_Leve
+oper_trn_T7_20260213,2026-02-13,oper,T7,Pós-almoço,20,True,Synthetic Desvio_Leve
+oper_trn_T8_20260213,2026-02-13,oper,T8,Entrada NOITE,3,True,Synthetic Desvio_Leve
+oper_trn_T9_20260213,2026-02-13,oper,T9,Sessão dormir,10,True,Synthetic Desvio_Leve
+oper_trn_T1_20260214,2026-02-14,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260214,2026-02-14,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260214,2026-02-14,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260214,2026-02-14,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260214,2026-02-14,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260214,2026-02-14,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260214,2026-02-14,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260214,2026-02-14,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260214,2026-02-14,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260215,2026-02-15,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260215,2026-02-15,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260215,2026-02-15,oper,T3,Início foco #1,2,False,Synthetic Fim_de_Semana
+oper_trn_T4_20260215,2026-02-15,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260215,2026-02-15,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260215,2026-02-15,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260215,2026-02-15,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260215,2026-02-15,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260215,2026-02-15,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260216,2026-02-16,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260216,2026-02-16,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260216,2026-02-16,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260216,2026-02-16,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260216,2026-02-16,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260216,2026-02-16,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260216,2026-02-16,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260216,2026-02-16,oper,T8,Entrada NOITE,3,False,Synthetic Fim_de_Semana
+oper_trn_T9_20260216,2026-02-16,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260217,2026-02-17,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260217,2026-02-17,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260217,2026-02-17,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260217,2026-02-17,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260217,2026-02-17,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260217,2026-02-17,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260217,2026-02-17,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260217,2026-02-17,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260217,2026-02-17,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260218,2026-02-18,oper,T1,Sessão despertar,5,True,Synthetic Feriado
+oper_trn_T2_20260218,2026-02-18,oper,T2,Entrada MANHA,3,True,Synthetic Feriado
+oper_trn_T3_20260218,2026-02-18,oper,T3,Início foco #1,2,True,Synthetic Feriado
+oper_trn_T4_20260218,2026-02-18,oper,T4,Pausa manhã,10,True,Synthetic Feriado
+oper_trn_T5_20260218,2026-02-18,oper,T5,Entrada TARDE,3,True,Synthetic Feriado
+oper_trn_T6_20260218,2026-02-18,oper,T6,Almoço,45,True,Synthetic Feriado
+oper_trn_T7_20260218,2026-02-18,oper,T7,Pós-almoço,20,True,Synthetic Feriado
+oper_trn_T8_20260218,2026-02-18,oper,T8,Entrada NOITE,3,True,Synthetic Feriado
+oper_trn_T9_20260218,2026-02-18,oper,T9,Sessão dormir,10,True,Synthetic Feriado
+oper_trn_T1_20260219,2026-02-19,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260219,2026-02-19,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260219,2026-02-19,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260219,2026-02-19,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260219,2026-02-19,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260219,2026-02-19,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260219,2026-02-19,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260219,2026-02-19,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260219,2026-02-19,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260220,2026-02-20,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260220,2026-02-20,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260220,2026-02-20,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260220,2026-02-20,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260220,2026-02-20,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260220,2026-02-20,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260220,2026-02-20,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260220,2026-02-20,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260220,2026-02-20,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260221,2026-02-21,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260221,2026-02-21,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260221,2026-02-21,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260221,2026-02-21,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260221,2026-02-21,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260221,2026-02-21,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260221,2026-02-21,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260221,2026-02-21,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260221,2026-02-21,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260222,2026-02-22,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260222,2026-02-22,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260222,2026-02-22,oper,T3,Início foco #1,2,False,Synthetic Fim_de_Semana
+oper_trn_T4_20260222,2026-02-22,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260222,2026-02-22,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260222,2026-02-22,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260222,2026-02-22,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260222,2026-02-22,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260222,2026-02-22,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260223,2026-02-23,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260223,2026-02-23,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260223,2026-02-23,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260223,2026-02-23,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260223,2026-02-23,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260223,2026-02-23,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260223,2026-02-23,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260223,2026-02-23,oper,T8,Entrada NOITE,3,False,Synthetic Fim_de_Semana
+oper_trn_T9_20260223,2026-02-23,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260224,2026-02-24,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260224,2026-02-24,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260224,2026-02-24,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260224,2026-02-24,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260224,2026-02-24,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260224,2026-02-24,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260224,2026-02-24,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260224,2026-02-24,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260224,2026-02-24,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260225,2026-02-25,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260225,2026-02-25,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260225,2026-02-25,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260225,2026-02-25,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260225,2026-02-25,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260225,2026-02-25,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260225,2026-02-25,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260225,2026-02-25,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260225,2026-02-25,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260226,2026-02-26,oper,T1,Sessão despertar,5,False,Synthetic Hardcore
+oper_trn_T2_20260226,2026-02-26,oper,T2,Entrada MANHA,3,False,Synthetic Hardcore
+oper_trn_T3_20260226,2026-02-26,oper,T3,Início foco #1,2,True,Synthetic Hardcore
+oper_trn_T4_20260226,2026-02-26,oper,T4,Pausa manhã,10,True,Synthetic Hardcore
+oper_trn_T5_20260226,2026-02-26,oper,T5,Entrada TARDE,3,False,Synthetic Hardcore
+oper_trn_T6_20260226,2026-02-26,oper,T6,Almoço,45,True,Synthetic Hardcore
+oper_trn_T7_20260226,2026-02-26,oper,T7,Pós-almoço,20,False,Synthetic Hardcore
+oper_trn_T8_20260226,2026-02-26,oper,T8,Entrada NOITE,3,False,Synthetic Hardcore
+oper_trn_T9_20260226,2026-02-26,oper,T9,Sessão dormir,10,False,Synthetic Hardcore
+oper_trn_T1_20260227,2026-02-27,oper,T1,Sessão despertar,5,True,Synthetic Recuperacao
+oper_trn_T2_20260227,2026-02-27,oper,T2,Entrada MANHA,3,True,Synthetic Recuperacao
+oper_trn_T3_20260227,2026-02-27,oper,T3,Início foco #1,2,True,Synthetic Recuperacao
+oper_trn_T4_20260227,2026-02-27,oper,T4,Pausa manhã,10,True,Synthetic Recuperacao
+oper_trn_T5_20260227,2026-02-27,oper,T5,Entrada TARDE,3,True,Synthetic Recuperacao
+oper_trn_T6_20260227,2026-02-27,oper,T6,Almoço,45,True,Synthetic Recuperacao
+oper_trn_T7_20260227,2026-02-27,oper,T7,Pós-almoço,20,True,Synthetic Recuperacao
+oper_trn_T8_20260227,2026-02-27,oper,T8,Entrada NOITE,3,True,Synthetic Recuperacao
+oper_trn_T9_20260227,2026-02-27,oper,T9,Sessão dormir,10,True,Synthetic Recuperacao
+oper_trn_T1_20260228,2026-02-28,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260228,2026-02-28,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260228,2026-02-28,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260228,2026-02-28,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260228,2026-02-28,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260228,2026-02-28,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260228,2026-02-28,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260228,2026-02-28,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260228,2026-02-28,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260301,2026-03-01,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260301,2026-03-01,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260301,2026-03-01,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260301,2026-03-01,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260301,2026-03-01,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260301,2026-03-01,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260301,2026-03-01,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260301,2026-03-01,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260301,2026-03-01,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260302,2026-03-02,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260302,2026-03-02,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260302,2026-03-02,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260302,2026-03-02,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260302,2026-03-02,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260302,2026-03-02,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260302,2026-03-02,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260302,2026-03-02,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260302,2026-03-02,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260303,2026-03-03,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260303,2026-03-03,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260303,2026-03-03,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260303,2026-03-03,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260303,2026-03-03,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260303,2026-03-03,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260303,2026-03-03,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260303,2026-03-03,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260303,2026-03-03,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260304,2026-03-04,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260304,2026-03-04,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260304,2026-03-04,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260304,2026-03-04,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260304,2026-03-04,oper,T5,Entrada TARDE,3,False,Synthetic Padrao_Ouro
+oper_trn_T6_20260304,2026-03-04,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260304,2026-03-04,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260304,2026-03-04,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260304,2026-03-04,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260305,2026-03-05,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260305,2026-03-05,oper,T2,Entrada MANHA,3,False,Synthetic Padrao_Ouro
+oper_trn_T3_20260305,2026-03-05,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260305,2026-03-05,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260305,2026-03-05,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260305,2026-03-05,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260305,2026-03-05,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260305,2026-03-05,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260305,2026-03-05,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260306,2026-03-06,oper,T1,Sessão despertar,5,True,Synthetic Lunch_Pesado
+oper_trn_T2_20260306,2026-03-06,oper,T2,Entrada MANHA,3,True,Synthetic Lunch_Pesado
+oper_trn_T3_20260306,2026-03-06,oper,T3,Início foco #1,2,True,Synthetic Lunch_Pesado
+oper_trn_T4_20260306,2026-03-06,oper,T4,Pausa manhã,10,True,Synthetic Lunch_Pesado
+oper_trn_T5_20260306,2026-03-06,oper,T5,Entrada TARDE,3,True,Synthetic Lunch_Pesado
+oper_trn_T6_20260306,2026-03-06,oper,T6,Almoço,45,True,Synthetic Lunch_Pesado
+oper_trn_T7_20260306,2026-03-06,oper,T7,Pós-almoço,20,False,Synthetic Lunch_Pesado
+oper_trn_T8_20260306,2026-03-06,oper,T8,Entrada NOITE,3,True,Synthetic Lunch_Pesado
+oper_trn_T9_20260306,2026-03-06,oper,T9,Sessão dormir,10,False,Synthetic Lunch_Pesado
+oper_trn_T1_20260307,2026-03-07,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260307,2026-03-07,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260307,2026-03-07,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260307,2026-03-07,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260307,2026-03-07,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260307,2026-03-07,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260307,2026-03-07,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260307,2026-03-07,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260307,2026-03-07,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260308,2026-03-08,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260308,2026-03-08,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260308,2026-03-08,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260308,2026-03-08,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260308,2026-03-08,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260308,2026-03-08,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260308,2026-03-08,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260308,2026-03-08,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260308,2026-03-08,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260309,2026-03-09,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260309,2026-03-09,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260309,2026-03-09,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260309,2026-03-09,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260309,2026-03-09,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260309,2026-03-09,oper,T6,Almoço,45,False,Synthetic Fim_de_Semana
+oper_trn_T7_20260309,2026-03-09,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260309,2026-03-09,oper,T8,Entrada NOITE,3,False,Synthetic Fim_de_Semana
+oper_trn_T9_20260309,2026-03-09,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260310,2026-03-10,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260310,2026-03-10,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260310,2026-03-10,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260310,2026-03-10,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260310,2026-03-10,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260310,2026-03-10,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260310,2026-03-10,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260310,2026-03-10,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260310,2026-03-10,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260311,2026-03-11,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260311,2026-03-11,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260311,2026-03-11,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260311,2026-03-11,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260311,2026-03-11,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260311,2026-03-11,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260311,2026-03-11,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260311,2026-03-11,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260311,2026-03-11,oper,T9,Sessão dormir,10,False,Synthetic Padrao_Ouro
+oper_trn_T1_20260312,2026-03-12,oper,T1,Sessão despertar,5,True,Synthetic Desvio_Leve
+oper_trn_T2_20260312,2026-03-12,oper,T2,Entrada MANHA,3,False,Synthetic Desvio_Leve
+oper_trn_T3_20260312,2026-03-12,oper,T3,Início foco #1,2,False,Synthetic Desvio_Leve
+oper_trn_T4_20260312,2026-03-12,oper,T4,Pausa manhã,10,True,Synthetic Desvio_Leve
+oper_trn_T5_20260312,2026-03-12,oper,T5,Entrada TARDE,3,False,Synthetic Desvio_Leve
+oper_trn_T6_20260312,2026-03-12,oper,T6,Almoço,45,True,Synthetic Desvio_Leve
+oper_trn_T7_20260312,2026-03-12,oper,T7,Pós-almoço,20,True,Synthetic Desvio_Leve
+oper_trn_T8_20260312,2026-03-12,oper,T8,Entrada NOITE,3,True,Synthetic Desvio_Leve
+oper_trn_T9_20260312,2026-03-12,oper,T9,Sessão dormir,10,True,Synthetic Desvio_Leve
+oper_trn_T1_20260313,2026-03-13,oper,T1,Sessão despertar,5,True,Synthetic Desvio_Leve
+oper_trn_T2_20260313,2026-03-13,oper,T2,Entrada MANHA,3,True,Synthetic Desvio_Leve
+oper_trn_T3_20260313,2026-03-13,oper,T3,Início foco #1,2,False,Synthetic Desvio_Leve
+oper_trn_T4_20260313,2026-03-13,oper,T4,Pausa manhã,10,False,Synthetic Desvio_Leve
+oper_trn_T5_20260313,2026-03-13,oper,T5,Entrada TARDE,3,True,Synthetic Desvio_Leve
+oper_trn_T6_20260313,2026-03-13,oper,T6,Almoço,45,True,Synthetic Desvio_Leve
+oper_trn_T7_20260313,2026-03-13,oper,T7,Pós-almoço,20,False,Synthetic Desvio_Leve
+oper_trn_T8_20260313,2026-03-13,oper,T8,Entrada NOITE,3,True,Synthetic Desvio_Leve
+oper_trn_T9_20260313,2026-03-13,oper,T9,Sessão dormir,10,True,Synthetic Desvio_Leve
+oper_trn_T1_20260314,2026-03-14,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260314,2026-03-14,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260314,2026-03-14,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260314,2026-03-14,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260314,2026-03-14,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260314,2026-03-14,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260314,2026-03-14,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260314,2026-03-14,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260314,2026-03-14,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260315,2026-03-15,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260315,2026-03-15,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260315,2026-03-15,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260315,2026-03-15,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260315,2026-03-15,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260315,2026-03-15,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260315,2026-03-15,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260315,2026-03-15,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260315,2026-03-15,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260316,2026-03-16,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260316,2026-03-16,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260316,2026-03-16,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260316,2026-03-16,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260316,2026-03-16,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260316,2026-03-16,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260316,2026-03-16,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260316,2026-03-16,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260316,2026-03-16,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260317,2026-03-17,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260317,2026-03-17,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260317,2026-03-17,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260317,2026-03-17,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260317,2026-03-17,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260317,2026-03-17,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260317,2026-03-17,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260317,2026-03-17,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260317,2026-03-17,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260318,2026-03-18,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260318,2026-03-18,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260318,2026-03-18,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260318,2026-03-18,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260318,2026-03-18,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260318,2026-03-18,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260318,2026-03-18,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260318,2026-03-18,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260318,2026-03-18,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260319,2026-03-19,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260319,2026-03-19,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260319,2026-03-19,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260319,2026-03-19,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260319,2026-03-19,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260319,2026-03-19,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260319,2026-03-19,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260319,2026-03-19,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260319,2026-03-19,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260320,2026-03-20,oper,T1,Sessão despertar,5,True,Synthetic Doente
+oper_trn_T2_20260320,2026-03-20,oper,T2,Entrada MANHA,3,False,Synthetic Doente
+oper_trn_T3_20260320,2026-03-20,oper,T3,Início foco #1,2,False,Synthetic Doente
+oper_trn_T4_20260320,2026-03-20,oper,T4,Pausa manhã,10,True,Synthetic Doente
+oper_trn_T5_20260320,2026-03-20,oper,T5,Entrada TARDE,3,False,Synthetic Doente
+oper_trn_T6_20260320,2026-03-20,oper,T6,Almoço,45,True,Synthetic Doente
+oper_trn_T7_20260320,2026-03-20,oper,T7,Pós-almoço,20,False,Synthetic Doente
+oper_trn_T8_20260320,2026-03-20,oper,T8,Entrada NOITE,3,True,Synthetic Doente
+oper_trn_T9_20260320,2026-03-20,oper,T9,Sessão dormir,10,False,Synthetic Doente
+oper_trn_T1_20260321,2026-03-21,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260321,2026-03-21,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260321,2026-03-21,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260321,2026-03-21,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260321,2026-03-21,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260321,2026-03-21,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260321,2026-03-21,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260321,2026-03-21,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260321,2026-03-21,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260322,2026-03-22,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260322,2026-03-22,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260322,2026-03-22,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260322,2026-03-22,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260322,2026-03-22,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260322,2026-03-22,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260322,2026-03-22,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260322,2026-03-22,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260322,2026-03-22,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260323,2026-03-23,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260323,2026-03-23,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260323,2026-03-23,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260323,2026-03-23,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260323,2026-03-23,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260323,2026-03-23,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260323,2026-03-23,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260323,2026-03-23,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260323,2026-03-23,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260324,2026-03-24,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260324,2026-03-24,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260324,2026-03-24,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260324,2026-03-24,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260324,2026-03-24,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260324,2026-03-24,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260324,2026-03-24,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260324,2026-03-24,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260324,2026-03-24,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260325,2026-03-25,oper,T1,Sessão despertar,5,False,Synthetic Feriado
+oper_trn_T2_20260325,2026-03-25,oper,T2,Entrada MANHA,3,True,Synthetic Feriado
+oper_trn_T3_20260325,2026-03-25,oper,T3,Início foco #1,2,True,Synthetic Feriado
+oper_trn_T4_20260325,2026-03-25,oper,T4,Pausa manhã,10,True,Synthetic Feriado
+oper_trn_T5_20260325,2026-03-25,oper,T5,Entrada TARDE,3,True,Synthetic Feriado
+oper_trn_T6_20260325,2026-03-25,oper,T6,Almoço,45,True,Synthetic Feriado
+oper_trn_T7_20260325,2026-03-25,oper,T7,Pós-almoço,20,True,Synthetic Feriado
+oper_trn_T8_20260325,2026-03-25,oper,T8,Entrada NOITE,3,True,Synthetic Feriado
+oper_trn_T9_20260325,2026-03-25,oper,T9,Sessão dormir,10,True,Synthetic Feriado
+oper_trn_T1_20260326,2026-03-26,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260326,2026-03-26,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260326,2026-03-26,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260326,2026-03-26,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260326,2026-03-26,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260326,2026-03-26,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260326,2026-03-26,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260326,2026-03-26,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260326,2026-03-26,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260327,2026-03-27,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260327,2026-03-27,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260327,2026-03-27,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260327,2026-03-27,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260327,2026-03-27,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260327,2026-03-27,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260327,2026-03-27,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260327,2026-03-27,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260327,2026-03-27,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260328,2026-03-28,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260328,2026-03-28,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260328,2026-03-28,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260328,2026-03-28,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260328,2026-03-28,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260328,2026-03-28,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260328,2026-03-28,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260328,2026-03-28,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260328,2026-03-28,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260329,2026-03-29,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260329,2026-03-29,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260329,2026-03-29,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260329,2026-03-29,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260329,2026-03-29,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260329,2026-03-29,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260329,2026-03-29,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260329,2026-03-29,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260329,2026-03-29,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260330,2026-03-30,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260330,2026-03-30,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260330,2026-03-30,oper,T3,Início foco #1,2,False,Synthetic Fim_de_Semana
+oper_trn_T4_20260330,2026-03-30,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260330,2026-03-30,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260330,2026-03-30,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260330,2026-03-30,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260330,2026-03-30,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260330,2026-03-30,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260331,2026-03-31,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260331,2026-03-31,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260331,2026-03-31,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260331,2026-03-31,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260331,2026-03-31,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260331,2026-03-31,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260331,2026-03-31,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260331,2026-03-31,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260331,2026-03-31,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260401,2026-04-01,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260401,2026-04-01,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260401,2026-04-01,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260401,2026-04-01,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260401,2026-04-01,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260401,2026-04-01,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260401,2026-04-01,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260401,2026-04-01,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260401,2026-04-01,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260402,2026-04-02,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260402,2026-04-02,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260402,2026-04-02,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260402,2026-04-02,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260402,2026-04-02,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260402,2026-04-02,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260402,2026-04-02,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260402,2026-04-02,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260402,2026-04-02,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260403,2026-04-03,oper,T1,Sessão despertar,5,True,Synthetic Lunch_Pesado
+oper_trn_T2_20260403,2026-04-03,oper,T2,Entrada MANHA,3,True,Synthetic Lunch_Pesado
+oper_trn_T3_20260403,2026-04-03,oper,T3,Início foco #1,2,True,Synthetic Lunch_Pesado
+oper_trn_T4_20260403,2026-04-03,oper,T4,Pausa manhã,10,True,Synthetic Lunch_Pesado
+oper_trn_T5_20260403,2026-04-03,oper,T5,Entrada TARDE,3,False,Synthetic Lunch_Pesado
+oper_trn_T6_20260403,2026-04-03,oper,T6,Almoço,45,True,Synthetic Lunch_Pesado
+oper_trn_T7_20260403,2026-04-03,oper,T7,Pós-almoço,20,True,Synthetic Lunch_Pesado
+oper_trn_T8_20260403,2026-04-03,oper,T8,Entrada NOITE,3,True,Synthetic Lunch_Pesado
+oper_trn_T9_20260403,2026-04-03,oper,T9,Sessão dormir,10,False,Synthetic Lunch_Pesado
+oper_trn_T1_20260404,2026-04-04,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260404,2026-04-04,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260404,2026-04-04,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260404,2026-04-04,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260404,2026-04-04,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260404,2026-04-04,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260404,2026-04-04,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260404,2026-04-04,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260404,2026-04-04,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260405,2026-04-05,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260405,2026-04-05,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260405,2026-04-05,oper,T3,Início foco #1,2,False,Synthetic Fim_de_Semana
+oper_trn_T4_20260405,2026-04-05,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260405,2026-04-05,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260405,2026-04-05,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260405,2026-04-05,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260405,2026-04-05,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260405,2026-04-05,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260406,2026-04-06,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260406,2026-04-06,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260406,2026-04-06,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260406,2026-04-06,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260406,2026-04-06,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260406,2026-04-06,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260406,2026-04-06,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260406,2026-04-06,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260406,2026-04-06,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260407,2026-04-07,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260407,2026-04-07,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260407,2026-04-07,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260407,2026-04-07,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260407,2026-04-07,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260407,2026-04-07,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260407,2026-04-07,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260407,2026-04-07,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260407,2026-04-07,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260408,2026-04-08,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260408,2026-04-08,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260408,2026-04-08,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260408,2026-04-08,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260408,2026-04-08,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260408,2026-04-08,oper,T6,Almoço,45,False,Synthetic Padrao_Ouro
+oper_trn_T7_20260408,2026-04-08,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260408,2026-04-08,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260408,2026-04-08,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260409,2026-04-09,oper,T1,Sessão despertar,5,True,Synthetic Desvio_Leve
+oper_trn_T2_20260409,2026-04-09,oper,T2,Entrada MANHA,3,False,Synthetic Desvio_Leve
+oper_trn_T3_20260409,2026-04-09,oper,T3,Início foco #1,2,False,Synthetic Desvio_Leve
+oper_trn_T4_20260409,2026-04-09,oper,T4,Pausa manhã,10,True,Synthetic Desvio_Leve
+oper_trn_T5_20260409,2026-04-09,oper,T5,Entrada TARDE,3,False,Synthetic Desvio_Leve
+oper_trn_T6_20260409,2026-04-09,oper,T6,Almoço,45,True,Synthetic Desvio_Leve
+oper_trn_T7_20260409,2026-04-09,oper,T7,Pós-almoço,20,True,Synthetic Desvio_Leve
+oper_trn_T8_20260409,2026-04-09,oper,T8,Entrada NOITE,3,False,Synthetic Desvio_Leve
+oper_trn_T9_20260409,2026-04-09,oper,T9,Sessão dormir,10,True,Synthetic Desvio_Leve
+oper_trn_T1_20260410,2026-04-10,oper,T1,Sessão despertar,5,True,Synthetic Desvio_Leve
+oper_trn_T2_20260410,2026-04-10,oper,T2,Entrada MANHA,3,True,Synthetic Desvio_Leve
+oper_trn_T3_20260410,2026-04-10,oper,T3,Início foco #1,2,True,Synthetic Desvio_Leve
+oper_trn_T4_20260410,2026-04-10,oper,T4,Pausa manhã,10,True,Synthetic Desvio_Leve
+oper_trn_T5_20260410,2026-04-10,oper,T5,Entrada TARDE,3,False,Synthetic Desvio_Leve
+oper_trn_T6_20260410,2026-04-10,oper,T6,Almoço,45,True,Synthetic Desvio_Leve
+oper_trn_T7_20260410,2026-04-10,oper,T7,Pós-almoço,20,True,Synthetic Desvio_Leve
+oper_trn_T8_20260410,2026-04-10,oper,T8,Entrada NOITE,3,True,Synthetic Desvio_Leve
+oper_trn_T9_20260410,2026-04-10,oper,T9,Sessão dormir,10,True,Synthetic Desvio_Leve
+oper_trn_T1_20260411,2026-04-11,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260411,2026-04-11,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260411,2026-04-11,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260411,2026-04-11,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260411,2026-04-11,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260411,2026-04-11,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260411,2026-04-11,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260411,2026-04-11,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260411,2026-04-11,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260412,2026-04-12,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260412,2026-04-12,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260412,2026-04-12,oper,T3,Início foco #1,2,False,Synthetic Fim_de_Semana
+oper_trn_T4_20260412,2026-04-12,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260412,2026-04-12,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260412,2026-04-12,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260412,2026-04-12,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260412,2026-04-12,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260412,2026-04-12,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260413,2026-04-13,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260413,2026-04-13,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260413,2026-04-13,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260413,2026-04-13,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260413,2026-04-13,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260413,2026-04-13,oper,T6,Almoço,45,False,Synthetic Fim_de_Semana
+oper_trn_T7_20260413,2026-04-13,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260413,2026-04-13,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260413,2026-04-13,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260414,2026-04-14,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260414,2026-04-14,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260414,2026-04-14,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260414,2026-04-14,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260414,2026-04-14,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260414,2026-04-14,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260414,2026-04-14,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260414,2026-04-14,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260414,2026-04-14,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260415,2026-04-15,oper,T1,Sessão despertar,5,False,Synthetic Hardcore
+oper_trn_T2_20260415,2026-04-15,oper,T2,Entrada MANHA,3,False,Synthetic Hardcore
+oper_trn_T3_20260415,2026-04-15,oper,T3,Início foco #1,2,False,Synthetic Hardcore
+oper_trn_T4_20260415,2026-04-15,oper,T4,Pausa manhã,10,True,Synthetic Hardcore
+oper_trn_T5_20260415,2026-04-15,oper,T5,Entrada TARDE,3,True,Synthetic Hardcore
+oper_trn_T6_20260415,2026-04-15,oper,T6,Almoço,45,True,Synthetic Hardcore
+oper_trn_T7_20260415,2026-04-15,oper,T7,Pós-almoço,20,True,Synthetic Hardcore
+oper_trn_T8_20260415,2026-04-15,oper,T8,Entrada NOITE,3,True,Synthetic Hardcore
+oper_trn_T9_20260415,2026-04-15,oper,T9,Sessão dormir,10,False,Synthetic Hardcore
+oper_trn_T1_20260416,2026-04-16,oper,T1,Sessão despertar,5,False,Synthetic Recuperacao
+oper_trn_T2_20260416,2026-04-16,oper,T2,Entrada MANHA,3,True,Synthetic Recuperacao
+oper_trn_T3_20260416,2026-04-16,oper,T3,Início foco #1,2,True,Synthetic Recuperacao
+oper_trn_T4_20260416,2026-04-16,oper,T4,Pausa manhã,10,False,Synthetic Recuperacao
+oper_trn_T5_20260416,2026-04-16,oper,T5,Entrada TARDE,3,True,Synthetic Recuperacao
+oper_trn_T6_20260416,2026-04-16,oper,T6,Almoço,45,True,Synthetic Recuperacao
+oper_trn_T7_20260416,2026-04-16,oper,T7,Pós-almoço,20,True,Synthetic Recuperacao
+oper_trn_T8_20260416,2026-04-16,oper,T8,Entrada NOITE,3,True,Synthetic Recuperacao
+oper_trn_T9_20260416,2026-04-16,oper,T9,Sessão dormir,10,True,Synthetic Recuperacao
+oper_trn_T1_20260417,2026-04-17,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260417,2026-04-17,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260417,2026-04-17,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260417,2026-04-17,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260417,2026-04-17,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260417,2026-04-17,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260417,2026-04-17,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260417,2026-04-17,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260417,2026-04-17,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260418,2026-04-18,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260418,2026-04-18,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260418,2026-04-18,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260418,2026-04-18,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260418,2026-04-18,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260418,2026-04-18,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260418,2026-04-18,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260418,2026-04-18,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260418,2026-04-18,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260419,2026-04-19,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260419,2026-04-19,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260419,2026-04-19,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260419,2026-04-19,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260419,2026-04-19,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260419,2026-04-19,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260419,2026-04-19,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260419,2026-04-19,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260419,2026-04-19,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260420,2026-04-20,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260420,2026-04-20,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260420,2026-04-20,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260420,2026-04-20,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260420,2026-04-20,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260420,2026-04-20,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260420,2026-04-20,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260420,2026-04-20,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260420,2026-04-20,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260421,2026-04-21,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260421,2026-04-21,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260421,2026-04-21,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260421,2026-04-21,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260421,2026-04-21,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260421,2026-04-21,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260421,2026-04-21,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260421,2026-04-21,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260421,2026-04-21,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260422,2026-04-22,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260422,2026-04-22,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260422,2026-04-22,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260422,2026-04-22,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260422,2026-04-22,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260422,2026-04-22,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260422,2026-04-22,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260422,2026-04-22,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260422,2026-04-22,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260423,2026-04-23,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260423,2026-04-23,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260423,2026-04-23,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260423,2026-04-23,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260423,2026-04-23,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260423,2026-04-23,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260423,2026-04-23,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260423,2026-04-23,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260423,2026-04-23,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260424,2026-04-24,oper,T1,Sessão despertar,5,False,Synthetic Visita_Inesperada
+oper_trn_T2_20260424,2026-04-24,oper,T2,Entrada MANHA,3,True,Synthetic Visita_Inesperada
+oper_trn_T3_20260424,2026-04-24,oper,T3,Início foco #1,2,False,Synthetic Visita_Inesperada
+oper_trn_T4_20260424,2026-04-24,oper,T4,Pausa manhã,10,True,Synthetic Visita_Inesperada
+oper_trn_T5_20260424,2026-04-24,oper,T5,Entrada TARDE,3,False,Synthetic Visita_Inesperada
+oper_trn_T6_20260424,2026-04-24,oper,T6,Almoço,45,True,Synthetic Visita_Inesperada
+oper_trn_T7_20260424,2026-04-24,oper,T7,Pós-almoço,20,True,Synthetic Visita_Inesperada
+oper_trn_T8_20260424,2026-04-24,oper,T8,Entrada NOITE,3,True,Synthetic Visita_Inesperada
+oper_trn_T9_20260424,2026-04-24,oper,T9,Sessão dormir,10,True,Synthetic Visita_Inesperada
+oper_trn_T1_20260425,2026-04-25,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260425,2026-04-25,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260425,2026-04-25,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260425,2026-04-25,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260425,2026-04-25,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260425,2026-04-25,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260425,2026-04-25,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260425,2026-04-25,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260425,2026-04-25,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260426,2026-04-26,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260426,2026-04-26,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260426,2026-04-26,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260426,2026-04-26,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260426,2026-04-26,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260426,2026-04-26,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260426,2026-04-26,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260426,2026-04-26,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260426,2026-04-26,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260427,2026-04-27,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260427,2026-04-27,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260427,2026-04-27,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260427,2026-04-27,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260427,2026-04-27,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260427,2026-04-27,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260427,2026-04-27,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260427,2026-04-27,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260427,2026-04-27,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260428,2026-04-28,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260428,2026-04-28,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260428,2026-04-28,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260428,2026-04-28,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260428,2026-04-28,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260428,2026-04-28,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260428,2026-04-28,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260428,2026-04-28,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260428,2026-04-28,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260429,2026-04-29,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260429,2026-04-29,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260429,2026-04-29,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260429,2026-04-29,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260429,2026-04-29,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260429,2026-04-29,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260429,2026-04-29,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260429,2026-04-29,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260429,2026-04-29,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260430,2026-04-30,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260430,2026-04-30,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260430,2026-04-30,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260430,2026-04-30,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260430,2026-04-30,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260430,2026-04-30,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260430,2026-04-30,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260430,2026-04-30,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260430,2026-04-30,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260501,2026-05-01,oper,T1,Sessão despertar,5,False,Synthetic Lunch_Pesado
+oper_trn_T2_20260501,2026-05-01,oper,T2,Entrada MANHA,3,True,Synthetic Lunch_Pesado
+oper_trn_T3_20260501,2026-05-01,oper,T3,Início foco #1,2,True,Synthetic Lunch_Pesado
+oper_trn_T4_20260501,2026-05-01,oper,T4,Pausa manhã,10,True,Synthetic Lunch_Pesado
+oper_trn_T5_20260501,2026-05-01,oper,T5,Entrada TARDE,3,True,Synthetic Lunch_Pesado
+oper_trn_T6_20260501,2026-05-01,oper,T6,Almoço,45,True,Synthetic Lunch_Pesado
+oper_trn_T7_20260501,2026-05-01,oper,T7,Pós-almoço,20,True,Synthetic Lunch_Pesado
+oper_trn_T8_20260501,2026-05-01,oper,T8,Entrada NOITE,3,True,Synthetic Lunch_Pesado
+oper_trn_T9_20260501,2026-05-01,oper,T9,Sessão dormir,10,False,Synthetic Lunch_Pesado
+oper_trn_T1_20260502,2026-05-02,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260502,2026-05-02,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260502,2026-05-02,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260502,2026-05-02,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260502,2026-05-02,oper,T5,Entrada TARDE,3,False,Synthetic Padrao_Ouro
+oper_trn_T6_20260502,2026-05-02,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260502,2026-05-02,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260502,2026-05-02,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260502,2026-05-02,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260503,2026-05-03,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260503,2026-05-03,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260503,2026-05-03,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260503,2026-05-03,oper,T4,Pausa manhã,10,False,Synthetic Fim_de_Semana
+oper_trn_T5_20260503,2026-05-03,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260503,2026-05-03,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260503,2026-05-03,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260503,2026-05-03,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260503,2026-05-03,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260504,2026-05-04,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260504,2026-05-04,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260504,2026-05-04,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260504,2026-05-04,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260504,2026-05-04,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260504,2026-05-04,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260504,2026-05-04,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260504,2026-05-04,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260504,2026-05-04,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260505,2026-05-05,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260505,2026-05-05,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260505,2026-05-05,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260505,2026-05-05,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260505,2026-05-05,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260505,2026-05-05,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260505,2026-05-05,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260505,2026-05-05,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260505,2026-05-05,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260506,2026-05-06,oper,T1,Sessão despertar,5,True,Synthetic Feriado
+oper_trn_T2_20260506,2026-05-06,oper,T2,Entrada MANHA,3,True,Synthetic Feriado
+oper_trn_T3_20260506,2026-05-06,oper,T3,Início foco #1,2,True,Synthetic Feriado
+oper_trn_T4_20260506,2026-05-06,oper,T4,Pausa manhã,10,True,Synthetic Feriado
+oper_trn_T5_20260506,2026-05-06,oper,T5,Entrada TARDE,3,True,Synthetic Feriado
+oper_trn_T6_20260506,2026-05-06,oper,T6,Almoço,45,False,Synthetic Feriado
+oper_trn_T7_20260506,2026-05-06,oper,T7,Pós-almoço,20,True,Synthetic Feriado
+oper_trn_T8_20260506,2026-05-06,oper,T8,Entrada NOITE,3,True,Synthetic Feriado
+oper_trn_T9_20260506,2026-05-06,oper,T9,Sessão dormir,10,True,Synthetic Feriado
+oper_trn_T1_20260507,2026-05-07,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260507,2026-05-07,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260507,2026-05-07,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260507,2026-05-07,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260507,2026-05-07,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260507,2026-05-07,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260507,2026-05-07,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260507,2026-05-07,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260507,2026-05-07,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260508,2026-05-08,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260508,2026-05-08,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260508,2026-05-08,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260508,2026-05-08,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260508,2026-05-08,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260508,2026-05-08,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260508,2026-05-08,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260508,2026-05-08,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260508,2026-05-08,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260509,2026-05-09,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260509,2026-05-09,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260509,2026-05-09,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260509,2026-05-09,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260509,2026-05-09,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260509,2026-05-09,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260509,2026-05-09,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260509,2026-05-09,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260509,2026-05-09,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260510,2026-05-10,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260510,2026-05-10,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260510,2026-05-10,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260510,2026-05-10,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260510,2026-05-10,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260510,2026-05-10,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260510,2026-05-10,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260510,2026-05-10,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260510,2026-05-10,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260511,2026-05-11,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260511,2026-05-11,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260511,2026-05-11,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260511,2026-05-11,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260511,2026-05-11,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260511,2026-05-11,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260511,2026-05-11,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260511,2026-05-11,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260511,2026-05-11,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260512,2026-05-12,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260512,2026-05-12,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260512,2026-05-12,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260512,2026-05-12,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260512,2026-05-12,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260512,2026-05-12,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260512,2026-05-12,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260512,2026-05-12,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260512,2026-05-12,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260513,2026-05-13,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260513,2026-05-13,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260513,2026-05-13,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260513,2026-05-13,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260513,2026-05-13,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260513,2026-05-13,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260513,2026-05-13,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260513,2026-05-13,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260513,2026-05-13,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260514,2026-05-14,oper,T1,Sessão despertar,5,True,Synthetic Desvio_Leve
+oper_trn_T2_20260514,2026-05-14,oper,T2,Entrada MANHA,3,True,Synthetic Desvio_Leve
+oper_trn_T3_20260514,2026-05-14,oper,T3,Início foco #1,2,True,Synthetic Desvio_Leve
+oper_trn_T4_20260514,2026-05-14,oper,T4,Pausa manhã,10,True,Synthetic Desvio_Leve
+oper_trn_T5_20260514,2026-05-14,oper,T5,Entrada TARDE,3,False,Synthetic Desvio_Leve
+oper_trn_T6_20260514,2026-05-14,oper,T6,Almoço,45,True,Synthetic Desvio_Leve
+oper_trn_T7_20260514,2026-05-14,oper,T7,Pós-almoço,20,True,Synthetic Desvio_Leve
+oper_trn_T8_20260514,2026-05-14,oper,T8,Entrada NOITE,3,True,Synthetic Desvio_Leve
+oper_trn_T9_20260514,2026-05-14,oper,T9,Sessão dormir,10,True,Synthetic Desvio_Leve
+oper_trn_T1_20260515,2026-05-15,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260515,2026-05-15,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260515,2026-05-15,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260515,2026-05-15,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260515,2026-05-15,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260515,2026-05-15,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260515,2026-05-15,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260515,2026-05-15,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260515,2026-05-15,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260516,2026-05-16,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260516,2026-05-16,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260516,2026-05-16,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260516,2026-05-16,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260516,2026-05-16,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260516,2026-05-16,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260516,2026-05-16,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260516,2026-05-16,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260516,2026-05-16,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260517,2026-05-17,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260517,2026-05-17,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260517,2026-05-17,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260517,2026-05-17,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260517,2026-05-17,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260517,2026-05-17,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260517,2026-05-17,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260517,2026-05-17,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260517,2026-05-17,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260518,2026-05-18,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260518,2026-05-18,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260518,2026-05-18,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260518,2026-05-18,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260518,2026-05-18,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260518,2026-05-18,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260518,2026-05-18,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260518,2026-05-18,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260518,2026-05-18,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260519,2026-05-19,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260519,2026-05-19,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260519,2026-05-19,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260519,2026-05-19,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260519,2026-05-19,oper,T5,Entrada TARDE,3,False,Synthetic Padrao_Ouro
+oper_trn_T6_20260519,2026-05-19,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260519,2026-05-19,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260519,2026-05-19,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260519,2026-05-19,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260520,2026-05-20,oper,T1,Sessão despertar,5,True,Synthetic Hardcore
+oper_trn_T2_20260520,2026-05-20,oper,T2,Entrada MANHA,3,False,Synthetic Hardcore
+oper_trn_T3_20260520,2026-05-20,oper,T3,Início foco #1,2,False,Synthetic Hardcore
+oper_trn_T4_20260520,2026-05-20,oper,T4,Pausa manhã,10,True,Synthetic Hardcore
+oper_trn_T5_20260520,2026-05-20,oper,T5,Entrada TARDE,3,True,Synthetic Hardcore
+oper_trn_T6_20260520,2026-05-20,oper,T6,Almoço,45,False,Synthetic Hardcore
+oper_trn_T7_20260520,2026-05-20,oper,T7,Pós-almoço,20,True,Synthetic Hardcore
+oper_trn_T8_20260520,2026-05-20,oper,T8,Entrada NOITE,3,True,Synthetic Hardcore
+oper_trn_T9_20260520,2026-05-20,oper,T9,Sessão dormir,10,True,Synthetic Hardcore
+oper_trn_T1_20260521,2026-05-21,oper,T1,Sessão despertar,5,True,Synthetic Recuperacao
+oper_trn_T2_20260521,2026-05-21,oper,T2,Entrada MANHA,3,True,Synthetic Recuperacao
+oper_trn_T3_20260521,2026-05-21,oper,T3,Início foco #1,2,True,Synthetic Recuperacao
+oper_trn_T4_20260521,2026-05-21,oper,T4,Pausa manhã,10,True,Synthetic Recuperacao
+oper_trn_T5_20260521,2026-05-21,oper,T5,Entrada TARDE,3,True,Synthetic Recuperacao
+oper_trn_T6_20260521,2026-05-21,oper,T6,Almoço,45,True,Synthetic Recuperacao
+oper_trn_T7_20260521,2026-05-21,oper,T7,Pós-almoço,20,False,Synthetic Recuperacao
+oper_trn_T8_20260521,2026-05-21,oper,T8,Entrada NOITE,3,True,Synthetic Recuperacao
+oper_trn_T9_20260521,2026-05-21,oper,T9,Sessão dormir,10,True,Synthetic Recuperacao
+oper_trn_T1_20260522,2026-05-22,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260522,2026-05-22,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260522,2026-05-22,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260522,2026-05-22,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260522,2026-05-22,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260522,2026-05-22,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260522,2026-05-22,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260522,2026-05-22,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260522,2026-05-22,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260523,2026-05-23,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260523,2026-05-23,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260523,2026-05-23,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260523,2026-05-23,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260523,2026-05-23,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260523,2026-05-23,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260523,2026-05-23,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260523,2026-05-23,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260523,2026-05-23,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260524,2026-05-24,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260524,2026-05-24,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260524,2026-05-24,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260524,2026-05-24,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260524,2026-05-24,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260524,2026-05-24,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260524,2026-05-24,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260524,2026-05-24,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260524,2026-05-24,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260525,2026-05-25,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260525,2026-05-25,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260525,2026-05-25,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260525,2026-05-25,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260525,2026-05-25,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260525,2026-05-25,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260525,2026-05-25,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260525,2026-05-25,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260525,2026-05-25,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260526,2026-05-26,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260526,2026-05-26,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260526,2026-05-26,oper,T3,Início foco #1,2,False,Synthetic Padrao_Ouro
+oper_trn_T4_20260526,2026-05-26,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260526,2026-05-26,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260526,2026-05-26,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260526,2026-05-26,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260526,2026-05-26,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260526,2026-05-26,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260527,2026-05-27,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260527,2026-05-27,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260527,2026-05-27,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260527,2026-05-27,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260527,2026-05-27,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260527,2026-05-27,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260527,2026-05-27,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260527,2026-05-27,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260527,2026-05-27,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260528,2026-05-28,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260528,2026-05-28,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260528,2026-05-28,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260528,2026-05-28,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260528,2026-05-28,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260528,2026-05-28,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260528,2026-05-28,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260528,2026-05-28,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260528,2026-05-28,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260529,2026-05-29,oper,T1,Sessão despertar,5,True,Synthetic Lunch_Pesado
+oper_trn_T2_20260529,2026-05-29,oper,T2,Entrada MANHA,3,True,Synthetic Lunch_Pesado
+oper_trn_T3_20260529,2026-05-29,oper,T3,Início foco #1,2,True,Synthetic Lunch_Pesado
+oper_trn_T4_20260529,2026-05-29,oper,T4,Pausa manhã,10,True,Synthetic Lunch_Pesado
+oper_trn_T5_20260529,2026-05-29,oper,T5,Entrada TARDE,3,True,Synthetic Lunch_Pesado
+oper_trn_T6_20260529,2026-05-29,oper,T6,Almoço,45,True,Synthetic Lunch_Pesado
+oper_trn_T7_20260529,2026-05-29,oper,T7,Pós-almoço,20,True,Synthetic Lunch_Pesado
+oper_trn_T8_20260529,2026-05-29,oper,T8,Entrada NOITE,3,True,Synthetic Lunch_Pesado
+oper_trn_T9_20260529,2026-05-29,oper,T9,Sessão dormir,10,False,Synthetic Lunch_Pesado
+oper_trn_T1_20260530,2026-05-30,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260530,2026-05-30,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260530,2026-05-30,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260530,2026-05-30,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260530,2026-05-30,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260530,2026-05-30,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260530,2026-05-30,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260530,2026-05-30,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260530,2026-05-30,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260531,2026-05-31,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260531,2026-05-31,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260531,2026-05-31,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260531,2026-05-31,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260531,2026-05-31,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260531,2026-05-31,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260531,2026-05-31,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260531,2026-05-31,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260531,2026-05-31,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260601,2026-06-01,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260601,2026-06-01,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260601,2026-06-01,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260601,2026-06-01,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260601,2026-06-01,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260601,2026-06-01,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260601,2026-06-01,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260601,2026-06-01,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260601,2026-06-01,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260602,2026-06-02,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260602,2026-06-02,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260602,2026-06-02,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260602,2026-06-02,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260602,2026-06-02,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260602,2026-06-02,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260602,2026-06-02,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260602,2026-06-02,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260602,2026-06-02,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260603,2026-06-03,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260603,2026-06-03,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260603,2026-06-03,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260603,2026-06-03,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260603,2026-06-03,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260603,2026-06-03,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260603,2026-06-03,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260603,2026-06-03,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260603,2026-06-03,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260604,2026-06-04,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260604,2026-06-04,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260604,2026-06-04,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260604,2026-06-04,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260604,2026-06-04,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260604,2026-06-04,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260604,2026-06-04,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260604,2026-06-04,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260604,2026-06-04,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260605,2026-06-05,oper,T1,Sessão despertar,5,False,Synthetic Doente
+oper_trn_T2_20260605,2026-06-05,oper,T2,Entrada MANHA,3,True,Synthetic Doente
+oper_trn_T3_20260605,2026-06-05,oper,T3,Início foco #1,2,True,Synthetic Doente
+oper_trn_T4_20260605,2026-06-05,oper,T4,Pausa manhã,10,True,Synthetic Doente
+oper_trn_T5_20260605,2026-06-05,oper,T5,Entrada TARDE,3,True,Synthetic Doente
+oper_trn_T6_20260605,2026-06-05,oper,T6,Almoço,45,False,Synthetic Doente
+oper_trn_T7_20260605,2026-06-05,oper,T7,Pós-almoço,20,False,Synthetic Doente
+oper_trn_T8_20260605,2026-06-05,oper,T8,Entrada NOITE,3,False,Synthetic Doente
+oper_trn_T9_20260605,2026-06-05,oper,T9,Sessão dormir,10,True,Synthetic Doente
+oper_trn_T1_20260606,2026-06-06,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260606,2026-06-06,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260606,2026-06-06,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260606,2026-06-06,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260606,2026-06-06,oper,T5,Entrada TARDE,3,False,Synthetic Padrao_Ouro
+oper_trn_T6_20260606,2026-06-06,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260606,2026-06-06,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260606,2026-06-06,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260606,2026-06-06,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260607,2026-06-07,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260607,2026-06-07,oper,T2,Entrada MANHA,3,False,Synthetic Fim_de_Semana
+oper_trn_T3_20260607,2026-06-07,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260607,2026-06-07,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260607,2026-06-07,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260607,2026-06-07,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260607,2026-06-07,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260607,2026-06-07,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260607,2026-06-07,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260608,2026-06-08,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260608,2026-06-08,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260608,2026-06-08,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260608,2026-06-08,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260608,2026-06-08,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260608,2026-06-08,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260608,2026-06-08,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260608,2026-06-08,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260608,2026-06-08,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260609,2026-06-09,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260609,2026-06-09,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260609,2026-06-09,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260609,2026-06-09,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260609,2026-06-09,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260609,2026-06-09,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260609,2026-06-09,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260609,2026-06-09,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260609,2026-06-09,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260610,2026-06-10,oper,T1,Sessão despertar,5,True,Synthetic Feriado
+oper_trn_T2_20260610,2026-06-10,oper,T2,Entrada MANHA,3,True,Synthetic Feriado
+oper_trn_T3_20260610,2026-06-10,oper,T3,Início foco #1,2,True,Synthetic Feriado
+oper_trn_T4_20260610,2026-06-10,oper,T4,Pausa manhã,10,True,Synthetic Feriado
+oper_trn_T5_20260610,2026-06-10,oper,T5,Entrada TARDE,3,False,Synthetic Feriado
+oper_trn_T6_20260610,2026-06-10,oper,T6,Almoço,45,True,Synthetic Feriado
+oper_trn_T7_20260610,2026-06-10,oper,T7,Pós-almoço,20,True,Synthetic Feriado
+oper_trn_T8_20260610,2026-06-10,oper,T8,Entrada NOITE,3,True,Synthetic Feriado
+oper_trn_T9_20260610,2026-06-10,oper,T9,Sessão dormir,10,True,Synthetic Feriado
+oper_trn_T1_20260611,2026-06-11,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260611,2026-06-11,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260611,2026-06-11,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260611,2026-06-11,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260611,2026-06-11,oper,T5,Entrada TARDE,3,False,Synthetic Padrao_Ouro
+oper_trn_T6_20260611,2026-06-11,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260611,2026-06-11,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260611,2026-06-11,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260611,2026-06-11,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260612,2026-06-12,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260612,2026-06-12,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260612,2026-06-12,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260612,2026-06-12,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260612,2026-06-12,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260612,2026-06-12,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260612,2026-06-12,oper,T7,Pós-almoço,20,False,Synthetic Padrao_Ouro
+oper_trn_T8_20260612,2026-06-12,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260612,2026-06-12,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260613,2026-06-13,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260613,2026-06-13,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260613,2026-06-13,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260613,2026-06-13,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260613,2026-06-13,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260613,2026-06-13,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260613,2026-06-13,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260613,2026-06-13,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260613,2026-06-13,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260614,2026-06-14,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260614,2026-06-14,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260614,2026-06-14,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260614,2026-06-14,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260614,2026-06-14,oper,T5,Entrada TARDE,3,False,Synthetic Fim_de_Semana
+oper_trn_T6_20260614,2026-06-14,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260614,2026-06-14,oper,T7,Pós-almoço,20,False,Synthetic Fim_de_Semana
+oper_trn_T8_20260614,2026-06-14,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260614,2026-06-14,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260615,2026-06-15,oper,T1,Sessão despertar,5,True,Synthetic Fim_de_Semana
+oper_trn_T2_20260615,2026-06-15,oper,T2,Entrada MANHA,3,True,Synthetic Fim_de_Semana
+oper_trn_T3_20260615,2026-06-15,oper,T3,Início foco #1,2,True,Synthetic Fim_de_Semana
+oper_trn_T4_20260615,2026-06-15,oper,T4,Pausa manhã,10,True,Synthetic Fim_de_Semana
+oper_trn_T5_20260615,2026-06-15,oper,T5,Entrada TARDE,3,True,Synthetic Fim_de_Semana
+oper_trn_T6_20260615,2026-06-15,oper,T6,Almoço,45,True,Synthetic Fim_de_Semana
+oper_trn_T7_20260615,2026-06-15,oper,T7,Pós-almoço,20,True,Synthetic Fim_de_Semana
+oper_trn_T8_20260615,2026-06-15,oper,T8,Entrada NOITE,3,True,Synthetic Fim_de_Semana
+oper_trn_T9_20260615,2026-06-15,oper,T9,Sessão dormir,10,True,Synthetic Fim_de_Semana
+oper_trn_T1_20260616,2026-06-16,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260616,2026-06-16,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260616,2026-06-16,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260616,2026-06-16,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260616,2026-06-16,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260616,2026-06-16,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260616,2026-06-16,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260616,2026-06-16,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260616,2026-06-16,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260617,2026-06-17,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260617,2026-06-17,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260617,2026-06-17,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260617,2026-06-17,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260617,2026-06-17,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260617,2026-06-17,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260617,2026-06-17,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260617,2026-06-17,oper,T8,Entrada NOITE,3,False,Synthetic Padrao_Ouro
+oper_trn_T9_20260617,2026-06-17,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro
+oper_trn_T1_20260618,2026-06-18,oper,T1,Sessão despertar,5,True,Synthetic Desvio_Leve
+oper_trn_T2_20260618,2026-06-18,oper,T2,Entrada MANHA,3,True,Synthetic Desvio_Leve
+oper_trn_T3_20260618,2026-06-18,oper,T3,Início foco #1,2,True,Synthetic Desvio_Leve
+oper_trn_T4_20260618,2026-06-18,oper,T4,Pausa manhã,10,True,Synthetic Desvio_Leve
+oper_trn_T5_20260618,2026-06-18,oper,T5,Entrada TARDE,3,True,Synthetic Desvio_Leve
+oper_trn_T6_20260618,2026-06-18,oper,T6,Almoço,45,True,Synthetic Desvio_Leve
+oper_trn_T7_20260618,2026-06-18,oper,T7,Pós-almoço,20,True,Synthetic Desvio_Leve
+oper_trn_T8_20260618,2026-06-18,oper,T8,Entrada NOITE,3,True,Synthetic Desvio_Leve
+oper_trn_T9_20260618,2026-06-18,oper,T9,Sessão dormir,10,True,Synthetic Desvio_Leve
+oper_trn_T1_20260619,2026-06-19,oper,T1,Sessão despertar,5,False,Synthetic Vigilia
+oper_trn_T2_20260619,2026-06-19,oper,T2,Entrada MANHA,3,True,Synthetic Vigilia
+oper_trn_T3_20260619,2026-06-19,oper,T3,Início foco #1,2,False,Synthetic Vigilia
+oper_trn_T4_20260619,2026-06-19,oper,T4,Pausa manhã,10,False,Synthetic Vigilia
+oper_trn_T5_20260619,2026-06-19,oper,T5,Entrada TARDE,3,False,Synthetic Vigilia
+oper_trn_T6_20260619,2026-06-19,oper,T6,Almoço,45,True,Synthetic Vigilia
+oper_trn_T7_20260619,2026-06-19,oper,T7,Pós-almoço,20,False,Synthetic Vigilia
+oper_trn_T8_20260619,2026-06-19,oper,T8,Entrada NOITE,3,False,Synthetic Vigilia
+oper_trn_T9_20260619,2026-06-19,oper,T9,Sessão dormir,10,True,Synthetic Vigilia
+oper_trn_T1_20260620,2026-06-20,oper,T1,Sessão despertar,5,True,Synthetic Padrao_Ouro
+oper_trn_T2_20260620,2026-06-20,oper,T2,Entrada MANHA,3,True,Synthetic Padrao_Ouro
+oper_trn_T3_20260620,2026-06-20,oper,T3,Início foco #1,2,True,Synthetic Padrao_Ouro
+oper_trn_T4_20260620,2026-06-20,oper,T4,Pausa manhã,10,True,Synthetic Padrao_Ouro
+oper_trn_T5_20260620,2026-06-20,oper,T5,Entrada TARDE,3,True,Synthetic Padrao_Ouro
+oper_trn_T6_20260620,2026-06-20,oper,T6,Almoço,45,True,Synthetic Padrao_Ouro
+oper_trn_T7_20260620,2026-06-20,oper,T7,Pós-almoço,20,True,Synthetic Padrao_Ouro
+oper_trn_T8_20260620,2026-06-20,oper,T8,Entrada NOITE,3,True,Synthetic Padrao_Ouro
+oper_trn_T9_20260620,2026-06-20,oper,T9,Sessão dormir,10,True,Synthetic Padrao_Ouro

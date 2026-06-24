@@ -27,13 +27,16 @@ any sub-block time tracking.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
-from operational.entities.ajuste_fino import AjusteFino
-from operational.entities.journal import JournalEntry
-from operational.entities.routine import RoutineLog
 from operational.enums import Period
+
+if TYPE_CHECKING:
+    from datetime import date
+
+    from operational.entities.ajuste_fino import AjusteFino
+    from operational.entities.journal import JournalEntry
+    from operational.entities.routine import RoutineLog
 
 __all__ = [
     "JournalReport",

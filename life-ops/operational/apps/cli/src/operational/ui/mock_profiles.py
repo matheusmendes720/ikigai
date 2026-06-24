@@ -19,13 +19,15 @@ Profiles:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, time
+from datetime import date
 from typing import Final
 
-from operational.enums import EstadoPsicomatico, PolicyState, TipoDia
 from operational.core.budget import (
-    budget_for_date, classify_quadrant, productivity_pct, efficiency_pct,
+    budget_for_date,
+    classify_quadrant,
+    productivity_pct,
 )
+from operational.enums import PolicyState, TipoDia
 
 
 @dataclass(frozen=True)
@@ -175,9 +177,12 @@ PROFILES: Final[dict[str, MockProfile]] = {
 def get_profile(name: str) -> MockProfile:
     """Get a mock profile by name. Raises ValueError if unknown."""
     if name not in PROFILES:
-        raise ValueError(
+        msg = (
             f"Unknown mock profile {name!r}. "
             f"Available: {sorted(PROFILES.keys())}"
+        )
+        raise ValueError(
+            msg
         )
     return PROFILES[name]
 
@@ -187,4 +192,4 @@ def list_profiles() -> list[str]:
     return sorted(PROFILES.keys())
 
 
-__all__ = ["MockProfile", "PROFILES", "get_profile", "list_profiles"]
+__all__ = ["PROFILES", "MockProfile", "get_profile", "list_profiles"]

@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "ikigai"
+version = "0.1.0"
+description = "Standalone IKIGAi meta-brain for the Algorithmic Life OS"
+authors = ["Matheus + AI Agent"]
+readme = "README.md"
+packages = [{include = "ikigai", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pydantic = "^2.6"
+pyyaml = "^6.0"
+python-frontmatter = "^1.0"
+typer = "^0.12"
+rich = "^13.7"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+pytest-cov = "^4.1"
+hypothesis = "^6.95"
+mypy = "^1.8"
+ruff = "^0.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "PT", "RUF"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_unused_ignores = true
+warn_return_any = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --tb=short"

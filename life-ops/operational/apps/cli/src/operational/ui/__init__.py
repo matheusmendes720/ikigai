@@ -73,5 +73,5 @@ def strip_ansi(text: str) -> str:
     return _ANSI_ESCAPE_RE.sub("", text)
 
 
-__all__ = ["console", "CONSOLE_WIDTH", "is_captured", "strip_ansi"]
+__all__ = ["CONSOLE_WIDTH", "console", "is_captured", "strip_ansi"]
 

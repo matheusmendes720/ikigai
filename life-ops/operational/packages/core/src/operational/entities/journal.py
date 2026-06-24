@@ -41,7 +41,7 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from operational.entities.ajuste_fino import AjusteFino
+from operational.entities.ajuste_fino import AjusteFino  # noqa: TC001
 from operational.enums import Period, RitualType
 from operational.types import UEID  # noqa: TC001  (used as Pydantic field type at runtime)
 

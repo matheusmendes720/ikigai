@@ -91,10 +91,7 @@ def make_time_block(
     from datetime import timedelta
     now = datetime.now(UTC)
     s = start or now
-    if end is not None:
-        e = end
-    else:
-        e = s + timedelta(hours=1)
+    e = end if end is not None else s + timedelta(hours=1)
     uid = id or UEID(f"blk_{s.strftime('%Y%m%d_%H%M%S')}")
     return TimeBlock(
         id=uid,

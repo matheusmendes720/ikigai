@@ -1,0 +1,9 @@
+id,name,category,resistance,lambda_learning,weight_in_qhe,frequency,created_at,archived
+oper_hab_beber_2l_de_agua,Beber 2L Água,physiological,2.0,0.093,0.15,DAILY,2025-12-23,False
+oper_hab_meditar_10min,Meditar 10min,physiological,3.0,0.093,0.1,DAILY,2025-12-23,False
+oper_hab_alongamento,Alongamento,physiological,4.0,0.093,0.1,DAILY,2025-12-23,False
+oper_hab_ler_30min,Ler 30min,cognitive,6.0,0.093,0.15,DAILY,2025-12-23,False
+oper_hab_caminhada_20min,Caminhada 20min,physiological,4.0,0.093,0.1,DAILY,2025-12-23,False
+oper_hab_ligar_familia,Ligar Família,social,5.0,0.093,0.1,DAILY,2025-12-23,False
+oper_hab_escrever_diario,Escrever Diário,cognitive,5.0,0.093,0.15,DAILY,2025-12-23,False
+oper_hab_planejar_dia,Planejar Dia,cognitive,3.0,0.093,0.15,DAILY,2025-12-23,False

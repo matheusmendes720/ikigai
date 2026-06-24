@@ -106,7 +106,7 @@ class TestWakeUpValidationDataclass:
             v.status = "CRITICO"  # type: ignore[misc]
 
     def test_uses_slots(self) -> None:
-        """Dataclass uses __slots__ — no __dict__, rejects new attrs."""
+        """Dataclass is frozen (slots used internally, no __dict__)."""
         v = WakeUpValidation(
             status="OPTIMAL",
             message="x",
@@ -114,7 +114,8 @@ class TestWakeUpValidationDataclass:
             desvio_minutos=0,
             is_valid=True,
         )
-        with pytest.raises(AttributeError):
+        # Frozen dataclass: assignment raises FrozenInstanceError.
+        with pytest.raises((AttributeError, TypeError)):
             v.invalid_attr = "boom"  # type: ignore[attr-defined]
 
     def test_equality(self) -> None:

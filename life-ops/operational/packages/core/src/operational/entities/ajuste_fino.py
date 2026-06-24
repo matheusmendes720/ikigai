@@ -27,7 +27,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from operational.enums import Period
+from operational.enums import Period  # noqa: TC001
 from operational.types import UEID  # noqa: TC001
 
 __all__ = ["AjusteFino"]

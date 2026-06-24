@@ -1,4 +1,4 @@
-"""CSV I/O for the operational CLI — read/write entity datasets.
+r"""CSV I/O for the operational CLI — read/write entity datasets.
 
 The CSV file is the canonical read-only source of truth for datasets
 (synthetic, golden, production). The JSON files in TIME_TASKER_STATE_DIR
@@ -24,11 +24,13 @@ from __future__ import annotations
 
 import csv
 import json
-from collections.abc import Iterable
 from datetime import date, datetime, time
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 def _build_model_map() -> dict[str, type]:
@@ -117,7 +119,8 @@ def _json_default(obj: Any) -> Any:
         return obj.value
     if isinstance(obj, (set, frozenset)):
         return sorted(obj)
-    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+    msg = f"Object of type {type(obj).__name__} is not JSON serializable"
+    raise TypeError(msg)
 
 
 def _from_jsonable(raw: str, target_type: type | None = None) -> Any:
@@ -225,31 +228,38 @@ def import_from_csv(csv_path: str | Path) -> dict[str, list[dict[str, Any]]]:
     """
     path = Path(csv_path)
     if not path.exists():
-        raise FileNotFoundError(f"CSV file not found: {path}")
-    with open(path, "r", encoding="utf-8-sig", newline="") as fh:
+        msg = f"CSV file not found: {path}"
+        raise FileNotFoundError(msg)
+    with open(path, encoding="utf-8-sig", newline="") as fh:
         reader = csv.reader(fh)
         try:
             header = next(reader)
         except StopIteration as exc:
-            raise ValueError("CSV file is empty") from exc
+            msg = "CSV file is empty"
+            raise ValueError(msg) from exc
         if len(header) < 2 or header[0] != "entity_type" or header[1] != "id":
+            msg = f"Invalid CSV header: expected entity_type,id,... got {header[:5]}"
             raise ValueError(
-                f"Invalid CSV header: expected entity_type,id,... got {header[:5]}"
+                msg
             )
         result: dict[str, list[dict[str, Any]]] = {}
         for row_num, row in enumerate(reader, start=2):
             if not row or all(c == "" for c in row):
                 continue
             if len(row) != len(header):
+                msg = f"Row {row_num} has {len(row)} columns, expected {len(header)}"
                 raise ValueError(
-                    f"Row {row_num} has {len(row)} columns, expected {len(header)}"
+                    msg
                 )
             etype = row[0]
             eid = row[1]
             if etype not in MODEL_MAP:
-                raise ValueError(
+                msg = (
                     f"Row {row_num}: unknown entity_type {etype!r} "
                     f"(known: {sorted(MODEL_MAP.keys())})"
+                )
+                raise ValueError(
+                    msg
                 )
             data: dict[str, Any] = {"id": eid}
             for i, col in enumerate(header[2:], start=2):

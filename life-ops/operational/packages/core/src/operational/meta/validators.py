@@ -1,10 +1,12 @@
 """Reusable validation utilities for entity fields."""
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from operational.types import UEID_PATTERN
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 __all__ = [
     "validate_datetime_ordered",
@@ -27,9 +29,11 @@ def validate_ueid_format(value: Any) -> str:
         ValueError: If the value does not match the UEID pattern.
     """
     if not isinstance(value, str):
-        raise TypeError("UEID must be a string, got %s: %r" % (type(value).__name__, value))
+        msg = f"UEID must be a string, got {type(value).__name__}: {value!r}"
+        raise TypeError(msg)
     if not UEID_PATTERN.match(value):
-        raise ValueError("Invalid UEID format: %r" % value)
+        msg = f"Invalid UEID format: {value!r}"
+        raise ValueError(msg)
     return value
 
 
@@ -79,7 +83,8 @@ def validate_period_bounds(
         ValueError: If the hour is out of bounds.
     """
     if not lo <= hour < hi:
+        msg = f"{label} ({hour}) out of expected range [{lo}, {hi})"
         raise ValueError(
-            "%s (%s) out of expected range [%s, %s)" % (label, hour, lo, hi)
+            msg
         )
     return hour

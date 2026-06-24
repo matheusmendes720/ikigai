@@ -31,5 +31,5 @@ def test_get_tui_theme_returns_theme() -> None:
     theme = get_tui_theme()
     assert theme.name == "pav-dark"
     assert theme.primary == "#1E90FF"
-    assert theme.background == "#000000"
+    assert theme.background == "#0d0d1a"
     assert theme.dark is True

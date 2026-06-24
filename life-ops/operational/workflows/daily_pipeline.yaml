@@ -1,0 +1,121 @@
+# Daily Pipeline — runs PAV daily/weekly handlers with synthetic dataset
+# Scheduled: 0 2 * * * (2 AM daily)
+
+metadata:
+  name: daily_pipeline
+  version: 1.0.0
+  description: >
+    Daily operational pipeline: loads synthetic_180d.csv →
+    runs all CLI health checks → generates report → benchmarks
+  author: hermes-orchestrator
+  tags: [daily, pav, operational]
+  expected_duration_s: 120
+
+trigger:
+  type: schedule
+  schedule: "0 2 * * *"
+
+notifications:
+  channels: [slack]
+  on_completion: true
+  on_failure: true
+  slack_webhook: ${env.SLACK_WEBHOOK_URL}
+
+environment:
+  TIME_TASKER_DATASET: synthetic
+
+tasks:
+  # ── Health check ───────────────────────────────────────────────────
+  - id: health_check
+    name: System Health Check
+    type: shell
+    command: uv run --directory ${env.ROOT} pav doctor --json
+    timeout_s: 60
+    environment:
+      ROOT: C:/Users/mathe/code_space/life-oss/life/life-ops/operational
+
+  # ── State + Demo ────────────────────────────────────────────────────
+  - id: state_show
+    name: Show Current State
+    type: shell
+    command: uv run --directory ${env.ROOT} pav state show --json
+    timeout_s: 30
+    on_success: [demo_show]
+
+  - id: demo_show
+    name: Demo Data Summary
+    type: shell
+    depends_on: [state_show]
+    command: uv run --directory ${env.ROOT} pav demo show --json
+    timeout_s: 30
+    on_success: [habit_metrics]
+
+  # ── Habit + Routine metrics ─────────────────────────────────────────
+  - id: habit_metrics
+    name: Habit Metrics
+    type: shell
+    depends_on: [demo_show]
+    command: uv run --directory ${env.ROOT} pav habit list --json
+    timeout_s: 30
+    on_success: [routine_metrics]
+
+  - id: routine_metrics
+    name: Routine Metrics
+    type: shell
+    depends_on: [habit_metrics]
+    command: uv run --directory ${env.ROOT} pav routine list --json
+    timeout_s: 30
+    on_success: [policy_status]
+
+  # ── Policy + Report ──────────────────────────────────────────────────
+  - id: policy_status
+    name: Policy Status
+    type: shell
+    depends_on: [routine_metrics]
+    command: uv run --directory ${env.ROOT} pav policy decisions --json
+    timeout_s: 30
+    on_success: [daily_report]
+
+  - id: daily_report
+    name: Daily Report
+    type: shell
+    depends_on: [policy_status]
+    command: uv run --directory ${env.ROOT} pav report daily --json
+    timeout_s: 60
+    on_success: [weekly_report]
+
+  - id: weekly_report
+    name: Weekly Report
+    type: shell
+    depends_on: [daily_report]
+    command: uv run --directory ${env.ROOT} pav report weekly --json
+    timeout_s: 60
+
+  # ── Parallel benchmark run ─────────────────────────────────────────
+  - id: benchmark_all
+    name: Benchmark All Commands
+    type: parallel
+    depends_on: [weekly_report]
+    wait_for: all
+    timeout_s: 180
+    tasks:
+      - id: bench_habits
+        name: Benchmark habit list
+        type: shell
+        command: uv run --directory ${env.ROOT} pav habit list --json
+        timeout_s: 30
+      - id: bench_routines
+        name: Benchmark routine list
+        type: shell
+        command: uv run --directory ${env.ROOT} pav routine list --json
+        timeout_s: 30
+      - id: bench_metrics
+        name: Benchmark metric list
+        type: shell
+        command: uv run --directory ${env.ROOT} pav metric list --json
+        timeout_s: 30
+      - id: bench_policy
+        name: Benchmark policy decisions
+        type: shell
+        command: uv run --directory ${env.ROOT} pav policy decisions --json
+        timeout_s: 30

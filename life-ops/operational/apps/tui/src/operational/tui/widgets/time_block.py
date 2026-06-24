@@ -1,14 +1,30 @@
-"""Time Block Display widget for PAV TUI."""
+"""Time Block Display widget for PAV TUI.
+
+All attributes are reactive — assigning to them auto-refreshes the widget.
+"""
 from __future__ import annotations
 
+from operational.tui.theme import TUI_COLORS
+from textual.reactive import reactive
 from textual.widgets import Static
 
-STATUS_INDICATORS = {"OK": "✓", "WARN": "⚠", "CRIT": "✗", "PEND": "◌", "ACTIVE": "●"}
-STATUS_COLORS = {"OK": "#00FF00", "WARN": "#FFD700", "CRIT": "#FF4444", "PEND": "#A9A9A9", "ACTIVE": "#4ecdc4"}
-
-# PAV period colors
+STATUS_INDICATORS = {
+    "OK": "✓",
+    "WARN": "⚠",
+    "CRIT": "✗",
+    "PEND": "◌",
+    "ACTIVE": "●",
+}
+STATUS_COLORS = {
+    "OK": TUI_COLORS["success"],
+    "WARN": TUI_COLORS["warning"],
+    "CRIT": TUI_COLORS["danger"],
+    "PEND": TUI_COLORS["muted"],
+    "ACTIVE": TUI_COLORS["info"],
+}
 PERIOD_COLORS = {"MANHA": "#16213e", "TARDE": "#0f3460", "NOITE": "#1a1a2e"}
 _TEXT = "#E0E0E0"
+_MUTED = TUI_COLORS["muted"]
 
 
 class TimeBlockDisplay(Static):
@@ -20,8 +36,15 @@ class TimeBlockDisplay(Static):
         padding: 1 2;
         background: $surface;
         border: solid $border;
+        color: $text;
     }
     """
+
+    label = reactive("")
+    start = reactive("")
+    end = reactive("")
+    status = reactive("PEND")
+    period = reactive("")
 
     def __init__(
         self,
@@ -39,20 +62,57 @@ class TimeBlockDisplay(Static):
         self.status = status
         self.period = period
 
+    def update(  # type: ignore[override]
+        self,
+        *,
+        label: str | None = None,
+        start: str | None = None,
+        end: str | None = None,
+        status: str | None = None,
+        period: str | None = None,
+    ) -> None:
+        if label is not None:
+            self.label = label
+        if start is not None:
+            self.start = start
+        if end is not None:
+            self.end = end
+        if status is not None:
+            self.status = status
+        if period is not None:
+            self.period = period
+
+    def watch_label(self, old: str, new: str) -> None:
+        self.refresh()
+
+    def watch_start(self, old: str, new: str) -> None:
+        self.refresh()
+
+    def watch_end(self, old: str, new: str) -> None:
+        self.refresh()
+
+    def watch_status(self, old: str, new: str) -> None:
+        self.refresh()
+
+    def watch_period(self, old: str, new: str) -> None:
+        self.refresh()
+
     def render(self) -> str:
         indicator = STATUS_INDICATORS.get(self.status, "○")
-        color = STATUS_COLORS.get(self.status, "#A9A9A9")
+        color = STATUS_COLORS.get(self.status, _MUTED)
         time_range = f"{self.start}→{self.end}" if self.start and self.end else ""
         period_str = f"[{self.period}]" if self.period else ""
 
-        # Build colored indicator
         ind_markup = f"[{color}]{indicator}[/{color}]"
 
-        # Build period tag with period color
         if self.period in PERIOD_COLORS:
             pcolor = PERIOD_COLORS[self.period]
             period_markup = f"[{pcolor}]{period_str}[/{pcolor}]"
         else:
-            period_markup = f"[#A9A9A9]{period_str}[/#A9A9A9]"
+            period_markup = f"[{_MUTED}]{period_str}[/{_MUTED}]"
 
-        return f"{ind_markup}  {period_markup:<8} [{_TEXT}]{self.label}[/{_TEXT}]  [#A9A9A9]{time_range}[/#A9A9A9]"
+        return (
+            f"{ind_markup}  {period_markup:<8} "
+            f"[{_TEXT}]{self.label}[/{_TEXT}]  "
+            f"[{_MUTED}]{time_range}[/{_MUTED}]"
+        )

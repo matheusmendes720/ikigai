@@ -19,7 +19,8 @@ def _json_fallback(obj: Any) -> Any:
         return obj.model_dump(mode="json")
     if isinstance(obj, (datetime, date)):
         return obj.isoformat()
-    raise TypeError("Object of type %s is not JSON serializable" % type(obj).__name__)
+    msg = f"Object of type {type(obj).__name__} is not JSON serializable"
+    raise TypeError(msg)
 
 
 def format_as_table(

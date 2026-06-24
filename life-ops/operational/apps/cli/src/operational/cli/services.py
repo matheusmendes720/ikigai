@@ -7,23 +7,9 @@ testable in isolation and keeps the UI layer free of business rules.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, time
 from typing import Any
 
-from operational.core.budget import (
-    budget_for_date,
-    classify_infracao,
-    classify_quadrant,
-    productivity_pct,
-    efficiency_pct,
-)
-from operational.core.exceptions import (
-    DataInvalidaError,
-    FaltaDadosError,
-    LimitePomodoroExcedidoError,
-    RepositorioVazioError,
-    ValorForaRangeError,
-)
 from operational.cli.state import (
     ajustes_finos,
     daily_reflections,
@@ -37,15 +23,23 @@ from operational.cli.state import (
     time_blocks,
     transicoes,
 )
+from operational.core.budget import (
+    budget_for_date,
+    classify_quadrant,
+    efficiency_pct,
+    productivity_pct,
+)
+from operational.core.exceptions import (
+    DataInvalidaError,
+    FaltaDadosError,
+    LimitePomodoroExcedidoError,
+    RepositorioVazioError,
+    ValorForaRangeError,
+)
 from operational.enums import (
-    EstadoPsicomatico,
-    NivelInfracao,
     Period,
-    PolicyState,
-    RoutineType,
     TipoDia,
 )
-
 
 # ---------------------------------------------------------------------------
 # Plain data containers (UI receives these; no Pydantic leakage)
@@ -380,14 +374,14 @@ def compute_day_quadrant(snap: DaySnapshot) -> tuple[str, float, float]:
 
 
 __all__ = [
-    "SleepSnapshot",
     "DaySnapshot",
-    "get_day_snapshot",
-    "distribute_pomodoros_across_sessions",
+    "SleepSnapshot",
     "compute_day_quadrant",
-    "validate_pomodoro_count",
+    "distribute_pomodoros_across_sessions",
+    "get_day_snapshot",
     "parse_iso_date",
-    "require_sleep_record",
     "require_day_context",
+    "require_sleep_record",
+    "validate_pomodoro_count",
     "validate_required_fields",
 ]

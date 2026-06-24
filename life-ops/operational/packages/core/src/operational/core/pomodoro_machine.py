@@ -187,9 +187,11 @@ class InMemoryPomodoroPlugin:
     def start_session(self, session_id: UEID, *, rounds_max: int = 4) -> PomodoroSession:
         """Start a new session in IDLE state."""
         if rounds_max < 1:
-            raise ValueError("rounds_max must be >= 1, got %s" % rounds_max)
+            msg = f"rounds_max must be >= 1, got {rounds_max}"
+            raise ValueError(msg)
         if session_id in self._sessions:
-            raise ValueError("Session %s already exists" % session_id)
+            msg = f"Session {session_id} already exists"
+            raise ValueError(msg)
         session = PomodoroSession(
             session_id=session_id,
             rounds_max=rounds_max,
@@ -213,11 +215,13 @@ class InMemoryPomodoroPlugin:
         """Record an externally-pushed event (e.g. from Timewarrior hook)."""
         session = self._sessions.get(session_id)
         if session is None:
-            raise KeyError("Session %s not found" % session_id)
+            msg = f"Session {session_id} not found"
+            raise KeyError(msg)
         # Validate transition
         if event.state not in DEFAULT_TRANSITIONS[session.state]:
+            msg = f"Invalid transition: {session.state.value} → {event.state.value}"
             raise ValueError(
-                "Invalid transition: %s → %s" % (session.state.value, event.state.value)
+                msg
             )
         session.state = event.state
         session.current_round = event.round_number
@@ -252,7 +256,8 @@ class PomodoroTracker:
         transitions: dict[PomodoroState, frozenset[PomodoroState]] | None = None,
     ) -> None:
         if rounds_max < 1:
-            raise ValueError("rounds_max must be >= 1, got %s" % rounds_max)
+            msg = f"rounds_max must be >= 1, got {rounds_max}"
+            raise ValueError(msg)
         self._session_id = session_id
         self._rounds_max = rounds_max
         self._work_minutes = work_minutes
@@ -302,9 +307,12 @@ class PomodoroTracker:
             raise RuntimeError(msg)
         if not self.can_transition_to(target):
             valid = sorted(s.value for s in self._transitions[self._current_state])
+            msg_0 = (
+                f"Invalid transition: {self._current_state.value} → {target.value}. "
+                f"Valid targets: {valid}"
+            )
             raise ValueError(
-                "Invalid transition: %s → %s. "
-                "Valid targets: %s" % (self._current_state.value, target.value, valid)
+                msg_0
             )
         event = PomodoroEvent(
             timestamp=when or datetime.now(UTC),
@@ -319,14 +327,16 @@ class PomodoroTracker:
 
     def start(self, when: datetime | None = None) -> PomodoroEvent:
         if self._current_state != PomodoroState.IDLE:
-            raise RuntimeError("Cannot start from state %s" % self._current_state.value)
+            msg = f"Cannot start from state {self._current_state.value}"
+            raise RuntimeError(msg)
         self._started_at = when or datetime.now(UTC)
         self._current_round = 1
         return self.transition(PomodoroState.WORK, reason="session start", when=when)
 
     def complete_round(self, when: datetime | None = None) -> PomodoroEvent:
         if self._current_state != PomodoroState.WORK:
-            raise RuntimeError("complete_round requires WORK state, got %s" % self._current_state.value)
+            msg = f"complete_round requires WORK state, got {self._current_state.value}"
+            raise RuntimeError(msg)
         if self._current_round >= self._rounds_max:
             return self.transition(
                 PomodoroState.LONG_BREAK,
@@ -339,7 +349,8 @@ class PomodoroTracker:
 
     def complete_break(self, when: datetime | None = None) -> PomodoroEvent:
         if self._current_state != PomodoroState.BREAK:
-            raise RuntimeError("complete_break requires BREAK state, got %s" % self._current_state.value)
+            msg = f"complete_break requires BREAK state, got {self._current_state.value}"
+            raise RuntimeError(msg)
         self._current_round += 1
         return self.transition(
             PomodoroState.WORK, reason=f"break complete, starting round {self._current_round}", when=when
@@ -347,8 +358,9 @@ class PomodoroTracker:
 
     def complete_long_break(self, when: datetime | None = None) -> PomodoroEvent:
         if self._current_state != PomodoroState.LONG_BREAK:
+            msg = f"complete_long_break requires LONG_BREAK state, got {self._current_state.value}"
             raise RuntimeError(
-                "complete_long_break requires LONG_BREAK state, got %s" % self._current_state.value
+                msg
             )
         return self.transition(PomodoroState.IDLE, reason="long break complete", when=when)
 
@@ -367,7 +379,8 @@ class PomodoroTracker:
 
     def finish(self, when: datetime | None = None) -> PomodoroEvent:
         if self._current_state != PomodoroState.IDLE:
-            raise RuntimeError("finish requires IDLE state, got %s" % self._current_state.value)
+            msg = f"finish requires IDLE state, got {self._current_state.value}"
+            raise RuntimeError(msg)
         return self.transition(PomodoroState.COMPLETE, reason="session done", when=when)
 
     def get_state_duration_minutes(self, state: PomodoroState) -> int:

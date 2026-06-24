@@ -24,7 +24,6 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-
 # ---------------------------------------------------------------------------
 # make_console — TTY-aware Console factory (kept for command-level CLIs)
 # ---------------------------------------------------------------------------
@@ -101,7 +100,7 @@ def progress_bar(
     """Render a simple bar + percent + label as a Rich Text."""
     clr = COLORS.get(color, color)
     pct = 0.0 if total <= 0 else max(0.0, min(1.0, value / total))
-    filled = int(round(pct * width))
+    filled = round(pct * width)
     empty = width - filled
     t = Text()
     t.append("█" * filled, style=clr)
@@ -156,4 +155,4 @@ def maybe_print_input_summary(
     console.print(panel)
 
 
-__all__ = ["make_console", "COLORS", "progress_bar", "maybe_print_input_summary"]
+__all__ = ["COLORS", "make_console", "maybe_print_input_summary", "progress_bar"]

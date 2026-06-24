@@ -46,9 +46,11 @@ def parse_time_block_dict(data: dict[str, Any]) -> TimeBlock:
     start = _coerce_datetime(data.get("start", data.get("inicio")))
     end = _coerce_datetime(data.get("end", data.get("fim")))
     if start is None:
-        raise ValueError("time_block %s missing 'start' field" % raw_id)
+        msg_0 = f"time_block {raw_id} missing 'start' field"
+        raise ValueError(msg_0)
     if end is None:
-        raise ValueError("time_block %s missing 'end' field" % raw_id)
+        msg_0 = f"time_block {raw_id} missing 'end' field"
+        raise ValueError(msg_0)
 
     # Parse period
     period_raw = data.get("period", data.get("periodo", Period.TARDE.value))
@@ -90,8 +92,9 @@ def parse_time_block_line(line: str, delimiter: str = ",") -> TimeBlock:
     """
     parts = [p.strip() for p in line.split(delimiter)]
     if len(parts) < 5:
+        msg = f"Expected at least 5 CSV fields, got {len(parts)}: {line}"
         raise ValueError(
-            "Expected at least 5 CSV fields, got %s: %s" % (len(parts), line)
+            msg
         )
 
     raw_id = parts[0]
@@ -101,9 +104,11 @@ def parse_time_block_line(line: str, delimiter: str = ",") -> TimeBlock:
     period_raw = parts[4] if len(parts) > 4 else Period.TARDE.value
 
     if start is None:
-        raise ValueError("time_block %s: could not parse start=%r" % (raw_id, parts[2]))
+        msg = f"time_block {raw_id}: could not parse start={parts[2]!r}"
+        raise ValueError(msg)
     if end is None:
-        raise ValueError("time_block %s: could not parse end=%r" % (raw_id, parts[3]))
+        msg = f"time_block {raw_id}: could not parse end={parts[3]!r}"
+        raise ValueError(msg)
 
     period = Period(period_raw.upper() if isinstance(period_raw, str) else period_raw)
 
@@ -155,4 +160,5 @@ def _coerce_datetime(raw: Any) -> datetime | None:
         return raw
     if isinstance(raw, str):
         return datetime.fromisoformat(raw)
-    raise TypeError("Cannot coerce %s to datetime: %r" % (type(raw).__name__, raw))
+    msg = f"Cannot coerce {type(raw).__name__} to datetime: {raw!r}"
+    raise TypeError(msg)

@@ -167,11 +167,13 @@ def context_switch_overhead_minutes(
         override = custom_overrides.get((from_period, to_period))
         if override is not None:
             if override < 0:
-                raise ValueError("override must be >= 0, got %s" % override)
+                msg = f"override must be >= 0, got {override}"
+                raise ValueError(msg)
             return override
     overhead = _BASE_OVERHEAD.get((from_period, to_period))
     if overhead is None:
-        raise ValueError("Unknown period transition: %s → %s" % (from_period.value, to_period.value))
+        msg = f"Unknown period transition: {from_period.value} → {to_period.value}"
+        raise ValueError(msg)
     return overhead
 
 
@@ -222,6 +224,7 @@ def net_rest_minutes(
         Net rest in minutes (≥ 0).
     """
     if gross_break_minutes < 0:
-        raise ValueError("gross_break_minutes must be >= 0, got %s" % gross_break_minutes)
+        msg = f"gross_break_minutes must be >= 0, got {gross_break_minutes}"
+        raise ValueError(msg)
     overhead = context_switch_overhead_minutes(from_period, to_period, custom_overrides)
     return max(0.0, gross_break_minutes - float(overhead))

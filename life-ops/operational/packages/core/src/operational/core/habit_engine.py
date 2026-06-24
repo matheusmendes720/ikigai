@@ -166,7 +166,7 @@ def _today_utc() -> date:
 # ---------------------------------------------------------------------------
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class HabitComputation:
     r"""Immutable result of computing metrics for a single habit.
 

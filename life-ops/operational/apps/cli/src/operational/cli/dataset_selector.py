@@ -62,9 +62,12 @@ def resolve_dataset(name: str | None = None) -> DatasetRef:
     if name is None:
         name = os.environ.get("TIME_TASKER_DATASET", "production")
     if name not in _BUILTIN_DATASETS:
-        raise ValueError(
+        msg = (
             f"Unknown dataset {name!r}. "
             f"Available: {sorted(_BUILTIN_DATASETS.keys())}"
+        )
+        raise ValueError(
+            msg
         )
     rel_path, desc = _BUILTIN_DATASETS[name]
     if rel_path == "":

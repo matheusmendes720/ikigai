@@ -20,7 +20,6 @@ All operations are pure functions (no I/O, no state).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
 from typing import TYPE_CHECKING
 
 from operational.entities.ajuste_fino import AjusteFino
@@ -28,6 +27,7 @@ from operational.entities.routine import RoutineLog
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from datetime import date
 
     from operational.enums import Period, RoutineType
 
