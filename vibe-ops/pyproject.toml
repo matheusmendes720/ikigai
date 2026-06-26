@@ -11,3 +11,10 @@ dependencies = [
     "tasklib",
     "python-frontmatter",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "python-frontmatter>=1.1.0",
+]
