@@ -235,7 +235,7 @@ class PeriodReportSync:
                 tree.append(self._build_subtree(node, nodes))
         return {"sonho_id": sonho_id, "tree": tree, "count": len(nodes)}
     
-    def _build_subtree(self, node: dict, nodes: dict) -> dict:
+    def _build_subtree(self, node: dict[str, Any], nodes: dict[str, Any]) -> dict[str, Any]:
         """Recursively build child tree."""
         children = [
             self._build_subtree(n, nodes)
