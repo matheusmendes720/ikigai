@@ -6,6 +6,7 @@ The PAV-OS v2 design system is the **only** renderer for ``state show``.
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
+from pathlib import Path
 from types import SimpleNamespace
 
 import typer
@@ -141,3 +142,35 @@ def show(
             target_date=d,
             period_label=period_now.value,
         )
+
+
+@app.command(name="migrate")
+def run_migrations(
+    db: str = typer.Option("./operational.db", "--db", help="Path to SQLite DB"),
+    json_out: bool = typer.Option(False, "--json", help="Output as JSON"),
+) -> None:
+    """Apply all pending migrations to the operational database.
+
+    Discovers ``NNN_*.sql`` files under
+    ``operational.persistence.migrations`` (defaults shipped in core package)
+    and applies any not yet recorded in ``_migrations``.
+    """
+    from operational.persistence.runner import MigrationRunner
+    from operational.persistence.sqlite import get_connection
+
+    log = get_logger("state_cmd")
+    with trace_command(log, "state.migrate", command="pav state migrate", db=db) as ctx:
+        db_path = Path(db).resolve()
+        conn = get_connection(db_path)
+        try:
+            runner = MigrationRunner(conn)
+            applied = runner.apply_all()
+        finally:
+            conn.close()
+        ctx.info("state.migrate.complete", applied=applied, count=len(applied))
+        if json_out:
+            typer.echo(format_as_json({"applied": applied, "count": len(applied)}))
+        elif applied:
+            typer.echo(f"Applied {len(applied)} migration(s): {applied}")
+        else:
+            typer.echo("Database is already up to date.")
