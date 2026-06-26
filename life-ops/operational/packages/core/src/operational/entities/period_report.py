@@ -14,11 +14,8 @@ from __future__ import annotations
 
 import datetime as _dt
 from typing import Literal
-from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-
-from operational.enums import EnergyLevel  # noqa: TC001
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 __all__ = ["PeriodReport"]
 
@@ -107,22 +104,24 @@ class PeriodReport(BaseModel):
         """
         allowed = _PERIOD_VERDICTS.get(self.period, set())
         if self.verdict not in allowed:
-            raise ValueError(
+            msg = (
                 f"verdict {self.verdict!r} not allowed for period {self.period!r}. "
                 f"Allowed: {sorted(allowed)}"
             )
+            raise ValueError(msg)
         if self.date_end < self.date_start:
-            raise ValueError(
-                f"date_end {self.date_end} < date_start {self.date_start}"
-            )
+            msg = f"date_end {self.date_end} < date_start {self.date_start}"
+            raise ValueError(msg)
         expected_days = _PERIOD_DAYS.get(self.period)
         if expected_days is not None:
             actual_days = (self.date_end - self.date_start).days + 1
             if abs(actual_days - expected_days) > 1:
-                raise ValueError(
+                msg = (
                     f"period {self.period!r} expected ~{expected_days} days, "
                     f"got {actual_days} days"
                 )
+                raise ValueError(msg)
         if self.period == "sonho" and self.parent_period is not None:
-            raise ValueError("sonho reports cannot have parent_period")
+            msg = "sonho reports cannot have parent_period"
+            raise ValueError(msg)
         return self
