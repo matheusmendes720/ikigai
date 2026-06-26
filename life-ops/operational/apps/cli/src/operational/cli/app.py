@@ -35,6 +35,7 @@ from operational.cli.commands.reflect_cmd import app as reflect_app
 from operational.cli.commands.report_cmd import app as report_app
 from operational.cli.commands.routine_cmd import app as routine_app
 from operational.cli.commands.state_cmd import app as state_app
+from operational.cli.commands.sync_cmd import app as sync_app
 from operational.cli.telemetry import Level, configure
 from operational.tui.app import PAVApp
 
@@ -103,6 +104,11 @@ app.add_typer(
     analytics_app,
     name="analytics",
     help="Analytics e data storytelling — 180 dias de dados.",
+)
+app.add_typer(
+    sync_app,
+    name="sync",
+    help="Sync vault period reports with vibe_ops.db.",
 )
 
 
