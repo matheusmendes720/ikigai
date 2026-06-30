@@ -33,6 +33,7 @@ nodes:
   - id: evaluate_evidence
     type: agent
     role: hypothesis-evaluator
+    spec: .claude/agents/consensus/quorum-manager.md
     prompt: |
       For each Sonho, evaluate:
       - Current evidence matches threshold? (leading + lagging indicators)

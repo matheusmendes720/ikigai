@@ -35,6 +35,7 @@ nodes:
 
   - id: compute_aggregate
     type: python
+    spec: .claude/agents/swarm/adaptive-coordinator.md
     script: |
       # Simple arithmetic: mean of 5 dimensions
       scores = [
