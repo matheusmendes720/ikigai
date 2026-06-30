@@ -173,3 +173,7 @@ def tui(
         tui_app._devtools = True  # noqa: SLF001
 
     asyncio.run(tui_app.run_async())
+
+
+if __name__ == "__main__":
+    app()
