@@ -1,0 +1,50 @@
+name: correction-protocol
+description: |
+  Triggered when PAE-Maintainer reports kill_switch_triggered=True.
+  Diagnoses the cause and recommends an action from {CORRECT, KILL, PIVOT, EXTEND}.
+
+trigger:
+  type: on_event
+  event: pae.kill_switch_triggered
+  conditions:
+    - type: persisted_state
+      state: kill_switch_triggered
+      equals: true
+
+state_schema:
+  cycle_id: string
+  kill_switch_reason: string
+  failure_dimension: string  # execution | analysis | planning | learning | wellbeing
+  failure_severity: float  # 0-1
+  recommended_action: string  # CORRECT | KILL | PIVOT | EXTEND
+  action_rationale: string
+
+nodes:
+  - id: load_kill_state
+    type: shell
+    command: pav plan status --cycle-id ${state.cycle_id} --json
+    output: state.kill_switch_reason
+
+  - id: diagnose_failure
+    type: agent
+    role: failure-diagnostician
+    prompt: |
+      Kill switch reason: ${state.kill_switch_reason}
+      Diagnose root cause. Identify which dimension (execution, analysis,
+      planning, learning, wellbeing) failed. Estimate severity (0-1).
+
+  - id: recommend_action
+    type: agent
+    role: action-recommender
+    prompt: |
+      Given failure dimension=${state.failure_dimension}
+      and severity=${state.failure_severity},
+      recommend one action: CORRECT, KILL, PIVOT, or EXTEND.
+      Provide rationale.
+
+  - id: apply_correction
+    type: agent
+    role: corrector
+    prompt: |
+      Apply the recommended correction to next quarter plan.
+      Update the corresponding period report.

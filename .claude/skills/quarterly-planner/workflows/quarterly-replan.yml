@@ -1,0 +1,52 @@
+name: quarterly-replan
+description: |
+  When end-of-quarter verdict is FAIL or PARTIAL, auto-generate
+  next quarter plan via PAE-Maintainer retrospective channel.
+
+trigger:
+  type: schedule
+  schedule: "0 18 * * 5"  # Friday 6pm (end of week)
+  conditions:
+    - type: on_verdict
+      verdict_in: [FAIL, PARTIAL]
+
+state_schema:
+  current_cycle_id: string
+  previous_quarter_verdict: string  # PASS | PARTIAL | FAIL
+  new_cycle_id: string
+  new_cycle_start: date
+  new_cycle_end: date
+  carryover_tasks: list[Task]
+  new_objectives: list[Objective]
+  corrections_applied: list[string]
+
+nodes:
+  - id: load_state
+    type: shell
+    command: pav plan status --cycle-id ${state.current_cycle_id} --json
+    output: state.previous_quarter_verdict
+
+  - id: aggregate_lessons
+    type: agent
+    role: retrospective-analyst
+    prompt: |
+      Given previous quarter verdict=${state.previous_quarter_verdict},
+      aggregate the 5-dimension Teste de Fogo, identify root causes,
+      and propose corrections for next quarter.
+
+  - id: generate_objectives
+    type: agent
+    role: forward-planner
+    prompt: |
+      Based on retrospective lessons, generate 3 top objectives for next quarter.
+      Each must have: title, IKIGAi vector (passion|skill|market|revenue),
+      leading indicators, lagging indicators, and falsifiability criteria.
+
+  - id: persist_new_plan
+    type: shell
+    command: pav plan run --cycle-id ${state.new_cycle_id} --once
+    output: state.corrections_applied
+
+  - id: notify_user
+    type: shell
+    command: echo "Next quarter plan generated: ${state.new_cycle_id}"

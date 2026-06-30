@@ -1,0 +1,50 @@
+name: dream-falsification
+description: |
+  Evaluate FalsifiableHypothesis (Axis 1: Kill Switch) for any Sonho
+  with kill_switch_date < 7 days. Implements strategic framework's
+  dream falsifiability check.
+
+trigger:
+  type: schedule
+  schedule: "0 9 * * *"  # Daily 9am
+  conditions:
+    - type: days_until_kill_switch
+      less_than: 7
+
+state_schema:
+  sonho_id: string
+  hypothesis_text: string
+  threshold_event: string
+  measurement_window_days: int
+  current_evidence: dict  # collected metrics
+  falsification_score: float  # 0-1
+  verdict: string  # VALIDATED | FALSIFIED | PIVOTED | ABANDONED
+  recommendation: string
+
+nodes:
+  - id: find_imminent_sonhos
+    type: shell
+    command: |
+      sqlite3 vibe_ops.db "SELECT id, hypothesis_text, threshold_event,
+        measurement_window_days FROM period_reports
+        WHERE period = 'sonho' AND status = 'active'
+          AND date_end <= date('now', '+7 days');"
+
+  - id: evaluate_evidence
+    type: agent
+    role: hypothesis-evaluator
+    prompt: |
+      For each Sonho, evaluate:
+      - Current evidence matches threshold? (leading + lagging indicators)
+      - Falsification score = 1 - (actual / target)
+      - Verdict per strategic framework:
+        - VALIDATED: evidence meets threshold (score > 0.80)
+        - FALSIFIED: evidence clearly fails (score < 0.50)
+        - PIVOTED: refactor trigger detected
+        - ABANDONED: kill switch fired without refactor
+      - Recommendation: KEEP | PIVOT | ABANDON
+
+  - id: update_sonho_status
+    type: shell
+    command: |
+      pav plan run --cycle-id ${state.sonho_id} --once --json

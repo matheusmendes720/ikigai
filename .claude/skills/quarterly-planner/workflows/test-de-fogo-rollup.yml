@@ -1,0 +1,62 @@
+name: test-de-fogo-rollup
+description: |
+  Roll up the 5-dimension Test de Fogo across a period (week/onda/quarter).
+  Used for retrospective analysis.
+
+trigger:
+  type: on_demand
+  parameters:
+    - cycle_id: string
+    - period_start: date
+    - period_end: date
+
+state_schema:
+  cycle_id: string
+  period_start: date
+  period_end: date
+  dimensions:
+    execution: float  # completion_rate
+    analysis: float    # policy_trail accuracy
+    planning: float   # adherence
+    learning: float   # xp + mastery
+    wellbeing: float   # Q_HE avg
+  aggregate_score: float
+  verdict: string  # PASS | PARTIAL | FAIL
+  gaps: list[string]
+
+nodes:
+  - id: query_period_reports
+    type: shell
+    command: |
+      sqlite3 vibe_ops.db "SELECT verdict_score FROM period_reports
+      WHERE period IN ('quarterly','onda','weekly','daily')
+        AND date_start >= ${state.period_start}
+        AND date_end <= ${state.period_end};"
+
+  - id: compute_aggregate
+    type: python
+    script: |
+      # Simple arithmetic: mean of 5 dimensions
+      scores = [
+        state.dimensions.execution,
+        state.dimensions.analysis,
+        state.dimensions.planning,
+        state.dimensions.learning,
+        state.dimensions.wellbeing,
+      ]
+      state.aggregate_score = sum(scores) / len(scores)
+      if state.aggregate_score >= 0.70:
+          state.verdict = "PASS"
+      elif state.aggregate_score >= 0.50:
+          state.verdict = "PARTIAL"
+      else:
+          state.verdict = "FAIL"
+          # Identify gaps
+          names = ["execution","analysis","planning","learning","wellbeing"]
+          for n, s in zip(names, scores):
+              if s < 0.50:
+                  state.gaps.append(f"{n} below 0.50 (was {s:.2f})")
+
+  - id: write_back_to_pae
+    type: shell
+    command: pav plan balance --cycle-id ${state.cycle_id}
