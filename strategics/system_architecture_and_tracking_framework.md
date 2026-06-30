@@ -23,6 +23,19 @@ semantics (completion gate, hash attestation, parallel isolation, etc.).
 
 ---
 
+## 🌐 LangGraph Dev Runtime
+
+> **Config:** `langgraph.json` · **Entry point:** `vibe-ops/src/langgraph_entry.py`
+>
+> All 5 agentic flows (1 PAE-Maintainer + 4 swarm workflows) run as a single `langgraph dev` server.
+> The langgraph SDK is used only as a thin adapter — all business logic stays in
+> the existing custom Python graphs.
+>
+> Quick start: `make install && make dev` (Studio at http://localhost:2024)
+>
+> 5 graphs: `pae_maintainer`, `quarterly_replan`, `test_de_fogo_rollup`, `correction_protocol`, `dream_falsification`
+> See `LANGRAPH_DEV.md` for full architecture and update policy.
+
 This document outlines the multi-layered design system for the Algorithmic Life OS, bridging abstract strategic planning with hard, code-level execution and daily knowledge tracking. It establishes a cybernetic loop of self-evolving meta-heuristics driven by OKRs, KPIs, and real-time telemetry.
 
 ---
