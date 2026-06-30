@@ -366,3 +366,26 @@ Link Upstream       │ ───                 │ Modelagem Op.       │ De
 
 *Índice progressivo estratégico-tático-operacional*  
 *Atualizado em: 2026-05-15*
+
+---
+
+## Commit Log
+
+### 2026-06-30 — Central Engine Integration
+
+- **Repo cloned:** `planning-with-files` v3.1.3 → `strategics/planning-with-files/`
+- **Index updated:** `strategics/00-ÍNDICE-PROGRESSIVO.md` (added 🔌 Central Engine section)
+- **Policy docs updated:** `system_architecture_and_tracking_framework.md`, `design_system_and_knowledge_tracking.md` (added engine references)
+- **Theory docs (5):** `Planejamento (E&T)`, `Hierarquia de Objetivos`, `Desempenho Subjacente`, `Integracao_Tatica`, `Análise (T&O)` (added engine references)
+- **Commits:**
+  - `ebf049d docs(strategics): add planning-with-files as central engine reference` (index)
+  - (next commit) `docs(strategics): add central engine reference to all 6 theory docs`
+- **Update policy:** Run `cd strategics/planning-with-files && git pull` monthly
+
+## Session Log
+
+- **2026-06-30:** 2 boulders closed (period-reports-sync + agentic-markdown-system), 91 evidence files
+- **2026-06-30:** planning-with-files repo cloned to strategics/ as central engine
+- **2026-06-30:** Routes updated across 8 strategics docs (6 theory + 2 policy)
+- **Current HEAD:** `ebf049d62baac43e7b3c6b9000967fc92cfb951c`
+- **Next available plans:** vault-bidirectional-sync.md, pav-tui-textualize.md
