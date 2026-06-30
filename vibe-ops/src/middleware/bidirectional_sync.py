@@ -13,6 +13,8 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+import time
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
@@ -300,7 +302,11 @@ class BidirectionalSync:
         return conn
 
     def _ensure_schema(self) -> None:
-        """Create vault_sync_state table if missing. planning_entities assumed pre-existing."""
+        """Create vault_sync_state + falsifiable_hypotheses + hypothesis_evaluations if missing.
+
+        planning_entities is assumed pre-existing (created by the main schema).
+        All DDL is idempotent (IF NOT EXISTS) so re-running is safe.
+        """
         with self._conn() as conn:
             conn.execute(
                 """
@@ -313,6 +319,75 @@ class BidirectionalSync:
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS falsifiable_hypotheses (
+                    id TEXT PRIMARY KEY,
+                    dream_id TEXT NOT NULL,
+                    hypothesis_text TEXT NOT NULL,
+                    evidence_threshold TEXT NOT NULL,
+                    measurement_window_days INTEGER NOT NULL DEFAULT 90,
+                    leading_indicators TEXT NOT NULL DEFAULT '[]',
+                    lagging_indicators TEXT NOT NULL DEFAULT '[]',
+                    refactor_triggers TEXT NOT NULL DEFAULT '[]',
+                    kill_switch_date TEXT,
+                    status TEXT NOT NULL DEFAULT 'active',
+                    last_evaluated_at TEXT,
+                    created_at TEXT NOT NULL,
+                    vault_path TEXT,
+                    last_synced_at TEXT
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS hypothesis_evaluations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    hypothesis_id TEXT NOT NULL,
+                    evaluated_at TEXT NOT NULL,
+                    verdict TEXT NOT NULL,
+                    score REAL NOT NULL,
+                    notes TEXT DEFAULT '',
+                    leading_met INTEGER DEFAULT 0,
+                    lagging_met INTEGER DEFAULT 0,
+                    leading_total INTEGER DEFAULT 0,
+                    lagging_total INTEGER DEFAULT 0,
+                    FOREIGN KEY (hypothesis_id) REFERENCES falsifiable_hypotheses(id)
+                )
+                """
+            )
+
+    @contextmanager
+    def advisory_lock(self, lock_name: str) -> Any:
+        """Acquire a SQLite-level advisory lock.
+
+        Use this to serialize writes across processes when the same
+        entity_type is being mutated concurrently. Blocks for up to
+        ``timeout`` seconds; raises sqlite3.OperationalError on timeout.
+
+        Implementation uses SQLite's session-level BEGIN IMMEDIATE
+        which holds a reserved lock — sufficient for single-writer
+        cross-process coordination on a shared vibe_ops.db file.
+        """
+        timeout = 5.0
+        deadline = time.time() + timeout
+        while True:
+            try:
+                conn = sqlite3.connect(str(self.db_path), timeout=timeout)
+                conn.execute("BEGIN IMMEDIATE")
+                yield conn
+                conn.commit()
+                return
+            except sqlite3.OperationalError as exc:
+                if "locked" in str(exc).lower() and time.time() < deadline:
+                    time.sleep(0.1)
+                    continue
+                raise
+            finally:
+                try:
+                    conn.close()
+                except Exception:  # noqa: BLE001
+                    pass
 
     def _ingest_one(self, md_file: Path, stats: Dict[str, int]) -> None:
         """Ingest a single vault .md file. Continues past parse errors."""
