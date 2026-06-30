@@ -9,6 +9,8 @@ from models import (
     DailyMetrics, ReviewEvent, PolicyDecision, DecisionRecord, TimeBlock,
     StudyProject, StudyNoteIndex, DocBackend, DocFrontend, PriorityMatrix, CyberneticFeedback,
     PeriodReport,
+    FalsifiableHypothesis, HypothesisEvaluation,
+    Dream,
 )
 
 class FrontmatterParser:
@@ -38,6 +40,9 @@ class FrontmatterParser:
         "decision_record": DecisionRecord,
         "time_block": TimeBlock,
         "period_report": PeriodReport,
+        "falsifiable_hypothesis": FalsifiableHypothesis,
+        "hypothesis_evaluation": HypothesisEvaluation,
+        "dream": Dream,
     }
 
     FRONTMATTER_PATTERN = re.compile(r'^---\s*\n(.*?)\n---\s*\n', re.DOTALL)
