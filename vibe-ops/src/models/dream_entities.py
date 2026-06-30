@@ -10,7 +10,7 @@ anchor for hypothesis evaluation.
 from __future__ import annotations
 
 import datetime as _dt
-from datetime import date, datetime
+from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
