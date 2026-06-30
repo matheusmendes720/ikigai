@@ -4,11 +4,11 @@ This creates the NEW pav plan subcommand (T11 of agentic-markdown-system plan).
 
 Bridge architecture (same pattern as sync_cmd.py):
   - operational does NOT import vibe-ops directly (standalone rule).
-  - We invoke ``vibe-ops/src/agents/pae_maintainer/main.py`` as a subprocess
-    via the current Python interpreter.
+  - We invoke ``python -m agents.pae_maintainer`` (module mode) to avoid
+    relative-import errors that occur with script-mode invocation.
   - The agent imports ``operational.constants`` for Q_HE + 5x3x3 constants,
     so we inject ``life-ops/operational/packages/core/src`` and
-    ``vibe-ops/src/agents`` onto the child's PYTHONPATH before launch.
+    ``vibe-ops/src`` onto the child's PYTHONPATH before launch.
 
 Path resolution:
   plan_cmd.py lives at::
@@ -39,27 +39,30 @@ log = get_logger("plan_cmd")
 
 # Path resolution (matches sync_cmd.py pattern: parents[8] is repo root).
 _REPO_ROOT = Path(__file__).resolve().parents[8]
-_PAE_MAINTAINER_SCRIPT = (
-    _REPO_ROOT / "vibe-ops" / "src" / "agents" / "pae_maintainer" / "main.py"
-)
 _OPERATIONAL_SRC = _REPO_ROOT / "life-ops" / "operational" / "packages" / "core" / "src"
 _AGENTS_SRC = _REPO_ROOT / "vibe-ops" / "src" / "agents"
 
 
 def _run_pae(cmd: str, args: list[str], json_out: bool) -> tuple[int, str]:
-    """Invoke PAE-Maintainer via subprocess.
+    """Invoke PAE-Maintainer via subprocess in module mode.
+
+    Module mode (`python -m agents.pae_maintainer`) is required because
+    pae_maintainer/main.py uses relative imports (`.state`, `.graph`, `.nodes`)
+    which only resolve when the parent package (`agents`) is on the import
+    path. Script-mode invocation crashes with ``ImportError: attempted
+    relative import with no known parent package``.
 
     Returns (exit_code, stdout). The agent writes logs to stderr, which we
     forward unchanged so structured PAV telemetry from the child surfaces
     in the parent CLI session.
 
-    The script path is a hard-coded sibling location in the repo, so the
-    subprocess call does not consume untrusted input — safe to ignore
-    S603 here.
+    The PYTHONPATH injection is safe — the only controlled input here
+    is the hard-coded sibling location in the repo, not untrusted data.
     """
     full_args = [
         sys.executable,
-        str(_PAE_MAINTAINER_SCRIPT),
+        "-m",
+        "agents.pae_maintainer",
         cmd,
         *args,
     ]
@@ -67,9 +70,7 @@ def _run_pae(cmd: str, args: list[str], json_out: bool) -> tuple[int, str]:
         full_args.append("--json")
 
     # Build a PYTHONPATH that exposes both ``operational`` (for Q_HE constants)
-    # and ``pae_maintainer`` (for the agent's own import resolution). The
-    # latter is only needed if the child is invoked as ``python -m pae_maintainer``,
-    # but adding it here keeps the bridge generic.
+    # and ``vibe-ops/src`` (so ``agents.pae_maintainer`` resolves as a package).
     child_env = dict(os.environ)
     extra_pp = [
         str(_OPERATIONAL_SRC),
