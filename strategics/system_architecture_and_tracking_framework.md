@@ -1,5 +1,28 @@
 # Algorithmic Life OS: Systemic Architecture & Tracking Framework
 
+
+---
+
+## 🔌 Central Engine Reference
+
+> **Path:** `strategics/planning-with-files/` · **Update:** `cd strategics/planning-with-files && git pull`
+
+All long-running agentic tasks in this repo use the canonical planning engine
+(planning-with-files v3.1.3, 279+ commits) cloned at `strategics/planning-with-files/`.
+
+**Route map:**
+- `skills/` — SKILL.md standard for 60+ agents (Claude Code, Codex, Cursor, Kiro, OpenCode, Hermes, etc.)
+- `commands/` — slash commands (`/plan-goal`, `/plan-loop`, `/plan-status`, `/plan-attest`)
+- `templates/` — task_plan.md, loop.md, autonomous variants
+- `docs/` — evals.md, perf-notes.md, attestation-locking.md, integration guides
+- `examples/` — real-world usage examples
+
+**Update policy:** Run `git pull` in `strategics/planning-with-files/` monthly or when
+a new version is announced. The engine is source-of-truth for the planning loop
+semantics (completion gate, hash attestation, parallel isolation, etc.).
+
+---
+
 This document outlines the multi-layered design system for the Algorithmic Life OS, bridging abstract strategic planning with hard, code-level execution and daily knowledge tracking. It establishes a cybernetic loop of self-evolving meta-heuristics driven by OKRs, KPIs, and real-time telemetry.
 
 ---
