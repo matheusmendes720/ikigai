@@ -13,6 +13,7 @@ from models.period_report import PeriodReport, PeriodReportParser, PeriodSyncSta
 from models.operational_entities import OperationalMode, PolicyRule
 from models.health_entities import DailyLog, DailyConsolidation, WeeklyAggregate
 from models.hypothesis_entities import FalsifiableHypothesis, HypothesisEvaluation
+from models.dream_entities import Dream
 
 __all__ = [
     "Wave", "Cycle", "Phase",
@@ -30,4 +31,5 @@ __all__ = [
     "OperationalMode", "PolicyRule",
     "DailyLog", "DailyConsolidation", "WeeklyAggregate",
     "FalsifiableHypothesis", "HypothesisEvaluation",
+    "Dream",
 ]
