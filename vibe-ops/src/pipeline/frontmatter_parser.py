@@ -7,8 +7,7 @@ from models import (
     StudySession, Project, Skill, RoadmapItem,
     BacklogTask, ChangelogEntry, SleepRecord, HealthMetrics,
     DailyMetrics, ReviewEvent, PolicyDecision, DecisionRecord, TimeBlock,
-    StudyProject, StudyNoteIndex, DocBackend, DocFrontend, PriorityMatrix, CyberneticFeedback,
-    PeriodReport,
+    StudyProject, PeriodReport,
     FalsifiableHypothesis, HypothesisEvaluation,
     Dream,
 )

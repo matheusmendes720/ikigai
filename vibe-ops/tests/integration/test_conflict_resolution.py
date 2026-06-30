@@ -10,6 +10,7 @@ D3 conflict policy:
 """
 from __future__ import annotations
 
+import json
 import shutil
 import sqlite3
 import sys
@@ -127,11 +128,11 @@ class TestConflictScenarios:
                 "SELECT payload_json FROM planning_entities WHERE id = ?",
                 ("proj_p1",),
             ).fetchone()
-            payload = json.loads_safe(row[0]) if hasattr(__import__("json"), "loads_safe") else __import__("json").loads(row[0])
+            payload = json.loads(row[0])
             payload["custom_field"] = "code_value"
             conn.execute(
                 "UPDATE planning_entities SET payload_json = ? WHERE id = ?",
-                (__import__("json").dumps(payload), "proj_p1"),
+                (json.dumps(payload), "proj_p1"),
             )
             conn.commit()
 
