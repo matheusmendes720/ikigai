@@ -30,6 +30,7 @@ from operational.cli.commands.journal_cmd import app as journal_app
 from operational.cli.commands.lunch_cmd import app as lunch_app
 from operational.cli.commands.analytics_cmd import analytics_app as analytics_app
 from operational.cli.commands.metric_cmd import app as metric_app
+from operational.cli.commands.plan_cmd import app as plan_app
 from operational.cli.commands.policy_cmd import app as policy_app
 from operational.cli.commands.reflect_cmd import app as reflect_app
 from operational.cli.commands.report_cmd import app as report_app
@@ -109,6 +110,11 @@ app.add_typer(
     sync_app,
     name="sync",
     help="Sync vault period reports with vibe_ops.db.",
+)
+app.add_typer(
+    plan_app,
+    name="plan",
+    help="Strategic planning via PAE-Maintainer agent (NEW subcommand for T11).",
 )
 
 
