@@ -12,6 +12,7 @@ from models.ikigai_entities import IKIGAiProfile, SkillNode, OpportunitySignal
 from models.period_report import PeriodReport, PeriodReportParser, PeriodSyncStats
 from models.operational_entities import OperationalMode, PolicyRule
 from models.health_entities import DailyLog, DailyConsolidation, WeeklyAggregate
+from models.hypothesis_entities import FalsifiableHypothesis, HypothesisEvaluation
 
 __all__ = [
     "Wave", "Cycle", "Phase",
@@ -27,5 +28,6 @@ __all__ = [
     "IKIGAiProfile", "SkillNode", "OpportunitySignal",
     "PeriodReport", "PeriodReportParser", "PeriodSyncStats",
     "OperationalMode", "PolicyRule",
-    "DailyLog", "DailyConsolidation", "WeeklyAggregate"
+    "DailyLog", "DailyConsolidation", "WeeklyAggregate",
+    "FalsifiableHypothesis", "HypothesisEvaluation",
 ]
