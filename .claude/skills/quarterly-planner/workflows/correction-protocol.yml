@@ -28,6 +28,7 @@ nodes:
   - id: diagnose_failure
     type: agent
     role: failure-diagnostician
+    spec: .claude/agents/swarm/mesh-coordinator.md
     prompt: |
       Kill switch reason: ${state.kill_switch_reason}
       Diagnose root cause. Identify which dimension (execution, analysis,

@@ -37,6 +37,7 @@ nodes:
   - id: generate_objectives
     type: agent
     role: forward-planner
+    spec: .claude/agents/swarm/hierarchical-coordinator.md
     prompt: |
       Based on retrospective lessons, generate 3 top objectives for next quarter.
       Each must have: title, IKIGAi vector (passion|skill|market|revenue),
