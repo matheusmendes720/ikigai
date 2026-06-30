@@ -71,21 +71,27 @@ def _run_pae(cmd: str, args: list[str], json_out: bool) -> tuple[int, str]:
 
     # Build a PYTHONPATH that exposes both ``operational`` (for Q_HE constants)
     # and ``vibe-ops/src`` (so ``agents.pae_maintainer`` resolves as a package).
+    # IMPORTANT: ``vibe-ops/src`` must come BEFORE any operational/agents path
+    # so the operational local ``agents/`` directory does NOT shadow it.
     child_env = dict(os.environ)
+    child_env.pop("PYTHONPATH", None)  # Clear inherited PYTHONPATH
     extra_pp = [
-        str(_OPERATIONAL_SRC),
-        str(_AGENTS_SRC),
-        str(_REPO_ROOT / "vibe-ops" / "src"),
+        str(_AGENTS_SRC),                          # vibe-ops/src/agents (PAE package)
+        str(_REPO_ROOT / "vibe-ops" / "src"),       # for `from models...` imports
+        str(_OPERATIONAL_SRC),                      # for `from operational...` imports
     ]
-    existing_pp = child_env.get("PYTHONPATH", "")
-    parts = extra_pp + ([existing_pp] if existing_pp else [])
-    child_env["PYTHONPATH"] = os.pathsep.join(parts)
+    child_env["PYTHONPATH"] = os.pathsep.join(extra_pp)
 
+    # Set cwd to a neutral location (repo root) to avoid operational/agents
+    # being added to sys.path[0] when the bridge is invoked from within
+    # life-ops/operational. This prevents the local ``agents`` package
+    # from shadowing ``vibe-ops/src/agents.pae_maintainer``.
     result = subprocess.run(  # noqa: S603
         full_args,
         capture_output=True,
         text=True,
         env=child_env,
+        cwd=str(_REPO_ROOT),
         check=False,
     )
     # Forward child's stderr so structured PAV telemetry surfaces.
