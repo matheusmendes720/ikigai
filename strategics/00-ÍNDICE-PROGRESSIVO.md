@@ -6,6 +6,32 @@
 
 ---
 
+## 🔌 CENTRAL ENGINE: Planning-with-Files
+
+> **Status:** Active · **Path:** `strategics/planning-with-files/` · **Version:** v3.1.3
+>
+> The **canonical planning engine** for all long-running agentic tasks. Installed via:
+> ```bash
+> cd strategics/planning-with-files && git pull   # periodic update
+> ```
+>
+> Provides 3 persistent files per task (`task_plan.md`, `findings.md`, `progress.md`) +
+> a **deterministic completion gate** that holds the agent until the plan is actually done.
+> Used as the standard for `.omo/plans/*.md` and `.omo/evidence/*.txt` in this repo.
+>
+> **Route map:**
+> - `skills/` — SKILL.md standard for 60+ agents (Claude Code, Codex, Cursor, Kiro, OpenCode, Hermes, Factory, Continue, Gemini, Mastra, Pi, etc.)
+> - `commands/` — slash commands (`/plan-goal`, `/plan-loop`, `/plan-status`, `/plan-attest`)
+> - `templates/` — task_plan.md template, loop.md, autonomous variants
+> - `docs/` — evals.md, perf-notes.md, attestation-locking.md, integration guides
+> - `examples/` — real-world usage examples
+>
+> **Update policy:** Run `git pull` in `strategics/planning-with-files/` monthly or when
+> a new version is announced. The engine is source-of-truth for the planning loop semantics
+> (completion gate, hash attestation, parallel isolation, etc.).
+
+---
+
 ## 🗺️ Mapa Conceitual: De onde começar?
 
 ```
