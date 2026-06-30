@@ -100,6 +100,12 @@ class BidirectionalSync:
     ) -> Dict[str, int]:
         """Export computed fields from SQLite back to vault .md frontmatter.
 
+        Reads from policy_decisions table for the latest PolicyDecision and
+        builds the full set of computed keys (regime, hardwork_budget_hours,
+        pause_minutes, sleep_target_hours, qhe_target, policy_decision_at,
+        policy_severity, policy_recommendations, policy_alerts,
+        rice_score, priority_rank).
+
         Only writes fields whose key is in COMPUTED_FIELD_NAMES (D3: code-wins
         for computed). Manual fields are never overwritten.
 
@@ -109,6 +115,7 @@ class BidirectionalSync:
         entity_types = entity_types or ["project", "study_project"]
         stats = {"exported": 0, "skipped": 0, "errors": 0, "conflicts": 0}
 
+        latest_pd = self._latest_policy_decision()
         with self._conn() as conn:
             placeholders = ",".join("?" for _ in entity_types)
             rows = conn.execute(
@@ -126,15 +133,11 @@ class BidirectionalSync:
                 stats["errors"] += 1
                 continue
 
-            computed_fields = {
-                k: v for k, v in payload.items()
-                if k in COMPUTED_FIELD_NAMES
-            }
+            computed_fields = self._build_computed_fields(payload, latest_pd)
             if not computed_fields:
                 stats["skipped"] += 1
                 continue
 
-            # Find vault file by vault_path hint, fall back to id-based heuristic.
             vault_file = self._resolve_vault_file(entity_type, entity_id, payload)
             if vault_file is None:
                 stats["skipped"] += 1
@@ -147,6 +150,93 @@ class BidirectionalSync:
                 stats["skipped"] += 1
 
         return stats
+
+    def _latest_policy_decision(self) -> Optional[Dict[str, Any]]:
+        """Fetch the most recent PolicyDecision from policy_decisions table."""
+        with self._conn() as conn:
+            exists = conn.execute(
+                "SELECT name FROM sqlite_master "
+                "WHERE type='table' AND name='policy_decisions'"
+            ).fetchone()
+            if not exists:
+                return None
+            row = conn.execute(
+                "SELECT policy, qhe, hardwork_budget_hours, "
+                "pause_duration_minutes, sleep_target_hours, "
+                "recomendacoes, alertas, computed_at "
+                "FROM policy_decisions "
+                "ORDER BY date DESC, computed_at DESC LIMIT 1"
+            ).fetchone()
+        if not row:
+            return None
+        return {
+            "policy": row[0],
+            "qhe": row[1],
+            "hardwork_budget_hours": row[2],
+            "pause_duration_minutes": row[3],
+            "sleep_target_hours": row[4],
+            "recomendacoes": row[5],
+            "alertas": row[6],
+            "computed_at": row[7],
+        }
+
+    def _build_computed_fields(
+        self,
+        payload: Dict[str, Any],
+        latest_pd: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Build the dict of computed frontmatter fields to write.
+
+        Strategy: payload carries manual fields + prior computed fields.
+        We add the latest PolicyDecision values plus optional rice_score and
+        priority_rank if reachable, impact, confidence, effort_h are present.
+        """
+        out: Dict[str, Any] = {
+            k: v for k, v in payload.items()
+            if k in COMPUTED_FIELD_NAMES and k not in MANUAL_FIELD_PREFIXES
+        }
+        if latest_pd:
+            out["regime"] = latest_pd.get("policy")
+            out["hardwork_budget_hours"] = latest_pd.get("hardwork_budget_hours")
+            out["pause_minutes"] = latest_pd.get("pause_duration_minutes")
+            out["sleep_target_hours"] = latest_pd.get("sleep_target_hours")
+            out["qhe_target"] = latest_pd.get("qhe")
+            out["policy_decision_at"] = latest_pd.get("computed_at")
+            recs = latest_pd.get("recomendacoes")
+            alerts = latest_pd.get("alertas")
+            if recs:
+                try:
+                    out["policy_recommendations"] = json.loads(recs)
+                except (TypeError, json.JSONDecodeError):
+                    out["policy_recommendations"] = [recs]
+            if alerts:
+                try:
+                    out["policy_alerts"] = json.loads(alerts)
+                except (TypeError, json.JSONDecodeError):
+                    out["policy_alerts"] = [alerts]
+            out["policy_severity"] = self._infer_severity(latest_pd)
+        # RICE components must be present to compute a meaningful score.
+        if all(k in payload for k in ("reach", "impact", "confidence", "effort_h")):
+            from pipeline.rice_exporter import compute_rice_score
+            out["rice_score"] = compute_rice_score(
+                payload["reach"], payload["impact"],
+                payload["confidence"], payload["effort_h"],
+            )
+        return out
+
+    @staticmethod
+    def _infer_severity(pd: Dict[str, Any]) -> str:
+        """Map a PolicyDecision dict to a severity label (CRITICAL/HIGH/MEDIUM/LOW)."""
+        qhe = pd.get("qhe")
+        if qhe is None:
+            return "MEDIUM"
+        if qhe >= 0.85:
+            return "LOW"
+        if qhe >= 0.65:
+            return "MEDIUM"
+        if qhe >= 0.45:
+            return "HIGH"
+        return "CRITICAL"
 
     def resolve_conflicts(self) -> Dict[str, Any]:
         """Read .sync-conflicts.md and apply documented resolution rules.
@@ -346,7 +436,7 @@ class BidirectionalSync:
         if conflict:
             return False
 
-        new_content = frontmatter.dumps(frontmatter.Post(existing, post.content))
+        new_content = frontmatter.dumps(frontmatter.Post(post.content, **existing))
         # Atomic write: write to tmp, rename.
         tmp_path = md_file.with_suffix(md_file.suffix + ".tmp")
         tmp_path.write_text(new_content, encoding="utf-8")
