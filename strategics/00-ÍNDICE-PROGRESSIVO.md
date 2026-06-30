@@ -32,6 +32,40 @@
 
 ---
 
+## 🌐 LangGraph Dev Runtime
+
+> **Status:** Active · **Config:** `langgraph.json` · **Entry point:** `vibe-ops/src/langgraph_entry.py`
+>
+> All 5 agentic flows (1 PAE-Maintainer + 4 swarm workflows) run as a single `langgraph dev` server.
+> The langgraph SDK is used only as a thin adapter layer — all business logic stays in
+> the existing custom Python graphs (`pae_maintainer/graph.py` + the 4 YAML workflows).
+>
+> Quick start:
+> ```bash
+> make install    # install langgraph CLI + deps
+> make dev        # run on port 2024
+> # Studio at http://localhost:2024
+> # API at http://localhost:2024/docs
+> ```
+>
+> **5 registered graphs** (from `langgraph.json`):
+> | Graph ID | Wraps | Use Case |
+> |----------|-------|----------|
+> | `pae_maintainer` | `run_pae_cycle()` | Full PAE cycle (observe→plan→reflect→balance→commit) |
+> | `quarterly_replan` | `quarterly-replan.yml` | End-of-quarter replanning on verdict != PASS |
+> | `test_de_fogo_rollup` | `test-de-fogo-rollup.yml` | 5-dim Test de Fogo aggregation |
+> | `correction_protocol` | `correction-protocol.yml` | Diagnose + recommend on kill_switch |
+> | `dream_falsification` | `dream-falsification.yml` | Evaluate FalsifiableHypothesis (daily 9am) |
+>
+> **Update routes:**
+> - `langgraph.json` (root) — 5 graph entries
+> - `vibe-ops/src/langgraph_entry.py` — 5 factory functions (thin adapter)
+> - `Makefile` — `make dev|test|status|logs|clean`
+> - `LANGRAPH_DEV.md` — full quick-start + architecture
+> - `.claude/skills/quarterly-planner/workflows/*.yml` — 4 workflow sources
+
+---
+
 ## 🗺️ Mapa Conceitual: De onde começar?
 
 ```
