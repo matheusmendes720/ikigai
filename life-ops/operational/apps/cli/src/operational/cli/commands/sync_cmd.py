@@ -1,19 +1,24 @@
-"""Sync CLI commands — wraps vibe-ops PeriodReportSync via subprocess.
+"""pav sync subcommand — bridges to vibe-ops vault_sync via subprocess.
 
-This module bridges operational's CLI to vibe-ops' PeriodReportSync.
-Per plan guardrail, operational does NOT import vibe-ops directly; instead,
-this module invokes ``vibe-ops/src/cli/period_sync_cli.py`` as a subprocess.
+operational is standalone — does NOT import vibe-ops directly. This
+subcommand invokes ``python -m scripts.vault_sync`` (module mode) and
+forwards JSON output to stdout.
 
-Path resolution: ``sync_cmd.py`` lives at::
+Subcommands:
+  - vault       Sync vault .md frontmatter -> SQLite planning_entities
+  - code        Sync SQLite computed fields -> vault + evaluate hypotheses
+  - all         Run vault and code in sequence
+  - status      Show entity counts, last sync timestamps, conflict summary
+  - conflicts   Print .sync-conflicts.md content
 
-    life-ops/operational/apps/cli/src/operational/cli/commands/sync_cmd.py
+All subcommands support --json per repo convention.
 
-Eight levels up (``parents[8]``) is the repo root. From there,
-``vibe-ops/src`` is one path join away.
+Source: .omo/plans/vault-bidirectional-sync.md (T8)
 """
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -26,35 +31,46 @@ from operational.cli.telemetry import get_logger, trace_command
 
 __all__ = ["app"]
 
-app = typer.Typer(help="Sync vault period reports with vibe_ops.db.")
+app = typer.Typer(
+    help="Bidirectional sync between Obsidian vault and vibe-ops engine.",
+    no_args_is_help=True,
+)
 log = get_logger("sync_cmd")
 
-# Eight parents up: commands/ → cli/ → operational/ → src/ → cli/ → apps/ →
-# operational/ → life-ops/ → <repo-root>. From the repo root we join
-# ``vibe-ops/src`` to reach the script we invoke.
-_VIBE_OPS_SRC = Path(__file__).resolve().parents[8] / "vibe-ops" / "src"
-_PERIOD_SYNC_SCRIPT = _VIBE_OPS_SRC / "cli" / "period_sync_cli.py"
+# Path resolution: sync_cmd.py lives at life-ops/operational/apps/cli/src/
+# operational/cli/commands/sync_cmd.py. Eight levels up is the repo root.
+_REPO_ROOT = Path(__file__).resolve().parents[8]
+_VIBE_OPS_SRC = _REPO_ROOT / "vibe-ops" / "src"
 
 
-def _run_period_cli(cmd: str, args: list[str], json_out: bool) -> tuple[int, str, str]:
-    """Invoke ``vibe-ops/src/cli/period_sync_cli.py`` as a subprocess.
-
-    Returns (exit_code, stdout, stderr).
-
-    The script path is a hard-coded sibling location in the repo, so the
-    subprocess call does not consume untrusted input — safe to ignore
-    S603 / PLW1510 here.
-    """
-    full_args = [
-        sys.executable,
-        str(_PERIOD_SYNC_SCRIPT),
-        cmd,
-        *args,
-    ]
+def _run_vault_sync(
+    subcmd: str,
+    vault: str,
+    db: str,
+    json_out: bool,
+) -> tuple[int, str]:
+    args = ["--vault", vault, "--db", db, subcmd]
     if json_out:
-        full_args.append("--json")
-    result = subprocess.run(full_args, capture_output=True, text=True, check=False)  # noqa: S603
-    return result.returncode, result.stdout, result.stderr
+        args.append("--json")
+
+    full_args = [sys.executable, "-m", "scripts.vault_sync", *args]
+
+    child_env = dict(os.environ)
+    child_env.pop("PYTHONPATH", None)
+    extra_pp = [str(_VIBE_OPS_SRC)]
+    child_env["PYTHONPATH"] = os.pathsep.join(extra_pp)
+
+    result = subprocess.run(  # noqa: S603
+        full_args,
+        capture_output=True,
+        text=True,
+        env=child_env,
+        cwd=str(_VIBE_OPS_SRC),
+        check=False,
+    )
+    if result.stderr:
+        sys.stderr.write(result.stderr)
+    return result.returncode, result.stdout
 
 
 def _parse_json_output(stdout: str) -> dict[str, Any] | list[Any] | None:
@@ -66,25 +82,18 @@ def _parse_json_output(stdout: str) -> dict[str, Any] | list[Any] | None:
 
 @app.command(name="vault")
 def sync_vault(
-    folder: str = typer.Option("_templates_periodos", "--folder", "-f"),
-    vault: str = typer.Option(..., "--vault", help="Path to vault"),
+    vault: str = typer.Option(..., "--vault", help="Path to Obsidian vault"),
     db: str = typer.Option("./vibe_ops.db", "--db", help="Path to SQLite DB"),
-    json_out: bool = typer.Option(False, "--json", help="Output as JSON"),
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
-    """Sync period reports from vault to vibe_ops.db."""
+    """Sync vault .md frontmatter -> SQLite planning_entities."""
     with trace_command(log, "sync.vault", command="pav sync vault") as ctx:
-        vault_path = Path(vault).resolve()
-        db_path = Path(db).resolve()
-        exit_code, stdout, _stderr = _run_period_cli(
-            "sync",
-            ["--vault", str(vault_path), "--db", str(db_path), "--folder", folder],
-            json_out,
-        )
+        exit_code, stdout = _run_vault_sync("vault", vault, db, json_out)
         if json_out:
             parsed = _parse_json_output(stdout)
             if parsed is not None:
                 typer.echo(format_as_json(parsed))
-                ctx.info("sync.vault.complete", **parsed)
+                ctx.info("sync.vault.complete")
                 return
         typer.echo(stdout, nl=False)
         if exit_code != 0:
@@ -93,49 +102,88 @@ def sync_vault(
         ctx.info("sync.vault.complete")
 
 
-@app.command(name="list")
-def sync_list(
-    period: str | None = typer.Option(None, "--period", help="Filter by period"),
+@app.command(name="code")
+def sync_code(
+    vault: str = typer.Option(..., "--vault", help="Path to Obsidian vault"),
     db: str = typer.Option("./vibe_ops.db", "--db", help="Path to SQLite DB"),
-    limit: int = typer.Option(50, "--limit", help="Max results"),
-    json_out: bool = typer.Option(False, "--json", help="Output as JSON"),
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
-    """List recent period reports."""
-    with trace_command(log, "sync.list", command="pav sync list") as ctx:
-        db_path = Path(db).resolve()
-        args = ["--db", str(db_path), "--limit", str(limit)]
-        if period:
-            args.extend(["--period", period])
-        exit_code, stdout, _stderr = _run_period_cli("list", args, json_out)  # noqa: RUF059
+    """Sync SQLite computed fields -> vault + evaluate hypotheses."""
+    with trace_command(log, "sync.code", command="pav sync code") as ctx:
+        exit_code, stdout = _run_vault_sync("code", vault, db, json_out)
         if json_out:
             parsed = _parse_json_output(stdout)
             if parsed is not None:
                 typer.echo(format_as_json(parsed))
-                ctx.info("sync.listed", count=len(parsed))
+                ctx.info("sync.code.complete")
                 return
         typer.echo(stdout, nl=False)
-        ctx.info("sync.listed")
+        if exit_code != 0:
+            ctx.error("sync.code.failed")
+            raise typer.Exit(code=exit_code)
+        ctx.info("sync.code.complete")
 
 
-@app.command(name="hierarchy")
-def sync_hierarchy(
-    sonho: str = typer.Option(..., "--sonho", help="Sonho ID"),
-    vault: str = typer.Option(..., "--vault", help="Path to vault"),
+@app.command(name="all")
+def sync_all(
+    vault: str = typer.Option(..., "--vault", help="Path to Obsidian vault"),
     db: str = typer.Option("./vibe_ops.db", "--db", help="Path to SQLite DB"),
-    json_out: bool = typer.Option(False, "--json", help="Output as JSON"),
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
-    """Show hierarchy tree for a sonho."""
-    with trace_command(log, "sync.hierarchy", command="pav sync hierarchy") as ctx:
-        vault_path = Path(vault).resolve()
-        db_path = Path(db).resolve()
-        args = ["--vault", str(vault_path), "--db", str(db_path), "--sonho", sonho]
-        exit_code, stdout, _stderr = _run_period_cli("hierarchy", args, json_out)  # noqa: RUF059
+    """Run vault and code syncs in sequence."""
+    with trace_command(log, "sync.all", command="pav sync all") as ctx:
+        exit_code, stdout = _run_vault_sync("all", vault, db, json_out)
         if json_out:
             parsed = _parse_json_output(stdout)
             if parsed is not None:
                 typer.echo(format_as_json(parsed))
-                ctx.info("sync.hierarchy.complete", count=parsed.get("count", 0))
+                ctx.info("sync.all.complete")
                 return
         typer.echo(stdout, nl=False)
-        ctx.info("sync.hierarchy.complete")
+        if exit_code != 0:
+            ctx.error("sync.all.failed")
+            raise typer.Exit(code=exit_code)
+        ctx.info("sync.all.complete")
 
+
+@app.command(name="status")
+def sync_status(
+    vault: str | None = typer.Option(None, "--vault", help="Vault path (optional)"),
+    db: str = typer.Option("./vibe_ops.db", "--db", help="Path to SQLite DB"),
+    json_out: bool = typer.Option(False, "--json"),
+) -> None:
+    """Show entity counts, last sync timestamps, and tracked files."""
+    with trace_command(log, "sync.status", command="pav sync status") as ctx:
+        exit_code, stdout = _run_vault_sync("status", vault or "", db, json_out)
+        if json_out:
+            parsed = _parse_json_output(stdout)
+            if parsed is not None:
+                typer.echo(format_as_json(parsed))
+                ctx.info("sync.status.complete")
+                return
+        typer.echo(stdout, nl=False)
+        if exit_code != 0:
+            ctx.error("sync.status.failed")
+            raise typer.Exit(code=exit_code)
+        ctx.info("sync.status.complete")
+
+
+@app.command(name="conflicts")
+def sync_conflicts(
+    vault: str = typer.Option(..., "--vault", help="Path to Obsidian vault"),
+    json_out: bool = typer.Option(False, "--json"),
+) -> None:
+    """Print .sync-conflicts.md content."""
+    with trace_command(log, "sync.conflicts", command="pav sync conflicts") as ctx:
+        exit_code, stdout = _run_vault_sync("conflicts", vault, "./vibe_ops.db", json_out)
+        if json_out:
+            parsed = _parse_json_output(stdout)
+            if parsed is not None:
+                typer.echo(format_as_json(parsed))
+                ctx.info("sync.conflicts.complete")
+                return
+        typer.echo(stdout, nl=False)
+        if exit_code != 0:
+            ctx.error("sync.conflicts.failed")
+            raise typer.Exit(code=exit_code)
+        ctx.info("sync.conflicts.complete")
