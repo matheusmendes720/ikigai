@@ -154,6 +154,28 @@ ignore = [
     "FBT002",    # boolean default positional args
 ]
 
+# CLI app.py — Typer/CLI layer, pre-existing import order and bool-option patterns
+"apps/cli/src/operational/cli/app.py" = [
+    "I001",      # import order — pre-existing
+    "PLC0414",   # analytics_app alias — pre-existing
+    "FBT001",    # Typer boolean options
+    "FBT003",    # Typer boolean option calls
+    "SIM105",    # try-except-pass in _auto_load_dataset
+    "S110",      # try-except-pass for silent fallback
+]
+
+# CLI state.py — _auto_load_dataset silent fallback pattern
+"apps/cli/src/operational/cli/state.py" = [
+    "SIM105",    # try-except-pass for silent fallback
+    "S110",      # try-except-pass for silent fallback
+]
+
+# CLI dataset_selector.py — DatasetRef dataclass
+"apps/cli/src/operational/cli/dataset_selector.py" = [
+    "D101",      # DatasetRef dataclass — intentional brief class
+    "D413",      # last-section blank line — intentional compact docstring
+]
+
 # TUI navigation.py — tiny state module
 "apps/tui/src/operational/tui/navigation.py" = [
     "D101",      # ScreenKind/TUIState dataclass enums
