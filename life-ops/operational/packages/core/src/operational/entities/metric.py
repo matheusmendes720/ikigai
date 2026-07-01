@@ -45,7 +45,7 @@ Conventions:
 """
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Annotated, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
@@ -169,7 +169,8 @@ class SleepRecord(BaseModel):
         bed_dt = datetime.combine(self.date, self.bedtime)
         wake_dt = datetime.combine(self.date, self.wake_time)
         if wake_dt < bed_dt:
-            wake_dt = wake_dt.replace(day=wake_dt.day + 1)
+            # Midnight crossing: wake is next calendar day
+            wake_dt = datetime.combine(self.date + timedelta(days=1), self.wake_time)
         delta = wake_dt - bed_dt
         return delta.total_seconds() / 3600.0
 

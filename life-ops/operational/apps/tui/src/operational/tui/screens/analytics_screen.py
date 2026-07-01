@@ -18,10 +18,6 @@ from datetime import date
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from textual.screen import Screen
-from textual.widgets import Footer, Header, Static
-from rich.text import Text
-
 from operational.core.analytics import (
     build_trajectory,
     compute_aggregations,
@@ -33,7 +29,9 @@ from operational.core.analytics import (
     scenario_analysis,
     weekly_trend,
 )
-from operational.tui.theme import get_tui_theme
+from rich.text import Text
+from textual.screen import Screen
+from textual.widgets import Footer, Header, Static
 
 _SCORE_SUCCESS = 80.0
 _SCORE_WARNING = 60.0
@@ -214,7 +212,7 @@ class AnalyticsScreen(Screen):
         try:
             csv_dir = _detect_csv_dir()
             ds = load_dataset(csv_dir)
-        except Exception:  # noqa: BLE001
+        except Exception:
             self._render_error()
             return
 
