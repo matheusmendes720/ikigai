@@ -8,12 +8,11 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import TYPE_CHECKING
 
-from textual.containers import Vertical
+from operational.cli.state import journals as journals_repo
+from operational.cli.state import sleep_records as sleep_repo
+from operational.tui.widgets.sparkline_chart import ChartColors, PlotextChart
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Static
-
-from operational.cli.state import journals as journals_repo, sleep_records as sleep_repo
-from operational.tui.widgets.sparkline_chart import ChartColors, PlotextChart
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult

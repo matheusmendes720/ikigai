@@ -144,7 +144,7 @@ def compute_next_step(snap, today: date | None = None) -> NextStep:
 
     if quad == "Q3":
         return NextStep(
-            observation=f"Quadrante crítico (Q3) — realizado/orçado baixo e foco disperso.",
+            observation="Quadrante crítico (Q3) — realizado/orçado baixo e foco disperso.",
             action="Revisão urgente: liste 3 bloqueios sistêmicos. Qual é o gargalo recorrente?",
             severity="danger",
         )
@@ -156,7 +156,7 @@ def compute_next_step(snap, today: date | None = None) -> NextStep:
         )
     if quad == "Q4":
         return NextStep(
-            observation=f"Produtivo mas disperso (Q4 — realizado ok, foco baixo).",
+            observation="Produtivo mas disperso (Q4 — realizado ok, foco baixo).",
             action="Reduza distrações: feche abas não-essenciais, defina 1 prioridade única.",
             severity="warning",
         )

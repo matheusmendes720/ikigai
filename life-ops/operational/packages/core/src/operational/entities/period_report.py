@@ -87,7 +87,7 @@ class PeriodReport(BaseModel):
     last_synced_at: _dt.datetime | None = None
 
     @model_validator(mode="after")
-    def validate_hierarchy_or_verdict_per_period(self) -> "PeriodReport":
+    def validate_hierarchy_or_verdict_per_period(self) -> PeriodReport:
         """Cross-field invariants for verdict, dates, and hierarchy.
 
         Checks:

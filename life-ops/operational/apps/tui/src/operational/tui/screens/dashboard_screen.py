@@ -12,14 +12,12 @@ from __future__ import annotations
 from datetime import date
 from typing import TYPE_CHECKING
 
-from textual.screen import Screen
-from textual.widgets import Footer, Header, Static
-
-from operational.cli.services import get_day_snapshot
 from operational.core.next_step import compute_next_step, get_current_regime
 from operational.tui.widgets.kpi_card import KPICard
 from operational.tui.widgets.pomodoro_grid import PomodoroGrid
 from operational.tui.widgets.regime_bar import RegimeBar
+from textual.screen import Screen
+from textual.widgets import Footer, Header, Static
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult

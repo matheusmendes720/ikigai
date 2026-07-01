@@ -9,12 +9,11 @@ from __future__ import annotations
 from datetime import date
 from typing import TYPE_CHECKING, ClassVar
 
+from operational.cli.state import journals as journals_repo
 from textual.binding import Binding
 from textual.containers import Vertical
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Input, Static
-
-from operational.cli.state import journals as journals_repo
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult

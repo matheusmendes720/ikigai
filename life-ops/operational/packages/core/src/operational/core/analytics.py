@@ -190,7 +190,7 @@ class TimeSeriesSlice:
         slope = _linear_slope(self.values)
         if slope > 0.001:
             return 1
-        elif slope < -0.001:
+        if slope < -0.001:
             return -1
         return 0
 

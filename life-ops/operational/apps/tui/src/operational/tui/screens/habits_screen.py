@@ -10,12 +10,12 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import TYPE_CHECKING, ClassVar
 
+from operational.cli.state import habits as habits_repo
+from operational.cli.state import routine_logs as logs_repo
+from operational.tui.widgets.habit_streak import HabitStreakDisplay
 from textual.binding import Binding
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Static
-
-from operational.cli.state import habits as habits_repo, routine_logs as logs_repo
-from operational.tui.widgets.habit_streak import HabitStreakDisplay
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
