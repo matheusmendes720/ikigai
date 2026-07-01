@@ -41,8 +41,20 @@ _BUILTIN_DATASETS: dict[str, tuple[str, str]] = {
 
 
 def _project_root() -> Path:
-    """Resolve the project root from this file's location."""
-    return Path(__file__).resolve().parents[3]
+    """Resolve the project root from this file's location.
+
+    File: apps/cli/src/operational/cli/dataset_selector.py
+
+        parents[0]  cli
+        parents[1]  operational  (the operational package)
+        parents[2]  src
+        parents[3]  cli
+        parents[4]  apps
+        parents[5]  operational  ← workspace root (life-ops/operational/)
+
+    So ``parents[5] / 'docs/golden.csv'`` → ``life-ops/operational/docs/golden.csv``.
+    """
+    return Path(__file__).resolve().parents[5]
 
 
 def resolve_dataset(name: str | None = None) -> DatasetRef:

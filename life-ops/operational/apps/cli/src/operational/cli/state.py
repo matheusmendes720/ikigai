@@ -108,14 +108,91 @@ transicoes: _PersistentRepo = _PersistentRepo(TransicaoRegistrada, "transicoes.j
 
 
 # ---------------------------------------------------------------------------
+# Dataset loader — load / switch datasets at runtime
+# ---------------------------------------------------------------------------
+
+_ALL_REPOS: tuple[_PersistentRepo, ...] = (
+    routines, routine_logs, time_blocks, journals, habits,
+    sleep_records, pomodoros, policy_decisions, policy_setpoints,
+    ajustes_finos, day_contexts, daily_reflections,
+    lunch_records, transicoes,
+)
+
+
+def load_dataset(name: str, *, clear_first: bool = False) -> dict[str, int]:
+    """Load a named dataset into the repos.
+
+    This is the runtime switcher — call it before launching the TUI to
+    populate the UI with mock data while the real pipelines are being built.
+
+    Args:
+        name: "synthetic", "golden", or "production".
+        clear_first: If True, wipe all repos before loading.
+                     Use when switching datasets (e.g. ``--golden`` / ``--synthetic``).
+
+    Returns:
+        dict mapping entity_type → count loaded.
+
+    Raises:
+        ValueError: If the dataset name is unknown.
+    """
+    if name == "production":
+        if clear_first:
+            for repo in _ALL_REPOS:
+                repo.clear()
+        return {}
+
+    from operational.cli.csv_loader import import_from_csv_as_entities
+    from operational.cli.dataset_selector import resolve_dataset
+
+    ref = resolve_dataset(name)
+    if not ref.csv_path or not ref.csv_path.exists():
+        return {}
+
+    if clear_first:
+        for repo in _ALL_REPOS:
+            repo.clear()
+
+    groups = import_from_csv_as_entities(ref.csv_path)
+    repo_map: dict[str, object] = {
+        "routine": routines,
+        "routine_log": routine_logs,
+        "time_block": time_blocks,
+        "journal_entry": journals,
+        "habit": habits,
+        "sleep_record": sleep_records,
+        "pomodoro_round": pomodoros,
+        "policy_decision": policy_decisions,
+        "policy_setpoints": policy_setpoints,
+        "ajuste_fino": ajustes_finos,
+        "day_context": day_contexts,
+        "daily_reflection": daily_reflections,
+        "lunch_record": lunch_records,
+        "transicao": transicoes,
+    }
+    counts: dict[str, int] = {}
+    for etype, entities in groups.items():
+        if etype in repo_map:
+            for ent in entities:
+                repo_map[etype].upsert(ent)
+            counts[etype] = len(entities)
+    return counts
+
+
+def clear_all_state() -> None:
+    """Wipe all repos and delete all JSON state files."""
+    for repo in _ALL_REPOS:
+        repo.clear()
+
+
+# ---------------------------------------------------------------------------
 # Auto-load dataset on boot (if requested via env var)
 # ---------------------------------------------------------------------------
 def _auto_load_dataset() -> None:
     """If TIME_TASKER_DATASET is set and the state dir is empty, load from CSV.
 
     Skips if any state file already exists (don't overwrite user data).
-    Skips silently on errors (the user can run ``operational demo import-csv``
-    manually if needed).
+    Skips silently on errors (the user can run ``operational doctor`` to debug).
     """
     dataset_name = os.environ.get("TIME_TASKER_DATASET")
     if not dataset_name or dataset_name == "production":
@@ -123,35 +200,9 @@ def _auto_load_dataset() -> None:
     if any(_STATE_DIR.glob("*.json")):
         return
     try:
-        from operational.cli.csv_loader import import_from_csv_as_entities
-        from operational.cli.dataset_selector import resolve_dataset
-
-        ref = resolve_dataset(dataset_name)
-        if not ref.csv_path or not ref.csv_path.exists():
-            return
-        groups = import_from_csv_as_entities(ref.csv_path)
-        repo_map = {
-            "routine": routines,
-            "routine_log": routine_logs,
-            "time_block": time_blocks,
-            "journal_entry": journals,
-            "habit": habits,
-            "sleep_record": sleep_records,
-            "pomodoro_round": pomodoros,
-            "policy_decision": policy_decisions,
-            "policy_setpoints": policy_setpoints,
-            "ajuste_fino": ajustes_finos,
-            "day_context": day_contexts,
-            "daily_reflection": daily_reflections,
-            "lunch_record": lunch_records,
-            "transicao": transicoes,
-        }
-        for etype, entities in groups.items():
-            if etype in repo_map:
-                for ent in entities:
-                    repo_map[etype].upsert(ent)
+        load_dataset(dataset_name)
     except Exception:  # noqa: BLE001
-        pass  # silent — let the user debug via `operational doctor`
+        pass  # silent
 
 
 _auto_load_dataset()
