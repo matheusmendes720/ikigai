@@ -117,6 +117,26 @@ def _has_any(series: Sequence[float | None]) -> bool:
     return any(v is not None for v in series)
 
 
+def _latest_data_date() -> date | None:
+    """Return the latest date that has sleep or journal data, or None."""
+    dates: set[date] = set()
+    try:
+        for s in sleep_repo.list():
+            d = getattr(s, "date", None)
+            if d is not None:
+                dates.add(d)
+    except Exception:
+        pass
+    try:
+        for j in journals_repo.list():
+            d = getattr(j, "date", None)
+            if d is not None:
+                dates.add(d)
+    except Exception:
+        pass
+    return max(dates) if dates else None
+
+
 class DashboardScreen(Screen):  # type: ignore[type-arg]
     """Main dashboard — 4 KPIs, regime bar, pomodoro grid, next step."""
 
@@ -192,10 +212,16 @@ DashboardScreen {
         )
 
     def _refresh(self) -> None:
-        """Pull a fresh snapshot and update every widget."""
+        """Pull a fresh snapshot and update every widget.
+
+        Anchors to the latest date that has data (not date.today()) so
+        the dashboard shows meaningful content even when the loaded
+        dataset is from a past period.
+        """
+        effective_today = _latest_data_date() or date.today()
         try:
             from operational.cli.services import get_day_snapshot
-            snap = get_day_snapshot(date.today())
+            snap = get_day_snapshot(effective_today)
         except Exception:
             snap = None
 
@@ -282,13 +308,11 @@ DashboardScreen {
     def _render_sparklines(self) -> None:
         """Render the 7-day sparklines for sleep / energy / focus.
 
-        Reads from the persistent repos (``sleep_records``, ``journals``),
-        fills missing days with the series mean so the sparkline is
-        contiguous, and falls back to a "No data" message when no real
-        values exist in the window.
+        Anchors the window to the latest data date (not date.today()) so
+        the sparklines show data regardless of when the dataset was recorded.
         """
-        today = date.today()
-        dates = [today - timedelta(days=i) for i in range(SPARKLINE_DAYS - 1, -1, -1)]
+        effective_today = _latest_data_date() or date.today()
+        dates = [effective_today - timedelta(days=i) for i in range(SPARKLINE_DAYS - 1, -1, -1)]
 
         sleep_vals = [_sleep_for(d) for d in dates]
         energy_vals = [_energy_for(d) for d in dates]

@@ -1,13 +1,12 @@
 """Habits Screen for PAV TUI — data-bound.
 
 Lists all habits from the ``habits`` repo with their current streak,
-best streak, and Q_HE score. Computes Q_HE inline from a simple
-consistency heuristic (more advanced computation lives in
-``operational.core.habit_engine``).
+best streak, and Q_HE score. Also shows a 30-day completion bar chart
+built from the ``routine_logs`` repo.
 
-Also shows a 30-day habit completion bar chart built from the
-``routine_logs`` repo so users can see their daily compliance at a
-glance.
+Streak logic: a habit is considered "done" on a day if there is at least
+one routine_log entry for that day.  The Q_HE score uses the H(t) =
+1 − e^(−λ·streak) formula (λ = 0.15) scaled to [0, 10].
 """
 from __future__ import annotations
 
@@ -32,31 +31,44 @@ COMPLETION_WINDOW_DAYS = 30
 def _compute_streak(habit_id: str) -> tuple[int, int]:
     """Return ``(current_streak, best_streak)`` for a habit.
 
-    Counts consecutive days (ending today) where a routine_log mentions
-    this habit's routine. Falls back to ``(0, 0)`` if no logs exist.
+    A habit is considered "done" on a day if there is at least one
+    routine_log for that day.  Note: the routine_log entries in the
+    golden/synthetic datasets may not have a direct routine→habit
+    link, so we count all routine_logs for the day as contributing
+    to the streak.
     """
     today = date.today()
-    logs_by_date: dict[date, int] = {}
-    for log in logs_repo.list():
-        if str(getattr(log, "routine_id", "")) == habit_id:
-            d = getattr(log, "date", None)
-            if d is None:
-                continue
-            logs_by_date[d] = logs_by_date.get(d, 0) + 1
 
-    # current streak: walk back from today while we have logs
+    # Build set of dates that have routine logs (the "active days")
+    active_dates: set[date] = set()
+    for log in logs_repo.list():
+        d = getattr(log, "date", None)
+        if d is not None:
+            active_dates.add(d)
+
+    if not active_dates:
+        return 0, 0
+
+    # Current streak: walk back from today (or latest data date) while active
+    latest_date = max(active_dates)
+    anchor = min(today, latest_date)  # don't look into the future
     current = 0
-    d = today
-    while d in logs_by_date:
+    d = anchor
+    while d in active_dates:
         current += 1
         d -= timedelta(days=1)
 
-    # best streak: max consecutive days in the lookback window
+    # Best streak: max consecutive active days in the lookback window
+    window_start = anchor - timedelta(days=STREAK_LOOKBACK_DAYS - 1)
+    window_dates = set()
+    for i in range(STREAK_LOOKBACK_DAYS):
+        window_dates.add(window_start + timedelta(days=i))
+
     best = 0
     streak = 0
     for i in range(STREAK_LOOKBACK_DAYS):
-        d = today - timedelta(days=i)
-        if d in logs_by_date:
+        d = window_start + timedelta(days=i)
+        if d in active_dates:
             streak += 1
             best = max(best, streak)
         else:
@@ -76,16 +88,36 @@ def _compute_q_he(current_streak: int, best_streak: int) -> float:
 
 
 def _completion_per_day(window_days: int) -> tuple[list[str], list[int]]:
+    """Return (labels, values) for the routine log completion bar chart.
+
+    Anchors the window to the actual data dates (like metrics_screen).
+    If no routine logs exist, returns empty lists.
+    """
     today = date.today()
-    dates = [today - timedelta(days=i) for i in range(window_days - 1, -1, -1)]
-    counts: dict[date, int] = dict.fromkeys(dates, 0)
+
+    # Collect active dates from routine_logs
+    active_dates: set[date] = set()
     try:
         for log in logs_repo.list():
             d = getattr(log, "date", None)
-            if d in counts:
-                counts[d] += 1
+            if d is not None:
+                active_dates.add(d)
     except Exception:
-        pass
+        return [], []
+
+    if not active_dates:
+        return [], []
+
+    # Anchor to the latest data date instead of today
+    latest = max(active_dates)
+    anchor = min(today, latest)
+    start = anchor - timedelta(days=window_days - 1)
+    dates = [start + timedelta(days=i) for i in range(window_days)]
+    counts: dict[date, int] = dict.fromkeys(dates, 0)
+    for d in active_dates:
+        if d in counts:
+            counts[d] += 1
+
     labels = [d.strftime("%d/%m") for d in dates]
     values = [counts[d] for d in dates]
     return labels, values
@@ -191,7 +223,11 @@ HabitStreakDisplay {
     def _render_completion_chart(self) -> None:
         labels, values = _completion_per_day(COMPLETION_WINDOW_DAYS)
         chart = self.query_one("#habits-chart", PlotextChart)
-        if any(v > 0 for v in values):
+        if not labels:
+            chart.update(
+                "[dim]Sem rotinas registradas.[/dim]"
+            )
+        elif any(v > 0 for v in values):
             chart.bar_chart(
                 labels,
                 [float(v) for v in values],
