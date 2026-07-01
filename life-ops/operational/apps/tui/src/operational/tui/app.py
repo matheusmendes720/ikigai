@@ -42,7 +42,6 @@ def _load_dataset(name: str) -> None:
     try:
         counts = load_dataset(name, clear_first=True)
         total = sum(counts.values())
-        # Log to stderr so it doesn't interfere with Textual rendering
         import sys
         print(f"[PAV] Loaded {name}: {total} entities → {counts}", file=sys.stderr)
     except Exception as exc:
@@ -56,17 +55,16 @@ class PAVApp(App[Never]):
     TITLE = "PAV-OS"
     BINDINGS = BINDINGS  # type: ignore[assignment]
 
-    # Textual SCREENS accepts classes (or callables) — it auto-instantiates on switch
     SCREENS: ClassVar = {
         "dashboard":      DashboardScreen,
         "daily_flow":     DailyFlowScreen,
         "pomodoro_timer": PomodoroTimerScreen,
         "habits":         HabitsScreen,
-        "metrics":         MetricsScreen,
-        "policy":          PolicyScreen,
-        "journal":         JournalScreen,
-        "analytics":       AnalyticsScreen,
-        "help":            HelpScreen,
+        "metrics":        MetricsScreen,
+        "policy":         PolicyScreen,
+        "journal":        JournalScreen,
+        "analytics":      AnalyticsScreen,
+        "help":           HelpScreen,
     }
 
     def __init__(
@@ -95,8 +93,6 @@ class PAVApp(App[Never]):
         theme = get_tui_theme()
         self.register_theme(theme)
         self.theme = theme.name
-        # Push the initial screen first (populates the stack).
-        # Subsequent navigations via switch_screen() replace it cleanly.
         self.push_screen(self._initial_screen)
 
     async def on_event(self, event: events.Event) -> None:

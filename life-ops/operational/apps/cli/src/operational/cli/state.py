@@ -135,6 +135,7 @@ def load_dataset(name: str, *, clear_first: bool = False) -> dict[str, int]:
 
     Raises:
         ValueError: If the dataset name is unknown.
+
     """
     if name == "production":
         if clear_first:
