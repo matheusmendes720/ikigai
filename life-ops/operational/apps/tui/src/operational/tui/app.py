@@ -32,6 +32,24 @@ BINDINGS = [
 ]
 
 
+def _load_dataset(name: str) -> None:
+    """Load (or switch) dataset at TUI startup time.
+
+    Uses the public state API so the JSON files in ~/.time-tasker/
+    get overwritten with the loaded CSV data.
+    """
+    from operational.cli.state import load_dataset
+    try:
+        counts = load_dataset(name, clear_first=True)
+        total = sum(counts.values())
+        # Log to stderr so it doesn't interfere with Textual rendering
+        import sys
+        print(f"[PAV] Loaded {name}: {total} entities → {counts}", file=sys.stderr)
+    except Exception as exc:
+        import sys
+        print(f"[PAV] Warning: could not load {name}: {exc}", file=sys.stderr)
+
+
 class PAVApp(App[Never]):
     """Main PAV-OS TUI application with 7 screens."""
 
@@ -44,11 +62,11 @@ class PAVApp(App[Never]):
         "daily_flow":     DailyFlowScreen,
         "pomodoro_timer": PomodoroTimerScreen,
         "habits":         HabitsScreen,
-        "metrics":        MetricsScreen,
-        "policy":         PolicyScreen,
-        "journal":        JournalScreen,
-        "analytics":      AnalyticsScreen,
-        "help":           HelpScreen,
+        "metrics":         MetricsScreen,
+        "policy":          PolicyScreen,
+        "journal":         JournalScreen,
+        "analytics":       AnalyticsScreen,
+        "help":            HelpScreen,
     }
 
     def __init__(
@@ -56,14 +74,24 @@ class PAVApp(App[Never]):
         initial_screen: str | None = None,
         data_file: str | None = None,
         golden: bool = False,
+        synthetic: bool = False,
         **kwargs: Never,
     ) -> None:
         super().__init__(**kwargs)
         self._initial_screen = initial_screen or "dashboard"
         self._data_file = data_file
         self._golden = golden
+        self._synthetic = synthetic
 
     def on_mount(self) -> None:
+        # Load mock dataset before any screen mounts and reads from repos.
+        # --golden    → docs/golden.csv      (7 canonical PAV days)
+        # --synthetic → docs/synthetic.csv  (30+ days with edge cases)
+        if self._golden:
+            _load_dataset("golden")
+        elif self._synthetic:
+            _load_dataset("synthetic")
+
         theme = get_tui_theme()
         self.register_theme(theme)
         self.theme = theme.name

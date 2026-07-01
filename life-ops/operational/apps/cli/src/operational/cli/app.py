@@ -154,7 +154,12 @@ def tui(
     golden: bool = typer.Option(  # noqa: FBT001
         False,  # noqa: FBT003
         "--golden",
-        help="Load golden dataset for visual debugging (dev mode)",
+        help="Load golden dataset for visual debugging (7 canonical PAV days)",
+    ),
+    synthetic: bool = typer.Option(  # noqa: FBT001
+        False,  # noqa: FBT003
+        "--synthetic",
+        help="Load synthetic dataset (30+ days with edge cases)",
     ),
     debug: bool = typer.Option(  # noqa: FBT001
         False,  # noqa: FBT003
@@ -166,8 +171,18 @@ def tui(
 
     Screens: dashboard | daily_flow | pomodoro_timer | habits | metrics | policy | journal | analytics
     Keys: 1-8 switch screens | q quit | Ctrl+C interrupt
+
+    Data: by default the TUI reads from ~/.time-tasker/*.json (empty on first run).
+    Use --golden or --synthetic to populate it with mock data so screens render.
+    Use ``operational demo seed`` to load the rich 7-scenario mock dataset from Python.
+    Use ``operational demo dataset golden`` to see the CSV-based golden dataset.
     """
-    tui_app = PAVApp(initial_screen=screen, data_file=data_file, golden=golden)
+    tui_app = PAVApp(
+        initial_screen=screen,
+        data_file=data_file,
+        golden=golden,
+        synthetic=synthetic,
+    )
 
     if debug:
         tui_app._devtools = True  # noqa: SLF001
