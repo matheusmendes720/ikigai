@@ -28,7 +28,7 @@ from operational.cli.commands.doctor_cmd import run_health_check
 from operational.cli.commands.habit_cmd import app as habit_app
 from operational.cli.commands.journal_cmd import app as journal_app
 from operational.cli.commands.lunch_cmd import app as lunch_app
-from operational.cli.commands.analytics_cmd import analytics_app as analytics_app
+from operational.cli.commands.analytics_cmd import analytics_app
 from operational.cli.commands.metric_cmd import app as metric_app
 from operational.cli.commands.plan_cmd import app as plan_app
 from operational.cli.commands.policy_cmd import app as policy_app
@@ -120,7 +120,7 @@ app.add_typer(
 
 @app.command(name="doctor")
 def doctor_root(
-    json_out: bool = typer.Option(False, "--json", help="Output as JSON"),  # noqa: FBT001, FBT003
+    json_out: bool = typer.Option(False, "--json", help="Output as JSON")
 ) -> None:
     """Run a comprehensive health check on the operational CLI."""
     run_health_check(json_out=json_out)
@@ -129,7 +129,7 @@ def doctor_root(
 @app.command()
 def home() -> None:
     """Menu interativo — PAV-OS v2 menu (definitive edition)."""
-    from operational.cli.home_v2 import run as run_home_v2  # noqa: PLC0415
+    from operational.cli.home_v2 import run as run_home_v2
 
     run_home_v2()
 
@@ -151,23 +151,39 @@ def tui(
         "--data-file",
         help="Path to CSV data file for metrics (default: built-in sample data)",
     ),
-    golden: bool = typer.Option(  # noqa: FBT001
-        False,  # noqa: FBT003
+    golden: bool = typer.Option(
+        False,
         "--golden",
-        help="Load golden dataset for visual debugging (dev mode)",
+        help="Load golden dataset for visual debugging (7 canonical PAV days)",
     ),
-    debug: bool = typer.Option(  # noqa: FBT001
-        False,  # noqa: FBT003
+    synthetic: bool = typer.Option(
+        False,
+        "--synthetic",
+        help="Load synthetic dataset (30+ days with edge cases)",
+    ),
+    debug: bool = typer.Option(
+        False,
         "--debug",
         help="Enable Textual dev mode with live reload and exception traceback",
     ),
 ) -> None:
     """Launch the PAV TUI (Textual-based 8-screen terminal UI).
 
-    Screens: dashboard | daily_flow | pomodoro_timer | habits | metrics | policy | journal | analytics
+    Screens: dashboard | daily_flow | pomodoro_timer | habits |
+        metrics | policy | journal | analytics
     Keys: 1-8 switch screens | q quit | Ctrl+C interrupt
+
+    Data: by default the TUI reads from ~/.time-tasker/*.json (empty on first run).
+    Use --golden or --synthetic to populate it with mock data so screens render.
+    Use ``operational demo seed`` to load the rich 7-scenario mock dataset from Python.
+    Use ``operational demo dataset golden`` to see the CSV-based golden dataset.
     """
-    tui_app = PAVApp(initial_screen=screen, data_file=data_file, golden=golden)
+    tui_app = PAVApp(
+        initial_screen=screen,
+        data_file=data_file,
+        golden=golden,
+        synthetic=synthetic,
+    )
 
     if debug:
         tui_app._devtools = True  # noqa: SLF001

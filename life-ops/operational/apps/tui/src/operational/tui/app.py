@@ -32,13 +32,29 @@ BINDINGS = [
 ]
 
 
+def _load_dataset(name: str) -> None:
+    """Load (or switch) dataset at TUI startup time.
+
+    Uses the public state API so the JSON files in ~/.time-tasker/
+    get overwritten with the loaded CSV data.
+    """
+    from operational.cli.state import load_dataset
+    try:
+        counts = load_dataset(name, clear_first=True)
+        total = sum(counts.values())
+        import sys
+        print(f"[PAV] Loaded {name}: {total} entities → {counts}", file=sys.stderr)  # noqa: T201
+    except Exception as exc:  # noqa: BLE001
+        import sys
+        print(f"[PAV] Warning: could not load {name}: {exc}", file=sys.stderr)  # noqa: T201
+
+
 class PAVApp(App[Never]):
     """Main PAV-OS TUI application with 7 screens."""
 
     TITLE = "PAV-OS"
     BINDINGS = BINDINGS  # type: ignore[assignment]
 
-    # Textual SCREENS accepts classes (or callables) — it auto-instantiates on switch
     SCREENS: ClassVar = {
         "dashboard":      DashboardScreen,
         "daily_flow":     DailyFlowScreen,
@@ -56,19 +72,27 @@ class PAVApp(App[Never]):
         initial_screen: str | None = None,
         data_file: str | None = None,
         golden: bool = False,
+        synthetic: bool = False,
         **kwargs: Never,
     ) -> None:
         super().__init__(**kwargs)
         self._initial_screen = initial_screen or "dashboard"
         self._data_file = data_file
         self._golden = golden
+        self._synthetic = synthetic
 
     def on_mount(self) -> None:
+        # Load mock dataset before any screen mounts and reads from repos.
+        # --golden    → docs/golden.csv      (7 canonical PAV days)
+        # --synthetic → docs/synthetic.csv  (30+ days with edge cases)
+        if self._golden:
+            _load_dataset("golden")
+        elif self._synthetic:
+            _load_dataset("synthetic")
+
         theme = get_tui_theme()
         self.register_theme(theme)
         self.theme = theme.name
-        # Push the initial screen first (populates the stack).
-        # Subsequent navigations via switch_screen() replace it cleanly.
         self.push_screen(self._initial_screen)
 
     async def on_event(self, event: events.Event) -> None:
