@@ -3,19 +3,25 @@
 Reads the current :class:`DaySnapshot` from ``operational.cli.services``
 and refreshes every widget every ``REFRESH_INTERVAL`` seconds. Shows:
 - 4 KPIs (sleep, pomodoros, energy, focus)
+- 3 mini 7-day sparklines (sleep, energy, focus)
 - Current regime bar
 - Pomodoro grid for today
 - Next-step advisory (computed from data)
 """
 from __future__ import annotations
 
-from datetime import date
+from collections.abc import Sequence
+from datetime import date, timedelta
 from typing import TYPE_CHECKING
 
+from operational.cli.state import journals as journals_repo
+from operational.cli.state import sleep_records as sleep_repo
 from operational.core.next_step import compute_next_step, get_current_regime
 from operational.tui.widgets.kpi_card import KPICard
 from operational.tui.widgets.pomodoro_grid import PomodoroGrid
 from operational.tui.widgets.regime_bar import RegimeBar
+from operational.tui.widgets.sparkline_chart import ChartColors, PlotextChart
+from textual.containers import Horizontal
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Static
 
@@ -23,6 +29,7 @@ if TYPE_CHECKING:
     from textual.app import ComposeResult
 
 REFRESH_INTERVAL = 2.0  # seconds
+SPARKLINE_DAYS = 7  # last N days for mini sparklines
 
 
 def _format_delta(curr: float | None, baseline: float | None = None) -> str:
@@ -56,7 +63,81 @@ def _classify_focus_severity(foco: int | None) -> str:
     return "danger"
 
 
-class DashboardScreen(Screen):
+def _sleep_for(d: date) -> float | None:
+    """Return sleep duration in hours for a date, or None if not logged."""
+    try:
+        for s in sleep_repo.list():
+            if getattr(s, "date", None) == d:
+                h = getattr(s, "duration_hours", None)
+                return float(h) if h is not None else None
+    except Exception:
+        pass
+    return None
+
+
+def _energy_for(d: date) -> int | None:
+    """Return energy level 1-10 for a date, or None."""
+    try:
+        for j in journals_repo.list():
+            if getattr(j, "date", None) == d:
+                v = getattr(j, "energia_nivel", None)
+                return int(v) if v is not None else None
+    except Exception:
+        pass
+    return None
+
+
+def _focus_for(d: date) -> int | None:
+    """Return focus level 1-10 for a date, or None."""
+    try:
+        for j in journals_repo.list():
+            if getattr(j, "date", None) == d:
+                v = getattr(j, "foco_nivel", None)
+                return int(v) if v is not None else None
+    except Exception:
+        pass
+    return None
+
+
+def _fill_missing(series: Sequence[float | None]) -> list[float]:
+    """Replace None entries with the series mean so the chart has no gaps.
+
+    Returns a zero-filled list when no real values are present so plotext
+    still renders something instead of raising.
+    """
+    nums = [v for v in series if v is not None]
+    if not nums:
+        return [0.0] * len(series)
+    mean = sum(nums) / len(nums)
+    return [v if v is not None else mean for v in series]
+
+
+def _has_any(series: Sequence[float | None]) -> bool:
+    """Return True if at least one value in the series is non-None."""
+    return any(v is not None for v in series)
+
+
+def _latest_data_date() -> date | None:
+    """Return the latest date that has sleep or journal data, or None."""
+    dates: set[date] = set()
+    try:
+        for s in sleep_repo.list():
+            d = getattr(s, "date", None)
+            if d is not None:
+                dates.add(d)
+    except Exception:
+        pass
+    try:
+        for j in journals_repo.list():
+            d = getattr(j, "date", None)
+            if d is not None:
+                dates.add(d)
+    except Exception:
+        pass
+    return max(dates) if dates else None
+
+
+class DashboardScreen(Screen):  # type: ignore[type-arg]
     """Main dashboard — 4 KPIs, regime bar, pomodoro grid, next step."""
 
     CSS = """
@@ -70,6 +151,18 @@ DashboardScreen {
     margin: 0 1;
     border: solid $border;
     background: $surface;
+}
+#chart-row {
+    height: 8;
+    width: 100%;
+    margin: 1 1;
+}
+#sleep-spark, #energy-spark, #focus-spark {
+    width: 1fr;
+    height: 100%;
+    border: solid $border;
+    background: $surface;
+    padding: 0 1;
 }
 #regime-bar {
     width: 100%;
@@ -100,6 +193,10 @@ DashboardScreen {
         yield KPICard(id="kpi-pomo", label="Pomodoros",  icon="🍅")
         yield KPICard(id="kpi-energia", label="Energia", icon="⚡")
         yield KPICard(id="kpi-foco", label="Foco",       icon="🎯")
+        with Horizontal(id="chart-row"):
+            yield PlotextChart(id="sleep-spark")
+            yield PlotextChart(id="energy-spark")
+            yield PlotextChart(id="focus-spark")
         yield RegimeBar(id="regime-bar")
         yield PomodoroGrid(id="pomo-grid")
         yield Static(id="next-step")
@@ -115,16 +212,24 @@ DashboardScreen {
         )
 
     def _refresh(self) -> None:
-        """Pull a fresh snapshot and update every widget."""
+        """Pull a fresh snapshot and update every widget.
+
+        Anchors to the latest date that has data (not date.today()) so
+        the dashboard shows meaningful content even when the loaded
+        dataset is from a past period.
+        """
+        effective_today = _latest_data_date() or date.today()
         try:
             from operational.cli.services import get_day_snapshot
-            snap = get_day_snapshot(date.today())
+            snap = get_day_snapshot(effective_today)
         except Exception:
             snap = None
 
         if snap is None:
             self._render_empty()
             return
+
+        self._render_sparklines()
 
         # Sleep
         sleep_h = snap.sleep.duration_hours
@@ -191,9 +296,89 @@ DashboardScreen {
         self.query_one("#kpi-pomo", KPICard).update(value="0/0", severity="muted")
         self.query_one("#kpi-energia", KPICard).update(value="—", severity="muted")
         self.query_one("#kpi-foco", KPICard).update(value="—", severity="muted")
+        # Empty sparklines — graceful "No data" message instead of a real chart
+        empty_msg = "[dim]Sem dados (7d)[/dim]"
+        self.query_one("#sleep-spark", PlotextChart).update(empty_msg)
+        self.query_one("#energy-spark", PlotextChart).update(empty_msg)
+        self.query_one("#focus-spark", PlotextChart).update(empty_msg)
         self.query_one("#next-step", Static).update(
             "[dim]Sem dados para hoje — rode `pav demo seed` ou `pav metric sleep` para começar.[/dim]"
         )
+
+    def _render_sparklines(self) -> None:
+        """Render the 7-day sparklines for sleep / energy / focus.
+
+        Anchors the window to the latest data date (not date.today()) so
+        the sparklines show data regardless of when the dataset was recorded.
+        """
+        effective_today = _latest_data_date() or date.today()
+        dates = [effective_today - timedelta(days=i) for i in range(SPARKLINE_DAYS - 1, -1, -1)]
+
+        sleep_vals = [_sleep_for(d) for d in dates]
+        energy_vals = [_energy_for(d) for d in dates]
+        focus_vals = [_focus_for(d) for d in dates]
+
+        empty_msg = "[dim]Sem dados (7d)[/dim]"
+
+        # ── Sleep sparkline
+        sleep_chart = self.query_one("#sleep-spark", PlotextChart)
+        if _has_any(sleep_vals):
+            sleep_chart.sparkline(
+                _fill_missing(sleep_vals),
+                color=ChartColors.SLEEP["primary"],
+                fill=True,
+                fill_opacity=0.15,
+                line_style="solid",
+                point_type="dot",
+                marker_size=1.2,
+                line_width=1.0,
+                y_label="h",
+                title="Sono 7d",
+                hide_x_axis=True,
+                hide_grid=True,
+            )
+        else:
+            sleep_chart.update(empty_msg)
+
+        # ── Energy sparkline
+        energy_chart = self.query_one("#energy-spark", PlotextChart)
+        if _has_any(energy_vals):
+            energy_chart.sparkline(
+                _fill_missing(energy_vals),
+                color=ChartColors.ENERGY["primary"],
+                fill=True,
+                fill_opacity=0.15,
+                line_style="solid",
+                point_type="dot",
+                marker_size=1.2,
+                line_width=1.0,
+                y_label="pts",
+                title="Energia 7d",
+                hide_x_axis=True,
+                hide_grid=True,
+            )
+        else:
+            energy_chart.update(empty_msg)
+
+        # ── Focus sparkline
+        focus_chart = self.query_one("#focus-spark", PlotextChart)
+        if _has_any(focus_vals):
+            focus_chart.sparkline(
+                _fill_missing(focus_vals),
+                color=ChartColors.FOCUS["primary"],
+                fill=True,
+                fill_opacity=0.15,
+                line_style="solid",
+                point_type="dot",
+                marker_size=1.2,
+                line_width=1.0,
+                y_label="pts",
+                title="Foco 7d",
+                hide_x_axis=True,
+                hide_grid=True,
+            )
+        else:
+            focus_chart.update(empty_msg)
 
 
 def _split_pomodoros_into_sessions(total: int) -> tuple[int, int, int]:
@@ -216,7 +401,7 @@ def _round_to_glyphs(done: int) -> list[str]:
     return ["done" if i < done else "skip" for i in range(4)]
 
 
-def _score_for_session(snap, session: str) -> int:
+def _score_for_session(snap: object, session: str) -> int:
     """Return the focus score (0-10) for a given session, or 0 if unknown.
 
     Currently a rough heuristic: split the day's average focus across
@@ -227,4 +412,4 @@ def _score_for_session(snap, session: str) -> int:
     if foco is None:
         return 0
     # Naive split: same score for each session as a placeholder.
-    return foco
+    return int(foco)
