@@ -43,10 +43,10 @@ def _load_dataset(name: str) -> None:
         counts = load_dataset(name, clear_first=True)
         total = sum(counts.values())
         import sys
-        print(f"[PAV] Loaded {name}: {total} entities → {counts}", file=sys.stderr)  # noqa: T201
+        print(f"[PAV] Loaded {name}: {total} entities → {counts}", file=sys.stderr, flush=True)  # noqa: T201
     except Exception as exc:  # noqa: BLE001
         import sys
-        print(f"[PAV] Warning: could not load {name}: {exc}", file=sys.stderr)  # noqa: T201
+        print(f"[PAV] Warning: could not load {name}: {exc}", file=sys.stderr, flush=True)  # noqa: T201
 
 
 class PAVApp(App[Never]):
