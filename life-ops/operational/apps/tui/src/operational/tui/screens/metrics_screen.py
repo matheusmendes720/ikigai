@@ -54,6 +54,47 @@ def _focus_for(d: date) -> int | None:
     return None
 
 
+def _data_date_range(period: str) -> tuple[list[date], list[str]]:
+    """Return (dates, labels) for the window that has data.
+
+    Instead of anchoring to date.today(), we anchor to the actual data.
+    If data spans N days, we show the last N days (up to 7d/30d limit).
+    If no data at all, falls back to the last 7/30 days from today so
+    the screen still renders the "no data" message.
+    """
+    days = 7 if period == "7d" else 30
+    today = date.today()
+
+    # Collect all unique dates from sleep_records and journals
+    data_dates: set[date] = set()
+    try:
+        for s in sleep_repo.list():
+            d = getattr(s, "date", None)
+            if d is not None:
+                data_dates.add(d)
+    except Exception:
+        pass
+    try:
+        for j in journals_repo.list():
+            d = getattr(j, "date", None)
+            if d is not None:
+                data_dates.add(d)
+    except Exception:
+        pass
+
+    if data_dates:
+        sorted_dates = sorted(data_dates)
+        # Use the latest N days that have data (or all available if fewer)
+        window = sorted_dates[-days:] if len(sorted_dates) > days else sorted_dates
+        labels = [d.strftime("%d/%m") for d in window]
+        return window, labels
+
+    # No data at all — fall back to standard today-anchored window
+    dates_list = [today - timedelta(days=i) for i in range(days - 1, -1, -1)]
+    labels = [d.strftime("%d/%m") for d in dates_list]
+    return dates_list, labels
+
+
 class MetricsScreen(Screen):
     """Historical charts: sleep, energy, focus over 7d/30d."""
 
@@ -123,10 +164,10 @@ PlotextChart {
         yield Footer()
 
     def _render_charts(self, period: str = "7d") -> None:
-        days = 7 if period == "7d" else 30
-        today = date.today()
-        dates = [today - timedelta(days=i) for i in range(days - 1, -1, -1)]
-        labels = [d.strftime("%d/%m") for d in dates]
+        # Use the data-anchored date range instead of fixed today-anchored window.
+        # This ensures charts show data regardless of when the dataset was recorded.
+        dates, labels = _data_date_range(period)
+        days = len(dates)
         sleep_vals = [_sleep_for(d) for d in dates]
         energy_vals = [_energy_for(d) for d in dates]
         focus_vals = [_focus_for(d) for d in dates]
