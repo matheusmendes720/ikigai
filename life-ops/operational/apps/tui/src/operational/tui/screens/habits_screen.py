@@ -4,23 +4,29 @@ Lists all habits from the ``habits`` repo with their current streak,
 best streak, and Q_HE score. Computes Q_HE inline from a simple
 consistency heuristic (more advanced computation lives in
 ``operational.core.habit_engine``).
+
+Also shows a 30-day habit completion bar chart built from the
+``routine_logs`` repo so users can see their daily compliance at a
+glance.
 """
 from __future__ import annotations
 
 from datetime import date, timedelta
 from typing import TYPE_CHECKING, ClassVar
 
+from operational.cli.state import habits as habits_repo
+from operational.cli.state import routine_logs as logs_repo
+from operational.tui.widgets.habit_streak import HabitStreakDisplay
+from operational.tui.widgets.sparkline_chart import ChartColors, PlotextChart
 from textual.binding import Binding
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Static
-
-from operational.cli.state import habits as habits_repo, routine_logs as logs_repo
-from operational.tui.widgets.habit_streak import HabitStreakDisplay
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
 
 STREAK_LOOKBACK_DAYS = 30  # how many days back to count streak
+COMPLETION_WINDOW_DAYS = 30
 
 
 def _compute_streak(habit_id: str) -> tuple[int, int]:
@@ -69,7 +75,23 @@ def _compute_q_he(current_streak: int, best_streak: int) -> float:
     return round(h * 10, 1)
 
 
-class HabitsScreen(Screen):
+def _completion_per_day(window_days: int) -> tuple[list[str], list[int]]:
+    today = date.today()
+    dates = [today - timedelta(days=i) for i in range(window_days - 1, -1, -1)]
+    counts: dict[date, int] = dict.fromkeys(dates, 0)
+    try:
+        for log in logs_repo.list():
+            d = getattr(log, "date", None)
+            if d in counts:
+                counts[d] += 1
+    except Exception:
+        pass
+    labels = [d.strftime("%d/%m") for d in dates]
+    values = [counts[d] for d in dates]
+    return labels, values
+
+
+class HabitsScreen(Screen):  # type: ignore[type-arg]
     """List of all habits with streak, Q_HE score, and filter/sort."""
 
     BINDINGS: ClassVar = [
@@ -91,6 +113,18 @@ HabitsScreen {
     background: $surface;
     color: $text-muted;
 }
+#chart-label {
+    height: 3;
+    width: 100%;
+    padding: 1 2;
+    color: $text;
+    text-style: bold;
+}
+#habits-chart {
+    height: 10;
+    width: 100%;
+    padding: 0 2;
+}
 #empty-msg {
     padding: 2 4;
     color: $text-muted;
@@ -111,6 +145,11 @@ HabitStreakDisplay {
             "[O]rdenar: [Q_HE▼] [streak▼] [name▲]",
             id="filters",
         )
+        yield Static(
+            f"Conclusão de hábitos — últimos {COMPLETION_WINDOW_DAYS} dias",
+            id="chart-label",
+        )
+        yield PlotextChart(id="habits-chart")
         yield Static(id="empty-msg")
         yield Footer()
 
@@ -129,28 +168,49 @@ HabitStreakDisplay {
         if not all_habits:
             empty.update(
                 "[dim]Nenhum hábito cadastrado.[/dim]\n"
-                "[dim]Adicione com: `pav habit create \"Nome\" physiological`[/dim]"
+                '[dim]Adicione com: `pav habit create "Nome" physiological`[/dim]'
             )
-            return
-        empty.update("")
+        else:
+            empty.update("")
+            for h in all_habits:
+                hid = str(getattr(h, "id", ""))
+                try:
+                    cur, best = _compute_streak(hid)
+                    qhe = _compute_q_he(cur, best)
+                except Exception:
+                    cur, best, qhe = 0, 0, 0.0
+                self.mount(HabitStreakDisplay(
+                    name=getattr(h, "name", "(sem nome)"),
+                    current_streak=cur,
+                    best_streak=best,
+                    q_he=qhe,
+                ))
 
-        for h in all_habits:
-            hid = str(getattr(h, "id", ""))
-            try:
-                cur, best = _compute_streak(hid)
-                qhe = _compute_q_he(cur, best)
-            except Exception:
-                cur, best, qhe = 0, 0, 0.0
-            self.mount(HabitStreakDisplay(
-                name=getattr(h, "name", "(sem nome)"),
-                current_streak=cur,
-                best_streak=best,
-                q_he=qhe,
-            ))
+        self._render_completion_chart()
+
+    def _render_completion_chart(self) -> None:
+        labels, values = _completion_per_day(COMPLETION_WINDOW_DAYS)
+        chart = self.query_one("#habits-chart", PlotextChart)
+        if any(v > 0 for v in values):
+            chart.bar_chart(
+                labels,
+                [float(v) for v in values],
+                color=ChartColors.ENERGY["primary"],
+                orientation="v",
+                bar_width=0.7,
+                y_label="rotinas",
+                title=f"Rotinas/dia — últimos {COMPLETION_WINDOW_DAYS}d",
+                hide_grid=True,
+            )
+        else:
+            chart.update(
+                "[dim]Sem rotinas registradas nesta janela — "
+                f"últimos {COMPLETION_WINDOW_DAYS} dias.[/dim]"
+            )
 
     def action_add_habit(self) -> None:
         self.app.notify(
-            "Use `pav habit create \"Nome\" physiological` para adicionar.",
+            'Use `pav habit create "Nome" physiological` para adicionar.',
             title="Novo hábito",
         )
 

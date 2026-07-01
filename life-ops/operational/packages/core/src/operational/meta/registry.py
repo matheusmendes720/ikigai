@@ -25,17 +25,17 @@ def _discover_entities() -> dict[str, type[BaseModel]]:
         Mapping of UEID prefix → model class.
     """
     # Late imports to avoid circular dependencies during bootstrap.
-    from operational.entities.ajuste_fino import AjusteFino  # noqa: PLC0415
-    from operational.entities.habit import Habit  # noqa: PLC0415
-    from operational.entities.journal import JournalEntry  # noqa: PLC0415
-    from operational.entities.metric import DailyLog, SleepRecord  # noqa: PLC0415
-    from operational.entities.policy import (  # noqa: PLC0415
+    from operational.entities.ajuste_fino import AjusteFino
+    from operational.entities.habit import Habit
+    from operational.entities.journal import JournalEntry
+    from operational.entities.metric import DailyLog, SleepRecord
+    from operational.entities.policy import (
         DecisionRecord,
         PolicySetpoints,
     )
-    from operational.entities.pomodoro import PomodoroSession  # noqa: PLC0415
-    from operational.entities.routine import Routine, RoutineLog  # noqa: PLC0415
-    from operational.entities.time_block import TimeBlock  # noqa: PLC0415
+    from operational.entities.pomodoro import PomodoroSession
+    from operational.entities.routine import Routine, RoutineLog
+    from operational.entities.time_block import TimeBlock
 
     return {
         "rou": Routine,
