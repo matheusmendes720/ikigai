@@ -219,14 +219,11 @@ __all__ = [
     "VALID_WEEKDAYS",
     "AlertLevel",
     "AutoIndagacao",
-    # Core - Break Calculator (6) — gross entry/exit rest + AjusteFino
     "BreakInfo",
     "BreakStatistics",
     "Clock",
-    # Core - Context Switch (5) — PAV-based overhead between periods
     "ContextSwitchEstimate",
     "ContextSwitchSeverity",
-    # Entities - Consolidation (3)
     "DailyConsolidation",
     "DailyLog",
     "DecisionRecord",
@@ -234,42 +231,32 @@ __all__ = [
     "EnergyLevel",
     "EnergyReading",
     "EntityNotFoundError",
-    # Meta — Registry (4)
     "EntityRegistry",
-    # Entities - Habit (3)
     "Habit",
     "HabitCategory",
     "HabitState",
-    # Types (11)
     "Hour",
     "InMemoryPomodoroPlugin",
     "InMemoryRepository",
-    # Entities - Journal (2)
     "JournalEntry",
     "JournalReport",
-    # Core - Journal Segmenter (6) — natural language reports by period
     "JournalSegment",
     "Logger",
     "MetricAlert",
     "MigrationError",
     "MigrationRunner",
     "Minute",
-    # Constants (2)
     "PAVConstants",
     "PAVErrorCode",
     "PAVErrorLookupError",
     "PAVErrorSpec",
-    # Enums (10)
     "Period",
     "PersistenceError",
     "PolicyDecision",
-    # Entities - Policy (3)
     "PolicySetpoints",
     "PolicyState",
-    # Entities - Pomodoro (2)
     "PomodoroConfig",
     "PomodoroEvent",
-    # Core - Pomodoro Plugin Contract (4) — Timewarrior integration point
     "PomodoroPlugin",
     "PomodoroRound",
     "PomodoroSession",
@@ -277,30 +264,23 @@ __all__ = [
     "PomodoroSessionEvent",
     "PomodoroState",
     "PomodoroTracker",
-    # Exceptions (12)
     "ProductivitySystemError",
     "QHEMetrics",
     "QualityLabel",
     "Repository",
-    # Persistence (11)
     "RepositoryBase",
     "Ritual",
     "RitualType",
-    # Entities - Routine domain (5)
     "Routine",
     "RoutineCompletionError",
-    # Core - Routine Logger (8) — NL boundary loggers (RoutineLog + AjusteFino)
     "RoutineLogger",
     "RoutineType",
-    # Core - Scenario Classifier (5)
     "Scenario",
     "ScenarioClassification",
     "Score",
     "Severity",
     "SleepDecision",
-    # Core - Sleep (8)
     "SleepQuality",
-    # Entities - Metric (3)
     "SleepRecord",
     "SleepTrackingError",
     "SqliteRepository",
@@ -309,26 +289,21 @@ __all__ = [
     "T",
     "T_Entity",
     "T_Enum",
-    # Entities - Time tracking (1)
     "TimeBlock",
     "TimeValidationError",
     "Transition",
-    # Core - Time Validator (4)
     "WakeUpStatus",
     "WakeUpValidation",
     "WeekLabel",
     "Weekday",
     "WeeklyAggregate",
-    # Version
     "__version__",
     "adjusted_net_rest_minutes",
     "build_ajuste_fino",
     "build_routine_log",
     "calcular_horas_sono",
-    # Reports (4)
     "calculate_efficiency",
     "classificar_dia",
-    # CLI (1)
     "cli_app",
     "compute_break_minutes",
     "compute_break_statistics",
@@ -354,12 +329,10 @@ __all__ = [
     "is_within_optimal_window",
     "make_habit",
     "make_journal_entry",
-    # Meta — Factories (5)
     "make_routine",
     "make_sleep_record",
     "make_time_block",
     "net_rest_minutes",
-    # Parsers (5)
     "parse_journal_frontmatter",
     "parse_time_block_dict",
     "parse_time_block_line",
@@ -380,6 +353,5 @@ __all__ = [
     "validar_sono_ideal",
     "validate_datetime_ordered",
     "validate_period_bounds",
-    # Meta — Validators (3)
     "validate_ueid_format",
 ]

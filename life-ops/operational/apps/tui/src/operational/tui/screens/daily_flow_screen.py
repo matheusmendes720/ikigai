@@ -9,12 +9,11 @@ from __future__ import annotations
 from datetime import date
 from typing import TYPE_CHECKING, ClassVar
 
+from operational.cli.state import time_blocks as tb_repo
+from operational.tui.widgets.time_block import TimeBlockDisplay
 from textual.binding import Binding
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Static, Tab, Tabs
-
-from operational.cli.state import time_blocks as tb_repo
-from operational.tui.widgets.time_block import TimeBlockDisplay
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult

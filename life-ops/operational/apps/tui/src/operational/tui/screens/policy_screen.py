@@ -8,14 +8,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-from textual.binding import Binding
-from textual.screen import Screen
-from textual.widgets import Footer, Header, Static
-from rich.text import Text
-
 from operational.cli.state import policy_decisions as decisions_repo
 from operational.core.next_step import get_current_regime
 from operational.tui.widgets.regime_bar import RegimeBar
+from rich.text import Text
+from textual.binding import Binding
+from textual.screen import Screen
+from textual.widgets import Footer, Header, Static
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
