@@ -1,8 +1,15 @@
 # Agent runtime state
 .pi/
-.omo/
 .atl/
 .life/
+
+# Agent runtime state — selective: .omo/ikigai/ committed during the IKIGAi
+# data-first phase (2026-07 → 2026-12, see ADR-007 + code-docs/ikigai/strategics-mapping.md).
+# Re-evaluate at end of phase: migrate to life-ops/ikigai/ canonical home
+# or archive; do NOT carry the exception past 2026-12-31 without re-justification.
+.omo/*
+!.omo/ikigai/
+!.omo/ikigai/**
 
 # Editor & OS
 .vscode/
