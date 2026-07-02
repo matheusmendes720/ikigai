@@ -16,7 +16,7 @@ USAGE:
 import json
 import re
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -83,8 +83,15 @@ analytics_app = typer.Typer(
     help="Analytics e data storytelling sobre 180 dias de dados.",
 )
 
-_START = date(2025, 12, 23)
-_END = date(2026, 6, 20)
+def _window(days: int = 180) -> tuple[date, date]:
+    """Return (start, end) for the analytics window.
+
+    Computed fresh on every call so the window tracks the current date —
+    module-level ``date.today()`` would freeze on first import and silently
+    lose the gap between install time and runtime (see P0 #1).
+    """
+    today = date.today()
+    return today - timedelta(days=days), today
 
 
 def _safe_grid_val(val: Any, fmt: str = "", color: str | None = None) -> str:
@@ -375,7 +382,7 @@ def _render_qhe(data: dict) -> None:
     regimes = qhe_regime_distribution(qhe_rows)
     transitions = qhe_phase_transitions(qhe_rows)
     anomalies = qhe_anomaly_days(qhe_rows)
-    weekly = qhe_weekly_aggregates(qhe_rows, _START, _END)
+    weekly = qhe_weekly_aggregates(qhe_rows, *_window())
 
     console.print(
         Panel("[bold cyan]QHE Analytics — 180-Day Algorithm[/bold cyan]", border_style="cyan")
@@ -582,7 +589,7 @@ def _render_pomodoro(data: dict) -> None:
     pom_rows = data["pomodoro_round"]
     ts = pomodoro_time_series(pom_rows)
     hourly = pomodoro_hourly_distribution(pom_rows)
-    weekly = pomodoro_weekly_aggregates(pom_rows, _START, _END)
+    weekly = pomodoro_weekly_aggregates(pom_rows, *_window())
 
     console.print(Panel("[bold magenta]Pomodoro Analytics[/bold magenta]", border_style="magenta"))
     console.print()
@@ -768,7 +775,7 @@ def _render_week(week_num: int, data: dict) -> None:
         console.print("[red]Week must be 1-26[/red]")
         return
 
-    week_list = weeks_in_range(_START, _END)
+    week_list = weeks_in_range(*_window())
     if week_num > len(week_list):
         console.print(f"[red]Only {len(week_list)} weeks in dataset[/red]")
         return
@@ -825,7 +832,8 @@ def _render_week(week_num: int, data: dict) -> None:
 def _render_quality(data: dict) -> None:
 
     rows_by_entity = {k: v for k, v in data.items() if k != "habit"}
-    dq = data_quality_report(rows_by_entity, expected_days=180, start_date=_START, end_date=_END)
+    start, end = _window()
+    dq = data_quality_report(rows_by_entity, expected_days=180, start_date=start, end_date=end)
 
     console.print(Panel("[bold]Data Quality Report — 180-Day Dataset[/bold]", border_style="cyan"))
     console.print()
@@ -953,7 +961,7 @@ def _spark(vals: list[float], width: int = 18) -> str:
 def generate_markdown_reports(data: dict, output_dir: Path) -> None:  # noqa: C901, PLR0912
     """Generate 26 weekly markdown reports + one master index."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    week_list = weeks_in_range(_START, _END)
+    week_list = weeks_in_range(*_window())
 
     all_weeks: list[dict] = []
     prev_wd: dict | None = None
@@ -1161,10 +1169,11 @@ def generate_markdown_reports(data: dict, output_dir: Path) -> None:  # noqa: C9
     # QHE trend sparkline over all weeks
     qhe_spark_all = _spark(valid_qhe, 26)
 
+    _win_start, _win_end = _window()
     index_lines = [
         "# PAV Analytics — 26-Week Master Report",
         "",
-        f"**Período:** {_START.isoformat()} → {_END.isoformat()} (180 days)",
+        f"**Período:** {_win_start.isoformat()} → {_win_end.isoformat()} (180 days)",
         f"**Gerado:** {datetime.now().strftime('%Y-%m-%d %H:%M')}",
         "",
         "## 📈 Executive Summary",
@@ -1248,58 +1257,54 @@ def cmd_overview(
     """Executive dashboard — all domains at a glance."""
     log = get_logger("analytics_cmd")
     with trace_command(log, "analytics.overview", command="pav analytics overview") as ctx:
-        ctx.info("data.loaded", tables=14)
-        log = get_logger("analytics_cmd")
-        with trace_command(log, "analytics.overview", command="pav analytics overview") as ctx:
-            data = _load_all()
-            ctx.info("data.loaded", tables=len(data))
-            if json_out:
-                # Return just the KPI summary as JSON
-                _json = json
-                ts_qhe = qhe_time_series(data["qhe_metrics"])
-                ts_sleep = sleep_time_series(data["sleep_record"])
-                debt = sleep_debt_analysis(data["sleep_record"])
-                habit_matrix = habit_mastery_matrix(data["habit"], data["habit_state"])
-                uptime = policy_uptime_pct(data["policy_decision"])
-                corr = _engine_corr_matrix(data["qhe_metrics"], data["sleep_record"], data["journal_entry"])
-    
-                # Build habit_mastery as dict keyed by habit name
-                habit_dict: dict[str, dict] = {
-                    h["name"]: {k: v for k, v in h.items() if k != "name"}
-                    for h in habit_matrix
-                }
-    
-                # Pomodoro today's data
-                pom_ts = pomodoro_time_series(data["pomodoro_round"])
-                pom_today = pom_ts[-1] if pom_ts else {}
-    
-                # Mood latest
-                mood_ts = mood_time_series(data["journal_entry"])
-                latest_mood = mood_ts[-1] if mood_ts else {}
-    
-                # Current regime
-                latest_qhe = ts_qhe[-1] if ts_qhe else {}
-                regime = latest_qhe.get("regime", "PUSH")
-    
-                output = {
-                    "qhe_latest": latest_qhe,
-                    "sleep_latest": ts_sleep[-1] if ts_sleep else {},
-                    "sleep_debt_hours": debt["total_debt"],  # numeric, not string
-                    "sleep_debt_days_below": debt["days_below_target"],
-                    "habit_mastery": habit_dict,  # dict keyed by habit name, not list
-                    "policy_uptime": uptime,
-                    "correlations": corr,
-                    "pomodoros_today": pom_today.get("completed", 0),
-                    "pomodoros_efficiency": pom_today.get("efficiency_pct", 0),
-                    "pomodoros_roll7": pom_today.get("roll7", 0),
-                    "energia": latest_mood.get("energia", 0),
-                    "focus": latest_mood.get("focus", 0),
-                    "humor": latest_mood.get("humor_avg", 0),
-                    "regime_current": regime,
-                }
-                typer.echo(_json.dumps(output, indent=2, default=str))
-                return
-            _render_overview(data)
+        data = _load_all()
+        ctx.info("data.loaded", tables=len(data))
+        if json_out:
+            # Return just the KPI summary as JSON
+            ts_qhe = qhe_time_series(data["qhe_metrics"])
+            ts_sleep = sleep_time_series(data["sleep_record"])
+            debt = sleep_debt_analysis(data["sleep_record"])
+            habit_matrix = habit_mastery_matrix(data["habit"], data["habit_state"])
+            uptime = policy_uptime_pct(data["policy_decision"])
+            corr = _engine_corr_matrix(data["qhe_metrics"], data["sleep_record"], data["journal_entry"])
+
+            # Build habit_mastery as dict keyed by habit name
+            habit_dict: dict[str, dict] = {
+                h["name"]: {k: v for k, v in h.items() if k != "name"}
+                for h in habit_matrix
+            }
+
+            # Pomodoro today's data
+            pom_ts = pomodoro_time_series(data["pomodoro_round"])
+            pom_today = pom_ts[-1] if pom_ts else {}
+
+            # Mood latest
+            mood_ts = mood_time_series(data["journal_entry"])
+            latest_mood = mood_ts[-1] if mood_ts else {}
+
+            # Current regime
+            latest_qhe = ts_qhe[-1] if ts_qhe else {}
+            regime = latest_qhe.get("regime", "PUSH")
+
+            output = {
+                "qhe_latest": latest_qhe,
+                "sleep_latest": ts_sleep[-1] if ts_sleep else {},
+                "sleep_debt_hours": debt["total_debt"],  # numeric, not string
+                "sleep_debt_days_below": debt["days_below_target"],
+                "habit_mastery": habit_dict,  # dict keyed by habit name, not list
+                "policy_uptime": uptime,
+                "correlations": corr,
+                "pomodoros_today": pom_today.get("completed", 0),
+                "pomodoros_efficiency": pom_today.get("efficiency_pct", 0),
+                "pomodoros_roll7": pom_today.get("roll7", 0),
+                "energia": latest_mood.get("energia", 0),
+                "focus": latest_mood.get("focus", 0),
+                "humor": latest_mood.get("humor_avg", 0),
+                "regime_current": regime,
+            }
+            typer.echo(json.dumps(output, indent=2, default=str))
+            return
+        _render_overview(data)
     
     
 @analytics_app.command(name="qhe")
@@ -1316,10 +1321,9 @@ def cmd_qhe(
             regimes = qhe_regime_distribution(data["qhe_metrics"])
             trans = qhe_phase_transitions(data["qhe_metrics"])
             anomalies = qhe_anomaly_days(data["qhe_metrics"])
-            weekly = qhe_weekly_aggregates(data["qhe_metrics"], _START, _END)
-            _json = json
+            weekly = qhe_weekly_aggregates(data["qhe_metrics"], *_window())
             typer.echo(
-                _json.dumps(
+                json.dumps(
                     {
                         "time_series": ts,
                         "regimes": regimes,
@@ -1345,12 +1349,11 @@ def cmd_sleep(
         ctx.info("data.loaded", tables=14)
         data = _load_all()
         if json_out:
-            _json = json
             ts = sleep_time_series(data["sleep_record"])
             debt = sleep_debt_analysis(data["sleep_record"])
             phases = sleep_phase_analysis(data["sleep_record"])
             typer.echo(
-                _json.dumps({"time_series": ts, "debt": debt, "phases": phases}, indent=2, default=str)
+                json.dumps({"time_series": ts, "debt": debt, "phases": phases}, indent=2, default=str)
             )
             return
         _render_sleep(data)
@@ -1366,10 +1369,9 @@ def cmd_habits(
         ctx.info("data.loaded", tables=14)
         data = _load_all()
         if json_out:
-            _json = json
             matrix = habit_mastery_matrix(data["habit"], data["habit_state"])
             streaks = habit_streak_analysis(data["habit_state"], data["habit"])
-            typer.echo(_json.dumps({"mastery": matrix, "streaks": streaks}, indent=2, default=str))
+            typer.echo(json.dumps({"mastery": matrix, "streaks": streaks}, indent=2, default=str))
             return
         _render_habits(data)
     
@@ -1384,12 +1386,11 @@ def cmd_pomodoro(
         ctx.info("data.loaded", tables=14)
         data = _load_all()
         if json_out:
-            _json = json
             ts = pomodoro_time_series(data["pomodoro_round"])
             hourly = pomodoro_hourly_distribution(data["pomodoro_round"])
-            weekly = pomodoro_weekly_aggregates(data["pomodoro_round"], _START, _END)
+            weekly = pomodoro_weekly_aggregates(data["pomodoro_round"], *_window())
             typer.echo(
-                _json.dumps(
+                json.dumps(
                     {"time_series": ts, "hourly": hourly, "weekly": weekly}, indent=2, default=str
                 )
             )
@@ -1407,13 +1408,12 @@ def cmd_policy(
         ctx.info("data.loaded", tables=14)
         data = _load_all()
         if json_out:
-            _json = json
             ts = policy_state_time_series(data["policy_decision"])
             matrix = policy_transition_matrix(data["policy_decision"])
             uptime = policy_uptime_pct(data["policy_decision"])
             episodes = policy_recover_episodes(data["policy_decision"])
             typer.echo(
-                _json.dumps(
+                json.dumps(
                     {
                         "time_series": ts,
                         "transitions": matrix,
@@ -1438,12 +1438,11 @@ def cmd_mood(
         ctx.info("data.loaded", tables=14)
         data = _load_all()
         if json_out:
-            _json = json
             ts = mood_time_series(data["journal_entry"])
             tags = journal_tag_extraction(data["journal_entry"])
             corr = _engine_corr_matrix(data["qhe_metrics"], data["sleep_record"], data["journal_entry"])
             typer.echo(
-                _json.dumps(
+                json.dumps(
                     {"time_series": ts, "tags": tags, "correlations": corr}, indent=2, default=str
                 )
             )
@@ -1462,10 +1461,9 @@ def cmd_week(
         ctx.info("data.loaded", tables=14)
         data = _load_all()
         if json_out:
-            _json = json
-            week_list = weeks_in_range(_START, _END)
+            week_list = weeks_in_range(*_window())
             if not (1 <= week_num <= len(week_list)):
-                typer.echo(_json.dumps({"error": f"Week must be 1-{len(week_list)}"}))
+                typer.echo(json.dumps({"error": f"Week must be 1-{len(week_list)}"}))
                 return
             week_start, week_end = week_list[week_num - 1]
             wd = weekly_digest(
@@ -1480,7 +1478,7 @@ def cmd_week(
                 data["policy_decision"],
                 data["day_context"],
             )
-            typer.echo(_json.dumps(wd, indent=2, default=str))
+            typer.echo(json.dumps(wd, indent=2, default=str))
             return
         _render_week(week_num, data)
     
@@ -1516,12 +1514,12 @@ def cmd_quality(
         ctx.info("data.loaded", tables=14)
         data = _load_all()
         if json_out:
-            _json = json
             rows_by_entity = {k: v for k, v in data.items() if k != "habit"}
+            start, end = _window()
             dq = data_quality_report(
-                rows_by_entity, expected_days=180, start_date=_START, end_date=_END
+                rows_by_entity, expected_days=180, start_date=start, end_date=end
             )
-            typer.echo(_json.dumps(dq, indent=2, default=str))
+            typer.echo(json.dumps(dq, indent=2, default=str))
             return
         _render_quality(data)
     
@@ -1717,7 +1715,7 @@ def cmd_narrative(
     with trace_command(log, "analytics.narrative", command="pav analytics narrative") as ctx:
         ctx.info("data.loaded", tables=14)
         data = _load_all()
-        week_list = weeks_in_range(_START, _END)
+        week_list = weeks_in_range(*_window())
         if not (1 <= week_num <= len(week_list)):
             typer.echo(f"[red]Week must be 1-{len(week_list)}[/red]")
             return
@@ -1786,7 +1784,7 @@ def cmd_compare(
     with trace_command(log, "analytics.compare", command="pav analytics compare") as ctx:
         ctx.info("data.loaded", tables=14)
         data = _load_all()
-        week_list = weeks_in_range(_START, _END)
+        week_list = weeks_in_range(*_window())
         for w in [week1, week2]:
             if not (1 <= w <= len(week_list)):
                 typer.echo(f"[red]Week must be 1-{len(week_list)}[/red]")
