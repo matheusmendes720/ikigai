@@ -31,8 +31,8 @@ Each log record
         "entity_type": "habit",
         "entity_id": "hab_meditar_01",
         "duration_ms": 12.4,
-        "extra": { ... },
-        "error": null
+        "extra": {...},
+        "error": null,
     }
 
 Usage in a command
@@ -51,43 +51,45 @@ Usage in a command
 
 from __future__ import annotations
 
-import json
 import logging
-import os
 import sys
 import time
 import uuid
+from collections.abc import Generator
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from pathlib import Path
-from typing import Any, Generator
 from functools import wraps
+from pathlib import Path
+from typing import Any
 
 import structlog
 
 # ─── Log levels ─────────────────────────────────────────────────────────────────
 
+
 class Level(str, Enum):
     TRACE = "TRACE"
     DEBUG = "DEBUG"
-    INFO  = "INFO"
-    WARN  = "WARN"
+    INFO = "INFO"
+    WARN = "WARN"
     ERROR = "ERROR"
+
+
 TRACE = 5
 logging.addLevelName(TRACE, "TRACE")
 
 # Module-level state
 _log_level: Level = Level.INFO
-_json_log:  bool   = False
-_log_file:  Path | None = None
-_quiet:     bool   = False
+_json_log: bool = False
+_log_file: Path | None = None
+_quiet: bool = False
 
 # Map Level enum → Python stdlib int for logger.setLevel()
 _LEVEL_TO_INT: dict[Level, int] = {
     Level.TRACE: 5,
     Level.DEBUG: 10,
-    Level.INFO:  20,
+    Level.INFO: 20,
 }
 
 # The structlog logger (configured once)
@@ -96,8 +98,9 @@ _logger: structlog.stdlib.BoundLogger | None = None
 
 # ─── Internal helpers ────────────────────────────────────────────────────────────
 
+
 def _timestamp() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _request_id() -> str:
@@ -106,6 +109,7 @@ def _request_id() -> str:
 
 
 # ─── Logger bootstrap ────────────────────────────────────────────────────────────
+
 
 def _configure_logger() -> None:
     """Build the structlog processor chain and attach handlers."""
@@ -146,16 +150,16 @@ def _configure_logger() -> None:
 def configure(
     level: Level = Level.INFO,
     *,
-    json_log:  bool = False,
-    log_file:  str | Path | None = None,
-    quiet:     bool = False,
+    json_log: bool = False,
+    log_file: str | Path | None = None,
+    quiet: bool = False,
 ) -> None:
     """Call once at CLI startup (before any command runs)."""
     global _log_level, _json_log, _log_file, _quiet
     _log_level = level
-    _json_log  = json_log
-    _log_file  = Path(log_file) if log_file else None
-    _quiet     = quiet
+    _json_log = json_log
+    _log_file = Path(log_file) if log_file else None
+    _quiet = quiet
 
     _configure_logger()
 
@@ -178,10 +182,14 @@ def configure(
         file_handler.setLevel(_LEVEL_TO_INT[_log_level])
         pav_logger.addHandler(file_handler)
 
-    _info("log_configured", extra={"level": _log_level.value, "json": _json_log, "log_file": str(_log_file or "")})
+    _info(
+        "log_configured",
+        extra={"level": _log_level.value, "json": _json_log, "log_file": str(_log_file or "")},
+    )
 
 
 # ─── Public API ─────────────────────────────────────────────────────────────────
+
 
 def get_logger(name: str) -> structlog.stdlib.BoundLogger:
     """Return a bound logger that includes the 'command' context."""
@@ -203,14 +211,15 @@ def _error(event: str, **kwargs: Any) -> None:
 
 # ─── Per-invocation context ──────────────────────────────────────────────────────
 
+
 class InvocationContext:
     """Holds request-scoped telemetry data, passed through `trace_command`."""
 
-    __slots__ = ("request_id", "command", "started_at", "extra")
+    __slots__ = ("command", "extra", "request_id", "started_at")
 
     def __init__(self, command: str, request_id: str | None = None):
         self.request_id = request_id or _request_id()
-        self.command    = command
+        self.command = command
         self.started_at = time.monotonic()
         self.extra: dict[str, Any] = {}
 
@@ -223,11 +232,11 @@ class InvocationContext:
         elapsed_ms = (time.monotonic() - self.started_at) * 1000
         # Build flat record
         record: dict[str, Any] = {
-            "timestamp":   _timestamp(),
-            "level":       level.value,
-            "request_id":  self.request_id,
-            "command":     self.command,
-            "event":       event,
+            "timestamp": _timestamp(),
+            "level": level.value,
+            "request_id": self.request_id,
+            "command": self.command,
+            "event": event,
             "duration_ms": round(elapsed_ms, 2),
         }
         record.update(self.extra)
@@ -260,7 +269,7 @@ class InvocationContext:
 
 @contextmanager
 def trace_command(
-    log:  structlog.stdlib.BoundLogger,
+    log: structlog.stdlib.BoundLogger,
     event: str,
     **initial_kwargs: Any,
 ) -> Generator[InvocationContext, None, None]:
@@ -291,6 +300,7 @@ def trace_command(
 
 # ─── Decorator for Typer commands ──────────────────────────────────────────────
 
+
 def logged_command(
     command_name: str,
     *,
@@ -301,6 +311,7 @@ def logged_command(
     Applied at the function level inside each command module — keeps each
     module readable and self-contained.
     """
+
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
@@ -319,5 +330,7 @@ def logged_command(
                     exc_info=exc,
                 )
                 raise
+
         return wrapper
+
     return decorator

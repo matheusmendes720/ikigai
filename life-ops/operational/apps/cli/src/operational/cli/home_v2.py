@@ -103,7 +103,7 @@ def _make_today_snapshot_renderable() -> Text | Table:
 
     try:
         snap = get_day_snapshot(target_date)
-    except Exception:  # noqa: BLE001
+    except Exception:
         return Text("  (snapshot indisponivel — rode 'demo seed')", style=SEVERITY["muted"])
 
     sleep_dur = snap.sleep.duration_hours
@@ -210,7 +210,7 @@ def _run_cmd(args: list[str]) -> None:
             except FileNotFoundError as e:
                 last_err = e
                 continue
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 last_err = e
                 break
         console.print(
@@ -225,7 +225,7 @@ def _run_cmd(args: list[str]) -> None:
             typer_app(args=args, standalone_mode=False)
     except SystemExit:
         pass
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         out.write(f"Error: {e}\n")
     text = out.getvalue()
     text = strip_ansi(text)

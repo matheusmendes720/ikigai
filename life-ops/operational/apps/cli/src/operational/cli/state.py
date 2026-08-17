@@ -22,6 +22,7 @@ from operational.entities.journal import JournalEntry
 from operational.entities.metric import SleepRecord
 from operational.entities.policy import PolicyDecision, PolicySetpoints
 from operational.entities.pomodoro import PomodoroRound
+from operational.entities.portfolio import PortfolioArtifact
 from operational.entities.routine import Routine, RoutineLog
 from operational.entities.time_block import TimeBlock
 from operational.entities.v3 import (
@@ -310,6 +311,10 @@ pomodoros: _PersistentRepo = _PersistentRepo(PomodoroRound, "pomodoros.json")
 policy_decisions: _PersistentRepo = _PersistentRepo(PolicyDecision, "policy_decisions.json")
 policy_setpoints: _PersistentRepo = _PersistentRepo(PolicySetpoints, "policy_setpoints.json")
 ajustes_finos: _PersistentRepo = _PersistentRepo(AjusteFino, "ajustes_finos.json")
+portfolio_artifacts: _PersistentRepo = _PersistentRepo(
+    PortfolioArtifact,
+    "portfolio_artifacts.json",
+)
 
 # V3 entities
 day_contexts: _PersistentRepo = _PersistentRepo(DayContext, "day_contexts.json")
@@ -335,6 +340,7 @@ _ALL_REPOS: tuple[_PersistentRepo, ...] = (
     policy_decisions,
     policy_setpoints,
     ajustes_finos,
+    portfolio_artifacts,
     day_contexts,
     daily_reflections,
     lunch_records,
@@ -404,7 +410,7 @@ def _auto_load_dataset() -> None:
             if etype in repo_map:
                 for ent in entities:
                     repo_map[etype].upsert(ent)
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass  # silent — let the user debug via `operational doctor`
 
 

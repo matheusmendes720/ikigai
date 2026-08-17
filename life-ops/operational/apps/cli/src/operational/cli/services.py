@@ -4,6 +4,7 @@ Each function here returns a plain Python dict/dataclass that the UI
 layer can then format. This separation makes the data layer
 testable in isolation and keeps the UI layer free of business rules.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -16,6 +17,7 @@ from operational.cli.state import (
     day_contexts,
     journals,
     lunch_records,
+    policy_decisions,
     pomodoros,
     routine_logs,
     routines,
@@ -23,12 +25,7 @@ from operational.cli.state import (
     time_blocks,
     transicoes,
 )
-from operational.core.budget import (
-    budget_for_date,
-    classify_quadrant,
-    efficiency_pct,
-    productivity_pct,
-)
+from operational.core.budget import budget_for_date
 from operational.core.exceptions import (
     DataInvalidaError,
     FaltaDadosError,
@@ -152,9 +149,7 @@ def get_day_snapshot(d: date) -> DaySnapshot:
 
     # Blocks / pomodoros for the day
     blocks_today = [b for b in time_blocks.list() if b.start.date() == d]
-    total_block_minutes = sum(
-        int((b.end - b.start).total_seconds() // 60) for b in blocks_today
-    )
+    total_block_minutes = sum(int((b.end - b.start).total_seconds() // 60) for b in blocks_today)
     day_pomodoros = [p for p in pomodoros.list() if p.started_at.date() == d]
     n_pomodoros = sum(
         1 for p in day_pomodoros if getattr(p, "state", None) and "COMPLETE" in str(p.state)
@@ -162,7 +157,7 @@ def get_day_snapshot(d: date) -> DaySnapshot:
     n_transicoes = len([t for t in transicoes.list() if t.date == d and t.completed])
 
     # Routine logs for workout/meditation detection
-    day_logs = [l for l in routine_logs.list() if l.date == d]
+    day_logs = [log for log in routine_logs.list() if log.date == d]
     routines_by_id = {str(r.id): r for r in routines.list()}
 
     workout_done = False
@@ -174,26 +169,42 @@ def get_day_snapshot(d: date) -> DaySnapshot:
         if r is None:
             continue
         name = (r.name or "").lower()
-        if "workout" in name or "academia" in name or "corrida" in name or "treino" in name or "calistenia" in name:
+        if (
+            "workout" in name
+            or "academia" in name
+            or "corrida" in name
+            or "treino" in name
+            or "calistenia" in name
+        ):
             workout_done = True
             # rough estimate
             try:
-                dur = int((r.end_time.hour - r.start_time.hour) * 60 + (r.end_time.minute - r.start_time.minute))
+                dur = int(
+                    (r.end_time.hour - r.start_time.hour) * 60
+                    + (r.end_time.minute - r.start_time.minute)
+                )
                 workout_minutes = max(workout_minutes, dur)
             except Exception:
                 pass
         if "medita" in name:
             meditacao_done = True
             try:
-                dur = int((r.end_time.hour - r.start_time.hour) * 60 + (r.end_time.minute - r.start_time.minute))
+                dur = int(
+                    (r.end_time.hour - r.start_time.hour) * 60
+                    + (r.end_time.minute - r.start_time.minute)
+                )
                 meditacao_minutes = max(meditacao_minutes, dur)
             except Exception:
                 pass
 
     # Lunch
-    lunch_obj = next((l for l in lunch_records.list() if l.date == d), None)
+    lunch_obj = next((lunch for lunch in lunch_records.list() if lunch.date == d), None)
     if lunch_obj:
-        lunch_eat, lunch_rest, lunch_pesado = lunch_obj.eat_min, lunch_obj.rest_min, lunch_obj.pesado
+        lunch_eat, lunch_rest, lunch_pesado = (
+            lunch_obj.eat_min,
+            lunch_obj.rest_min,
+            lunch_obj.pesado,
+        )
     else:
         lunch_eat, lunch_rest, lunch_pesado = 5, 30, False
 
@@ -299,7 +310,10 @@ def validate_pomodoro_count(n: int, *, max_limite: int = 24) -> int:
     """
     if n < 0:
         raise ValorForaRangeError(
-            campo="pomodoros", valor=n, minimo=0, maximo=max_limite,
+            campo="pomodoros",
+            valor=n,
+            minimo=0,
+            maximo=max_limite,
         )
     if n > max_limite:
         raise LimitePomodoroExcedidoError(quantidade=n, max_limite=max_limite)
@@ -365,19 +379,42 @@ def distribute_pomodoros_across_sessions(total: int) -> tuple[int, int, int]:
     return s1, s2, s3
 
 
-def compute_day_quadrant(snap: DaySnapshot) -> tuple[str, float, float]:
-    """Return (quadrant_code, x, y) for the day's Cartesian position."""
-    x = productivity_pct(snap.hardwork_realizado_min, snap.hardwork_orcado_min)
-    y = efficiency_pct(snap.hardwork_realizado_min, snap.hardwork_realizado_min + 60)
-    code, _, _ = classify_quadrant(x, y)
-    return code, x, y
+def get_current_regime(snap: object = None) -> str:
+    """Return the current policy regime from the most recent decision.
+
+    Reads the ``policy_decisions`` repo, falls back to ``"MAINTAIN"`` if
+    the repo is empty or if no decision has a ``state`` field. Safe to
+    call from any UI surface (CLI / TUI) — wrapped in try/except so a
+    missing-state error never crashes a dashboard render.
+
+    Args:
+        snap: Optional snapshot (unused — kept for future expansion
+            where regime is computed from the snapshot's metrics rather
+            than from the historical decision log).
+
+    Returns:
+        One of ``"PUSH"``, ``"MAINTAIN"``, ``"REDUCE"``, ``"RECOVER"``.
+    """
+    try:
+        decisions = sorted(
+            policy_decisions.list(),
+            key=lambda d: getattr(d, "date", None) or getattr(d, "created_at", None) or "",
+            reverse=True,
+        )
+        if decisions:
+            state = getattr(decisions[0], "state", None)
+            if state:
+                return str(state).upper()
+    except Exception:
+        pass
+    return "MAINTAIN"
 
 
 __all__ = [
     "DaySnapshot",
     "SleepSnapshot",
-    "compute_day_quadrant",
     "distribute_pomodoros_across_sessions",
+    "get_current_regime",
     "get_day_snapshot",
     "parse_iso_date",
     "require_day_context",
