@@ -1,4 +1,5 @@
 """Output formatters for CLI commands."""
+
 from __future__ import annotations
 
 from operational.cli.formatters.base import (

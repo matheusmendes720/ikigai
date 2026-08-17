@@ -20,6 +20,7 @@ Conventions:
 * Line endings: CRLF (Windows-friendly) — written via csv.writer with
   lineterminator="\\r\\n".
 """
+
 from __future__ import annotations
 
 import csv
@@ -48,6 +49,7 @@ def _build_model_map() -> dict[str, type]:
         LunchRecord,
         TransicaoRegistrada,
     )
+
     return {
         "routine": Routine,
         "routine_log": RoutineLog,
@@ -239,18 +241,14 @@ def import_from_csv(csv_path: str | Path) -> dict[str, list[dict[str, Any]]]:
             raise ValueError(msg) from exc
         if len(header) < 2 or header[0] != "entity_type" or header[1] != "id":
             msg = f"Invalid CSV header: expected entity_type,id,... got {header[:5]}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
         result: dict[str, list[dict[str, Any]]] = {}
         for row_num, row in enumerate(reader, start=2):
             if not row or all(c == "" for c in row):
                 continue
             if len(row) != len(header):
                 msg = f"Row {row_num} has {len(row)} columns, expected {len(header)}"
-                raise ValueError(
-                    msg
-                )
+                raise ValueError(msg)
             etype = row[0]
             eid = row[1]
             if etype not in MODEL_MAP:
@@ -258,9 +256,7 @@ def import_from_csv(csv_path: str | Path) -> dict[str, list[dict[str, Any]]]:
                     f"Row {row_num}: unknown entity_type {etype!r} "
                     f"(known: {sorted(MODEL_MAP.keys())})"
                 )
-                raise ValueError(
-                    msg
-                )
+                raise ValueError(msg)
             data: dict[str, Any] = {"id": eid}
             for i, col in enumerate(header[2:], start=2):
                 data[col] = _from_jsonable(row[i])

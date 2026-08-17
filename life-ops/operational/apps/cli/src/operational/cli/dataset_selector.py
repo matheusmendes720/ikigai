@@ -8,6 +8,7 @@ Datasets live under ``docs/`` next to the README. Built-in datasets:
 The selector is read-only — it never modifies the filesystem. Callers
 use the resolved path to import CSV into the JSON state.
 """
+
 from __future__ import annotations
 
 import os
@@ -62,22 +63,13 @@ def resolve_dataset(name: str | None = None) -> DatasetRef:
     if name is None:
         name = os.environ.get("TIME_TASKER_DATASET", "production")
     if name not in _BUILTIN_DATASETS:
-        msg = (
-            f"Unknown dataset {name!r}. "
-            f"Available: {sorted(_BUILTIN_DATASETS.keys())}"
-        )
-        raise ValueError(
-            msg
-        )
+        msg = f"Unknown dataset {name!r}. Available: {sorted(_BUILTIN_DATASETS.keys())}"
+        raise ValueError(msg)
     rel_path, desc = _BUILTIN_DATASETS[name]
     if rel_path == "":
-        return DatasetRef(
-            name=name, csv_path=Path(), is_builtin=True, description=desc
-        )
+        return DatasetRef(name=name, csv_path=Path(), is_builtin=True, description=desc)
     csv_path = _project_root() / rel_path
-    return DatasetRef(
-        name=name, csv_path=csv_path, is_builtin=True, description=desc
-    )
+    return DatasetRef(name=name, csv_path=csv_path, is_builtin=True, description=desc)
 
 
 def list_datasets() -> list[DatasetRef]:
