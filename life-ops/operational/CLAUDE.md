@@ -59,8 +59,8 @@ life-ops/operational/
 ```bash
 cd life-ops/operational
 
-# Install (uv or poetry)
-uv sync                          # or: poetry install
+# Install (uv workspace — Poetry is no longer used in this repo)
+uv sync
 
 # CLI entry points (all equivalent)
 pav --help
