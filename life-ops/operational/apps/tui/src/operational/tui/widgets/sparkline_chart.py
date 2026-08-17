@@ -60,7 +60,7 @@ class PlotextChart(Static):
     dual_axis (two y-axes), and subplot layouts.
     """
 
-    def __init__(self, **kwargs: Any) -> None:  # noqa: ANN401
+    def __init__(self, **kwargs: Any) -> None:
         """Initialize the PlotextChart widget."""
         super().__init__(**kwargs)
 
@@ -69,7 +69,7 @@ class PlotextChart(Static):
         out = px.build()
         self.update(_strip_ansi(out))
 
-    def _apply_canvas_style(  # noqa: PLR0913
+    def _apply_canvas_style(
         self,
         width: int | None = None,
         height: int | None = None,
@@ -104,7 +104,7 @@ class PlotextChart(Static):
         if y_label:
             px.ylabel(y_label)
 
-    def plot(  # noqa: PLR0913
+    def plot(
         self,
         x: list[float],
         y: list[float],
@@ -120,7 +120,7 @@ class PlotextChart(Static):
         title: str = "",
         *,
         show: bool = True,
-        **kw: Any,  # noqa: ANN401
+        **kw: Any,
     ) -> None:
         """Render a scatter, bar, or line plot with full styling options."""
         px.clf()
@@ -142,7 +142,7 @@ class PlotextChart(Static):
         if show:
             self._plot()
 
-    def sparkline(  # noqa: PLR0913
+    def sparkline(
         self,
         values: list[float],
         color: str = "21",
@@ -158,7 +158,7 @@ class PlotextChart(Static):
         hide_y_axis: bool = False,
         hide_ticks: bool = False,
         hide_grid: bool = True,
-        **kw: Any,  # noqa: ANN401
+        **kw: Any,
     ) -> None:
         """Render a filled sparkline with period-aware styling."""
         px.clf()
@@ -181,7 +181,7 @@ class PlotextChart(Static):
         if show:
             self._plot()
 
-    def bar_chart(  # noqa: PLR0913
+    def bar_chart(
         self,
         labels: list[str],
         values: list[float],
@@ -199,7 +199,7 @@ class PlotextChart(Static):
         hide_y_axis: bool = False,
         hide_ticks: bool = False,
         hide_grid: bool = True,
-        **kw: Any,  # noqa: ANN401
+        **kw: Any,
     ) -> None:
         """Render a styled bar chart with period-aware colors."""
         px.clf()
@@ -225,7 +225,7 @@ class PlotextChart(Static):
         if show:
             self._plot()
 
-    def dual_axis(  # noqa: PLR0913
+    def dual_axis(
         self,
         x: list[float],
         y1: list[float],
@@ -244,7 +244,7 @@ class PlotextChart(Static):
         show: bool = True,
         hide_x_axis: bool = False,
         hide_grid: bool = True,
-        **kw: Any,  # noqa: ANN401
+        **kw: Any,
     ) -> None:
         """Render a dual-axis chart (two y-axes, shared x-axis)."""
         px.clf()
@@ -274,9 +274,9 @@ class PlotextChart(Static):
         if show:
             self._plot()
 
-    def subplot(  # noqa: PLR0913, C901, PLR0912
+    def subplot(
         self,
-        rows: int,  # noqa: ARG002
+        rows: int,
         cols: int,
         plots: list[dict[str, Any]],
         width: int | None = None,

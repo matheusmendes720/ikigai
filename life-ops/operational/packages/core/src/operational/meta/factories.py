@@ -3,6 +3,7 @@
 Each factory accepts overrides for any field, making them useful for
 both tests and CLI quick-creation flows.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, time
@@ -89,6 +90,7 @@ def make_time_block(
         A ``TimeBlock`` entity.
     """
     from datetime import timedelta
+
     now = datetime.now(UTC)
     s = start or now
     e = end if end is not None else s + timedelta(hours=1)

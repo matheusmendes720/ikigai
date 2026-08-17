@@ -14,13 +14,14 @@ from rich.console import Group
 from rich.padding import Padding
 
 from operational.cli.console import console
-from operational.cli.services import DaySnapshot, compute_day_quadrant
+from operational.cli.services import DaySnapshot
 from operational.cli.state import (
     pomodoros,
     routine_logs,
     sleep_records,
     time_blocks,
 )
+from operational.core.budget import compute_day_quadrant
 from operational.ui.components_v2 import (
     cartesian_v2,
     kpi_grid_2x2,
@@ -172,8 +173,8 @@ def _build_timeline_panel(snap: DaySnapshot) -> object:
 
     # routine_logs
     for log in sorted(
-        [l for l in routine_logs.list() if l.date == snap.date],
-        key=lambda l: l.started_at,
+        [rl for rl in routine_logs.list() if rl.date == snap.date],
+        key=lambda rl: rl.started_at,
         reverse=True,
     )[:5]:
         ts = log.started_at.strftime("%H:%M") if hasattr(log, "started_at") else "—"
@@ -223,7 +224,10 @@ def _build_timeline_panel(snap: DaySnapshot) -> object:
 def render_state_v2(snap: DaySnapshot, target_date: date, period_label: str = "") -> None:
     """Render the v2 state dashboard from a DaySnapshot — production-grade."""
     try:
-        q_code, x, y = compute_day_quadrant(snap)
+        q_code, x, y = compute_day_quadrant(
+            snap.hardwork_realizado_min,
+            snap.hardwork_orcado_min,
+        )
     except Exception:
         q_code, _x, _y = "Q1", 0.0, 0.0
 
@@ -251,7 +255,10 @@ def render_state_v2(snap: DaySnapshot, target_date: date, period_label: str = ""
 
 def render_daily_v2(snap: DaySnapshot, target_date: date) -> None:
     """Render the v2 daily report from a DaySnapshot — production-grade."""
-    q_code, x, y = compute_day_quadrant(snap)
+    q_code, x, y = compute_day_quadrant(
+        snap.hardwork_realizado_min,
+        snap.hardwork_orcado_min,
+    )
     qspec = QUADRANT.get(q_code, QUADRANT["Q1"])
 
     sleep_dur = snap.sleep.duration_hours

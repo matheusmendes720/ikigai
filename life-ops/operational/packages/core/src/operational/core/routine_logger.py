@@ -17,6 +17,7 @@ Per the user's clarification (2026-06-07), the package captures
 
 All operations are pure functions (no I/O, no state).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -75,6 +76,7 @@ def build_routine_log(
         A new RoutineLog entity.
     """
     from datetime import UTC, datetime
+
     if not text or not text.strip():
         msg = "text cannot be empty"
         raise ValueError(msg)
@@ -121,6 +123,7 @@ def build_ajuste_fino(
         A new AjusteFino entity.
     """
     from datetime import UTC, datetime
+
     if not reason or not reason.strip():
         msg = "reason cannot be empty"
         raise ValueError(msg)

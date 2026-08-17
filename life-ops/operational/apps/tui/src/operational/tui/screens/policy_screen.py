@@ -13,8 +13,8 @@ from textual.screen import Screen
 from textual.widgets import Footer, Header, Static
 from rich.text import Text
 
-from operational.cli.state import policy_decisions as decisions_repo
-from operational.core.next_step import get_current_regime
+from operational.cli.services import get_current_regime
+from operational.cli.state import policy_decisions as decisions_repo, reload_stale_repos
 from operational.tui.widgets.regime_bar import RegimeBar
 
 if TYPE_CHECKING:
@@ -89,6 +89,12 @@ PolicyScreen {
         self.call_after_refresh(self._refresh)
 
     def _refresh(self) -> None:
+        # P0 #8 — pick up cross-process CLI writes to policy_decisions /
+        # policy_setpoints before computing the current regime.
+        try:
+            reload_stale_repos()
+        except Exception:
+            pass
         regime = get_current_regime()
         self.query_one("#current-regime", RegimeBar).current = regime
         self.query_one("#setpoint-detail", Static).update(

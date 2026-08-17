@@ -63,7 +63,7 @@ class HelpScreen(ModalScreen):
         """Dismiss the help overlay."""
         self.dismiss()
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:  # noqa: ARG002
+    def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press to dismiss."""
         self.dismiss()
 

@@ -13,6 +13,7 @@ and :func:`raise_pav_error` provide look-up and raise-on-demand ergonomics.
 Source: ``vibe-ops/base/Produtividade Algorítmica Visual.md`` §6 (lines 328-343)
 and ``vibe-ops/planning/PRD-02-habit-tracker.md``.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

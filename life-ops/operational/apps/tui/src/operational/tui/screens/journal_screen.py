@@ -14,7 +14,7 @@ from textual.containers import Vertical
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Input, Static
 
-from operational.cli.state import journals as journals_repo
+from operational.cli.state import journals as journals_repo, reload_stale_repos
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
@@ -83,6 +83,11 @@ JournalScreen Static.entry {
         self._refresh()
 
     def _refresh(self) -> None:
+        # P0 #8 — pick up cross-process CLI writes to journals before reading.
+        try:
+            reload_stale_repos()
+        except Exception:
+            pass
         # Remove previously rendered entry rows (keep the empty-msg)
         container = self.query_one("#entries-list")
         for child in list(container.children):

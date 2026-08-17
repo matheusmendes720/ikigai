@@ -8,6 +8,7 @@ spec in ``docs/design-system/DESIGN-SYSTEM.md`` §4.10).
 Anti-fragile: every code path explicitly handles missing data (empty
 state) and returns a safe default. No exceptions escape.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -138,13 +139,16 @@ def compute_next_step(snap, today: date | None = None) -> NextStep:
         )
 
     # 6-9. Quadrant-based
-    from operational.cli.services import compute_day_quadrant
-    quad, x, y = compute_day_quadrant(snap)
-    severity = _classify_severity(x, y)
+    from operational.core.budget import compute_day_quadrant
+
+    quad, x, y = compute_day_quadrant(
+        snap.hardwork_realizado_min,
+        snap.hardwork_orcado_min,
+    )
 
     if quad == "Q3":
         return NextStep(
-            observation=f"Quadrante crítico (Q3) — realizado/orçado baixo e foco disperso.",
+            observation="Quadrante crítico (Q3) — realizado/orçado baixo e foco disperso.",
             action="Revisão urgente: liste 3 bloqueios sistêmicos. Qual é o gargalo recorrente?",
             severity="danger",
         )
@@ -156,7 +160,7 @@ def compute_next_step(snap, today: date | None = None) -> NextStep:
         )
     if quad == "Q4":
         return NextStep(
-            observation=f"Produtivo mas disperso (Q4 — realizado ok, foco baixo).",
+            observation="Produtivo mas disperso (Q4 — realizado ok, foco baixo).",
             action="Reduza distrações: feche abas não-essenciais, defina 1 prioridade única.",
             severity="warning",
         )
@@ -169,36 +173,4 @@ def compute_next_step(snap, today: date | None = None) -> NextStep:
     )
 
 
-def get_current_regime(snap=None) -> str:
-    """Return the current policy regime from the most recent decision.
-
-    Falls back to ``"MAINTAIN"`` if no decision is found or if no
-    snapshot is provided. Pure function — used by both the CLI dashboard
-    and the TUI dashboard so they always agree.
-
-    Args:
-        snap: Optional snapshot (unused — kept for future expansion
-            where regime is computed from the snapshot's metrics rather
-            than from the historical decision log).
-
-    Returns:
-        One of ``"PUSH"``, ``"MAINTAIN"``, ``"REDUCE"``, ``"RECOVER"``.
-    """
-    try:
-        from operational.cli.state import policy_decisions
-
-        decisions = sorted(
-            policy_decisions.list(),
-            key=lambda d: getattr(d, "date", None) or getattr(d, "created_at", None) or "",
-            reverse=True,
-        )
-        if decisions:
-            state = getattr(decisions[0], "state", None)
-            if state:
-                return str(state).upper()
-    except Exception:
-        pass
-    return "MAINTAIN"
-
-
-__all__ = ["NextStep", "compute_next_step", "get_current_regime"]
+__all__ = ["NextStep", "compute_next_step"]

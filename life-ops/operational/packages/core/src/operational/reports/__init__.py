@@ -7,6 +7,7 @@ Public API
 - :func:`render_cartesian_ascii` — Cartesian plane visualisation
 - :func:`calculate_efficiency` — Productivity (X) and efficiency (Y)
 """
+
 from __future__ import annotations
 
 from operational.reports.daily_summary import (

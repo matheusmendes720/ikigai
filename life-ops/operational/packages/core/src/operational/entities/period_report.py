@@ -10,6 +10,7 @@ user-added fields.
 
 ADR-006 invariant: vault-wins for period_reports (no computed fields).
 """
+
 from __future__ import annotations
 
 import datetime as _dt
@@ -87,7 +88,7 @@ class PeriodReport(BaseModel):
     last_synced_at: _dt.datetime | None = None
 
     @model_validator(mode="after")
-    def validate_hierarchy_or_verdict_per_period(self) -> "PeriodReport":
+    def validate_hierarchy_or_verdict_per_period(self) -> PeriodReport:
         """Cross-field invariants for verdict, dates, and hierarchy.
 
         Checks:
@@ -117,8 +118,7 @@ class PeriodReport(BaseModel):
             actual_days = (self.date_end - self.date_start).days + 1
             if abs(actual_days - expected_days) > 1:
                 msg = (
-                    f"period {self.period!r} expected ~{expected_days} days, "
-                    f"got {actual_days} days"
+                    f"period {self.period!r} expected ~{expected_days} days, got {actual_days} days"
                 )
                 raise ValueError(msg)
         if self.period == "sonho" and self.parent_period is not None:

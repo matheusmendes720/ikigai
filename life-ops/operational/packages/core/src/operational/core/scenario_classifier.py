@@ -168,7 +168,7 @@ runtime adjustment string.
 # ---------------------------------------------------------------------------
 
 
-def classificar_dia(  # noqa: PLR0913  (decision function takes many metrics)
+def classificar_dia(
     horas_sono: float,
     pomodoros_planejados: int,
     pomodoros_completos: int,
@@ -349,7 +349,7 @@ def is_hardcore_alert(hardcore_count_this_month: int) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def _validate_inputs(  # noqa: PLR0913  (mirrors classificar_dia signature)
+def _validate_inputs(
     *,
     horas_sono: float,
     pomodoros_planejados: int,

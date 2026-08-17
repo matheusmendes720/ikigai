@@ -25,6 +25,7 @@ See Also:
 * :mod:`operational.core.context_switch` — PAV context-switch
   overhead estimation between periods.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -50,7 +51,9 @@ __all__ = [
 # Default transition table (PAV §9 stateDiagram-v2)
 DEFAULT_TRANSITIONS: Final[dict[PomodoroState, frozenset[PomodoroState]]] = {
     PomodoroState.IDLE: frozenset({PomodoroState.WORK, PomodoroState.COMPLETE}),
-    PomodoroState.WORK: frozenset({PomodoroState.BREAK, PomodoroState.LONG_BREAK, PomodoroState.PAUSED}),
+    PomodoroState.WORK: frozenset(
+        {PomodoroState.BREAK, PomodoroState.LONG_BREAK, PomodoroState.PAUSED}
+    ),
     PomodoroState.BREAK: frozenset({PomodoroState.WORK, PomodoroState.SKIPPED}),
     PomodoroState.LONG_BREAK: frozenset({PomodoroState.IDLE}),
     PomodoroState.PAUSED: frozenset({PomodoroState.WORK, PomodoroState.IDLE}),
@@ -123,6 +126,7 @@ class PomodoroEvent:
         round_number: Current round (1-based).
         reason: Why the transition happened.
     """
+
     timestamp: datetime
     from_state: PomodoroState
     to_state: PomodoroState
@@ -138,6 +142,7 @@ class PomodoroSessionEvent:
     default in-memory machine). The plugin contract uses this type to
     feed external state changes into the operational layer.
     """
+
     session_id: UEID
     timestamp: datetime
     state: PomodoroState
@@ -153,6 +158,7 @@ class PomodoroSession:
     The actual state-machine logic lives in the plugin; this
     record is just the data shape.
     """
+
     session_id: UEID
     rounds_max: int
     state: PomodoroState = PomodoroState.IDLE
@@ -220,9 +226,7 @@ class InMemoryPomodoroPlugin:
         # Validate transition
         if event.state not in DEFAULT_TRANSITIONS[session.state]:
             msg = f"Invalid transition: {session.state.value} → {event.state.value}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
         session.state = event.state
         session.current_round = event.round_number
         if event.state == PomodoroState.COMPLETE:
@@ -311,9 +315,7 @@ class PomodoroTracker:
                 f"Invalid transition: {self._current_state.value} → {target.value}. "
                 f"Valid targets: {valid}"
             )
-            raise ValueError(
-                msg_0
-            )
+            raise ValueError(msg_0)
         event = PomodoroEvent(
             timestamp=when or datetime.now(UTC),
             from_state=self._current_state,
@@ -353,15 +355,15 @@ class PomodoroTracker:
             raise RuntimeError(msg)
         self._current_round += 1
         return self.transition(
-            PomodoroState.WORK, reason=f"break complete, starting round {self._current_round}", when=when
+            PomodoroState.WORK,
+            reason=f"break complete, starting round {self._current_round}",
+            when=when,
         )
 
     def complete_long_break(self, when: datetime | None = None) -> PomodoroEvent:
         if self._current_state != PomodoroState.LONG_BREAK:
             msg = f"complete_long_break requires LONG_BREAK state, got {self._current_state.value}"
-            raise RuntimeError(
-                msg
-            )
+            raise RuntimeError(msg)
         return self.transition(PomodoroState.IDLE, reason="long break complete", when=when)
 
     def interrupt(self, when: datetime | None = None) -> PomodoroEvent:

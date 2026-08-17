@@ -8,11 +8,14 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import TYPE_CHECKING
 
-from textual.containers import Vertical
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Static
 
-from operational.cli.state import journals as journals_repo, sleep_records as sleep_repo
+from operational.cli.state import (
+    journals as journals_repo,
+    reload_stale_repos,
+    sleep_records as sleep_repo,
+)
 from operational.tui.widgets.sparkline_chart import ChartColors, PlotextChart
 
 if TYPE_CHECKING:
@@ -124,6 +127,13 @@ PlotextChart {
         yield Footer()
 
     def _render_charts(self, period: str = "7d") -> None:
+        # P0 #8 — pick up cross-process CLI writes (sleep/energy/focus from
+        # another terminal) before reading the repos. Covers both the
+        # ``on_mount`` initial render and the 7d/30d button presses.
+        try:
+            reload_stale_repos()
+        except Exception:
+            pass
         days = 7 if period == "7d" else 30
         today = date.today()
         dates = [today - timedelta(days=i) for i in range(days - 1, -1, -1)]

@@ -733,10 +733,10 @@ class TipoDia(StrEnum):
             int: Minutos de hardwork orçados.
         """
         mapping: dict[str, int] = {
-            "curso": 240,      # 4h
-            "livre": 540,      # 9h
-            "hardcore": 660,   # 11h
-            "descanso": 120,   # 2h
+            "curso": 240,  # 4h
+            "livre": 540,  # 9h
+            "hardcore": 660,  # 11h
+            "descanso": 120,  # 2h
         }
         return mapping[self.value]
 
@@ -808,10 +808,10 @@ class EstadoPsicomatico(StrEnum):
     """
 
     EXCELENTE = "excelente"  # 9-10
-    BOM = "bom"              # 7-8
-    REGULAR = "regular"      # 5-6
-    RUIM = "ruim"            # 3-4
-    CRITICO = "critico"      # 1-2
+    BOM = "bom"  # 7-8
+    REGULAR = "regular"  # 5-6
+    RUIM = "ruim"  # 3-4
+    CRITICO = "critico"  # 1-2
 
     @classmethod
     def from_score(cls, score: int) -> EstadoPsicomatico:
@@ -912,4 +912,3 @@ class WorkoutTipo(StrEnum):
             "outro": "❓ Outro",
         }
         return mapping[self.value]
-

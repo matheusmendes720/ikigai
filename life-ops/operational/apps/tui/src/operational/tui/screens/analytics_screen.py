@@ -33,7 +33,7 @@ from operational.core.analytics import (
     scenario_analysis,
     weekly_trend,
 )
-from operational.tui.theme import get_tui_theme
+from operational.tui.theme import REGIME_COLORS
 
 _SCORE_SUCCESS = 80.0
 _SCORE_WARNING = 60.0
@@ -99,17 +99,10 @@ def _regime_timeline_bar(timeline: list[tuple[date, str]], width: int = 40) -> T
     chunk_size = max(1, n // width)
     text = Text()
 
-    regime_color_map: dict[str, str] = {
-        "PUSH": "green",
-        "MAINTAIN": "yellow",
-        "REDUCE": "red",
-        "RECOVER": "magenta",
-    }
-
     for i in range(0, n, chunk_size):
         chunk = timeline[i : i + chunk_size]
         dominant = Counter(s for _, s in chunk).most_common(1)[0][0]
-        color = regime_color_map.get(dominant, "white")
+        color = REGIME_COLORS.get(dominant, "white")
         text.append("█", style=color)
 
     return text
@@ -214,7 +207,7 @@ class AnalyticsScreen(Screen):
         try:
             csv_dir = _detect_csv_dir()
             ds = load_dataset(csv_dir)
-        except Exception:  # noqa: BLE001
+        except Exception:
             self._render_error()
             return
 

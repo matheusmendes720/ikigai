@@ -13,7 +13,7 @@ from textual.binding import Binding
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Static, Tab, Tabs
 
-from operational.cli.state import time_blocks as tb_repo
+from operational.cli.state import reload_stale_repos, time_blocks as tb_repo
 from operational.tui.widgets.time_block import TimeBlockDisplay
 
 if TYPE_CHECKING:
@@ -82,6 +82,13 @@ TimeBlockDisplay {
 
     def _show_period(self, period: str) -> None:
         """Mount TimeBlockDisplay widgets for the blocks of this period."""
+        # P0 #8 — pick up cross-process CLI writes (e.g. ``pav block create``
+        # in another terminal) before reading the repo. Covers both
+        # ``on_mount`` and every tab switch (Tabs.TabChanged, prev/next/toggle).
+        try:
+            reload_stale_repos()
+        except Exception:
+            pass
         # Remove previously-rendered blocks
         for w in self.query(TimeBlockDisplay):
             w.remove()

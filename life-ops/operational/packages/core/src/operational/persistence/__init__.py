@@ -11,6 +11,7 @@ Public API
   :class:`DuplicateEntityError`, :class:`MigrationError`,
   :class:`StorageBackendError`.
 """
+
 from __future__ import annotations
 
 from operational.persistence.base import RepositoryBase
