@@ -12,12 +12,13 @@ Bridge architecture (same pattern as sync_cmd.py):
 
 Path resolution:
   plan_cmd.py lives at::
-      life-ops/operational/apps/cli/src/operational/cli/commands/plan_cmd.py
+      life - ops / operational / apps / cli / src / operational / cli / commands / plan_cmd.py
 
   Eight levels up (parents[8]) is the repo root. From there::
       vibe-ops/src/agents/pae_maintainer/main.py
       life-ops/operational/packages/core/src  (operational package)
 """
+
 from __future__ import annotations
 
 import json
@@ -76,9 +77,9 @@ def _run_pae(cmd: str, args: list[str], json_out: bool) -> tuple[int, str]:
     child_env = dict(os.environ)
     child_env.pop("PYTHONPATH", None)  # Clear inherited PYTHONPATH
     extra_pp = [
-        str(_AGENTS_SRC),                          # vibe-ops/src/agents (PAE package)
-        str(_REPO_ROOT / "vibe-ops" / "src"),       # for `from models...` imports
-        str(_OPERATIONAL_SRC),                      # for `from operational...` imports
+        str(_AGENTS_SRC),  # vibe-ops/src/agents (PAE package)
+        str(_REPO_ROOT / "vibe-ops" / "src"),  # for `from models...` imports
+        str(_OPERATIONAL_SRC),  # for `from operational...` imports
     ]
     child_env["PYTHONPATH"] = os.pathsep.join(extra_pp)
 
@@ -150,9 +151,7 @@ def plan_status(
 ) -> None:
     """Show last persisted PAE state."""
     with trace_command(log, "plan.status", command="pav plan status") as ctx:
-        exit_code, stdout = _run_pae(
-            "status", ["--db", db, "--cycle-id", cycle_id], json_out
-        )
+        exit_code, stdout = _run_pae("status", ["--db", db, "--cycle-id", cycle_id], json_out)
         if json_out:
             parsed = _parse_json_output(stdout)
             if parsed is not None:
@@ -173,9 +172,7 @@ def plan_balance(
 ) -> None:
     """Show balance node output (workload vs capacity vs Q_HE)."""
     with trace_command(log, "plan.balance", command="pav plan balance") as ctx:
-        exit_code, stdout = _run_pae(
-            "balance", ["--db", db, "--cycle-id", cycle_id], False
-        )
+        exit_code, stdout = _run_pae("balance", ["--db", db, "--cycle-id", cycle_id], False)
         typer.echo(stdout, nl=False)
         if exit_code != 0:
             ctx.error("plan.balance.failed")

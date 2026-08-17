@@ -1,4 +1,5 @@
 """Journal CLI — Rich Table listing."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -28,7 +29,11 @@ def create(
         d = date.fromisoformat(entry_date) if entry_date else date.today()
         maybe_print_input_summary(
             title="Criando entrada de diário",
-            params={"date": d.isoformat(), "text_len": len(text), "preview": text[:40] + ("…" if len(text) > 40 else "")},
+            params={
+                "date": d.isoformat(),
+                "text_len": len(text),
+                "preview": text[:40] + ("…" if len(text) > 40 else ""),
+            },
             flag_legend={"-d": "--date", "-t": "--text"},
         )
 
@@ -42,7 +47,9 @@ def create(
             console.print(f"    [dim]data: {entry.date.isoformat()} · {len(text)} caracteres[/dim]")
             if text:
                 preview = text.replace("\n", " ")[:60]
-                console.print(f"    [italic dim]\"{preview}{'…' if len(text) > 60 else ''}\"[/italic dim]")
+                console.print(
+                    f'    [italic dim]"{preview}{"…" if len(text) > 60 else ""}"[/italic dim]'
+                )
 
 
 @app.command(name="list")
@@ -62,7 +69,9 @@ def list_entries(
             typer.echo(format_as_json(items))
             return
         if not items:
-            console.print("[yellow]⚠ Nenhuma entrada de diário.[/yellow] Use [bold]journal create[/bold].")
+            console.print(
+                "[yellow]⚠ Nenhuma entrada de diário.[/yellow] Use [bold]journal create[/bold]."
+            )
             return
 
         items_sorted = sorted(items, key=lambda j: (j.date, j.id), reverse=True)

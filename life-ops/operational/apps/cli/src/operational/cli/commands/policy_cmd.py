@@ -1,4 +1,5 @@
 """Policy CLI commands."""
+
 from __future__ import annotations
 
 import typer
@@ -37,8 +38,10 @@ def setpoints(
             typer.echo(f"Policy setpoints ({len(items)}):")
             for sp in items:
                 state = sp.state if hasattr(sp, "state") else "?"
-                typer.echo(f"  State={state}: budget={sp.hardwork_budget_hours}h  "
-                           f"sleep={sp.sleep_target_hours}h  qhe={sp.qhe_target}")
+                typer.echo(
+                    f"  State={state}: budget={sp.hardwork_budget_hours}h  "
+                    f"sleep={sp.sleep_target_hours}h  qhe={sp.qhe_target}"
+                )
             ctx.info("policy.setpoints.listed", count=len(items))
 
 
@@ -57,4 +60,6 @@ def decisions(
         else:
             typer.echo(f"Policy decisions ({len(items)}):")
             for d in items:
-                typer.echo(f"  {d.date}  state={d.state}  severity={d.severity}  {d.rationale[:60]}")
+                typer.echo(
+                    f"  {d.date}  state={d.state}  severity={d.severity}  {d.rationale[:60]}"
+                )

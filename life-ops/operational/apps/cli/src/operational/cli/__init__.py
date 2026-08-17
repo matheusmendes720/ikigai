@@ -14,6 +14,7 @@ Entry points in ``pyproject.toml`` use the absolute path
 ``operational.cli.app:app`` — they don't go through this module.
 Tests using ``from operational.cli import app`` still work.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -29,4 +30,5 @@ def __getattr__(name: str) -> Any:
         # Cache so subsequent lookups don't re-import
         globals()["app"] = _typer_app
         return _typer_app
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    msg = f"module {__name__!r} has no attribute {name!r}"
+    raise AttributeError(msg)

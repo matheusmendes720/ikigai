@@ -1,4 +1,5 @@
 """Metric CLI commands — sleep & energy tracking with Rich Tables."""
+
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
@@ -63,7 +64,9 @@ def sleep(
 ) -> None:
     """Registrar sono retroativo."""
     log = get_logger("metric_cmd")
-    with trace_command(log, "metric.sleep", command="pav metric sleep", entity_type="sleep_record") as ctx:
+    with trace_command(
+        log, "metric.sleep", command="pav metric sleep", entity_type="sleep_record"
+    ) as ctx:
         d = date.fromisoformat(record_date) if record_date else date.today()
         maybe_print_input_summary(
             title="Registrando sono",
@@ -73,7 +76,14 @@ def sleep(
                 "bedtime": f"{bed_hour:02d}:{bed_minute:02d}",
                 "wake": f"{wake_hour:02d}:{wake_minute:02d}",
             },
-            flag_legend={"-d": "--date", "-q": "--quality", "-bh": "--bed-hour", "-bm": "--bed-minute", "-wh": "--wake-hour", "-wm": "--wake-minute"},
+            flag_legend={
+                "-d": "--date",
+                "-q": "--quality",
+                "-bh": "--bed-hour",
+                "-bm": "--bed-minute",
+                "-wh": "--wake-hour",
+                "-wm": "--wake-minute",
+            },
         )
 
         record = make_sleep_record(
@@ -83,13 +93,20 @@ def sleep(
             wake_time=time(wake_hour, wake_minute),
         )
         sleep_records.upsert(record)
-        ctx.info("entity.created", entity_id=record.id, entity_type="sleep_record",
-                 date=d.isoformat(), quality=quality, duration_hours=record.duration_hours)
+        ctx.info(
+            "entity.created",
+            entity_id=record.id,
+            entity_type="sleep_record",
+            date=d.isoformat(),
+            quality=quality,
+            duration_hours=record.duration_hours,
+        )
 
         if json:
             typer.echo(format_as_json(record))
         else:
             from operational.ui.receipt import receipt_panel
+
             emoji = _sleep_emoji(quality)
             label = _sleep_label(quality)
             receipt = receipt_panel(
@@ -116,7 +133,9 @@ def list_sleep(
 ) -> None:
     """Listar registros de sono — Rich Table."""
     log = get_logger("metric_cmd")
-    with trace_command(log, "metric.sleep.list", command="pav metric list", entity_type="sleep_record") as ctx:
+    with trace_command(
+        log, "metric.sleep.list", command="pav metric list", entity_type="sleep_record"
+    ) as ctx:
         items = sleep_records.list()
         ctx.info("entity.list.fetched", entity_type="sleep_record", count=len(items))
 
@@ -125,7 +144,9 @@ def list_sleep(
             typer.echo(format_as_json(items))
             return
         if not items:
-            console.print("[yellow]⚠ Nenhum registro de sono.[/yellow] Use [bold]metric sleep[/bold].")
+            console.print(
+                "[yellow]⚠ Nenhum registro de sono.[/yellow] Use [bold]metric sleep[/bold]."
+            )
             return
 
         items_sorted = sorted(items, key=lambda s: s.date, reverse=True)
@@ -169,15 +190,24 @@ def energy(
     energia: int = typer.Option(..., "--energia", "-e", min=1, max=10, help="Energia (1-10)"),
     foco: int = typer.Option(..., "--foco", "-f", min=1, max=10, help="Foco (1-10)"),
     target_date: str | None = typer.Option(None, "--date", "-d", help="Data (YYYY-MM-DD)"),
-    block_id: str | None = typer.Option(None, "--block", "-b", help="Vincular a bloco existente (UEID)"),
+    block_id: str | None = typer.Option(
+        None, "--block", "-b", help="Vincular a bloco existente (UEID)"
+    ),
     json: bool = typer.Option(False, "--json", help="JSON output"),
 ) -> None:
     """Check-in rápido de energia/foco (cria bloco instantâneo se não passar --block)."""
     log = get_logger("metric_cmd")
-    with trace_command(log, "metric.energy", command="pav metric energy", entity_type="time_block") as ctx:
+    with trace_command(
+        log, "metric.energy", command="pav metric energy", entity_type="time_block"
+    ) as ctx:
         maybe_print_input_summary(
             title="Check-in de energia/foco",
-            params={"energia": energia, "foco": foco, "date": target_date or "hoje", "block_id": block_id or "(novo bloco)"},
+            params={
+                "energia": energia,
+                "foco": foco,
+                "date": target_date or "hoje",
+                "block_id": block_id or "(novo bloco)",
+            },
             flag_legend={"-e": "--energia", "-f": "--foco", "-d": "--date", "-b": "--block"},
         )
 
@@ -189,18 +219,29 @@ def energy(
             if existing is None:
                 console.print(f"[red]✗ Bloco {block_id} não encontrado.[/red]")
                 raise typer.Exit(code=1)
-            updated = existing.model_copy(update={
-                "energia_nivel": energia,
-                "foco_nivel": foco,
-            })
+            updated = existing.model_copy(
+                update={
+                    "energia_nivel": energia,
+                    "foco_nivel": foco,
+                }
+            )
             time_blocks.upsert(updated)
-            ctx.info("entity.updated", entity_id=block_id, entity_type="time_block",
-                     energia=energia, foco=foco)
+            ctx.info(
+                "entity.updated",
+                entity_id=block_id,
+                entity_type="time_block",
+                energia=energia,
+                foco=foco,
+            )
             if json:
                 typer.echo(format_as_json(updated))
             else:
-                console.print(f"  [bold green]✓[/bold green] Check-in registrado no bloco [dim]{block_id}[/dim]")
-                console.print(f"    [dim]energia: {energia}/10  ·  foco: {foco}/10  ·  média: {(energia + foco) // 2}/10[/dim]")
+                console.print(
+                    f"  [bold green]✓[/bold green] Check-in registrado no bloco [dim]{block_id}[/dim]"
+                )
+                console.print(
+                    f"    [dim]energia: {energia}/10  ·  foco: {foco}/10  ·  média: {(energia + foco) // 2}/10[/dim]"
+                )
         else:
             # Create instant 1s block at the current time
             period = _infer_period(now.hour)
@@ -215,12 +256,22 @@ def energy(
                 created_at=now,
             )
             time_blocks.upsert(new_block)
-            ctx.info("entity.created", entity_id=new_block.id, entity_type="time_block",
-                     energia=energia, foco=foco, period=period.value)
+            ctx.info(
+                "entity.created",
+                entity_id=new_block.id,
+                entity_type="time_block",
+                energia=energia,
+                foco=foco,
+                period=period.value,
+            )
             if json:
                 typer.echo(format_as_json(new_block))
             else:
                 avg = (energia + foco) // 2
                 color = "green" if avg >= 7 else "yellow" if avg >= 5 else "red"
-                console.print(f"  [bold {color}]✓[/bold {color}] Check-in criado: [bold]E={energia}/10 F={foco}/10[/bold]")
-                console.print(f"    [dim]média {avg}/10  ·  bloco {new_block.id}  ·  período {period.value}[/dim]")
+                console.print(
+                    f"  [bold {color}]✓[/bold {color}] Check-in criado: [bold]E={energia}/10 F={foco}/10[/bold]"
+                )
+                console.print(
+                    f"    [dim]média {avg}/10  ·  bloco {new_block.id}  ·  período {period.value}[/dim]"
+                )

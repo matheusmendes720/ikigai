@@ -10,6 +10,7 @@ Per architecture rules:
 The PAV-OS v2 design system is the **only** renderer for ``daily``
 and ``weekly``. ``--mock`` and ``--watch`` are preserved.
 """
+
 from __future__ import annotations
 
 import time as time_module
@@ -23,7 +24,6 @@ from operational.cli.console import console
 from operational.cli.formatters import format_as_json
 from operational.cli.services import (
     DaySnapshot,
-    compute_day_quadrant,
     get_day_snapshot,
 )
 from operational.cli.state import (
@@ -31,6 +31,7 @@ from operational.cli.state import (
     day_contexts,
     sleep_records,
 )
+from operational.core.budget import compute_day_quadrant
 from operational.cli.telemetry import get_logger, trace_command
 from operational.core.budget import productivity_pct
 from operational.enums import TipoDia
@@ -57,7 +58,9 @@ app = typer.Typer(help="Generate reports (PAV-OS v2 design system — definitive
 def daily(
     report_date: str | None = typer.Option(None, "--date", "-d", help="Data (YYYY-MM-DD)"),
     json: bool = typer.Option(False, "--json", help="JSON output"),
-    mock: str | None = typer.Option(None, "--mock", help="Use mock profile (q1, q2, q3, q4, empty, burnout, peak)"),
+    mock: str | None = typer.Option(
+        None, "--mock", help="Use mock profile (q1, q2, q3, q4, empty, burnout, peak)"
+    ),
     watch: int = typer.Option(0, "--watch", help="Auto-refresh every N seconds"),
 ) -> None:
     """Relatório diário — PAV-OS v2 design system.
@@ -68,34 +71,42 @@ def daily(
     - ``--json``: machine-readable JSON output.
     """
     log = get_logger("report_cmd")
-    with trace_command(log, "report.daily", command="pav report daily", entity_type="day_snapshot") as ctx:
+    with trace_command(
+        log, "report.daily", command="pav report daily", entity_type="day_snapshot"
+    ) as ctx:
         try:
             d = date.fromisoformat(report_date) if report_date else date.today()
-        except ValueError:
-            console.print(error_panel_v2(
-                f"Data invalida: {report_date}",
-                context=f"pav report daily --date {report_date}",
-                expected="YYYY-MM-DD (ano-mes-dia, mes 01-12, dia 01-31)",
-                suggestion="pav report daily --date 2026-06-08",
-            ))
-            raise typer.Exit(code=1)
+        except ValueError as err:
+            console.print(
+                error_panel_v2(
+                    f"Data invalida: {report_date}",
+                    context=f"pav report daily --date {report_date}",
+                    expected="YYYY-MM-DD (ano-mes-dia, mes 01-12, dia 01-31)",
+                    suggestion="pav report daily --date 2026-06-08",
+                )
+            )
+            raise typer.Exit(code=1) from err
 
         profile = None
         if mock:
             from operational.ui.mock_profiles import get_profile, list_profiles
+
             try:
                 profile = get_profile(mock)
-            except ValueError:
-                console.print(error_panel_v2(
-                    f"Perfil mock desconhecido: {mock!r}",
-                    context=f"pav report daily --mock {mock}",
-                    expected=f"One of: {', '.join(list_profiles())}",
-                    suggestion="pav report daily --mock q1",
-                ))
-                raise typer.Exit(code=1)
+            except ValueError as err:
+                console.print(
+                    error_panel_v2(
+                        f"Perfil mock desconhecido: {mock!r}",
+                        context=f"pav report daily --mock {mock}",
+                        expected=f"One of: {', '.join(list_profiles())}",
+                        suggestion="pav report daily --mock q1",
+                    )
+                )
+                raise typer.Exit(code=1) from err
 
         if profile is not None:
             from operational.ui.mock_snapshot import build_mock_snapshot
+
             snap: DaySnapshot = build_mock_snapshot(profile)
         else:
             snap = get_day_snapshot(d)
@@ -103,7 +114,10 @@ def daily(
         ctx.info("day_snapshot.fetched", date=d.isoformat(), mock=mock, json=json, watch=watch)
 
         if json:
-            q_code, x, y = compute_day_quadrant(snap)
+            q_code, x, y = compute_day_quadrant(
+                snap.hardwork_realizado_min,
+                snap.hardwork_orcado_min,
+            )
             payload = {
                 "date": d.isoformat(),
                 "tipo_dia": snap.tipo_dia.value,
@@ -135,7 +149,8 @@ def daily(
                 "deu_errado": snap.deu_errado,
                 "maior_aprendizado": snap.maior_aprendizado,
                 "quadrant": q_code,
-                "x": x, "y": y,
+                "x": x,
+                "y": y,
                 "design_system": "v2",
                 "mock": mock,
             }
@@ -201,6 +216,7 @@ def _build_weekly_v2(ws: date, we: date, profile):
         d = ws + timedelta(days=offset)
         if profile is not None and d == we:
             from operational.ui.mock_snapshot import build_mock_snapshot
+
             snap = build_mock_snapshot(profile)
         else:
             snap = get_day_snapshot(d)
@@ -217,9 +233,7 @@ def _build_weekly_v2(ws: date, we: date, profile):
     orcado_total = sum(o for _, o, _, _ in daily_data)
     realizado_total = sum(r for _, _, r, _ in daily_data)
     n_days = (we - ws).days + 1
-    avg_x = (
-        sum(productivity_pct(r, o) for _, o, r, _ in daily_data) / max(1, len(daily_data))
-    )
+    avg_x = sum(productivity_pct(r, o) for _, o, r, _ in daily_data) / max(1, len(daily_data))
 
     k1 = kpi_v2(
         "Hardwork",
@@ -254,9 +268,7 @@ def _build_weekly_v2(ws: date, we: date, profile):
     sleep_by_day: list[float] = []
     prod_by_day: list[float] = []
     for d, orcado, realizado, n_pom in daily_data:
-        sleep_by_day.append(
-            next((s.duration_hours for s in sleeps if s.date == d), 0) or 0
-        )
+        sleep_by_day.append(next((s.duration_hours for s in sleeps if s.date == d), 0) or 0)
         prod_by_day.append(productivity_pct(realizado, orcado))
         pom_by_day.append(float(min(n_pom, 11)))
 
@@ -272,8 +284,7 @@ def _build_weekly_v2(ws: date, we: date, profile):
             tipo_count[ctx.tipo_dia.value] = tipo_count.get(ctx.tipo_dia.value, 0) + 1
 
     tipo_rows: list[tuple[str, str, str | None]] = [
-        (tipo.upper(), str(n), "ok" if n > 0 else "muted")
-        for tipo, n in tipo_count.items()
+        (tipo.upper(), str(n), "ok" if n > 0 else "muted") for tipo, n in tipo_count.items()
     ]
 
     q_count: dict[str, int] = {"Q1": 0, "Q2": 0, "Q3": 0, "Q4": 0}
@@ -296,7 +307,9 @@ def _build_weekly_v2(ws: date, we: date, profile):
     body = Group(
         kpi_grid_2x2([k1, k2, k3, k4]),
         "",
-        section_v2("TENDENCIAS", icon="📈", subtitle="7 dias", content=spark_block, severity="primary"),
+        section_v2(
+            "TENDENCIAS", icon="📈", subtitle="7 dias", content=spark_block, severity="primary"
+        ),
         "",
         section_v2(
             "DISTRIBUICAO POR TIPO DE DIA",
@@ -347,7 +360,9 @@ def weekly(
     start: str | None = typer.Option(None, "--start", "-s", help="Início da semana (YYYY-MM-DD)"),
     end: str | None = typer.Option(None, "--end", "-e", help="Fim da semana (YYYY-MM-DD)"),
     json: bool = typer.Option(False, "--json", help="JSON output"),
-    mock: str | None = typer.Option(None, "--mock", help="[daily only] Reuse a mock profile for the latest day in the range"),
+    mock: str | None = typer.Option(
+        None, "--mock", help="[daily only] Reuse a mock profile for the latest day in the range"
+    ),
 ) -> None:
     """Relatório semanal — PAV-OS v2 design system.
 
@@ -356,20 +371,25 @@ def weekly(
       in the range.
     """
     log = get_logger("report_cmd")
-    with trace_command(log, "report.weekly", command="pav report weekly", entity_type="week_snapshot") as ctx:
+    with trace_command(
+        log, "report.weekly", command="pav report weekly", entity_type="week_snapshot"
+    ) as ctx:
         profile = None
         if mock:
             from operational.ui.mock_profiles import get_profile, list_profiles
+
             try:
                 profile = get_profile(mock)
-            except ValueError:
-                console.print(error_panel_v2(
-                    f"Perfil mock desconhecido: {mock!r}",
-                    context=f"pav report weekly --mock {mock}",
-                    expected=f"One of: {', '.join(list_profiles())}",
-                    suggestion="pav report weekly --mock q1",
-                ))
-                raise typer.Exit(code=1)
+            except ValueError as err:
+                console.print(
+                    error_panel_v2(
+                        f"Perfil mock desconhecido: {mock!r}",
+                        context=f"pav report weekly --mock {mock}",
+                        expected=f"One of: {', '.join(list_profiles())}",
+                        suggestion="pav report weekly --mock q1",
+                    )
+                )
+                raise typer.Exit(code=1) from err
 
         ws = date.fromisoformat(start) if start else date.today() - timedelta(days=6)
         we = date.fromisoformat(end) if end else date.today()
@@ -382,6 +402,7 @@ def weekly(
                 d = ws + timedelta(days=offset)
                 if profile is not None and d == we:
                     from operational.ui.mock_snapshot import build_mock_snapshot
+
                     snap = build_mock_snapshot(profile)
                 else:
                     snap = get_day_snapshot(d)

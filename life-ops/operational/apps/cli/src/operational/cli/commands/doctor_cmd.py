@@ -12,6 +12,7 @@ Checks:
 9. Console detection (is_captured?)
 10. Encoding/line-ending sanity check on JSON files
 """
+
 from __future__ import annotations
 
 import json
@@ -24,6 +25,7 @@ from typing import Any
 import typer
 
 from operational.cli.formatters import format_as_json
+from operational.cli.state import _state_dir
 from operational.cli.telemetry import get_logger, trace_command
 from operational.constants import DEFAULT as PAV
 from operational.ui import console, is_captured
@@ -60,14 +62,27 @@ def _check_packages() -> dict[str, Any]:
 
 def _check_state_dir() -> dict[str, Any]:
     """Verify state directory exists and JSON files are readable."""
-    state_dir = Path(os.environ.get("TIME_TASKER_STATE_DIR", Path.home() / ".time-tasker"))
+    # P2 #1 — reuse the canonical accessor so the env-var override is
+    # resolved the same way every other repo/CLI surface sees it.
+    # ``_state_dir()`` also creates the dir (mkdir parents=True, exist_ok)
+    # which is harmless here because we report on ``exists`` after.
+    state_dir = _state_dir()
     files_info: dict[str, dict[str, Any]] = {}
     expected_files = [
-        "routines.json", "routine_logs.json", "time_blocks.json",
-        "journals.json", "habits.json", "sleep_records.json",
-        "pomodoros.json", "policy_decisions.json", "policy_setpoints.json",
-        "ajustes_finos.json", "day_contexts.json", "daily_reflections.json",
-        "lunch_records.json", "transicoes.json",
+        "routines.json",
+        "routine_logs.json",
+        "time_blocks.json",
+        "journals.json",
+        "habits.json",
+        "sleep_records.json",
+        "pomodoros.json",
+        "policy_decisions.json",
+        "policy_setpoints.json",
+        "ajustes_finos.json",
+        "day_contexts.json",
+        "daily_reflections.json",
+        "lunch_records.json",
+        "transicoes.json",
     ]
     exists = state_dir.exists()
     writable = exists and os.access(state_dir, os.W_OK)
@@ -173,7 +188,8 @@ def _check_files_sanity() -> dict[str, Any]:
     both. We skip the CRLF check to avoid false positives on Windows systems.
     UTF-8 BOM is still flagged as it can cause issues with some parsers.
     """
-    state_dir = Path(os.environ.get("TIME_TASKER_STATE_DIR", Path.home() / ".time-tasker"))
+    # P2 #1 — same canonical accessor as ``_check_state_dir``.
+    state_dir = _state_dir()
     issues: list[str] = []
     checked = 0
     if state_dir.exists():
@@ -257,6 +273,3 @@ def run_health_check(json_out: bool = False) -> None:
                 for name, check in results["checks"].items():
                     if not check.get("ok", True):
                         console.print(f"  [red]*[/red] {name}: {check}")
-
-
-

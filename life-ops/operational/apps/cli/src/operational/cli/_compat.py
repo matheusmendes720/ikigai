@@ -11,6 +11,7 @@ The report/state commands have been fully migrated to the v2 design
 system in ``ui/components_v2.py`` + ``ui/v2_renderers.py`` and no
 longer depend on this shim.
 """
+
 from __future__ import annotations
 
 import os

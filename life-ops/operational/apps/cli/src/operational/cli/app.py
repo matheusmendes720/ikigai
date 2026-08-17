@@ -31,6 +31,7 @@ from operational.cli.commands.lunch_cmd import app as lunch_app
 from operational.cli.commands.analytics_cmd import analytics_app as analytics_app
 from operational.cli.commands.metric_cmd import app as metric_app
 from operational.cli.commands.plan_cmd import app as plan_app
+from operational.cli.commands.portfolio_cmd import app as portfolio_app
 from operational.cli.commands.policy_cmd import app as policy_app
 from operational.cli.commands.reflect_cmd import app as reflect_app
 from operational.cli.commands.report_cmd import app as report_app
@@ -47,6 +48,7 @@ app = typer.Typer(
     help="◆ PAV-OS v2 — production-grade visual. Cybernetic Life OS — Target. Sense. Adjust.",
     no_args_is_help=True,
 )
+
 
 # Global telemetry / debug flags — applied before any command runs.
 # These are registered on a CallbackDefinition so Typer processes them
@@ -82,6 +84,7 @@ def global_options(
         quiet=False,
     )
 
+
 app.add_typer(routine_app, name="routine", help="Gerenciar rotinas (MANHA/TARDE/NOITE).")
 app.add_typer(block_app, name="block", help="Gerenciar blocos de tempo.")
 app.add_typer(journal_app, name="journal", help="Gerenciar entradas do diário.")
@@ -110,6 +113,11 @@ app.add_typer(
     sync_app,
     name="sync",
     help="Sync vault period reports with vibe_ops.db.",
+)
+app.add_typer(
+    portfolio_app,
+    name="portfolio",
+    help="Portfolio artifacts — import from job_hunter, sync GitHub, show.",
 )
 app.add_typer(
     plan_app,

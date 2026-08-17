@@ -1,4 +1,5 @@
 """Routine CLI commands — Rich Tables for beautiful listing."""
+
 from __future__ import annotations
 
 from datetime import time
@@ -50,18 +51,29 @@ def create(
 ) -> None:
     """Create a new routine."""
     log = get_logger("routine.create")
-    with trace_command(log, "routine.create", command="routine create", period=period.value, routine_type=routine_type.value) as ctx:
+    with trace_command(
+        log,
+        "routine.create",
+        command="routine create",
+        period=period.value,
+        routine_type=routine_type.value,
+    ):
         maybe_print_input_summary(
-        title="Criando rotina",
-        params={
-            "name": name,
-            "period": period.value,
-            "type": routine_type.value,
-            "start": f"{start_hour:02d}:{start_minute:02d}",
-            "end": f"{end_hour:02d}:{end_minute:02d}",
-        },
-        flag_legend={"-sh": "--start-hour", "-sm": "--start-minute", "-eh": "--end-hour", "-em": "--end-minute"},
-    )
+            title="Criando rotina",
+            params={
+                "name": name,
+                "period": period.value,
+                "type": routine_type.value,
+                "start": f"{start_hour:02d}:{start_minute:02d}",
+                "end": f"{end_hour:02d}:{end_minute:02d}",
+            },
+            flag_legend={
+                "-sh": "--start-hour",
+                "-sm": "--start-minute",
+                "-eh": "--end-hour",
+                "-em": "--end-minute",
+            },
+        )
 
     routine = make_routine(
         name=name,
@@ -75,7 +87,10 @@ def create(
         typer.echo(format_as_json(routine))
     else:
         from operational.ui.receipt import receipt_panel
-        range_str = f"{routine.start_time.strftime('%H:%M:%S')} → {routine.end_time.strftime('%H:%M:%S')}"
+
+        range_str = (
+            f"{routine.start_time.strftime('%H:%M:%S')} → {routine.end_time.strftime('%H:%M:%S')}"
+        )
         receipt = receipt_panel(
             title="NOVA ROTINA",
             icon="📝",
@@ -97,11 +112,15 @@ def create(
 def list_routines(
     period: Period | None = typer.Option(None, "--period", "-p", help="Filter by period"),
     json: bool = typer.Option(False, "--json", help="JSON output"),
-    tree: bool = typer.Option(False, "--tree", help="Render as Rich Tree grouped by period (MANHA/TARDE/NOITE)"),
+    tree: bool = typer.Option(
+        False, "--tree", help="Render as Rich Tree grouped by period (MANHA/TARDE/NOITE)"
+    ),
 ) -> None:
     """List saved routines — Rich Table or Tree (with --tree)."""
     log = get_logger("routine.list")
-    with trace_command(log, "routine.list", command="routine list", period=period.value if period else None) as ctx:
+    with trace_command(
+        log, "routine.list", command="routine list", period=period.value if period else None
+    ):
         filters = {}
     if period:
         filters["period"] = period
@@ -112,7 +131,9 @@ def list_routines(
         return
 
     if not items:
-        console.print("[yellow]⚠ Nenhuma rotina cadastrada.[/yellow] Use [bold]routine create[/bold].")
+        console.print(
+            "[yellow]⚠ Nenhuma rotina cadastrada.[/yellow] Use [bold]routine create[/bold]."
+        )
         return
 
     # Sort by period then by start time
@@ -122,6 +143,7 @@ def list_routines(
     # --tree: render as a Rich Tree grouped by period
     if tree:
         from rich.tree import Tree
+
         root = Tree(f"[bold cyan]🕐 Rotinas ({len(items_sorted)})[/bold cyan]")
         period_groups: dict[Period, list] = {}
         for r in items_sorted:
@@ -129,7 +151,9 @@ def list_routines(
         for p in [Period.MANHA, Period.TARDE, Period.NOITE]:
             if p not in period_groups:
                 continue
-            period_node = root.add(f"[bold]{p.value}[/bold]  [grey58]({len(period_groups[p])})[/grey58]")
+            period_node = root.add(
+                f"[bold]{p.value}[/bold]  [grey58]({len(period_groups[p])})[/grey58]"
+            )
             for r in period_groups[p]:
                 label = f"[cyan]{r.start_time.strftime('%H:%M')}[/cyan]-[cyan]{r.end_time.strftime('%H:%M')}[/cyan]  {r.name}"
                 if r.mandatory:

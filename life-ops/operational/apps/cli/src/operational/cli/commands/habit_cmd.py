@@ -1,4 +1,5 @@
 """Habit CLI — Rich Table listing."""
+
 from __future__ import annotations
 
 import typer
@@ -36,7 +37,9 @@ CATEGORY_COLOR: dict[str, str] = {
 def create(
     name: str = typer.Argument(..., help="Nome do hábito"),
     category: HabitCategory = typer.Argument(HabitCategory.PHYSIOLOGICAL, help="Categoria"),
-    resistance: float = typer.Option(5.0, "--resistance", "-r", min=0.0, max=10.0, help="Resistência (0-10)"),
+    resistance: float = typer.Option(
+        5.0, "--resistance", "-r", min=0.0, max=10.0, help="Resistência (0-10)"
+    ),
     weight: float = typer.Option(0.25, "--weight", "-w", min=0.0, max=1.0, help="Peso Q_HE"),
     json: bool = typer.Option(False, "--json", help="JSON output"),
 ) -> None:
@@ -44,7 +47,12 @@ def create(
     with trace_command(log, "habit.create", command="habit create") as ctx:
         maybe_print_input_summary(
             title="Criando hábito",
-            params={"name": name, "category": category.value, "resistance": resistance, "weight": weight},
+            params={
+                "name": name,
+                "category": category.value,
+                "resistance": resistance,
+                "weight": weight,
+            },
             flag_legend={"-r": "--resistance", "-w": "--weight"},
         )
 
@@ -60,13 +68,19 @@ def create(
             typer.echo(format_as_json(habit))
         else:
             cat_color = CATEGORY_COLOR.get(category.value, "white")
-            console.print(f"  [bold {cat_color}]✓[/bold {cat_color}] Hábito criado: [bold]{habit.name}[/bold]")
-            console.print(f"    [dim]id: {habit.id}  ·  {category.value}  ·  R={resistance}  W={weight}[/dim]")
+            console.print(
+                f"  [bold {cat_color}]✓[/bold {cat_color}] Hábito criado: [bold]{habit.name}[/bold]"
+            )
+            console.print(
+                f"    [dim]id: {habit.id}  ·  {category.value}  ·  R={resistance}  W={weight}[/dim]"
+            )
 
 
 @app.command(name="list")
 def list_habits(
-    category: HabitCategory | None = typer.Option(None, "--category", "-c", help="Filtrar por categoria"),
+    category: HabitCategory | None = typer.Option(
+        None, "--category", "-c", help="Filtrar por categoria"
+    ),
     json: bool = typer.Option(False, "--json", help="JSON output"),
 ) -> None:
     """Listar hábitos salvos — Rich Table."""
@@ -81,7 +95,9 @@ def list_habits(
             typer.echo(format_as_json(items))
             return
         if not items:
-            console.print("[yellow]⚠ Nenhum hábito cadastrado.[/yellow] Use [bold]habit create[/bold].")
+            console.print(
+                "[yellow]⚠ Nenhum hábito cadastrado.[/yellow] Use [bold]habit create[/bold]."
+            )
             return
 
     items_sorted = sorted(items, key=lambda h: h.weight_in_qhe, reverse=True)
@@ -119,7 +135,9 @@ def list_habits(
 
     console.print(table)
 
+
 # ── Stats: aggregate stats from CSV ──────────────────────────────────────────
+
 
 @app.command(name="stats")
 def habit_stats(
@@ -140,6 +158,7 @@ def habit_stats(
         state_rows = []
         if (csv_dir / "habit.csv").exists():
             import csv as _csv
+
             with (csv_dir / "habit.csv").open() as f:
                 reader = _csv.DictReader(f)
                 for row in reader:
@@ -148,6 +167,7 @@ def habit_stats(
                         habit_rows.append(row)
         if (csv_dir / "habit_state.csv").exists():
             import csv as _csv
+
             with (csv_dir / "habit_state.csv").open() as f:
                 reader = _csv.DictReader(f)
                 for row in reader:
@@ -161,6 +181,7 @@ def habit_stats(
 
         # Per-habit completion rate
         from collections import defaultdict
+
         by_name: dict[str, list] = defaultdict(list)
         for r in state_rows:
             name = r.get("habit_name", r.get("habit_id", "unknown"))
@@ -183,7 +204,9 @@ def habit_stats(
         results = []
         for name, rows in sorted(by_name.items()):
             total = len(rows)
-            completed = sum(1 for r in rows if str(r.get("completed", "")).lower() in ("1", "true", "yes"))
+            completed = sum(
+                1 for r in rows if str(r.get("completed", "")).lower() in ("1", "true", "yes")
+            )
             rate = completed / total if total else 0
             streaks = [int(r.get("streak", 0)) for r in rows]
             avg_s = sum(streaks) / len(streaks) if streaks else 0
@@ -192,10 +215,16 @@ def habit_stats(
             good_thresh, ok_thresh = 0.8, 0.5
             color = "green" if rate >= good_thresh else "yellow" if rate >= ok_thresh else "red"
             rate_str = f"[{color}]{bar}[/{color}] {rate:.0%}"
-            results.append({
-                "habit": name, "days_active": total, "completed": completed,
-                "rate": rate, "avg_streak": round(avg_s, 1), "best_streak": best_s,
-            })
+            results.append(
+                {
+                    "habit": name,
+                    "days_active": total,
+                    "completed": completed,
+                    "rate": rate,
+                    "avg_streak": round(avg_s, 1),
+                    "best_streak": best_s,
+                }
+            )
             table.add_row(
                 name[:24],
                 str(total),
@@ -209,10 +238,12 @@ def habit_stats(
         console.print(table)
         if json:
             import json as _json
+
             typer.echo(_json.dumps(results, indent=2, default=str))
 
 
 # ── Today: record habit state for today ──────────────────────────────────────
+
 
 @app.command(name="today")
 def habit_today(
@@ -231,7 +262,9 @@ def habit_today(
         today = date.today()
         h = habits.get(habit_id)
         if not h:
-            console.print(f"[red]✗ Habit '{habit_id}' not found.[/red] Use `habit list` to see IDs.")
+            console.print(
+                f"[red]✗ Habit '{habit_id}' not found.[/red] Use `habit list` to see IDs."
+            )
             return
 
         # Build HabitState for today
@@ -245,6 +278,7 @@ def habit_today(
         )
         # Persist via state.habit_states if available
         from operational.cli.state import habit_states
+
         if hasattr(habit_states, "upsert"):
             habit_states.upsert(state)
 
@@ -254,6 +288,8 @@ def habit_today(
         else:
             icon = "✅" if completed else "❌"
             color = "green" if completed else "red"
-            console.print(f"  [{color}]{icon}[/{color}] [bold]{h.name}[/bold] — {'completed' if completed else 'missed'} today")
+            console.print(
+                f"  [{color}]{icon}[/{color}] [bold]{h.name}[/bold] — {'completed' if completed else 'missed'} today"
+            )
             if notes:
                 console.print(f"    [dim]{notes}[/dim]")

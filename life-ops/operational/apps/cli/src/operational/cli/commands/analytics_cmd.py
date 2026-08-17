@@ -83,6 +83,7 @@ analytics_app = typer.Typer(
     help="Analytics e data storytelling sobre 180 dias de dados.",
 )
 
+
 def _window(days: int = 180) -> tuple[date, date]:
     """Return (start, end) for the analytics window.
 
@@ -878,7 +879,7 @@ def _in_range(d: date, start: date, end: date) -> bool:
     return start <= d <= end
 
 
-def _week_narrative(wd: dict, prev: dict | None) -> str:  # noqa: C901, PLR0912
+def _week_narrative(wd: dict, prev: dict | None) -> str:
     """Generate 2-3 sentence narrative from weekly digest data.
 
     Deterministically derives insight from metrics — no LLM needed.
@@ -958,7 +959,7 @@ def _spark(vals: list[float], width: int = 18) -> str:
     return "".join(bars[min(int((v - mn) / rng * 8), 7)] for v in vals)[-width:]
 
 
-def generate_markdown_reports(data: dict, output_dir: Path) -> None:  # noqa: C901, PLR0912
+def generate_markdown_reports(data: dict, output_dir: Path) -> None:
     """Generate 26 weekly markdown reports + one master index."""
     output_dir.mkdir(parents=True, exist_ok=True)
     week_list = weeks_in_range(*_window())
@@ -1010,7 +1011,11 @@ def generate_markdown_reports(data: dict, output_dir: Path) -> None:  # noqa: C9
         qhe_spark = _spark([*[w["qhe"] for w in all_weeks], qhe][-10:])
 
         # Ritual section (T1-T9 from transicao)
-        trans = [r for r in data.get("transicao", []) if _in_range(_date_from_str(r.get("date", "")), week_start, week_end)]
+        trans = [
+            r
+            for r in data.get("transicao", [])
+            if _in_range(_date_from_str(r.get("date", "")), week_start, week_end)
+        ]
         ritual_lines = []
         if trans:
             by_code: dict = {}
@@ -1035,7 +1040,11 @@ def generate_markdown_reports(data: dict, output_dir: Path) -> None:  # noqa: C9
                 ritual_lines.append(f"| {code} | {done}/{total} | {bar} {rate:.0f}% |")
 
         # Time block section
-        blocks = [r for r in data.get("time_block", []) if _in_range(_date_from_str(r.get("date", "")), week_start, week_end)]
+        blocks = [
+            r
+            for r in data.get("time_block", [])
+            if _in_range(_date_from_str(r.get("date", "")), week_start, week_end)
+        ]
         block_lines = []
         if blocks:
             periods: dict = {}
@@ -1057,7 +1066,11 @@ def generate_markdown_reports(data: dict, output_dir: Path) -> None:  # noqa: C9
                     block_lines.append(f"| {p} | {v['hours']:.1f}h | {v['count']} |")
 
         # Lunch section
-        lunches = [r for r in data.get("lunch_record", []) if _in_range(_date_from_str(r.get("date", "")), week_start, week_end)]
+        lunches = [
+            r
+            for r in data.get("lunch_record", [])
+            if _in_range(_date_from_str(r.get("date", "")), week_start, week_end)
+        ]
         lunch_lines = []
         if lunches:
             pesado = [l for l in lunches if l.get("tipo_refeicao") == "pesado"]
@@ -1118,9 +1131,15 @@ def generate_markdown_reports(data: dict, output_dir: Path) -> None:  # noqa: C9
             "",
             "| Métrica | Valor |",
             "|---------|-------|",
-            f"| Energia | {wd.get('energy_mean', 0):.1f}/10 |" if wd.get("energy_mean") else "| Energia | N/A |",
-            f"| Foco | {wd.get('focus_mean', 0):.1f}/10 |" if wd.get("focus_mean") else "| Foco | N/A |",
-            f"| Humor | {wd.get('humor_mean', 0):.1f}/10 |" if wd.get("humor_mean") else "| Humor | N/A |",
+            f"| Energia | {wd.get('energy_mean', 0):.1f}/10 |"
+            if wd.get("energy_mean")
+            else "| Energia | N/A |",
+            f"| Foco | {wd.get('focus_mean', 0):.1f}/10 |"
+            if wd.get("focus_mean")
+            else "| Foco | N/A |",
+            f"| Humor | {wd.get('humor_mean', 0):.1f}/10 |"
+            if wd.get("humor_mean")
+            else "| Humor | N/A |",
             "",
             "## ⚙️ Policy FSM",
             "",
@@ -1147,18 +1166,20 @@ def generate_markdown_reports(data: dict, output_dir: Path) -> None:  # noqa: C9
 
         week_filename = f"week_{idx:02d}_{week_start.isoformat()}.md"
         (output_dir / week_filename).write_text("\n".join(lines), encoding="utf-8")
-        all_weeks.append({
-            "week": idx,
-            "start": week_start.isoformat(),
-            "end": week_end.isoformat(),
-            "filename": week_filename,
-            "verdict": verdict,
-            "qhe": qhe,
-            "pomodoros": pom,
-            "habit_rate": habit,
-            "sleep_h": sleep,
-            "regime": regime,
-        })
+        all_weeks.append(
+            {
+                "week": idx,
+                "start": week_start.isoformat(),
+                "end": week_end.isoformat(),
+                "filename": week_filename,
+                "verdict": verdict,
+                "qhe": qhe,
+                "pomodoros": pom,
+                "habit_rate": habit,
+                "sleep_h": sleep,
+                "regime": regime,
+            }
+        )
 
     # ---- Master INDEX.md ----
     valid_qhe = [w["qhe"] for w in all_weeks if w["qhe"]]
@@ -1184,8 +1205,12 @@ def generate_markdown_reports(data: dict, output_dir: Path) -> None:  # noqa: C9
         f"| Total Pomodoros | {sum(w['pomodoros'] for w in all_weeks)} |",
         f"| Média Hábitos | {sum(w['habit_rate'] for w in all_weeks) / len(all_weeks):.1f}% |",
         f"| Média Sono | {sum(w['sleep_h'] for w in all_weeks if w['sleep_h']) / len([w for w in all_weeks if w['sleep_h']]):.2f}h |",
-        f"| Melhor Semana | Week {best_week['week']:02d} (QHE={best_week['qhe']:.4f}) |" if best_week else "",
-        f"| Pior Semana | Week {worst_week['week']:02d} (QHE={worst_week['qhe']:.4f}) |" if worst_week else "",
+        f"| Melhor Semana | Week {best_week['week']:02d} (QHE={best_week['qhe']:.4f}) |"
+        if best_week
+        else "",
+        f"| Pior Semana | Week {worst_week['week']:02d} (QHE={worst_week['qhe']:.4f}) |"
+        if worst_week
+        else "",
         "",
         f"**QHE Sparkline (26 semanas):** `{qhe_spark_all}`",
         "",
@@ -1212,7 +1237,7 @@ def generate_markdown_reports(data: dict, output_dir: Path) -> None:  # noqa: C9
         chunk = valid_qhe[start_i:end_i]
         if chunk:
             avg = sum(chunk) / len(chunk)
-            label = f"Q{q+1} (W{start_i+1:02d}–W{end_i:02d})"
+            label = f"Q{q + 1} (W{start_i + 1:02d}–W{end_i:02d})"
             spark = _spark(chunk, 6)
             quarters.append(f"| {label} | {avg:.4f} | `{spark}` |")
 
@@ -1245,6 +1270,7 @@ def generate_markdown_reports(data: dict, output_dir: Path) -> None:  # noqa: C9
     (output_dir / "INDEX.md").write_text("\n".join(index_lines), encoding="utf-8")
     console.print(f"[green]Generated {len(all_weeks)} weekly reports in[/green] {output_dir}")
 
+
 # ------------------------------------------------------------------
 # Typer commands
 # ------------------------------------------------------------------
@@ -1252,7 +1278,7 @@ def generate_markdown_reports(data: dict, output_dir: Path) -> None:  # noqa: C9
 
 @analytics_app.command(name="overview")
 def cmd_overview(
-    json_out: bool = typer.Option(False, "--json", help="JSON output"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json", help="JSON output"),
 ) -> None:
     """Executive dashboard — all domains at a glance."""
     log = get_logger("analytics_cmd")
@@ -1266,12 +1292,13 @@ def cmd_overview(
             debt = sleep_debt_analysis(data["sleep_record"])
             habit_matrix = habit_mastery_matrix(data["habit"], data["habit_state"])
             uptime = policy_uptime_pct(data["policy_decision"])
-            corr = _engine_corr_matrix(data["qhe_metrics"], data["sleep_record"], data["journal_entry"])
+            corr = _engine_corr_matrix(
+                data["qhe_metrics"], data["sleep_record"], data["journal_entry"]
+            )
 
             # Build habit_mastery as dict keyed by habit name
             habit_dict: dict[str, dict] = {
-                h["name"]: {k: v for k, v in h.items() if k != "name"}
-                for h in habit_matrix
+                h["name"]: {k: v for k, v in h.items() if k != "name"} for h in habit_matrix
             }
 
             # Pomodoro today's data
@@ -1305,11 +1332,11 @@ def cmd_overview(
             typer.echo(json.dumps(output, indent=2, default=str))
             return
         _render_overview(data)
-    
-    
+
+
 @analytics_app.command(name="qhe")
 def cmd_qhe(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """QHE time series, regimes, transitions, anomalies."""
     log = get_logger("analytics_cmd")
@@ -1337,11 +1364,11 @@ def cmd_qhe(
             )
             return
         _render_qhe(data)
-    
-    
+
+
 @analytics_app.command(name="sleep")
 def cmd_sleep(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Sleep quality, debt, phase analysis."""
     log = get_logger("analytics_cmd")
@@ -1353,15 +1380,17 @@ def cmd_sleep(
             debt = sleep_debt_analysis(data["sleep_record"])
             phases = sleep_phase_analysis(data["sleep_record"])
             typer.echo(
-                json.dumps({"time_series": ts, "debt": debt, "phases": phases}, indent=2, default=str)
+                json.dumps(
+                    {"time_series": ts, "debt": debt, "phases": phases}, indent=2, default=str
+                )
             )
             return
         _render_sleep(data)
-    
-    
+
+
 @analytics_app.command(name="habits")
 def cmd_habits(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Habit mastery matrix, streaks, H(t) learning curve."""
     log = get_logger("analytics_cmd")
@@ -1374,11 +1403,11 @@ def cmd_habits(
             typer.echo(json.dumps({"mastery": matrix, "streaks": streaks}, indent=2, default=str))
             return
         _render_habits(data)
-    
-    
+
+
 @analytics_app.command(name="pomodoro")
 def cmd_pomodoro(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Pomodoro stats, hourly distribution, weekly aggregates."""
     log = get_logger("analytics_cmd")
@@ -1396,11 +1425,11 @@ def cmd_pomodoro(
             )
             return
         _render_pomodoro(data)
-    
-    
+
+
 @analytics_app.command(name="policy")
 def cmd_policy(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Policy FSM state transitions, uptime, RECOVER episodes."""
     log = get_logger("analytics_cmd")
@@ -1426,11 +1455,11 @@ def cmd_policy(
             )
             return
         _render_policy(data)
-    
-    
+
+
 @analytics_app.command(name="mood")
 def cmd_mood(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Energy, focus, humor time series and correlations."""
     log = get_logger("analytics_cmd")
@@ -1440,7 +1469,9 @@ def cmd_mood(
         if json_out:
             ts = mood_time_series(data["journal_entry"])
             tags = journal_tag_extraction(data["journal_entry"])
-            corr = _engine_corr_matrix(data["qhe_metrics"], data["sleep_record"], data["journal_entry"])
+            corr = _engine_corr_matrix(
+                data["qhe_metrics"], data["sleep_record"], data["journal_entry"]
+            )
             typer.echo(
                 json.dumps(
                     {"time_series": ts, "tags": tags, "correlations": corr}, indent=2, default=str
@@ -1448,12 +1479,12 @@ def cmd_mood(
             )
             return
         _render_mood(data)
-    
-    
+
+
 @analytics_app.command(name="week")
 def cmd_week(
     week_num: int = typer.Argument(..., help="Week number (1-26)"),
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003,
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Week N digest (1-26)."""
     log = get_logger("analytics_cmd")
@@ -1481,8 +1512,8 @@ def cmd_week(
             typer.echo(json.dumps(wd, indent=2, default=str))
             return
         _render_week(week_num, data)
-    
-    
+
+
 @analytics_app.command(name="report")
 def cmd_report(
     output_dir: str = typer.Option(
@@ -1502,11 +1533,11 @@ def cmd_report(
         weeks_dir = out_path / "weeks"
         generate_markdown_reports(data, weeks_dir)
         typer.echo(f"[green]Done — reports in {weeks_dir}[/green]")
-    
-    
+
+
 @analytics_app.command(name="quality")
 def cmd_quality(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Data completeness audit across all 15 entities."""
     log = get_logger("analytics_cmd")
@@ -1522,16 +1553,15 @@ def cmd_quality(
             typer.echo(json.dumps(dq, indent=2, default=str))
             return
         _render_quality(data)
-    
-    
+
     # ------------------------------------------------------------------
     # New commands: ritual, circadian, lunch, blocks, narrative
     # ------------------------------------------------------------------
-    
-    
+
+
 @analytics_app.command(name="ritual")
 def cmd_ritual(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Ritual (T1-T5) completion rates, duration adherence, day-of-week patterns."""
     log = get_logger("analytics_cmd")
@@ -1548,7 +1578,7 @@ def cmd_ritual(
             return
         rituals = result.get("rituals", {})
         dow_rates = result.get("dow_rates", {})
-    
+
         t = Table(title="Ritual Completion Rates (T1-T5)", box=DOUBLE, header_style="bold cyan")
         t.add_column("Code", width=6)
         t.add_column("Ritual", width=28)
@@ -1568,7 +1598,7 @@ def cmd_ritual(
             )
         console.print(t)
         console.print()
-    
+
         dow_t = Table(title="Completion Rate by Day of Week", box=DOUBLE, header_style="bold")
         dow_t.add_column("Day", width=10)
         dow_t.add_column("Rate", width=8, justify="right")
@@ -1579,11 +1609,11 @@ def cmd_ritual(
             color = "green" if rate >= 90 else "yellow" if rate >= 75 else "red"
             dow_t.add_row(labels.get(dow, str(dow)), f"[{color}]{rate}%[/{color}]", bar)
         console.print(dow_t)
-    
-    
+
+
 @analytics_app.command(name="circadian")
 def cmd_circadian(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Energy/focus/humor by day-of-week — find your best-performing days."""
     log = get_logger("analytics_cmd")
@@ -1613,11 +1643,11 @@ def cmd_circadian(
             hu_str = f"{hu:.1f}/10" if hu is not None else "—"
             t.add_row(day, en_str, fo_str, hu_str)
         console.print(t)
-    
-    
+
+
 @analytics_app.command(name="lunch")
 def cmd_lunch(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Lunch habits — pesado flag impact on afternoon energy."""
     log = get_logger("analytics_cmd")
@@ -1646,7 +1676,7 @@ def cmd_lunch(
         for label, val in rows_lunch:
             t.add_row(label, str(val))
         console.print(t)
-    
+
         if result.get("heavy_lunch_avg_pm_energy") and result.get("light_lunch_avg_pm_energy"):
             console.print()
             console.print(
@@ -1657,11 +1687,11 @@ def cmd_lunch(
             )
             diff = result["light_lunch_avg_pm_energy"] - result["heavy_lunch_avg_pm_energy"]
             console.print(f"  → Light lunch yields [green]+{diff:.1f}[/green] more energy points")
-    
-    
+
+
 @analytics_app.command(name="blocks")
 def cmd_blocks(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Time block utilization — deep work hours by period, block density."""
     log = get_logger("analytics_cmd")
@@ -1687,7 +1717,7 @@ def cmd_blocks(
         ]:
             t.add_row(label, str(val))
         console.print(t)
-    
+
         period_h = result.get("period_hours", {})
         if period_h:
             console.print()
@@ -1701,14 +1731,14 @@ def cmd_blocks(
                 bar = "█" * int(norm * 16) + "░" * (16 - int(norm * 16))
                 ph.add_row(period, f"{hours:.1f}h", bar)
             console.print(ph)
-    
-    
+
+
 @analytics_app.command(name="narrative")
 def cmd_narrative(
     week_num: int = typer.Argument(
         ..., min=1, max=26, help="Week number (1-26). Omit for full 26-week narrative."
     ),
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Auto-generated narrative insights for a specific week."""
     log = get_logger("analytics_cmd")
@@ -1771,13 +1801,13 @@ def cmd_narrative(
                 border_style="cyan",
             )
         )
-    
-    
+
+
 @analytics_app.command(name="compare")
 def cmd_compare(
     week1: int = typer.Argument(..., min=1, max=26, help="First week number"),
     week2: int = typer.Argument(..., min=1, max=26, help="Second week number"),
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Compare two weeks side-by-side with period-over-period deltas."""
     log = get_logger("analytics_cmd")
@@ -1817,16 +1847,18 @@ def cmd_compare(
         )
         pop = pop_comparison(wd2, wd1)
         if json_out:
-            typer.echo(json.dumps({"week1": wd1, "week2": wd2, "deltas": pop}, indent=2, default=str))
+            typer.echo(
+                json.dumps({"week1": wd1, "week2": wd2, "deltas": pop}, indent=2, default=str)
+            )
             return
-    
+
         def _fmt(v: object) -> str:
             if v is None:
                 return "—"
             if isinstance(v, float):
                 return f"{v:.4f}" if abs(v) < 10 else f"{v:.2f}"
             return str(v)
-    
+
         t = Table(
             title=f"Week {week1} vs Week {week2} — Period-over-Period Comparison",
             box=DOUBLE,
@@ -1863,21 +1895,16 @@ def cmd_compare(
                     delta_str += f" ({arrow}{abs(pct):.1f}%)"
             t.add_row(label, _fmt(v1), _fmt(v2), delta_str)
         console.print(t)
-    
-    
+
     # ------------------------------------------------------------------
     # New commands: growth, trajectory, forecast, correlations, insights, scenarios
     # (powered by operational.core.analytics + operational.core.insights)
     # ------------------------------------------------------------------
-    
-    
-    
-    
+
     def _load_dataset_from_csv_dir() -> dict:
         """Load the full 180-day dataset from the detected CSV directory."""
         return load_dataset(_CSV_DIR)
-    
-    
+
     def _dir_arrow(direction: int) -> str:
         """Arrow character for trend direction."""
         if direction == 1:
@@ -1885,13 +1912,13 @@ def cmd_compare(
         if direction == -1:
             return "\u2193"
         return "\u2192"
-    
-    
+
     # ── Growth score ───────────────────────────────────────────────────────────────
-    
+
+
 @analytics_app.command(name="growth")
 def cmd_growth(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Weighted growth score (0-100) from QHE delta, sleep delta, regime health."""
     log = get_logger("analytics_cmd")
@@ -1900,21 +1927,26 @@ def cmd_growth(
         ds = _load_dataset_from_csv_dir()
         gs = _gs(ds)
         agg = compute_aggregations(ds)
-    
+
         if json_out:
-            typer.echo(json.dumps({
-                "score": gs.score,
-                "qhe_delta_30d": gs.qhe_delta_30d,
-                "qhe_delta_90d": gs.qhe_delta_90d,
-                "sleep_delta": gs.sleep_delta,
-                "consistency_delta": gs.consistency_delta,
-                "regime_health_score": gs.regime_health_score,
-                "habit_improvement": gs.habit_improvement,
-                "dominant_regime": agg.regime_dominant,
-                "qhe_mean": agg.qhe_mean,
-            }, indent=2))
+            typer.echo(
+                json.dumps(
+                    {
+                        "score": gs.score,
+                        "qhe_delta_30d": gs.qhe_delta_30d,
+                        "qhe_delta_90d": gs.qhe_delta_90d,
+                        "sleep_delta": gs.sleep_delta,
+                        "consistency_delta": gs.consistency_delta,
+                        "regime_health_score": gs.regime_health_score,
+                        "habit_improvement": gs.habit_improvement,
+                        "dominant_regime": agg.regime_dominant,
+                        "qhe_mean": agg.qhe_mean,
+                    },
+                    indent=2,
+                )
+            )
             return
-    
+
         # Score gauge
         score = int(gs.score)
         bar_len = int(score / 100 * 30)
@@ -1928,7 +1960,7 @@ def cmd_growth(
         )
         console.print(Panel(panel_text, title="Growth Score", border_style=color))
         console.print()
-    
+
         # Sub-metrics
         grid = Table(box=DOUBLE, show_header=False)
         grid.add_column("", style="bold", width=26)
@@ -1942,15 +1974,19 @@ def cmd_growth(
         grid.add_row("Dominant regime", agg.regime_dominant)
         grid.add_row("Q_HE mean (180d)", f"{agg.qhe_mean:.4f}")
         console.print(grid)
-    
-    
+
     # ── Trajectory ────────────────────────────────────────────────────────────────
-    
+
+
 @analytics_app.command(name="trajectory")
 def cmd_trajectory(
-    metric: str = typer.Option("qhe", "--metric", "-m",
-        help="Metric: qhe, sleep_hours, energia, foco, pomodoros_realizados"),
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    metric: str = typer.Option(
+        "qhe",
+        "--metric",
+        "-m",
+        help="Metric: qhe, sleep_hours, energia, foco, pomodoros_realizados",
+    ),
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Rising/falling/flat segment analysis for any numeric metric."""
     log = get_logger("analytics_cmd")
@@ -1958,35 +1994,42 @@ def cmd_trajectory(
         ctx.info("data.loaded", tables=14)
         ds = _load_dataset_from_csv_dir()
         traj = build_trajectory(ds, metric)
-    
+
         if json_out:
-            typer.echo(json.dumps({
-                "metric": metric,
-                "overall_slope": traj.overall_slope,
-                "overall_direction": traj.overall_direction,
-                "segments": [
+            typer.echo(
+                json.dumps(
                     {
-                        "start": s.start.isoformat(),
-                        "end": s.end.isoformat(),
-                        "direction": s.direction,
-                        "delta": s.delta,
-                        "days": s.days,
-                    }
-                    for s in traj.segments
-                ],
-            }, indent=2))
+                        "metric": metric,
+                        "overall_slope": traj.overall_slope,
+                        "overall_direction": traj.overall_direction,
+                        "segments": [
+                            {
+                                "start": s.start.isoformat(),
+                                "end": s.end.isoformat(),
+                                "direction": s.direction,
+                                "delta": s.delta,
+                                "days": s.days,
+                            }
+                            for s in traj.segments
+                        ],
+                    },
+                    indent=2,
+                )
+            )
             return
-    
-        console.print(Panel(
-            f"[bold cyan]Trajectory — {metric}[/bold cyan]",
-            border_style="cyan",
-        ))
+
+        console.print(
+            Panel(
+                f"[bold cyan]Trajectory — {metric}[/bold cyan]",
+                border_style="cyan",
+            )
+        )
         console.print()
-    
+
         overall = _dir_arrow(traj.overall_direction)
         console.print(f"Overall: {overall} slope={traj.overall_slope:+.4f}/week")
         console.print()
-    
+
         seg_t = Table(title="Trajectory Segments", box=DOUBLE, header_style="bold")
         seg_t.add_column("Seg", justify="right", width=4)
         seg_t.add_column("Start", width=12)
@@ -2006,17 +2049,15 @@ def cmd_trajectory(
                 str(seg.days),
             )
         console.print(seg_t)
-    
-    
+
     # ── Forecast ────────────────────────────────────────────────────────────────
-    
+
+
 @analytics_app.command(name="forecast")
 def cmd_forecast(
-    metric: str = typer.Option("qhe", "--metric", "-m",
-        help="Metric to forecast"),
-    horizon: int = typer.Option(7, "--horizon", "-h",
-        help="Days ahead to forecast"),
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    metric: str = typer.Option("qhe", "--metric", "-m", help="Metric to forecast"),
+    horizon: int = typer.Option(7, "--horizon", "-h", help="Days ahead to forecast"),
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """OLS linear forecast with 95% confidence bands."""
     log = get_logger("analytics_cmd")
@@ -2027,33 +2068,40 @@ def cmd_forecast(
         if not weekly:
             typer.echo(f"[yellow]No data for metric '{metric}'.[/yellow]")
             return
-    
+
         vals = [w.mean for w in weekly]
         dates = [w.week_start for w in weekly]
         series = TimeSeriesSlice(dates=dates, values=vals)
         forecast_pts = linear_forecast(series, horizon)
-    
+
         if json_out:
-            typer.echo(json.dumps({
-                "metric": metric,
-                "forecast": [
+            typer.echo(
+                json.dumps(
                     {
-                        "date": p.date.isoformat(),
-                        "predicted": p.predicted,
-                        "lower_ci": p.lower_ci,
-                        "upper_ci": p.upper_ci,
-                    }
-                    for p in forecast_pts
-                ],
-            }, indent=2))
+                        "metric": metric,
+                        "forecast": [
+                            {
+                                "date": p.date.isoformat(),
+                                "predicted": p.predicted,
+                                "lower_ci": p.lower_ci,
+                                "upper_ci": p.upper_ci,
+                            }
+                            for p in forecast_pts
+                        ],
+                    },
+                    indent=2,
+                )
+            )
             return
-    
-        console.print(Panel(
-            f"[bold cyan]7-Day OLS Forecast — {metric}[/bold cyan]",
-            border_style="cyan",
-        ))
+
+        console.print(
+            Panel(
+                f"[bold cyan]7-Day OLS Forecast — {metric}[/bold cyan]",
+                border_style="cyan",
+            )
+        )
         console.print()
-    
+
         f_t = Table(box=DOUBLE, header_style="bold")
         f_t.add_column("Date", style="cyan")
         f_t.add_column("Predicted", justify="right", style="bold green")
@@ -2067,13 +2115,13 @@ def cmd_forecast(
                 f"{p.upper_ci:.4f}",
             )
         console.print(f_t)
-    
-    
+
     # ── Correlations ────────────────────────────────────────────────────────────
-    
+
+
 @analytics_app.command(name="correlations")
 def cmd_correlations(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Full Pearson correlation matrix across all numeric metrics."""
     log = get_logger("analytics_cmd")
@@ -2081,19 +2129,24 @@ def cmd_correlations(
         ctx.info("data.loaded", tables=14)
         ds = _load_dataset_from_csv_dir()
         corr = correlation_matrix(ds)
-    
+
         if json_out:
-            typer.echo(json.dumps([
-                {
-                    "metric_a": c.metric_a,
-                    "metric_b": c.metric_b,
-                    "r": c.r,
-                    "strength": c.strength,
-                }
-                for c in corr
-            ], indent=2))
+            typer.echo(
+                json.dumps(
+                    [
+                        {
+                            "metric_a": c.metric_a,
+                            "metric_b": c.metric_b,
+                            "r": c.r,
+                            "strength": c.strength,
+                        }
+                        for c in corr
+                    ],
+                    indent=2,
+                )
+            )
             return
-    
+
         corr_t = Table(
             title="Pearson Correlation Matrix (all metric pairs)",
             box=DOUBLE,
@@ -2120,13 +2173,13 @@ def cmd_correlations(
             }.get(c.strength, c.strength)
             corr_t.add_row(c.metric_a, c.metric_b, f"{c.r:+.3f}", strength_label, bar_text)
         console.print(corr_t)
-    
-    
+
     # ── Insights ────────────────────────────────────────────────────────────────
-    
+
+
 @analytics_app.command(name="insights")
 def cmd_insights(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Full 10-block narrative insights report — growth, weekly arc, regimes, correlations."""
     log = get_logger("analytics_cmd")
@@ -2134,22 +2187,32 @@ def cmd_insights(
         ctx.info("data.loaded", tables=14)
         ds = _load_dataset_from_csv_dir()
         report = generate_full_report(ds)
-    
+
         if json_out:
-            typer.echo(json.dumps({
-                k: {"title": b.title, "summary": b.summary, "bullets": b.bullets, "severity": b.severity}
-                for k, b in report.items()
-            }, indent=2))
+            typer.echo(
+                json.dumps(
+                    {
+                        k: {
+                            "title": b.title,
+                            "summary": b.summary,
+                            "bullets": b.bullets,
+                            "severity": b.severity,
+                        }
+                        for k, b in report.items()
+                    },
+                    indent=2,
+                )
+            )
             return
-    
+
         console.print(format_insights_text(report))
-    
-    
+
     # ── Scenarios ──────────────────────────────────────────────────────────────
-    
+
+
 @analytics_app.command(name="scenarios")
 def cmd_scenarios(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Per-scenario breakdown: days, Q_HE, sleep, pomodoros, hardwork adherence."""
     log = get_logger("analytics_cmd")
@@ -2157,23 +2220,28 @@ def cmd_scenarios(
         ctx.info("data.loaded", tables=14)
         ds = _load_dataset_from_csv_dir()
         scenarios = scenario_analysis(ds)
-    
+
         if json_out:
-            typer.echo(json.dumps([
-                {
-                    "name": s.name,
-                    "days": s.days,
-                    "pct": s.pct,
-                    "qhe_avg": s.qhe_avg,
-                    "sleep_avg": s.sleep_avg,
-                    "energia_avg": s.energia_avg,
-                    "pomodoros_avg": s.pomodoros_avg,
-                    "hardwork_adh": s.hardwork_adh,
-                }
-                for s in scenarios
-            ], indent=2))
+            typer.echo(
+                json.dumps(
+                    [
+                        {
+                            "name": s.name,
+                            "days": s.days,
+                            "pct": s.pct,
+                            "qhe_avg": s.qhe_avg,
+                            "sleep_avg": s.sleep_avg,
+                            "energia_avg": s.energia_avg,
+                            "pomodoros_avg": s.pomodoros_avg,
+                            "hardwork_adh": s.hardwork_adh,
+                        }
+                        for s in scenarios
+                    ],
+                    indent=2,
+                )
+            )
             return
-    
+
         scen_t = Table(
             title="Scenario Breakdown (tipo_dia)",
             box=DOUBLE,
@@ -2187,7 +2255,7 @@ def cmd_scenarios(
         scen_t.add_column("Pom/Day", justify="right", style="magenta")
         scen_t.add_column("HW Adh", justify="right")
         scen_t.add_column("Bar", style="cyan")
-    
+
         for s in scenarios:
             bar = "\u2588" * int(s.pct / 5) + "\u2591" * (20 - int(s.pct / 5))
             scen_t.add_row(
@@ -2201,13 +2269,13 @@ def cmd_scenarios(
                 bar,
             )
         console.print(scen_t)
-    
-    
+
     # ── All: Full Suite ──────────────────────────────────────────────────────────
-    
+
+
 @analytics_app.command(name="all")
 def cmd_all(
-    json_out: bool = typer.Option(False, "--json"),  # noqa: FBT003
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Run the complete analytics suite in sequence — overview, QHE, sleep, habits, pomodoro, mood, policy, circadian, rituals, lunch, blocks, quality."""
     log = get_logger("analytics_cmd")
@@ -2229,7 +2297,7 @@ def cmd_all(
             ("Narrative (Week 15)", lambda: cmd_narrative(15)),
             ("Compare (W1 vs W13)", lambda: cmd_compare(1, 13)),
         ]
-    
+
         if json_out:
             results = {}
             for name, fn in commands:
@@ -2237,11 +2305,11 @@ def cmd_all(
                 try:
                     fn()
                     results[name] = {"status": "ok", "time_ms": round((time.time() - t0) * 1000)}
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     results[name] = {"status": "error", "error": str(e)}
             typer.echo(json.dumps(results, indent=2))
             return
-    
+
         console.print(Panel("[bold cyan]PAV Analytics — Full Suite[/bold cyan]", box=DOUBLE))
         for name, fn in commands:
             t0 = time.time()
@@ -2250,7 +2318,8 @@ def cmd_all(
                 fn()
                 elapsed = (time.time() - t0) * 1000
                 console.print(f"[dim]  ✓ {elapsed:.0f}ms[/dim]")
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 console.print(f"[red]  ✗ {e}[/red]")
-        console.print(f"\n[bold cyan]✓ Full suite complete — {len(commands)} commands run[/bold cyan]")
-    
+        console.print(
+            f"\n[bold cyan]✓ Full suite complete — {len(commands)} commands run[/bold cyan]"
+        )

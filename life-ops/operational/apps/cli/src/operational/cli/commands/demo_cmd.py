@@ -1,4 +1,5 @@
 """Demo CLI commands — seed / clear / show / week / csv."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -40,6 +41,7 @@ def seed(
             typer.echo(format_as_json({"status": "seeded", "summary": summary}))
         else:
             from operational.cli.console import console
+
             with console.status("[cyan]Seeding 7 days of PAV mock data...[/]", spinner="dots"):
                 summary = seed_demo_data()
             console.print(summary)
@@ -57,6 +59,7 @@ def clear(
             typer.echo(format_as_json({"status": "cleared"}))
         else:
             from operational.cli.console import console
+
             with console.status("[yellow]Clearing all state...[/]", spinner="dots"):
                 msg = clear_demo_data()
             console.print(msg)
@@ -85,10 +88,14 @@ def week(
     with trace_command(log, "demo.week", command="demo week") as ctx:
         seed_demo_data()
         from operational.cli.commands.report_cmd import app as report_app
+
         args = ["weekly"]
         if json:
             args.append("--json")
-        result = report_app(args=args, standalone_mode=False)
+        # Invoked for its side effect (printing the weekly report); result
+        # intentionally discarded — `demo week` is the success signal, not
+        # the inner command's return value.
+        report_app(args=args, standalone_mode=False)
         ctx.info("demo.week.completed")
 
 
@@ -129,6 +136,7 @@ def export_csv(
             typer.echo(format_as_json({"path": str(path), "rows": written}))
         else:
             from operational.cli.console import console
+
             with console.status(f"[cyan]Exporting to {path}...[/]", spinner="dots"):
                 written = export_to_csv(rows, Path(path))
             console.print(f"[green]OK[/] Exported {written} rows to {path}")
@@ -142,7 +150,9 @@ def import_csv(
     json: bool = typer.Option(False, "--json", help="JSON output"),
 ) -> None:
     """Import entities from a CSV file into the current state."""
-    with trace_command(log, "demo.import_csv", command="demo import_csv", path=path, replace=replace) as ctx:
+    with trace_command(
+        log, "demo.import_csv", command="demo import_csv", path=path, replace=replace
+    ) as ctx:
         from pathlib import Path
 
         from rich.progress import Progress
@@ -209,7 +219,9 @@ def import_csv(
 
 @app.command()
 def dataset(
-    name: str | None = typer.Argument(None, help="Dataset name to use (synthetic/golden/production)"),
+    name: str | None = typer.Argument(
+        None, help="Dataset name to use (synthetic/golden/production)"
+    ),
     json: bool = typer.Option(False, "--json", help="JSON output"),
 ) -> None:
     """List available datasets or set the active dataset for this session.
@@ -224,7 +236,10 @@ def dataset(
         from operational.cli.dataset_selector import list_datasets, resolve_dataset
 
         if name is None:
-            current = os.environ.get("TIME_TASKER_DATASET", "production")
+            # Default to "synthetic" — it's always available from
+            # list_datasets(). "production" is not a valid key and would
+            # KeyError later in resolve_dataset().
+            current = os.environ.get("TIME_TASKER_DATASET", "synthetic")
             all_datasets = list_datasets()
             if json:
                 typer.echo(
@@ -255,9 +270,7 @@ def dataset(
             env_var = f"TIME_TASKER_DATASET={name}"
             if json:
                 typer.echo(
-                    format_as_json(
-                        {"dataset": name, "env_var": env_var, "path": str(ref.csv_path)}
-                    )
+                    format_as_json({"dataset": name, "env_var": env_var, "path": str(ref.csv_path)})
                 )
             else:
                 typer.echo(f"Dataset: {name}")

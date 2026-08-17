@@ -1,4 +1,5 @@
 """Time-block CLI commands — Rich Tables."""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -25,9 +26,15 @@ def create(
     period: Period = typer.Argument(Period.MANHA, help="Período (MANHA/TARDE/NOITE)"),
     label: str = typer.Option("", "--label", "-l", help="Rótulo do bloco"),
     routine_id: str | None = typer.Option(None, "--routine", "-r", help="UEID da rotina vinculada"),
-    start: str | None = typer.Option(None, "--start", "-s", help="ISO start datetime (e.g. 2026-06-23T09:00)"),
-    end: str | None = typer.Option(None, "--end", "-e", help="ISO end datetime (e.g. 2026-06-23T10:30)"),
-    duration_minutes: int = typer.Option(60, "--duration", "-d", help="Duration in minutes (used when --start/--end not provided)"),
+    start: str | None = typer.Option(
+        None, "--start", "-s", help="ISO start datetime (e.g. 2026-06-23T09:00)"
+    ),
+    end: str | None = typer.Option(
+        None, "--end", "-e", help="ISO end datetime (e.g. 2026-06-23T10:30)"
+    ),
+    duration_minutes: int = typer.Option(
+        60, "--duration", "-d", help="Duration in minutes (used when --start/--end not provided)"
+    ),
     json: bool = typer.Option(False, "--json", help="JSON output"),
 ) -> None:
     """Criar um novo time block.
@@ -37,7 +44,9 @@ def create(
     Para blocos no passado use --start com data no passado.
     """
     log = get_logger("block_cmd")
-    with trace_command(log, "block.create", command="pav block create", entity_type="time_block") as ctx:
+    with trace_command(
+        log, "block.create", command="pav block create", entity_type="time_block"
+    ) as ctx:
         maybe_print_input_summary(
             title="Criando time block",
             params={
@@ -47,7 +56,13 @@ def create(
                 "start": start or "agora",
                 "end": end or f"+{duration_minutes}min",
             },
-            flag_legend={"-l": "--label", "-r": "--routine", "-s": "--start", "-e": "--end", "-d": "--duration"},
+            flag_legend={
+                "-l": "--label",
+                "-r": "--routine",
+                "-s": "--start",
+                "-e": "--end",
+                "-d": "--duration",
+            },
         )
 
         # Parse explicit start/end if provided
@@ -55,7 +70,12 @@ def create(
         end_dt: datetime | None = None
         if start:
             # Try ISO format, with/without seconds
-            for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+            for fmt in (
+                "%Y-%m-%dT%H:%M:%S",
+                "%Y-%m-%dT%H:%M",
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%d %H:%M",
+            ):
                 try:
                     start_dt = datetime.strptime(start, fmt)
                     break
@@ -65,14 +85,21 @@ def create(
                 msg = f"Data inválida: {start!r}. Use ISO formato: 2026-06-23T09:00 ou 2026-06-23 09:00"
                 raise typer.BadParameter(msg)
         if end:
-            for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+            for fmt in (
+                "%Y-%m-%dT%H:%M:%S",
+                "%Y-%m-%dT%H:%M",
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%d %H:%M",
+            ):
                 try:
                     end_dt = datetime.strptime(end, fmt)
                     break
                 except ValueError:
                     continue
             if end_dt is None:
-                msg = f"Data inválida: {end!r}. Use ISO formato: 2026-06-23T09:00 ou 2026-06-23 09:00"
+                msg = (
+                    f"Data inválida: {end!r}. Use ISO formato: 2026-06-23T09:00 ou 2026-06-23 09:00"
+                )
                 raise typer.BadParameter(msg)
 
         # duration_minutes only used when start is explicit and end is not
@@ -87,7 +114,9 @@ def create(
             end=end_dt,
         )
         time_blocks.upsert(block)
-        ctx.info("entity.created", entity_id=block.id, entity_type="time_block", period=period.value)
+        ctx.info(
+            "entity.created", entity_id=block.id, entity_type="time_block", period=period.value
+        )
 
         if json:
             typer.echo(format_as_json(block))
@@ -117,7 +146,9 @@ def list_blocks(
         typer.echo(format_as_json(items))
         return
     if not items:
-        console.print("[yellow]⚠ Nenhum time block cadastrado.[/yellow] Use [bold]block create[/bold].")
+        console.print(
+            "[yellow]⚠ Nenhum time block cadastrado.[/yellow] Use [bold]block create[/bold]."
+        )
         return
 
     # Sort by date then start

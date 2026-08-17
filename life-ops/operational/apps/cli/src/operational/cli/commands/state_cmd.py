@@ -3,6 +3,7 @@
 The PAV-OS v2 design system is the **only** renderer for ``state show``.
 ``--mock`` is preserved.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
@@ -47,7 +48,9 @@ def _period_now(dt: datetime) -> Period:
 def show(
     target_date: str | None = typer.Option(None, "--date", "-d", help="Data (YYYY-MM-DD)"),
     json: bool = typer.Option(False, "--json", help="JSON output"),
-    mock: str | None = typer.Option(None, "--mock", help="Use mock profile (q1, q2, q3, q4, empty, burnout, peak)"),
+    mock: str | None = typer.Option(
+        None, "--mock", help="Use mock profile (q1, q2, q3, q4, empty, burnout, peak)"
+    ),
 ) -> None:
     """Dashboard do dia — onde estou, o que está logado, estou no plano?
 
@@ -56,20 +59,25 @@ def show(
     - ``--json``: machine-readable JSON output.
     """
     log = get_logger("state_cmd")
-    with trace_command(log, "state.show", command="pav state show", entity_type="day_snapshot") as ctx:
+    with trace_command(
+        log, "state.show", command="pav state show", entity_type="day_snapshot"
+    ) as ctx:
         profile = None
         if mock:
             from operational.ui.mock_profiles import get_profile, list_profiles
+
             try:
                 profile = get_profile(mock)
-            except ValueError:
-                pav_console.print(error_panel_v2(
-                    f"Perfil mock desconhecido: {mock!r}",
-                    context=f"pav state show --mock {mock}",
-                    expected=f"One of: {', '.join(list_profiles())}",
-                    suggestion="pav state show --mock q1",
-                ))
-                raise typer.Exit(code=1)
+            except ValueError as err:
+                pav_console.print(
+                    error_panel_v2(
+                        f"Perfil mock desconhecido: {mock!r}",
+                        context=f"pav state show --mock {mock}",
+                        expected=f"One of: {', '.join(list_profiles())}",
+                        suggestion="pav state show --mock q1",
+                    )
+                )
+                raise typer.Exit(code=1) from err
 
         d = date.fromisoformat(target_date) if target_date else date.today()
         now = _now()
@@ -78,7 +86,7 @@ def show(
         sleep = next((s for s in sleep_records.list() if s.date == d), None)
         blocks = [b for b in time_blocks.list() if b.start.date() == d]
         day_pomodoros = [p for p in pomodoros.list() if p.started_at.date() == d]
-        day_logs = [l for l in routine_logs.list() if l.date == d]
+        day_logs = [log for log in routine_logs.list() if log.date == d]
         day_ajustes = [a for a in ajustes_finos.list() if a.date == d]
         day_journal = next((j for j in journals.list() if j.date == d), None)
 
@@ -86,12 +94,20 @@ def show(
             1 for p in day_pomodoros if getattr(p, "state", None) and "COMPLETE" in str(p.state)
         )
 
-        ctx.info("state_snapshot.fetched", date=d.isoformat(), blocks=len(blocks),
-                 pomodoros=len(day_pomodoros), completed_pomodoros=completed_pomodoros,
-                 routine_logs=len(day_logs), ajustes=len(day_ajustes), has_journal=day_journal is not None)
+        ctx.info(
+            "state_snapshot.fetched",
+            date=d.isoformat(),
+            blocks=len(blocks),
+            pomodoros=len(day_pomodoros),
+            completed_pomodoros=completed_pomodoros,
+            routine_logs=len(day_logs),
+            ajustes=len(day_ajustes),
+            has_journal=day_journal is not None,
+        )
 
         if profile is not None:
             from operational.ui.mock_snapshot import build_mock_snapshot
+
             mock_snap = build_mock_snapshot(profile)
             sleep = SimpleNamespace(
                 bedtime=mock_snap.sleep.bedtime,
@@ -116,7 +132,9 @@ def show(
                     "wake_time": sleep.wake_time.isoformat() if sleep else None,
                     "quality": sleep.quality_score if sleep else None,
                     "duration_hours": sleep.duration_hours if sleep else None,
-                } if sleep else None,
+                }
+                if sleep
+                else None,
                 "blocks_today": len(blocks),
                 "pomodoros_completed": completed_pomodoros,
                 "routine_logs": len(day_logs),
@@ -131,9 +149,11 @@ def show(
 
         if profile is not None:
             from operational.ui.mock_snapshot import build_mock_snapshot
+
             state_snap = build_mock_snapshot(profile)
         else:
             from operational.cli.services import get_day_snapshot
+
             state_snap = get_day_snapshot(d)
 
         ctx.info("report.rendered", format="v2", date=d.isoformat())

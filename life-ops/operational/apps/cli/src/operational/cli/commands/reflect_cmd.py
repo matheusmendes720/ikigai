@@ -1,4 +1,5 @@
 """Daily reflection CLI — OKRs V3 (PAV V3 §2)."""
+
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
@@ -76,6 +77,7 @@ def entrada(
             typer.echo(format_as_json(ref))
         else:
             from operational.ui.receipt import receipt_panel
+
             receipt = receipt_panel(
                 title="REFLECTION DE ENTRADA",
                 icon="✅",
@@ -126,9 +128,11 @@ def saida(
             ref_data["ajustes_para_amanha"] = ajustes
             ref_data["estado_geral"] = estado
             from operational.entities.v3 import DailyReflection
+
             ref = DailyReflection.model_validate(ref_data)
         else:
             from operational.entities.v3 import DailyReflection
+
             ref = DailyReflection(
                 id=UEID(f"ref_{d.strftime('%Y%m%d')}"),
                 date=d,
@@ -154,6 +158,7 @@ def saida(
             typer.echo(format_as_json(ref))
         else:
             from operational.ui.receipt import receipt_panel
+
             receipt = receipt_panel(
                 title="REFLECTION DE SAÍDA",
                 icon="🌙",
@@ -196,6 +201,7 @@ def list_reflections(
             # Render the first matching reflection as a Markdown document
             from rich.markdown import Markdown
             from rich.panel import Panel
+
             r = items[0]
             md_text = f"""# Reflexão {r.date.isoformat()}
 
@@ -208,16 +214,20 @@ def list_reflections(
 {r.maior_aprendizado or "_vazio_"}
 
 ## Ajustes para Amanhã
-{chr(10).join('- ' + a for a in r.ajustes_para_amanha) if r.ajustes_para_amanha else "_vazio_"}
+{chr(10).join("- " + a for a in r.ajustes_para_amanha) if r.ajustes_para_amanha else "_vazio_"}
 """
-            console.print(Panel(
-                Markdown(md_text, justify="left"),
-                title=f"[bold cyan]REFLECTION {r.date.isoformat()}[/]",
-                border_style="cyan",
-            ))
+            console.print(
+                Panel(
+                    Markdown(md_text, justify="left"),
+                    title=f"[bold cyan]REFLECTION {r.date.isoformat()}[/]",
+                    border_style="cyan",
+                )
+            )
             return
         if md and not items:
-            console.print(f"[yellow]Nenhuma reflexão em {target_date}. Use 'reflect entrada' ou 'reflect saida'.[/]")
+            console.print(
+                f"[yellow]Nenhuma reflexão em {target_date}. Use 'reflect entrada' ou 'reflect saida'.[/]"
+            )
             return
 
         if json:
@@ -235,6 +245,8 @@ def list_reflections(
                     r.date.isoformat(),
                     r.estado_geral.value,
                     r.big_win[:38] + "…" if len(r.big_win) > 40 else r.big_win,
-                    r.maior_aprendizado[:38] + "…" if len(r.maior_aprendizado) > 40 else r.maior_aprendizado,
+                    r.maior_aprendizado[:38] + "…"
+                    if len(r.maior_aprendizado) > 40
+                    else r.maior_aprendizado,
                 )
             console.print(table)

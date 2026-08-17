@@ -3,6 +3,7 @@
 O almoço é uma fronteira crítica: eat (5min) + rest (30min) + flag
 pesado que correlaciona com cochilos além do orçamento.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
@@ -26,7 +27,9 @@ def create(
     target_date: str | None = typer.Option(None, "--date", "-d", help="Data (YYYY-MM-DD)"),
     eat: int = typer.Option(5, "--eat", "-e", min=0, max=120, help="Minutos comendo"),
     rest: int = typer.Option(30, "--rest", "-r", min=0, max=180, help="Minutos descansando"),
-    pesado: bool = typer.Option(False, "--pesado", "-p", help="Almoço pesado (correlaciona com sonolência)"),
+    pesado: bool = typer.Option(
+        False, "--pesado", "-p", help="Almoço pesado (correlaciona com sonolência)"
+    ),
     notas: str = typer.Option("", "--notas", "-n", help="Notas livres"),
     json: bool = typer.Option(False, "--json", help="JSON output"),
 ) -> None:
@@ -34,6 +37,7 @@ def create(
     with trace_command(log, "lunch.create", command="lunch create") as ctx:
         d = date.fromisoformat(target_date) if target_date else date.today()
         from operational.entities.v3 import LunchRecord
+
         record = LunchRecord(
             id=UEID(f"lun_{d.strftime('%Y%m%d')}"),
             date=d,
@@ -57,6 +61,7 @@ def create(
             typer.echo(format_as_json(record))
         else:
             from operational.ui.receipt import receipt_panel
+
             emoji = "⚠️ PESADO" if pesado else "✅ OK"
             within_severity = "success" if record.within_budget else "warning"
             within_msg = "dentro do orçamento" if record.within_budget else "estourou orçamento"

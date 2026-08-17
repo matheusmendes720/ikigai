@@ -15,6 +15,7 @@ All subcommands support --json per repo convention.
 
 Source: .omo/plans/vault-bidirectional-sync.md (T8)
 """
+
 from __future__ import annotations
 
 import json
@@ -171,11 +172,12 @@ def sync_status(
 @app.command(name="conflicts")
 def sync_conflicts(
     vault: str = typer.Option(..., "--vault", help="Path to Obsidian vault"),
+    db: str = typer.Option("./vibe_ops.db", "--db", help="Path to SQLite DB"),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Print .sync-conflicts.md content."""
     with trace_command(log, "sync.conflicts", command="pav sync conflicts") as ctx:
-        exit_code, stdout = _run_vault_sync("conflicts", vault, "./vibe_ops.db", json_out)
+        exit_code, stdout = _run_vault_sync("conflicts", vault, db, json_out)
         if json_out:
             parsed = _parse_json_output(stdout)
             if parsed is not None:
