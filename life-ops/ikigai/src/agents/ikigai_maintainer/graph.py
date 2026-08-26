@@ -135,7 +135,9 @@ def make_ikigai_graph(checkpoint_db: str | None = None) -> StateGraph:
         },
     )
 
-    # Compile with checkpointer
-    checkpointer = SqliteSaver.from_conn_string(checkpoint_db)
+    # Compile with checkpointer — create SqliteSaver directly (not via context manager)
+    import sqlite3
+    conn = sqlite3.connect(checkpoint_db, check_same_thread=False)
+    checkpointer = SqliteSaver(conn)
 
     return builder.compile(checkpointer=checkpointer)

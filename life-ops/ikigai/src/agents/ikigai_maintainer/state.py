@@ -186,8 +186,11 @@ def compute_meta_vector(
         return 0.0
 
     # Normalize weights
-    total_w = sum(weights or {k: 1.0 for k in active}.values())
-    w_norm = {k: (weights or {}).get(k, 1.0) / total_w for k in active}
+    _weights = weights or {k: 1.0 for k in active}
+    # Guard against string values leaking in (langgraph state merge quirk)
+    _weights = {k: float(v) if isinstance(v, (int, str)) else v for k, v in _weights.items()}
+    total_w = sum(_weights.values())
+    w_norm = {k: _weights.get(k, 1.0) / total_w for k in active}
 
     # Geometric mean
     log_sum = sum(w_norm[k] * math.log(max(v, 0.01)) for k, v in active.items())

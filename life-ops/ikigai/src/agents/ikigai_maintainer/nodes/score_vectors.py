@@ -77,7 +77,7 @@ def score_vectors_node(state: IKIGAiStateDict) -> dict[str, Any]:
         "revenue": 0.20,
         "course": 0.15,
     })
-    meta_vector = compute_meta_vector(vector_scores, phase_weights) * 100.0
+    meta_vector = compute_meta_vector(vector_scores, phase_weights)
 
     return {
         "vector_scores": vector_scores,
