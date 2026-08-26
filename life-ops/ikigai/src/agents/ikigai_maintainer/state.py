@@ -162,6 +162,10 @@ class IKIGAiStateDict(TypedDict, total=False):
     kill_switch_triggered: bool
     terminated: bool
 
+    # Chat mode — message history accumulated across turns
+    messages: Annotated[list[dict], operator.add]  # [{"role": "user"|"agent", "content": str}]
+    user_input: str | None  # scratchpad for current turn input
+
 
 # ---------------------------------------------------------------------------
 # Helper: compute meta-vector (hybrid mean)

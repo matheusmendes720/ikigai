@@ -27,8 +27,24 @@ def observe_node(state: IKIGAiStateDict) -> dict[str, Any]:
     - operational.core.policy_engine (via direct import when available)
     - solverforge-calendar-mcp upi_list (subprocess call)
 
+    Chat mode: if user_input is present, accumulate into messages and
+    emit agent response as the new message.
+
     Returns dict to merge into state.
     """
+    updates: dict[str, Any] = {
+        "last_step": "observe",
+    }
+
+    # Chat mode — accumulate user message and emit agent response
+    user_input = state.get("user_input")
+    if user_input:
+        # Build agent response from current computed state
+        agent_response = _build_agent_response(state)
+        updates["messages"] = [{"role": "user", "content": user_input}]
+        updates["agent_response"] = agent_response
+        updates["user_input"] = None  # clear scratchpad
+
     # Read Q_HE from operational policy_engine (import when available)
     q_he_score = _read_qhe_from_operational()
     workload_estimate = _read_workload_from_upi()
@@ -53,14 +69,42 @@ def observe_node(state: IKIGAiStateDict) -> dict[str, Any]:
     else:
         balancer = "OK"
 
-    return {
+    updates.update({
         "q_he_score": q_he_score,
         "workload_estimate": workload_estimate,
         "capacity_estimate": capacity_estimate,
         "regime_state": regime,
-        "last_step": "observe",
         "balancer_verdict": balancer,
-    }
+    })
+    return updates
+
+
+def _build_agent_response(state: IKIGAiStateDict) -> str:
+    """Build a readable agent response from current IKIGAi state."""
+    vs = state.get("vector_scores", {})
+    lines = [
+        f"🧭 Regime: {state.get('regime_state', '?')}  |  Q_HE: {state.get('q_he_score', 0):.4f}",
+        f"   Phase: {state.get('phase', '?')}  |  Verdict: {state.get('balancer_verdict', '?')}",
+        "",
+        "📊 IKIGAi Vectors:",
+    ]
+    for vec, score in vs.items():
+        bar = "█" * int(score / 10) + "░" * (10 - int(score / 10))
+        lines.append(f"   {vec.capitalize():12s}  [{bar}]  {score:.1f}")
+    lines.append(f"   {'Meta-vector':12s}  {state.get('meta_vector_score', 0):.1f}")
+    corrections = state.get("corrections", [])
+    if corrections:
+        lines.append(f"\n⚠️  Corrections ({len(corrections)}):")
+        for c in corrections[-3:]:
+            lines.append(f"   [{c.get('heuristic')}] {c.get('description', '')}")
+    else:
+        lines.append(f"\n✅ No corrections — system balanced")
+    prospective = state.get("prospective_buffer", [])
+    if prospective:
+        lines.append(f"\n📋 Prospective buffer ({len(prospective)}):")
+        for p in prospective[-3:]:
+            lines.append(f"   • {p}")
+    return "\n".join(lines)
 
 
 def _read_qhe_from_operational() -> float:

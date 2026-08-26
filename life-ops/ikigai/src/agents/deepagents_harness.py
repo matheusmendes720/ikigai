@@ -189,6 +189,9 @@ def main():
     )
     parser.add_argument("--list-checkpoints", action="store_true", help="List checkpoints and exit")
     parser.add_argument("--resume", metavar="THREAD_ID", help="Resume from a specific checkpoint")
+    parser.add_argument(
+        "--chat", action="store_true", help="Start interactive REPL chat mode"
+    )
     args = parser.parse_args()
 
     agent = IKIGAiDeepAgent(
@@ -212,6 +215,10 @@ def main():
         print(f"  Phase: {state.get('phase')}")
         return
 
+    if args.chat:
+        run_chat(agent)
+        return
+
     # Run one cycle
     print(f"\nIKIGAi Deep Agent — thread: {args.thread}")
     print(f"Checkpoint DB: {args.checkpoint_db}")
@@ -224,6 +231,48 @@ def main():
     print(f"  Corrections: {len(result.get('corrections', []))}")
     print(f"  Prospective: {len(result.get('prospective_buffer', []))} items")
     print(f"  Retrospective: {len(result.get('retrospective_log', []))} items")
+
+
+def run_chat(agent: IKIGAiDeepAgent) -> None:
+    """Interactive REPL: accumulate messages, run graph, print agent response."""
+    print("IKIGAi Chat REPL — Ctrl+C to exit\n")
+
+    # Bootstrap: run one cycle to populate initial state
+    result = agent.invoke()
+    _print_agent_response(result)
+
+    try:
+        while True:
+            try:
+                user_input = input("\n🧑 > ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print("\n\nGoodbye.")
+                break
+
+            if not user_input:
+                continue
+
+            # Inject user message and run graph
+            result = agent.invoke({"user_input": user_input})
+            _print_agent_response(result)
+    except KeyboardInterrupt:
+        print("\n\nGoodbye.")
+
+
+def _print_agent_response(state: dict) -> None:
+    """Print the agent's response from a chat turn."""
+    response = state.get("agent_response", "")
+    if response:
+        print(f"\n🤖 IKIGAi:\n{response}")
+    else:
+        # Fallback: print computed state summary
+        print(f"\n🤖 IKIGAi:")
+        print(f"   Regime:  {state.get('regime_state', '?')}")
+        print(f"   Q_HE:    {state.get('q_he_score', 0):.4f}")
+        print(f"   Meta:    {state.get('meta_vector_score', 0):.4f}")
+        vs = state.get("vector_scores", {})
+        for vec, score in vs.items():
+            print(f"   {vec.capitalize():12s}: {score:.1f}")
 
 
 if __name__ == "__main__":
