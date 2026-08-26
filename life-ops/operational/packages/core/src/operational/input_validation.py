@@ -74,7 +74,7 @@ def validate_block_times(start: time, end: time) -> tuple[time, time, int]:
         ValueError: If end is at or before start.
     """
     if end <= start:
-        msg = f"end time ({end}) must be after start time ({start})"
+        msg = f"end must be after start"
         raise ValueError(msg)
     # Compute minutes difference (crossing midnight not allowed here)
     start_min = start.hour * 60 + start.minute
