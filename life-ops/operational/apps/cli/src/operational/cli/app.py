@@ -26,7 +26,8 @@ from operational.cli.commands.block_cmd import app as block_app
 from operational.cli.commands.demo_cmd import app as demo_app
 from operational.cli.commands.doctor_cmd import run_health_check
 from operational.cli.commands.habit_cmd import app as habit_app
-from operational.cli.commands.journal_cmd import app as journal_app
+from operational.cli.commands.journal_cmd import app as journal_cmd_imported
+from operational.cli.commands import journal_interact_cmd
 from operational.cli.commands.lunch_cmd import app as lunch_app
 from operational.cli.commands.analytics_cmd import analytics_app as analytics_app
 from operational.cli.commands.metric_cmd import app as metric_app
@@ -87,7 +88,8 @@ def global_options(
 
 app.add_typer(routine_app, name="routine", help="Gerenciar rotinas (MANHA/TARDE/NOITE).")
 app.add_typer(block_app, name="block", help="Gerenciar blocos de tempo.")
-app.add_typer(journal_app, name="journal", help="Gerenciar entradas do diário.")
+app.add_typer(journal_cmd_imported, name="journal", help="Gerenciar entradas do diário.")
+journal_cmd_imported.add_typer(journal_interact_cmd.app)  # no name: interact command merges into journal
 app.add_typer(habit_app, name="habit", help="Gerenciar hábitos com Q_HE.")
 app.add_typer(metric_app, name="metric", help="Registrar métricas (sono, energia).")
 app.add_typer(
