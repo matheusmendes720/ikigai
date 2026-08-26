@@ -4,7 +4,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
-from ikigai_maintainer.state import IKIGAiStateDict, PlanTier
+from ..state import IKIGAiStateDict, PlanTier
 
 
 def plan_node(state: IKIGAiStateDict) -> dict[str, Any]:

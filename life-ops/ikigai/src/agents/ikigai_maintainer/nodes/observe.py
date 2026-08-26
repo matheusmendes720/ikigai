@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from ikigai_maintainer.state import (
+from ..state import (
     IKIGAiStateDict,
     DEFAULT_CAPACITY_HOURS_PER_DAY,
     DEFAULT_WORKLOAD_OVERLOAD_FACTOR,

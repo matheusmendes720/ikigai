@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ikigai_maintainer.state import IKIGAiStateDict
+from ..state import IKIGAiStateDict
 
 
 UEID_PREFIXES = {

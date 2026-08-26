@@ -8,7 +8,7 @@ import datetime as dt
 from pathlib import Path
 from typing import Any
 
-from ikigai_maintainer.state import IKIGAiStateDict
+from ..state import IKIGAiStateDict
 
 
 # Kill switch — set to True to block all writes

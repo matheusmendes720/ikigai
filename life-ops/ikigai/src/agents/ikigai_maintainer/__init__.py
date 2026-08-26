@@ -1,6 +1,6 @@
 """IKIGAi-Maintainer — dual-channel LangGraph agent for the IKIGAi meta-brain."""
 
-from ikigai_maintainer.state import (
+from .state import (
     IKIGAiStateDict,
     CorrectionSignal,
     TIER_DAYS,
@@ -20,7 +20,7 @@ from ikigai_maintainer.state import (
     HYSTERESIS_UPGRADE_DAYS,
     HYSTERESIS_DOWNGRADE_DAYS,
 )
-from ikigai_maintainer.graph import make_ikigai_graph
+from .graph import make_ikigai_graph
 
 __all__ = [
     # State

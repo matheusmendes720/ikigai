@@ -13,7 +13,8 @@ from typing import Any
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import Tool, TextContent, ListToolsResult, CallToolResult
+
 
 # ---------------------------------------------------------------------------
 # Tool list
@@ -130,11 +131,17 @@ def _read_entity(table: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Tool handlers
 # ---------------------------------------------------------------------------
-async def _list_tools() -> list[Tool]:
-    return TOOLS
 
 
-async def _call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+async def _list_tools(ctx, params) -> ListToolsResult:
+    return ListToolsResult(tools=TOOLS)
+
+
+async def _call_tool(ctx, params) -> CallToolResult:
+    name = params.name
+    arguments = params.arguments or {}
+    text = ""
+
     if name == "ikigai_score":
         d = _read_checkpoint()
         vs = d.get("vector_scores", {})
@@ -146,7 +153,7 @@ async def _call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
                 vs = {k: row.get(k, 0.0) for k in ("passion", "skill", "market", "revenue", "course")}
                 mv = row.get("meta_vector", 0.0)
                 qhe = row.get("q_he")
-        return [TextContent(type="text", text=json.dumps({"vector_scores": vs, "meta_vector_score": round(mv, 4), "q_he_score": qhe}, indent=2))]
+        text = json.dumps({"vector_scores": vs, "meta_vector_score": round(mv, 4), "q_he_score": qhe}, indent=2)
 
     elif name == "ikigai_regime":
         d = _read_checkpoint()
@@ -158,23 +165,24 @@ async def _call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             if row:
                 regime = row.get("regime", regime)
                 qhe = row.get("q_he", qhe)
-        return [TextContent(type="text", text=json.dumps({"regime_state": regime, "days_in_regime": days, "q_he_score": qhe}, indent=2))]
+        text = json.dumps({"regime_state": regime, "days_in_regime": days, "q_he_score": qhe}, indent=2)
 
     elif name == "ikigai_phase":
         d = _read_checkpoint()
-        return [TextContent(type="text", text=json.dumps({
+        text = json.dumps({
             "phase": d.get("phase", "BUSCA"),
             "phase_iteration": d.get("phase_iteration", 0),
             "phase_converged": d.get("phase_converged", False),
             "phase_weights": d.get("phase_weights", {}),
-        }, indent=2))]
+        }, indent=2)
 
     elif name == "ikigai_decompose":
         ueid = arguments.get("dream_ueid", "")
         if not ueid:
-            return [TextContent(type="text", text=json.dumps({"error": "dream_ueid required"}))]
-        result = {"dream_ueid": ueid, "goals": [], "objectives": [], "projects": [], "tasks": []}
-        return [TextContent(type="text", text=json.dumps(result, indent=2))]
+            text = json.dumps({"error": "dream_ueid required"})
+        else:
+            result = {"dream_ueid": ueid, "goals": [], "objectives": [], "projects": [], "tasks": []}
+            text = json.dumps(result, indent=2)
 
     elif name == "ikigai_corrections":
         d = _read_checkpoint()
@@ -187,16 +195,16 @@ async def _call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
                     corrs = json.loads(row.get("corrections", "[]"))[-limit:]
                 except Exception:
                     corrs = []
-        return [TextContent(type="text", text=json.dumps({"corrections": corrs, "count": len(corrs)}, indent=2))]
+        text = json.dumps({"corrections": corrs, "count": len(corrs)}, indent=2)
 
     elif name == "ikigai_plan_cycle":
         try:
             import sys
             from pathlib import Path as P
-            _src = P(__file__).parent.parent / "ikigai" / "src"
+            _src = P(__file__).parent.parent  # .../ikigai/src/
             if str(_src) not in sys.path:
                 sys.path.insert(0, str(_src))
-            from ikigai_maintainer import make_ikigai_graph
+            from agents.ikigai_maintainer import make_ikigai_graph
             today = dt.date.today()
             graph = make_ikigai_graph()
             initial = {
@@ -219,7 +227,7 @@ async def _call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             }
             config = {"configurable": {"thread_id": f"cycle_{today.isoformat()}"}}
             final = graph.invoke(initial, config)
-            return [TextContent(type="text", text=json.dumps({
+            text = json.dumps({
                 "cycle_id": final.get("cycle_id"),
                 "regime": final.get("regime_state"),
                 "q_he": final.get("q_he_score"),
@@ -227,9 +235,9 @@ async def _call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
                 "corrections_count": len(final.get("corrections", [])),
                 "prospective_buffer_size": len(final.get("prospective_buffer", [])),
                 "retrospective_log_size": len(final.get("retrospective_log", [])),
-            }, indent=2))]
+            }, indent=2)
         except Exception as e:
-            return [TextContent(type="text", text=json.dumps({"error": str(e)}))]
+            text = json.dumps({"error": str(e)})
 
     elif name == "ikigai_checkpoint":
         action = arguments.get("action", "get")
@@ -237,60 +245,78 @@ async def _call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         path = _db_path()
         if action == "list":
             if not path.exists():
-                return [TextContent(type="text", text=json.dumps({"checkpoints": []}))]
-            conn = sqlite3.connect(str(path))
-            cur = conn.cursor()
-            cur.execute("SELECT thread_id, created_at FROM checkpoints ORDER BY created_at DESC LIMIT 50")
-            rows = cur.fetchall()
-            conn.close()
-            return [TextContent(type="text", text=json.dumps({"checkpoints": [{"thread_id": r[0], "created_at": r[1]} for r in rows]}))]
-        if action == "get":
+                text = json.dumps({"checkpoints": []})
+            else:
+                conn = sqlite3.connect(str(path))
+                cur = conn.cursor()
+                cur.execute("SELECT thread_id, checkpoint_id, metadata FROM checkpoints ORDER BY checkpoint_id DESC LIMIT 50")
+                rows = cur.fetchall()
+                conn.close()
+                text = json.dumps({"checkpoints": [{"thread_id": r[0], "checkpoint_id": r[1]} for r in rows]})
+        elif action == "get":
             if not thread_id:
-                return [TextContent(type="text", text=json.dumps({"error": "thread_id required"}))]
-            if not path.exists():
-                return [TextContent(type="text", text=json.dumps({"error": "no checkpoints"}))]
-            conn = sqlite3.connect(str(path))
-            cur = conn.cursor()
-            cur.execute("SELECT state FROM checkpoints WHERE thread_id = ? ORDER BY created_at DESC LIMIT 1", (thread_id,))
-            row = cur.fetchone()
-            conn.close()
-            if row:
-                return [TextContent(type="text", text=json.dumps({"thread_id": thread_id, "state": json.loads(row[0])}))]
-            return [TextContent(type="text", text=json.dumps({"error": "checkpoint not found"}))]
-        if action == "set":
+                text = json.dumps({"error": "thread_id required"})
+            elif not path.exists():
+                text = json.dumps({"error": "no checkpoints"})
+            else:
+                conn = sqlite3.connect(str(path))
+                cur = conn.cursor()
+                cur.execute("SELECT checkpoint, metadata FROM checkpoints WHERE thread_id = ? ORDER BY checkpoint_id DESC LIMIT 1", (thread_id,))
+                row = cur.fetchone()
+                conn.close()
+                if row:
+                    import pickle
+                    ckpt = pickle.loads(row[0]) if row[0] else {}
+                    meta = pickle.loads(row[1]) if row[1] else {}
+                    text = json.dumps({"thread_id": thread_id, "checkpoint": str(ckpt), "metadata": str(meta)})
+                else:
+                    text = json.dumps({"error": "checkpoint not found"})
+        elif action == "set":
             if not thread_id or arguments.get("state_snapshot") is None:
-                return [TextContent(type="text", text=json.dumps({"error": "thread_id and state_snapshot required"}))]
-            path.parent.mkdir(parents=True, exist_ok=True)
-            conn = sqlite3.connect(str(path))
-            cur = conn.cursor()
-            cur.execute("CREATE TABLE IF NOT EXISTS checkpoints (thread_id TEXT, state TEXT, created_at TEXT)")
-            cur.execute("INSERT INTO checkpoints (thread_id, state, created_at) VALUES (?, ?, ?)",
-                        (thread_id, json.dumps(arguments["state_snapshot"]), dt.datetime.now().isoformat()))
-            conn.commit()
-            conn.close()
-            return [TextContent(type="text", text=json.dumps({"ok": True, "thread_id": thread_id}))]
-        return [TextContent(type="text", text=json.dumps({"error": f"unknown action: {action}"}))]
+                text = json.dumps({"error": "thread_id and state_snapshot required"})
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                import pickle
+                conn = sqlite3.connect(str(path))
+                cur = conn.cursor()
+                now = dt.datetime.now().isoformat()
+                cur.execute(
+                    "INSERT OR REPLACE INTO checkpoints (thread_id, checkpoint_ns, checkpoint_id, type, checkpoint, metadata) VALUES (?, ?, ?, ?, ?, ?)",
+                    (thread_id, "", now, "manual", pickle.dumps(arguments["state_snapshot"]), pickle.dumps({"source": "mcp"}))
+                )
+                conn.commit()
+                conn.close()
+                text = json.dumps({"ok": True, "thread_id": thread_id})
+        else:
+            text = json.dumps({"error": f"unknown action: {action}"})
 
     elif name == "ikigai_sync_vault":
         cycle_id = arguments.get("cycle_id", "")
         if not cycle_id:
-            return [TextContent(type="text", text=json.dumps({"error": "cycle_id required"}))]
-        vault = Path.home() / ".ikigai" / "vault"
-        if not vault.exists():
-            return [TextContent(type="text", text=json.dumps({"error": "vault not configured"}))]
-        row = _read_entity("plan_entities")
-        if not row:
-            return [TextContent(type="text", text=json.dumps({"error": f"no cycle {cycle_id}"}))]
-        try:
-            log_file = vault / "ikigai_cycle_log.md"
-            entry = f"\n## Cycle {cycle_id}\n- Date: {dt.date.today().isoformat()}\n- Regime: {row.get('regime')}\n- Q_HE: {row.get('q_he')}"
-            with open(log_file, "a", encoding="utf-8") as f:
-                f.write(entry + "\n")
-            return [TextContent(type="text", text=json.dumps({"ok": True, "vault_path": str(log_file)}))]
-        except Exception as e:
-            return [TextContent(type="text", text=json.dumps({"error": str(e)}))]
+            text = json.dumps({"error": "cycle_id required"})
+        else:
+            vault = Path.home() / ".ikigai" / "vault"
+            if not vault.exists():
+                text = json.dumps({"error": "vault not configured"})
+            else:
+                row = _read_entity("plan_entities")
+                if not row:
+                    text = json.dumps({"error": f"no cycle {cycle_id}"})
+                else:
+                    try:
+                        log_file = vault / "ikigai_cycle_log.md"
+                        entry = f"\n## Cycle {cycle_id}\n- Date: {dt.date.today().isoformat()}\n- Regime: {row.get('regime')}\n- Q_HE: {row.get('q_he')}"
+                        with open(log_file, "a", encoding="utf-8") as f:
+                            f.write(entry + "\n")
+                        text = json.dumps({"ok": True, "vault_path": str(log_file)})
+                    except Exception as e:
+                        text = json.dumps({"error": str(e)})
 
-    return [TextContent(type="text", text=f"Unknown tool: {name}")]
+    else:
+        text = f"Unknown tool: {name}"
+
+    is_error = text.startswith('{"error"')
+    return CallToolResult(content=[TextContent(type="text", text=text)], is_error=is_error)
 
 
 # ---------------------------------------------------------------------------

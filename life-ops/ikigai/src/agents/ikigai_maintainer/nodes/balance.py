@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ikigai_maintainer.state import (
+from ..state import (
     IKIGAiStateDict,
     BalancerVerdict,
     HYSTERESIS_UPGRADE_DAYS,

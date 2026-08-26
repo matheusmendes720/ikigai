@@ -4,7 +4,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
-from ikigai_maintainer.state import IKIGAiStateDict
+from ..state import IKIGAiStateDict
 
 
 def reflect_node(state: IKIGAiStateDict) -> dict[str, Any]:

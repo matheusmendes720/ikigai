@@ -10,15 +10,15 @@ from typing import Literal
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import StateGraph, END
 
-from ikigai_maintainer.state import IKIGAiStateDict
-from ikigai_maintainer.nodes.observe import observe_node
-from ikigai_maintainer.nodes.score_vectors import score_vectors_node
-from ikigai_maintainer.nodes.heuristics import heuristics_node
-from ikigai_maintainer.nodes.balance import balance_node
-from ikigai_maintainer.nodes.decompose import decompose_node
-from ikigai_maintainer.nodes.plan import plan_node
-from ikigai_maintainer.nodes.reflect import reflect_node
-from ikigai_maintainer.nodes.commit import commit_node
+from .state import IKIGAiStateDict
+from .nodes.observe import observe_node
+from .nodes.score_vectors import score_vectors_node
+from .nodes.heuristics import heuristics_node
+from .nodes.balance import balance_node
+from .nodes.decompose import decompose_node
+from .nodes.plan import plan_node
+from .nodes.reflect import reflect_node
+from .nodes.commit import commit_node
 
 
 # ---------------------------------------------------------------------------

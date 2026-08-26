@@ -8,7 +8,7 @@ import math
 from pathlib import Path
 from typing import Any
 
-from ikigai_maintainer.state import (
+from ..state import (
     IKIGAiStateDict,
     VECTOR_TYPES,
     compute_meta_vector,
