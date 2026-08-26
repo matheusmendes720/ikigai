@@ -141,3 +141,18 @@ def make_ikigai_graph(checkpoint_db: str | None = None) -> StateGraph:
     checkpointer = SqliteSaver(conn)
 
     return builder.compile(checkpointer=checkpointer)
+
+
+# ---------------------------------------------------------------------------
+# Module-level singleton for langgraph dev / langgraph.json
+# ---------------------------------------------------------------------------
+import os
+_graph_instance = None
+
+def graph():
+    """Return a singleton compiled graph instance for langgraph dev."""
+    global _graph_instance
+    if _graph_instance is None:
+        db_path = os.environ.get("IKIGAI_CHECKPOINT_DB")
+        _graph_instance = make_ikigai_graph(checkpoint_db=db_path)
+    return _graph_instance
