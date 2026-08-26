@@ -104,63 +104,95 @@ def _compute_passion_score(state: IKIGAiStateDict) -> float:
 
 
 def _compute_skill_score(state: IKIGAiStateDict) -> float:
-    """Skill = project_completion * 0.5 + learning_momentum * 0.3 + demand * 0.2."""
-    # Read from UPI — completed projects count as skill evidence
-    import subprocess
-    import json
+    """Skill = project_completion * 0.5 + learning_momentum * 0.3 + demand * 0.2.
+
+    Reads completed projects from the vault as skill evidence.
+    """
+    import frontmatter as _fm
     try:
-        result = subprocess.run(
-            ["solverforge-calendar-mcp", "--json", "upi_search", "--query", "skill", "--limit", "20"],
-            capture_output=True, text=True, timeout=10,
-        )
-        if result.returncode == 0:
-            items = json.loads(result.stdout) if result.stdout else []
-            done = [i for i in items if i.get("status") == "Done"]
-            # Skill proxy: 10 points per completed skill item
-            return min(100.0, len(done) * 10.0)
+        vault_root = Path(__file__).parent.parent.parent.parent / "data" / "matheus"
+        projects_dir = vault_root / "projects"
+        if not projects_dir.is_dir():
+            return 50.0
+        done = []
+        for md in projects_dir.iterdir():
+            if md.suffix != ".md":
+                continue
+            try:
+                post = _fm.loads(md.read_text(encoding="utf-8"))
+                status = post.metadata.get("status", "")
+                if status in ("DONE", "COMPLETE", "done", "complete"):
+                    done.append(md.stem)
+            except Exception:
+                pass
+        # Skill proxy: 20 points per completed project
+        return min(100.0, len(done) * 20.0)
     except Exception:
-        pass
-    return 50.0
+        return 50.0
 
 
 def _compute_market_score(state: IKIGAiStateDict) -> float:
-    """Market = opportunities_pipeline * 0.4 + fit_score * 0.4 + demand * 0.2."""
-    # Read from UPI tagged "opportunity"
-    import subprocess
-    import json
+    """Market = active_projects * 8 + (non_draft_projects * 4).
+
+    Active projects = market activity signal (outreach, pipeline).
+    """
+    import frontmatter as _fm
     try:
-        result = subprocess.run(
-            ["solverforge-calendar-mcp", "--json", "upi_search", "--query", "opportunity", "--limit", "20"],
-            capture_output=True, text=True, timeout=10,
-        )
-        if result.returncode == 0:
-            items = json.loads(result.stdout) if result.stdout else []
-            active = [i for i in items if i.get("status") != "Cancelled"]
-            # Market score: 8 points per active opportunity
-            return min(100.0, len(active) * 8.0)
+        vault_root = Path(__file__).parent.parent.parent.parent / "data" / "matheus"
+        projects_dir = vault_root / "projects"
+        if not projects_dir.is_dir():
+            return 40.0
+        active = []
+        non_draft = []
+        for md in projects_dir.iterdir():
+            if md.suffix != ".md":
+                continue
+            try:
+                post = _fm.loads(md.read_text(encoding="utf-8"))
+                status = post.metadata.get("status", "")
+                if status not in ("CANCELLED", "cancelled", "ARCHIVED", "archived"):
+                    non_draft.append(md.stem)
+                if status in ("ACTIVE", "active", "IN_PROGRESS", "in_progress"):
+                    active.append(md.stem)
+            except Exception:
+                pass
+        # Market score: 8 pts per active + 4 pts per other non-draft
+        return min(100.0, len(active) * 8.0 + len(non_draft) * 4.0)
     except Exception:
-        pass
-    return 40.0
+        return 40.0
 
 
 def _compute_revenue_score(state: IKIGAiStateDict) -> float:
-    """Revenue = target_attainment * 0.7 + pipeline_health * 0.3."""
-    # Read from UPI tagged "revenue" or "deliverable"
-    import subprocess
-    import json
+    """Revenue = active projects in revenue-tagged verticals.
+
+    Proxied by projects with 'revenue' or 'outreach' in tags or title.
+    """
+    import frontmatter as _fm
     try:
-        result = subprocess.run(
-            ["solverforge-calendar-mcp", "--json", "upi_search", "--query", "revenue", "--limit", "10"],
-            capture_output=True, text=True, timeout=10,
-        )
-        if result.returncode == 0:
-            items = json.loads(result.stdout) if result.stdout else []
-            done = [i for i in items if i.get("status") == "Done"]
-            # Revenue proxy: 20 points per completed revenue item
-            return min(100.0, len(done) * 20.0)
+        vault_root = Path(__file__).parent.parent.parent.parent / "data" / "matheus"
+        projects_dir = vault_root / "projects"
+        if not projects_dir.is_dir():
+            return 30.0
+        revenue_tags = {"revenue", "outreach", "pipeline", "deliverable"}
+        revenue_projects = []
+        for md in projects_dir.iterdir():
+            if md.suffix != ".md":
+                continue
+            try:
+                post = _fm.loads(md.read_text(encoding="utf-8"))
+                tags = set(post.metadata.get("tags", []))
+                title = post.metadata.get("title", "").lower()
+                status = post.metadata.get("status", "")
+                if status in ("CANCELLED", "cancelled", "ARCHIVED"):
+                    continue
+                if revenue_tags & tags or any(t in title for t in revenue_tags):
+                    revenue_projects.append(md.stem)
+            except Exception:
+                pass
+        # Revenue proxy: 20 pts per revenue-tagged project
+        return min(100.0, len(revenue_projects) * 20.0)
     except Exception:
-        pass
-    return 30.0
+        return 30.0
 
 
 def _compute_course_score(state: IKIGAiStateDict) -> float:

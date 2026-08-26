@@ -11,6 +11,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+import frontmatter
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent, ListToolsResult, CallToolResult
@@ -95,17 +96,127 @@ def _db_path(suffix: str = "ikigai_checkpoints.db") -> Path:
     return Path.home() / ".ikigai" / suffix
 
 
-def _read_checkpoint() -> dict[str, Any]:
+def _decompose_ueid(ueid: str) -> dict[str, Any]:
+    """Traverse the vault hierarchy for a given Dream UEID.
+
+    Vault root: {repo}/data/matheus/
+    Structure: dreams/ → objectives/ → projects/ → tasks/
+    """
+    import frontmatter
+    import re
+
+    repo_root = Path(__file__).parent.parent.parent  # .../life-ops/ikigai/
+    vault_root = repo_root / "data" / "matheus"
+
+    def _slug_from_ueid(ueid: str) -> str:
+        """Extract slug from UEID like ikigai:dream:vaga-remota-2026:4f6a202a:2cb24609."""
+        parts = ueid.split(":")
+        return parts[2] if len(parts) >= 3 else ""
+
+    def _read_entity(dir_name: str, slug: str) -> list[dict[str, Any]]:
+        """Read all frontmatter records from a vault subdirectory."""
+        entity_dir = vault_root / dir_name
+        results = []
+        if not entity_dir.is_dir():
+            return results
+        for md_file in entity_dir.iterdir():
+            if not md_file.suffix == ".md":
+                continue
+            try:
+                post = frontmatter.loads(md_file.read_text(encoding="utf-8"))
+                results.append({
+                    "file": str(md_file.relative_to(vault_root)),
+                    "ueid": post.metadata.get("ueid", ""),
+                    "title": post.metadata.get("title", md_file.stem),
+                    "status": post.metadata.get("status", "UNKNOWN"),
+                    "slug": post.metadata.get("slug", md_file.stem),
+                    "parent_ueid": post.metadata.get("parent_ueid"),
+                    "related_ueids": post.metadata.get("related_ueids", []),
+                })
+            except Exception:
+                pass
+        return results
+
+    def _children(ueid: str, entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [e for e in entities if e.get("parent_ueid") == ueid]
+
+    dream_slug = _slug_from_ueid(ueid)
+    dream_file = vault_root / "dreams" / f"{dream_slug}.md"
+
+    # Read dream
+    dream_data = {}
+    if dream_file.exists():
+        try:
+            post = frontmatter.loads(dream_file.read_text(encoding="utf-8"))
+            dream_data = {
+                "file": f"dreams/{dream_slug}.md",
+                "ueid": post.metadata.get("ueid", ueid),
+                "title": post.metadata.get("title", dream_slug),
+                "status": post.metadata.get("status", "UNKNOWN"),
+                "slug": post.metadata.get("slug", dream_slug),
+            }
+        except Exception:
+            pass
+
+    # Read all objectives / projects / tasks
+    objectives = _read_entity("objectives", dream_slug)
+    projects = _read_entity("projects", dream_slug)
+
+    # Filter objectives to those whose parent_ueid or related_ueids match this dream
+    dream_objectives = [o for o in objectives if o.get("parent_ueid") == ueid or ueid in o.get("related_ueids", [])]
+    dream_projects = [p for p in projects if p.get("parent_ueid") in [o.get("ueid") for o in dream_objectives]]
+
+    return {
+        "dream": dream_data,
+        "goals": [],  # goals not yet in vault
+        "objectives": dream_objectives,
+        "projects": dream_projects,
+        "tasks": [],  # tasks not yet in vault
+    }
+
+
+def _read_checkpoint(thread_id: str | None = None) -> dict[str, Any]:
+    """Read latest checkpoint from LangGraph SQLite.
+
+    LangGraph schema: thread_id, checkpoint_ns, checkpoint_id, checkpoint (BLOB), metadata (BLOB).
+    Ordered by checkpoint_id DESC (contains nanosecond timestamp).
+    """
     path = _db_path()
     if not path.exists():
         return {}
     try:
+        import pickle
         conn = sqlite3.connect(str(path))
         cur = conn.cursor()
-        cur.execute("SELECT state FROM checkpoints ORDER BY created_at DESC LIMIT 1")
+        if thread_id:
+            cur.execute(
+                "SELECT checkpoint FROM checkpoints WHERE thread_id = ? ORDER BY checkpoint_id DESC LIMIT 1",
+                (thread_id,),
+            )
+        else:
+            cur.execute("SELECT checkpoint FROM checkpoints ORDER BY checkpoint_id DESC LIMIT 1")
         row = cur.fetchone()
         conn.close()
-        return json.loads(row[0]) if row else {}
+        if row and row[0]:
+            return pickle.loads(row[0]) or {}
+        return {}
+    except Exception:
+        return {}
+
+
+def _read_plan_entity(cycle_id: str) -> dict[str, Any]:
+    """Read cycle state from plan_entities.db (written by ikigai_plan_cycle)."""
+    plan_db = Path.home() / ".ikigai" / "plan_entities.db"
+    if not plan_db.exists():
+        return {}
+    try:
+        conn = sqlite3.connect(str(plan_db))
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM plan_entities WHERE cycle_id = ? ORDER BY created_at DESC LIMIT 1", (cycle_id,))
+        row = cur.fetchone()
+        cols = [d[0] for d in cur.description] if cur.description else []
+        conn.close()
+        return dict(zip(cols, row)) if row else {}
     except Exception:
         return {}
 
@@ -181,8 +292,7 @@ async def _call_tool(ctx, params) -> CallToolResult:
         if not ueid:
             text = json.dumps({"error": "dream_ueid required"})
         else:
-            result = {"dream_ueid": ueid, "goals": [], "objectives": [], "projects": [], "tasks": []}
-            text = json.dumps(result, indent=2)
+            text = json.dumps(_decompose_ueid(ueid), indent=2)
 
     elif name == "ikigai_corrections":
         d = _read_checkpoint()
@@ -227,6 +337,47 @@ async def _call_tool(ctx, params) -> CallToolResult:
             }
             config = {"configurable": {"thread_id": f"cycle_{today.isoformat()}"}}
             final = graph.invoke(initial, config)
+
+            # Persist final state to plan_entities.db for ikigai_sync_vault
+            try:
+                plan_db = Path.home() / ".ikigai" / "plan_entities.db"
+                plan_db.parent.mkdir(parents=True, exist_ok=True)
+                conn = sqlite3.connect(str(plan_db))
+                cur = conn.cursor()
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS plan_entities (
+                        cycle_id TEXT PRIMARY KEY,
+                        regime TEXT,
+                        q_he REAL,
+                        passion REAL, skill REAL, market REAL, revenue REAL, course REAL,
+                        meta_vector REAL,
+                        corrections TEXT,
+                        created_at TEXT
+                    )
+                """)
+                vs = final.get("vector_scores", {})
+                cur.execute("""
+                    INSERT OR REPLACE INTO plan_entities
+                    (cycle_id, regime, q_he, passion, skill, market, revenue, course, meta_vector, corrections, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    final.get("cycle_id"),
+                    final.get("regime_state"),
+                    final.get("q_he_score"),
+                    vs.get("passion"),
+                    vs.get("skill"),
+                    vs.get("market"),
+                    vs.get("revenue"),
+                    vs.get("course"),
+                    final.get("meta_vector_score"),
+                    json.dumps(final.get("corrections", [])),
+                    dt.datetime.now().isoformat(),
+                ))
+                conn.commit()
+                conn.close()
+            except Exception:
+                pass  # non-fatal
+
             text = json.dumps({
                 "cycle_id": final.get("cycle_id"),
                 "regime": final.get("regime_state"),
@@ -295,22 +446,69 @@ async def _call_tool(ctx, params) -> CallToolResult:
         if not cycle_id:
             text = json.dumps({"error": "cycle_id required"})
         else:
-            vault = Path.home() / ".ikigai" / "vault"
-            if not vault.exists():
-                text = json.dumps({"error": "vault not configured"})
+            # Vault root: {repo}/data/matheus/ikigai_state/
+            repo_root = Path(__file__).parent.parent.parent  # .../life-ops/ikigai/
+            vault_dir = repo_root / "data" / "matheus" / "ikigai_state"
+            vault_dir.mkdir(parents=True, exist_ok=True)
+
+            # Read from plan_entities.db (written by ikigai_plan_cycle)
+            row = _read_plan_entity(cycle_id)
+            if not row:
+                text = json.dumps({"error": f"no cycle {cycle_id} in plan_entities.db — run ikigai_plan_cycle first"})
             else:
-                row = _read_entity("plan_entities")
-                if not row:
-                    text = json.dumps({"error": f"no cycle {cycle_id}"})
-                else:
-                    try:
-                        log_file = vault / "ikigai_cycle_log.md"
-                        entry = f"\n## Cycle {cycle_id}\n- Date: {dt.date.today().isoformat()}\n- Regime: {row.get('regime')}\n- Q_HE: {row.get('q_he')}"
-                        with open(log_file, "a", encoding="utf-8") as f:
-                            f.write(entry + "\n")
-                        text = json.dumps({"ok": True, "vault_path": str(log_file)})
-                    except Exception as e:
-                        text = json.dumps({"error": str(e)})
+                try:
+                    log_file = vault_dir / f"cycle-{cycle_id}.md"
+                    vs = {
+                        "passion": row.get("passion"),
+                        "skill": row.get("skill"),
+                        "market": row.get("market"),
+                        "revenue": row.get("revenue"),
+                        "course": row.get("course"),
+                    }
+                    content = f"""---
+ueid: ikigai:cycle:{cycle_id}
+cycle_id: {cycle_id}
+date: {dt.date.today().isoformat()}
+regime: {row.get('regime', 'UNKNOWN')}
+q_he: {row.get('q_he')}
+meta_vector: {row.get('meta_vector')}
+vector_scores: {json.dumps(vs)}
+phase: {row.get('phase', 'BUSCA')}
+corrections_count: 0
+prospective_buffer_size: 0
+retrospective_log_size: 0
+---
+
+# IKIGAi Cycle — {cycle_id}
+
+## Vector Scores
+
+| Vector | Score |
+|--------|-------|
+| Passion | {row.get('passion', 'N/A')} |
+| Skill | {row.get('skill', 'N/A')} |
+| Market | {row.get('market', 'N/A')} |
+| Revenue | {row.get('revenue', 'N/A')} |
+| Course | {row.get('course', 'N/A')} |
+
+**Meta-vector:** {row.get('meta_vector', 'N/A')}
+
+## Regime
+
+- **State:** {row.get('regime', 'UNKNOWN')}
+- **Q_HE:** {row.get('q_he', 'N/A')}
+
+## Corrections (0)
+
+_No corrections emitted in this cycle._
+
+## Prospective Buffer (0)
+
+"""
+                    log_file.write_text(content, encoding="utf-8")
+                    text = json.dumps({"ok": True, "vault_path": str(log_file)})
+                except Exception as e:
+                    text = json.dumps({"error": str(e)})
 
     else:
         text = f"Unknown tool: {name}"
