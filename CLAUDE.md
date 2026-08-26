@@ -1,408 +1,402 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working in code in this repository.
 
-## Project Overview
+> **Tooling split:** This file is Claude-Code-specific. The near-identical `AGENTS.md` is for
+> Codex (Codex.ai/code). Both files MUST agree on the load-bearing invariants in
+> §"Global Conventions" below. When they drift, this file wins for Claude Code.
 
-**Algorithmic Life OS** — A personal productivity orchestration system written in Python. It acts as a CLI hub (`life`) that integrates domain "centrals" (task, knowledge, research) with daily/weekly handlers and a plugin system.
+---
 
-**Active development has one app:** `life-ops/operational/` (the PAV productivity kernel). Everything else is either a supported integration (`vibe-ops/`, `taskwarrior/`) or documentation (`strategics/`, `docs/`, `vibe-ops/planning/`, `vibe-ops/architecture/`).
+## What This Repo Is
 
-| Subdir | Role |
-|--------|------|
-| `life-ops/operational/` | **Active development** — PAV productivity kernel (uv workspace: `packages/core`, `apps/cli`, `apps/tui`) |
-| `vibe-ops/` | R&D cybernetic engine — Target-Sensor-Adjuster loop, Obsidian ↔ SQLite ↔ Taskwarrior |
-| `taskwarrior/` | Taskwarrior binary + scripts + config consumed by the `task` central |
-| `strategics/` | PT-BR strategy documents (frameworks, models, operational analysis) |
-| `docs/` | Master reading index (`ÍNDICE PROGRESSIVO.md`) |
-| `diagrams/` | Mermaid source + rendered PNGs |
-| `logs/` | Runtime logs |
+**Algorithmic Life OS** — a personal productivity orchestration system, 100% local, single-user, append-only.
 
-## Running the Code
+Three subsystems, one kernel:
 
-### `life/` — Root CLI hub
-
-From repo root (requires parent dir on `PYTHONPATH`, or an editable install):
-
-```bash
-python -m life.cli --help
-
-# Handlers
-python -m life.cli daily run [--skip-task]
-python -m life.cli weekly run [--skip-review] [--skip-metrics]
-
-# Centrals
-python -m life.cli task today
-python -m life.cli task daily-review
-python -m life.cli task weekly-review
-python -m life.cli task metrics
-python -m life.cli knowledge read
-python -m life.cli knowledge mindmap-phase0
-python -m life.cli research map --depth 2
-python -m life.cli research search --backend vector
-
-# Plugins & config
-python -m life.cli submodules
-python -m life.cli health
-python -m life.cli config-show [--path] [--json]
-
-# Tests
-python -m life.cli test           # discover + run pytest across submodules
-python -m life.cli test --list    # list discovered test dirs
-python -m life.cli test -s <name> # run one submodule's tests
+```
+life/ (root) ── Typer CLI hub: centrals (task, knowledge, research) + handlers (daily, weekly) + plugins
+   │
+   ├── subprocess ──→ vibe-ops/   Cybernetic engine: Target→Sensor→Adjuster→Persist→Sync→Index
+   │
+   └── (no link)    life-ops/operational/  PAV productivity kernel (uv workspace — must stay decoupled)
 ```
 
-All canonical source files use `life.cli.config` / `life.cli.log`. The root `__init__.py` enables `python -m life.cli`.
+**One app is under active development:** `life-ops/operational/` (the PAV productivity kernel).
+Everything else is either a stable integration (`vibe-ops/`, `taskwarrior/`, `life_tatics/`) or
+documentation (`strategics/`, `docs/`, `cluster docs`, `code-docs/`).
 
-### `life-ops/operational/` — PAV Productivity Kernel
+**Repo:** github.com/matheusmendes720/ikigai
+**Project Board:** github.com/users/matheusmendes720/projects/5
+**CI:** `.github/workflows/ci.yml` — runs `ruff check`, `ruff format --check`, `mypy src/`,
+and `pytest -m "not e2e"` per package in a matrix.
 
-A **uv workspace** with three packages: `packages/core` (pure logic), `apps/cli` (Typer CLI), `apps/tui` (Textual TUI).
+---
+
+## Recent Major Changes
+
+Rolling highlights from the last few commits on the active branch (`gitbutler/workspace`):
+
+- **`7bbb28f`** — chore: update `CLAUDE.md`, `README.md`, pre-commit config with TUI + v2_renderers. Docs aligned with the new 8-screen Textual TUI and the v2 design system widgets.
+- **`8077bda`** — test(unit+tui): commit core, cli integration, e2e, home pause, report v2 flags, tui launch coverage. Suite now spans 72 pytest files (unit / integration / property / e2e / tui / ui).
+- **`0908b5b`** — feat(tui): Textual screens and charts for analytics, dashboard, daily flow, habits, journal, metrics, policy, plus Help modal. BINDINGS `1`–`8` switch screens, `q` quits, `Ctrl+H` opens help.
+- **`95f0d47`** — chore(cli): commit `seed`, `csv_loader`, `dataset_selector`, and the v2 formatters — the `pav demo seed` flow + `TIME_TASKER_DATASET=<name>` boot loader are now first-class.
+- **`11397bf`** — chore(cli): commit `state`, `services`, `console`, `telemetry`, `home_v2`. The 15 `_PersistentRepo` singletons in `state.py` ship with cross-process mtime reload (`reload_stale_repos()`) so the TUI reflects CLI writes from other terminals within one refresh tick.
+
+When picking up a refactor or adding a new screen/command, run `git log --oneline -20` first to spot the most recent contracts you must respect.
+
+---
+
+## Global Conventions (load-bearing invariants)
+
+Violations break the system. Re-read before any non-trivial edit.
+
+| Rule | Where it applies | What it forbids |
+|------|------------------|-----------------|
+| **Standalone** | `life-ops/operational/` | Imports from root `life/` or `vibe-ops/` — must remain decoupled |
+| **Append-only** | `vibe-ops/`, `strategics/`, all cluster docs | Deleting, pruning, or rewriting existing content; reorg only if every string survives intact |
+| **Zero LLM** | Daily/weekly pipelines | NLP / LLM calls in the hot path — pure arithmetic only |
+| **`--json` everywhere** | All new CLI commands | A new subcommand without machine-readable output |
+| **Pydantic v2 strict** | All data schemas | `frozen=True`, `extra="forbid"`, strict mode — non-negotiable |
+| **Idempotent pipelines** | Sync, indexing, persist stages | Non-deterministic writes — keys must be `upstream_id` / `ueid` |
+| **Fully local** | The whole repo | Cloud deps, API keys, OAuth — SQLite + filesystem only |
+| **PT-BR ↔ EN split** | Prose vs code | Strategic prose in Portuguese; code, file names, AI specs in English |
+| **Error collection** | All handlers | Short-circuiting on partial failure — collect and report at end |
+| **Typer over argparse** | New CLI surfaces in `life/` | argparse in root CLI; vibe-ops `main.py` is the only legacy argparse surface |
+
+---
+
+## Build / Run / Test
+
+### Root CLI hub (`life/`)
+
+From repo root:
+
+```bash
+# Test discovery across submodules
+python -m life.cli test                 # discover + run pytest across submodules
+python -m life.cli test -s <name>       # one submodule
+python -m life.cli test --list          # list discovered test dirs
+
+# Handlers / centrals (run from repo root; root __init__.py enables `python -m life.cli`)
+python -m life.cli daily run [--skip-task]
+python -m life.cli weekly run [--skip-review] [--skip-metrics]
+python -m life.cli task today --json
+python -m life.cli health
+```
+
+### PAV kernel (`life-ops/operational/`) — primary dev target
+
+This is a **uv workspace** (single root `pyproject.toml`; per-package `pyproject.toml`s). Poetry is not used here.
 
 ```bash
 cd life-ops/operational
+uv sync                                                      # install whole workspace
 
-# Install (uv or poetry)
-uv sync          # or: poetry install
-
-# CLI entry points (all equivalent)
+# CLI entry points — all three are equivalent
 pav --help
 pav-os --help
 operational --help
 
-# Interactive menu
-pav home
+pav home                                                     # interactive 10-item menu
+pav tui                                                      # launch TUI (defaults to dashboard)
+pav tui --screen daily_flow --debug --golden                 # screen/dataset/debug flags
+pav doctor                                                   # health check
+pav demo seed                                                # populate 7 days of mock data
 
-# TUI screens
-pav screen dashboard    # jump to specific screen
-pav screen daily_flow
-pav screen habits
-pav screen journal
-pav screen metrics
-pav screen pomodoro
-pav screen policy
-
-# Quality gates
-uv run pytest
-uv run ruff check packages/core/src/
-uv run ruff format --check packages/core/src/
-uv run mypy packages/core/src/
-uv run verify_sprint
-
-# Single test
-uv run pytest packages/core/src/operational/core/tests/test_habit_engine.py -v -k "test_qhe"
+# Quality gates (CI runs these per package — never commit red)
+uv run ruff check src/
+uv run ruff format --check src/
+uv run mypy src/
+uv run pytest                          # full suite — markers: unit / integration / property / e2e / tui
+uv run pytest tests/unit/cli -v        # narrow by directory
+uv run pytest -k "test_qhe" -v         # narrow by test name
+uv run pytest packages/core/tests/test_habit_engine.py::TestHabitEngine::test_qhe_composite -v   # fully qualified
+uv run verify_sprint                   # the sprint verifier (scripts/verify_sprint.sh)
+uv run pre-commit run --all-files      # gating hooks (ruff + mypy + whitespace)
 ```
 
-**Quality gates:** ruff ALL rules, mypy --strict, 2518 tests (unit/integration/property/e2e markers).
+**Test suite:** 72 pytest test files across `tests/` (unit/integration/property/e2e/tui/ui) — markers: `unit`, `integration`, `property`, `e2e`, `tui`. CI runs `pytest -m "not e2e"` per package. To get an exact test count after a refactor: `uv run pytest --collect-only -q | tail -1`.
 
-### `vibe-ops/` — Cybernetic Engine
+### Vibe-ops cybernetic engine (`vibe-ops/`)
 
 ```bash
 cd vibe-ops
-
-# argparse CLI
-python src/main.py run-daily [--date YYYY-MM-DD]
+python src/main.py run-daily [--date YYYY-MM-DD]              # argparse CLI
 python src/main.py status
-python src/main.py gaps
-python src/main.py sync --vault-path <path>
-
-# Typer+Rich CLI
-python src/vibe_cli.py sync_file [--vault-path]
-python src/vibe_cli.py hybrid_search "query"
-python src/vibe_cli.py gaps
+python src/vibe_cli.py hybrid_search "query"                  # Typer+Rich surface
 python src/vibe_cli.py debt_dashboard
-
-# Rust TUI
-cd vibeops-tui && cargo run
+cd vibeops-tui && cargo run                                   # Rust TUI polling ../vibe_ops.db
 ```
 
 `run_loop.ps1` is the Windows launcher for the daily loop.
 
+### Life-tatics (`life-ops/life_tatics/`)
+
+```bash
+cd life-ops && poetry install && poetry run life-tatics --help
+```
+
+### LangGraph dev workflow (Makefile)
+
+```bash
+make help                                                    # show targets
+make dev                                                     # langgraph dev server on :2024
+make dev-graph NAME=planner                                  # run one graph
+make test                                                    # full cross-workspace pytest
+make logs / make status / make clean
+```
+
 ---
 
-## Architecture
+## Architecture — Big Picture
 
-### Root CLI — Central-Handler Pattern
+### Root CLI: central-handler pattern
 
 ```
 life/
-├── centrals/    domain hubs: task, knowledge, research
-├── handlers/    daily.py, weekly.py — orchestrate centrals as subprocesses
-├── plugins/     plugin protocol, loader, builtin health_check
-└── cli/         Typer app, config, logging, test runner
+├── cli/cli.py          — Typer app root; mounts centrals, handlers, plugins
+├── cli/config.py       — LifeConfig dataclass; YAML + env loading
+├── cli/log.py          — Structured logger
+├── handlers/           — daily.py, weekly.py (call centrals via subprocess)
+├── centrals/           — Thin domain wrappers (delegate to external submodules)
+│   └── base.py         — BaseCentral.run_cli(cwd, module, args, json_out) returns {ok, stdout, stderr, data, error?}
+└── plugins/            — Plugin discovery + lifecycle hooks; PluginProtocol in plugins/protocol.py
 ```
 
-**`centrals/`** expose `typer.Typer` sub-apps mounted by `cli/cli.py`. They delegate to standalone submodules:
+`BaseCentral.run_cli` (in `centrals/base.py`) is the integration glue — it shells out, parses
+JSON, and returns a dict. Handlers calling centrals via `python -m life.cli <central> <cmd> --json`
+is recursive by design: **handlers double as integration tests**.
 
-| Central | Delegate |
-|---------|----------|
-| `task` | Taskwarrior binary + `taskwarrior/scripts/` |
-| `knowledge` | `leitura`, `mindmaps`, `notes` (standalone Python CLIs) |
-| `research` | `research` (standalone Python CLI) |
-
-**`handlers/`** (`daily.py`, `weekly.py`) run centrals via `python -m life.cli <central> <cmd> --json` — recursively invoking the CLI. This makes handlers double as integration tests.
-
-**`BaseCentral`** (`centrals/base.py`):
-```python
-run_cli(cwd: Path, module: str, args: list[str], json_out: bool = True) -> dict[str, Any]
-# Returns {ok, stdout, stderr, data, error?}
-```
-
-### Plugin System
-
-Plugins implement `PluginProtocol` (`plugins/protocol.py`):
-```python
-def register(self, app: typer.Typer) -> None: ...
-def before_daily(self, context) -> Optional[dict]: ...  # planned but not yet called
-def after_daily(self, context) -> None: ...
-def before_weekly(self, context) -> Optional[dict]: ...
-def after_weekly(self, context) -> None: ...
-```
-
-`plugins/loader.py` discovers plugins from `cfg.plugin_dirs`. Entry point is a module-level `PLUGIN`, `plugin`, or `Plugin` attribute. `register_plugins(app)` is called at import time in `cli/cli.py`.
-
-`plugins/builtin/health_check.py` is the only built-in — registers the `health` command.
-
-### Config — `cli/config.py`
-
-`LifeConfig` / `load_config()` loads `config/life.yaml` if present, else hardcoded defaults.
-
-Key fields: `root`, `log_dir`, `plugin_dirs`, `submodules` (name → path dict), `task_scripts`, `notes_store`.
-
-`get_submodule_path(name)` returns `{"ok": False, "error": "... not found"}` for unknown submodules instead of raising.
-
-### `life-ops/operational/` — uv Workspace Structure
+### PAV kernel: 3-layer MVC inside a uv workspace
 
 ```
 life-ops/operational/
-├── pyproject.toml              # uv workspace root
-├── packages/
-│   └── core/
-│       ├── pyproject.toml
-│       └── src/operational/
-│           ├── constants.py    PAVConstants (22 frozen fields)
-│           ├── enums.py       Period, RoutineType, HabitCategory, PolicyState …
-│           ├── types.py       NewType, Protocol, TypeAlias
-│           ├── exceptions.py  10 PAV error codes
-│           ├── entities/      10 Pydantic v2 models (frozen, extra=forbid)
-│           ├── core/          Pure logic: habit_engine, policy_engine,
-│           │                  pomodoro_machine, sleep_calculator,
-│           │                  scenario_classifier, consolidator …
-│           ├── persistence/   Repository Protocol + InMemory + SQLite + migrations
-│           ├── parsers/      YAML/frontmatter → Pydantic
-│           ├── reports/      Markdown daily/weekly generators
-│           └── meta/         EntityRegistry, validators, factories
-├── apps/
-│   ├── cli/
-│   │   ├── pyproject.toml   # pav, pav-os, operational entry points
-│   │   └── src/operational/cli/
-│   │       ├── app.py        12 sub-typers
-│   │       ├── home_v2.py    interactive 10-item menu
-│   │       ├── state.py      14 _PersistentRepo (JSON flat files)
-│   │       ├── csv_loader.py
-│   │       └── commands/     one file per subcommand group
-│   └── tui/
-│       ├── pyproject.toml
-│       └── src/operational/tui/
-│           ├── app.py        PAVApp — SCREENS dict + BINDINGS
-│           ├── theme.py      get_tui_theme()
-│           ├── charts.py     plotext chart renderers
-│           ├── screens/      7 screens
-│           └── widgets/      kpi_card, regime_bar, sparkline …
-├── tests/                     2518 pytest tests (unit/integration/property/e2e)
-├── docs/                     ADR + sprint reports
-└── scripts/                  verify_sprint, manual_test.py
+├── packages/core/src/operational/        Layer 1 — pure logic, zero I/O, no Rich/Typer/Textual
+│   ├── entities/                         15 Pydantic v2 models (frozen, extra=forbid, isolated — no cross-entity imports)
+│   ├── core/                             habit_engine · policy_engine · pomodoro_machine · sleep_calculator · scenario_classifier · consolidator
+│   ├── persistence/                      Repository Protocol + InMemory + SQLite + migrations
+│   ├── parsers/                          YAML/frontmatter → Pydantic
+│   └── reports/                          Markdown daily/weekly narrative generators
+│
+├── apps/cli/src/operational/cli/         Layer 3 — thin Typer controllers (15 sub-typers). All logic in core/.
+│
+├── apps/tui/src/operational/tui/         Textual TUI (8 screens + Help modal). PAVApp.SCREENS dict + BINDINGS in app.py.
+│
+└── tests/                                pytest (markers: unit / integration / property / e2e / tui)
 ```
 
-**Core algorithms (pure arithmetic, no LLM):**
-- `H(t) = 1 − e^(−λ·streak)` — habit consistency model
-- `E = R·(1 − H(t))` — energy required
-- Q_HE composite score
-- 4-state PolicyEngine FSM: PUSH → MAINTAIN → REDUCE → RECOVER
-- 8-state Pomodoro state machine + scenario classifier
+**PAV persistence** lives in `apps/cli/src/operational/cli/state.py` — 15 `_PersistentRepo`
+instances backed by JSON flat files in `~/.time-tasker/`. Each repo tracks the on-disk mtime
+so the TUI's refresh loop can detect cross-process writes (e.g. a CLI mutation committed
+from another terminal) via `_PersistentRepo.needs_reload()` / `reload_stale_repos()`.
+TUI uses `switch_screen()` (pop+push) for top-level navigation, `push_screen()` only for
+modal overlays (help). This prevents screen-stack leaks.
 
-### `vibe-ops/` — Cybernetic Architecture
+**Core algorithms are pure arithmetic** — the load-bearing formulas:
 
-Target-Sensor-Adjuster loop (`src/cybernetics/daily_loop.py`):
+| Algorithm | Formula | Module |
+|-----------|---------|--------|
+| Habit consistency | `H(t) = 1 − e^(−λ·streak)` | `core/habit_engine.py` |
+| Energy required | `E = R·(1 − H(t))` | `core/habit_engine.py` |
+| Q_HE composite | weighted composite of H, E, streak | `core/habit_engine.py` |
+| PolicyEngine FSM | 4 states + hysteresis: PUSH→MAINTAIN→REDUCE→RECOVER | `core/policy_engine.py` |
+| Pomodoro SM | 8 states + scenario classifier | `core/pomodoro_machine.py` |
+
+**Design tokens** (colors, glyphs, severity styles) live exclusively in
+`apps/cli/src/operational/ui/tokens.py`. Never hardcode colors in components. The v2 widget
+library is in `ui/components_v2.py` (~30 production widgets).
+
+**CSV datasets** for visual/CLI regression are selected with `TIME_TASKER_DATASET=synthetic`
+or `pav demo seed`. Datasets are defined in `apps/cli/src/operational/cli/dataset_selector.py`
+(`golden` + `synthetic`).
+
+### Vibe-ops: Target-Sensor-Adjuster loop
 
 ```
-TARGET → SENSOR → ADJUSTER → PERSIST → SYNC → INDEX
+src/
+├── main.py              argparse CLI: run-daily, status, gaps, sync
+├── vibe_cli.py         Typer+Rich CLI: sync_file, hybrid_search, gaps, debt_dashboard
+├── cybernetics/         CyberneticDailyLoop (the cybernetic engine itself)
+├── middleware/          SyncEngine — the ONLY module touching all three systems
+├── pipeline/            ~30 modules: policy_engine, ikigai_scorer, rag_indexer, …
+├── models/              17 Pydantic entity modules
+├── storage/             SQLite + ChromaDB + sqlite-vec + UEID manager
+├── contracts/           YAML + Pydantic sync payloads
+├── embeddings/          OpenAI / local / hash-moq provider abstraction
+└── vibeops-tui/         Rust TUI (ratatui) — polls vibe_ops.db
 ```
 
-| Stage | Module | Responsibility |
-|-------|--------|----------------|
-| TARGET | `IkigaiScorer` | Reads IKIGAi profile, emits `qhe_target`, `c_comp_target` |
-| SENSOR | aggregates | `study_sessions.hours`, `habit_states` (24h window) |
-| ADJUSTER | `PolicyEngine` | 4-state FSM → `PolicyDecision` |
-| PERSIST | writes | `PolicyDecision` row to `policy_decisions` table |
-| SYNC | `SyncEngine` | Obsidian ↔ SQLite ↔ Taskwarrior (idempotent, `upstream_id` SHA-256) |
-| INDEX | `HybridRAGIndexer` | Re-vectors vault into SQLite-vec / ChromaDB |
+**`SyncEngine`** (`src/middleware/sync_engine.py`) — the chokepoint that bridges
+Obsidian ↔ SQLite ↔ Taskwarrior. UEID format is `<CLUSTER>:<ENTITY>:<ID>`
+(e.g. `study:topic:st_python_01`). All keys are content-addressed (`upstream_id` SHA-256) so
+re-runs are idempotent.
 
-**PolicyEngine states:**
+**PolicyEngine states (vibe-ops):**
 
-| State | hardwork_budget | pause_min | sleep_target | QHE target |
-|-------|----------------|-----------|--------------|------------|
+| State | hardwork_budget | pause_min | sleep_target | Q_HE target |
+|-------|-----------------|-----------|--------------|-------------|
 | PUSH | 4.0 h | 10 min | 7.5 h | 0.85 |
 | MAINTAIN | 2.5 h | 15 min | 8.0 h | 0.65 |
 | REDUCE | 1.5 h | 20 min | 8.5 h | 0.45 |
 | RECOVER | 0.5 h | 30 min | 9.0 h | 0.25 |
 
-Severity (CRITICAL/HIGH/MEDIUM/LOW) computed from infractions + hours_deviation + consistency. Transitions have hysteresis — no upward promotion without sustained performance.
+Severity (CRITICAL/HIGH/MEDIUM/LOW) = function of infractions + hours_deviation + consistency.
+**Transitions have hysteresis** — no upward promotion without sustained performance.
 
-**SyncEngine** (`src/middleware/sync_engine.py`) — only module touching all three systems:
-- `sync_obsidian_to_sqlite()` — parses Markdown frontmatter → `planning_entities`
-- `sync_sqlite_to_taskwarrior()` — injects TW tasks with `upstream_id` UDA + policy tags
-- `sync_taskwarrior_to_sqlite()` — marks `roadmap_sync` rows completed on TW task close
+### 3 Operational Clusters (cross-cutting)
 
-**UEID format:** `<CLUSTER>:<ENTITY>:<ID>` e.g. `study:topic:st_python_01`
+Each cluster is a Standalone Memory Machine (self-contained, cross-referenced):
 
-**Vibe-ops src/ layout:**
+| Cluster | Canonical Doc | Focus |
+|---------|---------------|-------|
+| **PLAN** | `CLUSTER_PLAN.md` | Routines, habits, Q_HE, daily/weekly rhythm |
+| **PROJECT** | `CLUSTER_PROJ.md` | PMO ↔ Taskwarrior, roadmap, changelog |
+| **STUDIES** | `CLUSTER_STUDY.md` | PKM, prerequisites graph, cognitive debt |
 
-| Subdir | Purpose |
-|--------|---------|
-| `main.py` | argparse CLI: `run-daily`, `status`, `gaps`, `sync` |
-| `vibe_cli.py` | Typer+Rich CLI: `sync_file`, `hybrid_search`, `gaps`, `debt_dashboard` |
-| `cybernetics/` | `CyberneticDailyLoop`, `BinaryKnowledgeTree`, `GapSearchEngine` |
-| `pipeline/` | `policy_engine`, `rag_indexer`, `mvl_orchestrator`, `enrichment_engine`, `cognitive_debt_tracker`, `sync_orchestrator`, `reverse_sync`, `ikigai_scorer` |
-| `models/` | Pydantic entities: temporal, habit, study, project, metric, policy, rag, ikigai, knowledge, feedback, contracts |
-| `storage/` | SQLite/SQLAlchemy ORM, `sqlite-vec`, ChromaDB adapter, UEID manager |
-| `middleware/` | `SyncEngine` |
-| `embeddings/` | OpenAI / local / hash-moq provider abstraction |
-| `contracts/` | YAML/JSON schemas + Pydantic sync payloads |
-| `migrations/` | SQL schema + Alembic-style Python migrations |
+Meta-brain: IKIGAi (5 vectors: Passion, Skill, Market, Revenue, Course) — implemented across
+`vibe-ops/base/IKIGAi.md` (conceptual) and `life-ops/planner/ikigai_planning/` (mathematical specs).
 
-**Rust TUI** (`vibeops-tui/`): ratatui dashboard polling `../vibe_ops.db` every second.
+**Other cross-cutting prose:** `CONCEPTUAL_MODEL.md` (Tensão→Comportamento→Solução,
+5 tensões, 4 regimes), `SYSTEMS_TOPOLOGY.md` (middleware M1–M8, cybernetic loop),
+`ARCHITECTURE_INDEX.md` (master index, 50+ cross-refs).
+
+---
+
+## Subsystem map (one-line per dir)
+
+| Subdir | Role | Status | Package manager |
+|--------|------|--------|-----------------|
+| `life-ops/operational/` | **PAV productivity kernel** | 🟢 Active | uv workspace |
+| `life-ops/life_tatics/` | Standalone time-block planner | 🟡 Stable | Poetry |
+| `life-ops/planner/`, `life-ops/ikigai/` | IKIGAi drilldown + math specs | 🟡 Stable | — |
+| `vibe-ops/` | Cybernetic engine (Target-Sensor-Adjuster) | 🟡 Stable | uv |
+| `taskwarrior/` | TW binary + scripts + config consumed by `life/` centrals | 🟢 Stable | — |
+| `code-docs/{prd,brd,ard,adr}/` | Product / business / arch requirements | 🟡 Stable | — |
+| `strategics/` | PT-BR strategy docs (frameworks, models) | 🟢 Read-only | — |
+| `docs/`, `diagrams/` | Master reading index + Mermaid source | 🟢 Read-only | — |
+| `logs/` | Runtime stdout/stderr | — | — |
 
 ---
 
 ## Testing Strategy
 
-**Root package:** No test directory at root. Test coverage lives in submodules. Use `python -m life.cli test` to discover and run tests across all submodule paths.
+| Subtree | Test location | Runner | Notes |
+|---------|---------------|--------|-------|
+| Root `life/` | No test dir at root; tests live in submodules | `python -m life.cli test` | Discovers across all `cfg.submodules` |
+| `life-ops/operational/` | `tests/` (also per-package `tests/`) | `uv run pytest` | Markers: `unit` / `integration` / `property` / `e2e` / `tui`. CI runs `pytest -m "not e2e"`. |
+| `vibe-ops/` | `tests/` | `pytest` | In-memory SQLite + mocked ChromaDB |
 
-**`life-ops/operational/tests/`:** 2518 pytest tests with markers: `unit`, `integration`, `property`, `e2e`.
+**`vibe-ops/scratch/`** has informal `test_*.py` exploration scripts — **NOT** part of the
+official suite. Do not run them as tests. The spec is at `vibe-ops/SPEC.md`.
 
-**`vibe-ops/tests/`:** pytest suite with in-memory SQLite fixtures and mocked ChromaDB. **`vibe-ops/scratch/`** has informal `test_*.py` exploration scripts — **not** part of the official test suite.
+**Adding tests:** place in the right `tests/` directory; use pytest fixtures; mock
+external services (ChromaDB, Taskwarrior, network).
 
-**Adding tests:** Place them in the appropriate `tests/` directory and use pytest fixtures. Mock external services (ChromaDB, Taskwarrior, etc.).
+---
+
+## Where to Start (by task)
+
+| Task | Start here |
+|------|-----------|
+| New to the codebase | `README.md` → `ARCHITECTURE_INDEX.md` → relevant cluster doc |
+| Implementing in PAV | `life-ops/operational/SPEC.md` → `packages/core/src/operational/` |
+| Running the daily/weekly loop | `life-ops/operational/` → `pav home` (interactive) or `pav tui --screen <name>` |
+| Touching `vibe-ops/` | Read the **Append-Only Rule** (§Global Conventions) before writing anything |
+| Tracing a bug through 3 systems | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Renaming / extracting a symbol | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` (never grep+replace) |
+| Auditing blast radius before edit | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Designing a feature | `superpowers:brainstorming` before `EnterPlanMode` |
+| PR review | `python .github/scripts/code_review.py --base <branch> --review-format` (invoked by CI) |
+
+---
+
+## Claude-Code-Specific Operations
+
+### Claude Flow v3 Hook Pipeline (`.codex/`)
+
+This project wires the Claude Flow v3 hook chain through `.codex/hooks.json` (139 lines, 8 hook
+types) and `.codex/config.toml`. When `CLAUDE_FLOW_V3_ENABLED=true` and `CLAUDE_FLOW_HOOKS_ENABLED=true`
+are set (see `[shell_environment_policy.set]` in `.codex/config.toml`), every Claude Code session in
+this repo runs through the chain:
+
+| Hook event | Fires on | Handler |
+|------------|----------|---------|
+| `PreToolUse` (Bash) | every Bash invocation | `hook-handler.cjs pre-bash` — pre-flight risk check |
+| `PreToolUse` (Write/Edit/MultiEdit) | every edit | `hook-handler.cjs pre-edit` — blast-radius probe |
+| `PostToolUse` (Write/Edit/MultiEdit) | every edit | `hook-handler.cjs post-edit` — auto-memory persist |
+| `PostToolUse` (Bash) | every Bash invocation | `hook-handler.cjs post-bash` — outcome capture |
+| `PreCompact` (manual / auto) | context compaction | `hook-handler.cjs compact-*` + `session-end` |
+| `SessionStart` | new session | `hook-handler.cjs session-restore` + `auto-memory-hook.mjs import` |
+| `UserPromptSubmit` | every user turn | `hook-handler.cjs route` — task → optimal model/tier |
+| `SubagentStart` / `SubagentStop` | subagent lifecycle | `hook-handler.cjs status` / `post-task` |
+| `Stop` | session end | `auto-memory-hook.mjs sync` — flush to `.swarm/memory.db` |
+
+The handler chain lives in `.claude/helpers/hook-handler.cjs` (project-local) with a fallback to
+`%USERPROFILE%\.claude\helpers\hook-handler.cjs` (user-global). If a hook blocks, it surfaces in the
+transcript with the failing command — investigate that line before retrying. The
+`hook-handler.cjs pre-bash` step is the one most likely to refuse commands it classifies as
+risky (e.g. bulk `rm`, force-push, secret exfiltration patterns).
+
+### Skills (`.claude/skills/`)
+
+Loaded via the `Skill` tool — **never read them with file tools** (the harness loads them with
+full activation context). Load `superpowers:using-superpowers` before any non-trivial task.
+
+### SessionStart hook (auto-runs)
+
+A `SessionStart:startup` hook instructs Claude Code to always use `codebase-memory-mcp` tools
+**first** for code exploration: `search_graph`, `trace_path`, `get_code_snippet`, `query_graph`,
+`get_architecture`, `search_code`. Fall back to `Grep`/`Glob`/`Read` only for text, configs,
+and non-code files.
+
+The repo is indexed by **GitNexus** as project `life` (symbols, relationships, execution flows).
+Skill paths are at `.claude/skills/gitnexus/` (NOT `.Codex/` — that path in older docs is
+Codex-only):
+
+| Task | Skill |
+|------|-------|
+| Architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tool reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
+
+**Before editing any symbol:** run blast-radius analysis. If HIGH or CRITICAL, do not proceed
+without user approval. **Before committing:** verify with `detect_changes()` that only expected
+symbols / flows are affected. Never use find-and-replace for renames — use the GitNexus
+`rename` tool.
+
+If the GitNexus index is stale, run `node .gitnexus/run.cjs analyze` from project root. No
+`.gitnexus/run.cjs`? Try `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`).
+
+---
+
+## Refactor Protocol (for `vibe-ops/` and append-only surfaces)
+
+If asked to refactor anything in `vibe-ops/`, `strategics/`, or a cluster doc:
+
+1. **Stop** — do not start editing.
+2. **Propose an Action Plan** — list every file to touch, every string to preserve, the migration path.
+3. **Wait for the Approval Gate** — explicit user "go".
+4. **Only then mutate** — and verify every pre-existing string survives byte-for-byte.
+
+This applies to renames, splits, extractions, and re-organizations. The append-only rule
+(§Global Conventions) is enforced by this protocol.
 
 ---
 
 ## Security & Deployment
 
-- **Fully local / air-gapped by design.** No API keys, OAuth, or network services required for core operation.
-- SQLite databases (`vibe_ops.db`, `test_vibe.db`) and ChromaDB (`chroma_db/`) reside inside the working directory.
-- No secrets management infrastructure present.
+- **Fully local / air-gapped by design.** No API keys, OAuth, or network services required for
+  core operation.
+- SQLite databases (`vibe_ops.db`, `test_vibe.db`) and ChromaDB (`chroma_db/`) reside inside
+  the working directory.
+- No secrets-management infrastructure present.
 - Deployment is manual: run PowerShell scripts or Python modules directly on the host machine.
 - The Rust TUI reads from `../vibe_ops.db` relative to its executable location.
 
 ---
 
-## Important Rules
-
-### `life-ops/operational/` — Standalone Rule
-- **Must remain decoupled.** No imports from root `life/` or `vibe-ops/`.
-- Any new CLI command must support `--json` for machine-readable output.
-- When modifying domain logic or CLI features, update `life-ops/operational/SPEC.md`.
-- **Quality gates:** 2518 tests, ruff ALL rules, mypy --strict, pre-commit hooks.
-
-### `vibe-ops/` — Append-Only Rule
-- **Never delete, prune, or rewrite** existing sessions, topics, sub-topics, or paragraphs.
-- Re-organization is allowed only if every pre-existing string survives intact.
-- **Refactor Protocol:** If asked to refactor, stop → propose Action Plan → wait for Approval Gate → only then mutate.
-
-### General
-- Prefer **Typer** for new CLI surfaces in `life/`.
-- Support `--json` on all new commands wherever feasible.
-- Centrals should stay thin — delegate to submodules or scripts.
-- Use `from __future__ import annotations` at top of Python files.
-- Error collection (not abort) — handlers collect all errors and report at end rather than short-circuiting.
-
----
-
-## File Roles Quick Reference
-
-| File / Dir | Purpose |
-|------------|---------|
-| `cli/cli.py` | Main Typer app; registers centrals, handlers, plugins |
-| `cli/config.py` | `LifeConfig` dataclass; YAML + env loading |
-| `cli/log.py` | Structured logging (plain or JSON) to file + stderr |
-| `cli/test_runner.py` | Pytest discovery & runner across submodules |
-| `centrals/base.py` | `BaseCentral` with `run_cli()` subprocess helper |
-| `centrals/task.py` | Task central → Taskwarrior binary |
-| `centrals/knowledge.py` | Knowledge central → `leitura`, `mindmaps`, `notes` |
-| `centrals/research.py` | Research central → `research` CLI |
-| `plugins/protocol.py` | `PluginProtocol` (register + lifecycle hooks) |
-| `plugins/loader.py` | File-system plugin discovery |
-| `plugins/builtin/health_check.py` | Built-in: registers `health` command |
-| `handlers/daily.py` | Orchestrates centrals for daily run |
-| `handlers/weekly.py` | Orchestrates centrals for weekly run |
-| `vibe-ops/src/main.py` | Cybernetic CLI entry (argparse) |
-| `vibe-ops/src/vibe_cli.py` | High-level Typer+Rich surface |
-| `vibe-ops/src/cybernetics/daily_loop.py` | Target-Sensor-Adjuster loop |
-| `vibe-ops/src/pipeline/policy_engine.py` | 4-state policy FSM |
-| `vibe-ops/src/middleware/sync_engine.py` | Obsidian ↔ SQLite ↔ Taskwarrior |
-| `vibe-ops/src/storage/schema.sql` | Live database schema |
-| `vibe-ops/migrations/` | SQL + Alembic-style schema migrations |
-| `life-ops/operational/packages/core/src/operational/core/` | Pure arithmetic business logic |
-| `life-ops/operational/apps/cli/src/operational/cli/` | Typer CLI controllers |
-| `life-ops/operational/apps/tui/src/operational/tui/` | Textual TUI (7 screens) |
-
----
-
-## Cluster Doc Quick Index
-
-| File | Domain | Language |
-|------|--------|----------|
-| `CONCEPTUAL_MODEL.md` | Tensão → Comportamento → Solução (5 tensões, 4 regimes) | PT-BR |
-| `SYSTEMS_TOPOLOGY.md` | Middleware map + data flow | PT-BR |
-| `CLUSTER_PLAN.md` | Plan + Personal Productivity (rotinas, blocos, pomodoro) | PT-BR |
-| `CLUSTER_PROJ.md` | Project Execution (PMO ↔ Taskwarrior) | PT-BR |
-| `CLUSTER_STUDY.md` | Studies & Lifelong Learning (PKM + cognitive prerequisites) | PT-BR |
-| `ARCHITECTURE_INDEX.md` | Master index — all layers, 50+ cross-refs | PT-BR/EN |
-
-For ADRs, PRDs, specs see `ARCHITECTURE_INDEX.md §3–§5`.
-
----
-
-<!-- gitnexus:start -->
-## Code Intelligence — GitNexus
-
-This project is indexed by GitNexus as **life** (12741 symbols, 18843 relationships, 173 execution flows).
-
-### When to Use GitNexus vs. Standard Tools
-
-| Situation | Tool |
-|-----------|------|
-| "Where is X used?" / "What calls this function?" | `impact()` — blast radius analysis |
-| "What execution flows involve X?" | `query({query: "concept"})` — ranked process groups |
-| "Walk me through how X works, start to finish" | `context({name: "symbolName"})` — full call graph |
-| "Find a file by name" | Glob / Grep |
-| "Find text inside files" | Grep |
-| Before **any** edit | Run `impact()` first |
-
-**Before editing any symbol:** `impact({target: "symbolName", direction: "upstream"})` and report blast radius. If it returns HIGH or CRITICAL risk, do not proceed without user approval.
-
-**Before committing:** `detect_changes()` to verify only expected symbols and execution flows are affected. For regression review: `detect_changes({scope: "compare", base_ref: "main"})`.
-
-Never rename symbols with find-and-replace — use `rename` which understands the call graph.
-
-### GitNexus Resources
-
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/life/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/life/clusters` | All functional areas |
-| `gitnexus://repo/life/processes` | All execution flows |
-| `gitnexus://repo/life/process/{name}` | Step-by-step execution trace |
-
-| Task | Skill |
-|------|-------|
-| Architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-
-> Index stale? Run `node .gitnexus/run.cjs analyze` from the project root. No `.gitnexus/run.cjs`? Try `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
-
-<!-- gitnexus:end -->
+*When in doubt: the README has the full subsystem map; AGENTS.md has the parallel Codex
+view; this file governs Claude-Code-specific ops + the load-bearing invariants.*

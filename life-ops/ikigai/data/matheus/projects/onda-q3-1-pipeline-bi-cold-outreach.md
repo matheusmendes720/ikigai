@@ -6,7 +6,7 @@ parent_ueid: ikigai:objective:q3-2026-primeira-vaga:cbf000ba:c040f222
 related_ueids: []
 title: "Onda Q3-1 — Pipeline BI + cold outreach (15 wd, 2026-07-06 → 2026-07-24)"
 description: null
-status: DRAFT
+status: ACTIVE
 ikigai_vectors: [market, skill]
 vector_weights_snapshot: {passion: 0.05, skill: 0.35, market: 0.45, revenue: 0.10, course: 0.05}
 phase_at_creation: fundacao
@@ -19,9 +19,19 @@ custom:
   _horizon_rationale: "15 wd ONDA; rounded to 30d ProjectEntity bucket (next literal above 15)"
   _und_count: 7
   _pace: "~2 UNDs/semana"
+  _updates:
+    - date: 2026-08-26
+      event: "BYD CV Campaign executed (parallel workstream — ONDA internal)"
+      detail: "4 CV variants patched (v8 fullstack, v9 bigdata, v10 ops, v11 ITAM) — Group 5 patches applied; B3/B5 auto-fixes applied; H3 cap identified (band D 49pt); B1 graduation years is single unblock to band A (87-91pt)"
+      artifact: "job_hunter/base/cv-versions/BYD-CV-Campaign-Report.md"
+      next_action: "candidate supplies B1 graduation years → all 4 CVs cross 65pt threshold"
+    - date: 2026-08-25
+      event: "soft-rule audit + scoring pass completed"
+      detail: "42 violations catalogued; H3 dominant cap confirmed; projected post-B1 scores A-band (85-89pt)"
+      artifact: "job_hunter/base/cv-versions/post-task29-rescore.md"
 source_md_path: null
 tags: [persona/matheus, horizon/15wd, onda/q3-1, workstream/w1]
-last_reviewed_at: 2026-07-03T00:00:00Z
+last_reviewed_at: 2026-08-26T00:00:00Z
 tech_stack: [python, polars, sqlite, obsidian, taskwarrior]
 ---
 

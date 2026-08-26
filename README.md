@@ -25,8 +25,8 @@
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                        life/ (root)                          │
-│   CLI hub + daily/weekly orchestrator + 5 domain centrals    │
-│   centrals: task · finance · knowledge · research            │
+│   CLI hub + daily/weekly orchestrator + 3 domain centrals    │
+│   centrals: task · knowledge · research                      │
 └────────────────────────────┬─────────────────────────────────┘
                              │ calls via subprocess
          ┌───────────────────┼───────────────────┐
@@ -36,7 +36,7 @@
 │ operational/    │  │ life_tatics/     │  │                 │
 │ (ACTIVE DEV)   │  │ (standalone     │  │ Cybernetic      │
 │ PAV kernel     │  │  time tactics)  │  │ data-mesh       │
-│ 2518 tests     │  │                 │  │ Obs↔SQLite↔TW   │
+│ 2839 tests     │  │                 │  │ Obs↔SQLite↔TW   │
 └─────────────────┘  └─────────────────┘  └─────────────────┘
 ```
 
@@ -66,7 +66,7 @@ pav home                    # interactive menu
 pav screen dashboard        # TUI dashboard
 
 # Quality gates
-uv run pytest              # 2518 tests
+uv run pytest              # 2839 tests
 uv run ruff check packages/core/src/
 uv run mypy packages/core/src/
 ```
@@ -74,10 +74,10 @@ uv run mypy packages/core/src/
 ### Root CLI Hub
 
 ```bash
-cd life-ops/life          # or from repo root with PYTHONPATH
-python -m life.cli daily run
-python -m life.cli weekly run
-python -m life.cli task today --json
+# life/ IS the repo root — run from anywhere with PYTHONPATH=.
+PYTHONPATH=. python -m life.cli daily run
+PYTHONPATH=. python -m life.cli weekly run
+PYTHONPATH=. python -m life.cli task today --json
 ```
 
 ### Vibe-ops (Cybernetic Data-Mesh)
@@ -115,7 +115,6 @@ life/ (root)
 ├── centrals/           — Thin domain wrappers (delegate to external submodules)
 │   ├── base.py         BaseCentral.run_cli() — subprocess helper
 │   ├── task.py         → Taskwarrior binary
-│   ├── finance.py     → fin_ops submodule
 │   ├── knowledge.py    → leitura, mindmaps, notes
 │   └── research.py     → research submodule
 │
@@ -138,7 +137,7 @@ operational/
 │   ├── enums.py          Period, RoutineType, HabitCategory, PolicyState …
 │   ├── types.py          NewType, Protocol, TypeAlias
 │   ├── exceptions.py     10 PAV error codes
-│   ├── entities/         11 Pydantic v2 models (frozen, extra=forbid)
+│   ├── entities/         14 Pydantic v2 models (frozen, extra=forbid)
 │   ├── core/             Pure arithmetic — no I/O, no Rich, no Typer
 │   │   ├── habit_engine.py   H(t)=1−e^(−λ·streak), E=R·(1−H(t)), Q_HE
 │   │   ├── policy_engine.py   4-state FSM: PUSH→MAINTAIN→REDUCE→RECOVER
@@ -162,7 +161,7 @@ operational/
 │   ├── charts.py        plotext chart renderers
 │   └── screens/         dashboard · daily_flow · habits · journal · metrics · pomodoro · policy
 │
-└── tests/               2518 pytest tests (unit/integration/property/e2e)
+└── tests/               2839 pytest tests (unit/integration/property/e2e)
 ```
 
 **Core algorithms (pure arithmetic, zero LLM):**
@@ -192,7 +191,7 @@ src/
 ├── cybernetics/         daily_loop.py (Target-Sensor-Adjuster loop)
 ├── middleware/          sync_engine.py (Obsidian ↔ SQLite ↔ Taskwarrior)
 ├── pipeline/            ~30 modules: policy_engine, ikigai_scorer, rag_indexer…
-├── models/              14 Pydantic entity modules
+├── models/              17 Pydantic entity modules
 ├── storage/             SQLite + ChromaDB + sqlite-vec + UEID manager
 ├── contracts/           YAML + Pydantic sync contracts
 ├── embeddings/          OpenAI / local / hash provider abstraction
@@ -264,7 +263,7 @@ life/                              # Root — CLI hub orchestrator
 ├── diagrams/                      # 6 Mermaid PNGs + source .mmd files
 ├── taskwarrior/                   # TW binary + scripts + config + 7 docs
 ├── handlers/                      # daily.py, weekly.py (orchestrators)
-├── centrals/                      # task · finance · knowledge · research
+├── centrals/                      # task · knowledge · research
 ├── plugins/                      # Plugin discovery + builtin/health_check
 ├── cli/                           # LifeConfig, structured logging, test runner
 └── logs/                          # Runtime stdout/stderr
@@ -291,8 +290,8 @@ life/                              # Root — CLI hub orchestrator
 
 | Metric | Value |
 |--------|-------|
-| Tests (`operational/`) | **2518** pytest (unit/integration/property/e2e) |
-| Pydantic entities | 11 in `operational/`, 14 in `vibe-ops/` |
+| Tests (`operational/`) | **2839** pytest (unit/integration/property/e2e) |
+| Pydantic entities | 14 in `operational/`, 17 in `vibe-ops/` |
 | State machines | 4 (PolicyEngine FSM) + 8 (Pomodoro) + 14 (total) |
 | ADRs | 5 (architecture decisions) |
 | PRDs | 7 (product requirements) |
@@ -312,4 +311,4 @@ life/                              # Root — CLI hub orchestrator
 
 ---
 
-*Algorithmic Life OS — Root README — 2026-06-22*
+*Algorithmic Life OS — Root README — 2026-07-01*

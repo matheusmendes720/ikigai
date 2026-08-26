@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Standalone IKIGAi meta-brain for the Algorithmic Life OS"
 authors = ["Matheus + AI Agent"]
 readme = "README.md"
-packages = [{include = "ikigai", from = "src"}, {include = "mcp_server", from = "src"}]
+packages = [{include = "ikigai", from = "src"}, {include = "mcp_server", from = "src"}, {include = "agents", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -18,6 +18,7 @@ langgraph-checkpoint-sqlite = "^3.1"
 
 [tool.poetry.scripts]
 ikigai-maintainer-mcp = "run_mcp_server:main"
+ikigai-deep-agent = "agents.deepagents_harness:main"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"

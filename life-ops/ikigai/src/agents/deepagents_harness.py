@@ -19,9 +19,9 @@ from pathlib import Path
 from typing import Any
 
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "ikigai" / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from ikigai_maintainer import make_ikigai_graph, IKIGAiStateDict
+from agents.ikigai_maintainer import make_ikigai_graph
 
 # ---------------------------------------------------------------------------
 # Config
@@ -99,7 +99,7 @@ class IKIGAiDeepAgent:
         return self.graph.get_state(self.config)
 
     def list_checkpoints(self) -> list[dict[str, str]]:
-        """List all checkpoints in the DB."""
+        """List all checkpoints in the DB (LangGraph schema: thread_id, checkpoint_id, checkpoint_ns)."""
         import sqlite3
         path = Path(self.checkpoint_db)
         if not path.exists():
@@ -107,11 +107,11 @@ class IKIGAiDeepAgent:
         conn = sqlite3.connect(str(path))
         cur = conn.cursor()
         cur.execute(
-            "SELECT thread_id, created_at FROM checkpoints ORDER BY created_at DESC LIMIT 50"
+            "SELECT DISTINCT thread_id, checkpoint_ns FROM checkpoints ORDER BY checkpoint_id DESC LIMIT 50"
         )
         rows = cur.fetchall()
         conn.close()
-        return [{"thread_id": r[0], "created_at": r[1]} for r in rows]
+        return [{"thread_id": r[0], "checkpoint_ns": r[1]} for r in rows]
 
     def _default_state(self) -> dict[str, Any]:
         """Build a sensible default initial state."""
@@ -201,7 +201,7 @@ def main():
         checkpoints = agent.list_checkpoints()
         print(f"\nCheckpoints ({len(checkpoints)}):")
         for cp in checkpoints:
-            print(f"  {cp['thread_id']}  —  {cp['created_at']}")
+            print(f"  {cp['thread_id']}  —  {cp.get('checkpoint_ns', '')}")
         return
 
     if args.resume:

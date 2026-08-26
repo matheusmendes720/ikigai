@@ -1,10 +1,12 @@
 # SPEC: Agentic Markdown Strategic Planning System
 
 > **Feature ID:** `agentic-markdown-system`
-> **Status:** Implemented (T1-T14 done; awaiting F1-F4)
+> **Status:** **DELIVERED** (T1-T15 complete; F1-F4 all APPROVED)
 > **Plan:** `.omo/plans/agentic-markdown-system.md`
+> **Completion report:** `.omo/drafts/agentic-markdown-system-completion.md`
 > **ADR-006:** [`vibe-ops/architecture/ADR-006-period-reports-schema.md`](../../vibe-ops/architecture/ADR-006-period-reports-schema.md)
-> **Codebase commit:** a70c39d1c1ace31282b0e8472acf31b8720d38a2
+> **Codebase commit:** a0d6630 (latest fix)
+> **Boulder duration:** 1h 45m 56s
 
 ---
 
