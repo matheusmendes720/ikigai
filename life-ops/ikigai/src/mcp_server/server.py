@@ -1,7 +1,6 @@
 """IKIGAi-Maintainer MCP server — 8 tools via stdio transport.
 
-Run with: python -m mcp.server
-Or: ikigai-maintainer-mcp  (if installed as console script)
+Run with: python run_mcp_server.py
 """
 from __future__ import annotations
 
@@ -17,15 +16,9 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
 # ---------------------------------------------------------------------------
-# Server
+# Tool list
 # ---------------------------------------------------------------------------
-SERVER = Server("ikigai-maintainer")
-
-
-# ---------------------------------------------------------------------------
-# Tools
-# ---------------------------------------------------------------------------
-TOOLS = [
+TOOLS: list[Tool] = [
     Tool(
         name="ikigai_score",
         description="Returns current IKIGAi 5-vector scores and meta-vector score",
@@ -46,7 +39,7 @@ TOOLS = [
         description="Decompose a Dream UEID into its full UEID hierarchy",
         inputSchema={
             "type": "object",
-            "properties": {"dream_ueid": {"type": "string", "description": "Dream UEID (e.g. 'dream:my_dream')"}},
+            "properties": {"dream_ueid": {"type": "string", "description": "Dream UEID"}},
             "required": ["dream_ueid"],
         },
     ),
@@ -55,7 +48,7 @@ TOOLS = [
         description="List recent correction signals from H1-H6 heuristics",
         inputSchema={
             "type": "object",
-            "properties": {"limit": {"type": "integer", "default": 20, "description": "Max corrections to return"}},
+            "properties": {"limit": {"type": "integer", "default": 20}},
         },
     ),
     Tool(
@@ -137,13 +130,11 @@ def _read_entity(table: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Tool handlers
 # ---------------------------------------------------------------------------
-@SERVER.list_tools()
-async def list_tools() -> list[Tool]:
+async def _list_tools() -> list[Tool]:
     return TOOLS
 
 
-@SERVER.call_tool()
-async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+async def _call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     if name == "ikigai_score":
         d = _read_checkpoint()
         vs = d.get("vector_scores", {})
@@ -200,6 +191,11 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
 
     elif name == "ikigai_plan_cycle":
         try:
+            import sys
+            from pathlib import Path as P
+            _src = P(__file__).parent.parent / "ikigai" / "src"
+            if str(_src) not in sys.path:
+                sys.path.insert(0, str(_src))
             from ikigai_maintainer import make_ikigai_graph
             today = dt.date.today()
             graph = make_ikigai_graph()
@@ -298,12 +294,18 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
 
 
 # ---------------------------------------------------------------------------
+# Server instance with constructor callbacks
+# ---------------------------------------------------------------------------
+SERVER = Server(
+    "ikigai-maintainer",
+    on_list_tools=_list_tools,
+    on_call_tool=_call_tool,
+)
+
+
+# ---------------------------------------------------------------------------
 # Entrypoint
 # ---------------------------------------------------------------------------
 async def main():
     async with stdio_server() as (read_stream, write_stream):
         await SERVER.run(read_stream, write_stream, SERVER.create_initialization_options())
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
