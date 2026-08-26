@@ -49,6 +49,9 @@ ignore = [
 # keeps ``verify_sprint`` focused on real bugs (logic, naming, shadowing),
 # not stylistic debt. The docs build + Pydantic v2 strict mode still
 # enforce the load-bearing invariants.
+"packages/core/src/operational/input_validation.py" = [
+    "N802",      # function name casing — specified by brief
+]
 "packages/core/src/**/*.py" = [
     "D101",      # missing docstring on public class
     "D102",      # missing docstring on public method
