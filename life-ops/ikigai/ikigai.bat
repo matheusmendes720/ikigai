@@ -2,6 +2,7 @@
 setlocal
 
 set "IKIGAI_ROOT=%~dp0"
+set "PYTHON=%IKIGAI_ROOT%.venv\Scripts\python.exe"
 set "PYTHONPATH=%IKIGAI_ROOT%src"
 
 cd /d "%IKIGAI_ROOT%"
@@ -16,33 +17,33 @@ if "%~1"=="checkpoint"  goto checkpoint
 goto help
 
 :mcp
-    python run_mcp_server.py %2 %3 %4 %5
+    "%PYTHON%" run_mcp_server.py %2 %3 %4 %5
     exit /b
 
 :agent
     set "THREAD=%2"
     if "%THREAD%"=="" set "THREAD=default"
-    python -m agents.deepagents_harness --thread %THREAD% %3 %4 %5 %6 %7
+    "%PYTHON%" -m agents.deepagents_harness --thread %THREAD% %3 %4 %5 %6 %7
     exit /b
 
 :chat
     set "THREAD=%2"
     if "%THREAD%"=="" set "THREAD=default"
-    python -m agents.deepagents_harness --thread %THREAD% --chat
+    "%PYTHON%" -m agents.deepagents_harness --thread %THREAD% --chat
     exit /b
 
 :list
-    python -m agents.deepagents_harness --list-checkpoints
+    "%PYTHON%" -m agents.deepagents_harness --list-checkpoints
     exit /b
 
 :run
     set "THREAD=%2"
     if "%THREAD%"=="" set "THREAD=default"
-    python -m agents.deepagents_harness --thread %THREAD%
+    "%PYTHON%" -m agents.deepagents_harness --thread %THREAD%
     exit /b
 
 :checkpoint
-    python -m agents.deepagents_harness --list-checkpoints
+    "%PYTHON%" -m agents.deepagents_harness --list-checkpoints
     exit /b
 
 :help
@@ -54,7 +55,7 @@ goto help
     echo   ikigai.bat agent ^<thread^>
     echo   ikigai.bat chat          Start chat REPL (default thread)
     echo   ikigai.bat chat ^<thread^>
-    echo   ikigai.bat list           List checkpoints
+    echo   ikigai.bat list          List checkpoints
     echo   ikigai.bat run ^<thread^> Run one cycle
-    echo   ikigai.bat checkpoint     List checkpoints
+    echo   ikigai.bat checkpoint    List checkpoints
     exit /b
