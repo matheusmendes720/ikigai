@@ -28,11 +28,14 @@ def _get_checkpoint_path() -> Path:
 
 
 def _read_checkpoint_data(thread_id: str = "default") -> dict[str, Any]:
-    """Read latest checkpoint for a thread."""
+    """Read latest checkpoint for a thread.
+
+    langgraph stores state in checkpoint['channel_values'].
+    """
     p = _get_checkpoint_path()
     if not p.exists():
         return {}
-    import pickle
+    import msgpack
 
     conn = sqlite3.connect(str(p))
     cur = conn.cursor()
@@ -48,7 +51,9 @@ def _read_checkpoint_data(thread_id: str = "default") -> dict[str, Any]:
     conn.close()
     if row and row[0]:
         try:
-            return pickle.loads(row[0])
+            data = msgpack.unpackb(row[0])
+            # langgraph wraps state in channel_values
+            return data.get("channel_values", data)
         except Exception:
             return {}
     return {}
@@ -440,9 +445,10 @@ def ikigai_checkpoint(
         if not row or not row[0]:
             return f"No checkpoint found for thread '{thread_id}'."
         try:
-            import pickle
+            import msgpack
 
-            data = pickle.loads(row[0])
+            data = msgpack.unpackb(row[0])
+            data = data.get("channel_values", data)
         except Exception:
             data = {}
         if action == "get":
