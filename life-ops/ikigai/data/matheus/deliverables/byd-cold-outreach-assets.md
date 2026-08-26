@@ -15,7 +15,6 @@ artifact_type: document
 is_public: false
 created_at: 2026-07-09T00:00:00Z
 updated_at: 2026-07-09T00:00:00Z
-source: user
 tags: [persona/matheus, horizon/2d, deliverable/d3, workstream/w3, empresa/byd, mode/cold-outreach, lang/pt-br]
 custom:
   _horizon_rationale: "2 wd sprint (W3); D1 + D2 são pré-requisitos — overlap permitido"

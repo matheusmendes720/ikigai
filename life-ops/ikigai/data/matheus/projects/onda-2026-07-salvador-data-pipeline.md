@@ -25,7 +25,6 @@ target_revenue_brl: null
 actual_revenue_brl: 0.0
 created_at: 2026-07-09T00:00:00Z
 updated_at: 2026-07-09T00:00:00Z
-source: user
 custom:
   _scope_pivot_from: "BYD ONDA primary; esta é FALLBACK parallel"
   _activation_trigger: "BYD anchor não converteu em 5 wd (≤ 1 response de Yueying Zhang) → escalate Salvador/remote como primary path"

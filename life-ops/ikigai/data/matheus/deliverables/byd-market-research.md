@@ -22,7 +22,6 @@ artifact_type: document
 is_public: false
 created_at: 2026-07-09T00:00:00Z
 updated_at: 2026-07-09T00:00:00Z
-source: user
 tags: [persona/matheus, horizon/3d, deliverable/d1, workstream/w1, empresa/byd]
 custom:
   _horizon_rationale: "3 wd research sprint — dentro do Literal[1-7] bucket"
