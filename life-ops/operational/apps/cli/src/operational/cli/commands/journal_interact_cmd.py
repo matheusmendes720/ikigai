@@ -10,7 +10,7 @@ Architecture (per CLAUDE.md §Layer 3):
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, time, UTC
+from datetime import date, datetime, time
 
 import questionary
 import typer
@@ -92,11 +92,6 @@ def _infer_period_from_time(t: time) -> Period:
     if 8 <= h < 18:
         return Period.TARDE
     return Period.NOITE
-
-
-def _now_naive() -> datetime:
-    """Return current UTC time as naive datetime (no tzinfo)."""
-    return datetime.now(tz=UTC).replace(tzinfo=None)
 
 
 # ---------------------------------------------------------------------------

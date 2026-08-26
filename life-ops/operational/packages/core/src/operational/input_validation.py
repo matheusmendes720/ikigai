@@ -1,4 +1,3 @@
-# packages/core/src/operational/input_validation.py
 """Time input validation helpers — shared between CLI (questionary) and TUI."""
 
 from __future__ import annotations
@@ -74,7 +73,7 @@ def validate_block_times(start: time, end: time) -> tuple[time, time, int]:
         ValueError: If end is at or before start.
     """
     if end <= start:
-        msg = f"end must be after start"
+        msg = "end must be after start"
         raise ValueError(msg)
     # Compute minutes difference (crossing midnight not allowed here)
     start_min = start.hour * 60 + start.minute
