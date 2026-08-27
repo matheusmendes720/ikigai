@@ -10,7 +10,7 @@ Source documents (in priority order):
 * PAV §1 — ``CONSTANTES DO SISTEMA`` (12 base constants, lines 48-58 of
   ``vibe-ops/base/Produtividade Algorítmica Visual.md``)
 * PAV §9 — Pomodoro state-machine (line 2291: ``POMODORO_LONG_BREAK = 30``)
-* ``life-ops/planner/Points_of_premisses-task-habits.md`` §4 — Policy
+* ``src/planner/Points_of_premisses-task-habits.md`` §4 — Policy
   histerese days + QHE thresholds
 * ``vibe-ops/planning/PRD-02-habit-tracker.md`` — QHE weights
   (alpha/beta/gamma) + lambda_learning default

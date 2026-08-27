@@ -146,7 +146,7 @@ def _decompose_ueid(ueid: str) -> dict[str, Any]:
     import frontmatter
     import re
 
-    repo_root = Path(__file__).parent.parent.parent  # .../life-ops/ikigai/
+    repo_root = Path(__file__).parent.parent.parent  # .../src/ikigai/src/mcp_server/ → src/ikigai/
     vault_root = repo_root / "data" / "matheus"
 
     def _slug_from_ueid(ueid: str) -> str:
@@ -286,7 +286,7 @@ def _read_entity(table: str) -> dict[str, Any]:
 
 def _tasks_path() -> Path:
     """Path to the shared tasks file. Lives in data/ at repo root."""
-    repo_root = Path(__file__).parent.parent.parent.parent  # .../life-ops/ikigai/ → repo root
+    repo_root = Path(__file__).parent.parent.parent.parent  # .../src/ikigai/src/ → repo root
     return repo_root / "data" / "tasks.jsonl"
 
 
@@ -580,7 +580,7 @@ def _handle_ikigai_sync_vault(arguments: dict[str, Any]) -> str:
     if not cycle_id:
         return json.dumps({"error": "cycle_id required"})
     # Vault root: {repo}/data/matheus/ikigai_state/
-    repo_root = Path(__file__).parent.parent.parent  # .../life-ops/ikigai/
+    repo_root = Path(__file__).parent.parent.parent  # .../src/ikigai/src/mcp_server/ → src/ikigai/
     vault_dir = repo_root / "data" / "matheus" / "ikigai_state"
     vault_dir.mkdir(parents=True, exist_ok=True)
 

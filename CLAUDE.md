@@ -177,7 +177,7 @@ make test
 
 The **carro-chefe**. Reads vault markdown → applies strategics + PAE → writes structured tasks to data/ → interfaces consume from data/ → observes planned vs actual → updates vault.
 
-### MCP Gateway (life-ops/ikigai/MCP_GATEWAY.md)
+### MCP Gateway (src/ikigai/MCP_GATEWAY.md)
 
 Exposes tools:
 - `read_vault(path)` → NL content
@@ -222,7 +222,7 @@ PolicyEngine states (PUSH / MAINTAIN / REDUCE / RECOVER) with hysteresis.
 | Building interfaces | interfaces/cli/ or interfaces/tui/ |
 | Deep Agent development | src/ikigai/src/agents/ + vault/ |
 | Unifying contracts | src/contracts/ (Phase 3 DONE — verify imports) |
-| MCP Gateway integration | life-ops/ikigai/MCP_GATEWAY.md |
+| MCP Gateway integration | src/ikigai/MCP_GATEWAY.md |
 | Understanding the system | docs/ARCHITECTURE_INDEX.md |
 
 ---
