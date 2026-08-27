@@ -108,19 +108,13 @@ def _build_agent_response(state: IKIGAiStateDict) -> str:
 
 
 def _read_qhe_from_operational() -> float:
-    """Read current Q_HE score from operational policy_engine.
+    """Read current Q_HE score.
 
-    Falls back to 0.65 (median MAINTAIN target) if unavailable.
+    Currently returns 0.65 (MAINTAIN target median).
+    TODO: wire to real metrics source (vibe-ops DB or vault feedback).
     """
-    try:
-        from operational.core.policy_engine import PolicyEngine
-
-        engine = PolicyEngine()
-        eval_result = engine.evaluate()
-        return eval_result.qhe
-    except Exception:
-        # Operational not on PYTHONPATH or evaluation fails — use default
-        return 0.65
+    # TODO: read from vibe-ops metrics table or data/feedback.jsonl
+    return 0.65
 
 
 def _read_workload_from_upi() -> float:
