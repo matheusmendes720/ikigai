@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "ikigai": {
+      "command": "/tmp/ikigai-test/bin/python",
+      "args": ["run_mcp_server.py"],
+      "cwd": "/mnt/c/Users/mathe/code_space/life-oss/life/life-ops/ikigai",
+      "env": {},
+      "description": "IKIGAi meta-brain — 8+ tools: score, regime, phase, decompose, corrections, plan_cycle, checkpoint, sync_vault, write_tasks, read_tasks"
+    },
+    "tuiboard": {
+      "command": "/home/flytwist/.bun/bin/bun",
+      "args": ["run", "/mnt/c/Users/mathe/code_space/apps/kanban/tuiboard/bin/tuiboard-mcp.ts"],
+      "env": {},
+      "description": "Kanban boards — list, read, create, update, delete tasks (BYD-Camacari-CV board)"
+    },
+    "taskdog": {
+      "command": "/usr/bin/bash",
+      "args": ["-c", "cd /mnt/c/Users/mathe/code_space/apps/dev-tools/taskdog && uv run taskdog-mcp"],
+      "env": {},
+      "description": "Task management — 26 tools: list, create, complete, optimize with time tracking"
+    }
+  },
+  "notes": {
+    "solverforge": "Not available — requires Rust toolchain with cc linker (WSL2 missing build-essential)",
+    "taskdog_server": "Must be running on :8000 — start with: cd $TASKDOG_ROOT && nohup uv run taskdog-server &",
+    "vault_migration": "Vault moved from .omo/ to vault/. MCP server vault reads use data/matheus/ as root."
+  }
+}
