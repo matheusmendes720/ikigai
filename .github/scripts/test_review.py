@@ -191,8 +191,8 @@ def main():
                         help="Include coverage report (requires coverage installed)")
     parser.add_argument("--json-output", action="store_true",
                         help="Machine-readable JSON output")
-    parser.add_argument("--package", default="life-ops/operational",
-                        help="Package path for pytest (default: life-ops/operational)")
+    parser.add_argument("--package", default="src/operational",
+                        help="Package path for pytest (default: src/operational)")
     args = parser.parse_args()
 
     package_path = ROOT / args.package

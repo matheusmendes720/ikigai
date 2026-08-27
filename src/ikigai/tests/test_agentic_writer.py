@@ -46,7 +46,7 @@ def record(tmp_vault: Path) -> IKIGAiRecord:
         "created_at": datetime(2026, 8, 26, tzinfo=timezone.utc),
         "updated_at": datetime(2026, 8, 26, tzinfo=timezone.utc),
         # Absolute source_md_path so the writer writes under tmp_vault
-        # regardless of cwd (mirrors the prod `life-ops/ikigai/` cwd setup).
+        # regardless of cwd (mirrors the prod `src/ikigai/` cwd setup).
         "source_md_path": tmp_vault / "data/matheus/ikigai_state/cycle-2026-08-26.md",
     })
 
