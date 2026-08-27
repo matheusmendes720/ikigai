@@ -1,0 +1,9 @@
+[submodule "tuiboard"]
+	path = interfaces/tuiboard
+	url = https://github.com/matheusmendes720/tuiboard.git
+[submodule "taskdog"]
+	path = interfaces/taskdog
+	url = https://github.com/matheusmendes720/taskdog.git
+[submodule "solverforge-calendar"]
+	path = interfaces/solverforge-calendar
+	url = https://github.com/matheusmendes720/solverforge-calendar.git
