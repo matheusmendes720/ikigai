@@ -24,6 +24,7 @@ AjusteFinos to enrich the per-period NL report.
 the segmenter extracts period-coverage and tags but does not assume
 any sub-block time tracking.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -79,6 +80,7 @@ class JournalSegment:
         routine_logs: NL descriptions of routine executions in this period.
         ajustes_finos: Fine-grained adjustments in this period.
     """
+
     period: Period
     text: str
     energia_nivel: int | None
@@ -97,6 +99,7 @@ class JournalReport:
         segments: Ordered list of per-period segments (by period start hour).
         full_text: The original journal text.
     """
+
     date: date
     segments: tuple[JournalSegment, ...]
     full_text: str
@@ -135,14 +138,16 @@ def _split_text_by_period_markers(text: str) -> dict[Period, list[str]]:
             # Match "marker:" or "marker " or "marker" at the start
             for suffix in (":", " ", ""):
                 if lowered.startswith(marker + suffix) and (
-                    len(lowered) == len(marker) + len(suffix) or
-                    lowered[len(marker) + len(suffix):].strip() == ""
+                    len(lowered) == len(marker) + len(suffix)
+                    or lowered[len(marker) + len(suffix) :].strip() == ""
                 ):
                     continue
                 if lowered.startswith(marker + suffix):
                     matched_marker = period
                     # Strip the marker prefix from the original line
-                    content_after_marker = stripped[len(marker) + len(suffix):].lstrip(": ").strip()
+                    content_after_marker = (
+                        stripped[len(marker) + len(suffix) :].lstrip(": ").strip()
+                    )
                     break
             if matched_marker is not None:
                 break

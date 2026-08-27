@@ -7,6 +7,7 @@ X-coordinate (produtividade) of the Cartesian plane.
 Anti-fragile: the budget is recomputed from the canonical PAVConstants,
 so any window change propagates automatically.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -100,6 +101,30 @@ def efficiency_pct(foco_min: int, total_min: int) -> float:
     if total_min <= 0:
         return 0.0
     return min(100.0, (foco_min / total_min) * 100.0)
+
+
+def compute_day_quadrant(
+    realizado_min: int,
+    orcado_min: int,
+) -> tuple[str, float, float]:
+    """Return (quadrant_code, x, y) for the day's Cartesian position.
+
+    Pure arithmetic — no I/O, no entity deps. ``+ 60`` is the minimum
+    focused baseline (see PAV §3): below that, efficiency is meaningless
+    and clamps to 0.
+
+    Args:
+        realizado_min: Actual hardwork minutes for the day.
+        orcado_min: Planned hardwork minutes for the day.
+
+    Returns:
+        ``(code, x, y)`` where ``code`` is one of ``"Q1"..``"Q4"``, ``x``
+        is the productivity % and ``y`` is the efficiency %.
+    """
+    x = productivity_pct(realizado_min, orcado_min)
+    y = efficiency_pct(realizado_min, realizado_min + 60)
+    code, _, _ = classify_quadrant(x, y)
+    return code, x, y
 
 
 def classify_quadrant(x: float, y: float) -> tuple[str, str, str]:

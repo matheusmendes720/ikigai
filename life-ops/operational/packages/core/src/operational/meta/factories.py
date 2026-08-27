@@ -3,6 +3,7 @@
 Each factory accepts overrides for any field, making them useful for
 both tests and CLI quick-creation flows.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, time
@@ -11,7 +12,7 @@ from typing import Any
 from operational.entities.habit import Habit
 from operational.entities.journal import JournalEntry
 from operational.entities.metric import SleepRecord
-from operational.entities.routine import Routine
+from operational.entities.routine import Routine, RoutineLog
 from operational.entities.time_block import TimeBlock
 from operational.enums import HabitCategory, Period, RoutineType
 from operational.types import UEID
@@ -20,6 +21,7 @@ __all__ = [
     "make_habit",
     "make_journal_entry",
     "make_routine",
+    "make_routine_log",
     "make_sleep_record",
     "make_time_block",
 ]
@@ -89,6 +91,7 @@ def make_time_block(
         A ``TimeBlock`` entity.
     """
     from datetime import timedelta
+
     now = datetime.now(UTC)
     s = start or now
     e = end if end is not None else s + timedelta(hours=1)
@@ -194,5 +197,57 @@ def make_sleep_record(
         wake_time=wake,
         quality_score=quality_score,
         created_at=datetime.now(UTC),
+        **overrides,
+    )
+
+
+def make_routine_log(
+    *,
+    id: UEID | None = None,
+    routine_id: UEID,
+    date: date,
+    period: Period,
+    routine_type: RoutineType,
+    text: str,
+    block_id: UEID | None = None,
+    energia_nivel: int | None = None,
+    foco_nivel: int | None = None,
+    humor: int | None = None,
+    **overrides: Any,
+) -> RoutineLog:
+    """Build a RoutineLog with sensible defaults.
+
+    Args:
+        id: UEID (auto-generated if ``None``).
+        routine_id: UEID of the parent Routine.
+        date: Date the routine was performed.
+        period: Period of the routine.
+        routine_type: Type of routine (ENTRY/CORE/TRANSITION/EXIT).
+        text: NL description of the execution.
+        block_id: Optional UEID of the associated TimeBlock.
+        energia_nivel: Optional energy level (1-10).
+        foco_nivel: Optional focus level (1-10).
+        humor: Optional mood (1-5).
+        **overrides: Any additional ``RoutineLog`` field overrides.
+
+    Returns:
+        A ``RoutineLog`` entity.
+    """
+    from uuid import uuid4
+
+    _now = datetime.now(tz=UTC)
+    uid = id or UEID(f"rlog_{uuid4().hex[:12]}")
+    return RoutineLog(
+        id=uid,
+        routine_id=routine_id,
+        block_id=block_id,
+        date=date,
+        period=period,
+        routine_type=routine_type,
+        text=text,
+        energia_nivel=energia_nivel,
+        foco_nivel=foco_nivel,
+        humor=humor,
+        created_at=_now,
         **overrides,
     )

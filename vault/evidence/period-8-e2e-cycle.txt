@@ -1,0 +1,55 @@
+T8 E2E FULL MONTH SIMULATION — SUMMARY
+======================================
+
+Source: .omo/plans/period-reports-sync.md T8
+Commit: test(period-sync): E2E full month simulation
+File: vibe-ops/tests/e2e/test_period_reports_full_cycle.py
+
+RESULT: PASSED in 0.79s (well under 5s budget)
+
+HIERARCHY UNDER TEST
+--------------------
+1 sonho (root, 2026-01-01 -> 2026-12-31, ACTIVE, score=0.70)
+  +-- 1 onda (2026-01-01 -> 2026-02-14, CONTINUE_WAVE, score=0.78)
+        +-- 3 weekly reports
+        |   +-- week-01 (2026-01-01..07)
+        |   +-- week-02 (2026-01-08..14)
+        |   +-- week-03 (2026-01-15..21)
+        +-- 21 daily reports (7 per week)
+
+TOTAL: 26 period_reports across 4-level hierarchy
+
+MULTI-PASS SYNC TRACE
+---------------------
+Pass 1: ingested=2 (sonho+onda), orphans=24 (weeks/days)
+Pass 2: ingested=3 (weeks), orphans=21 (days)
+Pass 3: ingested=21 (days), orphans=0
+Pass 4: ingested=0, orphans=0 -> BREAK
+
+Total passes: 4 (limit was 5)
+Final DB count: 26
+Final orphans: 0
+
+HIERARCHY VERIFICATION (from get_period_hierarchy)
+--------------------------------------------------
+- tree.count = 26
+- tree.tree length = 1 (1 root: sonho)
+- root.id == "e2e-sonho-2026"
+- root.children length = 1 (1 onda)
+- onda.id == "e2e-onda-Q1"
+- onda.children length = 3 (3 weeks)
+- each week.children length = 7 (7 days)
+- Total: 1 + 1 + 3 + 21 = 26 reports
+
+ACCEPTANCE CRITERIA
+-------------------
+[x] File exists at vibe-ops/tests/e2e/test_period_reports_full_cycle.py
+[x] Test passes in < 5 seconds (0.79s)
+[x] All 26 reports in DB after multi-pass sync
+[x] Hierarchy tree has 1 root (sonho) + 1 onda child + 3 weeks + 21 days
+[x] Evidence saved to .omo/evidence/period-8-*.txt
+[x] No flaky behavior (deterministic, isolated tmp_path)
+[x] No mocks (real PeriodReportSync, real sqlite3, real files)
+[x] No new dependencies (only existing pydantic/python-frontmatter/pytest)
+
+NEXT: F1-F4 (unblocked after this T8)

@@ -114,7 +114,7 @@ operational.cli.commands.report_cmd
 │       ├── operational.core.exceptions
 │       ├── operational.enums                      (TipoDia)
 │       └── operational.constants
-├── operational.core.services                      (DaySnapshot, get_day_snapshot, compute_day_quadrant)
+├── operational.core.services                      (DaySnapshot, get_day_snapshot)
 │       ├── operational.cli.state                  [CIRCULAR-RISK — see §5]
 │       │       └── ... (recursive into entities.*)
 │       ├── operational.core.budget
@@ -122,7 +122,8 @@ operational.cli.commands.report_cmd
 │       ├── operational.enums
 │       └── operational.constants
 ├── operational.ui.daily_report                    (render_daily_report)
-│       ├── operational.core.services              (DaySnapshot, compute_day_quadrant)
+│       ├── operational.core.services              (DaySnapshot)
+│       ├── operational.core.budget                (compute_day_quadrant — primitive signature)
 │       ├── operational.enums                      (TipoDia)
 │       └── operational.ui.components
 │               ├── operational.cli.console        (shim)
@@ -160,7 +161,7 @@ import:
 operational.ui
 ├── operational.cli.console                        [backward-compat shim]
 │       └── operational.ui                         (console, CONSOLE_WIDTH)
-├── operational.core.services                      (DaySnapshot, compute_day_quadrant)
+├── operational.core.services                      (DaySnapshot)
 │       ├── operational.cli.state                  [CIRCULAR-RISK]
 │       └── ... (see controller sub-tree above)
 ├── operational.enums                              (Period, TipoDia, ...)

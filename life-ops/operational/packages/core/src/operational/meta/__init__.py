@@ -1,4 +1,5 @@
 """Meta — entity registry, validators, and factories."""
+
 from __future__ import annotations
 
 from operational.meta.factories import (

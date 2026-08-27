@@ -43,9 +43,10 @@ Conventions:
   days belongs to :class:`operational.entities.consolidation.DailyConsolidation`.
 * No circular imports — entities are leaves.
 """
+
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Annotated, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
@@ -169,7 +170,8 @@ class SleepRecord(BaseModel):
         bed_dt = datetime.combine(self.date, self.bedtime)
         wake_dt = datetime.combine(self.date, self.wake_time)
         if wake_dt < bed_dt:
-            wake_dt = wake_dt.replace(day=wake_dt.day + 1)
+            # Midnight crossing: wake is next calendar day
+            wake_dt = datetime.combine(self.date + timedelta(days=1), self.wake_time)
         delta = wake_dt - bed_dt
         return delta.total_seconds() / 3600.0
 
@@ -339,9 +341,8 @@ class DailyLog(BaseModel):
         """
         if not self.energy_readings:
             return None
-        return (
-            sum(_ENERGY_NUMERIC[r.level.value] for r in self.energy_readings)
-            / len(self.energy_readings)
+        return sum(_ENERGY_NUMERIC[r.level.value] for r in self.energy_readings) / len(
+            self.energy_readings
         )
 
     @computed_field  # type: ignore[prop-decorator]
@@ -367,8 +368,7 @@ class DailyLog(BaseModel):
         for r in self.energy_readings:
             contexts[r.context].append(_ENERGY_NUMERIC[r.level.value])
         averages: dict[str, float] = {
-            ctx: (sum(vals) / len(vals) if vals else 0.0)
-            for ctx, vals in contexts.items()
+            ctx: (sum(vals) / len(vals) if vals else 0.0) for ctx, vals in contexts.items()
         }
         return cast(
             "Literal['morning', 'afternoon', 'evening']",

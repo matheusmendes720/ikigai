@@ -54,6 +54,7 @@ Design rules:
   ``core`` → ``entities`` → ``constants`` / ``enums`` / ``types``.
 * All magic numbers are extracted to ``_CONSTANT`` ``Final`` vars.
 """
+
 from __future__ import annotations
 
 import math
@@ -426,7 +427,7 @@ def compute_streak_bonus(
 # ---------------------------------------------------------------------------
 
 
-def compute_qhe(  # noqa: PLR0913 — 6 distinct semantic parameters
+def compute_qhe(
     habit_states: Sequence[HabitState],
     habits: Sequence[Habit],
     energy_ratio: float,
@@ -523,10 +524,7 @@ def predict_regime_from_qhe(qhe_value: float) -> PolicyState:
             above 1.0.
     """
     if qhe_value < _QHE_LOWER_BOUND or qhe_value > _QHE_THEORETICAL_MAX:
-        msg = (
-            f"qhe must be in [0, 2.0] (theoretical max with "
-            f"streak_bonus), got {qhe_value}"
-        )
+        msg = f"qhe must be in [0, 2.0] (theoretical max with streak_bonus), got {qhe_value}"
         raise ValueError(msg)
     if qhe_value >= DEFAULT.QHE_PUSH_THRESHOLD:
         return PolicyState.PUSH

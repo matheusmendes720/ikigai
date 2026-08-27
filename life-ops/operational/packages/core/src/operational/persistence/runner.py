@@ -9,6 +9,7 @@ Usage::
     runner = MigrationRunner(conn, migration_dir=".../migrations")
     runner.apply_all()
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -148,8 +149,7 @@ class MigrationRunner:
         except sqlite3.OperationalError as exc:
             # Record failure
             self._conn.execute(
-                "INSERT INTO _migrations (name, applied_at, checksum, success) "
-                "VALUES (?, ?, ?, 0)",
+                "INSERT INTO _migrations (name, applied_at, checksum, success) VALUES (?, ?, ?, 0)",
                 (name, now, checksum),
             )
             self._conn.commit()
@@ -161,8 +161,7 @@ class MigrationRunner:
             ) from exc
 
         self._conn.execute(
-            "INSERT INTO _migrations (name, applied_at, checksum, success) "
-            "VALUES (?, ?, ?, 1)",
+            "INSERT INTO _migrations (name, applied_at, checksum, success) VALUES (?, ?, ?, 1)",
             (name, now, checksum),
         )
         self._conn.commit()

@@ -32,6 +32,7 @@ Public surface
 * :func:`validar_horario_acordar` — the canonical PAV §4 validator.
 * :func:`is_optimal_wake_hour` — quick boolean check for the 3-5am band.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -211,9 +212,7 @@ def validar_horario_acordar(hora_acordou: int) -> WakeUpValidation:
         case 3 | 4 | 5:
             return WakeUpValidation(
                 status="OPTIMAL",
-                message=(
-                    f"Horário {hora_acordou}h dentro do padrão ouro (3-5am)"
-                ),
+                message=(f"Horário {hora_acordou}h dentro do padrão ouro (3-5am)"),
                 acao="Continuar rotina normal",
                 desvio_minutos=0,
                 is_valid=True,

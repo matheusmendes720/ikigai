@@ -47,6 +47,7 @@ Design rules:
   ``@staticmethod`` methods — it has no instance state, mirroring
   :class:`operational.core.sleep_calculator.SleepQuality`.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -202,9 +203,9 @@ def compute_energy_score(daily_log: DailyLog) -> float:
 
     Formula::
 
-        energy_map   = {H: 100, M: 60, L: 30}
+        energy_map = {H: 100, M: 60, L: 30}
         energy_score = mean(energy_map[r.level] for r in energy_readings)
-        sleep_pen    = max(0, (8 - sleep.duration_hours) * 10)
+        sleep_pen = max(0, (8 - sleep.duration_hours) * 10)
         energy_score = max(0, energy_score - sleep_pen)
 
     The function returns ``0.0`` when the day has no energy readings
@@ -220,14 +221,13 @@ def compute_energy_score(daily_log: DailyLog) -> float:
     """
     if not daily_log.energy_readings:
         return _SCORE_MIN
-    avg = sum(
-        _ENERGY_MAP[r.level.value] for r in daily_log.energy_readings
-    ) / len(daily_log.energy_readings)
+    avg = sum(_ENERGY_MAP[r.level.value] for r in daily_log.energy_readings) / len(
+        daily_log.energy_readings
+    )
     if daily_log.sleep is not None:
         penalty = max(
             _SCORE_MIN,
-            (_TARGET_SLEEP_HOURS - daily_log.sleep.duration_hours)
-            * _SLEEP_PENALTY_FACTOR,
+            (_TARGET_SLEEP_HOURS - daily_log.sleep.duration_hours) * _SLEEP_PENALTY_FACTOR,
         )
         return max(_SCORE_MIN, avg - penalty)
     return max(_SCORE_MIN, avg)
@@ -238,9 +238,9 @@ def compute_productivity_score(daily_log: DailyLog) -> float:
 
     Formula::
 
-        base       = (tasks_completed / max(tasks_created, 1)) * 60
+        base = (tasks_completed / max(tasks_created, 1)) * 60
         time_bonus = min(time_tracked_hours / 8, 1) * 25
-        focus_bonus= min(pomodoros / 8, 1) * 15
+        focus_bonus = min(pomodoros / 8, 1) * 15
         productivity_score = base + time_bonus + focus_bonus
 
     The ``base`` term is naturally bounded above by ``60`` (when
@@ -379,7 +379,7 @@ def generate_alerts(
         A list of :class:`MetricAlert` entities (may be empty).
     """
     alerts: list[MetricAlert] = []
-    timestamp = now if now is not None else datetime.now()  # noqa: DTZ005
+    timestamp = now if now is not None else datetime.now()
 
     # Sleep-debt alerts (CRITICAL first, then WARNING).
     if sleep_debt_hours > _SLEEP_DEBT_CRITICAL:
@@ -404,8 +404,7 @@ def generate_alerts(
                 level=AlertLevel.WARNING,
                 metric="sleep_debt_hours",
                 message=(
-                    f"Sleep debt {sleep_debt_hours:.1f}h exceeds "
-                    f"{_SLEEP_DEBT_WARN:.0f}h threshold"
+                    f"Sleep debt {sleep_debt_hours:.1f}h exceeds {_SLEEP_DEBT_WARN:.0f}h threshold"
                 ),
                 value=sleep_debt_hours,
                 threshold=_SLEEP_DEBT_WARN,
@@ -468,8 +467,7 @@ def generate_alerts(
                 level=AlertLevel.WARNING,
                 metric="productivity_score",
                 message=(
-                    f"Productivity score {productivity_score:.1f} below "
-                    f"{_PRODUCTIVITY_WARN:.0f}"
+                    f"Productivity score {productivity_score:.1f} below {_PRODUCTIVITY_WARN:.0f}"
                 ),
                 value=productivity_score,
                 threshold=_PRODUCTIVITY_WARN,
@@ -585,7 +583,7 @@ def consolidate_daily(
         now=now,
     )
     recs = generate_recommendations(energy, productivity, health, overall)
-    timestamp = now if now is not None else datetime.now()  # noqa: DTZ005
+    timestamp = now if now is not None else datetime.now()
 
     return DailyConsolidation(
         id=f"{_CONSOLIDATION_ID_PREFIX}{uuid4().hex[:_UEID_HEX_LEN]}",

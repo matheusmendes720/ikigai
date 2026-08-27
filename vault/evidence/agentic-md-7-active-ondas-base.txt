@@ -1,0 +1,108 @@
+name: Active Ondas (Waves)
+description: All onda (45-day wave) period reports — progress, days remaining, child aggregation
+icon: "🌊"
+
+filters:
+  and:
+    - 'file.ext == "md"'
+    - 'period == "onda"'
+    - or:
+        - 'file.path contains "_templates_periodos"'
+        - 'file.path contains "_templates_periodos_v2"'
+
+formulas:
+  days_remaining: 'if(date_end, (date(date_end) - today()).days, 0)'
+  progress_pct: 'if(date_end and date_start, ((today() - date(date_start)).days / (date(date_end) - date(date_start)).days * 100).round(), 0)'
+  child_count: 'length(file.children) ?? 0'
+  avg_child_score: 'mean(file.children.verdict_score) ?? 0'
+  status_color: 'if(status == "active", "🟢", if(status == "closed", "🔵", "⚪"))'
+  on_track: 'if(progress_pct <= 100, "ON_TRACK", "OVERDUE")'
+  phase_label: 'if(date_start, if(today() < date(date_start), "PRE", if(today() <= date(date_end), "ACTIVE", "POST")), "TBD")'
+
+properties:
+  period:
+    displayName: Period
+  date_start:
+    displayName: Start
+  date_end:
+    displayName: End
+  status:
+    displayName: Status
+  verdict:
+    displayName: Verdict
+  verdict_score:
+    displayName: Score
+  parent_period:
+    displayName: Parent
+  formula.days_remaining:
+    displayName: Days Left
+  formula.progress_pct:
+    displayName: Progress %
+  formula.status_color:
+    displayName: Status
+  formula.on_track:
+    displayName: Tracking
+  formula.phase_label:
+    displayName: Phase
+  formula.child_count:
+    displayName: Children
+  formula.avg_child_score:
+    displayName: Avg Child Score
+
+views:
+  - type: table
+    name: All Ondas
+    order:
+      - file.name
+      - date_start
+      - date_end
+      - formula.days_remaining
+      - formula.progress_pct
+      - formula.status_color
+      - status
+      - verdict
+    sort:
+      - property: date_start
+        direction: DESC
+
+  - type: table
+    name: Active Only
+    filters:
+      and:
+        - 'status == "active"'
+    order:
+      - file.name
+      - formula.days_remaining
+      - formula.progress_pct
+      - formula.on_track
+      - formula.phase_label
+      - parent_period
+    sort:
+      - property: formula.days_remaining
+        direction: ASC
+
+  - type: table
+    name: Hierarchy (Parent → Children)
+    filters:
+      and:
+        - 'verdict != null'
+    order:
+      - file.name
+      - parent_period
+      - formula.child_count
+      - formula.avg_child_score
+    groupBy:
+      property: parent_period
+      direction: ASC
+
+  - type: cards
+    name: Days Remaining Heatmap
+    order:
+      - file.name
+      - formula.days_remaining
+      - formula.progress_pct
+      - formula.phase_label
+    groupBy:
+      property: on_track
+      direction: ASC
+

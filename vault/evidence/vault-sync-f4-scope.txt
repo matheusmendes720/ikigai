@@ -1,0 +1,33 @@
+F4 Scope Fidelity Check — vault-bidirectional-sync
+
+Must Have (per plan):
+  [x] FalsifiableHypothesis entity (B5.1)         → T6 models/hypothesis_entities.py
+  [x] BidirectionalSync middleware                  → T2+T3+T4 middleware/bidirectional_sync.py
+  [x] Compute RICE + priority_rank                 → T5 pipeline/rice_exporter.py
+  [x] Idempotent sync (sha256 hash)                 → T2 12-char upstream_id
+  [x] Atomic writes (.tmp + rename)                 → T4 _merge_into_frontmatter
+  [x] .sync-conflicts.md on ambiguity               → T3 _record_conflict
+  [x] pav sync CLI bridge                           → T8 operational CLI
+  [x] Fixture vault (6 valid + 1 broken)           → T9 tests/fixtures/vault/
+  [x] >=90% coverage (192 tests across 13 files)    OK
+
+Must NOT Have:
+  [x] No deletions (append-only invariant)         OK
+  [x] No LLM calls                                  OK pure arithmetic only
+  [x] No real-time daemon                           OK explicit sync only
+  [x] No cloud sync                                 OK 100% local
+  [x] No breaking changes                           OK extra="allow" everywhere
+  [x] No new tables beyond sync tables              OK
+
+Coverage: 192 tests passing across 13 test files
+  + 12 operational CLI tests
+  Total: 204 tests in sync suite
+
+Locked decisions D1-D5 honored:
+  D1 Full stack
+  D2 Bidirectional
+  D3 D3 conflict policy enforced
+  D4 Tests in both subsystems
+  D5 Sequential agent execution in single session
+
+VERDICT: APPROVE

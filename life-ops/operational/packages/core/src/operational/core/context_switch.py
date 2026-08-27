@@ -35,6 +35,7 @@ The estimated overhead for each transition (in minutes):
   are cheaper)
 * Reverse / non-canonical: 45min (severe context switch)
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -78,11 +79,12 @@ class ContextSwitchSeverity(IntEnum):
 
     Lower severity = cheaper switch.
     """
-    MINIMAL = 1   # within-period
-    LOW = 2       # forward canonical
-    MEDIUM = 3    # backward canonical
-    HIGH = 4      # non-canonical (e.g. MANHA → NOITE)
-    SEVERE = 5    # reverse (NOITE → MANHA, requires sleep debt)
+
+    MINIMAL = 1  # within-period
+    LOW = 2  # forward canonical
+    MEDIUM = 3  # backward canonical
+    HIGH = 4  # non-canonical (e.g. MANHA → NOITE)
+    SEVERE = 5  # reverse (NOITE → MANHA, requires sleep debt)
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,6 +100,7 @@ class ContextSwitchEstimate:
             (MANHÃ → TARDE → NOITE).
         is_reverse: True if the transition is reverse (e.g. NOITE → MANHA).
     """
+
     from_period: Period
     to_period: Period
     overhead_minutes: int

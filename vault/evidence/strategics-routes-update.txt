@@ -1,0 +1,19 @@
+# Strategics Central Engine Reference Update
+
+## Files Updated (5)
+
+1. Planejamento (Estratégico e Tático).md
+2. Hierarquia de Objetivos.md
+3. Desempenho Subjacente.md
+4. Integracao_Tatica.md
+5. Análise (Tático e Operacional).md
+
+## Commit Hash
+
+501e77315ce75598e3aefa9263bc058c039bc617
+
+## Git Log (--oneline -3)
+
+501e773 docs(strategics): add central engine reference to theory docs
+c3cfbc3 docs(strategics): append commit + session log for central engine integration
+ebf049d docs(strategics): add planning-with-files as central engine reference

@@ -1,0 +1,213 @@
+F2 CODE QUALITY REVIEW — period-reports-sync plan
+=====================================================
+Reviewer: F2 (Code Quality)
+Date: 2026-06-26
+Plan: .omo/plans/period-reports-sync.md
+T1 commit: 85c3aa8 (GitButler Workspace Commit)
+HEAD commit: e7f53cd (docs(period-sync): SPEC.md per Warp spec format)
+
+==========================================================
+Linting
+==========================================================
+
+[vibe-ops/] ruff check src/models/period_report.py src/middleware/period_sync.py src/cli/period_sync_cli.py src/pipeline/frontmatter_parser.py src/models/__init__.py
+Result: 5 errors in 1 file (frontmatter_parser.py), 4 of 5 files clean.
+
+All 5 issues are F401 (unused imports) in src/pipeline/frontmatter_parser.py:
+  F401 StudyNoteIndex (line 10)
+  F401 DocBackend    (line 10)
+  F401 DocFrontend   (line 10)
+  F401 PriorityMatrix(line 10)
+  F401 CyberneticFeedback (line 10)
+
+VERIFICATION: git show 85c3aa8:vibe-ops/src/pipeline/frontmatter_parser.py
+shows these 5 imports were ALREADY PRESENT before this PR. The PR only
+ADDED `PeriodReport,` to the same import block, and PeriodReport IS used
+(at line 40: "period_report": PeriodReport,). Therefore: 0 ruff issues
+introduced by this plan. (Pre-existing technical debt.)
+
+Files CLEAN of NEW ruff issues introduced by this plan:
+  - vibe-ops/src/models/period_report.py          (0)
+  - vibe-ops/src/middleware/period_sync.py        (0)
+  - vibe-ops/src/cli/period_sync_cli.py           (0)
+
+[operational/] ruff check packages/core/src/operational/entities/period_report.py apps/cli/src/operational/cli/commands/sync_cmd.py
+Result: 17 errors in 2 files (BOTH new in this PR).
+
+  packages/core/src/operational/entities/period_report.py (10 issues, all NEW):
+    F401 uuid4 unused                          (line 17)
+    F401 field_validator unused                (line 19)
+    F401 EnergyLevel unused                    (line 21)
+    RUF100 unused noqa directive TC001        (line 21)
+    TC003 datetime used at runtime             (line 15)
+    UP037 quoted type annotation               (line 93)
+    EM102 f-string in raise ValueError         (lines 111, 116, 123)
+    EM101 string literal in raise ValueError   (line 127)
+
+  apps/cli/src/operational/cli/commands/sync_cmd.py (7 issues, all NEW):
+    FBT001 Boolean-typed positional _run_period_cli (line 39)
+    FBT001 + FBT003 json_out flag on sync_vault  (line 72)
+    FBT001 + FBT003 json_out flag on list_reports (line 101)
+    FBT001 + FBT003 json_out flag on hierarchy   (line 125)
+    (json_out mirrors pre-existing convention in state_cmd.py `show()`)
+
+[operational/] ruff check apps/cli/src/operational/cli/commands/state_cmd.py
+PRE-existing issues: 10 (per `git show 85c3aa8:state_cmd.py | ruff check -`)
+POST-PR issues:     11
+Delta:              +1 issue (FBT001/FBT003 on new `run_migrations` json_out flag)
+
+Summary:
+  vibe-ops new files ruff-clean: 4/4 (period_report.py, period_sync.py,
+                                     period_sync_cli.py, frontmatter_parser.py)
+  operational new files ruff:    17 issues in 2 new files (sync_cmd.py,
+                                     entities/period_report.py)
+  operational state_cmd.py delta: +1 FBT (run_migrations)
+
+Linting [FAIL]:
+- ruff (vibe-ops): 0 NEW issues / 5 files clean (5 pre-existing F401 in frontmatter_parser.py, untouched by this PR)
+- ruff (operational): 18 NEW issues / 2 files have issues (entities/period_report.py: 10; sync_cmd.py: 7; state_cmd.py: +1)
+
+==========================================================
+Type checking
+==========================================================
+
+mypy --strict src/models/period_report.py src/middleware/period_sync.py
+(Run with --explicit-package-bases --namespace-packages to bypass the
+"vibe-ops contains __init__.py but is not a valid Python package name"
+naming-check; original workspace is structured as flat src/, not a package.)
+
+Errors reported: 17 total
+  - 15 are [import-not-found]: Cannot find module "models.<x>" — environment
+    resolution issue (vibe-ops uses `from models import ...` with sys.path
+    manipulation, not package layout). Pre-existing. Not a code defect.
+  - 1 is [import-untyped]: frontmatter has no py.typed stub. Pre-existing
+    in repo; required by the new parser. Acceptable.
+  - 1 is a REAL type error:
+    src/middleware/period_sync.py:238: error: Missing type arguments for
+    generic type "dict"  [type-arg]
+    Code:  def _build_subtree(self, node: dict, nodes: dict) -> dict:
+
+This single real error requires `dict[str, Any]` (matches the upstream
+`nodes = {row["id"]: dict(row) for row in rows}` on line 231 where keys
+are str). Easy fix.
+
+Type checking [FAIL] (minor, single real error):
+- mypy strict: 1 real error / 1 environment-induced noise (15 import-not-found + 1 import-untyped)
+
+==========================================================
+Tests
+==========================================================
+
+pytest tests/test_period_report.py tests/integration/test_period_sync.py tests/property/test_period_report_properties.py tests/e2e/test_period_reports_full_cycle.py
+
+Result: 56 passed, 0 failed in 1.77s
+  test_period_report.py          36 tests PASSED
+  test_period_sync.py (integ)    9 tests PASSED
+  test_period_report_properties  8 tests PASSED
+  test_period_reports_full_cycle 1 test  PASSED (e2e)
+
+(2 pre-existing test files in repo root, test_knowledge_telemetry.py and
+test_mvl_orchestrator.py, fail collection due to unrelated
+ModuleNotFoundError / ImportError on existing src/storage/metadata_orm —
+NOT introduced or modified by this plan.)
+
+Tests [PASS]:
+- pytest: 56 passed / 0 failed
+
+==========================================================
+AI Slop Check
+==========================================================
+
+grep -rn "TODO\|FIXME\|HACK\|XXX\|as any\|@ts-ignore\|console.log" <5 changed .py files>
+Result: 0 matches
+
+grep -rn "print(" vibe-ops/src/cli/period_sync_cli.py
+  9 matches — ALL are intentional CLI output (it's a script entry-point,
+  not library code). Replaces what would be `rich.print`/`typer.echo`.
+  Not slop.
+
+grep -rn "except\s*:" <5 changed .py files>
+Result: 0 empty/bare excepts
+
+Comment density (informational, not slop):
+  period_report.py (entity): 3 doc-comments + 1 noqa — references ADR-006
+  period_sync.py:           6 inline comments — references ADR-006,
+                             explains frozen=True accumulation idiom,
+                             idempotency/hierarchy/upsert flow
+  period_sync_cli.py:       5 comments — CLI command docstrings
+  sync_cmd.py:              3 docstrings — CLI command docstrings
+All comments are SPECIFIC (ADR-006 §2.3, idempotency, hierarchy
+validation) — NOT generic AI boilerplate like "# TODO: optimize this".
+
+Naming check:
+  All entities, functions, parameters are domain-meaningful:
+    PeriodReport, PeriodSync, PeriodSyncStats, PeriodReportParser,
+    vault_hash, parent_period, verdict_score, _VERDICT_DAILY,
+    _PERIOD_DAYS, migrate, sync_vault, list_reports, hierarchy.
+  NO generic names like data1, result, handler, manager, utils.
+
+SQL migrations (004, 002): clean, well-formatted, no anti-patterns.
+
+AI Slop Check [PASS]:
+- TODO/FIXME: 0
+- HACK/XXX: 0
+- empty catches: 0
+- console.log/print (library): 0
+- print (CLI script only, appropriate): 9 in period_sync_cli.py
+
+==========================================================
+Files reviewed (per file)
+==========================================================
+
+- vibe-ops/src/models/period_report.py: CLEAN (ruff + mypy)
+- vibe-ops/src/middleware/period_sync.py: 1 ISSUE (mypy type-arg dict on line 238)
+- vibe-ops/src/cli/period_sync_cli.py: CLEAN (ruff; intentional print())
+- vibe-ops/src/pipeline/frontmatter_parser.py: PRE-EXISTING (5 F401 from old code; this PR only added `PeriodReport,` import which IS used)
+- vibe-ops/src/models/__init__.py: CLEAN
+- vibe-ops/migrations/004_period_reports.sql: CLEAN
+- life-ops/operational/packages/core/src/operational/entities/period_report.py: 10 ISSUES (ruff: F401×3, RUF100, TC003, UP037, EM101, EM102×3)
+- life-ops/operational/apps/cli/src/operational/cli/commands/sync_cmd.py: 7 ISSUES (ruff: FBT001×4, FBT003×3 — boolean flag pattern mirrors pre-existing state_cmd.py)
+- life-ops/operational/apps/cli/src/operational/cli/commands/state_cmd.py: +1 ISSUE (run_migrations `json_out` FBT001+FBT003; 10 pre-existing)
+- life-ops/operational/packages/core/src/operational/persistence/migrations/002_period_reports.sql: CLEAN
+
+==========================================================
+VERDICT
+==========================================================
+
+Total NEW issues introduced by this plan:
+  - operational ruff: 18 (10 entity + 7 sync_cmd + 1 state_cmd delta)
+  - vibe-ops mypy strict: 1 (missing type-arg on dict)
+  - vibe-ops ruff: 0
+
+The new entity file (period_report.py) has 3 F401 (uuid4, field_validator,
+EnergyLevel) that are clearly dead imports — these should be removed. The
+EM101/EM102 (f-string in exception) and TC003 (datetime in non-typing
+block) and RUF100 (unused noqa) are all auto-fixable with `ruff check
+--fix`.
+
+The sync_cmd.py FBT pattern (boolean positional `json_out: bool`) is
+idiomatic Typer and matches the pre-existing convention in state_cmd.py
+`show()` — rejecting it would be inconsistent with the rest of the
+codebase.
+
+The single mypy error in period_sync.py:238 is a 1-line fix
+(`dict[str, Any]`).
+
+ALL 56 tests pass — including e2e full-month simulation. Naming is
+domain-meaningful. Comments reference ADR-006 specifically (no AI slop).
+No TODO/FIXME/HACK, no empty catches, no console.log, no as any.
+
+REAL issues: 1 mypy + 3 dead imports (F401) = 4 hard-to-ignore items.
+Remaining 14 are style/format (EM101/EM102/TC003/UP037/RUF100/FBT) and
+follow pre-existing codebase patterns.
+
+The 3 F401 dead imports + 1 mypy dict type-arg ARE substantive and should
+be fixed. The 14 style items can be auto-fixed or accepted as consistent
+with existing codebase style.
+
+Decision: REJECT (close to APPROVE) — fails quality bar on 4 substantive
+items that are quick fixes. Re-run ruff --fix on operational files,
+remove the 3 dead imports in entities/period_report.py, fix the dict
+type-arg in period_sync.py:238. All auto-fixable or trivial edits.
+
+VERDICT: REJECT (re-review after minor cleanups)

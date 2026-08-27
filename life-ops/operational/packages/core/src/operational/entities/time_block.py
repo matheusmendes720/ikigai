@@ -19,9 +19,10 @@ Source of truth:
 * **PRD-01 §2** — entity contract for the time-block table.
 * **PAV §3** — canonical hour windows per period (3-5 / 8-17 / 18-21).
 """
+
 from __future__ import annotations
 
-from datetime import datetime  # noqa: TC003  (used as Pydantic field type at runtime)
+from datetime import datetime
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator

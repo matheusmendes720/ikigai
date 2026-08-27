@@ -26,6 +26,7 @@ The canonical daily journal format is a markdown file with YAML frontmatter:
 
     Corpo do diário — narrativa livre do dia...
 """
+
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
@@ -135,7 +136,9 @@ def parse_journal_frontmatter(
         desvios=frontmatter_raw.get("desvios", []),
         ajustes_finos=ajustes_finos,
         rotinas_logs=list(frontmatter_raw.get("rotinas_logs", [])),
-        licoes_aprendidas=frontmatter_raw.get("licoes_aprendidas", frontmatter_raw.get("licoes", [])),
+        licoes_aprendidas=frontmatter_raw.get(
+            "licoes_aprendidas", frontmatter_raw.get("licoes", [])
+        ),
         energia_nivel=frontmatter_raw.get("energia_nivel") or frontmatter_raw.get("energia"),
         foco_nivel=frontmatter_raw.get("foco_nivel") or frontmatter_raw.get("foco"),
         pomodoros_completos=frontmatter_raw.get("pomodoros_completos", 0),
@@ -191,6 +194,8 @@ def serialize_journal_to_markdown(entry: JournalEntry) -> str:
     if entry.rotinas_logs:
         front["rotinas_logs"] = list(entry.rotinas_logs)
 
-    fm = yaml.safe_dump(front, allow_unicode=True, sort_keys=False, default_flow_style=False).strip()
+    fm = yaml.safe_dump(
+        front, allow_unicode=True, sort_keys=False, default_flow_style=False
+    ).strip()
     body = entry.entry_text.strip() or ""
     return f"---\n{fm}\n---\n\n{body}\n"

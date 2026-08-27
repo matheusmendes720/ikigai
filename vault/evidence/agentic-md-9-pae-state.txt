@@ -1,0 +1,7 @@
+Final state: iteration=1, last_step=commit, balancer=UNDERLOAD
+Node verdict: None, score_band=MED
+Prospective: tier=sonho, window=7, action=REVIEW, candidates=0
+Retrospective: avg=0.00, verdict=PlanVerdict.FAIL
+BalancerVerdict.OK == OK
+Overloaded balancer.state=OVERLOAD
+IMPORT_OK

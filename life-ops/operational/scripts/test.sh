@@ -2,4 +2,4 @@
 # Run test suite with coverage.
 set -e
 cd "$(dirname "$0")/.."
-poetry run pytest "$@"
+uv run pytest "$@"

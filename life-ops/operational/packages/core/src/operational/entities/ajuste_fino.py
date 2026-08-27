@@ -20,6 +20,7 @@ AjusteFinos integrate with the break_calculator: the adjusted
 net rest between two blocks is
 ``net_rest + sum(ajustes.minutos for the period)``.
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -46,6 +47,7 @@ class AjusteFino(BaseModel):
         block_id_after: Optional reference to the block following the adjustment.
         created_at: Timestamp of when the adjustment was recorded.
     """
+
     model_config = ConfigDict(
         frozen=True,
         extra="forbid",

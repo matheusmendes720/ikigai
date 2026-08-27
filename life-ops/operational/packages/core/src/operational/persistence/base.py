@@ -4,6 +4,7 @@ Provides :class:`RepositoryBase[T_Entity]`, an ABC that fulfills the
 :class:`operational.types.Repository` Protocol and leaves only
 ``_serialize`` / ``_deserialize`` / ``_load`` / ``_save`` to subclasses.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

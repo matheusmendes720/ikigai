@@ -5,8 +5,10 @@ context-aware error panels. All inherit from a single ``DomainError``
 base class so callers can catch everything with a single ``except`` if
 they want to.
 """
+
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 

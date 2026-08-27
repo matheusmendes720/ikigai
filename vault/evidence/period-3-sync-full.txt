@@ -1,0 +1,40 @@
+warning: No `requires-python` value found in the workspace. Defaulting to `>=3.13`.
+PASS1: ingested=1, skipped=0, errors=0, orphans=1
+PASS2: ingested=1, skipped=1, errors=0, orphans=0
+HIERARCHY: count=2, roots=1
+  root.id=sonho-1, children=1
+DB_ROWS: 2
+SYNC_DBV: ingested=0, skipped=0, errors=0, orphans=0, updated=0, conflicts=0
+Traceback (most recent call last):
+  File "C:\Users\mathe\AppData\Roaming\uv\python\cpython-3.13-windows-x86_64-none\Lib\shutil.py", line 625, in _rmtree_unsafe
+    os.unlink(fullname)
+    ~~~~~~~~~^^^^^^^^^^
+PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\mathe\\AppData\\Local\\Temp\\tmpo8wxq0vc\\test.db'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mathe\code_space\life-oss\life\.omo\evidence\period-3-verify.py", line 111, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\mathe\code_space\life-oss\life\.omo\evidence\period-3-verify.py", line 22, in main
+    with tempfile.TemporaryDirectory() as tmp:
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\mathe\AppData\Roaming\uv\python\cpython-3.13-windows-x86_64-none\Lib\tempfile.py", line 951, in __exit__
+    self.cleanup()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\mathe\AppData\Roaming\uv\python\cpython-3.13-windows-x86_64-none\Lib\tempfile.py", line 955, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mathe\AppData\Roaming\uv\python\cpython-3.13-windows-x86_64-none\Lib\tempfile.py", line 935, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mathe\AppData\Roaming\uv\python\cpython-3.13-windows-x86_64-none\Lib\shutil.py", line 790, in rmtree
+    return _rmtree_unsafe(path, onexc)
+  File "C:\Users\mathe\AppData\Roaming\uv\python\cpython-3.13-windows-x86_64-none\Lib\shutil.py", line 629, in _rmtree_unsafe
+    onexc(os.unlink, fullname, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mathe\AppData\Roaming\uv\python\cpython-3.13-windows-x86_64-none\Lib\tempfile.py", line 910, in onexc
+    _os.unlink(path)
+    ~~~~~~~~~~^^^^^^
+PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\mathe\\AppData\\Local\\Temp\\tmpo8wxq0vc\\test.db'

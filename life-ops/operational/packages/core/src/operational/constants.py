@@ -18,7 +18,7 @@ Source documents (in priority order):
 
 Design decisions:
 
-* **24 fields** (not 22): we kept the 12 PAV §1 fields intact, split the
+* **21 fields** (not 22): we kept the 12 PAV §1 fields intact, split the
   ``HORARIO_ULTIMA_REFEICAO`` range into ``_MIN``/``_MAX`` (2 fields), added
   the canonical ``POMODORO_LONG_BREAK_MIN`` (PAV §9), and bundled the 8
   policy/QHE/lambda constants that govern the cybernetic layer. All sources
@@ -29,6 +29,7 @@ Design decisions:
   combinations raise ``ValueError`` (programming error, not runtime data).
 * Single ``DEFAULT`` instance is the production configuration.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -42,7 +43,6 @@ __all__ = ["DEFAULT", "PAVConstants"]
 # the literal value in the call site.
 _PERIODOS_DIA_EXPECTED_LEN: Final[int] = 3
 _SONO_OPCOES_EXPECTED_LEN: Final[int] = 4
-_QHE_WEIGHT_SUM_TOLERANCE: Final[float] = 0.001
 _SLEEP_DURATION_TOLERANCE: Final[float] = 0.5
 _LAMBDA_LEARNING_LOWER_BOUND: Final[float] = 0.0
 _LAMBDA_LEARNING_UPPER_BOUND: Final[float] = 1.0
@@ -52,13 +52,13 @@ _LAMBDA_LEARNING_UPPER_BOUND: Final[float] = 1.0
 class PAVConstants:
     """Canonical operational constants. Immutable post-construction.
 
-    The 24 fields fall into **5 categories**:
+    The 21 fields fall into **5 categories**:
 
     1. **Time boundaries** (7 fields): wake / sleep / last-meal windows.
     2. **Periods** (1 field): the 3-period day cycle.
     3. **Pomodoro** (5 fields): work-block, breaks, round counts.
     4. **Health** (2 fields): sleep options, water target.
-    5. **Policy & QHE** (9 fields): histerese days, QHE weights, QHE
+    5. **Policy & QHE** (6 fields): histerese days, QHE
        thresholds, learning rate.
 
     All values are non-negative ``int`` or ``float`` in ``[0, 1]``, except
@@ -121,7 +121,7 @@ class PAVConstants:
     AGUA_GLASSES_DIA: int = 8
     """Daily water glasses target. Health baseline (250 ml x 8 = 2 L/day)."""
 
-    # --- 5. Policy & QHE (8) -----------------------------------------------
+    # --- 5. Policy & QHE (6) -----------------------------------------------
     POLICY_UPGRADE_DAYS: int = 3
     """Days of sustained QHE ≥ push threshold before upgrading policy.
     **Points_of_premisses §4** — histerese anti-bouncing."""
@@ -134,15 +134,6 @@ class PAVConstants:
     """Days at QHE < recover threshold to enter ``RECOVER`` state.
     **Points_of_premisses §4** — emergency entry."""
 
-    QHE_ALPHA: float = 0.45
-    """Weight of ``H_avg`` in the QHE formula. **PRD-02 §Fórmula QHE**."""
-
-    QHE_BETA: float = 0.35
-    """Weight of ``Consistency`` in the QHE formula. **PRD-02 §Fórmula QHE**."""
-
-    QHE_GAMMA: float = 0.20
-    """Weight of ``StreakBonus`` in the QHE formula. **PRD-02 §Fórmula QHE**."""
-
     QHE_PUSH_THRESHOLD: float = 0.85
     """QHE value at or above which policy is ``PUSH``. **Points_of_premisses §4**."""
 
@@ -153,10 +144,10 @@ class PAVConstants:
     """Default learning rate for habit automation. **ADR-003 / time-lenghts §9.2**."""
 
     # --- Class metadata (not dataclass fields) ----------------------------
-    FIELD_COUNT: ClassVar[int] = 24
+    FIELD_COUNT: ClassVar[int] = 21
     """Number of declared dataclass fields. Exposed for invariant tests."""
 
-    def __post_init__(self) -> None:  # noqa: C901
+    def __post_init__(self) -> None:
         """Validate invariants on construction.
 
         Raises:
@@ -206,15 +197,6 @@ class PAVConstants:
             msg = (
                 f"SONO_OPCOES_HORAS must have {_SONO_OPCOES_EXPECTED_LEN} "
                 f"options, got {len(self.SONO_OPCOES_HORAS)}"
-            )
-            raise ValueError(msg)
-        weight_sum = self.QHE_ALPHA + self.QHE_BETA + self.QHE_GAMMA
-        lower_bound = 1.0 - _QHE_WEIGHT_SUM_TOLERANCE
-        upper_bound = 1.0 + _QHE_WEIGHT_SUM_TOLERANCE
-        if not (lower_bound <= weight_sum <= upper_bound):
-            msg = (
-                f"QHE weights must sum to 1.0 (±{_QHE_WEIGHT_SUM_TOLERANCE}), "
-                f"got {weight_sum}"
             )
             raise ValueError(msg)
         if self.QHE_PUSH_THRESHOLD <= self.QHE_RECOVER_THRESHOLD:
@@ -292,8 +274,7 @@ class PAVConstants:
             within a 0.5h tolerance (inclusive boundary).
         """
         return any(
-            abs(hours - option) <= _SLEEP_DURATION_TOLERANCE
-            for option in self.SONO_OPCOES_HORAS
+            abs(hours - option) <= _SLEEP_DURATION_TOLERANCE for option in self.SONO_OPCOES_HORAS
         )
 
     def qhe_push_active(self, qhe: float) -> bool:

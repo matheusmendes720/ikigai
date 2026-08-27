@@ -71,7 +71,8 @@ and the command at `cli/commands/report_cmd.py:45-49`.
    │                  │                     │───────────────────────────────────────────────>│
    │                  │                     │                        │                      │
    │                  │                     │                        │  compute_day_quadrant│
-   │                  │                     │                        │  (snap)              │
+   │                  │                     │                        │  (snap.realizado,    │
+   │                  │                     │                        │   snap.orcado)       │
    │                  │                     │                        │<─────────────────────│
    │                  │                     │                        │  q_code, x, y        │
    │                  │                     │                        │                      │
@@ -213,16 +214,19 @@ frozen `DaySnapshot` does.
 ```python
 if json:
     # Plain dict for machine consumption
-    q_code, x, y = compute_day_quadrant(snap)
+    q_code, x, y = compute_day_quadrant(
+        snap.hardwork_realizado_min,
+        snap.hardwork_orcado_min,
+    )
     payload = { "date": d.isoformat(), "tipo_dia": snap.tipo_dia.value, ... }
     typer.echo(format_as_json(payload))
     return
 ```
 
 For `--json` mode, the controller builds a flat dict, calls
-`core.services.compute_day_quadrant` (which uses
-`core.budget.productivity_pct` and `efficiency_pct` to derive the
-Cartesian position), and emits via
+`core.budget.compute_day_quadrant(realizado_min, orcado_min)` (primitive
+signature — see ADR for why we did not move `DaySnapshot` to `core/`), and
+emits via
 `cli/formatters/base.py:format_as_json` (which uses
 `json.dumps` with a fallback for `BaseModel` and `datetime`).
 
@@ -246,8 +250,8 @@ all the panels and tables of the daily dashboard.
 
 Internally (`ui/daily_report.py:50-80`):
 
-1. `compute_day_quadrant(snap)` → `(q_code, x, y)` — the Cartesian
-   position.
+1. `compute_day_quadrant(realizado_min, orcado_min)` →
+   `(q_code, x, y)` — the Cartesian position.
 2. Build the **header table** (`build_header_table`, line 50)
    showing date · tipo_dia · quadrant emoji · pomodoros.
 3. Build a **sleep row** showing bedtime, wake, duration, quality.

@@ -8,9 +8,11 @@ For a single-user local system this is the right trade-off:
 - Full-text search potential on JSON ``data``
 - Single file for the whole database
 """
+
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from datetime import UTC, date, datetime, time
 from enum import Enum
@@ -28,6 +30,13 @@ __all__ = ["SqliteRepository", "get_connection"]
 
 
 _DATETIME_ISO = "%Y-%m-%dT%H:%M:%S"
+
+# ``self._table`` is interpolated into raw SQL strings (see the SQL
+# assembly sites further down). Constraining the name to a strict whitelist
+# at construction time makes the value provably non-user-controlled and lets
+# the bandit S608 rule remain a documentation marker rather than an active
+# vulnerability surface.
+_TABLE_NAME_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 
 
 def get_connection(db_path: str | Path) -> sqlite3.Connection:
@@ -90,6 +99,7 @@ class SqliteRepository(RepositoryBase[T_Entity], Generic[T_Entity]):
         >>> repo.count()
         0
     """
+
     def __init__(
         self,
         model_class: type[T_Entity],
@@ -101,6 +111,12 @@ class SqliteRepository(RepositoryBase[T_Entity], Generic[T_Entity]):
         self._entity_type = entity_type
         self._conn = conn
         self._table = table_name
+        if not _TABLE_NAME_RE.fullmatch(self._table):
+            msg = (
+                f"Invalid SQLite table name {self._table!r}: must match "
+                f"{_TABLE_NAME_RE.pattern} (lowercase letters/digits/underscore, no leading digit)"
+            )
+            raise StorageBackendError(msg, repository=self._entity_type)
 
     # ------------------------------------------------------------------
     # Storage engine API
@@ -112,8 +128,10 @@ class SqliteRepository(RepositoryBase[T_Entity], Generic[T_Entity]):
         Returns:
             ``{id: deserialized_dict, ...}``
         """
+        # self._table is validate-by-whitelist in __init__ (see _TABLE_NAME_RE);
+        # never derives from user input.
         query = (
-            f"SELECT id, data FROM {self._table} "
+            f"SELECT id, data FROM {self._table} "  # noqa: S608
             f"WHERE entity_type = ?"
         )
         try:
@@ -140,8 +158,9 @@ class SqliteRepository(RepositoryBase[T_Entity], Generic[T_Entity]):
         """Upsert a single entity row."""
         serialized = json.dumps(data, default=_serialize_value, ensure_ascii=False)
         now = datetime.now(UTC).strftime(_DATETIME_ISO)
+        # self._table is validate-by-whitelist in __init__ (see _TABLE_NAME_RE).
         query = (
-            f"INSERT OR REPLACE INTO {self._table} "
+            f"INSERT OR REPLACE INTO {self._table} "  # noqa: S608
             f"(id, entity_type, data, created_at, updated_at) "
             f"VALUES (?, ?, ?, COALESCE((SELECT created_at FROM {self._table} "
             f"WHERE id = ? AND entity_type = ?), ?), ?)"
@@ -170,8 +189,9 @@ class SqliteRepository(RepositoryBase[T_Entity], Generic[T_Entity]):
 
     def _remove_one(self, entity_id: str) -> None:
         """Delete a single entity row."""
+        # self._table is validate-by-whitelist in __init__ (see _TABLE_NAME_RE).
         query = (
-            f"DELETE FROM {self._table} "
+            f"DELETE FROM {self._table} "  # noqa: S608
             f"WHERE id = ? AND entity_type = ?"
         )
         try:

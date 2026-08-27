@@ -602,23 +602,23 @@ synthetic_gen.py           ← CLI entry (typer)
 
 ```bash
 # Generate full 180-day dataset
-poetry run pav synthetic generate
+uv run pav synthetic generate
 
 # Generate specific subdataset
-poetry run pav synthetic generate --days 30
-poetry run pav synthetic generate --start 2026-01-01 --end 2026-03-22
+uv run pav synthetic generate --days 30
+uv run pav synthetic generate --start 2026-01-01 --end 2026-03-22
 
 # Validate existing dataset
-poetry run pav synthetic validate --dataset synthetic_180d
+uv run pav synthetic validate --dataset synthetic_180d
 
 # Export to CSV
-poetry run pav synthetic export-csv --output data/synthetic_180d.csv
+uv run pav synthetic export-csv --output data/synthetic_180d.csv
 
 # Export to vibe-ops SQLite
-poetry run pav synthetic export-db --output data/synthetic_180d.db
+uv run pav synthetic export-db --output data/synthetic_180d.db
 
 # Preview day N
-poetry run pav synthetic preview --day 45
+uv run pav synthetic preview --day 45
 ```
 
 ### 8.3 Key Generation Parameters

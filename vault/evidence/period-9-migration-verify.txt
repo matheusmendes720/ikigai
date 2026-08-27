@@ -1,0 +1,4 @@
+APPLIED: ['001_initial', '002_period_reports']
+PERIOD_INDEXES: ['idx_entities_period_report', 'idx_entities_period_report_sonho', 'idx_entities_period_report_verdict']
+PLAN: 3 0 61 SEARCH entities USING INDEX idx_entities_period_report (entity_type=? AND <expr>=?)
+MIGRATION OK

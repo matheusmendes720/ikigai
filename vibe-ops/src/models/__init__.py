@@ -9,8 +9,11 @@ from models.contracts import DataContract, StudyNoteContract
 from models.doc_entities import DocBackend, DocFrontend
 from models.feedback_entities import PriorityMatrix, CyberneticFeedback
 from models.ikigai_entities import IKIGAiProfile, SkillNode, OpportunitySignal
+from models.period_report import PeriodReport, PeriodReportParser, PeriodSyncStats
 from models.operational_entities import OperationalMode, PolicyRule
 from models.health_entities import DailyLog, DailyConsolidation, WeeklyAggregate
+from models.hypothesis_entities import FalsifiableHypothesis, HypothesisEvaluation
+from models.dream_entities import Dream
 
 __all__ = [
     "Wave", "Cycle", "Phase",
@@ -24,6 +27,9 @@ __all__ = [
     "DocBackend", "DocFrontend",
     "PriorityMatrix", "CyberneticFeedback",
     "IKIGAiProfile", "SkillNode", "OpportunitySignal",
+    "PeriodReport", "PeriodReportParser", "PeriodSyncStats",
     "OperationalMode", "PolicyRule",
-    "DailyLog", "DailyConsolidation", "WeeklyAggregate"
+    "DailyLog", "DailyConsolidation", "WeeklyAggregate",
+    "FalsifiableHypothesis", "HypothesisEvaluation",
+    "Dream",
 ]

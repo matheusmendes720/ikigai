@@ -6,10 +6,10 @@
 ## Quick Start
 
 ```bash
-poetry install
-poetry run operational --help
-poetry run pytest
-poetry run verify_sprint
+uv sync
+uv run operational --help
+uv run pytest
+uv run verify_sprint
 ```
 
 ## Architecture (10 sprints, 30-40 days)
@@ -52,18 +52,39 @@ See `docs/ROADMAP.md` for the full sprint-by-sprint breakdown.
 ## Package Structure
 
 ```
-src/operational/
+packages/core/src/operational/   # Pure logic, zero I/O
 ├── constants.py         # PAVConstants (frozen, 22 fields)
-├── exceptions.py        # 10 PAV error codes + hierarchy
 ├── enums.py             # Period, RoutineType, HabitCategory, ...
+├── exceptions.py        # 10 PAV error codes + hierarchy
 ├── types.py             # NewType, Protocol, TypeAlias
-├── entities/            # Pydantic v2 models
-├── core/                # Pure business logic (no I/O)
+├── entities/            # 14 Pydantic v2 models (frozen, extra=forbid)
+├── core/                # Pure business logic (no I/O) — habit/policy/sleep/pomodoro
 ├── persistence/         # Repository Protocol, InMemory, SQLite
 ├── parsers/             # Frontmatter YAML → Pydantic
-├── reports/             # Daily/weekly/narrative generators
+├── reports/             # Daily/weekly narrative generators
 ├── meta/                # Registry, validators, factories
-└── cli/                 # Typer commands
+└── analytics/           # Circadian + engine helpers
+
+apps/cli/src/operational/cli/    # Typer CLI
+├── app.py               # 12 sub-typers registered here
+├── home_v2.py           # Interactive 10-item menu
+├── state.py             # 14 _PersistentRepo (JSON flat files)
+├── services.py          # Pure data services (get_day_snapshot)
+├── seed.py              # Demo dataset seeder
+├── dataset_selector.py  # Dataset resolution (golden / synthetic)
+├── csv_loader.py        # CSV → entities
+├── console.py           # Rich console factory
+├── telemetry.py         # Lightweight metric counters
+├── commands/            # One file per subcommand group
+└── formatters/          # Output adapters (JSON, table, ...)
+
+apps/tui/src/operational/tui/    # Textual TUI (7 screens)
+├── app.py               # PAVApp — SCREENS dict + BINDINGS
+├── navigation.py        # Screen routing helpers
+├── theme.py             # get_tui_theme() — color palette
+├── charts.py            # plotext chart renderers
+├── screens/             # 7 screens (dashboard, daily_flow, ...)
+└── widgets/             # kpi_card, regime_bar, sparkline, ...
 ```
 
 ## Status
@@ -81,8 +102,8 @@ src/operational/
 | Sprint 8 — Integration + E2E | 🟢 |
 | Sprint 9 — Documentation + ADRs | 🟢 |
 | Sprint 10 — Verification | 🟢 |
-| **Total tests** | **2518** |
+| **Total tests** | **2839** |
 
 ---
 
-*operational v0.1.0 — 2026-06-07 — Standalone Memory Machine*
+*operational v0.1.0 — 2026-07-01 — Standalone Memory Machine*

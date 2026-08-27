@@ -15,6 +15,7 @@ Sprint 2A delivers three entity modules:
 * :mod:`operational.entities.pomodoro` — :class:`PomodoroConfig`,
   :class:`PomodoroRound`, :class:`PomodoroSession` (PAV §9).
 """
+
 from __future__ import annotations
 
 from operational.entities.pomodoro import (

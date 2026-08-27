@@ -10,6 +10,7 @@ Usage:
     for k, v in insights.items():
         print(f"## {k}\n{v['summary']}\n")
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -59,6 +60,7 @@ _EMOJI_SILVER = "\U0001f948"
 
 # ── Insight containers ─────────────────────────────────────────────────────────
 
+
 @dataclass
 class InsightBlock:
     """A single insight block with title, summary, bullets, and severity."""
@@ -101,6 +103,7 @@ def _sev_emoji(sev: str) -> str:
 
 
 # ── Insight generators ──────────────────────────────────────────────────────────
+
 
 def _growth_story(gs: GrowthScore, agg: Aggregations) -> InsightBlock:
     score = gs.score
@@ -274,12 +277,10 @@ def _correlation_narrative(corr: list[CorrelationPair]) -> InsightBlock:
         insight = f"Weakest signals: {top.metric_a} <-> {top.metric_b} (r={top.r:.3f})."
 
     pos_bullets = [
-        f"  {c.metric_a} <-> {c.metric_b}: r={c.r:.3f} (strong positive)"
-        for c in strong_pos[:3]
+        f"  {c.metric_a} <-> {c.metric_b}: r={c.r:.3f} (strong positive)" for c in strong_pos[:3]
     ]
     neg_bullets = [
-        f"  {c.metric_a} <-> {c.metric_b}: r={c.r:.3f} (strong negative)"
-        for c in strong_neg[:3]
+        f"  {c.metric_a} <-> {c.metric_b}: r={c.r:.3f} (strong negative)" for c in strong_neg[:3]
     ]
     bullets = pos_bullets + neg_bullets
     if moderate:
@@ -412,20 +413,15 @@ def _sleep_analysis(ds: Dataset, agg: Aggregations) -> InsightBlock:
         summary = f"Sleep is on target: {avg_h:.1f}h/night (avg quality {avg_q:.1f}/10). "
     elif deficit_h <= _THRESHOLD_SLEEP_GAP_MILD:
         sev = "warning"
-        summary = (
-            f"Mild sleep deficit: {avg_h:.1f}h/night "
-            f"(target 8.0h, gap {deficit_h:+.1f}h). "
-        )
+        summary = f"Mild sleep deficit: {avg_h:.1f}h/night (target 8.0h, gap {deficit_h:+.1f}h). "
     else:
         sev = "critical"
         summary = (
-            f"Sleep debt accumulating: {avg_h:.1f}h/night "
-            f"(target 8.0h, gap {deficit_h:+.1f}h). "
+            f"Sleep debt accumulating: {avg_h:.1f}h/night (target 8.0h, gap {deficit_h:+.1f}h). "
         )
 
     summary += (
-        f"Sleep variability (std): {agg.sleep_std:.2f}h. "
-        "Regime health is closely tied to this."
+        f"Sleep variability (std): {agg.sleep_std:.2f}h. Regime health is closely tied to this."
     )
 
     bullets = [
@@ -490,10 +486,7 @@ def _pomodoros_story(agg: Aggregations) -> InsightBlock:
         )
     elif pom_avg >= _THRESHOLD_POM_DECENT:
         sev = "warning"
-        summary = (
-            f"Decent focus: {pom_avg:.1f} pomodoros/day average. "
-            "Room to improve toward 9+."
-        )
+        summary = f"Decent focus: {pom_avg:.1f} pomodoros/day average. Room to improve toward 9+."
     else:
         sev = "critical"
         summary = (
@@ -513,6 +506,7 @@ def _pomodoros_story(agg: Aggregations) -> InsightBlock:
 
 
 # ── Master dispatcher ──────────────────────────────────────────────────────────
+
 
 def generate_full_report(ds: Dataset) -> FullReport:
     """Generate all insights from a loaded dataset."""

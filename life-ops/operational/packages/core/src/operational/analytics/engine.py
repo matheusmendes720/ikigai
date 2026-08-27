@@ -202,7 +202,7 @@ def date_from_str(s: str) -> date:
     return datetime.strptime(s, "%Y-%m-%d").date()  # noqa: DTZ007
 
 
-def parse_bool(s: str | bool) -> bool:  # noqa: FBT001
+def parse_bool(s: str | bool) -> bool:
     if isinstance(s, bool):
         return s
     return s.strip().lower() in ("true", "1", "yes")

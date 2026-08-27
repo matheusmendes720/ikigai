@@ -299,7 +299,11 @@ def circadian_energy(
                 continue
             if en:
                 by_hour[0].get("energia", []).append(_to_float(en))  # placeholder
-            for attr, bucket in [("energia_nivel", "energia"), ("focus_nivel", "focus"), ("humor", "humor")]:
+            for attr, bucket in [
+                ("energia_nivel", "energia"),
+                ("focus_nivel", "focus"),
+                ("humor", "humor"),
+            ]:
                 val = r.get(attr, "")
                 if val:
                     by_dow[dow][attr].append(_to_float(val))
@@ -326,8 +330,7 @@ def circadian_energy(
     for dow in range(1, 8):
         info = by_dow.get(dow, {})
         dow_averages[dow_labels[dow]] = {
-            attr: round(sum(vals) / len(vals), 2) if vals else None
-            for attr, vals in info.items()
+            attr: round(sum(vals) / len(vals), 2) if vals else None for attr, vals in info.items()
         }
 
     return {
@@ -419,10 +422,16 @@ def pop_comparison(
 
     deltas = {}
     numeric_keys = [
-        "qhe_mean", "sleep_mean_h", "sleep_quality_mean",
-        "total_pomodoros", "pomodoros_per_day_avg",
-        "habit_completion_rate", "hardwork_accuracy_pct",
-        "energy_mean", "focus_mean", "humor_mean",
+        "qhe_mean",
+        "sleep_mean_h",
+        "sleep_quality_mean",
+        "total_pomodoros",
+        "pomodoros_per_day_avg",
+        "habit_completion_rate",
+        "hardwork_accuracy_pct",
+        "energy_mean",
+        "focus_mean",
+        "humor_mean",
     ]
     for key in numeric_keys:
         curr = week_current.get(key)
@@ -485,7 +494,9 @@ def generate_narrative(
     pom_avg = wd.get("pomodoros_per_day_avg", 0)
     if pomodoros > 0:
         if pom_avg >= 8:
-            lines.append(f"Alta densidade de foco: {pomodoros} pomodoros totais ({pom_avg:.1f}/dia).")
+            lines.append(
+                f"Alta densidade de foco: {pomodoros} pomodoros totais ({pom_avg:.1f}/dia)."
+            )
         elif pom_avg >= 5:
             lines.append(f"Output moderado: {pomodoros} pomodoros ({pom_avg:.1f}/dia).")
         else:
@@ -494,7 +505,9 @@ def generate_narrative(
     # Habit narrative
     habit_rate = wd.get("habit_completion_rate", 0)
     if habit_rate >= 95:
-        lines.append(f"Ritual de hábitos mantido com {habit_rate:.0f}% de aderência — consistency engine em alta.")
+        lines.append(
+            f"Ritual de hábitos mantido com {habit_rate:.0f}% de aderência — consistency engine em alta."
+        )
     elif habit_rate >= 85:
         lines.append(f"Aderência de hábitos em {habit_rate:.0f}% — perto do optimal.")
     else:
@@ -505,11 +518,17 @@ def generate_narrative(
     hardwork_acc = wd.get("hardwork_accuracy_pct")
     if hardwork_acc is not None:
         if hardwork_acc >= 90:
-            lines.append(f"Política {policy_dom} bem calibrada — {hardwork_acc:.0f}% accuracy vs budget.")
+            lines.append(
+                f"Política {policy_dom} bem calibrada — {hardwork_acc:.0f}% accuracy vs budget."
+            )
         elif hardwork_acc >= 75:
-            lines.append(f"Política {policy_dom} moderadamente precisa ({hardwork_acc:.0f}% accuracy).")
+            lines.append(
+                f"Política {policy_dom} moderadamente precisa ({hardwork_acc:.0f}% accuracy)."
+            )
         else:
-            lines.append(f"Desalinhamento de política {policy_dom}: apenas {hardwork_acc:.0f}% accuracy.")
+            lines.append(
+                f"Desalinhamento de política {policy_dom}: apenas {hardwork_acc:.0f}% accuracy."
+            )
 
     # Period-over-period narrative
     if pop_deltas:

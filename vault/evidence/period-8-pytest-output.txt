@@ -1,0 +1,18 @@
+warning: No `requires-python` value found in the workspace. Defaulting to `>=3.13`.
+============================= test session starts =============================
+platform win32 -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\mathe\code_space\life-oss\life\vibe-ops\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\mathe\code_space\life-oss\life\vibe-ops
+configfile: pyproject.toml
+plugins: anyio-4.13.0, cov-7.1.0
+collecting ... collected 1 item
+
+tests/e2e/test_period_reports_full_cycle.py::TestFullMonthSimulation::test_full_cycle_one_sonho_one_onda_three_weeks_twenty_one_days PASSED [100%]
+
+============================== warnings summary ===============================
+tests\e2e\test_period_reports_full_cycle.py:59
+  C:\Users\mathe\code_space\life-oss\life\vibe-ops\tests\e2e\test_period_reports_full_cycle.py:59: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 1 passed, 1 warning in 0.79s =========================

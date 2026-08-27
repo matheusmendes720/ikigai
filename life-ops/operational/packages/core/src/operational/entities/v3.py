@@ -11,9 +11,10 @@ These entities implement the spec PAV V3 §2 (Data Classes) and §3
 All entities are Pydantic v2 BaseModel with frozen/immutable semantics
 where appropriate.
 """
+
 from __future__ import annotations
 
-from datetime import date, datetime  # noqa: TC003
+from datetime import date, datetime
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field

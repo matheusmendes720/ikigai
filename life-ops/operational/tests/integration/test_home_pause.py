@@ -31,24 +31,33 @@ class TestHomeV2Pause:
 
         def fake_ask(*args, **kwargs):
             prompt_calls.append((args, kwargs))
-            return ""  # simulate user pressing Enter
+            # 1st call: menu (return "" → Rich uses default="5")
+            # 2nd call: pause (return "" → Rich uses default="")
+            # 3rd call: would loop again — return "q" to quit cleanly
+            if len(prompt_calls) >= 3:
+                return "q"
+            return ""
 
         monkeypatch.setattr(Prompt, "ask", fake_ask)
 
-        # Run 'home' (v2 is default) and provide input: "5" then Enter (via fake_ask)
-        result = runner.invoke(app, ["home"], input="5\n")
+        # Run 'home' (v2 is default). Do NOT pass input="..." — CliRunner's
+        # ``input=`` makes Rich redirect sys.stdin to the StringIO, which
+        # deadlocks with the patched Prompt.ask (Rich reads stdin anyway).
+        # fake_ask supplies the values for both menu and pause prompts.
+        result = runner.invoke(app, ["home"])
         # The fake_ask should have been called for both the menu choice
         # and the pause prompt
         assert len(prompt_calls) >= 2, f"Expected at least 2 prompt calls, got {len(prompt_calls)}"
 
-        # The pause prompt should contain "Press Enter to continue"
+        # The pause prompt should contain "Pressione [Enter] para voltar"
+        # (the v2 home menu is PT-BR — see home_v2.py:358)
         pause_calls = [
             (args, kwargs)
             for (args, kwargs) in prompt_calls
-            if args and "Press Enter" in str(args[0])
+            if args and ("Pressione" in str(args[0]) or "Press Enter" in str(args[0]))
         ]
         assert len(pause_calls) >= 1, \
-            f"Expected at least one 'Press Enter to continue' prompt, got prompts: {prompt_calls}"
+            f"Expected at least one pause prompt, got prompts: {prompt_calls}"
 
     def test_no_pause_for_quit(self, monkeypatch) -> None:
         """When user chooses 'q', no pause prompt should appear (clean exit)."""
@@ -83,11 +92,12 @@ class TestHomeV2Pause:
         except Exception:
             pass
 
-        # Find any 'Press Enter' prompt — should not exist for quit
+        # Find any pause prompt — should not exist for quit
+        # (the v2 home menu uses PT-BR "Pressione [Enter] para voltar")
         pause_calls = [
             (args, kwargs)
             for (args, kwargs) in prompt_calls
-            if args and "Press Enter" in str(args[0])
+            if args and ("Pressione" in str(args[0]) or "Press Enter" in str(args[0]))
         ]
         assert len(pause_calls) == 0, \
             f"Quit should not trigger a pause prompt, got {len(pause_calls)} pause calls"

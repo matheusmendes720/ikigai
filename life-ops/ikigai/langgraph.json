@@ -1,0 +1,7 @@
+{
+    "dependencies": ["."],
+    "graphs": {
+        "ikigai_maintainer": "./src/ikigai_wrapper.py:graph"
+    },
+    "env": "./.env"
+}

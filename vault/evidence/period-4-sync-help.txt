@@ -1,0 +1,18 @@
+=== sync --help ===
+2026-06-26T18:48:41.891714Z [info     ] log_configured                 [pav] extra={'level': 'INFO', 'json': False, 'log_file': ''}
+                                                                               
+ Usage: pav-os sync [OPTIONS] COMMAND [ARGS]...                                
+                                                                               
+ Sync vault period reports with vibe_ops.db.                                   
+                                                                               
+┌─ Options ───────────────────────────────────────────────────────────────────┐
+│ --help          Show this message and exit.                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌─ Commands ──────────────────────────────────────────────────────────────────┐
+│ vault       Sync period reports from vault to vibe_ops.db.                  │
+│ list        List recent period reports.                                     │
+│ hierarchy   Show hierarchy tree for a sonho.                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+exit_code: 0

@@ -1,0 +1,16 @@
+CREATE VIEW v_onda_aggregated AS
+SELECT
+    pr.id AS onda_id,
+    pr.date_start AS onda_start,
+    pr.date_end AS onda_end,
+    pr.verdict AS onda_verdict,
+    pr.verdict_score AS onda_score,
+    pr.sonho_id,
+    COUNT(c.id) AS children_count,
+    ROUND(AVG(c.verdict_score), 3) AS avg_child_score,
+    GROUP_CONCAT(c.verdict, ',') AS child_verdicts
+FROM period_reports pr
+LEFT JOIN period_reports c ON c.parent_period = pr.id AND c.period = 'weekly'
+WHERE pr.period = 'onda'
+GROUP BY pr.id
+/* v_onda_aggregated(onda_id,onda_start,onda_end,onda_verdict,onda_score,sonho_id,children_count,avg_child_score,child_verdicts) */;

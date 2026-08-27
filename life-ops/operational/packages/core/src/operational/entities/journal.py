@@ -34,6 +34,7 @@ Conventions:
   explicit ``field_validator`` / ``model_validator`` methods.
 * No business logic — pure data containers with invariants.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
@@ -320,10 +321,7 @@ class AutoIndagacao(BaseModel):
             {RitualType.MORNING, RitualType.EVENING, RitualType.REVIEW},
         )
         if value not in allowed:
-            msg = (
-                "ritual_type must be MORNING/EVENING/REVIEW for an "
-                f"AutoIndagacao, got {value!r}"
-            )
+            msg = f"ritual_type must be MORNING/EVENING/REVIEW for an AutoIndagacao, got {value!r}"
             raise ValueError(msg)
         return value
 

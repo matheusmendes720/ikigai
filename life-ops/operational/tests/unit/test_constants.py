@@ -8,6 +8,7 @@ Coverage:
 * Domain helpers: ``is_valid_*`` and ``qhe_*`` predicates.
 * Parametric tests: per-field, per-category, per-source-document.
 """
+
 from __future__ import annotations
 
 from dataclasses import FrozenInstanceError, fields, is_dataclass
@@ -38,9 +39,6 @@ EXPECTED_DEFAULTS: dict[str, object] = {
     "POLICY_UPGRADE_DAYS": 3,
     "POLICY_DOWNGRADE_DAYS": 2,
     "POLICY_RECOVER_ENTRY_DAYS": 1,
-    "QHE_ALPHA": 0.45,
-    "QHE_BETA": 0.35,
-    "QHE_GAMMA": 0.20,
     "QHE_PUSH_THRESHOLD": 0.85,
     "QHE_RECOVER_THRESHOLD": 0.60,
     "LAMBDA_LEARNING_DEFAULT": 0.093,
@@ -68,9 +66,6 @@ POLICY_FIELDS: tuple[str, ...] = (
     "POLICY_RECOVER_ENTRY_DAYS",
 )
 QHE_FIELDS: tuple[str, ...] = (
-    "QHE_ALPHA",
-    "QHE_BETA",
-    "QHE_GAMMA",
     "QHE_PUSH_THRESHOLD",
     "QHE_RECOVER_THRESHOLD",
 )
@@ -88,13 +83,13 @@ class TestPAVConstantsStructure:
         """PAVConstants is a dataclass."""
         assert is_dataclass(PAVConstants)
 
-    def test_has_24_fields(self) -> None:
-        """PAVConstants declares exactly 24 fields (per PRD-CONSTANTS-EXCEPTIONS)."""
-        assert len(fields(PAVConstants)) == 24
+    def test_has_21_fields(self) -> None:
+        """PAVConstants declares exactly 21 fields (per PRD-CONSTANTS-EXCEPTIONS)."""
+        assert len(fields(PAVConstants)) == 21
 
     def test_field_count_constant_matches(self) -> None:
         """FIELD_COUNT class constant agrees with dataclass field count."""
-        assert PAVConstants.FIELD_COUNT == 24
+        assert PAVConstants.FIELD_COUNT == 21
         assert PAVConstants.FIELD_COUNT == len(fields(PAVConstants))
 
     def test_all_expected_fields_present(self) -> None:
@@ -209,12 +204,6 @@ class TestPAVConstantsDefaults:
         """POMODORO_LONG_BREAK_MIN matches PAV §9 line 2291: 30 min."""
         assert DEFAULT.POMODORO_LONG_BREAK_MIN == 30
 
-    def test_qhe_weights_match_prd02(self) -> None:
-        """QHE weights match PRD-02 §Fórmula QHE: 0.45/0.35/0.20."""
-        assert DEFAULT.QHE_ALPHA == pytest.approx(0.45)
-        assert DEFAULT.QHE_BETA == pytest.approx(0.35)
-        assert DEFAULT.QHE_GAMMA == pytest.approx(0.20)
-
     def test_qhe_thresholds_match_points_of_premisses(self) -> None:
         """QHE thresholds match Points_of_premisses §4: 0.85 / 0.60."""
         assert DEFAULT.QHE_PUSH_THRESHOLD == pytest.approx(0.85)
@@ -245,17 +234,6 @@ class TestPAVConstantsDefaults:
 
 class TestPAVConstantsInvariants:
     """Mathematical / structural invariants from PAV spec."""
-
-    def test_qhe_weights_sum_to_1(self) -> None:
-        """Alpha + beta + gamma = 1.0 (PRD-02 §Fórmula QHE)."""
-        total = DEFAULT.QHE_ALPHA + DEFAULT.QHE_BETA + DEFAULT.QHE_GAMMA
-        assert total == pytest.approx(1.0)
-
-    def test_qhe_weights_individually_positive(self) -> None:
-        """All QHE weights are strictly positive."""
-        for weight_name in QHE_FIELDS[:3]:
-            weight = getattr(DEFAULT, weight_name)
-            assert weight > 0, f"{weight_name} must be > 0, got {weight}"
 
     def test_sleep_options_contain_9_8_7_4(self) -> None:
         """SONO_OPCOES_HORAS is exactly (9, 8, 7, 4)."""
@@ -361,11 +339,6 @@ class TestPAVConstantsValidation:
         """SONO_OPCOES_HORAS with != 4 elements raises ValueError."""
         with pytest.raises(ValueError, match="SONO_OPCOES_HORAS"):
             PAVConstants(SONO_OPCOES_HORAS=(9, 8))  # type: ignore[arg-type]
-
-    def test_qhe_weights_not_summing_to_1_rejected(self) -> None:
-        """QHE weights not summing to 1.0 raises ValueError."""
-        with pytest.raises(ValueError, match="QHE weights"):
-            PAVConstants(QHE_ALPHA=0.50, QHE_BETA=0.30, QHE_GAMMA=0.10)
 
     def test_qhe_push_le_recover_rejected(self) -> None:
         """QHE_PUSH_THRESHOLD <= QHE_RECOVER_THRESHOLD raises ValueError."""
@@ -490,13 +463,6 @@ class TestPAVConstantsCategories:
             assert isinstance(value, int)
             assert value > 0
 
-    def test_qhe_weights_all_float(self) -> None:
-        """QHE alpha/beta/gamma are float in (0, 1)."""
-        for name in ("QHE_ALPHA", "QHE_BETA", "QHE_GAMMA"):
-            value = getattr(DEFAULT, name)
-            assert isinstance(value, float)
-            assert 0.0 < value < 1.0
-
     def test_qhe_thresholds_in_unit_interval(self) -> None:
         """QHE thresholds are in (0, 1)."""
         assert 0.0 < DEFAULT.QHE_PUSH_THRESHOLD < 1.0
@@ -517,10 +483,10 @@ class TestPAVConstantsCategories:
         assert len(TIME_FIELDS) == 7
         assert len(POMODORO_FIELDS) == 5
         assert len(POLICY_FIELDS) == 3
-        assert len(QHE_FIELDS) == 5
-        # TIME=7, PERIODOS=1, POMODORO=5, HEALTH=2, POLICY+QHE=9 -> 24
-        total = 7 + 1 + 5 + 2 + 9
-        assert total == 24
+        assert len(QHE_FIELDS) == 2
+        # TIME=7, PERIODOS=1, POMODORO=5, HEALTH=2, POLICY+QHE=6 -> 21
+        total = 7 + 1 + 5 + 2 + 6
+        assert total == 21
 
 
 # =========================================================================

@@ -1,0 +1,9 @@
+
+=== STEP 1 REDO: run ===
+PAE cycle 'fix-test' completed:
+  iteration:    4
+  last_step:    commit
+  balancer:     UNDERLOAD
+  qhe_score:    0.65
+  terminated:   False
+

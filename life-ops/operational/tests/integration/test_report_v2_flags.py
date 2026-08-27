@@ -10,6 +10,8 @@ in ``conftest.py``.
 """
 from __future__ import annotations
 
+import json
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
@@ -18,6 +20,22 @@ from operational.cli.app import app
 
 
 runner = CliRunner()
+
+
+def _parse_json_output(output: str) -> Any:
+    """Parse the JSON payload from a ``CliRunner.result.output`` blob.
+
+    ``CliRunner`` defaults to ``mix_stderr=True`` so the captured output
+    contains BOTH the telemetry lines (structlog ``INFO pav:...``) and the
+    command's JSON payload. The JSON object always begins at the first
+    ``{`` (the report payload) so we scan for it. Proper fix is to switch
+    the runner to ``mix_stderr=False`` — track as P1-15.
+    """
+    idx = output.find("\n{")
+    if idx < 0:
+        idx = output.find("{")
+    assert idx >= 0, f"No JSON object found in:\n{output!r}"
+    return json.loads(output[idx:])
 
 
 # ---------------------------------------------------------------------------
@@ -59,11 +77,10 @@ def test_report_daily_no_mock_uses_live_data() -> None:
 
 def test_report_daily_mock_json_shape() -> None:
     """``--mock --json`` returns JSON with design_system='v2' key."""
-    import json
     result = runner.invoke(app, ["report", "daily", "--mock", "q1", "--json"])
 
     assert result.exit_code == 0, f"Output:\n{result.output}"
-    data = json.loads(result.output)
+    data = _parse_json_output(result.output)
     assert data["design_system"] == "v2"
     assert data["mock"] == "q1"
     assert data["quadrant"] == "Q1"
@@ -169,11 +186,10 @@ def test_state_show_no_mock_uses_live_data() -> None:
 
 def test_state_show_json_v2_marker() -> None:
     """``state show --mock q1 --json`` reports design_system='v2'."""
-    import json
     result = runner.invoke(app, ["state", "show", "--mock", "q1", "--json"])
 
     assert result.exit_code == 0
-    data = json.loads(result.output)
+    data = _parse_json_output(result.output)
     assert data["design_system"] == "v2"
     assert data["mock"] == "q1"
 

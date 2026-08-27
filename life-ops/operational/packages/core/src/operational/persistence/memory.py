@@ -7,6 +7,7 @@ process restarts.
 
 Use in tests, REPL sessions, and anywhere persistence is not required.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generic

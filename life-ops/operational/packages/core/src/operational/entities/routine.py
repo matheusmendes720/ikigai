@@ -27,6 +27,7 @@ Source of truth:
 * **PAV §5** — period transitions and the rituals fired at each boundary.
 * **PRD-01** — entity contract for the operational database schema.
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime, time
@@ -191,7 +192,8 @@ class Routine(BaseModel):
         """
         anchor: date = date(2000, 1, 1)
         delta = datetime.combine(anchor, self.end_time) - datetime.combine(
-            anchor, self.start_time,
+            anchor,
+            self.start_time,
         )
         return int(delta.total_seconds() // 60)
 
@@ -319,10 +321,7 @@ class Transition(BaseModel):
             ValueError: If both periods are equal.
         """
         if self.from_period == self.to_period:
-            msg = (
-                f"from_period and to_period must differ; both are "
-                f"{self.from_period.value!r}"
-            )
+            msg = f"from_period and to_period must differ; both are {self.from_period.value!r}"
             raise ValueError(msg)
         return self
 

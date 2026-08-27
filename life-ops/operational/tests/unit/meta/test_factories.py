@@ -13,6 +13,7 @@ from operational.meta.factories import (
     make_habit,
     make_journal_entry,
     make_routine,
+    make_routine_log,
     make_sleep_record,
     make_time_block,
 )
@@ -103,3 +104,23 @@ class TestMakeSleepRecord:
         )
         assert s.quality_score == 6
         assert s.bedtime == time(0, 0)
+
+
+class TestMakeRoutineLog:
+    def test_make_routine_log_defaults(self) -> None:
+        from operational.entities.routine import RoutineLog
+
+        log = make_routine_log(
+            routine_id=UEID("rou_test"),
+            date=date(2026, 8, 26),
+            period=Period.MANHA,
+            routine_type=RoutineType.CORE,
+            text="Morning focus block completed.",
+        )
+        assert isinstance(log, RoutineLog)
+        assert log.routine_id == "rou_test"
+        assert log.date == date(2026, 8, 26)
+        assert log.period == Period.MANHA
+        assert log.routine_type == RoutineType.CORE
+        assert log.text == "Morning focus block completed."
+        assert log.id.startswith("rlog_")

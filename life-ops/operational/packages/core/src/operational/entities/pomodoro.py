@@ -25,6 +25,7 @@ State machine references:
   the **orchestrator** (not this module) is responsible for advancing
   the machine. The entities are pure data containers.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -104,10 +105,7 @@ class PomodoroConfig(BaseModel):
                 ``break_minutes >= work_minutes``.
         """
         if self.rounds_max < self.rounds_min:
-            msg = (
-                f"rounds_max ({self.rounds_max}) must be >= "
-                f"rounds_min ({self.rounds_min})"
-            )
+            msg = f"rounds_max ({self.rounds_max}) must be >= rounds_min ({self.rounds_min})"
             raise ValueError(msg)
         if self.break_minutes >= self.work_minutes:
             msg = (
@@ -138,7 +136,7 @@ class PomodoroConfig(BaseModel):
     def from_pav_defaults(
         cls,
         name: str,
-        **overrides: Any,  # noqa: ANN401
+        **overrides: Any,
     ) -> PomodoroConfig:
         """Build a :class:`PomodoroConfig` from PAV canonical defaults.
 
@@ -253,9 +251,9 @@ class PomodoroRound(BaseModel):
         """
         if self.started_at is None or self.completed_at is None:
             return 0.0
-        elapsed_seconds: float = (
-            self.completed_at - self.started_at
-        ).total_seconds() - float(self.paused_duration_seconds)
+        elapsed_seconds: float = (self.completed_at - self.started_at).total_seconds() - float(
+            self.paused_duration_seconds
+        )
         return elapsed_seconds / 60.0
 
     @computed_field  # type: ignore[prop-decorator]
@@ -333,15 +331,9 @@ class PomodoroSession(BaseModel):
                 terminal (IDLE, SKIPPED, COMPLETE).
         """
         if self.completed_at is not None and not self.state.is_terminal:
-            msg = (
-                f"completed_at is set but state is {self.state.value!r}, "
-                f"which is not terminal"
-            )
+            msg = f"completed_at is set but state is {self.state.value!r}, which is not terminal"
             raise ValueError(msg)
-        if (
-            self.completed_at is not None
-            and self.completed_at < self.started_at
-        ):
+        if self.completed_at is not None and self.completed_at < self.started_at:
             msg = (
                 f"completed_at ({self.completed_at.isoformat()}) must be "
                 f">= started_at ({self.started_at.isoformat()})"
@@ -416,9 +408,7 @@ class PomodoroSession(BaseModel):
         """
         if not self.rounds:
             return 0.0
-        completed: int = sum(
-            1 for r in self.rounds if r.state == PomodoroState.COMPLETE
-        )
+        completed: int = sum(1 for r in self.rounds if r.state == PomodoroState.COMPLETE)
         return completed / len(self.rounds)
 
     @computed_field  # type: ignore[prop-decorator]

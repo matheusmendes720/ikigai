@@ -63,6 +63,7 @@ Public surface
   :class:`operational.exceptions.Severity` (subset: ``INFO``,
   ``WARNING``, ``CRITICAL``).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -169,15 +170,31 @@ def _clamp_qhe_for_storage(qhe: float) -> float:
 class Severity(StrEnum):
     """Severity of a policy transition (PRD-06).
 
-    This is a **subset** of :class:`operational.exceptions.Severity`
-    that captures the three tiers the policy FSM uses. The two extra
-    tiers of the broader ``Severity`` enum (``LOW`` / ``MEDIUM``) do
-    not apply to policy transitions: there is no meaningful distinction
-    between a *low* down-channel and a *medium* down-channel for a
-    state machine with a single protective state pair (REDUCE /
-    RECOVER).
+    This is an **intentional subset** of
+    :class:`operational.exceptions.Severity` (the 5-tier PAV §6
+    canonical: ``INFO`` / ``LOW`` / ``MEDIUM`` / ``HIGH`` / ``CRITICAL``).
+    The policy FSM only emits three distinct severity tiers; the two
+    absent tiers (``LOW`` and ``HIGH``) do not apply because the FSM
+    has a single protective state pair (REDUCE / RECOVER) — there is
+    no meaningful distinction between a *low* down-channel and a
+    *medium* down-channel.
 
-    Mapping:
+    **Equivalence table** to the canonical
+    :class:`operational.exceptions.Severity`:
+
+    =============  =============  =======================================
+    policy_engine  exceptions     Meaning
+    =============  =============  =======================================
+    ``INFO``       ``INFO``       routine transition or stay-in-state
+    ``WARNING``    ``MEDIUM``     protective downgrade (path into REDUCE)
+    ``CRITICAL``   ``CRITICAL``   emergency entry (path into RECOVER)
+    =============  =============  =======================================
+
+    The ``LOW`` and ``HIGH`` tiers of the canonical enum are unused by
+    the policy FSM. External code that needs the full 5-tier severity
+    should import :class:`operational.exceptions.Severity` directly.
+
+    Tier meanings:
 
     * ``INFO`` — routine transition or stay-in-state. The user does
       not need to take action.
@@ -379,7 +396,7 @@ def _count_days_in_state(
 # ---------------------------------------------------------------------------
 
 
-def evaluate_policy(  # noqa: C901, PLR0911
+def evaluate_policy(
     current_state: PolicyState | None,
     qhe_metrics: QHEMetrics,
     history: list[PolicyDecision] | tuple[PolicyDecision, ...] = (),
@@ -442,22 +459,16 @@ def evaluate_policy(  # noqa: C901, PLR0911
     qhe = qhe_metrics.qhe
 
     # Compute the "days in current state" prefix length.
-    days_in_state = (
-        _count_days_in_state(history, current_state) if current_state is not None else 0
-    )
+    days_in_state = _count_days_in_state(history, current_state) if current_state is not None else 0
 
     # ----------------------------------------------------------------------
     # 1. Emergency RECOVER entry (highest priority, no histerese).
     # ----------------------------------------------------------------------
-    if current_state != PolicyState.RECOVER and is_recover_entry_condition(
-        qhe, infraction_count
-    ):
+    if current_state != PolicyState.RECOVER and is_recover_entry_condition(qhe, infraction_count):
         return PolicyEvaluation(
             new_state=PolicyState.RECOVER,
             severity=Severity.CRITICAL,
-            rationale=(
-                f"RECOVER entry: qhe={qhe:.3f}, infractions={infraction_count}"
-            ),
+            rationale=(f"RECOVER entry: qhe={qhe:.3f}, infractions={infraction_count}"),
             days_in_state=days_in_state,
             is_transition=True,
             previous_state=current_state,
@@ -473,8 +484,7 @@ def evaluate_policy(  # noqa: C901, PLR0911
                 new_state=PolicyState.REDUCE,
                 severity=Severity.INFO,
                 rationale=(
-                    f"RECOVER exit: qhe >= {DEFAULT.QHE_RECOVER_THRESHOLD} "
-                    f"for {days_above} days"
+                    f"RECOVER exit: qhe >= {DEFAULT.QHE_RECOVER_THRESHOLD} for {days_above} days"
                 ),
                 days_in_state=days_in_state,
                 is_transition=True,
@@ -493,9 +503,7 @@ def evaluate_policy(  # noqa: C901, PLR0911
     # 3. REDUCE transitions.
     # ----------------------------------------------------------------------
     if current_state == PolicyState.REDUCE:
-        days_above_push = consecutive_days_above_threshold(
-            history, DEFAULT.QHE_PUSH_THRESHOLD
-        )
+        days_above_push = consecutive_days_above_threshold(history, DEFAULT.QHE_PUSH_THRESHOLD)
         days_below_recover = consecutive_days_below_threshold(
             history, DEFAULT.QHE_RECOVER_THRESHOLD
         )
@@ -536,9 +544,7 @@ def evaluate_policy(  # noqa: C901, PLR0911
     # 4. MAINTAIN transitions.
     # ----------------------------------------------------------------------
     if current_state == PolicyState.MAINTAIN:
-        days_above_push = consecutive_days_above_threshold(
-            history, DEFAULT.QHE_PUSH_THRESHOLD
-        )
+        days_above_push = consecutive_days_above_threshold(history, DEFAULT.QHE_PUSH_THRESHOLD)
         days_below_recover = consecutive_days_below_threshold(
             history, DEFAULT.QHE_RECOVER_THRESHOLD
         )
@@ -598,9 +604,7 @@ def evaluate_policy(  # noqa: C901, PLR0911
             return PolicyEvaluation(
                 new_state=PolicyState.REDUCE,
                 severity=Severity.WARNING,
-                rationale=(
-                    f"PUSH->REDUCE: early warning, {infraction_count} infractions"
-                ),
+                rationale=(f"PUSH->REDUCE: early warning, {infraction_count} infractions"),
                 days_in_state=days_in_state,
                 is_transition=True,
                 previous_state=current_state,
@@ -767,7 +771,7 @@ class PolicyEngine:
         eval_result = evaluate_policy(
             self._current_state, qhe_metrics, self._history, infraction_count
         )
-        decision_date = on_date if on_date is not None else date.today()  # noqa: DTZ011
+        decision_date = on_date if on_date is not None else date.today()
         decision = PolicyDecision(
             id=f"{_DECISION_ID_PREFIX}{uuid4().hex[:_UEID_HEX_LEN]}",
             date=decision_date,
@@ -780,7 +784,7 @@ class PolicyEngine:
             qhe_input=_clamp_qhe_for_storage(qhe_metrics.qhe),
             energy_input=energy_level,
             infraction_count=infraction_count,
-            created_at=datetime.now(),  # noqa: DTZ005
+            created_at=datetime.now(),
         )
         # Record the transition (only when state actually changed from
         # a known previous state — the initial seed at MAINTAIN does
@@ -798,7 +802,7 @@ class PolicyEngine:
                 days_in_previous_state=eval_result.days_in_state,
                 trigger=eval_result.rationale,
                 qhe_at_transition=_clamp_qhe_for_storage(qhe_metrics.qhe),
-                created_at=datetime.now(),  # noqa: DTZ005
+                created_at=datetime.now(),
             )
             self._transitions.append(record)
             if len(self._transitions) > self._max_history:

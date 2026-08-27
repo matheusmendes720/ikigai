@@ -21,14 +21,28 @@ repos:
     rev: v1.10.0
     hooks:
       - id: mypy
-        files: ^src/
+        # PAV uv-workspace layout: Python sources live under
+        # packages/*/src/ and apps/*/src/ (no bare src/ at the workspace root).
+        # The original regex ^src/ silently matched nothing in this layout,
+        # making the hook a no-op.
+        files: ^(packages|apps)/.+/src/.+\.py$
         additional_dependencies: [pydantic>=2.6]
 
   - repo: local
     hooks:
       - id: pytest-fast
         name: pytest (unit only)
-        entry: poetry run pytest -m "unit" -x --no-cov
+        # PAV uses a uv workspace (pyproject.toml has [tool.uv.workspace]).
+        # Two pre-existing bugs were fixed:
+        #   1. `poetry run` was a silent no-op — Poetry isn't installed in this
+        #      repo. Switched to `uv run`.
+        #   2. `-m "unit"` filtered out every test — no test file uses
+        #      @pytest.mark.unit. The suite is directory-scoped (tests/unit/,
+        #      tests/integration/, tests/e2e/) so we drop the marker and rely
+        #      on the `files:` regex + `pass_filenames: true` to scope the
+        #      run to the diff'd unit-test files. This makes doc-only /
+        #      config-only commits essentially free.
+        entry: bash -c 'uv run pytest -x --no-cov -- "$@"'
         language: system
-        pass_filenames: false
-        always_run: true
+        pass_filenames: true
+        files: ^tests/unit/.+\.py$

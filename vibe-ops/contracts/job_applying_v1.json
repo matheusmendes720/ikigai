@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JobApplying Contract v1",
+  "description": "Contrato de dados para o pipeline de aplicação a vagas no Data Mesh de Vida & Carreira.",
+  "type": "object",
+  "properties": {
+    "entity_type": { "type": "string", "const": "job_applying" },
+    "pipeline_id": { "type": "string", "pattern": "^ja_[a-z0-9_]+$" },
+    "tier": { "type": "string", "enum": ["tier_a", "tier_b", "tier_c"] },
+    "source": {
+      "type": "string",
+      "enum": ["telegram", "linkedin", "hnjobs", "career_ops", "user_paste"]
+    },
+    "canonical_id": { "type": "string" },
+    "company": { "type": "string" },
+    "role": { "type": "string" },
+    "score": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+    "archetype": { "type": "string" },
+    "work_mode": { "type": "string", "enum": ["remote", "hybrid", "onsite", "unknown"] },
+    "status": {
+      "type": "string",
+      "enum": ["discovered", "new", "applied", "interviewing", "rejected", "offer", "accepted"]
+    },
+    "apply_decision": { "type": "string", "enum": ["yes", "no", "later"] },
+    "apply_priority": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+    "ulracode_rank": { "type": "integer", "minimum": 1 },
+    "outputs": {
+      "type": "object",
+      "properties": {
+        "cv_html": { "type": "string" },
+        "cover_letter": { "type": "string" },
+        "outreach_dm": { "type": "string" },
+        "outreach_email": { "type": "string" }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "properties": {
+        "total_jobs": { "type": "integer" },
+        "tier_b_eligible": { "type": "integer" },
+        "tier_c_generated": { "type": "integer" },
+        "avg_score": { "type": "number" },
+        "remote_pct": { "type": "number" }
+      }
+    }
+  },
+  "required": ["entity_type", "pipeline_id", "tier", "source"]
+}

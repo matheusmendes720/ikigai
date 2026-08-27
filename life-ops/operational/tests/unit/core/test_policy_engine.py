@@ -187,6 +187,40 @@ class TestSeverity:
         assert Severity("WARNING") is Severity.WARNING
         assert Severity("CRITICAL") is Severity.CRITICAL
 
+    def test_warning_equivalent_to_exceptions_medium(self) -> None:
+        """P0 #13 contract: ``WARNING`` (policy) ≡ ``MEDIUM`` (canonical PAV §6).
+
+        The policy-engine subset is **semantically** a subset of
+        :class:`operational.exceptions.Severity` — the string values
+        differ (``"WARNING"`` vs ``"MEDIUM"``) but they map to the
+        same operational meaning: protective downgrade. This test
+        pins that the policy tier set is exactly three and that the
+        unused canonical tiers (``LOW`` / ``HIGH``) are not present.
+        """
+        from operational.exceptions import Severity as CanonicalSeverity
+
+        policy_values = {s.value for s in Severity}
+        canonical_values = {s.value for s in CanonicalSeverity}
+
+        # Two tiers are name-equal across both enums.
+        assert "INFO" in policy_values and "INFO" in canonical_values
+        assert "CRITICAL" in policy_values and "CRITICAL" in canonical_values
+
+        # Policy has 3 tiers; canonical has 5.
+        assert len(policy_values) == 3
+        assert len(canonical_values) == 5
+
+        # The absent tiers of the canonical enum are absent here too.
+        assert "LOW" not in policy_values
+        assert "HIGH" not in policy_values
+
+        # Policy "WARNING" is the SEMANTIC equivalent of canonical "MEDIUM"
+        # — both mean "protective downgrade". The strings differ by design
+        # so existing persisted PolicyDecision records keep working.
+        assert "WARNING" in policy_values
+        assert "MEDIUM" not in policy_values
+        assert "MEDIUM" in canonical_values
+
 
 # ===========================================================================
 # PolicyEvaluation

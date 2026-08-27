@@ -42,6 +42,7 @@ Conventions:
 * Google-style docstrings, line-length 100, ``__all__`` explicit.
 * No business logic — pure data containers with invariants.
 """
+
 from __future__ import annotations
 
 import math
@@ -139,9 +140,7 @@ class Habit(BaseModel):
     name: Annotated[str, Field(min_length=1, max_length=_HABIT_NAME_MAX)]
     category: HabitCategory
     resistance: Annotated[float, Field(ge=0.0, le=10.0)]
-    lambda_learning: Annotated[float, Field(ge=0.0, le=1.0)] = (
-        DEFAULT.LAMBDA_LEARNING_DEFAULT
-    )
+    lambda_learning: Annotated[float, Field(ge=0.0, le=1.0)] = DEFAULT.LAMBDA_LEARNING_DEFAULT
     weight_in_qhe: Annotated[float, Field(ge=0.0, le=1.0)]
     frequency: Literal["DAILY", "WEEKLY", "WAVE"] = "DAILY"
     target_streak: Annotated[int, Field(ge=0)] | None = None
@@ -180,7 +179,7 @@ class Habit(BaseModel):
         category: HabitCategory,
         resistance: float,
         weight_in_qhe: float,
-        **overrides: Any,  # noqa: ANN401
+        **overrides: Any,
     ) -> Habit:
         """Factory: build a :class:`Habit` from PAV defaults.
 

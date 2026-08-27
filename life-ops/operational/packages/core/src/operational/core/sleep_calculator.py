@@ -38,6 +38,7 @@ Public surface
   decision matrix from PAV §7 as a list of :class:`SleepDecision`
   records.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -279,12 +280,8 @@ class SleepQuality:
             ``True`` iff all three predicates hold.
         """
         horas = SleepQuality.calcular_horas_sono(hora_dormir, hora_acordar)
-        optimal_dormir = (
-            DEFAULT.HORARIO_DORMIR_MIN <= hora_dormir <= DEFAULT.HORARIO_DORMIR_MAX
-        )
-        optimal_acordar = (
-            DEFAULT.HORARIO_ACORDAR_MIN <= hora_acordar <= DEFAULT.HORARIO_ACORDAR_MAX
-        )
+        optimal_dormir = DEFAULT.HORARIO_DORMIR_MIN <= hora_dormir <= DEFAULT.HORARIO_DORMIR_MAX
+        optimal_acordar = DEFAULT.HORARIO_ACORDAR_MIN <= hora_acordar <= DEFAULT.HORARIO_ACORDAR_MAX
         optimal_duration = _OPTIMAL_MIN_HOURS <= horas <= _OPTIMAL_MAX_HOURS
         return optimal_dormir and optimal_acordar and optimal_duration
 

@@ -1,4 +1,5 @@
 """Reusable validation utilities for entity fields."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -54,10 +55,7 @@ def validate_datetime_ordered(
         ValueError: If ``end <= start``.
     """
     if end <= start:
-        msg = (
-            f"{name}: end ({end.isoformat()}) must be strictly after "
-            f"start ({start.isoformat()})"
-        )
+        msg = f"{name}: end ({end.isoformat()}) must be strictly after start ({start.isoformat()})"
         raise ValueError(msg)
 
 
@@ -84,7 +82,5 @@ def validate_period_bounds(
     """
     if not lo <= hour < hi:
         msg = f"{label} ({hour}) out of expected range [{lo}, {hi})"
-        raise ValueError(
-            msg
-        )
+        raise ValueError(msg)
     return hour

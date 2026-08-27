@@ -42,6 +42,7 @@ Conventions:
   explicit ``model_validator`` methods.
 * No business logic — pure data containers with invariants.
 """
+
 from __future__ import annotations
 
 import datetime as _dt
@@ -161,10 +162,7 @@ class PolicySetpoints(BaseModel):
             ValueError: If ``allowed_phases`` is empty.
         """
         if len(self.allowed_phases) == 0:
-            msg = (
-                f"allowed_phases must be non-empty for state {self.state!r}, "
-                "got empty list"
-            )
+            msg = f"allowed_phases must be non-empty for state {self.state!r}, got empty list"
             raise ValueError(msg)
         return self
 
@@ -172,7 +170,7 @@ class PolicySetpoints(BaseModel):
     def from_pav_defaults(
         cls,
         state: PolicyState,
-        **overrides: Any,  # noqa: ANN401
+        **overrides: Any,
     ) -> PolicySetpoints:
         """Build a :class:`PolicySetpoints` from PRD-06 canonical defaults.
 
@@ -256,7 +254,7 @@ class PolicySetpoints(BaseModel):
         base: dict[str, object] = {
             "id": f"{_SETPOINTS_ID_PREFIX}{uuid4().hex[:_UEID_HEX_LEN]}",
             "state": state,
-            "created_at": datetime.now(),  # noqa: DTZ005
+            "created_at": datetime.now(),
         }
         base.update(canonical[state])
         base.update(overrides)
@@ -377,11 +375,11 @@ class PolicyDecision(BaseModel):
             when applicable).
         """
         if self.applied and self.applied_at is None:
-            self.applied_at = datetime.now()  # noqa: DTZ005
+            self.applied_at = datetime.now()
         return self
 
     @classmethod
-    def from_state(  # noqa: PLR0913
+    def from_state(
         cls,
         decision_date: _dt.date,
         state: PolicyState,
@@ -392,7 +390,7 @@ class PolicyDecision(BaseModel):
         energy_input: EnergyLevel | None = None,
         infraction_count: int = 0,
         days_in_state: int = 0,
-        **overrides: Any,  # noqa: ANN401
+        **overrides: Any,
     ) -> PolicyDecision:
         """Build a :class:`PolicyDecision` from canonical setpoints.
 
@@ -435,7 +433,7 @@ class PolicyDecision(BaseModel):
             "qhe_input": qhe_input,
             "energy_input": energy_input,
             "infraction_count": infraction_count,
-            "created_at": datetime.now(),  # noqa: DTZ005
+            "created_at": datetime.now(),
             "applied": False,
             "applied_at": None,
         }
@@ -517,7 +515,7 @@ class DecisionRecord(BaseModel):
         return self
 
     @classmethod
-    def from_states(  # noqa: PLR0913
+    def from_states(
         cls,
         from_state: PolicyState | None,
         to_state: PolicyState,
@@ -525,7 +523,7 @@ class DecisionRecord(BaseModel):
         days_in_previous_state: int = 0,
         trigger: str = "",
         qhe_at_transition: float | None = None,
-        **overrides: Any,  # noqa: ANN401
+        **overrides: Any,
     ) -> DecisionRecord:
         """Build a :class:`DecisionRecord` with a generated ``id``.
 
@@ -557,7 +555,7 @@ class DecisionRecord(BaseModel):
             "days_in_previous_state": days_in_previous_state,
             "trigger": trigger,
             "qhe_at_transition": qhe_at_transition,
-            "created_at": datetime.now(),  # noqa: DTZ005
+            "created_at": datetime.now(),
         }
         overrides.pop("id", None)
         overrides.pop("created_at", None)

@@ -1,0 +1,17 @@
+
+    Directory: C:\Users\mathe\code_space\life-oss\life\.claude\skills\quarterly-planner
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d----          30/06/2026    11:45                workflows
+-a---          30/06/2026    11:44           1823 SKILL.md
+
+    Directory: C:\Users\mathe\code_space\life-oss\life\.claude\skills\quarterly-planner\workflows
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a---          30/06/2026    11:44           1517 correction-protocol.yml
+-a---          30/06/2026    11:45           1602 dream-falsification.yml
+-a---          30/06/2026    11:44           1594 quarterly-replan.yml
+-a---          30/06/2026    11:44           1827 test-de-fogo-rollup.yml
+

@@ -3,6 +3,20 @@ Vou ajudar a **refinar a lógica** e expandir o **modelo integrado (PAE + Estrut
 
 ![[backiee-308991.jpg]]
 # **Encargos Distintos**
+
+
+---
+
+## 🔌 Central Engine: `planning-with-files` (v3.1.3)
+
+> **Path:** `strategics/planning-with-files/` · **Update:** `cd strategics/planning-with-files && git pull`
+
+This document is part of the **PAE framework**. The canonical planning engine for all
+long-running agentic tasks (`.omo/plans/*.md`, `.omo/drafts/*.md`, `.omo/evidence/*.txt`)
+is the cloned `planning-with-files` repo. See `00-ÍNDICE-PROGRESSIVO.md` § 🔌 Central
+Engine for the full route map.
+
+---
 Agora, vou organizar o modelo em **dois documentos** distintos: um para **Planejamento** e outro para **Análise**, refletindo os três níveis da pirâmide de desempenho.
  
 ### *Documento 1 > [[Planejamento (Estratégico e Tático) ]]

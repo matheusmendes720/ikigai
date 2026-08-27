@@ -1,0 +1,47 @@
+PeriodReport Hypothesis Property Tests - T7 Summary
+
+Date: 2026-06-26
+Task: T7 of period-reports-sync plan
+Branch: gitbutler/workspace
+
+FILES CREATED:
+- vibe-ops/tests/property/__init__.py (empty)
+- vibe-ops/tests/property/test_period_report_properties.py
+
+TEST RESULTS: 9 passed, 35 warnings in 5.00s
+
+PROPERTY CLASSES:
+1. TestVerdictPeriodMatrix (2 tests)
+   - test_daily_valid_verdict_always_validates: 100 examples
+   - test_invalid_verdict_strings_always_rejected: 100 examples
+
+2. TestScoreRange (3 tests)
+   - test_score_in_valid_range_validates: 100 examples (scores in [0, 1])
+   - test_score_above_one_rejected: 50 examples (scores > 1.0)
+   - test_score_below_zero_rejected: 50 examples (scores < 0)
+
+3. TestDateRange (2 tests)
+   - test_date_end_after_start_validates: 100 examples
+   - test_date_end_before_start_rejected: 100 examples
+
+4. TestHierarchy (2 tests)
+   - test_sonho_with_any_parent_rejected: 50 examples
+   - test_non_sonho_with_parent_accepted: 50 examples
+
+PROPERTIES COVERED:
+1. Verdict x Period: PeriodReport validates iff verdict is in _PERIOD_VERDICTS[period]
+2. Score range: verdict_score always in [0, 1] (Pydantic Field(..., ge=0.0, le=1.0))
+3. Date range: date_end >= date_start (model_validator)
+4. Hierarchy: sonho cannot have parent_period (model_validator)
+
+WARNINGS (non-fatal, expected):
+- UserWarning: verdict=FAIL/KILL_WAVE/FALSIFIED/ABANDONED but verdict_score >= 0.5
+- These come from PeriodReport.validate_verdict_score_consistency (model_validator)
+- They are warnings, not errors - tests still pass
+
+NO FLAKY FAILURES:
+- All tests use --hypothesis-seed=0 for reproducibility
+- Pydantic validators are deterministic
+- No timing-dependent assertions
+
+TOTAL EXAMPLES: ~600+ across all 9 tests (100+100+100+50+50+100+100+50+50 = 700)

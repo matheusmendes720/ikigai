@@ -4,6 +4,7 @@ Aggregates 7 days of daily summaries into a markdown weekly report.
 Includes sleep averages, health routine adherence, hardwork totals,
 Cartesian plane quadrant distribution, and reflection prompts.
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -64,28 +65,36 @@ def generate_weekly_report(
     week_label = f"{week_start.isoformat()} to {week_end.isoformat()}"
 
     # Header
-    lines.extend([
-        "---",
-        "type: weekly_report",
-        f"week: {week_label}",
-        f"generated_at: {datetime.now().isoformat()}",
-        "---",
-        "",
-        f"# {chr(128200)} Weekly Report — {week_label}",
-        "",
-    ])
+    lines.extend(
+        [
+            "---",
+            "type: weekly_report",
+            f"week: {week_label}",
+            f"generated_at: {datetime.now().isoformat()}",
+            "---",
+            "",
+            f"# {chr(128200)} Weekly Report — {week_label}",
+            "",
+        ]
+    )
 
     # 1. General metrics
-    lines.extend([
-        f"## {chr(128200)} General Metrics",
-        "| Metric | Value |",
-        "|:-------|:-----:|",
-    ])
+    lines.extend(
+        [
+            f"## {chr(128200)} General Metrics",
+            "| Metric | Value |",
+            "|:-------|:-----:|",
+        ]
+    )
     lines.append(f"| Course days | {days_with_course} / 7 |")
     lines.append(f"| Free days | {days_without_course} / 7 |")
     efficiency = calculate_efficiency(hardwork_budget_minutes, hardwork_total_minutes)
-    lines.append(f"| Hardwork total | {hardwork_total_minutes}min ({hardwork_total_minutes // 60}h {hardwork_total_minutes % 60}m) |")
-    lines.append(f"| Hardwork budget | {hardwork_budget_minutes}min ({hardwork_budget_minutes // 60}h {hardwork_budget_minutes % 60}m) |")
+    lines.append(
+        f"| Hardwork total | {hardwork_total_minutes}min ({hardwork_total_minutes // 60}h {hardwork_total_minutes % 60}m) |"
+    )
+    lines.append(
+        f"| Hardwork budget | {hardwork_budget_minutes}min ({hardwork_budget_minutes // 60}h {hardwork_budget_minutes % 60}m) |"
+    )
     lines.append(f"| Budget achieved | {efficiency:.0f}% |")
     lines.append(f"| Pomodoros | {pomodoros_total} / {pomodoros_budget} rounds |")
 
@@ -100,12 +109,14 @@ def generate_weekly_report(
         healthy = sum(1 for h in valid if 7 <= h <= 9)
         above_9 = sum(1 for h in valid if h > 9)
 
-        lines.extend([
-            "",
-            f"## {chr(128164)} Sleep (7 days)",
-            "| Metric | Value |",
-            "|:-------|:-----:|",
-        ])
+        lines.extend(
+            [
+                "",
+                f"## {chr(128164)} Sleep (7 days)",
+                "| Metric | Value |",
+                "|:-------|:-----:|",
+            ]
+        )
         lines.append(f"| Average | {avg_sleep:.1f}h |")
         lines.append(f"| Minimum | {min_sleep:.1f}h |")
         lines.append(f"| Maximum | {max_sleep:.1f}h |")
@@ -114,12 +125,14 @@ def generate_weekly_report(
         lines.append(f"| Days > 9h | {above_9} |")
 
     # 3. Health routines
-    lines.extend([
-        "",
-        f"## {chr(127939)} Health Routines",
-        "| Metric | Value |",
-        "|:-------|:-----:|",
-    ])
+    lines.extend(
+        [
+            "",
+            f"## {chr(127939)} Health Routines",
+            "| Metric | Value |",
+            "|:-------|:-----:|",
+        ]
+    )
     lines.append(f"| Workout | {workout_days} / 7 days |")
     lines.append(f"| Meditation | {meditation_days} / 7 days |")
     lines.append(f"| Dinner before 18h | {dinner_before_18_days} / 7 days |")
@@ -127,12 +140,14 @@ def generate_weekly_report(
 
     # 4. Cartesian plane — weekly position
     prod_x = efficiency
-    lines.extend([
-        "",
-        f"## {chr(128200)} Cartesian Plane — Weekly Position",
-        f"**Average Productivity (X):** {prod_x:.0f}%",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            f"## {chr(128200)} Cartesian Plane — Weekly Position",
+            f"**Average Productivity (X):** {prod_x:.0f}%",
+            "",
+        ]
+    )
     lines.append(render_cartesian_ascii(prod_x, _avg_y(daily_quadrants)))
 
     # Quadrant distribution
@@ -147,54 +162,62 @@ def generate_weekly_report(
                 q3 += 1
             else:
                 q4 += 1
-        lines.extend([
-            "",
-            "### Quadrant Distribution",
-            "| Q1 | Q2 | Q3 | Q4 |",
-            "|:--:|:--:|:--:|:--:|",
-            f"| {q1}d | {q2}d | {q3}d | {q4}d |",
-        ])
+        lines.extend(
+            [
+                "",
+                "### Quadrant Distribution",
+                "| Q1 | Q2 | Q3 | Q4 |",
+                "|:--:|:--:|:--:|:--:|",
+                f"| {q1}d | {q2}d | {q3}d | {q4}d |",
+            ]
+        )
 
     # 5. Weekly deliverables
-    lines.extend([
-        "",
-        f"## {chr(127919)} Deliverables",
-        "",
-        "_(Add your completed tasks here)_",
-        "",
-        "| # | Task | Status |",
-        "|:--:|:-----|:------:|",
-        "| 1 | _ | _ |",
-        "| 2 | _ | _ |",
-        "| 3 | _ | _ |",
-        "| 4 | _ | _ |",
-        "| 5 | _ | _ |",
-    ])
+    lines.extend(
+        [
+            "",
+            f"## {chr(127919)} Deliverables",
+            "",
+            "_(Add your completed tasks here)_",
+            "",
+            "| # | Task | Status |",
+            "|:--:|:-----|:------:|",
+            "| 1 | _ | _ |",
+            "| 2 | _ | _ |",
+            "| 3 | _ | _ |",
+            "| 4 | _ | _ |",
+            "| 5 | _ | _ |",
+        ]
+    )
 
     # 6. Weekly reflection
-    lines.extend([
-        "",
-        f"## {chr(128221)} Weekly Reflection",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            f"## {chr(128221)} Weekly Reflection",
+            "",
+        ]
+    )
 
     if reflections:
         for r in reflections:
             lines.append(f"- {r}")
     else:
-        lines.extend([
-            "**What worked well?**",
-            "",
-            "_",
-            "",
-            "**What needs improvement?**",
-            "",
-            "_",
-            "",
-            "**Adjustments for next week:**",
-            "",
-            "_",
-        ])
+        lines.extend(
+            [
+                "**What worked well?**",
+                "",
+                "_",
+                "",
+                "**What needs improvement?**",
+                "",
+                "_",
+                "",
+                "**Adjustments for next week:**",
+                "",
+                "_",
+            ]
+        )
 
     lines.append("")
     return "\n".join(lines)

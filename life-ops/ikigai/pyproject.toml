@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Standalone IKIGAi meta-brain for the Algorithmic Life OS"
 authors = ["Matheus + AI Agent"]
 readme = "README.md"
-packages = [{include = "ikigai", from = "src"}]
+packages = [{include = "ikigai", from = "src"}, {include = "mcp_server", from = "src"}, {include = "agents", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -13,6 +13,25 @@ pyyaml = "^6.0"
 python-frontmatter = "^1.0"
 typer = "^0.12"
 rich = "^13.7"
+mcp = "^1.1"
+langgraph-checkpoint-sqlite = "^3.1"
+
+# OpenTelemetry — single SDK, two OTLP exporters (LangSmith + Langfuse).
+# contrib package versions track opentelemetry-api minor (b0 = beta but stable).
+opentelemetry-api = "^1.27.0"
+opentelemetry-sdk = "^1.27.0"
+opentelemetry-exporter-otlp-proto-http = "^1.27.0"
+opentelemetry-instrumentation-langchain = "^0.42b0"
+opentelemetry-instrumentation-requests = "^0.48b0"
+opentelemetry-instrumentation-sqlite3 = "^0.48b0"
+opentelemetry-instrumentation-logging = "^0.48b0"
+
+# HTTP client used by verify_traces.py
+requests = "^2.31"
+
+[tool.poetry.scripts]
+ikigai-maintainer-mcp = "run_mcp_server:main"
+ikigai-deep-agent = "agents.deepagents_harness:main"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"

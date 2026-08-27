@@ -3,6 +3,7 @@
 All persistence errors inherit from :class:`PersistenceError` and carry
 the repository name and the entity UEID for traceability.
 """
+
 from __future__ import annotations
 
 from typing import Any
