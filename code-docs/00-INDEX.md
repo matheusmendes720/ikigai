@@ -190,6 +190,17 @@ prd-{01..07} mirrors, README. Base path:
 | `CLUSTER_PLAN_DATA_MODEL.md` | Data model |
 | `CLUSTER_PLAN_CHECKPOINT.md` | Status snapshot |
 
+### 8e. Observability specs — `life-ops/ikigai/docs/observability/`
+
+4 follow-up specs for the observability sprint (committed in `1d9479a`).
+
+| Spec | File | Subject |
+|------|------|---------|
+| 01 | `01-server-side-reliability.md` | Mirror IKIGAI's client-side retry + CB pattern onto the 3 external MCP servers (tuiboard, taskdog, solverforge) |
+| 02 | `02-integration-smoke-test.md` | `pav smoke observability` — boot all 4 servers with `OTEL_ENABLED=true`, verify spans in LangSmith + Langfuse |
+| 03 | `03-merge-plan.md` | Dependency-ordered merge procedure for the 4 OTel feature branches back to default branches |
+| 04 | `04-dissolve-worktree.md` | Cleanup steps for `life-mcp-observability-worktree` once the IKIGAI merge lands |
+
 ### 8d. ARDs — `code-docs/ard/`
 
 Architecture requirements (cross-cluster, conceptual layer). See
