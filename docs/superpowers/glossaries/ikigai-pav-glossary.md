@@ -20,7 +20,69 @@
 
 ## Parte I — Pirâmide do Desempenho (`strategics/`)
 
-*Fonte: `strategics/Modelagem Operacional.md`*
+*Fonte: `strategics/Modelagem Operacional.md` · INNER GUIDELINES (camada constitucional)*
+
+### 🔷 Princípio Cardinal — TENSÃO → COMPORTAMENTO → SOLUÇÃO
+
+> **Este é o princípio constitucional do sistema.** Toda decisão estratégica
+> é derivada desta链条. Nunca contradizer este fluxo.
+
+```
+TENSÃO (tension)
+    ↓  driver
+COMPORTAMENTO (behavior)
+    ↓  manifestação
+SOLUÇÃO (solution)
+```
+
+| Camada | Definição | Exemplo |
+|--------|-----------|---------|
+| **Tensão** | Força motriz — problema não-resolvido, gap, oportunidade ou risco | "Q_HE 0.45, abaixo do target" |
+| **Comportamento** | Resposta adaptativa — como o sistema reage à tensão | Regime desce PUSH→REDUCE |
+| **Solução** | Intervenção deliberada — ação estruturada para resolver | Adicionar 2h de sleep, reduzir hardwork |
+
+### 5 Tensões Estratégicas (Strategic Tensions)
+
+| # | Tensão | Domínio | Tensão PT-BR |
+|---|--------|---------|-------------|
+| 1 | **Tensão de Propósito** | Paixão vs. Mercado | `passion` vs `market` |
+| 2 | **Tensão de Capacidade** | Habilidade vs. Oportunidade | `skill` vs `market` |
+| 3 | **Tensão de Recompensa** | Receita vs. Curso/Formação | `revenue` vs `course` |
+| 4 | **Tensão Temporal** | Horizonte longo (547d) vs. curto (7d) | SONHO vs. bloco diário |
+| 5 | **Tensão de Energia** | Q_HE disponível vs. Demanda de execução | `q_he_score` vs `hardwork_orçado` |
+
+> **Nota:** As 5 tensões são a lente através da qual cada vetor IKIGAI é avaliado.
+> Cada decisão estratégica deve responder: "qual tensão isto resolve?"
+
+### 4 Regimes — Hysteresis Assimétrica
+
+> **Regra constitucional:** Descidas são mais rápidas que subidas.
+> Isso previne burnout crônico. Nunca atribuir regime sem calcular Q_HE primeiro.
+
+| Regime | Emoji | Q_HE limiar | Trabalho | Pomodoros | Sono | Hysteresis |
+|--------|-------|-------------|----------|-----------|------|------------|
+| `PUSH` | 🚀 | ≥ 0.85 | 8h | 10 | 7h | ↑ 3 dias consecutivos |
+| `MAINTAIN` | 🔧 | 0.70–0.85 | 6h | 8 | 8h | neutro |
+| `REDUCE` | 📉 | 0.60–0.70 | 4h | 5 | 8h | ↓ 2 dias |
+| `RECOVER` | 🛌 | < 0.60 | 2h | 2 | 9h | ↓ 2 dias OU emergência |
+
+**Limiar MAINTAIN no ciclo bootstrap:** O valor `Q_HE: 0.6500` no seu output está no limiar
+inferior de MAINTAIN (0.70-0.85) — indica que o sistema está marginalmente estável.
+
+### Princípios Operacionais (Constitutionais)
+
+1. **Hierarquia de Sonhos** — SONHO (547d) é raiz de tudo. Objetivos derivam dele.
+2. **Fases são envelopes de peso vetorial** — cada fase distribui atenção nos 5 vetores de forma diferente.
+3. **Q_HE é métrica primária de execução** — governa regime, não o contrário.
+4. **Heurísticas H1–H6 são sinais, não comandos** — orientam correção mas não substituem judgment.
+5. **Vault é memória verificável** — todo estado persistido é auditável.
+
+### Proibições Constitucionais (Strategics/)
+
+- ❌ Nunca contradizer ou reescrever conteúdo de `strategics/`
+- ❌ Nunca atribuir regime sem calcular Q_HE primeiro
+- ❌ Nunca ignorar sinais H1–H6 por mais de 1 ciclo
+- ❌ Nunca confundir fase com regime (são camadas diferentes)
 
 ### Níveis Hierárquicos
 
@@ -628,13 +690,32 @@ Formato: `🟡 MAINTAIN | Q_HE: 0.6500` (emoji corresponde ao regime, Q_HE com 4
 
 | Campo | Definição | Fórmula |
 |-------|-----------|---------|
-| `meta_vector_score` | Média ponderada dos 5 vetores IKIGAI | `Σ(weight_i × score_i)` onde weights somam 1.0 |
+| `meta_vector_score` | Hybrid mean dos 5 vetores IKIGAI (escala 0-100) | `0.6 × geo_mean + 0.4 × harm_mean` |
+| `vector_scores` | Scores individuais de cada vetor IKIGAI (escala 0-100) | `dict[VECTOR_TYPES, float]` |
 
-Os 5 vetores: `passion`, `skill`, `market`, `revenue`, `course`. Exemplo com weights do SONHO Q3-2026:
+**Escala: 0-100** (não 0-1). Valores como `39.9439` são normais — indicam vetores em ~40/100.
+
+**Fórmula** (`state.py:175-207`):
+```python
+# Média geométrica (peso 0.6) — balanceia vetores
+geo = exp(Σ(w_norm[k] * ln(max(score[k], 0.01))) for k in active)
+
+# Média harmônica (peso 0.4) — penaliza scores baixos
+harm = 1.0 / (Σ(w_norm[k] / max(score[k], 0.01)) for k in active)
+
+meta_vector = 0.6 * geo + 0.4 * harm  # resultado em 0-100
 ```
-vector_weights = {passion: 0.05, skill: 0.30, market: 0.50, revenue: 0.10, course: 0.05}
-meta_vector = 0.05×0.6 + 0.30×0.7 + 0.50×0.8 + 0.10×0.3 + 0.05×0.5 = 0.665
-```
+
+**Exemplo numérico** — se todos os 5 vetores estão em ~40:
+- geo = 40, harm = 40 → meta_vector ≈ 0.6×40 + 0.4×40 = **40.0**
+
+**Interpretação prática:**
+- 80-100 = vetores altos e balanceados (Q_HE ≥ 0.85, regime PUSH)
+- 60-80 = vetores bons com leve desbalance
+- 40-60 = vetores médios / início de bootstrapping (valor típico: ~40)
+- 0-40 = vetores fracos ou bootstrap inicial
+
+> **Bootstrapping:** Na primeira iteração do ciclo (estado vazio), `vector_scores` defaults para `{}` → `meta_vector = 0.0`. Conforme o agente popula scores do vault, o meta-vector sobe para o range ativo. O valor `39.9439` no primeiro ciclo real é normal — reflete vetores ainda não completamente populados no vault.
 
 ### Kill switch
 
