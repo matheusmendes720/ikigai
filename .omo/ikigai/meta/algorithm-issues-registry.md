@@ -157,8 +157,8 @@ inconsistent.
 
 ### A02 — RECOVER trigger ambiguity (3 distinct thresholds)
 
-| Severity | HIGH | Scope | CODE+DOC | Status | OPEN |
-|----------|------|-------|----------|--------|------|
+| Severity | HIGH | Scope | CODE+DOC | Status | **PARTIALLY RESOLVED — A02.1 pending** |
+|----------|------|-------|----------|--------|
 
 Three different RECOVER entry conditions coexist in the documentation:
 
@@ -173,9 +173,14 @@ Three different RECOVER entry conditions coexist in the documentation:
 trigger vocabularies (`infractions` vs `sleep_debt` vs `consecutive_sleep_misses`) for the
 same state machine.
 
-**Resolution.** Document a single RECOVER entry rule. Likely candidate:
-`RECOVER = (Q_HE < 0.60 AND sleep_debt_7d > 2h) OR (infractions_3d ≥ 3)`.
-Persona floor (Q_HE < 0.30) becomes an EMERGENCY sub-state (or alarm-only) inside RECOVER.
+**Resolution (2026-08-26 — INNER GUIDELINES):**
+- INNER GUIDELINES canonical: `RECOVER < 0.60` — single threshold, no 0.30 floor.
+- **A02.1 OPEN:** The persona's `Q_HE < 0.30` emergency floor is NOT in the canonical
+  INNER GUIDELINES table. Decision required: keep 0.30 as EMERGENCY sub-state inside RECOVER,
+  or remove it entirely. Per Proibição constitucional: "nunca confundir fase com regime" —
+  EMERGENCY would be a *phase* (not a *regime*).
+
+**A02.1 pending:** Define EMERGENCY sub-state scope — is it a *phase* or a *regime*?
 
 ---
 
@@ -343,8 +348,8 @@ direct them to write `vibe-ops/src/models/habit_engine.py` — which contradicts
 
 ### D03 — 3 Q_HE thresholds (0.65 / 0.65 / 0.60)
 
-| Severity | HIGH | Scope | PERSONA+DOC | Status | OPEN |
-|----------|------|-------|-------------|--------|------|
+| Severity | HIGH | Scope | PERSONA+DOC | Status | **RESOLVED by INNER GUIDELINES** |
+|----------|------|-------|-------------|--------|
 
 `Points_of_premisses-task-habits.md`: DOWN @ 0.60 (2d).
 `meta_heuristics.md` (per SCALAR): DOWN @ 0.60.
@@ -355,7 +360,17 @@ Persona examples: 0.65.
 might be the "early warning" threshold (separate from "DOWNGRADE" 0.65); needs explicit
 distinction.
 
-**Resolution.** Define a tier set: `WARN ≤ 0.70 < DOWN ≤ 0.60 < EMERGENCY ≤ 0.30`.
+**Resolution (2026-08-26 — INNER GUIDELINES canonical):**
+```
+PUSH     ≥ 0.85
+MAINTAIN 0.70 – 0.85   ← previously 0.65 in some docs (D03 gap now closed)
+REDUCE   0.60 – 0.70   ← previously 0.60 in some docs
+RECOVER  < 0.60         ← single threshold; no separate 0.30 emergency floor
+```
+**Hysteresis:** UP requires 3 consecutive days; DOWN requires 2 consecutive days.
+The INNER GUIDELINES from `strategics/` layer (constitutional) now provides the
+single canonical threshold table. A02 (RECOVER emergency floor 0.30) is addressed
+separately (see A02 status update below).
 
 ---
 
