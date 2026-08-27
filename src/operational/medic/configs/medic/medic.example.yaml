@@ -1,0 +1,102 @@
+# medic — example configuration.
+#
+# Drop this in your repo root as `medic.yaml` (or in `./configs/medic/`) and
+# edit to taste. All fields are optional; missing fields fall back to defaults.
+#
+# Schema (CLI flag equivalents in []):
+#
+#   target.local           [target]   path to inspect
+#   target.language        [lang]     auto | go | python | rust | node | mixed
+#   target.test_cmd        [test]     override the test runner
+#   target.lint_cmd        [lint]     override the linter
+#   target.coverage_cmd    [cover]    override the coverage tool
+#
+#   github.token           [$MEDIC_GITHUB_TOKEN / $GITHUB_TOKEN]
+#   github.repo            [repo]     owner/name
+#   github.base_url        []         override API URL (e.g. GitHub Enterprise)
+#   github.allow_post      [post]     allow posting reviews / comments
+#
+#   health.run_tests       true       gate checks
+#   health.run_lint        true
+#   health.run_coverage    true
+#   health.run_deps        true
+#   health.run_complexity  true
+#   health.min_coverage_pct 70
+#   health.max_complexity    15
+#   health.timeout          5m
+#
+#   visual.binary          [binary]   path to the TUI binary
+#   visual.args            []         args passed to the binary
+#   visual.cols            120
+#   visual.rows             40
+#   visual.frame_rate_ms   120
+#   visual.golden_dir      tests/golden/frames
+#   visual.output_dir      .medic/visualize
+#   visual.color           auto
+#
+#   patterns.ux            true
+#   patterns.code          true
+#   patterns.workflow      true
+#   patterns.auto_fix      false
+#   patterns.min_severity  info
+#
+#   llm.provider           openai | anthropic | local | none
+#   llm.model              gpt-4o
+#   llm.api_key            ($MEDIC_LLM_API_KEY)
+#   llm.base_url           (optional override)
+#   llm.system_prompt      configs/medic/prompts/review-system.txt
+#
+#   output.format          text | json | markdown | sarif | html
+#   output.path            (default: written to .medic/)
+#   output.verbose         false
+#   output.no_color        false
+
+target:
+  local: .
+  language: auto
+
+github:
+  token: ""
+  repo: ""
+  base_url: "https://api.github.com"
+  allow_post: false
+
+health:
+  run_tests: true
+  run_lint: true
+  run_coverage: true
+  run_deps: true
+  run_complexity: true
+  min_coverage_pct: 70.0
+  max_complexity: 15
+  timeout: 5m
+
+visual:
+  binary: ""
+  args: []
+  cols: 120
+  rows: 40
+  frame_rate_ms: 120
+  golden_dir: tests/golden/frames
+  output_dir: .medic/visualize
+  color: auto
+
+patterns:
+  ux: true
+  code: true
+  workflow: true
+  auto_fix: false
+  min_severity: info
+
+llm:
+  provider: none
+  model: ""
+  api_key: ""
+  base_url: ""
+  system_prompt: ""
+
+output:
+  format: text
+  path: ""
+  verbose: false
+  no_color: false

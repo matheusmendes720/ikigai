@@ -1,0 +1,89 @@
+# PAV QA Pipeline — Orchestrator Example
+# Runs all QA agents as a sequential pipeline with Slack notifications
+
+metadata:
+  name: pav_qa_pipeline
+  version: 1.0.0
+  description: >
+    Full QA pipeline: IO analysis → TDD suite → Flow graph →
+    Spec validation → Style audit → Benchmarks → Slack notification
+  author: hermes-orchestrator
+  tags: [qa, cli, pav, integration]
+  expected_duration_s: 300
+
+trigger:
+  type: manual
+
+notifications:
+  channels: [slack]
+  on_completion: true
+  on_failure: true
+  slack_webhook: ${env.SLACK_WEBHOOK_URL}
+
+tasks:
+  # ── Phase 1: IO Analysis ────────────────────────────────────────────
+  - id: ux_io_analyst
+    name: UX/IO Analyst
+    type: shell
+    command: uv run python agents/harness/engines/ux_io_agent.py
+    timeout_s: 120
+    cwd: C:/Users/mathe/code_space/life-oss/life/life-ops/operational
+    on_success: [tdd_agent]
+
+  - id: tdd_agent
+    name: TDD/BDD Test Engineer
+    type: shell
+    depends_on: [ux_io_analyst]
+    command: uv run python agents/harness/engines/tdd_agent.py
+    timeout_s: 120
+    cwd: C:/Users/mathe/code_space/life-oss/life/life-ops/operational
+    on_success: [flow_analyzer]
+
+  # ── Phase 2: Graph + Spec ───────────────────────────────────────────
+  - id: flow_analyzer
+    name: Flow Analyzer
+    type: shell
+    depends_on: [tdd_agent]
+    command: uv run python agents/harness/engines/flow_agent.py
+    timeout_s: 120
+    cwd: C:/Users/mathe/code_space/life-oss/life/life-ops/operational
+    on_success: [reqs_validator]
+
+  - id: reqs_validator
+    name: Functional Reqs Validator
+    type: shell
+    depends_on: [flow_analyzer]
+    command: uv run python agents/harness/engines/reqs_agent.py
+    timeout_s: 120
+    cwd: C:/Users/mathe/code_space/life-oss/life/life-ops/operational
+    on_success: [style_analyzer]
+
+  # ── Phase 3: Style + Optimization ─────────────────────────────────
+  - id: style_analyzer
+    name: Interface Styler
+    type: shell
+    depends_on: [reqs_validator]
+    command: uv run python agents/harness/engines/style_agent.py
+    timeout_s: 120
+    cwd: C:/Users/mathe/code_space/life-oss/life/life-ops/operational
+    on_success: [system_optimizer]
+
+  - id: system_optimizer
+    name: System Optimizer
+    type: shell
+    depends_on: [style_analyzer]
+    command: uv run python agents/harness/engines/opt_agent.py
+    timeout_s: 120
+    cwd: C:/Users/mathe/code_space/life-oss/life/life-ops/operational
+
+  # ── Notification on failure ───────────────────────────────────────────
+  - id: alert_failure
+    name: Alert on Failure
+    type: notify
+    condition: ${tasks.system_optimizer.exit_code} != 0
+    channel: slack
+    message_template: |
+      ❌ PAV QA Pipeline FAILED
+      Failed at: ${tasks.alert_failure.callback_of}
+      Execution: ${env.EXECUTION_ID}
+    enabled: true

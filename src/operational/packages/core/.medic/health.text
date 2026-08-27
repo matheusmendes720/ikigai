@@ -1,0 +1,11 @@
+Health report — ../packages/core (python)
+Score: 25/100   OK=false
+
+  ✗ pytest         test        exit 5
+      · 
+no tests ran in 0.06s
+  ✗ coverage       coverage    coverage tool failed or missing
+  ✗ ruff           lint        275 ruff errors
+      &{Tool:ruff Issues:0 Errors:275 Warnings:0}
+  ✓ py-deps        deps        
+

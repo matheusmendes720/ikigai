@@ -1,0 +1,1081 @@
+id,date,cluster,routine_id,period,routine_type,text,energia_nivel,focus_nivel,humor
+oper_rlg_001_20251223,2025-12-23,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20251223,2025-12-23,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20251223,2025-12-23,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20251223,2025-12-23,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20251223,2025-12-23,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20251223,2025-12-23,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20251224,2025-12-24,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20251224,2025-12-24,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20251224,2025-12-24,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20251224,2025-12-24,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20251224,2025-12-24,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20251224,2025-12-24,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20251225,2025-12-25,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20251225,2025-12-25,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20251225,2025-12-25,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20251225,2025-12-25,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20251225,2025-12-25,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20251225,2025-12-25,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20251226,2025-12-26,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20251226,2025-12-26,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20251226,2025-12-26,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20251226,2025-12-26,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20251226,2025-12-26,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20251226,2025-12-26,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20251227,2025-12-27,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Desvio_Leve,6,7,6
+oper_rlg_002_20251227,2025-12-27,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Desvio_Leve,6,7,6
+oper_rlg_003_20251227,2025-12-27,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Desvio_Leve,6,7,6
+oper_rlg_004_20251227,2025-12-27,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Desvio_Leve,6,7,6
+oper_rlg_005_20251227,2025-12-27,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Desvio_Leve,6,7,6
+oper_rlg_006_20251227,2025-12-27,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Desvio_Leve,6,7,6
+oper_rlg_001_20251228,2025-12-28,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20251228,2025-12-28,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20251228,2025-12-28,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20251228,2025-12-28,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20251228,2025-12-28,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20251228,2025-12-28,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20251229,2025-12-29,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20251229,2025-12-29,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20251229,2025-12-29,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20251229,2025-12-29,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20251229,2025-12-29,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20251229,2025-12-29,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20251230,2025-12-30,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20251230,2025-12-30,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20251230,2025-12-30,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20251230,2025-12-30,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20251230,2025-12-30,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20251230,2025-12-30,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20251231,2025-12-31,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20251231,2025-12-31,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20251231,2025-12-31,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20251231,2025-12-31,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20251231,2025-12-31,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20251231,2025-12-31,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260101,2026-01-01,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260101,2026-01-01,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260101,2026-01-01,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260101,2026-01-01,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260101,2026-01-01,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260101,2026-01-01,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260102,2026-01-02,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260102,2026-01-02,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260102,2026-01-02,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260102,2026-01-02,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260102,2026-01-02,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260102,2026-01-02,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260103,2026-01-03,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260103,2026-01-03,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260103,2026-01-03,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260103,2026-01-03,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260103,2026-01-03,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260103,2026-01-03,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260104,2026-01-04,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260104,2026-01-04,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260104,2026-01-04,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260104,2026-01-04,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260104,2026-01-04,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260104,2026-01-04,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260105,2026-01-05,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Desvio_Leve,6,7,6
+oper_rlg_002_20260105,2026-01-05,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Desvio_Leve,6,7,6
+oper_rlg_003_20260105,2026-01-05,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Desvio_Leve,6,7,6
+oper_rlg_004_20260105,2026-01-05,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Desvio_Leve,6,7,6
+oper_rlg_005_20260105,2026-01-05,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Desvio_Leve,6,7,6
+oper_rlg_006_20260105,2026-01-05,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Desvio_Leve,6,7,6
+oper_rlg_001_20260106,2026-01-06,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260106,2026-01-06,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260106,2026-01-06,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260106,2026-01-06,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260106,2026-01-06,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260106,2026-01-06,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260107,2026-01-07,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260107,2026-01-07,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260107,2026-01-07,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260107,2026-01-07,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260107,2026-01-07,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260107,2026-01-07,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260108,2026-01-08,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260108,2026-01-08,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260108,2026-01-08,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260108,2026-01-08,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260108,2026-01-08,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260108,2026-01-08,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260109,2026-01-09,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260109,2026-01-09,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260109,2026-01-09,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260109,2026-01-09,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260109,2026-01-09,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260109,2026-01-09,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260110,2026-01-10,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Lunch_Pesado,7,7,7
+oper_rlg_002_20260110,2026-01-10,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Lunch_Pesado,7,7,7
+oper_rlg_003_20260110,2026-01-10,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Lunch_Pesado,7,7,7
+oper_rlg_004_20260110,2026-01-10,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Lunch_Pesado,7,7,7
+oper_rlg_005_20260110,2026-01-10,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Lunch_Pesado,7,7,7
+oper_rlg_006_20260110,2026-01-10,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Lunch_Pesado,7,7,7
+oper_rlg_001_20260111,2026-01-11,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260111,2026-01-11,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260111,2026-01-11,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260111,2026-01-11,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260111,2026-01-11,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260111,2026-01-11,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260112,2026-01-12,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260112,2026-01-12,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260112,2026-01-12,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260112,2026-01-12,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260112,2026-01-12,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260112,2026-01-12,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260113,2026-01-13,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260113,2026-01-13,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260113,2026-01-13,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260113,2026-01-13,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260113,2026-01-13,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260113,2026-01-13,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260114,2026-01-14,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260114,2026-01-14,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260114,2026-01-14,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260114,2026-01-14,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260114,2026-01-14,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260114,2026-01-14,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260115,2026-01-15,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260115,2026-01-15,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260115,2026-01-15,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260115,2026-01-15,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260115,2026-01-15,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260115,2026-01-15,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260116,2026-01-16,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Desvio_Leve,6,7,6
+oper_rlg_002_20260116,2026-01-16,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Desvio_Leve,6,7,6
+oper_rlg_003_20260116,2026-01-16,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Desvio_Leve,6,7,6
+oper_rlg_004_20260116,2026-01-16,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Desvio_Leve,6,7,6
+oper_rlg_005_20260116,2026-01-16,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Desvio_Leve,6,7,6
+oper_rlg_006_20260116,2026-01-16,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Desvio_Leve,6,7,6
+oper_rlg_001_20260117,2026-01-17,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Desvio_Leve,6,7,6
+oper_rlg_002_20260117,2026-01-17,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Desvio_Leve,6,7,6
+oper_rlg_003_20260117,2026-01-17,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Desvio_Leve,6,7,6
+oper_rlg_004_20260117,2026-01-17,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Desvio_Leve,6,7,6
+oper_rlg_005_20260117,2026-01-17,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Desvio_Leve,6,7,6
+oper_rlg_006_20260117,2026-01-17,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Desvio_Leve,6,7,6
+oper_rlg_001_20260118,2026-01-18,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260118,2026-01-18,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260118,2026-01-18,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260118,2026-01-18,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260118,2026-01-18,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260118,2026-01-18,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260119,2026-01-19,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260119,2026-01-19,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260119,2026-01-19,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260119,2026-01-19,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260119,2026-01-19,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260119,2026-01-19,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260120,2026-01-20,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260120,2026-01-20,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260120,2026-01-20,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260120,2026-01-20,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260120,2026-01-20,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260120,2026-01-20,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260121,2026-01-21,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260121,2026-01-21,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260121,2026-01-21,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260121,2026-01-21,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260121,2026-01-21,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260121,2026-01-21,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260122,2026-01-22,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260122,2026-01-22,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260122,2026-01-22,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260122,2026-01-22,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260122,2026-01-22,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260122,2026-01-22,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260123,2026-01-23,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260123,2026-01-23,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260123,2026-01-23,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260123,2026-01-23,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260123,2026-01-23,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260123,2026-01-23,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260124,2026-01-24,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Feriado,8,5,8
+oper_rlg_002_20260124,2026-01-24,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Feriado,8,5,8
+oper_rlg_003_20260124,2026-01-24,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Feriado,8,5,8
+oper_rlg_004_20260124,2026-01-24,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Feriado,8,5,8
+oper_rlg_005_20260124,2026-01-24,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Feriado,8,5,8
+oper_rlg_006_20260124,2026-01-24,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Feriado,8,5,8
+oper_rlg_001_20260125,2026-01-25,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260125,2026-01-25,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260125,2026-01-25,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260125,2026-01-25,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260125,2026-01-25,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260125,2026-01-25,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260126,2026-01-26,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260126,2026-01-26,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260126,2026-01-26,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260126,2026-01-26,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260126,2026-01-26,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260126,2026-01-26,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260127,2026-01-27,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260127,2026-01-27,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260127,2026-01-27,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260127,2026-01-27,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260127,2026-01-27,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260127,2026-01-27,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260128,2026-01-28,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Hardcore,5,6,5
+oper_rlg_002_20260128,2026-01-28,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Hardcore,5,6,5
+oper_rlg_003_20260128,2026-01-28,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Hardcore,5,6,5
+oper_rlg_004_20260128,2026-01-28,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Hardcore,5,6,5
+oper_rlg_005_20260128,2026-01-28,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Hardcore,5,6,5
+oper_rlg_006_20260128,2026-01-28,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Hardcore,5,6,5
+oper_rlg_001_20260129,2026-01-29,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Recuperacao,7,5,7
+oper_rlg_002_20260129,2026-01-29,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Recuperacao,7,5,7
+oper_rlg_003_20260129,2026-01-29,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Recuperacao,7,5,7
+oper_rlg_004_20260129,2026-01-29,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Recuperacao,7,5,7
+oper_rlg_005_20260129,2026-01-29,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Recuperacao,7,5,7
+oper_rlg_006_20260129,2026-01-29,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Recuperacao,7,5,7
+oper_rlg_001_20260130,2026-01-30,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260130,2026-01-30,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260130,2026-01-30,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260130,2026-01-30,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260130,2026-01-30,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260130,2026-01-30,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260131,2026-01-31,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260131,2026-01-31,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260131,2026-01-31,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260131,2026-01-31,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260131,2026-01-31,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260131,2026-01-31,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260201,2026-02-01,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260201,2026-02-01,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260201,2026-02-01,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260201,2026-02-01,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260201,2026-02-01,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260201,2026-02-01,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260202,2026-02-02,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260202,2026-02-02,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260202,2026-02-02,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260202,2026-02-02,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260202,2026-02-02,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260202,2026-02-02,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260203,2026-02-03,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260203,2026-02-03,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260203,2026-02-03,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260203,2026-02-03,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260203,2026-02-03,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260203,2026-02-03,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260204,2026-02-04,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260204,2026-02-04,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260204,2026-02-04,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260204,2026-02-04,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260204,2026-02-04,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260204,2026-02-04,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260205,2026-02-05,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260205,2026-02-05,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260205,2026-02-05,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260205,2026-02-05,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260205,2026-02-05,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260205,2026-02-05,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260206,2026-02-06,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260206,2026-02-06,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260206,2026-02-06,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260206,2026-02-06,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260206,2026-02-06,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260206,2026-02-06,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260207,2026-02-07,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Lunch_Pesado,7,7,7
+oper_rlg_002_20260207,2026-02-07,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Lunch_Pesado,7,7,7
+oper_rlg_003_20260207,2026-02-07,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Lunch_Pesado,7,7,7
+oper_rlg_004_20260207,2026-02-07,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Lunch_Pesado,7,7,7
+oper_rlg_005_20260207,2026-02-07,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Lunch_Pesado,7,7,7
+oper_rlg_006_20260207,2026-02-07,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Lunch_Pesado,7,7,7
+oper_rlg_001_20260208,2026-02-08,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260208,2026-02-08,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260208,2026-02-08,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260208,2026-02-08,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260208,2026-02-08,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260208,2026-02-08,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260209,2026-02-09,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260209,2026-02-09,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260209,2026-02-09,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260209,2026-02-09,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260209,2026-02-09,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260209,2026-02-09,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260210,2026-02-10,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260210,2026-02-10,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260210,2026-02-10,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260210,2026-02-10,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260210,2026-02-10,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260210,2026-02-10,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260211,2026-02-11,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260211,2026-02-11,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260211,2026-02-11,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260211,2026-02-11,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260211,2026-02-11,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260211,2026-02-11,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260212,2026-02-12,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Desvio_Leve,6,7,6
+oper_rlg_002_20260212,2026-02-12,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Desvio_Leve,6,7,6
+oper_rlg_003_20260212,2026-02-12,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Desvio_Leve,6,7,6
+oper_rlg_004_20260212,2026-02-12,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Desvio_Leve,6,7,6
+oper_rlg_005_20260212,2026-02-12,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Desvio_Leve,6,7,6
+oper_rlg_006_20260212,2026-02-12,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Desvio_Leve,6,7,6
+oper_rlg_001_20260213,2026-02-13,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Desvio_Leve,6,7,6
+oper_rlg_002_20260213,2026-02-13,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Desvio_Leve,6,7,6
+oper_rlg_003_20260213,2026-02-13,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Desvio_Leve,6,7,6
+oper_rlg_004_20260213,2026-02-13,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Desvio_Leve,6,7,6
+oper_rlg_005_20260213,2026-02-13,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Desvio_Leve,6,7,6
+oper_rlg_006_20260213,2026-02-13,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Desvio_Leve,6,7,6
+oper_rlg_001_20260214,2026-02-14,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260214,2026-02-14,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260214,2026-02-14,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260214,2026-02-14,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260214,2026-02-14,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260214,2026-02-14,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260215,2026-02-15,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260215,2026-02-15,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260215,2026-02-15,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260215,2026-02-15,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260215,2026-02-15,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260215,2026-02-15,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260216,2026-02-16,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260216,2026-02-16,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260216,2026-02-16,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260216,2026-02-16,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260216,2026-02-16,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260216,2026-02-16,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260217,2026-02-17,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260217,2026-02-17,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260217,2026-02-17,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260217,2026-02-17,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260217,2026-02-17,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260217,2026-02-17,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260218,2026-02-18,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Feriado,8,5,8
+oper_rlg_002_20260218,2026-02-18,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Feriado,8,5,8
+oper_rlg_003_20260218,2026-02-18,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Feriado,8,5,8
+oper_rlg_004_20260218,2026-02-18,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Feriado,8,5,8
+oper_rlg_005_20260218,2026-02-18,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Feriado,8,5,8
+oper_rlg_006_20260218,2026-02-18,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Feriado,8,5,8
+oper_rlg_001_20260219,2026-02-19,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260219,2026-02-19,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260219,2026-02-19,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260219,2026-02-19,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260219,2026-02-19,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260219,2026-02-19,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260220,2026-02-20,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260220,2026-02-20,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260220,2026-02-20,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260220,2026-02-20,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260220,2026-02-20,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260220,2026-02-20,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260221,2026-02-21,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260221,2026-02-21,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260221,2026-02-21,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260221,2026-02-21,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260221,2026-02-21,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260221,2026-02-21,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260222,2026-02-22,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260222,2026-02-22,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260222,2026-02-22,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260222,2026-02-22,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260222,2026-02-22,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260222,2026-02-22,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260223,2026-02-23,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260223,2026-02-23,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260223,2026-02-23,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260223,2026-02-23,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260223,2026-02-23,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260223,2026-02-23,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260224,2026-02-24,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260224,2026-02-24,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260224,2026-02-24,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260224,2026-02-24,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260224,2026-02-24,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260224,2026-02-24,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260225,2026-02-25,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260225,2026-02-25,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260225,2026-02-25,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260225,2026-02-25,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260225,2026-02-25,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260225,2026-02-25,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260226,2026-02-26,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Hardcore,5,6,5
+oper_rlg_002_20260226,2026-02-26,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Hardcore,5,6,5
+oper_rlg_003_20260226,2026-02-26,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Hardcore,5,6,5
+oper_rlg_004_20260226,2026-02-26,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Hardcore,5,6,5
+oper_rlg_005_20260226,2026-02-26,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Hardcore,5,6,5
+oper_rlg_006_20260226,2026-02-26,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Hardcore,5,6,5
+oper_rlg_001_20260227,2026-02-27,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Recuperacao,7,5,7
+oper_rlg_002_20260227,2026-02-27,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Recuperacao,7,5,7
+oper_rlg_003_20260227,2026-02-27,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Recuperacao,7,5,7
+oper_rlg_004_20260227,2026-02-27,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Recuperacao,7,5,7
+oper_rlg_005_20260227,2026-02-27,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Recuperacao,7,5,7
+oper_rlg_006_20260227,2026-02-27,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Recuperacao,7,5,7
+oper_rlg_001_20260228,2026-02-28,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260228,2026-02-28,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260228,2026-02-28,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260228,2026-02-28,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260228,2026-02-28,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260228,2026-02-28,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260301,2026-03-01,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260301,2026-03-01,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260301,2026-03-01,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260301,2026-03-01,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260301,2026-03-01,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260301,2026-03-01,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260302,2026-03-02,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260302,2026-03-02,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260302,2026-03-02,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260302,2026-03-02,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260302,2026-03-02,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260302,2026-03-02,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260303,2026-03-03,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260303,2026-03-03,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260303,2026-03-03,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260303,2026-03-03,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260303,2026-03-03,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260303,2026-03-03,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260304,2026-03-04,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260304,2026-03-04,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260304,2026-03-04,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260304,2026-03-04,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260304,2026-03-04,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260304,2026-03-04,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260305,2026-03-05,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260305,2026-03-05,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260305,2026-03-05,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260305,2026-03-05,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260305,2026-03-05,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260305,2026-03-05,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260306,2026-03-06,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Lunch_Pesado,7,7,7
+oper_rlg_002_20260306,2026-03-06,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Lunch_Pesado,7,7,7
+oper_rlg_003_20260306,2026-03-06,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Lunch_Pesado,7,7,7
+oper_rlg_004_20260306,2026-03-06,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Lunch_Pesado,7,7,7
+oper_rlg_005_20260306,2026-03-06,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Lunch_Pesado,7,7,7
+oper_rlg_006_20260306,2026-03-06,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Lunch_Pesado,7,7,7
+oper_rlg_001_20260307,2026-03-07,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260307,2026-03-07,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260307,2026-03-07,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260307,2026-03-07,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260307,2026-03-07,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260307,2026-03-07,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260308,2026-03-08,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260308,2026-03-08,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260308,2026-03-08,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260308,2026-03-08,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260308,2026-03-08,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260308,2026-03-08,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260309,2026-03-09,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260309,2026-03-09,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260309,2026-03-09,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260309,2026-03-09,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260309,2026-03-09,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260309,2026-03-09,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260310,2026-03-10,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260310,2026-03-10,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260310,2026-03-10,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260310,2026-03-10,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260310,2026-03-10,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260310,2026-03-10,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260311,2026-03-11,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260311,2026-03-11,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260311,2026-03-11,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260311,2026-03-11,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260311,2026-03-11,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260311,2026-03-11,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260312,2026-03-12,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Desvio_Leve,6,7,6
+oper_rlg_002_20260312,2026-03-12,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Desvio_Leve,6,7,6
+oper_rlg_003_20260312,2026-03-12,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Desvio_Leve,6,7,6
+oper_rlg_004_20260312,2026-03-12,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Desvio_Leve,6,7,6
+oper_rlg_005_20260312,2026-03-12,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Desvio_Leve,6,7,6
+oper_rlg_006_20260312,2026-03-12,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Desvio_Leve,6,7,6
+oper_rlg_001_20260313,2026-03-13,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Desvio_Leve,6,7,6
+oper_rlg_002_20260313,2026-03-13,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Desvio_Leve,6,7,6
+oper_rlg_003_20260313,2026-03-13,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Desvio_Leve,6,7,6
+oper_rlg_004_20260313,2026-03-13,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Desvio_Leve,6,7,6
+oper_rlg_005_20260313,2026-03-13,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Desvio_Leve,6,7,6
+oper_rlg_006_20260313,2026-03-13,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Desvio_Leve,6,7,6
+oper_rlg_001_20260314,2026-03-14,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260314,2026-03-14,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260314,2026-03-14,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260314,2026-03-14,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260314,2026-03-14,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260314,2026-03-14,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260315,2026-03-15,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260315,2026-03-15,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260315,2026-03-15,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260315,2026-03-15,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260315,2026-03-15,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260315,2026-03-15,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260316,2026-03-16,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260316,2026-03-16,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260316,2026-03-16,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260316,2026-03-16,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260316,2026-03-16,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260316,2026-03-16,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260317,2026-03-17,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260317,2026-03-17,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260317,2026-03-17,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260317,2026-03-17,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260317,2026-03-17,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260317,2026-03-17,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260318,2026-03-18,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260318,2026-03-18,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260318,2026-03-18,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260318,2026-03-18,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260318,2026-03-18,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260318,2026-03-18,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260319,2026-03-19,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260319,2026-03-19,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260319,2026-03-19,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260319,2026-03-19,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260319,2026-03-19,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260319,2026-03-19,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260320,2026-03-20,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Doente,3,2,3
+oper_rlg_002_20260320,2026-03-20,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Doente,3,2,3
+oper_rlg_003_20260320,2026-03-20,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Doente,3,2,3
+oper_rlg_004_20260320,2026-03-20,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Doente,3,2,3
+oper_rlg_005_20260320,2026-03-20,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Doente,3,2,3
+oper_rlg_006_20260320,2026-03-20,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Doente,3,2,3
+oper_rlg_001_20260321,2026-03-21,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260321,2026-03-21,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260321,2026-03-21,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260321,2026-03-21,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260321,2026-03-21,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260321,2026-03-21,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260322,2026-03-22,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260322,2026-03-22,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260322,2026-03-22,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260322,2026-03-22,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260322,2026-03-22,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260322,2026-03-22,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260323,2026-03-23,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260323,2026-03-23,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260323,2026-03-23,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260323,2026-03-23,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260323,2026-03-23,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260323,2026-03-23,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260324,2026-03-24,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260324,2026-03-24,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260324,2026-03-24,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260324,2026-03-24,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260324,2026-03-24,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260324,2026-03-24,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260325,2026-03-25,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Feriado,8,5,8
+oper_rlg_002_20260325,2026-03-25,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Feriado,8,5,8
+oper_rlg_003_20260325,2026-03-25,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Feriado,8,5,8
+oper_rlg_004_20260325,2026-03-25,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Feriado,8,5,8
+oper_rlg_005_20260325,2026-03-25,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Feriado,8,5,8
+oper_rlg_006_20260325,2026-03-25,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Feriado,8,5,8
+oper_rlg_001_20260326,2026-03-26,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260326,2026-03-26,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260326,2026-03-26,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260326,2026-03-26,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260326,2026-03-26,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260326,2026-03-26,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260327,2026-03-27,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260327,2026-03-27,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260327,2026-03-27,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260327,2026-03-27,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260327,2026-03-27,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260327,2026-03-27,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260328,2026-03-28,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260328,2026-03-28,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260328,2026-03-28,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260328,2026-03-28,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260328,2026-03-28,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260328,2026-03-28,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260329,2026-03-29,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260329,2026-03-29,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260329,2026-03-29,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260329,2026-03-29,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260329,2026-03-29,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260329,2026-03-29,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260330,2026-03-30,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260330,2026-03-30,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260330,2026-03-30,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260330,2026-03-30,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260330,2026-03-30,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260330,2026-03-30,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260331,2026-03-31,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260331,2026-03-31,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260331,2026-03-31,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260331,2026-03-31,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260331,2026-03-31,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260331,2026-03-31,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260401,2026-04-01,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260401,2026-04-01,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260401,2026-04-01,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260401,2026-04-01,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260401,2026-04-01,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260401,2026-04-01,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260402,2026-04-02,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260402,2026-04-02,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260402,2026-04-02,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260402,2026-04-02,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260402,2026-04-02,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260402,2026-04-02,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260403,2026-04-03,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Lunch_Pesado,7,7,7
+oper_rlg_002_20260403,2026-04-03,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Lunch_Pesado,7,7,7
+oper_rlg_003_20260403,2026-04-03,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Lunch_Pesado,7,7,7
+oper_rlg_004_20260403,2026-04-03,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Lunch_Pesado,7,7,7
+oper_rlg_005_20260403,2026-04-03,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Lunch_Pesado,7,7,7
+oper_rlg_006_20260403,2026-04-03,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Lunch_Pesado,7,7,7
+oper_rlg_001_20260404,2026-04-04,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260404,2026-04-04,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260404,2026-04-04,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260404,2026-04-04,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260404,2026-04-04,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260404,2026-04-04,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260405,2026-04-05,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260405,2026-04-05,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260405,2026-04-05,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260405,2026-04-05,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260405,2026-04-05,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260405,2026-04-05,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260406,2026-04-06,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260406,2026-04-06,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260406,2026-04-06,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260406,2026-04-06,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260406,2026-04-06,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260406,2026-04-06,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260407,2026-04-07,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260407,2026-04-07,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260407,2026-04-07,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260407,2026-04-07,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260407,2026-04-07,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260407,2026-04-07,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260408,2026-04-08,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260408,2026-04-08,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260408,2026-04-08,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260408,2026-04-08,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260408,2026-04-08,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260408,2026-04-08,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260409,2026-04-09,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Desvio_Leve,6,7,6
+oper_rlg_002_20260409,2026-04-09,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Desvio_Leve,6,7,6
+oper_rlg_003_20260409,2026-04-09,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Desvio_Leve,6,7,6
+oper_rlg_004_20260409,2026-04-09,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Desvio_Leve,6,7,6
+oper_rlg_005_20260409,2026-04-09,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Desvio_Leve,6,7,6
+oper_rlg_006_20260409,2026-04-09,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Desvio_Leve,6,7,6
+oper_rlg_001_20260410,2026-04-10,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Desvio_Leve,6,7,6
+oper_rlg_002_20260410,2026-04-10,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Desvio_Leve,6,7,6
+oper_rlg_003_20260410,2026-04-10,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Desvio_Leve,6,7,6
+oper_rlg_004_20260410,2026-04-10,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Desvio_Leve,6,7,6
+oper_rlg_005_20260410,2026-04-10,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Desvio_Leve,6,7,6
+oper_rlg_006_20260410,2026-04-10,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Desvio_Leve,6,7,6
+oper_rlg_001_20260411,2026-04-11,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260411,2026-04-11,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260411,2026-04-11,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260411,2026-04-11,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260411,2026-04-11,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260411,2026-04-11,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260412,2026-04-12,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260412,2026-04-12,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260412,2026-04-12,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260412,2026-04-12,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260412,2026-04-12,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260412,2026-04-12,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260413,2026-04-13,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260413,2026-04-13,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260413,2026-04-13,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260413,2026-04-13,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260413,2026-04-13,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260413,2026-04-13,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260414,2026-04-14,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260414,2026-04-14,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260414,2026-04-14,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260414,2026-04-14,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260414,2026-04-14,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260414,2026-04-14,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260415,2026-04-15,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Hardcore,5,6,5
+oper_rlg_002_20260415,2026-04-15,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Hardcore,5,6,5
+oper_rlg_003_20260415,2026-04-15,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Hardcore,5,6,5
+oper_rlg_004_20260415,2026-04-15,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Hardcore,5,6,5
+oper_rlg_005_20260415,2026-04-15,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Hardcore,5,6,5
+oper_rlg_006_20260415,2026-04-15,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Hardcore,5,6,5
+oper_rlg_001_20260416,2026-04-16,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Recuperacao,7,5,7
+oper_rlg_002_20260416,2026-04-16,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Recuperacao,7,5,7
+oper_rlg_003_20260416,2026-04-16,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Recuperacao,7,5,7
+oper_rlg_004_20260416,2026-04-16,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Recuperacao,7,5,7
+oper_rlg_005_20260416,2026-04-16,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Recuperacao,7,5,7
+oper_rlg_006_20260416,2026-04-16,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Recuperacao,7,5,7
+oper_rlg_001_20260417,2026-04-17,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260417,2026-04-17,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260417,2026-04-17,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260417,2026-04-17,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260417,2026-04-17,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260417,2026-04-17,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260418,2026-04-18,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260418,2026-04-18,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260418,2026-04-18,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260418,2026-04-18,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260418,2026-04-18,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260418,2026-04-18,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260419,2026-04-19,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260419,2026-04-19,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260419,2026-04-19,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260419,2026-04-19,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260419,2026-04-19,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260419,2026-04-19,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260420,2026-04-20,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260420,2026-04-20,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260420,2026-04-20,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260420,2026-04-20,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260420,2026-04-20,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260420,2026-04-20,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260421,2026-04-21,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260421,2026-04-21,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260421,2026-04-21,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260421,2026-04-21,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260421,2026-04-21,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260421,2026-04-21,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260422,2026-04-22,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260422,2026-04-22,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260422,2026-04-22,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260422,2026-04-22,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260422,2026-04-22,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260422,2026-04-22,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260423,2026-04-23,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260423,2026-04-23,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260423,2026-04-23,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260423,2026-04-23,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260423,2026-04-23,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260423,2026-04-23,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260424,2026-04-24,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Visita_Inesperada,7,5,7
+oper_rlg_002_20260424,2026-04-24,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Visita_Inesperada,7,5,7
+oper_rlg_003_20260424,2026-04-24,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Visita_Inesperada,7,5,7
+oper_rlg_004_20260424,2026-04-24,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Visita_Inesperada,7,5,7
+oper_rlg_005_20260424,2026-04-24,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Visita_Inesperada,7,5,7
+oper_rlg_006_20260424,2026-04-24,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Visita_Inesperada,7,5,7
+oper_rlg_001_20260425,2026-04-25,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260425,2026-04-25,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260425,2026-04-25,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260425,2026-04-25,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260425,2026-04-25,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260425,2026-04-25,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260426,2026-04-26,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260426,2026-04-26,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260426,2026-04-26,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260426,2026-04-26,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260426,2026-04-26,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260426,2026-04-26,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260427,2026-04-27,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260427,2026-04-27,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260427,2026-04-27,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260427,2026-04-27,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260427,2026-04-27,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260427,2026-04-27,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260428,2026-04-28,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260428,2026-04-28,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260428,2026-04-28,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260428,2026-04-28,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260428,2026-04-28,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260428,2026-04-28,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260429,2026-04-29,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260429,2026-04-29,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260429,2026-04-29,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260429,2026-04-29,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260429,2026-04-29,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260429,2026-04-29,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260430,2026-04-30,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260430,2026-04-30,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260430,2026-04-30,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260430,2026-04-30,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260430,2026-04-30,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260430,2026-04-30,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260501,2026-05-01,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Lunch_Pesado,7,7,7
+oper_rlg_002_20260501,2026-05-01,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Lunch_Pesado,7,7,7
+oper_rlg_003_20260501,2026-05-01,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Lunch_Pesado,7,7,7
+oper_rlg_004_20260501,2026-05-01,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Lunch_Pesado,7,7,7
+oper_rlg_005_20260501,2026-05-01,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Lunch_Pesado,7,7,7
+oper_rlg_006_20260501,2026-05-01,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Lunch_Pesado,7,7,7
+oper_rlg_001_20260502,2026-05-02,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260502,2026-05-02,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260502,2026-05-02,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260502,2026-05-02,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260502,2026-05-02,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260502,2026-05-02,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260503,2026-05-03,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260503,2026-05-03,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260503,2026-05-03,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260503,2026-05-03,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260503,2026-05-03,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260503,2026-05-03,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260504,2026-05-04,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260504,2026-05-04,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260504,2026-05-04,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260504,2026-05-04,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260504,2026-05-04,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260504,2026-05-04,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260505,2026-05-05,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260505,2026-05-05,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260505,2026-05-05,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260505,2026-05-05,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260505,2026-05-05,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260505,2026-05-05,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260506,2026-05-06,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Feriado,8,5,8
+oper_rlg_002_20260506,2026-05-06,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Feriado,8,5,8
+oper_rlg_003_20260506,2026-05-06,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Feriado,8,5,8
+oper_rlg_004_20260506,2026-05-06,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Feriado,8,5,8
+oper_rlg_005_20260506,2026-05-06,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Feriado,8,5,8
+oper_rlg_006_20260506,2026-05-06,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Feriado,8,5,8
+oper_rlg_001_20260507,2026-05-07,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260507,2026-05-07,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260507,2026-05-07,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260507,2026-05-07,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260507,2026-05-07,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260507,2026-05-07,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260508,2026-05-08,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260508,2026-05-08,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260508,2026-05-08,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260508,2026-05-08,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260508,2026-05-08,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260508,2026-05-08,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260509,2026-05-09,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260509,2026-05-09,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260509,2026-05-09,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260509,2026-05-09,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260509,2026-05-09,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260509,2026-05-09,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260510,2026-05-10,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260510,2026-05-10,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260510,2026-05-10,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260510,2026-05-10,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260510,2026-05-10,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260510,2026-05-10,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260511,2026-05-11,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260511,2026-05-11,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260511,2026-05-11,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260511,2026-05-11,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260511,2026-05-11,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260511,2026-05-11,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260512,2026-05-12,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260512,2026-05-12,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260512,2026-05-12,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260512,2026-05-12,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260512,2026-05-12,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260512,2026-05-12,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260513,2026-05-13,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260513,2026-05-13,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260513,2026-05-13,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260513,2026-05-13,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260513,2026-05-13,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260513,2026-05-13,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260514,2026-05-14,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Desvio_Leve,6,7,6
+oper_rlg_002_20260514,2026-05-14,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Desvio_Leve,6,7,6
+oper_rlg_003_20260514,2026-05-14,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Desvio_Leve,6,7,6
+oper_rlg_004_20260514,2026-05-14,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Desvio_Leve,6,7,6
+oper_rlg_005_20260514,2026-05-14,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Desvio_Leve,6,7,6
+oper_rlg_006_20260514,2026-05-14,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Desvio_Leve,6,7,6
+oper_rlg_001_20260515,2026-05-15,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260515,2026-05-15,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260515,2026-05-15,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260515,2026-05-15,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260515,2026-05-15,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260515,2026-05-15,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260516,2026-05-16,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260516,2026-05-16,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260516,2026-05-16,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260516,2026-05-16,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260516,2026-05-16,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260516,2026-05-16,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260517,2026-05-17,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260517,2026-05-17,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260517,2026-05-17,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260517,2026-05-17,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260517,2026-05-17,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260517,2026-05-17,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260518,2026-05-18,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260518,2026-05-18,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260518,2026-05-18,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260518,2026-05-18,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260518,2026-05-18,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260518,2026-05-18,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260519,2026-05-19,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260519,2026-05-19,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260519,2026-05-19,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260519,2026-05-19,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260519,2026-05-19,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260519,2026-05-19,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260520,2026-05-20,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Hardcore,5,6,5
+oper_rlg_002_20260520,2026-05-20,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Hardcore,5,6,5
+oper_rlg_003_20260520,2026-05-20,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Hardcore,5,6,5
+oper_rlg_004_20260520,2026-05-20,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Hardcore,5,6,5
+oper_rlg_005_20260520,2026-05-20,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Hardcore,5,6,5
+oper_rlg_006_20260520,2026-05-20,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Hardcore,5,6,5
+oper_rlg_001_20260521,2026-05-21,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Recuperacao,7,5,7
+oper_rlg_002_20260521,2026-05-21,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Recuperacao,7,5,7
+oper_rlg_003_20260521,2026-05-21,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Recuperacao,7,5,7
+oper_rlg_004_20260521,2026-05-21,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Recuperacao,7,5,7
+oper_rlg_005_20260521,2026-05-21,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Recuperacao,7,5,7
+oper_rlg_006_20260521,2026-05-21,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Recuperacao,7,5,7
+oper_rlg_001_20260522,2026-05-22,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260522,2026-05-22,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260522,2026-05-22,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260522,2026-05-22,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260522,2026-05-22,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260522,2026-05-22,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260523,2026-05-23,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260523,2026-05-23,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260523,2026-05-23,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260523,2026-05-23,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260523,2026-05-23,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260523,2026-05-23,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260524,2026-05-24,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260524,2026-05-24,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260524,2026-05-24,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260524,2026-05-24,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260524,2026-05-24,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260524,2026-05-24,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260525,2026-05-25,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260525,2026-05-25,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260525,2026-05-25,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260525,2026-05-25,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260525,2026-05-25,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260525,2026-05-25,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260526,2026-05-26,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260526,2026-05-26,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260526,2026-05-26,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260526,2026-05-26,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260526,2026-05-26,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260526,2026-05-26,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260527,2026-05-27,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260527,2026-05-27,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260527,2026-05-27,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260527,2026-05-27,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260527,2026-05-27,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260527,2026-05-27,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260528,2026-05-28,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260528,2026-05-28,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260528,2026-05-28,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260528,2026-05-28,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260528,2026-05-28,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260528,2026-05-28,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260529,2026-05-29,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Lunch_Pesado,7,7,7
+oper_rlg_002_20260529,2026-05-29,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Lunch_Pesado,7,7,7
+oper_rlg_003_20260529,2026-05-29,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Lunch_Pesado,7,7,7
+oper_rlg_004_20260529,2026-05-29,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Lunch_Pesado,7,7,7
+oper_rlg_005_20260529,2026-05-29,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Lunch_Pesado,7,7,7
+oper_rlg_006_20260529,2026-05-29,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Lunch_Pesado,7,7,7
+oper_rlg_001_20260530,2026-05-30,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260530,2026-05-30,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260530,2026-05-30,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260530,2026-05-30,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260530,2026-05-30,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260530,2026-05-30,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260531,2026-05-31,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260531,2026-05-31,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260531,2026-05-31,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260531,2026-05-31,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260531,2026-05-31,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260531,2026-05-31,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260601,2026-06-01,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260601,2026-06-01,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260601,2026-06-01,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260601,2026-06-01,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260601,2026-06-01,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260601,2026-06-01,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260602,2026-06-02,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260602,2026-06-02,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260602,2026-06-02,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260602,2026-06-02,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260602,2026-06-02,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260602,2026-06-02,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260603,2026-06-03,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260603,2026-06-03,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260603,2026-06-03,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260603,2026-06-03,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260603,2026-06-03,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260603,2026-06-03,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260604,2026-06-04,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260604,2026-06-04,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260604,2026-06-04,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260604,2026-06-04,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260604,2026-06-04,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260604,2026-06-04,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260605,2026-06-05,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Doente,3,2,3
+oper_rlg_002_20260605,2026-06-05,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Doente,3,2,3
+oper_rlg_003_20260605,2026-06-05,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Doente,3,2,3
+oper_rlg_004_20260605,2026-06-05,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Doente,3,2,3
+oper_rlg_005_20260605,2026-06-05,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Doente,3,2,3
+oper_rlg_006_20260605,2026-06-05,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Doente,3,2,3
+oper_rlg_001_20260606,2026-06-06,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260606,2026-06-06,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260606,2026-06-06,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260606,2026-06-06,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260606,2026-06-06,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260606,2026-06-06,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260607,2026-06-07,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260607,2026-06-07,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260607,2026-06-07,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260607,2026-06-07,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260607,2026-06-07,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260607,2026-06-07,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260608,2026-06-08,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260608,2026-06-08,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260608,2026-06-08,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260608,2026-06-08,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260608,2026-06-08,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260608,2026-06-08,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260609,2026-06-09,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260609,2026-06-09,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260609,2026-06-09,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260609,2026-06-09,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260609,2026-06-09,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260609,2026-06-09,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260610,2026-06-10,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Feriado,8,5,8
+oper_rlg_002_20260610,2026-06-10,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Feriado,8,5,8
+oper_rlg_003_20260610,2026-06-10,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Feriado,8,5,8
+oper_rlg_004_20260610,2026-06-10,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Feriado,8,5,8
+oper_rlg_005_20260610,2026-06-10,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Feriado,8,5,8
+oper_rlg_006_20260610,2026-06-10,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Feriado,8,5,8
+oper_rlg_001_20260611,2026-06-11,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260611,2026-06-11,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260611,2026-06-11,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260611,2026-06-11,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260611,2026-06-11,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260611,2026-06-11,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260612,2026-06-12,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260612,2026-06-12,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260612,2026-06-12,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260612,2026-06-12,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260612,2026-06-12,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260612,2026-06-12,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260613,2026-06-13,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260613,2026-06-13,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260613,2026-06-13,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260613,2026-06-13,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260613,2026-06-13,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260613,2026-06-13,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260614,2026-06-14,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260614,2026-06-14,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260614,2026-06-14,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260614,2026-06-14,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260614,2026-06-14,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260614,2026-06-14,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260615,2026-06-15,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Fim_de_Semana,9,8,9
+oper_rlg_002_20260615,2026-06-15,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Fim_de_Semana,9,8,9
+oper_rlg_003_20260615,2026-06-15,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Fim_de_Semana,9,8,9
+oper_rlg_004_20260615,2026-06-15,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Fim_de_Semana,9,8,9
+oper_rlg_005_20260615,2026-06-15,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Fim_de_Semana,9,8,9
+oper_rlg_006_20260615,2026-06-15,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Fim_de_Semana,9,8,9
+oper_rlg_001_20260616,2026-06-16,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260616,2026-06-16,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260616,2026-06-16,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260616,2026-06-16,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260616,2026-06-16,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260616,2026-06-16,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260617,2026-06-17,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260617,2026-06-17,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260617,2026-06-17,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260617,2026-06-17,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260617,2026-06-17,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260617,2026-06-17,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8
+oper_rlg_001_20260618,2026-06-18,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Desvio_Leve,6,7,6
+oper_rlg_002_20260618,2026-06-18,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Desvio_Leve,6,7,6
+oper_rlg_003_20260618,2026-06-18,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Desvio_Leve,6,7,6
+oper_rlg_004_20260618,2026-06-18,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Desvio_Leve,6,7,6
+oper_rlg_005_20260618,2026-06-18,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Desvio_Leve,6,7,6
+oper_rlg_006_20260618,2026-06-18,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Desvio_Leve,6,7,6
+oper_rlg_001_20260619,2026-06-19,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Vigilia,4,5,4
+oper_rlg_002_20260619,2026-06-19,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Vigilia,4,5,4
+oper_rlg_003_20260619,2026-06-19,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Vigilia,4,5,4
+oper_rlg_004_20260619,2026-06-19,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Vigilia,4,5,4
+oper_rlg_005_20260619,2026-06-19,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Vigilia,4,5,4
+oper_rlg_006_20260619,2026-06-19,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Vigilia,4,5,4
+oper_rlg_001_20260620,2026-06-20,oper,oper_rou_001,MANHA,ENTRY,Routine Despertar + higiene — Padrao_Ouro,8,9,8
+oper_rlg_002_20260620,2026-06-20,oper,oper_rou_002,MANHA,ENTRY,Routine Meditar 10min — Padrao_Ouro,8,9,8
+oper_rlg_003_20260620,2026-06-20,oper,oper_rou_003,MANHA,ENTRY,Routine Alongamento 10min — Padrao_Ouro,8,9,8
+oper_rlg_004_20260620,2026-06-20,oper,oper_rou_004,MANHA,ENTRY,Routine Beber 500ml água — Padrao_Ouro,8,9,8
+oper_rlg_005_20260620,2026-06-20,oper,oper_rou_005,MANHA,ENTRY,Routine Lanche leve pré-treino — Padrao_Ouro,8,9,8
+oper_rlg_006_20260620,2026-06-20,oper,oper_rou_006,MANHA,CORE,Routine Caminhada 20min — Padrao_Ouro,8,9,8

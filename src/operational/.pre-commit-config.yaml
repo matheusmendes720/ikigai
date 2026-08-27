@@ -1,0 +1,48 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-merge-conflict
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.0
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        # PAV uv-workspace layout: Python sources live under
+        # packages/*/src/ and apps/*/src/ (no bare src/ at the workspace root).
+        # The original regex ^src/ silently matched nothing in this layout,
+        # making the hook a no-op.
+        files: ^(packages|apps)/.+/src/.+\.py$
+        additional_dependencies: [pydantic>=2.6]
+
+  - repo: local
+    hooks:
+      - id: pytest-fast
+        name: pytest (unit only)
+        # PAV uses a uv workspace (pyproject.toml has [tool.uv.workspace]).
+        # Two pre-existing bugs were fixed:
+        #   1. `poetry run` was a silent no-op — Poetry isn't installed in this
+        #      repo. Switched to `uv run`.
+        #   2. `-m "unit"` filtered out every test — no test file uses
+        #      @pytest.mark.unit. The suite is directory-scoped (tests/unit/,
+        #      tests/integration/, tests/e2e/) so we drop the marker and rely
+        #      on the `files:` regex + `pass_filenames: true` to scope the
+        #      run to the diff'd unit-test files. This makes doc-only /
+        #      config-only commits essentially free.
+        entry: bash -c 'uv run pytest -x --no-cov -- "$@"'
+        language: system
+        pass_filenames: true
+        files: ^tests/unit/.+\.py$
