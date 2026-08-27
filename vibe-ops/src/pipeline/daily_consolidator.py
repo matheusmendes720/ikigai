@@ -32,7 +32,12 @@ def _repo_root() -> Path:
     return Path(__file__).parent.parent.parent.parent  # .../vibe-ops/ → life/
 
 
+# Primary vault: life-ops/ikigai/data/matheus/ (Matheus Mendes persona)
+# Secondary fallback: vault/ikigai/closing-2026/ (Q3/Q4 planning dirs)
 def _vault_path() -> Path:
+    primary = _repo_root() / "life-ops" / "ikigai" / "data" / "matheus"
+    if primary.exists():
+        return primary
     return _repo_root() / "vault" / "ikigai" / "closing-2026"
 
 
@@ -132,85 +137,176 @@ def _log_sync(action: str, count: int, details: dict[str, Any] | None = None) ->
 # ---------------------------------------------------------------------------
 
 def _scan_vault_dirs() -> list[dict[str, Any]]:
-    """Scan vault/ikigai/closing-2026/ for planning directories.
+    """Scan the vault for .md files with IKIGAI frontmatter.
 
-    Expected structure:
-      Q3/
-        00-sonho/
-        01-plano-trimestral/
-        02-onda-1/, 02-onda-2/, 02-onda-3/
-        03-revisoes-semanais/
-        04-relatorios-diarios/
-      Q4/ (same structure)
+    Supports two vault layouts:
+      1. Flat matheus vault (life-ops/ikigai/data/matheus/):
+         dreams/, objectives/, projects/, deliverables/, ikigai_state/
+         — each file has entity_type, ueid, status, horizon_days in frontmatter
+      2. Closing-2026 vault (vault/ikigai/closing-2026/):
+         01-q3-2026/, 02-q4-2026/ with quadrant subdirs
 
-    Returns a list of raw task dicts from any found .md files.
+    Returns a list of task dicts.
     """
     tasks: list[dict[str, Any]] = []
     root = _vault_path()
     if not root.exists():
         return tasks
 
-    for quadrant in ["01-q3-2026", "02-q4-2026"]:
-        qpath = root / quadrant
-        if not qpath.exists():
-            continue
+    # matheus vault: flat subdirs (dreams, objectives, projects, deliverables)
+    matheus_dirs = ["dreams", "objectives", "projects", "deliverables"]
+    is_matheus = any((root / d).exists() for d in matheus_dirs)
 
-        for md_file in qpath.rglob("*.md"):
-            # Skip index files
-            if md_file.stem in ("index", "00-index", "README", "placeholder"):
+    if is_matheus:
+        for subdir in matheus_dirs:
+            dir_path = root / subdir
+            if not dir_path.exists():
                 continue
-            try:
-                content = md_file.read_text(encoding="utf-8")
-            except OSError:
+            for md_file in dir_path.rglob("*.md"):
+                if md_file.stem in ("README",):
+                    continue
+                task = _parse_matheus_md(md_file)
+                if task is not None:
+                    tasks.append(task)
+    else:
+        # closing-2026 layout
+        for quadrant in ["01-q3-2026", "02-q4-2026"]:
+            qpath = root / quadrant
+            if not qpath.exists():
                 continue
-
-            # Extract frontmatter if present
-            front: dict[str, Any] = {}
-            body_lines: list[str] = []
-            in_front = False
-            for line in content.splitlines():
-                if line.strip() == "---":
-                    if not in_front:
-                        in_front = True
-                        continue
-                    else:
-                        in_front = False
-                        continue
-                if in_front and ":" in line:
-                    key, _, val = line.partition(":")
-                    front[key.strip()] = val.strip().strip('"').strip("'")
-
-            # Title from filename or frontmatter title
-            title = front.get("title", md_file.stem.replace("-", " ").replace("_", " ").title())
-            horizon = front.get("horizon", HORIZON_THIS_WEEK)
-            priority = front.get("priority", "medium")
-            vector = front.get("vector", None)
-            project_id = front.get("project", front.get("project_id", None))
-            due = front.get("due", None)
-
-            # Skip completed items
-            status = front.get("status", "")
-            if status in ("done", "completed", "cancelled"):
-                continue
-
-            # Body as description (first non-frontmatter paragraph)
-            if body_lines:
-                description = " ".join(body_lines[:2])[:300]
-            else:
-                description = ""
-
-            tasks.append(_make_task(
-                title=title,
-                description=description,
-                horizon=horizon,
-                priority=priority,
-                project_id=project_id,
-                vector=vector,
-                due=due,
-                source="vault_bootstrap",
-            ))
+            for md_file in qpath.rglob("*.md"):
+                if md_file.stem in ("index", "00-index", "README", "placeholder"):
+                    continue
+                task = _parse_closing_md(md_file)
+                if task is not None:
+                    tasks.append(task)
 
     return tasks
+
+
+def _parse_matheus_md(md_file: Path) -> dict[str, Any] | None:
+    """Parse a single .md file from the matheus vault."""
+    try:
+        content = md_file.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    front, body = _extract_frontmatter(content)
+    status = front.get("status", "")
+    if status in ("done", "completed", "cancelled", "ARCHIVED"):
+        return None
+
+    entity_type = front.get("entity_type", "")
+    slug = front.get("slug", md_file.stem)
+    title = front.get("title", slug.replace("-", " ").replace("_", " ").title())
+
+    # Map entity_type to horizon
+    horizon = _entity_to_horizon(entity_type, front)
+
+    # Vectors from frontmatter (comma-separated or YAML list)
+    vectors_raw = front.get("ikigai_vectors", "")
+    if isinstance(vectors_raw, str):
+        vectors = [v.strip() for v in vectors_raw.strip("[]").split(",")]
+        vector = vectors[0] if vectors else None
+    elif isinstance(vectors_raw, list):
+        vector = vectors_raw[0] if vectors_raw else None
+    else:
+        vector = None
+
+    # Description: first non-frontmatter paragraph
+    description = ""
+    if body:
+        desc_lines = [l.strip() for l in body if l.strip() and not l.strip().startswith("#")]
+        description = " ".join(desc_lines[:2])[:300]
+
+    return _make_task(
+        title=title,
+        description=description,
+        horizon=horizon,
+        priority="medium",
+        project_id=front.get("parent_ueid"),
+        vector=vector,
+        due=front.get("due"),
+        ueid=front.get("ueid"),
+        source="vault_matheus",
+    )
+
+
+def _entity_to_horizon(entity_type: str, front: dict[str, Any]) -> str:
+    """Map IKIGAI entity_type to horizon string."""
+    horizon_days = int(front.get("horizon_days", 0)) if front.get("horizon_days") else 0
+    entity = entity_type.lower()
+
+    if entity in ("dream", "sonho"):
+        return "trimestre"  # ~547d → coarse horizon
+    elif entity == "objective":
+        return "trimestre"  # 90d
+    elif entity == "project":
+        if horizon_days and horizon_days <= 30:
+            return "onda"
+        return "sprint"
+    elif entity == "deliverable":
+        return "this_week"
+    else:
+        return "this_week"
+
+
+def _parse_closing_md(md_file: Path) -> dict[str, Any] | None:
+    """Parse a single .md file from the closing-2026 vault layout."""
+    try:
+        content = md_file.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    front, body = _extract_frontmatter(content)
+    status = front.get("status", "")
+    if status in ("done", "completed", "cancelled"):
+        return None
+
+    title = front.get("title", md_file.stem.replace("-", " ").replace("_", " ").title())
+    horizon = front.get("horizon", HORIZON_THIS_WEEK)
+    priority = front.get("priority", "medium")
+    vector = front.get("vector", None)
+    project_id = front.get("project", front.get("project_id", None))
+    due = front.get("due", None)
+
+    description = ""
+    if body:
+        desc_lines = [l.strip() for l in body if l.strip() and not l.strip().startswith("#")]
+        description = " ".join(desc_lines[:2])[:300]
+
+    return _make_task(
+        title=title,
+        description=description,
+        horizon=horizon,
+        priority=priority,
+        project_id=project_id,
+        vector=vector,
+        due=due,
+        source="vault_closing",
+    )
+
+
+def _extract_frontmatter(content: str) -> tuple[dict[str, Any], list[str]]:
+    """Extract YAML frontmatter and body lines from markdown."""
+    front: dict[str, Any] = {}
+    body_lines: list[str] = []
+    in_front = False
+    lines = content.splitlines()
+    for i, line in enumerate(lines):
+        if line.strip() == "---":
+            if not in_front:
+                in_front = True
+                continue
+            else:
+                in_front = False
+                continue
+        if in_front and ":" in line:
+            key, _, val = line.partition(":")
+            front[key.strip()] = val.strip().strip('"').strip("'")
+        elif not in_front:
+            body_lines.append(line)
+    return front, body_lines
 
 
 # ---------------------------------------------------------------------------
