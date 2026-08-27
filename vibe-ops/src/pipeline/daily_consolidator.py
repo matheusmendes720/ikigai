@@ -32,10 +32,10 @@ def _repo_root() -> Path:
     return Path(__file__).parent.parent.parent.parent  # .../vibe-ops/ → life/
 
 
-# Primary vault: life-ops/ikigai/data/matheus/ (Matheus Mendes persona)
+# Primary vault: src/ikigai/data/matheus/ (Matheus Mendes persona)
 # Secondary fallback: vault/ikigai/closing-2026/ (Q3/Q4 planning dirs)
 def _vault_path() -> Path:
-    primary = _repo_root() / "life-ops" / "ikigai" / "data" / "matheus"
+    primary = _repo_root() / "src" / "ikigai" / "data" / "matheus"
     if primary.exists():
         return primary
     return _repo_root() / "vault" / "ikigai" / "closing-2026"
