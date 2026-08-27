@@ -8,6 +8,7 @@ Usage:
     data = load_dataset(Path("datasets/6month/csv"))
     trend = weekly_trend(data, metric="qhe")
 """
+
 from __future__ import annotations
 
 import csv
@@ -46,6 +47,7 @@ Dataset = dict[str, list[dict[str, Any]]]
 
 
 # ── Loading ──────────────────────────────────────────────────────────────────────
+
 
 def load_dataset(csv_dir: Path | str) -> Dataset:
     """Load all 15 CSV entity files from a directory.
@@ -105,17 +107,22 @@ def numeric(rows: list[dict[str, Any]], key: str) -> Series:
 
 def float_col(rows: list[dict[str, Any]], date_key: str, val_key: str) -> tuple[Dates, Series]:
     """Return (dates, values) sorted by date for a numeric column."""
-    pairs = [(date.fromisoformat(r[date_key]), float(r.get(val_key, 0) or 0))
-             for r in rows if r.get(date_key)]
+    pairs = [
+        (date.fromisoformat(r[date_key]), float(r.get(val_key, 0) or 0))
+        for r in rows
+        if r.get(date_key)
+    ]
     pairs.sort(key=lambda x: x[0])
     return [p[0] for p in pairs], [p[1] for p in pairs]
 
 
 # ── TimeSeriesSlice ─────────────────────────────────────────────────────────────
 
+
 @dataclass
 class TimeSeriesSlice:
     """A time-windowed view of a scalar time series."""
+
     dates: Dates
     values: Series
     label: str = ""
@@ -137,7 +144,7 @@ class TimeSeriesSlice:
 
     def window(self, start: date, end: date) -> TimeSeriesSlice:
         """Return a new slice covering [start, end]."""
-        pairs = [(d, v) for d, v in zip(self.dates, self.values) if start <= d <= end]
+        pairs = [(d, v) for d, v in zip(self.dates, self.values, strict=False) if start <= d <= end]
         if not pairs:
             return TimeSeriesSlice(dates=[], values=[], label=self.label)
         return TimeSeriesSlice(
@@ -190,7 +197,7 @@ class TimeSeriesSlice:
         slope = _linear_slope(self.values)
         if slope > 0.001:
             return 1
-        elif slope < -0.001:
+        if slope < -0.001:
             return -1
         return 0
 
@@ -211,6 +218,7 @@ class TimeSeriesSlice:
 
 
 # ── Internal helpers ───────────────────────────────────────────────────────────
+
 
 def _linear_slope(values: Series) -> float:
     """Ordinary least-squares slope for a uniformly-sampled series."""
@@ -250,9 +258,11 @@ def _week_index(d: date, start: date) -> int:
 
 # ── Aggregations ──────────────────────────────────────────────────────────────
 
+
 @dataclass
 class Aggregations:
     """Pre-computed summary statistics for a dataset window."""
+
     n_days: int
     # QHE
     qhe_mean: float
@@ -326,7 +336,9 @@ def compute_aggregations(ds: Dataset) -> Aggregations:
     pom_total = sum(pom_vals)
 
     # Habit completion rate
-    completed = sum(1 for r in habit_state_rows if str(r.get("completed", "")).lower() in ("true", "1", "yes"))
+    completed = sum(
+        1 for r in habit_state_rows if str(r.get("completed", "")).lower() in ("true", "1", "yes")
+    )
     total = len(habit_state_rows)
     habit_rate = completed / total if total > 0 else 0.0
     streaks = numeric(habit_state_rows, "streak_current")
@@ -336,7 +348,7 @@ def compute_aggregations(ds: Dataset) -> Aggregations:
     budget = numeric(context_rows, "hardwork_orcado_min")
     actual = numeric(context_rows, "hardwork_realizado_min")
     adherence_vals = []
-    for b, a in zip(budget, actual):
+    for b, a in zip(budget, actual, strict=False):
         if b > 0:
             adherence_vals.append(min(a / b, 1.0))
     hardwork_adh = statistics.mean(adherence_vals) * 100 if adherence_vals else 0.0
@@ -392,9 +404,11 @@ def compute_aggregations(ds: Dataset) -> Aggregations:
 
 # ── Weekly Trend ──────────────────────────────────────────────────────────────
 
+
 @dataclass
 class WeeklyTrend:
     """Weekly aggregated trajectory for one metric."""
+
     week: int
     week_start: date
     week_end: date
@@ -460,26 +474,30 @@ def weekly_trend(ds: Dataset, metric: str = "qhe") -> list[WeeklyTrend]:
         w_start = start_date + timedelta(weeks=w)
         w_end = w_start + timedelta(days=6)
         week_slice = TimeSeriesSlice(dates=[w_start] * len(vals), values=vals)
-        out.append(WeeklyTrend(
-            week=w,
-            week_start=w_start,
-            week_end=w_end,
-            values=vals,
-            mean=statistics.mean(vals),
-            std=statistics.stdev(vals) if len(vals) > 1 else 0.0,
-            min_val=min(vals),
-            max_val=max(vals),
-            trend=week_slice.trend_direction(),
-        ))
+        out.append(
+            WeeklyTrend(
+                week=w,
+                week_start=w_start,
+                week_end=w_end,
+                values=vals,
+                mean=statistics.mean(vals),
+                std=statistics.stdev(vals) if len(vals) > 1 else 0.0,
+                min_val=min(vals),
+                max_val=max(vals),
+                trend=week_slice.trend_direction(),
+            )
+        )
 
     return out
 
 
 # ── Trajectory ─────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class TrajectorySegment:
     """One contiguous segment of the trajectory (flat/rising/falling)."""
+
     start: date
     end: date
     direction: int  # +1 rising, 0 flat, -1 falling
@@ -492,6 +510,7 @@ class TrajectorySegment:
 @dataclass
 class Trajectory:
     """Full trajectory analysis for a metric."""
+
     metric: str
     full_series: TimeSeriesSlice
     overall_slope: float
@@ -538,15 +557,17 @@ def build_trajectory(ds: Dataset, metric: str = "qhe") -> Trajectory:
                     break
                 j += 1
             if len(seg_vals) >= 1:
-                segments.append(TrajectorySegment(
-                    start=seg_start,
-                    end=week_means[j - 1][0],
-                    direction=seg_dir,
-                    start_val=seg_vals[0],
-                    end_val=seg_vals[-1],
-                    delta=seg_vals[-1] - seg_vals[0],
-                    days=(j - i) * 7,
-                ))
+                segments.append(
+                    TrajectorySegment(
+                        start=seg_start,
+                        end=week_means[j - 1][0],
+                        direction=seg_dir,
+                        start_val=seg_vals[0],
+                        end_val=seg_vals[-1],
+                        delta=seg_vals[-1] - seg_vals[0],
+                        days=(j - i) * 7,
+                    )
+                )
             i = max(j, i + 1)
 
     return Trajectory(
@@ -560,6 +581,7 @@ def build_trajectory(ds: Dataset, metric: str = "qhe") -> Trajectory:
 
 # ── Correlation Matrix ────────────────────────────────────────────────────────
 
+
 @dataclass
 class CorrelationPair:
     metric_a: str
@@ -572,9 +594,16 @@ def correlation_matrix(ds: Dataset, metrics: list[str] | None = None) -> list[Co
     """Compute pairwise Pearson correlations for all numeric metrics."""
     if metrics is None:
         metrics = [
-            "qhe", "habit_avg", "consistency", "energy_ratio",
-            "sleep_hours", "sleep_quality", "energia", "foco",
-            "pomodoros_realizados", "hardwork_realizado_min",
+            "qhe",
+            "habit_avg",
+            "consistency",
+            "energy_ratio",
+            "sleep_hours",
+            "sleep_quality",
+            "energia",
+            "foco",
+            "pomodoros_realizados",
+            "hardwork_realizado_min",
         ]
 
     # Build aligned series per metric
@@ -609,14 +638,15 @@ def correlation_matrix(ds: Dataset, metrics: list[str] | None = None) -> list[Co
         pairs.sort()
         series_by_metric[m] = pairs
 
-    # Build date → index map
-    all_dates = sorted(set(d for pairs in series_by_metric.values() for d, _ in pairs))
+    # Note: per-pair alignment uses common dates (set intersection below);
+    # a global date-axis map would only matter if we visualised series as
+    # scatter plots, which this function doesn't.
     min_len = 3
 
     out = []
     metric_list = list(series_by_metric.keys())
     for i, ma in enumerate(metric_list):
-        for mb in metric_list[i + 1:]:
+        for mb in metric_list[i + 1 :]:
             pa = series_by_metric[ma]
             pb = series_by_metric[mb]
             # Align
@@ -641,6 +671,7 @@ def correlation_matrix(ds: Dataset, metrics: list[str] | None = None) -> list[Co
 
 
 # ── Scenario Analyzer ───────────────────────────────────────────────────────────
+
 
 @dataclass
 class ScenarioStats:
@@ -690,23 +721,26 @@ def scenario_analysis(ds: Dataset) -> list[ScenarioStats]:
         pom_vals = [pom_by_date.get(d, 0) for d in dates]
         budget = [float(r.get("hardwork_orcado_min", 0) or 0) for r in rows]
         actual = [float(r.get("hardwork_realizado_min", 0) or 0) for r in rows]
-        adh_vals = [min(a / b, 1.0) if b > 0 else 0.0 for a, b in zip(actual, budget)]
+        adh_vals = [min(a / b, 1.0) if b > 0 else 0.0 for a, b in zip(actual, budget, strict=False)]
 
         n = len(rows)
-        out.append(ScenarioStats(
-            name=name,
-            days=n,
-            pct=n / total * 100,
-            qhe_avg=statistics.mean(qhe_vals) if qhe_vals else 0.0,
-            sleep_avg=statistics.mean(sleep_vals) if sleep_vals else 0.0,
-            energia_avg=statistics.mean(energia_vals) if energia_vals else 0.0,
-            pomodoros_avg=statistics.mean(pom_vals) if pom_vals else 0.0,
-            hardwork_adh=statistics.mean(adh_vals) * 100 if adh_vals else 0.0,
-        ))
+        out.append(
+            ScenarioStats(
+                name=name,
+                days=n,
+                pct=n / total * 100,
+                qhe_avg=statistics.mean(qhe_vals) if qhe_vals else 0.0,
+                sleep_avg=statistics.mean(sleep_vals) if sleep_vals else 0.0,
+                energia_avg=statistics.mean(energia_vals) if energia_vals else 0.0,
+                pomodoros_avg=statistics.mean(pom_vals) if pom_vals else 0.0,
+                hardwork_adh=statistics.mean(adh_vals) * 100 if adh_vals else 0.0,
+            )
+        )
     return out
 
 
 # ── Regime Analyzer ─────────────────────────────────────────────────────────────
+
 
 @dataclass
 class RegimeTransition:
@@ -752,12 +786,14 @@ def regime_analysis(ds: Dataset) -> list[RegimeStats]:
                 days_in_prev = (date.fromisoformat(d_str) - date.fromisoformat(prev_date)).days
             except (ValueError, TypeError):
                 days_in_prev = 0
-            transitions.append(RegimeTransition(
-                from_state=prev_state,
-                to_state=s,
-                date=date.fromisoformat(d_str),
-                days_in_previous=days_in_prev,
-            ))
+            transitions.append(
+                RegimeTransition(
+                    from_state=prev_state,
+                    to_state=s,
+                    date=date.fromisoformat(d_str),
+                    days_in_previous=days_in_prev,
+                )
+            )
         prev_state = s
         prev_date = d_str
 
@@ -767,17 +803,18 @@ def regime_analysis(ds: Dataset) -> list[RegimeStats]:
         dates = [r["date"] for r in rows]
         qhe_vals = [qhe_by_date.get(d, 0) for d in dates]
         days_in_state_vals = [float(r.get("days_in_state", 0) or 0) for r in rows]
-        out.append(RegimeStats(
-            state=state,
-            days=len(rows),
-            pct=len(rows) / total * 100,
-            qhe_avg=statistics.mean(qhe_vals) if qhe_vals else 0.0,
-            avg_days_in_state=statistics.mean(days_in_state_vals),
-            transitions=[
-                t for t in transitions
-                if t.from_state == state or t.to_state == state
-            ],
-        ))
+        out.append(
+            RegimeStats(
+                state=state,
+                days=len(rows),
+                pct=len(rows) / total * 100,
+                qhe_avg=statistics.mean(qhe_vals) if qhe_vals else 0.0,
+                avg_days_in_state=statistics.mean(days_in_state_vals),
+                transitions=[
+                    t for t in transitions if t.from_state == state or t.to_state == state
+                ],
+            )
+        )
     return out
 
 
@@ -797,6 +834,7 @@ def regime_timeline(ds: Dataset) -> list[tuple[date, str]]:
 
 
 # ── Forecast Engine ────────────────────────────────────────────────────────────
+
 
 @dataclass
 class ForecastPoint:
@@ -820,16 +858,19 @@ def linear_forecast(series: TimeSeriesSlice, horizon: int = 7) -> list[ForecastP
     for h in range(1, horizon + 1):
         pred = intercept + slope * (last_idx + h)
         ci = 1.96 * residual_std
-        out.append(ForecastPoint(
-            date=last_date + timedelta(days=h),
-            predicted=pred,
-            lower_ci=pred - ci,
-            upper_ci=pred + ci,
-        ))
+        out.append(
+            ForecastPoint(
+                date=last_date + timedelta(days=h),
+                predicted=pred,
+                lower_ci=pred - ci,
+                upper_ci=pred + ci,
+            )
+        )
     return out
 
 
 # ── Habit Analytics ────────────────────────────────────────────────────────────
+
 
 @dataclass
 class HabitStats:
@@ -859,35 +900,40 @@ def habit_analytics(ds: Dataset) -> list[HabitStats]:
 
     out = []
     for hid, rows in sorted(by_habit.items(), key=lambda x: len(x[1]), reverse=True):
-        completed = sum(1 for r in rows if str(r.get("completed", "")).lower() in ("true", "1", "yes"))
+        completed = sum(
+            1 for r in rows if str(r.get("completed", "")).lower() in ("true", "1", "yes")
+        )
         total = len(rows)
         streaks = [int(r.get("streak_current", 0) or 0) for r in rows]
         efforts = [float(r.get("effort_minutes", 0) or 0) for r in rows]
         habit_def = habit_by_id.get(hid, {})
-        out.append(HabitStats(
-            habit_id=hid,
-            habit_name=habit_def.get("name", hid),
-            category=habit_def.get("category", "unknown"),
-            completion_rate=completed / total if total > 0 else 0.0,
-            current_streak=max(streaks) if streaks else 0,
-            longest_streak=max(streaks) if streaks else 0,
-            avg_effort_minutes=statistics.mean(efforts) if efforts else 0.0,
-            total_completions=completed,
-        ))
+        out.append(
+            HabitStats(
+                habit_id=hid,
+                habit_name=habit_def.get("name", hid),
+                category=habit_def.get("category", "unknown"),
+                completion_rate=completed / total if total > 0 else 0.0,
+                current_streak=max(streaks) if streaks else 0,
+                longest_streak=max(streaks) if streaks else 0,
+                avg_effort_minutes=statistics.mean(efforts) if efforts else 0.0,
+                total_completions=completed,
+            )
+        )
     return out
 
 
 # ── Growth Score ───────────────────────────────────────────────────────────────
 
+
 @dataclass
 class GrowthScore:
-    score: float          # 0–100
-    qhe_delta_30d: float   # delta in last 30 days
+    score: float  # 0–100
+    qhe_delta_30d: float  # delta in last 30 days
     qhe_delta_90d: float  # delta in last 90 days
     sleep_delta: float
     consistency_delta: float
     regime_health_score: float  # 0–100: % of days in PUSH or MAINTAIN
-    habit_improvement: float   # completion rate trend
+    habit_improvement: float  # completion rate trend
 
 
 def growth_score(ds: Dataset) -> GrowthScore:
@@ -899,9 +945,15 @@ def growth_score(ds: Dataset) -> GrowthScore:
 
     all_dates = sorted(set(r["date"] for r in qhe_rows))
     if not all_dates:
-        return GrowthScore(score=0, qhe_delta_30d=0, qhe_delta_90d=0,
-                          sleep_delta=0, consistency_delta=0,
-                          regime_health_score=0, habit_improvement=0)
+        return GrowthScore(
+            score=0,
+            qhe_delta_30d=0,
+            qhe_delta_90d=0,
+            sleep_delta=0,
+            consistency_delta=0,
+            regime_health_score=0,
+            habit_improvement=0,
+        )
 
     qhe_by_date = {r["date"]: float(r.get("qhe", 0) or 0) for r in qhe_rows}
     cons_by_date = {r["date"]: float(r.get("consistency", 0) or 0) for r in qhe_rows}
@@ -924,7 +976,9 @@ def growth_score(ds: Dataset) -> GrowthScore:
     regime_hs = healthy / len(policy_rows) * 100 if policy_rows else 0.0
 
     # Habit improvement: completion rate last 30d vs previous 30d
-    completed = sum(1 for r in habit_state_rows if str(r.get("completed", "")).lower() in ("true", "1", "yes"))
+    completed = sum(
+        1 for r in habit_state_rows if str(r.get("completed", "")).lower() in ("true", "1", "yes")
+    )
     total = len(habit_state_rows)
     completion_rate = completed / total if total > 0 else 0.0
 
@@ -944,10 +998,10 @@ def growth_score(ds: Dataset) -> GrowthScore:
     habit_norm = completion_rate * 100
 
     score = (
-        qhe_w * qhe_norm / 100 +
-        sleep_w * sleep_norm / 100 +
-        regime_w * regime_hs / 100 +
-        habit_w * habit_norm / 100
+        qhe_w * qhe_norm / 100
+        + sleep_w * sleep_norm / 100
+        + regime_w * regime_hs / 100
+        + habit_w * habit_norm / 100
     )
 
     return GrowthScore(
@@ -962,6 +1016,7 @@ def growth_score(ds: Dataset) -> GrowthScore:
 
 
 # ── Period Comparison ──────────────────────────────────────────────────────────
+
 
 @dataclass
 class PeriodComparison:

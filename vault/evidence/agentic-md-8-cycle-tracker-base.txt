@@ -1,0 +1,29 @@
+# T8 Evidence: Cycle-Tracker.base
+
+File: G:\Other computers\My Laptop\notas_estudo\_bases\Cycle-Tracker.base
+Size: 3065 bytes
+Lines: 110
+Views: 4 (type: table x3, type: cards x1)
+
+## Verification Checklist
+- [x] File exists
+- [x] Sources: both _templates_periodos and _templates_periodos_v2 paths
+- [x] 4 views (>= 3 required)
+- [x] 5 period levels covered (sonho, quarterly/trimestral, onda, weekly, daily)
+- [x] YAML valid Bases plugin format
+- [x] Evidence saved
+
+## View Summary
+1. All Cycles — table, sorted by pyramid level ASC + date DESC
+2. Per-Period Status (5-Level Pyramid) — cards, grouped by period ASC
+3. Test de Fogo Heatmap — table, filtered by is_filled, grouped by cycle_health
+4. By IKIGAi Vector — table, filtered by ikigai_vector, grouped by ikigai_vector
+
+## Formulas
+- pyramid_level: maps period string to 1-5
+- pyramid_label: human-readable stage label
+- is_filled: boolean check for verdict + score presence
+- score_band: HIGH >= 0.70, MED >= 0.50, LOW otherwise
+- test_fogo_dim_5: 1 (PASS/CONTINUE_WAVE/VALIDATED), 0.5 (PARTIAL/CORRECT_TRAJECTORY/PIVOTED), 0 otherwise
+- h_status: color emoji per period level
+- cycle_health: GOOD/OK/AT_RISK based on score_band

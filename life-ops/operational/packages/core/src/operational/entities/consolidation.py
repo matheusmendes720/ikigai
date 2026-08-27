@@ -41,6 +41,7 @@ Conventions:
   only carries the resulting structured records.
 * No circular imports — entities are leaves.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
@@ -269,11 +270,7 @@ class DailyConsolidation(BaseModel):
         Returns:
             float: The overall day score in ``[0.0, 100.0]``.
         """
-        return (
-            self.energy_score * 0.3
-            + self.productivity_score * 0.4
-            + self.health_score * 0.3
-        )
+        return self.energy_score * 0.3 + self.productivity_score * 0.4 + self.health_score * 0.3
 
     @staticmethod
     def compute_sleep_debt(sleep_hours: float | None) -> float:

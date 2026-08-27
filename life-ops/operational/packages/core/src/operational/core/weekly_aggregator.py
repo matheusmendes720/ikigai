@@ -53,12 +53,16 @@ Design rules:
   is annotated.
 * **ruff ALL** compliant — line-length 100, Google docstrings,
   no emojis in code.
-* No imports from sibling :mod:`operational.core` modules to avoid
-  circular dependencies. The aggregator imports from
-  :mod:`operational.entities.metric` and
-  :mod:`operational.entities.consolidation` (both leaves).
+* No imports from sibling :mod:`operational.core` modules **other than**
+  :mod:`operational.core.consolidator` (used for the
+  :class:`DailyConsolidation` rollup path). The aggregator otherwise
+  imports from :mod:`operational.entities.metric` and
+  :mod:`operational.entities.consolidation` (both leaves); the
+  consolidator import is layered (consolidator depends only on entity
+  leaves), so there is no cycle.
 * All magic numbers are extracted to ``_CONSTANT`` ``Final`` vars.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -190,15 +194,9 @@ class WeeklyAggregator:
             return _empty_weekly(week_start, week_end, now)
 
         # Sleep metrics
-        sleep_durations = [
-            log.sleep.duration_hours for log in logs if log.sleep is not None
-        ]
-        avg_sleep_hours = (
-            sum(sleep_durations) / len(sleep_durations) if sleep_durations else 0.0
-        )
-        sleep_qualities = [
-            log.sleep.quality_score for log in logs if log.sleep is not None
-        ]
+        sleep_durations = [log.sleep.duration_hours for log in logs if log.sleep is not None]
+        avg_sleep_hours = sum(sleep_durations) / len(sleep_durations) if sleep_durations else 0.0
+        sleep_qualities = [log.sleep.quality_score for log in logs if log.sleep is not None]
         avg_sleep_quality = (
             sum(sleep_qualities) / len(sleep_qualities)
             if sleep_qualities
@@ -207,9 +205,7 @@ class WeeklyAggregator:
 
         # Energy metrics (0-100)
         energy_scores = [log.avg_energy for log in logs if log.avg_energy is not None]
-        avg_energy_score = (
-            sum(energy_scores) / len(energy_scores) if energy_scores else 0.0
-        )
+        avg_energy_score = sum(energy_scores) / len(energy_scores) if energy_scores else 0.0
 
         # Counters
         total_tasks_done = sum(log.tasks_completed for log in logs)

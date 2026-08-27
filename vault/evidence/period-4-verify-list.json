@@ -1,0 +1,20 @@
+[
+  {
+    "id": "cli-test-sonho",
+    "period": "sonho",
+    "date_start": "2026-01-01",
+    "verdict": "ACTIVE",
+    "verdict_score": 0.7,
+    "policy_recommendation": null,
+    "vault_path": "C:\\Users\\mathe\\code_space\\life-oss\\life\\test_period_t4\\_templates_periodos\\01-sonho.md"
+  },
+  {
+    "id": "Q1-cli-test",
+    "period": "quarterly",
+    "date_start": "2026-01-01",
+    "verdict": "PASS",
+    "verdict_score": 0.8,
+    "policy_recommendation": null,
+    "vault_path": "C:\\Users\\mathe\\code_space\\life-oss\\life\\test_period_t4\\_templates_periodos\\02-Q1.md"
+  }
+]

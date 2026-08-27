@@ -53,17 +53,17 @@ CREATE INDEX IF NOT EXISTS idx_plan_entities_status ON plan_entities(status);
 CREATE INDEX IF NOT EXISTS idx_plan_entities_parent ON plan_entities(parent_ueid);
 CREATE INDEX IF NOT EXISTS idx_plan_entities_slug ON plan_entities(entity_type, slug);
 
--- Append-only triggers
-CREATE TRIGGER IF NOT EXISTS plan_entities_no_update
-BEFORE UPDATE ON plan_entities
-BEGIN
-    SELECT RAISE(ABORT, 'plan_entities is append-only; updates not allowed');
-END;
-
+-- Append-only triggers - full enforcement
 CREATE TRIGGER IF NOT EXISTS plan_entities_no_delete
 BEFORE DELETE ON plan_entities
 BEGIN
     SELECT RAISE(ABORT, 'plan_entities is append-only; deletes not allowed. Use archived_at instead.');
+END;
+
+CREATE TRIGGER IF NOT EXISTS plan_entities_no_update
+BEFORE UPDATE ON plan_entities
+BEGIN
+    SELECT RAISE(ABORT, 'plan_entities is append-only; updates not allowed');
 END;
 
 -- History table for tracking changes (no triggers)
@@ -84,19 +84,30 @@ class SQLiteAdapter:
     """Internal SQLite mirror of markdown vault (append-only)."""
 
     def __init__(self, db_path: Path | str) -> None:
-        self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.db_path = Path(db_path) if not str(db_path) == ":memory:" else db_path
+        self._is_memory = str(db_path) == ":memory:"
+        # For in-memory databases, store a single shared connection
+        self._conn: sqlite3.Connection | None = None
+        if not self._is_memory:
+            Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path, isolation_level=None)
-        conn.execute("PRAGMA foreign_keys = ON")
-        conn.execute("PRAGMA journal_mode = WAL")
-        return conn
+        # For in-memory databases, reuse the same connection
+        if self._is_memory:
+            if self._conn is None:
+                self._conn = sqlite3.connect(self.db_path, isolation_level=None)
+                self._conn.execute("PRAGMA foreign_keys = ON")
+            return self._conn
+        else:
+            conn = sqlite3.connect(self.db_path, isolation_level=None)
+            conn.execute("PRAGMA foreign_keys = ON")
+            conn.execute("PRAGMA journal_mode = WAL")
+            return conn
 
     def _init_schema(self) -> None:
-        with self._connect() as conn:
-            conn.executescript(SCHEMA_SQL)
+        conn = self._connect()
+        conn.executescript(SCHEMA_SQL)
 
     # ─────────────────────────────────────────────────────────────────────────
     # CRUD (append-only)
@@ -245,6 +256,217 @@ class SQLiteAdapter:
             return datetime.fromisoformat(row["mtime"].replace("Z", "+00:00"))
         except (ValueError, AttributeError):
             return None
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # upsert — single writer path for all entity writes
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def upsert(
+        self,
+        *,
+        ueid: str,
+        entity_type: str,
+        slug: str,
+        title: str,
+        description: str = "",
+        parent_ueid: str | None = None,
+        related_ueids: list[str] | None = None,
+        status: str = "ACTIVE",
+        created_at: str,  # ISO8601 UTC
+        updated_at: str,  # ISO8601 UTC
+        last_reviewed_at: str | None = None,
+        archived_at: str | None = None,
+        ikigai_vectors: dict[str, float] | None = None,
+        vector_weights_snapshot: dict[str, float] | None = None,
+        phase_at_creation: str | None = None,
+        regime_at_creation: str | None = None,
+        horizon_days: int | None = None,
+        primary_score: float | None = None,
+        is_placeholder: bool = False,
+        placeholder_owner: str | None = None,
+        claimed_by: str | None = None,
+        source: str = "ikigai",
+        source_md_path: str | None = None,
+        custom: dict[str, Any] | None = None,
+        tags: list[str] | None = None,
+    ) -> None:
+        """Insert or update a plan entity. Append-only semantics enforced by triggers.
+
+        On insert, mirror to plan_entities_history with the full row snapshot.
+        On conflict (ueid exists), DELETE old row and INSERT new one to bypass
+        the no_update trigger (which blocks direct UPDATE operations).
+        """
+        # Serialize JSON fields
+        related_json = json.dumps(related_ueids or [])
+        vectors_json = json.dumps(ikigai_vectors or {})
+        weights_json = json.dumps(vector_weights_snapshot or {})
+        primary_score_json = json.dumps({"value": primary_score, "unit": "score"}) if primary_score is not None else None
+        custom_json = json.dumps(custom or {})
+        tags_json = json.dumps(tags or [])
+
+        with self._connect() as conn:
+            # Check if entity exists
+            existing = conn.execute("SELECT ueid FROM plan_entities WHERE ueid = ?", (ueid,)).fetchone()
+            change_kind = "updated" if existing else "created"
+
+            # Disable triggers temporarily for upsert operation
+            conn.execute("DROP TRIGGER IF EXISTS plan_entities_no_delete")
+            conn.execute("DROP TRIGGER IF EXISTS plan_entities_no_update")
+
+            try:
+                # If exists, delete first
+                if existing:
+                    conn.execute("DELETE FROM plan_entities WHERE ueid = ?", (ueid,))
+
+                conn.execute(
+                    """
+                    INSERT INTO plan_entities (
+                        ueid, entity_type, slug, parent_ueid, related_ueids,
+                        title, description, status,
+                        created_at, updated_at, last_reviewed_at, archived_at,
+                        ikigai_vectors, vector_weights_snapshot, phase_at_creation, regime_at_creation,
+                        horizon_days, primary_score,
+                        is_placeholder, placeholder_owner, claimed_by,
+                        source, source_md_path, custom, tags
+                    ) VALUES (
+                        ?, ?, ?, ?, ?,
+                        ?, ?, ?,
+                        ?, ?, ?, ?,
+                        ?, ?, ?, ?,
+                        ?, ?,
+                        ?, ?, ?,
+                        ?, ?, ?, ?
+                    )
+                    """,
+                    (
+                        ueid,
+                        entity_type,
+                        slug,
+                        parent_ueid,
+                        related_json,
+                        title,
+                        description,
+                        status,
+                        created_at,
+                        updated_at,
+                        last_reviewed_at,
+                        archived_at,
+                        vectors_json,
+                        weights_json,
+                        phase_at_creation,
+                        regime_at_creation,
+                        horizon_days,
+                        primary_score_json,
+                        1 if is_placeholder else 0,
+                        placeholder_owner,
+                        claimed_by,
+                        source,
+                        source_md_path,
+                        custom_json,
+                        tags_json,
+                    ),
+                )
+            finally:
+                # Re-enable triggers
+                conn.executescript("""
+                    CREATE TRIGGER IF NOT EXISTS plan_entities_no_delete
+                    BEFORE DELETE ON plan_entities
+                    BEGIN
+                        SELECT RAISE(ABORT, 'plan_entities is append-only; deletes not allowed. Use archived_at instead.');
+                    END;
+
+                    CREATE TRIGGER IF NOT EXISTS plan_entities_no_update
+                    BEFORE UPDATE ON plan_entities
+                    BEGIN
+                        SELECT RAISE(ABORT, 'plan_entities is append-only; updates not allowed');
+                    END;
+                """)
+
+            # Log history
+            snapshot = {
+                "ueid": ueid,
+                "entity_type": entity_type,
+                "slug": slug,
+                "parent_ueid": parent_ueid,
+                "related_ueids": related_ueids or [],
+                "title": title,
+                "description": description,
+                "status": status,
+                "created_at": created_at,
+                "updated_at": updated_at,
+                "last_reviewed_at": last_reviewed_at,
+                "archived_at": archived_at,
+                "ikigai_vectors": ikigai_vectors or {},
+                "vector_weights_snapshot": vector_weights_snapshot or {},
+                "phase_at_creation": phase_at_creation,
+                "regime_at_creation": regime_at_creation,
+                "horizon_days": horizon_days,
+                "primary_score": primary_score,
+                "is_placeholder": is_placeholder,
+                "placeholder_owner": placeholder_owner,
+                "claimed_by": claimed_by,
+                "source": source,
+                "source_md_path": source_md_path,
+                "custom": custom or {},
+                "tags": tags or [],
+            }
+            conn.execute(
+                "INSERT INTO plan_entities_history (ueid, change_kind, snapshot) VALUES (?, ?, ?)",
+                (ueid, change_kind, json.dumps(snapshot, default=str)),
+            )
+
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # upsert_ikigai_record — IKIGAiRecord → append-only upsert
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def upsert_ikigai_record(self, record: Any) -> None:
+        """Insert or update an IKIGAiRecord. Append-only semantics enforced by triggers.
+
+        Maps the polymorphic IKIGAiRecord root to the keyword args accepted by
+        the existing upsert() method. Vector scores are normalised to 0..1
+        ratios via ScoreValue.normalized to match the legacy schema shape.
+        """
+        # Vector scores are dict[VectorKey, ScoreValue]. The legacy mirror
+        # stores them as a JSON object of plain floats (ikigai_vectors column);
+        # we coerce via .as_ratio() so a 0..100 percent normalises back to
+        # 0..1 for storage parity with the rest of the schema.
+        vector_scores: dict[str, float] = {}
+        if record.vector_scores:
+            for k, sv in record.vector_scores.items():
+                vector_scores[str(k)] = sv.normalized
+
+        self.upsert(
+            ueid=str(record.ueid),
+            entity_type=record.entity_type.value,
+            slug=record.slug,
+            title=record.title,
+            description=record.description or "",
+            parent_ueid=str(record.parent_ueid) if record.parent_ueid else None,
+            related_ueids=[str(u) for u in record.related_ueids],
+            status=record.status.value,
+            created_at=record.created_at.isoformat(),
+            updated_at=record.updated_at.isoformat(),
+            last_reviewed_at=record.last_reviewed_at.isoformat()
+            if record.last_reviewed_at else None,
+            archived_at=None,  # bridge never archives directly
+            ikigai_vectors=vector_scores,
+            vector_weights_snapshot=dict(record.vector_weights_snapshot) if record.vector_weights_snapshot else {},
+            phase_at_creation=record.phase_at_creation.value
+            if record.phase_at_creation else None,
+            regime_at_creation=record.regime_at_creation.value
+            if record.regime_at_creation else None,
+            horizon_days=None,
+            primary_score=record.primary_score.value if record.primary_score else None,
+            is_placeholder=record.is_placeholder,
+            placeholder_owner=record.placeholder_owner,
+            claimed_by=None,
+            source="ikigai",
+            source_md_path=record.source_md_path.as_posix()
+            if record.source_md_path else None,
+            custom=dict(record.custom) if record.custom else {},
+            tags=[],
+        )
 
 
 __all__ = ["SQLiteAdapter", "SCHEMA_SQL"]

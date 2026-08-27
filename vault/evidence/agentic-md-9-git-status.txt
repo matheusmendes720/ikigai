@@ -1,0 +1,45 @@
+ M .omo/boulder.json
+ M .omo/run-continuation/ses_118cec609ffeXHWfC78wFT5ADp.json
+ M vibe-ops/architecture/README.md
+ M vibe-ops/uv.lock
+?? .claude-flow/
+?? .claude/agents/
+?? .claude/commands/
+?? .claude/helpers/
+?? .claude/settings.json
+?? .claude/skills/agentdb-advanced/
+?? .claude/skills/agentdb-learning/
+?? .claude/skills/agentdb-memory-patterns/
+?? .claude/skills/agentdb-optimization/
+?? .claude/skills/agentdb-vector-search/
+?? .claude/skills/browser/
+?? .claude/skills/github-code-review/
+?? .claude/skills/github-multi-repo/
+?? .claude/skills/github-project-management/
+?? .claude/skills/github-release-management/
+?? .claude/skills/github-workflow-automation/
+?? .claude/skills/hooks-automation/
+?? .claude/skills/pair-programming/
+?? .claude/skills/reasoningbank-agentdb/
+?? .claude/skills/reasoningbank-intelligence/
+?? .claude/skills/skill-builder/
+?? .claude/skills/sparc-methodology/
+?? .claude/skills/stream-chain/
+?? .claude/skills/swarm-advanced/
+?? .claude/skills/swarm-orchestration/
+?? .claude/skills/v3-cli-modernization/
+?? .claude/skills/v3-core-implementation/
+?? .claude/skills/v3-ddd-architecture/
+?? .claude/skills/v3-integration-deep/
+?? .claude/skills/v3-mcp-optimization/
+?? .claude/skills/v3-memory-unification/
+?? .claude/skills/v3-performance-optimization/
+?? .claude/skills/v3-security-overhaul/
+?? .claude/skills/v3-swarm-coordination/
+?? .claude/skills/verification-quality/
+?? agentic-md-research-langgraph.md
+?? test_f3/
+?? test_full/
+?? test_orphan/
+?? vibe-ops/architecture/ADR-006-period-reports-schema.md
+?? vibe-ops/src/agents/

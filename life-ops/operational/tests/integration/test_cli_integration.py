@@ -51,6 +51,22 @@ runner = CliRunner()
 ESC = "\x1b["  # ANSI escape introducer
 
 
+def _parse_json_output(output: str) -> Any:
+    """Parse the JSON payload from a ``CliRunner.result.output`` blob.
+
+    ``CliRunner`` defaults to ``mix_stderr=True`` so the captured output
+    contains BOTH the telemetry lines (structlog ``INFO pav:...``) and the
+    command's JSON payload. The JSON object always begins at the first
+    ``{`` (the report payload) so we scan for it. Proper fix is to switch
+    the runner to ``mix_stderr=False`` — track as P1-15.
+    """
+    idx = output.find("\n{")
+    if idx < 0:
+        idx = output.find("{")
+    assert idx >= 0, f"No JSON object found in:\n{output!r}"
+    return json.loads(output[idx:])
+
+
 # ---------------------------------------------------------------------------
 # A. Happy paths
 # ---------------------------------------------------------------------------
@@ -152,13 +168,22 @@ def test_journal_list_handles_empty_repo() -> None:
 
 
 def test_report_daily_json_returns_valid_json() -> None:
-    """``report daily --json`` returns parseable JSON with 'date' key."""
+    """``report daily --json`` returns parseable JSON with 'date' key.
+
+    ``CliRunner`` captures stderr into ``result.output`` alongside stdout
+    (the legacy ``mix_stderr=True`` default), so the telemetry log line
+    ("INFO pav:telemetry...") lands *before* the JSON payload. Extract
+    the JSON object by scanning for the first ``{`` so we don't conflate
+    "telemetry writes a stderr line" with "the JSON output is broken".
+    Fix the stderr/stdout split properly by switching the runner to
+    ``mix_stderr=False`` (track as P1-15).
+    """
     # Act
     result = runner.invoke(app, ["report", "daily", "--json"])
 
     # Assert
     assert result.exit_code == 0
-    data = json.loads(result.output)
+    data = _parse_json_output(result.output)
     assert "date" in data
     assert "tipo_dia" in data
 
@@ -170,7 +195,7 @@ def test_state_show_json_returns_valid_json() -> None:
 
     # Assert
     assert result.exit_code == 0
-    data = json.loads(result.output)
+    data = _parse_json_output(result.output)
     assert "date" in data
     assert "period_now" in data
 
@@ -315,7 +340,7 @@ def test_state_show_json_with_mocked_sleep(
 
     # Assert — the mocked data flows through to the JSON payload
     assert result.exit_code == 0
-    data = json.loads(result.output)
+    data = _parse_json_output(result.output)
     assert data["sleep"] is not None
     assert data["sleep"]["quality"] == 9
     assert data["sleep"]["duration_hours"] == 7.5

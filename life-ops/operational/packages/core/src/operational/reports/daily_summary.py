@@ -4,6 +4,7 @@ Produces a markdown-formatted end-of-day summary following the PAV §10
 template with sleep, workout, hardwork, pomodoros, meals, transitions,
 Cartesian plane, and deviations sections.
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -84,23 +85,27 @@ def generate_daily_summary(
     date_str = report_date.isoformat()
 
     # Header
-    lines.extend([
-        "---",
-        "type: daily_summary",
-        f"date: {date_str}",
-        f"generated_at: {datetime.now().isoformat()}",
-        "---",
-        "",
-        f"# {chr(128200)} Daily Summary — {date_str}",
-        "",
-    ])
+    lines.extend(
+        [
+            "---",
+            "type: daily_summary",
+            f"date: {date_str}",
+            f"generated_at: {datetime.now().isoformat()}",
+            "---",
+            "",
+            f"# {chr(128200)} Daily Summary — {date_str}",
+            "",
+        ]
+    )
 
     # 1. Time
-    lines.extend([
-        f"## {chr(9200)} Time",
-        "| Metric | Value |",
-        "|:-------|:-----:|",
-    ])
+    lines.extend(
+        [
+            f"## {chr(9200)} Time",
+            "| Metric | Value |",
+            "|:-------|:-----:|",
+        ]
+    )
     if wake_hour is not None:
         lines.append(f"| Wake | {wake_hour:02d}:{wake_minute or 0:02d} |")
     if sleep_hour is not None:
@@ -111,12 +116,14 @@ def generate_daily_summary(
         lines.append(f"| Sleep quality | {sleep_quality} |")
 
     # 2. Health
-    lines.extend([
-        "",
-        f"## {chr(127939)} Health & Routines",
-        "| Metric | Value |",
-        "|:-------|:-----:|",
-    ])
+    lines.extend(
+        [
+            "",
+            f"## {chr(127939)} Health & Routines",
+            "| Metric | Value |",
+            "|:-------|:-----:|",
+        ]
+    )
     if workout_done is not None:
         status = "Done" if workout_done else "Not done" if workout_done is False else ""
         dur = f" ({workout_minutes}min)" if workout_minutes else ""
@@ -130,14 +137,20 @@ def generate_daily_summary(
         lines.append(f"| Energy | {energia}/10 {bar} |")
 
     # 3. Hardwork
-    lines.extend([
-        "",
-        f"## {chr(128187)} Hardwork",
-        "| Metric | Value |",
-        "|:-------|:-----:|",
-    ])
-    day_type_labels = {"curso": "Course day", "sem_curso": "No-course day",
-                       "hardcore": "Hardcore", "normal": "Normal"}
+    lines.extend(
+        [
+            "",
+            f"## {chr(128187)} Hardwork",
+            "| Metric | Value |",
+            "|:-------|:-----:|",
+        ]
+    )
+    day_type_labels = {
+        "curso": "Course day",
+        "sem_curso": "No-course day",
+        "hardcore": "Hardcore",
+        "normal": "Normal",
+    }
     lines.append(f"| Day type | {day_type_labels.get(day_type, day_type)} |")
 
     efficiency_pct = calculate_efficiency(hardwork_budget_minutes, hardwork_actual_minutes)
@@ -148,21 +161,25 @@ def generate_daily_summary(
 
     # 4. Cartesian plane
     prod_x = calculate_efficiency(hardwork_budget_minutes, hardwork_actual_minutes)
-    lines.extend([
-        "",
-        f"## {chr(128200)} Cartesian Analysis",
-        f"**Productivity (X):** {prod_x:.0f}%  —  **Efficiency (Y):** {efficiency_pct:.0f}%",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            f"## {chr(128200)} Cartesian Analysis",
+            f"**Productivity (X):** {prod_x:.0f}%  —  **Efficiency (Y):** {efficiency_pct:.0f}%",
+            "",
+        ]
+    )
     lines.append(render_cartesian_ascii(prod_x, efficiency_pct))
 
     # 5. Meals & transitions
-    lines.extend([
-        "",
-        f"## {chr(127869)} Meals & Transitions",
-        "| Metric | Value |",
-        "|:-------|:-----:|",
-    ])
+    lines.extend(
+        [
+            "",
+            f"## {chr(127869)} Meals & Transitions",
+            "| Metric | Value |",
+            "|:-------|:-----:|",
+        ]
+    )
     lines.append(f"| Lunch eat | {lunch_eat_minutes}min |")
     lines.append(f"| Lunch rest | {lunch_rest_minutes}min |")
     if dinner_before_18 is not None:
@@ -171,28 +188,34 @@ def generate_daily_summary(
 
     # 6. Deviations & lessons
     if desvios:
-        lines.extend([
-            "",
-            f"## {chr(9888)} Deviations",
-        ])
+        lines.extend(
+            [
+                "",
+                f"## {chr(9888)} Deviations",
+            ]
+        )
         for d in desvios:
             lines.append(f"- {d}")
 
     if ajustes:
-        lines.extend([
-            "",
-            f"## {chr(128295)} Fine Adjustments",
-        ])
+        lines.extend(
+            [
+                "",
+                f"## {chr(128295)} Fine Adjustments",
+            ]
+        )
         for a in ajustes:
             lines.append(f"- {a}")
 
     if licoes:
-        lines.extend([
-            "",
-            f"## {chr(128218)} Lessons Learned",
-        ])
-        for l in licoes:
-            lines.append(f"- {l}")
+        lines.extend(
+            [
+                "",
+                f"## {chr(128218)} Lessons Learned",
+            ]
+        )
+        for licao in licoes:
+            lines.append(f"- {licao}")
 
     lines.append("")
     return "\n".join(lines)
@@ -227,8 +250,8 @@ def render_cartesian_ascii(produtividade_x: float, eficiencia_y: float) -> str:
         label = f"{row * 10:3d}% " if row % 2 == 0 or row == 10 else "    |"
         line_chars: list[str] = []
         for col in range(11):
-            is_point = (col == px and row == py)
-            is_origin = (col == 0 and row == 0)
+            is_point = col == px and row == py
+            is_origin = col == 0 and row == 0
             if is_point and not is_origin:
                 line_chars.append("\u2022")
             elif is_origin:

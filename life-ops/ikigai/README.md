@@ -54,3 +54,27 @@ See `SPEC.md` for the full canonical specification. All 16 architectural questio
 ## Status
 
 🟡 **MVP** — Entities, scoring, heuristics, markdown DB, SQLite mirror, state machines, CLI, 250+ tests.
+
+## Observability
+
+OpenTelemetry wiring (LangSmith + Langfuse dual export, OTLP/HTTP):
+
+```bash
+# Enable tracing (no-op when keys absent; server boots when OTEL_ENABLED=false)
+export OTEL_ENABLED=true
+export LANGSMITH_API_KEY=ls__...            # optional
+export LANGSMITH_PROJECT=ikigai              # default: ikigai
+export LANGFUSE_PUBLIC_KEY=pk-lf-...         # optional
+export LANGFUSE_SECRET_KEY=sk-lf-...         # optional
+export LANGFUSE_HOST=https://cloud.langfuse.com
+
+poetry run ikigai-mcp
+```
+
+Reliability layer in `src/agents/tools.py`: `@circuit_breaker` outer + `@retry_with_backoff` inner (so CB counts logical calls, not attempts), with scoped cache invalidation.
+
+Follow-up specs for the observability sprint live at `docs/observability/`:
+- `01-server-side-reliability.md` — mirror reliability onto the 3 external MCP servers (tuiboard, taskdog, solverforge)
+- `02-integration-smoke-test.md` — e2e smoke test that boots all 4 servers with OTEL, verifies spans in both backends
+- `03-merge-plan.md` — dependency-ordered merge procedure for the 4 OTel feature branches
+- `04-dissolve-worktree.md` — post-merge cleanup for `life-mcp-observability-worktree`

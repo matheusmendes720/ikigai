@@ -1,4 +1,5 @@
 """Entity registry — auto-discovery and mapping of entity classes."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -25,17 +26,17 @@ def _discover_entities() -> dict[str, type[BaseModel]]:
         Mapping of UEID prefix → model class.
     """
     # Late imports to avoid circular dependencies during bootstrap.
-    from operational.entities.ajuste_fino import AjusteFino  # noqa: PLC0415
-    from operational.entities.habit import Habit  # noqa: PLC0415
-    from operational.entities.journal import JournalEntry  # noqa: PLC0415
-    from operational.entities.metric import DailyLog, SleepRecord  # noqa: PLC0415
-    from operational.entities.policy import (  # noqa: PLC0415
+    from operational.entities.ajuste_fino import AjusteFino
+    from operational.entities.habit import Habit
+    from operational.entities.journal import JournalEntry
+    from operational.entities.metric import DailyLog, SleepRecord
+    from operational.entities.policy import (
         DecisionRecord,
         PolicySetpoints,
     )
-    from operational.entities.pomodoro import PomodoroSession  # noqa: PLC0415
-    from operational.entities.routine import Routine, RoutineLog  # noqa: PLC0415
-    from operational.entities.time_block import TimeBlock  # noqa: PLC0415
+    from operational.entities.pomodoro import PomodoroSession
+    from operational.entities.routine import Routine, RoutineLog
+    from operational.entities.time_block import TimeBlock
 
     return {
         "rou": Routine,
@@ -84,7 +85,9 @@ class EntityRegistry:
             The model class, or ``None`` if unknown.
         """
         self._ensure_loaded()
-        prefix = ueid_or_prefix.split("_", maxsplit=1)[0] if "_" in ueid_or_prefix else ueid_or_prefix
+        prefix = (
+            ueid_or_prefix.split("_", maxsplit=1)[0] if "_" in ueid_or_prefix else ueid_or_prefix
+        )
         return self._map.get(prefix)
 
     @property
@@ -127,6 +130,4 @@ def get_entity_class(ueid_or_prefix: str) -> type[BaseModel]:
 
 def registered_entity_types() -> dict[str, str]:
     """Return human-friendly prefix → class name mapping."""
-    return {
-        k: v.__name__ for k, v in entity_registry.types.items()
-    }
+    return {k: v.__name__ for k, v in entity_registry.types.items()}

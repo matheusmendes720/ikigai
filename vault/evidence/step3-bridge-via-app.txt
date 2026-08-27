@@ -1,0 +1,7 @@
+=== STEP 3a-bridge-via-app(): pav plan run, direct app() call ===
+OUTPUT: 2026-06-30T15:00:35.864834Z [info     ] log_configured                 [pav] extra={'level': 'INFO', 'json': False, 'log_file': ''}
+C:\Python314\python.exe: No module named agents.pae_maintainer
+2026-06-30T15:00:36.130481Z [error    ] plan.run.failed                [pav] command='pav plan run' duration_ms=265.15 error=None request_id=1a8b0b96
+2026-06-30T15:00:36.130719Z [error    ] command.failed                 [pav] command='pav plan run' duration_ms=265.4 error= error_type=Exit request_id=1a8b0b96
+==> SystemExit(1)
+

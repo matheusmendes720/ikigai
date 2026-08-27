@@ -14,7 +14,7 @@ class DreamEntity(PlanEntity):
     """Long-term vision (5-10 years / 1825-3650 days)."""
 
     entity_type: Literal[EntityType.DREAM] = EntityType.DREAM  # type: ignore[assignment]
-    horizon_days: Literal[1825, 2190, 2555, 2920, 3285, 3650]  # type: ignore[valid-type]
+    horizon_days: Literal[547, 1825, 2190, 2555, 2920, 3285, 3650]  # type: ignore[valid-type]
 
     # Dream-specific fields
     motivation: str | None = None

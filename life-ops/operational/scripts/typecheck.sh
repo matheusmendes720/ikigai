@@ -2,4 +2,4 @@
 # Type check all Python files with mypy --strict.
 set -e
 cd "$(dirname "$0")/.."
-poetry run mypy src/operational/ --strict
+uv run mypy packages/core/src/operational/ apps/cli/src/operational/ apps/tui/src/operational/ --strict

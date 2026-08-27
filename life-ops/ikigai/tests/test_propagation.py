@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import tempfile
 from pathlib import Path
 from datetime import datetime, timezone
@@ -265,6 +266,85 @@ class TestSQLiteAdapter:
         adapter.insert(goal)
         with pytest.raises(Exception):  # constraint error from trigger
             adapter.delete(str(goal.ueid))
+
+    def test_upsert_enforces_trigger_no_update(self) -> None:
+        """Direct UPDATE on plan_entities must raise sqlite3.IntegrityError (trigger)."""
+        adapter, db_path = self._temp_sqlite()
+        # Use upsert to create an entity
+        adapter.upsert(
+            ueid="test:ueid:001",
+            entity_type="task",
+            slug="test-task",
+            title="Original",
+            description="Test description",
+            status="ACTIVE",
+            created_at="2025-01-01T00:00:00Z",
+            updated_at="2025-01-01T00:00:00Z",
+        )
+        # Try direct UPDATE via raw connection - should be blocked by trigger
+        conn = sqlite3.connect(str(db_path))
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+            conn.execute("UPDATE plan_entities SET title = 'hacked' WHERE ueid = ?", ("test:ueid:001",))
+            conn.commit()
+        conn.close()
+
+    def test_upsert_enforces_trigger_no_delete(self) -> None:
+        """Direct DELETE on plan_entities must raise sqlite3.IntegrityError (trigger)."""
+        adapter, db_path = self._temp_sqlite()
+        # Use upsert to create an entity
+        adapter.upsert(
+            ueid="test:ueid:002",
+            entity_type="task",
+            slug="test-task-2",
+            title="To delete",
+            description="Test description",
+            status="ACTIVE",
+            created_at="2025-01-01T00:00:00Z",
+            updated_at="2025-01-01T00:00:00Z",
+        )
+        # Try direct DELETE via raw connection - should be blocked by trigger
+        conn = sqlite3.connect(str(db_path))
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+            conn.execute("DELETE FROM plan_entities WHERE ueid = ?", ("test:ueid:002",))
+            conn.commit()
+        conn.close()
+
+    def test_upsert_then_query_history(self) -> None:
+        """Append-only via upsert() must record every change in plan_entities_history."""
+        adapter, _ = self._temp_sqlite()
+        ueid = "test:ueid:003"
+        # First upsert - creates entity
+        adapter.upsert(
+            ueid=ueid,
+            entity_type="task",
+            slug="history-test",
+            title="v1",
+            description="Version 1",
+            status="DRAFT",
+            created_at="2025-01-01T00:00:00Z",
+            updated_at="2025-01-01T00:00:00Z",
+        )
+        # Second upsert - updates entity
+        adapter.upsert(
+            ueid=ueid,
+            entity_type="task",
+            slug="history-test",
+            title="v2",
+            description="Version 2",
+            status="ACTIVE",
+            created_at="2025-01-01T00:00:00Z",
+            updated_at="2025-01-02T00:00:00Z",
+        )
+        # Query history table directly
+        history = adapter.history_for(ueid)
+        assert len(history) == 2
+        # Check change kinds
+        change_kinds = [h["change_kind"] for h in history]
+        assert change_kinds == ["created", "updated"]
+        # Check that snapshots contain different titles
+        snapshots = [json.loads(h["snapshot"]) for h in history]
+        assert snapshots[0]["title"] == "v1"
+        assert snapshots[1]["title"] == "v2"
 
 
 class TestTriagem:

@@ -3,6 +3,7 @@
 Launches the interactive home menu by default.
 Run ``python -m operational --help`` for all CLI commands.
 """
+
 from __future__ import annotations
 
 from operational.cli.app import app

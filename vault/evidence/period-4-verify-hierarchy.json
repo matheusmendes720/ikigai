@@ -1,0 +1,33 @@
+{
+  "sonho_id": "cli-test-sonho",
+  "tree": [
+    {
+      "id": "cli-test-sonho",
+      "period": "sonho",
+      "date_start": "2026-01-01",
+      "date_end": "2026-12-31",
+      "parent_period": null,
+      "sonho_id": null,
+      "verdict": "ACTIVE",
+      "verdict_score": 0.7,
+      "policy_recommendation": null,
+      "vault_path": "C:\\Users\\mathe\\code_space\\life-oss\\life\\test_period_t4\\_templates_periodos\\01-sonho.md",
+      "children": [
+        {
+          "id": "Q1-cli-test",
+          "period": "quarterly",
+          "date_start": "2026-01-01",
+          "date_end": "2026-03-31",
+          "parent_period": "cli-test-sonho",
+          "sonho_id": "cli-test-sonho",
+          "verdict": "PASS",
+          "verdict_score": 0.8,
+          "policy_recommendation": null,
+          "vault_path": "C:\\Users\\mathe\\code_space\\life-oss\\life\\test_period_t4\\_templates_periodos\\02-Q1.md",
+          "children": []
+        }
+      ]
+    }
+  ],
+  "count": 2
+}

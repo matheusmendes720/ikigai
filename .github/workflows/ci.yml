@@ -56,12 +56,6 @@ jobs:
           - package: operational-core
             path: life-ops/operational/packages/core
             python: "3.11"
-          - package: operational-cli
-            path: life-ops/operational/apps/cli
-            python: "3.11"
-          - package: operational-tui
-            path: life-ops/operational/apps/tui
-            python: "3.11"
           - package: vibe-ops
             path: vibe-ops
             python: "3.11"

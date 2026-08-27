@@ -1,0 +1,13 @@
+[project]
+name = "contracts"
+version = "0.1.0"
+description = "Canonical Pydantic v2 contracts shared across all layers of the Algorithmic Life OS."
+requires-python = ">=3.11"
+dependencies = ["pydantic>=2.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pydantic]
+v2 = true

@@ -22,12 +22,27 @@ Usage:
 >>> from datetime import datetime, time
 >>> from operational.entities.time_block import TimeBlock
 >>> blocks = [
-...     TimeBlock(id="tbl_1", label="morning", start=datetime(2026,6,7,3,30), end=datetime(2026,6,7,5,30), period=Period.MANHA, created_at=datetime(2026,6,7,3,30)),
-...     TimeBlock(id="tbl_2", label="afternoon", start=datetime(2026,6,7,8,0), end=datetime(2026,6,7,12,0), period=Period.TARDE, created_at=datetime(2026,6,7,8,0)),
+...     TimeBlock(
+...         id="tbl_1",
+...         label="morning",
+...         start=datetime(2026, 6, 7, 3, 30),
+...         end=datetime(2026, 6, 7, 5, 30),
+...         period=Period.MANHA,
+...         created_at=datetime(2026, 6, 7, 3, 30),
+...     ),
+...     TimeBlock(
+...         id="tbl_2",
+...         label="afternoon",
+...         start=datetime(2026, 6, 7, 8, 0),
+...         end=datetime(2026, 6, 7, 12, 0),
+...         period=Period.TARDE,
+...         created_at=datetime(2026, 6, 7, 8, 0),
+...     ),
 ... ]
 >>> compute_break_minutes(blocks[0], blocks[1])
 150
 """
+
 from __future__ import annotations
 
 import itertools
@@ -73,6 +88,7 @@ class BreakInfo:
         is_overlap: True if blocks overlap (negative break within tolerance).
         overlap_minutes: If overlap, how many minutes of overlap (positive value).
     """
+
     from_block_id: str
     to_block_id: str
     break_minutes: float
@@ -101,9 +117,7 @@ def compute_break_minutes(prev: TimeBlock, next_: TimeBlock) -> float:
                 f"TimeBlocks overlap by {overlap:.1f}min "
                 f"(prev.end={prev.end.isoformat()}, next.start={next_.start.isoformat()})"
             )
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
         return 0.0
     return (next_.start - prev.end).total_seconds() / 60.0
 
@@ -126,23 +140,27 @@ def compute_breaks(blocks: Sequence[TimeBlock]) -> list[BreakInfo]:
     for prev, nxt in itertools.pairwise(sorted_blocks):
         try:
             break_min = compute_break_minutes(prev, nxt)
-            breaks.append(BreakInfo(
-                from_block_id=prev.id,
-                to_block_id=nxt.id,
-                break_minutes=break_min,
-                is_overlap=False,
-                overlap_minutes=0.0,
-            ))
+            breaks.append(
+                BreakInfo(
+                    from_block_id=prev.id,
+                    to_block_id=nxt.id,
+                    break_minutes=break_min,
+                    is_overlap=False,
+                    overlap_minutes=0.0,
+                )
+            )
         except ValueError:
             # Compute overlap for reporting
             overlap = (prev.end - nxt.start).total_seconds() / 60.0
-            breaks.append(BreakInfo(
-                from_block_id=prev.id,
-                to_block_id=nxt.id,
-                break_minutes=0.0,
-                is_overlap=True,
-                overlap_minutes=overlap,
-            ))
+            breaks.append(
+                BreakInfo(
+                    from_block_id=prev.id,
+                    to_block_id=nxt.id,
+                    break_minutes=0.0,
+                    is_overlap=True,
+                    overlap_minutes=overlap,
+                )
+            )
     return breaks
 
 
@@ -158,6 +176,7 @@ class BreakStatistics:
         break_count: Number of breaks.
         overlap_count: Number of overlaps detected.
     """
+
     total_break_minutes: float
     mean_break_minutes: float
     max_break_minutes: float

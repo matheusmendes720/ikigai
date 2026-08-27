@@ -6,6 +6,7 @@ Public API
 - :func:`parse_time_block_line` — CSV line → TimeBlock
 - :func:`serialize_journal_to_markdown` — JournalEntry → YAML frontmatter + body
 """
+
 from __future__ import annotations
 
 from operational.parsers.frontmatter import (

@@ -3,12 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv.workspace]
-members = ["packages/core", "apps/cli", "apps/tui"]
-
-[tool.uv.sources]
-operational-core = { workspace = true }
-operational-cli = { workspace = true }
-operational-tui = { workspace = true }
+members = ["packages/core"]
 
 
 [tool.coverage.run]

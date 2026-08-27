@@ -1,0 +1,17 @@
+=== state migrate (cold) ===
+exit_code: 0
+stdout: {
+  "applied": [
+    "001_initial"
+  ],
+  "count": 1
+}
+
+
+=== state migrate (warm — should report no new) ===
+exit_code: 0
+stdout: {
+  "applied": [],
+  "count": 0
+}
+

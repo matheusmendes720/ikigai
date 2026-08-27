@@ -1,0 +1,74 @@
+CREATE TABLE period_reports (
+    -- Identity
+    id TEXT PRIMARY KEY,
+    entity_type TEXT NOT NULL DEFAULT 'period_report',
+
+    -- Period contract (ADR-006 §3)
+    period TEXT NOT NULL
+        CHECK (period IN ('daily','weekly','onda','quarterly','sonho')),
+    date_start DATE NOT NULL,
+    date_end DATE NOT NULL,
+
+    -- Verdict contract (per-period enum)
+    verdict TEXT NOT NULL,
+    verdict_score REAL NOT NULL
+        CHECK (verdict_score >= 0.0 AND verdict_score <= 1.0),
+
+    -- Optional metadata (ADR-006 §3.2)
+    template_version TEXT DEFAULT '1.0',
+    ikigai_cluster TEXT DEFAULT 'plan',
+    sonho_id TEXT,
+    ikigai_vector TEXT
+        CHECK (ikigai_vector IS NULL OR ikigai_vector IN ('passion','skill','market','revenue')),
+    xp_gained INTEGER,
+    mastery_delta TEXT,
+    policy_recommendation TEXT
+        CHECK (policy_recommendation IS NULL OR policy_recommendation IN ('push','maintain','reduce','recover')),
+    parent_period TEXT,
+    status TEXT NOT NULL DEFAULT 'active'
+        CHECK (status IN ('draft','active','closed')),
+    tags TEXT,
+
+    -- Sync metadata
+    vault_path TEXT NOT NULL,
+    vault_hash TEXT NOT NULL,
+    last_synced_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CHECK (date_end >= date_start),
+    CHECK (
+        (period = 'sonho' AND parent_period IS NULL)
+        OR (period != 'sonho' AND parent_period IS NOT NULL)
+        OR (period != 'sonho' AND parent_period IS NULL)
+    ),
+    CHECK (
+        (verdict IN ('PASS','CONTINUE_WAVE','VALIDATED') AND verdict_score >= 0.5)
+        OR (verdict IN ('PARTIAL','CORRECT_TRAJECTORY','PIVOTED') AND verdict_score >= 0.25)
+        OR (verdict IN ('FAIL','KILL_WAVE','FALSIFIED','ABANDONED') AND verdict_score < 0.5)
+        OR verdict IN ('ACTIVE', 'RECOVER')
+    )
+);
+CREATE INDEX idx_period_reports_period
+    ON period_reports(period, date_start DESC);
+CREATE INDEX idx_period_reports_sonho
+    ON period_reports(sonho_id)
+    WHERE sonho_id IS NOT NULL;
+CREATE INDEX idx_period_reports_parent
+    ON period_reports(parent_period)
+    WHERE parent_period IS NOT NULL;
+CREATE INDEX idx_period_reports_verdict
+    ON period_reports(period, verdict)
+    WHERE verdict IN ('FAIL','KILL_WAVE','FALSIFIED','ABANDONED');
+CREATE INDEX idx_period_reports_policy
+    ON period_reports(policy_recommendation)
+    WHERE policy_recommendation IS NOT NULL;
+CREATE INDEX idx_period_reports_vault_hash
+    ON period_reports(vault_hash);
+CREATE INDEX idx_period_reports_updated
+    ON period_reports(updated_at DESC);
+CREATE TRIGGER trg_period_reports_updated
+AFTER UPDATE ON period_reports
+BEGIN
+    UPDATE period_reports SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;

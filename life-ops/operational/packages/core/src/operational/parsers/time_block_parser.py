@@ -7,6 +7,7 @@ Supports two input formats:
 
 All parsers strip whitespace and coerce strings to appropriate types.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -93,9 +94,7 @@ def parse_time_block_line(line: str, delimiter: str = ",") -> TimeBlock:
     parts = [p.strip() for p in line.split(delimiter)]
     if len(parts) < 5:
         msg = f"Expected at least 5 CSV fields, got {len(parts)}: {line}"
-        raise ValueError(
-            msg
-        )
+        raise ValueError(msg)
 
     raw_id = parts[0]
     label = parts[1] if len(parts) > 1 else ""

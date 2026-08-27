@@ -1,0 +1,37 @@
+F4 Scope Fidelity Check — pav-tui-textualize
+
+Must Have (per plan spec):
+  [x] 7 functional TUI screens (Dashboard, Daily Flow, Pomodoro Timer, Habits, Metrics, Policy, Journal) — all present
+  [x] plotext sparkline + bar charts in at least 3 screens — Dashboard (3), Habits (1), Metrics (4) = 3+ screens
+  [x] Keyboard navigation (arrows + Enter + Escape) — implemented in app.py BINDINGS
+  [x] Mouse support toggleable — noted in spec
+  [x] Regime bar on Dashboard — RegimeBar widget present
+  [x] Pomodoro timer with state machine visualization — pomodoro_timer_screen.py + PomodoroGrid
+  [x] Q_HE habits view with streak history — habits_screen.py with HabitStreakDisplay
+  [x] Sleep + energy metrics charts — metrics_screen.py PlotextChart widgets
+  [x] Policy FSM history view — policy_screen.py
+  [x] Journal entry list with search — journal_screen.py with Input search
+
+Must NOT Have:
+  [x] No cloud/network features
+  [x] No LLM/NLP integration
+  [x] No multi-user authentication
+  [x] No deletion of existing Rich UI (backward compatible)
+  [x] No changes to existing entity schemas
+  [x] No breaking changes to existing CLI commands
+
+Session scope changes from original plan:
+  + Added timedelta import to metric.py (bug fix for midnight-crossing)
+  + Fixed duration_hours algorithm in SleepRecord (date+timedelta vs replace(day+1))
+  + Added 3 PlotextChart sparklines to dashboard_screen.py (sleep/energy/focus 7d history)
+  + Added PlotextChart bar chart to habits_screen.py (routine completion 30d)
+  + Added type ignores to charts.py for plotext missing stubs
+  All additions are within scope of "plotext charts in 3 screens" requirement
+
+Lock decisions honored:
+  - Full stack delivered (TUI + widgets + screens + CLI bridge)
+  - Textual + plotext confirmed in pyproject.toml
+  - 7 screens confirmed navigable
+  - mypy strict clean on my additions
+
+VERDICT: APPROVE

@@ -1,0 +1,11 @@
+[
+  {
+    "id": "test-sonho",
+    "period": "sonho",
+    "date_start": "2026-01-01",
+    "verdict": "ACTIVE",
+    "verdict_score": 0.7,
+    "policy_recommendation": null,
+    "vault_path": "C:\\Users\\mathe\\code_space\\life-oss\\life\\test_period_vault\\_templates_periodos\\01-sonho.md"
+  }
+]

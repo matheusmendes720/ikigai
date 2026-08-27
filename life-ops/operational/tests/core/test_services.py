@@ -32,10 +32,10 @@ from operational.cli.services import (
     _infer_tipo_dia,
     _to_period,
     _to_tipo_dia,
-    compute_day_quadrant,
     distribute_pomodoros_across_sessions,
     get_day_snapshot,
 )
+from operational.core.budget import compute_day_quadrant
 from operational.entities.ajuste_fino import AjusteFino
 from operational.entities.journal import JournalEntry
 from operational.entities.metric import SleepRecord
@@ -879,7 +879,10 @@ class TestComputeDayQuadrant:
         snap = self._snap(orcado=240, realizado=240)
 
         # Act
-        code, x, y = compute_day_quadrant(snap)
+        code, x, y = compute_day_quadrant(
+            snap.hardwork_realizado_min,
+            snap.hardwork_orcado_min,
+        )
 
         # Assert
         assert code == "Q1"
@@ -891,7 +894,10 @@ class TestComputeDayQuadrant:
         snap = self._snap(orcado=100, realizado=60)
 
         # Act
-        code, x, y = compute_day_quadrant(snap)
+        code, x, y = compute_day_quadrant(
+            snap.hardwork_realizado_min,
+            snap.hardwork_orcado_min,
+        )
 
         # Assert
         assert code == "Q1"
@@ -902,7 +908,10 @@ class TestComputeDayQuadrant:
         snap = self._snap(orcado=240, realizado=0)
 
         # Act
-        code, x, y = compute_day_quadrant(snap)
+        code, x, y = compute_day_quadrant(
+            snap.hardwork_realizado_min,
+            snap.hardwork_orcado_min,
+        )
 
         # Assert
         assert code == "Q3"
@@ -921,7 +930,10 @@ class TestComputeDayQuadrant:
         # x=55, y=55/115 ≈ 47.8 → Q4.
 
         # Act
-        code, x, y = compute_day_quadrant(snap)
+        code, x, y = compute_day_quadrant(
+            snap.hardwork_realizado_min,
+            snap.hardwork_orcado_min,
+        )
 
         # Assert
         assert code == "Q4"
@@ -936,7 +948,10 @@ class TestComputeDayQuadrant:
         # x = 60/200*100 = 30, y = 60/120*100 = 50.
 
         # Act
-        code, x, y = compute_day_quadrant(snap)
+        code, x, y = compute_day_quadrant(
+            snap.hardwork_realizado_min,
+            snap.hardwork_orcado_min,
+        )
 
         # Assert
         assert code == "Q2"
@@ -948,7 +963,10 @@ class TestComputeDayQuadrant:
         snap = self._snap(orcado=0, realizado=50)
 
         # Act
-        code, x, y = compute_day_quadrant(snap)
+        code, x, y = compute_day_quadrant(
+            snap.hardwork_realizado_min,
+            snap.hardwork_orcado_min,
+        )
 
         # Assert — x clamped to 0, y still computable.
         assert x == 0.0
@@ -959,7 +977,10 @@ class TestComputeDayQuadrant:
         snap = self._snap(orcado=240, realizado=120)
 
         # Act
-        result = compute_day_quadrant(snap)
+        result = compute_day_quadrant(
+            snap.hardwork_realizado_min,
+            snap.hardwork_orcado_min,
+        )
 
         # Assert
         assert isinstance(result, tuple)
@@ -1111,6 +1132,6 @@ class TestDaySnapshotContainer:
         # Arrange / Act / Assert — public surface stable.
         assert "get_day_snapshot" in services_mod.__all__
         assert "distribute_pomodoros_across_sessions" in services_mod.__all__
-        assert "compute_day_quadrant" in services_mod.__all__
+        assert "get_current_regime" in services_mod.__all__
         assert "DaySnapshot" in services_mod.__all__
         assert "SleepSnapshot" in services_mod.__all__

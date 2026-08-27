@@ -1,0 +1,10 @@
+# Calendar runtime — SQLite WAL files for solverforge-calendar.
+# Lives inside the IKIGAI persona vault so life data stays unified,
+# but the DB itself is throwaway derived state (rebuilt from
+# dreams/objectives/projects markdown via the planning agent).
+# Gitignored at the parent `life/` level via `*.db` (see life/.gitignore).
+*
+!calendar.db
+!calendar.db-shm
+!calendar.db-wal
+!.gitignore

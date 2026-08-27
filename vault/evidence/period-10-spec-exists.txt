@@ -1,0 +1,1 @@
+specs/period-reports-sync/SPEC.md exists

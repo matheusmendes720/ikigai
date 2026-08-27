@@ -28,7 +28,18 @@ Usage
 True
 >>> from operational.entities import Habit, HabitState, QHEMetrics
 """
+
 from __future__ import annotations
+
+import pkgutil
+
+# Extend __path__ so that the ``operational`` namespace merges with sibling
+# workspace packages (operational-cli, operational-tui) installed via
+# PEP 420 / editable installs. Without this, the first __init__.py that
+# Python resolves into ``operational`` captures the namespace and sibling
+# sub-packages (``operational.cli``, ``operational.tui``) become invisible
+# when both core and a sibling claim the same namespace.
+__path__ = pkgutil.extend_path(__path__, __name__)
 
 from operational.constants import DEFAULT, PAVConstants
 from operational.core.break_calculator import (
@@ -40,6 +51,18 @@ from operational.core.break_calculator import (
     compute_breaks,
     total_block_minutes,
     total_break_minutes,
+)
+from operational.core.consolidator import (
+    Consolidator,
+    DailyConsolidationResult,
+    compute_energy_score,
+    compute_health_score,
+    compute_overall_score,
+    compute_productivity_score,
+    compute_sleep_debt,
+    consolidate_daily,
+    generate_alerts,
+    generate_recommendations,
 )
 from operational.core.context_switch import (
     ContextSwitchEstimate,
@@ -223,11 +246,14 @@ __all__ = [
     "BreakInfo",
     "BreakStatistics",
     "Clock",
+    # Core - Consolidator (10) — DailyConsolidation rollup (alerts + recs + 4 sub-scores)
+    "Consolidator",
     # Core - Context Switch (5) — PAV-based overhead between periods
     "ContextSwitchEstimate",
     "ContextSwitchSeverity",
     # Entities - Consolidation (3)
     "DailyConsolidation",
+    "DailyConsolidationResult",
     "DailyLog",
     "DecisionRecord",
     "DuplicateEntityError",
@@ -333,6 +359,12 @@ __all__ = [
     "compute_break_minutes",
     "compute_break_statistics",
     "compute_breaks",
+    "compute_energy_score",
+    "compute_health_score",
+    "compute_overall_score",
+    "compute_productivity_score",
+    "compute_sleep_debt",
+    "consolidate_daily",
     "context_switch_overhead_minutes",
     "default_transition_table",
     "entity_registry",
@@ -341,7 +373,9 @@ __all__ = [
     "filter_ajustes_finos_by_period",
     "filter_routine_logs_by_date",
     "filter_routine_logs_by_period",
+    "generate_alerts",
     "generate_daily_summary",
+    "generate_recommendations",
     "generate_weekly_report",
     "get_applied_migrations",
     "get_connection",

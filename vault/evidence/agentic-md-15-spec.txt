@@ -1,0 +1,7 @@
+
+    Directory: C:\Users\mathe\code_space\life-oss\life\specs\agentic-markdown-system
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a---          30/06/2026    11:49           8610 SPEC.md
+

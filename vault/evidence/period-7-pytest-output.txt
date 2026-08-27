@@ -1,0 +1,154 @@
+warning: No `requires-python` value found in the workspace. Defaulting to `>=3.13`.
+============================= test session starts =============================
+platform win32 -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\mathe\AppData\Local\uv\cache\builds-v0\.tmpqdkpKY\Scripts\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: C:\Users\mathe\code_space\life-oss\life\vibe-ops
+configfile: pyproject.toml
+plugins: hypothesis-6.155.7, anyio-4.13.0, cov-7.1.0
+collecting ... collected 9 items
+
+tests/property/test_period_report_properties.py::TestVerdictPeriodMatrix::test_daily_valid_verdict_always_validates PASSED [ 11%]
+tests/property/test_period_report_properties.py::TestVerdictPeriodMatrix::test_invalid_verdict_strings_always_rejected PASSED [ 22%]
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates PASSED [ 33%]
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_above_one_rejected PASSED [ 44%]
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_below_zero_rejected PASSED [ 55%]
+tests/property/test_period_report_properties.py::TestDateRange::test_date_end_after_start_validates PASSED [ 66%]
+tests/property/test_period_report_properties.py::TestDateRange::test_date_end_before_start_rejected PASSED [ 77%]
+tests/property/test_period_report_properties.py::TestHierarchy::test_sonho_with_any_parent_rejected PASSED [ 88%]
+tests/property/test_period_report_properties.py::TestHierarchy::test_non_sonho_with_parent_accepted PASSED [100%]
+
+============================== warnings summary ===============================
+tests/property/test_period_report_properties.py::TestVerdictPeriodMatrix::test_daily_valid_verdict_always_validates
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+tests/property/test_period_report_properties.py::TestDateRange::test_date_end_after_start_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.5 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestVerdictPeriodMatrix::test_daily_valid_verdict_always_validates
+tests/property/test_period_report_properties.py::TestDateRange::test_date_end_after_start_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FALSIFIED but verdict_score=0.5 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.5899595049082561 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.8927103798594278 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.5123956879986219 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.8679546109702063 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FALSIFIED but verdict_score=0.9 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.6483333582182967 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.9792748548796364 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.5116498579420871 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.5803144288221901 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FALSIFIED but verdict_score=0.9100969589310652 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.5326633889164861 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.9110112993006065 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.7981618766949037 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.8913732160615195 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FALSIFIED but verdict_score=0.6380658310715354 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.6391940217727677 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FALSIFIED but verdict_score=0.5768036333072363 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.568372318632807 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FALSIFIED but verdict_score=0.6208465915295988 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.772698726301285 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FALSIFIED but verdict_score=1.0 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.6196778958638413 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.5702467692929291 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.5873264548263787 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.8020340369016363 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.9 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.5264264157226818 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.6210515960520039 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestScoreRange::test_score_in_valid_range_validates
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FALSIFIED but verdict_score=0.687642740019936 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+tests/property/test_period_report_properties.py::TestHierarchy::test_non_sonho_with_parent_accepted
+  C:\Users\mathe\AppData\Local\uv\cache\archive-v0\TsSufv6znWRkAkjo\Lib\site-packages\pydantic\main.py:263: UserWarning: verdict=FAIL but verdict_score=0.7 (expected < 0.5). Check consistency.
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 9 passed, 35 warnings in 5.00s ========================
