@@ -20,6 +20,14 @@ from .nodes.plan import plan_node
 from .nodes.reflect import reflect_node
 from .nodes.commit import commit_node
 
+# ---------------------------------------------------------------------------
+# Observability — init at module load; manual span on the graph factory.
+# ---------------------------------------------------------------------------
+from observability import init_tracing, get_tracer
+
+init_tracing()
+_graph_tracer = get_tracer("ikigai.graph")
+
 
 # ---------------------------------------------------------------------------
 # Node names (must match function names)
@@ -102,45 +110,50 @@ def make_ikigai_graph(checkpoint_db: str | None = None) -> StateGraph:
     # Ensure directory exists
     Path(checkpoint_db).parent.mkdir(parents=True, exist_ok=True)
 
-    # Build graph
-    builder = StateGraph(IKIGAiStateDict)
+    # Build graph (wrapped in a span so each compile call is observable)
+    with _graph_tracer.start_as_current_span("ikigai.graph.compile") as span:
+        span.set_attribute("checkpoint_db", checkpoint_db)
+        builder = StateGraph(IKIGAiStateDict)
 
-    # Add nodes
-    builder.add_node("observe", observe_node)
-    builder.add_node("score_vectors", score_vectors_node)
-    builder.add_node("heuristics", heuristics_node)
-    builder.add_node("balance", balance_node)
-    builder.add_node("decompose", decompose_node)
-    builder.add_node("plan", plan_node)
-    builder.add_node("reflect", reflect_node)
-    builder.add_node("commit", commit_node)
+        # Add nodes
+        builder.add_node("observe", observe_node)
+        builder.add_node("score_vectors", score_vectors_node)
+        builder.add_node("heuristics", heuristics_node)
+        builder.add_node("balance", balance_node)
+        builder.add_node("decompose", decompose_node)
+        builder.add_node("plan", plan_node)
+        builder.add_node("reflect", reflect_node)
+        builder.add_node("commit", commit_node)
 
-    # Sequential edges (linear chain)
-    builder.add_edge("observe", "score_vectors")
-    builder.add_edge("score_vectors", "heuristics")
-    builder.add_edge("heuristics", "balance")
-    builder.add_edge("balance", "decompose")
-    builder.add_edge("decompose", "plan")
-    builder.add_edge("plan", "reflect")
-    builder.add_edge("reflect", "commit")
-    builder.add_edge("commit", END)
+        # Sequential edges (linear chain)
+        builder.add_edge("observe", "score_vectors")
+        builder.add_edge("score_vectors", "heuristics")
+        builder.add_edge("heuristics", "balance")
+        builder.add_edge("balance", "decompose")
+        builder.add_edge("decompose", "plan")
+        builder.add_edge("plan", "reflect")
+        builder.add_edge("reflect", "commit")
+        builder.add_edge("commit", END)
 
-    # Conditional entry point
-    builder.set_conditional_entry_point(
-        _route_after_observe,
-        {
-            "score_vectors": "score_vectors",
-            "balance": "balance",
-            "commit": "commit",
-        },
-    )
+        # Conditional entry point
+        builder.set_conditional_entry_point(
+            _route_after_observe,
+            {
+                "score_vectors": "score_vectors",
+                "balance": "balance",
+                "commit": "commit",
+            },
+        )
 
-    # Compile with checkpointer — create SqliteSaver directly (not via context manager)
-    import sqlite3
-    conn = sqlite3.connect(checkpoint_db, check_same_thread=False)
-    checkpointer = SqliteSaver(conn)
+        # Compile with checkpointer — create SqliteSaver directly (not via context manager)
+        import sqlite3
 
-    return builder.compile(checkpointer=checkpointer)
+        conn = sqlite3.connect(checkpoint_db, check_same_thread=False)
+        checkpointer = SqliteSaver(conn)
+
+        compiled = builder.compile(checkpointer=checkpointer)
+        span.set_attribute("nodes", len(NODES))
+        return compiled
 
 
 # ---------------------------------------------------------------------------
