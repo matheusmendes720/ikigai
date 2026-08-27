@@ -6,14 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working in this
 
 `operational` is the **pure-logic kernel** of the Algorithmic Life OS — a uv workspace Python project implementing the Produtividade Algorítmica Visual (PAV) spec. It is 100% local, 100% standalone, and uses zero LLM/NLP — pure arithmetic algorithms only.
 
-**No UI lives here.** This package contains only business logic. It is consumed by AI agents via MCP tool contracts defined in the parent `life-ops/ikigai/` workspace.
+**No UI lives here.** This package contains only business logic. It is consumed by AI agents via MCP tool contracts defined in the parent `src/ikigai/` workspace.
 
 ## Workspace Layout
 
 This is a **uv workspace** (single `pyproject.toml` at the root defines the workspace):
 
 ```
-life-ops/operational/
+src/operational/
 ├── pyproject.toml              # uv workspace root
 ├── uv.lock
 ├── ruff.toml
@@ -99,7 +99,7 @@ src/operational/
 ## Source of Truth
 
 Canonical specs live in sibling directories:
-- `life-ops/ikigai/SPEC.md` — IKIGAi meta-brain (5 vectors, 6 heuristics, UEID hierarchy)
+- `src/ikigai/SPEC.md` — IKIGAi meta-brain (5 vectors, 6 heuristics, UEID hierarchy)
 - `vibe-ops/base/Produtividade Algorítmica Visual.md` — 815K PAV spec
 - `vibe-ops/planning/PRD-02-habit-tracker.md` — habit + Q_HE
 - `vibe-ops/planning/PRD-05-metrics-health.md` — metrics & health

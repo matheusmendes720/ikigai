@@ -10,7 +10,7 @@ Source spec:
 * **PRD-02** ``vibe-ops/planning/PRD-02-habit-tracker.md`` §3 — Q_HE
   formula, weighted habit average, regime prediction thresholds.
 * **Points_of_premisses**
-  ``life-ops/planner/Points_of_premisses-task-habits.md`` §4 — QHE
+  ``src/planner/Points_of_premisses-task-habits.md`` §4 — QHE
   thresholds and the four-state policy bands.
 * **PAV** ``vibe-ops/base/Produtividade Algorítmica Visual.md`` §6 —
   the habit-consolidation formula :math:`H(t) = 1 - e^{-\\lambda s}`

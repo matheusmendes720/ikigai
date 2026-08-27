@@ -3,7 +3,7 @@
 Setup git hooks for Algorithmic Life OS
 
 Installs:
-- pre-commit hooks (from .pre-commit-config.yaml) for life-ops/operational
+- pre-commit hooks (from .pre-commit-config.yaml) for src/operational
 - A commit-msg hook that adds a Co-Authored-By trailer and validates branch name
 
 Usage:

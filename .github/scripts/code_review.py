@@ -336,8 +336,8 @@ def main():
                         help="Exit code = pass/fail (for CI)")
     parser.add_argument("--json", action="store_true",
                         help="JSON output")
-    parser.add_argument("--package", default="life-ops/operational",
-                        help="Package path for pytest (default: life-ops/operational)")
+    parser.add_argument("--package", default="src/operational",
+                        help="Package path for pytest (default: src/operational)")
     args = parser.parse_args()
 
     source_files: list[Path] = []

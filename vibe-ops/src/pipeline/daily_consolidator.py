@@ -140,7 +140,7 @@ def _scan_vault_dirs() -> list[dict[str, Any]]:
     """Scan the vault for .md files with IKIGAI frontmatter.
 
     Supports two vault layouts:
-      1. Flat matheus vault (life-ops/ikigai/data/matheus/):
+      1. Flat matheus vault (src/ikigai/data/matheus/):
          dreams/, objectives/, projects/, deliverables/, ikigai_state/
          — each file has entity_type, ueid, status, horizon_days in frontmatter
       2. Closing-2026 vault (vault/ikigai/closing-2026/):
