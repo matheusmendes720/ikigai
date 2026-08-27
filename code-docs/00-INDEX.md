@@ -201,6 +201,43 @@ prd-{01..07} mirrors, README. Base path:
 | 03 | `03-merge-plan.md` | Dependency-ordered merge procedure for the 4 OTel feature branches back to default branches |
 | 04 | `04-dissolve-worktree.md` | Cleanup steps for `life-mcp-observability-worktree` once the IKIGAI merge lands |
 
+### 8f. Backend deep-dive report — `life-ops/ikigai/docs/IKIGAI_BACKEND_DEEP_DIVE_REPORT.md`
+
+411-line audit of the IKIGAI meta-brain backend (committed `48abd81`, 2026-08-26).
+**19 issues across 4 severities** — actionable backlog, all fixes target the
+`feat/mcp-observability` branch in `life-ops/life-mcp-observability-worktree/`.
+
+| Severity | Count | Examples |
+|----------|------:|----------|
+| **CRITICAL** | 5 | Missing `/tmp/ikigai-test/` Python env (`mcp_config.json:4`); `_read_entity` name collision (`server.py:207-239`); `_TASKDOG_CLI` Windows path on Linux host (`tools.py:910-912`) |
+| **HIGH** | 6 | Dual LangGraph instances; B1 Blocker divergence between vault and interfaces; vault root mismatch (`tools.py:21`) |
+| **MEDIUM** | 5 | tag truncation in taskdog CLI; grep-based JSON-RPC test in `start_mcp_gateway.sh:243-248`; SOLVERFORGE_ROOT WSL2 path inconsistency |
+| **INFO** | 3 | LangGraph singleton module state; silent except in `server.py:367-368`; `_read_entity` fallback table |
+
+Recommended priority order: **P0** (mkdir `~/.ikigai/`, `poetry install`, fix python path) → **P1** (platform-aware paths, vault root, name collision, B1 divergence) → **P2** (WSL2 path, error logging) → **P3** (port-aware CLI, JSON parsing, singleton graph).
+
+Tracked as Tasks #12 (C1-C5), #13 (H1-H6), #14 (M1-M5), #15 (I1-I3) in the
+session task list — queued for the observability sprint, **no code changes
+this turn**.
+
+### 8g. Master system diagnostic — `code-docs/diagnostic/`
+
+Cross-cutting diagnostic of all 77 known issues across 5 subsystems
+(IKIGAI + system architecture + PAV kernel + 3 external MCP servers + known
+gaps). Aggregated 2026-08-27; **diagnostic + planning only, no code changes**.
+
+| Severity | Count | Top blockers |
+|----------|------:|--------------|
+| **CRITICAL** | 10 | PAV CLI broken (`604d6af`); schema split-brain (24-col vs 11-col); dcode not connected to IKIGAI MCP |
+| **HIGH** | 30 | `_MCP_SESSION_CACHE` never invalidated; no retry/CB; `interrupt_on` only gates `write_file`; OTel pending merge in 3 repos |
+| **MEDIUM** | 24 | Hard-coded paths; tag truncation; grep-based JSON-RPC tests; orphan test dirs |
+| **INFO** | 13 | Pydantic invariant violations; 3 integration patterns; 2 CLAUDE.md files |
+
+Includes P0→P3 fix sequence (27 sequenced steps) and verification commands.
+Pending constructions roadmap (A-J) lists 10 planned-but-not-implemented
+features competing for engineering time. See `code-docs/diagnostic/README.md`
+for the category index and severity legend.
+
 ### 8d. ARDs — `code-docs/ard/`
 
 Architecture requirements (cross-cluster, conceptual layer). See
