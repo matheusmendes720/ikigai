@@ -26,7 +26,7 @@ BALANCER_VERDICTS = Literal["OK", "OVERLOAD", "UNDERLOAD", "RECOVER"]
 # Constants
 # ---------------------------------------------------------------------------
 
-# Threshold constants (imported from operational.constants when available)
+# Threshold constants — hardcoded here; wire to vibe-ops metrics or vault feedback when available
 DEFAULT_QHE_PUSH = 0.85
 DEFAULT_QHE_RECOVER = 0.60
 DEFAULT_WORKLOAD_OVERLOAD_FACTOR = 1.20
