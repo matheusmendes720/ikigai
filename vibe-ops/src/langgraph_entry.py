@@ -93,10 +93,42 @@ def make_pae_graph(config: RunnableConfig | None = None) -> StateGraph:
 
     def balance(state: PAEStateDict) -> dict:
         """Node 4: Run the balance node and capture the result."""
-        # Reconstruct a minimal PAEState for the balance node
+        import datetime as _dt
+
+        # Reconstruct PAEState from the langgraph state dict
+        pae_state = PAEState(
+            cycle_id=state["cycle_id"],
+            cycle_start=_dt.date.fromisoformat(state["cycle_start"]),
+            cycle_end=_dt.date.fromisoformat(state["cycle_end"]),
+            iteration=state.get("iteration", 0),
+            last_step=state.get("last_step", ""),
+            terminated=state.get("terminated", False),
+            kill_switch_triggered=state.get("kill_switch_triggered", False),
+            balancer_state=BalancerState(
+                workload_estimate=state.get("workload_estimate", 0.0),
+                capacity_estimate=state.get("capacity_estimate", 8.0),
+                qhe_score=state.get("qhe_score", 0.65),
+                is_histerese_active=state.get("is_histerese_active", False),
+                days_in_current_state=state.get("days_in_current_state", 1),
+            ),
+        )
+
+        # Run the actual PAE cycle through all 4 steps
+        updated = run_pae_cycle(pae_state)
+
+        # Return the updated fields as a dict for langgraph
         return {
-            "balancer_state": "OK",
-            "last_step": "balance",
+            "balancer_state": updated.balancer.state.value,
+            "balancer_reason": updated.balancer.reason,
+            "qhe_score": updated.balancer.qhe_score,
+            "workload_estimate": updated.balancer.workload_estimate,
+            "capacity_estimate": updated.balancer.capacity_estimate,
+            "days_in_current_state": updated.balancer.days_in_current_state,
+            "is_histerese_active": updated.balancer.is_histerese_active,
+            "active_node_count": len(updated.active_nodes),
+            "last_step": updated.last_step,
+            "terminated": updated.terminated,
+            "kill_switch_triggered": updated.kill_switch_triggered,
         }
 
     def commit_or_terminate(state: PAEStateDict) -> Command:

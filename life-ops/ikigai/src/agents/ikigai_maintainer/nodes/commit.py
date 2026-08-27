@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from ..state import IKIGAiStateDict
+from ikigai.mcp_server.server import _write_tasks_to_data
 
 
 # Kill switch — set to True to block all writes
@@ -47,6 +48,14 @@ def commit_node(state: IKIGAiStateDict) -> dict[str, Any]:
         summary_lines.append(f"Vault: {appended}")
     else:
         summary_lines.append("Vault: not configured")
+
+    # 3. Write structured tasks to data/tasks.jsonl for interfaces
+    structured_tasks = state.get("structured_tasks", [])
+    if structured_tasks:
+        written = _write_tasks_to_data(structured_tasks)
+        summary_lines.append(f"Tasks: {written}")
+    else:
+        summary_lines.append("Tasks: no structured_tasks in state")
 
     return {
         "commit_summary": "; ".join(summary_lines),
