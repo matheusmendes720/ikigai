@@ -87,20 +87,13 @@ def score_vectors_node(state: IKIGAiStateDict) -> dict[str, Any]:
 
 
 def _compute_passion_score(state: IKIGAiStateDict) -> float:
-    """Passion = 1 - e^(-lambda * streak_days)."""
-    # Read habit streaks from operational
-    try:
-        from operational.core.habit_engine import HabitEngine
-        engine = HabitEngine()
-        # Average consistency across all active habits
-        habits = engine.list_habits()
-        if not habits:
-            return 50.0
-        total = sum(1 - math.exp(-LAMBDA * h.streak_days) for h in habits)
-        return (total / len(habits)) * 100.0
-    except Exception:
-        # Fallback: use Q_HE as proxy for passion
-        return state.get("q_he_score", 0.65) * 100.0
+    """Passion = 1 - e^(-lambda * streak_days).
+
+    TODO: wire to real habit streak data (vibe-ops habit_states table).
+    Currently uses Q_HE * 100 as placeholder.
+    """
+    # TODO: read from vibe-ops habit_states table
+    return state.get("q_he_score", 0.65) * 100.0
 
 
 def _compute_skill_score(state: IKIGAiStateDict) -> float:
