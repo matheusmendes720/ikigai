@@ -13,6 +13,9 @@ tracked in `docs/.sdd-progress.md` per sprint.
 |----------|----------|-------|--------|
 | **IKIGAI backend deep-dive** | `life-ops/ikigai/docs/IKIGAI_BACKEND_DEEP_DIVE_REPORT.md` | IKIGAI team | ✅ 19 issues catalogued (2026-08-26) |
 | **Master system diagnostic** | `code-docs/diagnostic/2026-08-27-master-system-diagnostic.md` | Architecture | 🟡 Draft (2026-08-27) |
+| **Issue dependencies + sprint plan** | `code-docs/diagnostic/2026-08-27-issue-dependencies.md` | Architecture | 🟡 Draft (2026-08-27) |
+| **Migration scripts catalog** | `code-docs/diagnostic/2026-08-27-migration-scripts-catalog.md` | Architecture | 🟡 Draft (2026-08-27) |
+| **Risk & effort matrix** | `code-docs/diagnostic/2026-08-27-risk-effort-matrix.md` | Architecture | 🟡 Draft (2026-08-27) |
 | **System design report** | (transient) Plan-mode artifact | Architecture | Source of §1-§2 of master |
 | **Known gaps** | `code-docs/00-INDEX.md §12` | Index maintainer | ✅ 5 items |
 | **CLAUDE.md pitfalls** | `CLAUDE.md §Pitfalls` + `life/CLAUDE.md §Pitfalls` | Repo maintainer | ✅ 9+ items |
