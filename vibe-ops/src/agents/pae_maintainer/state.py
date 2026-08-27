@@ -14,27 +14,12 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-# Import Q_HE + 5x3x3 constants from operational (single source of truth).
-# operational.constants provides PAVConstants (QHE thresholds, weights, learning rate).
-# operational.enums provides Period (MANHA/TARDE/NOITE) and PolicyState (4-state FSM).
-try:
-    from operational.constants import PAVConstants as PAEConstants  # type: ignore[attr-defined]
-    from operational.enums import (  # type: ignore[attr-defined]
-        Period as OperationalPeriod,
-        PolicyState,
-    )
-except ImportError:  # pragma: no cover - operational not on PYTHONPATH
-    PAEConstants = None  # type: ignore[assignment]
-    OperationalPeriod = None  # type: ignore[assignment]
-    PolicyState = None  # type: ignore[assignment]
-
-
 # ---------------------------------------------------------------------------
-# Constants — derived from operational PAVConstants when available, else default.
-# These are the canonical names used by the PAE-Maintainer nodes.
+# Constants — Q_HE + 5x3x3 thresholds.
+# Hardcoded here; wire to vibe-ops metrics or vault feedback when available.
 # ---------------------------------------------------------------------------
 
-# Default values match PAVConstants.DEFAULT from operational (single source of truth).
+# Default values match PAVConstants.DEFAULT from operational.
 DEFAULT_QHE_PUSH_THRESHOLD: float = 0.85
 """QHE threshold above which policy is PUSH (Points_of_premisses §4)."""
 
