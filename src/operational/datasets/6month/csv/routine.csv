@@ -1,0 +1,23 @@
+id,name,period,routine_type,start_time,end_time,mandatory,created_at
+oper_rou_001,Despertar + higiene,MANHA,ENTRY,05:00,05:30,True,2025-12-23
+oper_rou_002,Meditar 10min,MANHA,ENTRY,05:30,05:45,True,2025-12-23
+oper_rou_003,Alongamento 10min,MANHA,ENTRY,05:45,06:00,True,2025-12-23
+oper_rou_004,Beber 500ml água,MANHA,ENTRY,06:00,06:05,True,2025-12-23
+oper_rou_005,Lanche leve pré-treino,MANHA,ENTRY,06:05,06:15,False,2025-12-23
+oper_rou_006,Caminhada 20min,MANHA,CORE,06:15,06:45,True,2025-12-23
+oper_rou_007,Banho + preparação,MANHA,CORE,06:45,07:30,True,2025-12-23
+oper_rou_008,Foco profundo #1 (90min),TARDE,CORE,08:00,09:30,True,2025-12-23
+oper_rou_009,Pausa ativa + água,TARDE,TRANSITION,09:30,09:45,True,2025-12-23
+oper_rou_010,Foco profundo #2 (90min),TARDE,CORE,09:45,11:15,True,2025-12-23
+oper_rou_011,Almoço pesado,TARDE,CORE,12:00,13:00,True,2025-12-23
+oper_rou_012,Digestão + descanso,TARDE,TRANSITION,13:00,13:30,False,2025-12-23
+oper_rou_013,Foco profundo #3 (90min),TARDE,CORE,13:30,15:00,True,2025-12-23
+oper_rou_014,Pausa ativa,TARDE,TRANSITION,15:00,15:20,True,2025-12-23
+oper_rou_015,Tarefas leves admin,TARDE,CORE,15:20,16:30,False,2025-12-23
+oper_rou_016,Jantar leve,NOITE,ENTRY,18:30,19:15,True,2025-12-23
+oper_rou_017,Tempo com família,NOITE,CORE,19:15,20:00,True,2025-12-23
+oper_rou_018,Leitura 30min,NOITE,CORE,20:00,20:35,True,2025-12-23
+oper_rou_019,Planejamento amanhã,NOITE,CORE,20:35,20:50,True,2025-12-23
+oper_rou_020,Higiene do sono,NOITE,EXIT,21:00,21:30,True,2025-12-23
+oper_rou_021,Luzes off,NOITE,EXIT,21:30,22:00,True,2025-12-23
+oper_rou_022,Escrita diária,NOITE,ENTRY,21:00,21:20,True,2025-12-23
