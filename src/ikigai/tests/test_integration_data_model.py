@@ -41,10 +41,8 @@ from ikigai.propagation.sqlite_adapter import SQLiteAdapter
 from ikigai.vault.dict_to_frontmatter import dict_to_frontmatter
 from ikigai.vault.frontmatter_to_dict import frontmatter_to_dict
 
-# Survey: VAULT_PATH_RELATIVE_TO_PROJECT_ROOT
-VAULT_REL = Path("life-ops/ikigai/data/matheus")
-_PROJECT_ROOT = Path(__file__).resolve().parents[3]
-VAULT = _PROJECT_ROOT / VAULT_REL
+# Vault path — data/matheus lives inside src/ikigai/ package
+VAULT = Path(__file__).resolve().parents[1] / "data" / "matheus"
 
 DREAM_MD = VAULT / "dreams" / "vaga-remota-2026.md"
 OBJECTIVE_MD = VAULT / "objectives" / "q3-2026-primeira-vaga.md"
@@ -95,7 +93,7 @@ def _base_payload(**over: Any) -> dict[str, Any]:
         "title": "probe",
         "created_at": now,
         "updated_at": now,
-        "source_md_path": "life-ops/ikigai/data/matheus/dreams/probe.md",
+        "source_md_path": "src/ikigai/data/matheus/dreams/probe.md",
     }
     payload.update(over)
     return payload

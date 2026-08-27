@@ -1,4 +1,4 @@
-"""Test suite root — mirrors life-ops/operational/ layout."""
+"""Test suite root — mirrors src/operational/ layout."""
 
 from __future__ import annotations
 
