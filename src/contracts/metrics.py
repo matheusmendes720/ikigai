@@ -18,6 +18,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from contracts.common import RegimeState, UEID
 
+from ikigai.core.scoring.qhe import compute_qhe
+
 
 # ---------------------------------------------------------------------------
 # Burndown
@@ -168,9 +170,15 @@ class QHEScore(BaseModel):
     def qhe(self) -> float:
         """Quality-Habit-Effectiveness value.
 
-        Q_HE = habit_avg * energy_ratio * (1 + eta * streak_bonus)
+        Delegates to ikigai.core.scoring.qhe.compute_qhe.
         """
-        return self.habit_avg * self.energy_ratio * (1.0 + self.eta * self.streak_bonus)
+        return compute_qhe(
+            h_sono=self.habit_avg,
+            h_med=self.habit_avg,
+            h_workout=self.habit_avg,
+            h_lunch=self.habit_avg,
+            s_streak=self.streak_bonus,
+        )
 
     @property
     def regime_predicted(self) -> RegimeState:
