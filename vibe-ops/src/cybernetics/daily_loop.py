@@ -4,7 +4,7 @@ from pydantic import TypeAdapter
 from schemas.pydantic_v2 import PolicyState, PolicyDecision, QHEMetrics
 from pipeline.rag_indexer import HybridRAGIndexer
 from middleware.sync_engine import SyncEngine
-from pipeline.policy_engine import PolicyEngine
+from operational.core.policy_engine import PolicyEngine
 from pipeline.ikigai_scorer import IkigaiScorer
 import sqlite3, json
 
