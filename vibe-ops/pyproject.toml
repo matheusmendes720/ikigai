@@ -10,6 +10,8 @@ dependencies = [
     "chromadb",
     "tasklib",
     "python-frontmatter",
+    # Local workspace dependency on canonical IKIGAI scoring modules
+    "ikigai = {path = \"../life-ops/ikigai\"}",
 ]
 
 [dependency-groups]
