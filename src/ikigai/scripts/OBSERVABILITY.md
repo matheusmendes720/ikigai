@@ -20,7 +20,7 @@ backs the IKIGAI deep-agent harness. Touched by every change to:
 ## First-time setup
 
 1. **Rotate the leaked LangSmith key.** The previous key
-   `REDACTED_LANGSMITH_KEY` was logged in
+   `REMOVE_ME_PENDING_SECRET_INPUT was logged in
    `~/.claude/history.jsonl:2497`. Generate a new one at
    <https://smith.langchain.com/settings/api-keys> and revoke the old one.
 
