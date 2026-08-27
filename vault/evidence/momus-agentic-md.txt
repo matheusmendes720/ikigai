@@ -1,0 +1,85 @@
+﻿MOMUS PLAN REVIEW: agentic-markdown-system
+
+Reference Verification: [13/15 files exist + 2 critical wrong-path refs]
+- vibe-ops/planning/_templates_periodos_v2/: [DOES NOT EXIST — will be created by T1-T5, by design]
+- vault _templates_periodos/: [PASS — 5 templates confirmed: 01-sonho.md through 05-relatorio-diario.md]
+- vault _bases/: [PASS — 7 .base files confirmed in notas_estudo/_bases/]
+- claude/agents/swarm/: [PASS — 3 agent specs: mesh-coordinator.md, hierarchical-coordinator.md, adaptive-coordinator.md]
+- claude/agents/consensus/quorum-manager.md: [PASS — file confirmed]
+- claude/skills/swarm-orchestration/: [PASS — skill directory confirmed]
+- claude/skills/swarm-advanced/: [PASS — skill directory confirmed]
+- claude/skills/v3-swarm-coordination/: [PASS — skill directory confirmed]
+- life-ops/operational/agents/harness/: [PASS — harness infrastructure confirmed (6 files)]
+- life-ops/operational/agents/workflows/qa_swarm.yaml: [PASS — exists at correct path]
+- operational/constants for Q_HE + 5×3×3: [PASS — QHE_ALPHA=0.45/BETA=0.35/GAMMA=0.20 at life-ops/operational/packages/core/src/operational/constants.py]
+- vibe-ops/planning/TEMPLATE-epic-sprint.md: [PASS — exists as T3 reference]
+- notas_estudo/_bases/Projects.base: [PASS — exists as T6 base format reference]
+- strategics/Planejamento (Estratégico e Tático).md: [PASS — 5×3×3 framework confirmed]
+
+Locked Decisions Applied Consistently: [5/5]
+- D1 Full stack: [PASS — templates + Bases + swarm workflow all in deliverables]
+- D2 Both (codebase→vault): [PASS — vault_hash mechanism correctly references period-sync idempotency]
+- D3 PT-BR body + EN keys: [PASS — consistently specified in all template tasks]
+- D4 Both streams (Prospective+Retrospective): [PASS — T9/T10 implement PROSPECTIVE+RETROSPECTIVE channels]
+- D5 Hybrid swarm: [PASS — correction-protocol.yml + correction triggers in swarm workflows]
+
+LangGraph Distinction: [CORRECT — qa_swarm.yaml uses "LangGraph-style" with custom Python file-based harness; plan T9/T10 correctly specify custom Python (not langgraph SDK)]
+
+Tasks [15/15 acceptable]:
+- T1 quarterly template: [CONCRETE — exact path, 8 sections, PT-BR/EN, YAML frontmatter, ADR-006 ref, formula references]
+- T2 quarterly review: [CONCRETE — 6-quartely-review.md, Teste de Fogo matrix, IKIGAi delta, verdict algorithm]
+- T3 sprint kickoff: [CONCRETE — TEMPLATE-epic-sprint.md confirmed as reference, capacity formulas, cognitive debt flags]
+- T4 sprint retro: [CONCRETE — Start/Stop/Continue, KAIZEN, velocity tracking]
+- T5 backup: [CONCRETE — copy 5 templates to _templates_periodos_v2/, verify ADR-006, RELEASE-NOTES.md]
+- T6-T8 Bases: [CONCRETE — Quarterly-Plans.base, Active-Ondas.base, Cycle-Tracker.base with explicit views]
+- T9 agent state+nodes: [CONCRETE with one BLOCKING wrong path — state.py, nodes.py, channels.py specified; BUT import path is wrong]
+- T10 agent graph: [CONCRETE — graph.py with 5-node execution order + conditional edges specified]
+- T11 CLI integration: [CONCRETE but BLOCKING — pav plan run --engine pae does not exist yet in CLI; no plan subcommand found]
+- T12 tests: [VAGUE in one area — E2E "Q1 2026 reconstructed data" source unspecified]
+- T13 skill+workflows: [CONCRETE — SKILL.md + 4 YAML workflows with trigger conditions]
+- T14 wire 4 agents: [CONCRETE — 4 agents confirmed to exist; F4 concern noted but plan limits to 4/18 specs]
+- T15 SPEC.md: [CONCRETE — /write-tech-spec convention, 4 sections specified]
+
+Issues Found:
+
+[BLOCKER 1 — CRITICAL] T9 (line 435): Import path ibe-ops/src/operational.constants is WRONG.
+  - ibe-ops/src/operational/ does NOT exist (no such directory).
+  - Constants live at: life-ops/operational/packages/core/src/operational/constants.py
+  - Q_HE + hysteresis + 5×3×3 constants confirmed to exist at correct path (QHE_ALPHA=0.45, QHE_BETA=0.35, QHE_GAMMA=0.20 + policy thresholds).
+  - Fix: Change all references in T9 from ibe-ops/src/operational.constants to life_ops.operational.packages.core.src.operational.constants or whatever the correct Python import path is from vibe-ops.
+
+[BLOCKER 2 — MODERATE] T11: pav plan run --engine pae does not exist in current CLI.
+  - Searched life-ops/operational/apps/cli/src/operational/cli/ — no plan subcommand found.
+  - pav sync vault (T11 integration target) DOES exist at sync_cmd.py — but pav plan does not.
+  - The plan proposes creating pav plan run --engine pae as integration, which is fine as a new feature, BUT the plan does not explicitly state this is a NEW command to add. If the intent is to wire into an EXISTING pav plan that just doesn't exist yet, that's a blocker.
+  - pav sync vault already exists and handles period-sync; the proposed pav plan is a distinct command. Plan should clarify this is net-new.
+
+[BLOCKER 3 — MODERATE] T12: E2E test against "Q1 2026 reconstructed data" — data source unspecified.
+  - No evidence found for existence of Q1 2026 reconstructed data.
+  - T12's e2e test: "run against Q1 2026 reconstructed data, verify aggregate verdicts match"
+  - If this data must be RECONSTRUCTED first, that adds a hidden task.
+  - Plan should specify where Q1 2026 data comes from or whether it needs to be created.
+
+[NOTE — NON-BLOCKING] vault _bases paths (T6-T8) are in vault, not codebase.
+  - Plan creates 
+otas_estudo/_bases/Quarterly-Plans.base etc. — vault lives at G:\Other computers\My Laptop\notas_estudo
+  - Vault _bases/ is confirmed to exist (7 existing .base files). This is fine.
+
+[NOTE — NON-BLOCKING] vibe-ops/src/agents/pae_maintainer/ (T9) is new directory.
+  - This directory does not exist yet; plan author correctly identifies this as T9's output.
+  - The ibe-ops/src/agents/ directory doesn't exist either — agents in vibe-ops live under vibe-ops/src/ with subdirs like pipeline/, middleware/, models/, etc.
+  - This is consistent with the plan's architecture. Not a blocker.
+
+[NOTE — NON-BLOCKING] F4 scope fidelity concern (T14).
+  - Plan explicitly limits to wiring 4 of 18 agent specs (mesh-coord, hierarchical-coord, adaptive-coord, quorum-manager).
+  - All 4 agent specs confirmed to exist. The 14 deferred specs are acknowledged.
+  - Not a blocker.
+
+[NOTE — NON-BLOCKING] QA scenarios vary in specificity.
+  - T1 has the most concrete QA (cat + python yaml parse, specific assertion).
+  - Most other tasks have QA that says "evidence saved" without specifying the verification method.
+  - This is acceptable per reviewer guidelines (developers can figure out the gaps).
+
+VERDICT: REJECT
+
+Reasoning: The plan has 3 blocking issues — one critical import path error that would prevent T9 from compiling, one integration ambiguity where a new CLI command is proposed without being acknowledged as net-new, and one missing data dependency for E2E testing. All three can be fixed with targeted corrections. The plan otherwise demonstrates excellent structural coherence, correct LangGraph distinction, consistent locked decisions, and concrete task breakdown. The 15-task scope is achievable. Once these three issues are addressed, re-submission should be APPROVED.

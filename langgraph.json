@@ -1,0 +1,16 @@
+{
+  "$schema": "https://langchain-ai.github.io/langgraph/schemas/langgraph.json",
+  "dependencies": [
+    "."
+  ],
+  "graphs": {
+    "pae_maintainer": "./vibe-ops/src/langgraph_entry.py:make_pae_graph",
+    "quarterly_replan": "./vibe-ops/src/langgraph_entry.py:make_replan_graph",
+    "test_de_fogo_rollup": "./vibe-ops/src/langgraph_entry.py:make_rollup_graph",
+    "correction_protocol": "./vibe-ops/src/langgraph_entry.py:make_correction_graph",
+    "dream_falsification": "./vibe-ops/src/langgraph_entry.py:make_falsification_graph",
+    "ikigai_maintainer": "./vibe-ops/src/langgraph_entry.py:make_ikigai_graph"
+  },
+  "env": ".env",
+  "python_version": "3.11"
+}

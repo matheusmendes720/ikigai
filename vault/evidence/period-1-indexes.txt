@@ -1,0 +1,4 @@
+idx_period_reports_parent     idx_period_reports_updated
+idx_period_reports_period     idx_period_reports_vault_hash
+idx_period_reports_policy     idx_period_reports_verdict
+idx_period_reports_sonho

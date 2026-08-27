@@ -6,6 +6,66 @@
 
 ---
 
+## 🔌 CENTRAL ENGINE: Planning-with-Files
+
+> **Status:** Active · **Path:** `strategics/planning-with-files/` · **Version:** v3.1.3
+>
+> The **canonical planning engine** for all long-running agentic tasks. Installed via:
+> ```bash
+> cd strategics/planning-with-files && git pull   # periodic update
+> ```
+>
+> Provides 3 persistent files per task (`task_plan.md`, `findings.md`, `progress.md`) +
+> a **deterministic completion gate** that holds the agent until the plan is actually done.
+> Used as the standard for `.omo/plans/*.md` and `.omo/evidence/*.txt` in this repo.
+>
+> **Route map:**
+> - `skills/` — SKILL.md standard for 60+ agents (Claude Code, Codex, Cursor, Kiro, OpenCode, Hermes, Factory, Continue, Gemini, Mastra, Pi, etc.)
+> - `commands/` — slash commands (`/plan-goal`, `/plan-loop`, `/plan-status`, `/plan-attest`)
+> - `templates/` — task_plan.md template, loop.md, autonomous variants
+> - `docs/` — evals.md, perf-notes.md, attestation-locking.md, integration guides
+> - `examples/` — real-world usage examples
+>
+> **Update policy:** Run `git pull` in `strategics/planning-with-files/` monthly or when
+> a new version is announced. The engine is source-of-truth for the planning loop semantics
+> (completion gate, hash attestation, parallel isolation, etc.).
+
+---
+
+## 🌐 LangGraph Dev Runtime
+
+> **Status:** Active · **Config:** `langgraph.json` · **Entry point:** `vibe-ops/src/langgraph_entry.py`
+>
+> All 5 agentic flows (1 PAE-Maintainer + 4 swarm workflows) run as a single `langgraph dev` server.
+> The langgraph SDK is used only as a thin adapter layer — all business logic stays in
+> the existing custom Python graphs (`pae_maintainer/graph.py` + the 4 YAML workflows).
+>
+> Quick start:
+> ```bash
+> make install    # install langgraph CLI + deps
+> make dev        # run on port 2024
+> # Studio at http://localhost:2024
+> # API at http://localhost:2024/docs
+> ```
+>
+> **5 registered graphs** (from `langgraph.json`):
+> | Graph ID | Wraps | Use Case |
+> |----------|-------|----------|
+> | `pae_maintainer` | `run_pae_cycle()` | Full PAE cycle (observe→plan→reflect→balance→commit) |
+> | `quarterly_replan` | `quarterly-replan.yml` | End-of-quarter replanning on verdict != PASS |
+> | `test_de_fogo_rollup` | `test-de-fogo-rollup.yml` | 5-dim Test de Fogo aggregation |
+> | `correction_protocol` | `correction-protocol.yml` | Diagnose + recommend on kill_switch |
+> | `dream_falsification` | `dream-falsification.yml` | Evaluate FalsifiableHypothesis (daily 9am) |
+>
+> **Update routes:**
+> - `langgraph.json` (root) — 5 graph entries
+> - `vibe-ops/src/langgraph_entry.py` — 5 factory functions (thin adapter)
+> - `Makefile` — `make dev|test|status|logs|clean`
+> - `LANGRAPH_DEV.md` — full quick-start + architecture
+> - `.claude/skills/quarterly-planner/workflows/*.yml` — 4 workflow sources
+
+---
+
 ## 🗺️ Mapa Conceitual: De onde começar?
 
 ```
@@ -340,3 +400,26 @@ Link Upstream       │ ───                 │ Modelagem Op.       │ De
 
 *Índice progressivo estratégico-tático-operacional*  
 *Atualizado em: 2026-05-15*
+
+---
+
+## Commit Log
+
+### 2026-06-30 — Central Engine Integration
+
+- **Repo cloned:** `planning-with-files` v3.1.3 → `strategics/planning-with-files/`
+- **Index updated:** `strategics/00-ÍNDICE-PROGRESSIVO.md` (added 🔌 Central Engine section)
+- **Policy docs updated:** `system_architecture_and_tracking_framework.md`, `design_system_and_knowledge_tracking.md` (added engine references)
+- **Theory docs (5):** `Planejamento (E&T)`, `Hierarquia de Objetivos`, `Desempenho Subjacente`, `Integracao_Tatica`, `Análise (T&O)` (added engine references)
+- **Commits:**
+  - `ebf049d docs(strategics): add planning-with-files as central engine reference` (index)
+  - (next commit) `docs(strategics): add central engine reference to all 6 theory docs`
+- **Update policy:** Run `cd strategics/planning-with-files && git pull` monthly
+
+## Session Log
+
+- **2026-06-30:** 2 boulders closed (period-reports-sync + agentic-markdown-system), 91 evidence files
+- **2026-06-30:** planning-with-files repo cloned to strategics/ as central engine
+- **2026-06-30:** Routes updated across 8 strategics docs (6 theory + 2 policy)
+- **Current HEAD:** `ebf049d62baac43e7b3c6b9000967fc92cfb951c`
+- **Next available plans:** vault-bidirectional-sync.md, pav-tui-textualize.md

@@ -1,16 +1,24 @@
-# Agent runtime state
+# ─── Agent runtime state ─────────────────────────────────────────
 .pi/
-.omo/
 .atl/
 .life/
 
-# Editor & OS
+# ─── Vault (Obsidian KB — runtime only) ─────────────────────────
+# Source vault (wikilinks, markdown) IS tracked.
+# Runtime artifacts inside vault/ are ignored.
+vault/.venv/
+vault/__pycache__/
+vault/.ruff_cache/
+vault/.mypy_cache/
+vault/.pytest_cache/
+
+# ─── Editor & OS ─────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 .DS_Store
 
-# Python
+# ─── Python ──────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -18,29 +26,52 @@ __pycache__/
 dist/
 build/
 
-# Test / coverage
+# ─── All venvs (uv + poetry) ─────────────────────────────────────
+**/.venv/
+**/__pycache__/
+**/.ruff_cache/
+**/.mypy_cache/
+**/.pytest_cache/
+
+# ─── Test / coverage ──────────────────────────────────────────────
 .pytest_cache/
 .coverage
 htmlcov/
 
-# Lint caches
-.mypy_cache/
-.ruff_cache/
+# ─── Runtime Data Layer ───────────────────────────────────────────
+# All mutable runtime state: SQLite, Chroma, boulder JSON, session logs
+data/*.db
+data/*.json
+data/chroma_db/
+data/*.log
+data/session-*.md
+data/*-sessions/
+logs/
+*.log
 
-# Databases
-*.db
-*.sqlite
-
-# ChromaDB
-chroma_db/
-
-# Node (GitNexus runner)
-node_modules/
-.gitnexus/cache/
-
-# Build artifacts
+# ─── Build artifacts ──────────────────────────────────────────────
 life-ops/operational/.venv/
 life-ops/operational/dist/
 life-ops/operational/build/
 life-ops/operational/*.egg-link
 life-ops/operational/.pytest_cache/
+vibe-ops/.venv/
+vibe-ops/__pycache__/
+vibe-ops/.ruff_cache/
+vibe-ops/.mypy_cache/
+vibe-ops/.pytest_cache/
+
+# ─── Node (GitNexus runner) ──────────────────────────────────────
+node_modules/
+.gitnexus/cache/
+
+# ─── OpenWiki runtime state ───────────────────────────────────────
+.openwiki/
+openwiki/.run.json
+openwiki/.last-update.json.tmp
+
+# ─── Session archives (moved to data/) ───────────────────────────
+# Kept in .gitignore so they don't creep back to root
+session-ses_*.md
+2026-*-sessions/
+*-sessions/

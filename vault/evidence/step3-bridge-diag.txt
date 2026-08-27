@@ -1,0 +1,32 @@
+=== STEP 3a-bridge-DIAGNOSIS: dump PYTHONPATH used by plan_cmd.py subprocess ===
+extra_pp: ['C:\\Users\\mathe\\code_space\\life-oss\\life\\life-ops\\operational\\packages\\core\\src', 'C:\\Users\\mathe\\code_space\\life-oss\\life\\vibe-ops\\src\\agents', 'C:\\Users\\mathe\\code_space\\life-oss\\life\\vibe-ops\\src']
+child PYTHONPATH: 'C:\\Users\\mathe\\code_space\\life-oss\\life\\life-ops\\operational\\packages\\core\\src;C:\\Users\\mathe\\code_space\\life-oss\\life\\vibe-ops\\src\\agents;C:\\Users\\mathe\\code_space\\life-oss\\life\\vibe-ops\\src;C:\\Users\\mathe\\code_space\\life-oss\\life\\life-ops\\operational\\packages\\core\\src;C:\\Users\\mathe\\code_space\\life-oss\\life\\life-ops\\operational\\apps\\cli\\src;C:\\Users\\mathe\\code_space\\life-oss\\life\\vibe-ops\\src\\agents;C:\\Users\\mathe\\code_space\\life-oss\\life\\vibe-ops\\src'
+
+STDOUT: ''
+STDERR (first 500): 'C:\\Python314\\python.exe: No module named agents.pae_maintainer\n'
+RC: 1
+
+=== STEP 3a-MANUAL-TEST: same commands from operational dir ===
+DIRECT-TEST: python -m agents.pae_maintainer status --cycle-id fix-test (from operational cwd):
+C:\Python314\python.exe: No module named agents.pae_maintainer
+
+---EXIT: 1---
+
+sys.path (first 5 entries):
+['', 'C:\\Users\\mathe\\code_space\\life-oss\\life\\life-ops\\operational\\packages\\core\\src', 'C:\\Users\\mathe\\code_space\\life-oss\\life\\vibe-ops\\src\\agents', 'C:\\Users\\mathe\\code_space\\life-oss\\life\\vibe-ops\\src', 'C:\\Python314\\python314.zip']
+
+=== STEP 3-DEEP-DIAG ===
+
+try import agents from operational cwd: C:\Users\mathe\code_space\life-oss\life\life-ops\operational\agents\__init__.py
+
+try import agents.pae_maintainer from operational cwd: Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import agents.pae_maintainer; print(agents.pae_maintainer.__file__)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'agents.pae_maintainer'
+
+
+from REPO ROOT cwd:
+cwd: C:\Users\mathe\code_space\life-oss\life\life-ops\operational
+agents: C:\Users\mathe\code_space\life-oss\life\life-ops\operational\agents\__init__.py
+

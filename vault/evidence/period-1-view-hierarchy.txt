@@ -1,0 +1,13 @@
+CREATE VIEW v_period_hierarchy AS
+WITH RECURSIVE hierarchy AS (
+    SELECT id, period, date_start, date_end, parent_period, sonho_id,
+           verdict, verdict_score, 0 AS depth, id AS root_id
+    FROM period_reports WHERE parent_period IS NULL
+    UNION ALL
+    SELECT c.id, c.period, c.date_start, c.date_end, c.parent_period, c.sonho_id,
+           c.verdict, c.verdict_score, h.depth + 1, h.root_id
+    FROM period_reports c
+    JOIN hierarchy h ON c.parent_period = h.id
+)
+SELECT * FROM hierarchy
+/* v_period_hierarchy(id,period,date_start,date_end,parent_period,sonho_id,verdict,verdict_score,depth,root_id) */;

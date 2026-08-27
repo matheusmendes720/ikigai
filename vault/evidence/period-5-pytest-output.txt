@@ -1,0 +1,48 @@
+warning: No `requires-python` value found in the workspace. Defaulting to `>=3.13`.
+============================= test session starts =============================
+platform win32 -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\mathe\code_space\life-oss\life\vibe-ops\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\mathe\code_space\life-oss\life\vibe-ops
+configfile: pyproject.toml
+plugins: anyio-4.13.0, cov-7.1.0
+collecting ... collected 37 items
+
+tests/test_period_report.py::TestPeriodReportValidation::test_valid_daily PASSED [  2%]
+tests/test_period_report.py::TestPeriodReportValidation::test_valid_weekly PASSED [  5%]
+tests/test_period_report.py::TestPeriodReportValidation::test_valid_onda PASSED [  8%]
+tests/test_period_report.py::TestPeriodReportValidation::test_valid_quarterly PASSED [ 10%]
+tests/test_period_report.py::TestPeriodReportValidation::test_valid_sonho PASSED [ 13%]
+tests/test_period_report.py::TestPeriodReportValidation::test_invalid_verdict_for_daily PASSED [ 16%]
+tests/test_period_report.py::TestPeriodReportValidation::test_invalid_verdict_for_weekly PASSED [ 18%]
+tests/test_period_report.py::TestPeriodReportValidation::test_invalid_verdict_for_sonho PASSED [ 21%]
+tests/test_period_report.py::TestPeriodReportValidation::test_sonho_cannot_have_parent PASSED [ 24%]
+tests/test_period_report.py::TestPeriodReportValidation::test_sonho_with_parent_other_period_ok PASSED [ 27%]
+tests/test_period_report.py::TestPeriodReportValidation::test_date_end_before_start_raises PASSED [ 29%]
+tests/test_period_report.py::TestPeriodReportValidation::test_weekly_too_long_raises PASSED [ 32%]
+tests/test_period_report.py::TestPeriodReportValidation::test_daily_one_day_exact PASSED [ 35%]
+tests/test_period_report.py::TestPeriodReportValidation::test_weekly_exact_seven_days PASSED [ 37%]
+tests/test_period_report.py::TestPeriodReportValidation::test_verdict_score_out_of_range_raises PASSED [ 40%]
+tests/test_period_report.py::TestPeriodReportValidation::test_verdict_score_consistency_fail_high_score_warns PASSED [ 43%]
+tests/test_period_report.py::TestPeriodReportValidation::test_verdict_score_consistency_kill_wave_warns PASSED [ 45%]
+tests/test_period_report.py::TestPeriodReportValidation::test_no_warning_for_fail_low_score PASSED [ 48%]
+tests/test_period_report.py::TestPeriodReportValidation::test_extra_fields_allowed PASSED [ 51%]
+tests/test_period_report.py::TestPeriodReportValidation::test_optional_defaults PASSED [ 54%]
+tests/test_period_report.py::TestPeriodReportValidation::test_auto_id_from_vault_path PASSED [ 56%]
+tests/test_period_report.py::TestPeriodReportValidation::test_explicit_id_preserved PASSED [ 59%]
+tests/test_period_report.py::TestPeriodReportValidation::test_all_period_types_in_verdicts_map PASSED [ 62%]
+tests/test_period_report.py::TestPeriodReportValidation::test_all_period_types_in_days_map PASSED [ 64%]
+tests/test_period_report.py::TestPeriodReportParser::test_parse_valid_daily_file PASSED [ 67%]
+tests/test_period_report.py::TestPeriodReportParser::test_parse_returns_none_for_non_period PASSED [ 70%]
+tests/test_period_report.py::TestPeriodReportParser::test_parse_returns_none_for_missing_type PASSED [ 72%]
+tests/test_period_report.py::TestPeriodReportParser::test_parse_returns_none_for_invalid_yaml PASSED [ 75%]
+tests/test_period_report.py::TestPeriodReportParser::test_parse_returns_none_for_bad_verdict PASSED [ 78%]
+tests/test_period_report.py::TestPeriodReportParser::test_parse_vault_hash_is_deterministic PASSED [ 81%]
+tests/test_period_report.py::TestPeriodReportParser::test_parse_different_content_different_hash PASSED [ 83%]
+tests/test_period_report.py::TestPeriodReportParser::test_parse_returns_none_for_wrong_entity_type PASSED [ 86%]
+tests/test_period_report.py::TestPeriodReportParser::test_parse_corrupt_file_returns_none PASSED [ 89%]
+tests/test_period_report.py::TestPeriodSyncStats::test_defaults PASSED   [ 91%]
+tests/test_period_report.py::TestPeriodSyncStats::test_custom_values PASSED [ 94%]
+tests/test_period_report.py::TestPeriodSyncStats::test_frozen_cannot_mutate PASSED [ 97%]
+tests/test_period_report.py::TestPeriodSyncStats::test_file_errors_list PASSED [100%]
+
+============================= 37 passed in 0.24s ==============================

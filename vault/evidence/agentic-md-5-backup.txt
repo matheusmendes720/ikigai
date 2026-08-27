@@ -1,0 +1,16 @@
+﻿
+Name                       Length
+----                       ------
+00-quartely-planning.md      7476
+01-sonho.md                  7287
+02-avaliacao-trimestral.md   6216
+03-onda.md                   4984
+04-revisao-semanal.md        5487
+05-relatorio-diario.md       6117
+06-quartely-review.md        5276
+07-sprint-kickoff.md         5336
+08-sprint-retrospective.md   5571
+RELEASE-NOTES.md             1934
+
+
+

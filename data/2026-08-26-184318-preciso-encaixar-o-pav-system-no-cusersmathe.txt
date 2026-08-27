@@ -1,0 +1,1250 @@
+ ▐▛███▛█   Claude Code v2.1.246
+▝▜██████▀  MiniMax-M2.7 · API Usage Billing
+  ▝▝ ▝▝    ~\code_space\life-oss\life
+
+
+❯  preciso encaixar o PAV system no                                             
+  "C:\Users\mathe\code_space\apps\vault-journal\docs\unification-proposal.md"   
+
+  Thought for 1m 4s, searched for 1 pattern, read 6 files, listed 3 directories (ctrl+o to expand)
+  ⎿  Loaded life-ops\operational\CLAUDE.md
+
+● Now I have a clear picture of both systems. Let me draft the integration
+  section to add to the unification proposal.
+
+  Thought for 6s, read 1 file (ctrl+o to expand)
+
+● Agora tenho contexto suficiente. Vou adicionar uma seção de integração ao
+  unification-proposal.md explicando como o PAV encaixa na proposta.
+
+● Update(~\code_space\apps\vault-journal\docs\unification-proposal.md)
+  ⎿  Error: MiniMax-M2.7 is temporarily unavailable (server error), so auto mode
+     cannot determine the safety of Edit right now. Wait a moment and then try 
+     this action again. If it keeps failing, continue with other tasks that 
+     don't require this action and come back to it later. Note: reading files, 
+     searching code, and other read-only operations do not require the 
+     classifier and can still be used.
+
+● API Error: Connection lost mid-response. The response above may be 
+  incomplete.
+
+✻ Crunched for 3m 32s · done 10:08 AM
+
+❯ please deep analyze my request!.. how can we make perquntas de entrada e      
+  saida via questionary!.. e quanto ao journal .. ja temos varias views desde   
+  simples input declarative cmd pallete, ate as TUIs mais avancadas.. ((minha   
+  unica questao.. como posso sistematizar os inputs de horarios durante o       
+  journaling!... ex: horario que fui dormir, acordei! bloco da manha:           
+  relatorios de traalho [1/3] tar e noite! ... no sistema PAV registramos todas 
+  as metricas de habitos e faco todo o registro em linguagem natural.. com      
+  logs de rotinas, and self quantified dayli checkups.. per blocks and registry 
+  their periods with logging narratives like morning:[05:00],wakeup;            
+  launch-pause[11:00] tarde[15:00]) horarios de inicio e termino de atividades, 
+  e demarcacao de duracao de cada um dos blocos de tempo! )                     
+  C:\Users\mathe\code_space\apps\vault-journal\2026-08-26-112217-this-session-i 
+  s-being-continued-from-a-previous-c.txt                                       
+    preciso encaixar o PAV system no                                            
+  "C:\Users\mathe\code_space\apps\vault-journal\docs\unification-proposal.md"   
+  ⎿  8 skills available
+  ⎿  Read life-ops\operational\docs\architecture\01-MVC-LAYERS.md (458 lines)
+  ⎿  Read life-ops\operational\SPEC.md (80 lines)
+  ⎿  Read ..\..\apps\vault-journal\docs\unification-proposal.md (539 lines)
+  ⎿  Read ..\CLAUDE.md (129 lines)
+  ⎿  Read ..\..\..\CLAUDE.md (30 lines)
+
+  Thought for 20s (ctrl+o to expand)
+
+● Let me read the current state of the unification proposal and the PAV journal
+  cmd to understand the time input landscape before deep-diving.
+
+  Thought for 31s, searched for 2 patterns, read 6 files (ctrl+o to expand)
+  ⎿  Loaded life-ops\operational\CLAUDE.md
+
+● Now I have a thorough picture of both systems. Let me write the deep analysis
+  and the Phase 6b section directly.
+
+● Update(~\code_space\apps\vault-journal\docs\unification-proposal.md)
+  ⎿  Added 199 lines, removed 1 line
+      524  
+      525  ---
+      526  
+      527 -## Open Questions                                             
+      527 +## Phase 6b — PAV System Integration                          
+      528  
+      529 +> **TL;DR**: PAV and vault-journal have **zero data-model over
+          +lap** — PAV tracks habits, energy, streaks, policy FSM state, 
+          +and pomodoros; vault-journal tracks tasks and entries. No stor
+          +age merge is warranted. Integration happens at the **MCP bound
+          +ary**: vault-journal produces schedule context; PAV consumes i
+          +t and produces coaching signals (journal entries, habit comple
+          +tions, policy alerts) back.                                   
+      530 +                                                              
+      531 +### Rationale for Co-existence                                
+      532 +                                                              
+      533 +| Concern | vault-journal | PAV |                             
+      534 +|---|---|---|                                                 
+      535 +| Entity types | `Entry` (journal), `Task` (with subtasks) | 1
+          +5 entities: `Routine`, `RoutineLog`, `TimeBlock`, `JournalEntr
+          +y`, `Habit`, `SleepRecord`, `PomodoroRound`, `PolicyDecision`,
+          + … |                                                          
+      536 +| Storage | SQLite + optional `.md` sync | JSON flat files in 
+          +`~/.time-tasker/` |                                           
+      537 +| UI | Rust ratatui TUI (journal + tasks) | Python Textual TUI
+          + (8 screens: Dashboard · Daily Flow · Pomodoro · Habits · Metr
+          +ics · Policy · Journal · Analytics) |                         
+      538 +| Language | Rust | Python (uv workspace) |                   
+      539 +| Time model | Tasks have `due_date`; no native duration/block
+          + concept | Routines have explicit `start_time`/`end_time`; `Ti
+          +meBlock` captures work sessions with duration; `SleepRecord` c
+          +aptures bedtime/wake; `PomodoroRound` tracks rounds |         
+      540 +                                                              
+      541 +The two systems solve orthogonal problems. Merging them would 
+          +require either forcing Rust/Python interop (expensive, fragile
+          +) or duplicating PAV's algorithmic core into Rust ( Rewrite PA
+          +V's 15-entity model, `H(t)` habit formula, Policy FSM, and Pom
+          +odoro SM in Rust — significant work with zero user-visible gai
+          +n). The correct boundary is **MCP at the edge**.              
+      542 +                                                              
+      543 +---                                                           
+      544 +                                                              
+      545 +### Integration Architecture                                  
+      546 +                                                              
+      547 +```                                                           
+      548 +┌─────────────────────────────────────────────────────────┐   
+      549 +│                     Human (single user)                  │  
+      550 +│   vault-journal TUI (Rust)  ←→  PAV TUI (Python)        │   
+      551 +└──────────────────────────┬──────────────────────────────┘   
+      552 +                           │  A2UI push (WebSocket)           
+      553 +                           │  on agent's instruction          
+      554 +┌──────────────────────────▼──────────────────────────────┐   
+      555 +│              vault-journal MCP Server                     │ 
+      556 +│  ┌──────────────┐   ┌────────────────────────────────┐  │   
+      557 +│  │ vault-journal │   │  Phase 6b PAV Bridge (MCP tool)│  │  
+      558 +│  │-core SQLite  │◄──│  • schedule_view → PAV reads   │  │   
+      559 +│  │              │   │  • journal_create → PAV writes  │  │  
+      560 +│  └──────────────┘   └────────────────────────────────┘  │   
+      561 +└──────────────────────────┬──────────────────────────────┘   
+      562 +                           │  MCP JSON-RPC 2.0                
+      563 +                           │  (agent is the transport)        
+      564 +┌──────────────────────────▼──────────────────────────────┐   
+      565 +│                   PAV Core (Python)                     │   
+      566 +│  get_day_snapshot()  ←  consumes vault-journal tasks   │    
+      567 +│  render_daily_report()  →  produces JournalEntry +      │   
+      568 +│                            habit logs + policy alerts   │   
+      569 +└─────────────────────────────────────────────────────────┘   
+      570 +```                                                           
+      571 +                                                              
+      572 +### Data Flows (MCP Boundary)                                 
+      573 +                                                              
+      574 +| # | Direction | MCP Tool | Payload | PAV Effect |           
+      575 +|---|---|---|---|---|                                         
+      576 +| 1 | vault-journal → PAV | `schedule_view` (existing) | Today
+          +'s tasks + entries | PAV `services.get_day_snapshot()` enriche
+          +s with vault tasks |                                          
+      577 +| 2 | vault-journal → PAV | `item_list` (existing) | Tasks tag
+          +ged `habit` or matching routine names | PAV habit engine updat
+          +es streak for matched habits |                                
+      578 +| 3 | PAV → vault-journal | `journal_create` (existing) | PAV 
+          +`JournalEntry` as natural-language daily summary | vault-journ
+          +al renders as an `Entry` |                                    
+      579 +| 4 | PAV → vault-journal | `task_create` (existing) | Policy 
+          +FSM state change alert as a task | vault-journal surfaces on n
+          +ext TUI refresh |                                             
+      580 +| 5 | PAV → vault-journal | `a2ui.display_items` (existing) | 
+          +Habit completion streak card | vault-journal TUI flashes notif
+          +ication |                                                     
+      581 +| 6 | vault-journal → PAV | `routine_log_create` (new PAV MCP 
+          +tool) | NL log text + routine reference + period + timestamp |
+          + PAV `RoutineLog` upsert; triggers Q_HE recalc |              
+      582 +                                                              
+      583 +### Phase A — PAV reads vault-journal (schedule context)      
+      584 +                                                              
+      585 +**New PAV MCP client tool**: `vault_schedule_consume()`       
+      586 +                                                              
+      587 +```python                                                     
+      588 +# PAV apps/cli/src/operational/cli/commands/vault_cmd.py (new)
+      589 +                                                              
+      590 +@app.command()                                                
+      591 +def vault_consume(                                            
+      592 +    json: bool = typer.Option(False, "--json", help="JSON outp
+          +ut"),                                                         
+      593 +) -> None:                                                    
+      594 +    """Consume today's tasks from vault-journal MCP and log th
+          +em as PAV habits."""                                          
+      595 +    # Calls vault-journal MCP schedule_view tool              
+      596 +    # For each task with tag "habit" or matching a PAV Routine
+          +.name:                                                        
+      597 +    #   upsert a Habit record or update Habit.streak          
+      598 +    # Renders: "N tasks consumed, H streak updated, E_req reca
+          +lculated"                                                     
+      599 +```                                                           
+      600 +                                                              
+      601 +This enriches PAV's `get_day_snapshot()` with vault-journal sc
+          +hedule data without touching vault-journal's storage.         
+      602 +                                                              
+      603 +### Phase B — PAV writes back (daily summary + alerts)        
+      604 +                                                              
+      605 +After `vault_consume`, PAV runs its consolidation:            
+      606 +                                                              
+      607 +```python                                                     
+      608 +# PAV core/consolidator.py already produces:                  
+      609 +#   DailyConsolidation { energy_score, productivity_score, ale
+          +rts[], recommendations[] }                                    
+      610 +#   PolicyDecision { current_state, previous_state, trigger } 
+      611 +#   JournalReport (from journal_segmenter.py)                 
+      612 +```                                                           
+      613 +                                                              
+      614 +These become MCP calls back to vault-journal:                 
+      615 +- `journal_create` → PAV's `render_full_day_report()` output a
+          +s a vault-journal `Entry`                                     
+      616 +- `task_create` → Policy FSM state-change alert as a vault-jou
+          +rnal `Task`                                                   
+      617 +- `a2ui.display_items` → streak/Q_HE card pushed to vault-jour
+          +nal TUI                                                       
+      618 +                                                              
+      619 +### Phase C — TUIs co-exist (no merge)                        
+      620 +                                                              
+      621 +| Screen | vault-journal TUI | PAV TUI |                      
+      622 +|---|---|---|                                                 
+      623 +| Tasks / Entries | ✅ Primary | — |                          
+      624 +| Daily schedule | ✅ (from vault-journal tasks) | ✅ (from PA
+          +V Routines + TimeBlocks) |                                    
+      625 +| Habit streaks | — | ✅ Primary |                            
+      626 +| Pomodoro timer | — | ✅ Primary |                           
+      627 +| Energy/Focus metrics | — | ✅ Primary |                     
+      628 +| Policy FSM state | — | ✅ Primary |                         
+      629 +| Journal (narrative) | ✅ (vault-journal Entry) | ✅ (PAV Jou
+          +rnalEntry via segmenter) |                                    
+      630 +                                                              
+      631 +**No screen merge needed.** The human decides which TUI to ope
+          +n based on intent:                                            
+      632 +- "What tasks do I have today?" → vault-journal TUI           
+      633 +- "Am I in PUSH or RECOVER? What's my habit streak?" → PAV TUI
+      634 +- "Write my daily journal" → either (both write to the same `J
+          +ournalEntry` entity via PAV's `journal_segmenter`)            
+      635 +                                                              
+      636 +---                                                           
+      637 +                                                              
+      638 +### Systematic Time Inputs via `questionary` (Journal Layer)  
+      639 +                                                              
+      640 +The user's core pain point: **time inputs during journaling ar
+          +e ad-hoc and inconsistent.**                                  
+      641 +                                                              
+      642 +Current (manual, free-form):                                  
+      643 +```                                                           
+      644 +journal create --text "morning:[05:00],wakeup; launch-pause[11
+          +:00] tarde[15:00]; dormi 23h"                                 
+      645 +```                                                           
+      646 +                                                              
+      647 +Desired (structured, systematic):                             
+      648 +```                                                           
+      649 +pav journal interact  (questionary-guided session)            
+      650 +```                                                           
+      651 +                                                              
+      652 +#### What `questionary` systematizes                          
+      653 +                                                              
+      654 +The journal entry is a **composite record** — it collects seve
+          +ral distinct time events in one session. `questionary` is the 
+          +right tool because:                                           
+      655 +                                                              
+      656 +1. **Each event has a known type** (wake, sleep, block start, 
+          +block end, habit completion, pomodoro round)                  
+      657 +2. **Each type has a known time format** (HH:MM for clocks, du
+          +ration in minutes for blocks)                                 
+      658 +3. **The sequence follows the user's actual day** — morning ev
+          +ents first, evening last                                      
+      659 +                                                              
+      660 +The journal entry **does not need to be one big text blob**. T
+          +he structured fields on `JournalEntry` (`desvios`, `ajustes_fi
+          +nos`, `rotinas_logs`) are already separate. `questionary` can 
+          +populate them directly.                                       
+      661 +                                                              
+      662 +#### Proposed `pav journal interact` flow                     
+      663 +                                                              
+      664 +```                                                           
+      665 +$ pav journal interact --date 2026-08-26                      
+      666 +                                                              
+      667 +  ┌── PAV Daily Journal (2026-08-26) ────────────────────┐    
+      668 +  │                                                     │     
+      669 +  │  [1] ⏰ Wake-up        → 05:00                      │     
+      670 +  │  [2] 😴 Sleep onset    → 23:00                      │     
+      671 +  │  [3] 🌅 Morning block  → 05:00 → 08:30  (210 min)  │      
+      672 +  │  [4] 🍽️ Lunch pause    → 11:00 → 12:00  (60 min)   │      
+      673 +  │  [5] 💻 Afternoon block→ 15:00 → 19:00  (240 min)  │      
+      674 +  │  [6] 🌙 Evening block  → 21:00 → 23:00  (120 min)  │      
+      675 +  │  [7] 🍅 Pomodoro R1   → 4 rounds completed         │      
+      676 +  │  [8] 📝 Free-form note (optional)                   │     
+      677 +  │                                                     │     
+      678 +  │  Energy (1-10): [7]   Focus (1-10): [8]            │      
+      679 +  │  Mood morning (1-5): [4]   Mood evening (1-5): [3] │      
+      680 +  │                                                     │     
+      681 +  │  [w] Write entry   [c] Cancel                       │     
+      682 +  └─────────────────────────────────────────────────────┘     
+      683 +```                                                           
+      684 +                                                              
+      685 +Each numbered step is a `questionary` prompt with type-safe va
+          +lidation:                                                     
+      686 +- **Clocks** (`[1]`, `[2]`): `questionary.time("HH:MM")` — par
+          +sed to `datetime.time`                                        
+      687 +- **Block start/end** (`[3]–[6]`): two `time` prompts → `TimeB
+          +lock` entity auto-created                                     
+      688 +- **Pomodoro** (`[7]`): `questionary.checkbox` of rounds compl
+          +eted → `PomodoroRound` entities                               
+      689 +- **Free-form** (`[8]`): `questionary.text` → appended to `Jou
+          +rnalEntry.entry_text` (preserves NL flexibility)              
+      690 +- **Energy/Focus/Mood**: `questionary.slider` or `confirm` wit
+          +h numeric validation                                          
+      691 +                                                              
+      692 +Output: one `JournalEntry` + N `TimeBlock` + N `PomodoroRound`
+          + + N `RoutineLog`, all consistent and timestamped.            
+      693 +                                                              
+      694 +#### Three levels of journal input                            
+      695 +                                                              
+      696 +| Level | Command | Interface | Time inputs |                 
+      697 +|---|---|---|---|                                             
+      698 +| **L1 — Declarative** | `pav journal create --text "..."` | O
+          +ne-shot CLI | Ad-hoc NL (current default) |                   
+      699 +| **L2 — Interactive** | `pav journal interact` | `questionary
+          +` prompt session | Structured, validated (proposed above) |   
+      700 +| **L3 — TUI** | `pav tui --screen journal` | Textual screen w
+          +ith forms | Same as L2, stateful across fields |              
+      701 +                                                              
+      702 +**L2 is the missing piece** — it adds systematic time capture 
+          +without requiring the full TUI. L3 builds on L2.              
+      703 +                                                              
+      704 +The `journal_screen.py` already exists in PAV's TUI — it can b
+          +e refactored to call `questionary` helpers internally, sharing
+          + the same validation logic between CLI and TUI.               
+      705 +                                                              
+      706 +#### Sharing `questionary` validators with vault-journal      
+      707 +                                                              
+      708 +Because PAV's journal layer is pure Python, the `questionary` 
+          +validators (`validate_HHMM`, `validate_duration_minutes`, `val
+          +idate_period`) can be extracted to a shared `pav.input_validat
+          +ion` module. A future vault-journal Rust CLI could call these 
+          +via `pyo3` bindings or a thin subprocess wrapper.             
+      709 +                                                              
+      710 +---                                                           
+      711 +                                                              
+      712 +### Open Questions                                            
+      713 +                                                              
+      714 +1. **Habit ↔ Task mapping**: Should vault-journal tasks tagged
+          + `habit` automatically create/update PAV `Habit` entities via 
+          +`vault_consume`?                                              
+      715 +   - Recommendation: Yes — tag-based mapping is low-cost and e
+          +rgonomic. Tags: `habit`, `routine:<name>`, `pomodoro`.        
+      716 +                                                              
+      717 +2. **Policy FSM visibility**: Should PAV's current Policy FSM 
+          +state (PUSH/MAINTAIN/REDUCE/RECOVER) appear in vault-journal T
+          +UI?                                                           
+      718 +   - Recommendation: Phase C only — A2UI push from PAV to vaul
+          +t-journal. No storage coupling.                               
+      719 +                                                              
+      720 +3. **TUI merge vs. co-existence**: Full merge (single Rust TUI
+          + with both systems) is a 6-month project. Co-existence (Phase 
+          +C) is available now.                                          
+      721 +   - Recommendation: Ship Phase A+B first. Revisit merge after
+          + 30 days of co-existence.                                     
+      722 +                                                              
+      723 +---                                                           
+      724 +                                                              
+      725 +## Open Questions (original)                                  
+      726 +                                                              
+      727  1. **Subtask identity**: When a subtask gets its own `ItemId`,
+            does the parent `TaskData.subtasks` hold the parent's ID or t
+           he child's?
+      728     - Recommendation: hold the child's `ItemId` — subtasks are 
+           first-class items.
+      729  2. **Markdown sync direction**: Does vault-tasks write back to
+            `.md` files or only read?
+
+  Thought for 11s (ctrl+o to expand)
+
+● The Phase 6b section is written. Now let me respond to your deep analysis
+  question in Portuguese.
+
+  ---
+
+  Análise: Tempo no Journaling — Sistematizar com questionary
+
+  A dor central
+
+  Hoje você faz no free-form:
+  journal create -t "morning:[05:00],wakeup; launch-pause[11:00] tarde[15:00]
+  dormi 23h"
+
+  Funciona, mas é não-determinístico: a mesma informação aparece de formas
+  diferentes a cada dia, e nem sempre inclui todos os campos que PAV precisa
+  para computar H(t), Q_HE, e o Policy FSM.
+
+  A insight arquitetural
+
+  Journal entry é um registro composto, não um blob de texto. Ele coleta
+  múltiplos eventos de tempo distintos em uma sessão. A estrutura já existe em
+  JournalEntry:
+
+  ┌────────────────────────────┬────────────────────┬───────────────────────┐
+  │         Campo PAV          │  O que representa  │      Tempo hoje?      │
+  ├────────────────────────────┼────────────────────┼───────────────────────┤
+  │ SleepRecord                │ bedtime + wake     │ ✅ [23:00] → [05:00]  │
+  ├────────────────────────────┼────────────────────┼───────────────────────┤
+  │ TimeBlock                  │ início + fim +     │ ✅ [05:00→08:30]      │
+  │                            │ duração de bloco   │                       │
+  ├────────────────────────────┼────────────────────┼───────────────────────┤
+  │ PomodoroRound              │ rounds completados │ ✅ 4 rounds           │
+  │                            │  por sessão        │                       │
+  ├────────────────────────────┼────────────────────┼───────────────────────┤
+  │ RoutineLog                 │ NL description +   │ ✅ "acordei bem"      │
+  │                            │ routine execution  │                       │
+  ├────────────────────────────┼────────────────────┼───────────────────────┤
+  │ JournalEntry.desvios       │ ajustes de horário │ ✅ "dormi 1h mais     │
+  │                            │  (PT-BR)           │ tarde"                │
+  ├────────────────────────────┼────────────────────┼───────────────────────┤
+  │ JournalEntry.ajustes_finos │ {periodo, minutos, │ ✅ [{minutos: -60,    │
+  │                            │  reason}           │ reason: "alarme"}]    │
+  ├────────────────────────────┼────────────────────┼───────────────────────┤
+  │ JournalEntry.entry_text    │ narrativa livre    │ ✅ "-t 'blabla'"      │
+  └────────────────────────────┴────────────────────┴───────────────────────┘
+
+  O que falta é um questionary-guided input session que pergunte cada evento de
+  tempo de forma sistemática e já preencha as entidades correspondentes.
+
+  ---
+
+  Framework de 3 níveis
+
+  ┌──────────────┬────────────────┬──────────────────┬────────────────────┐
+  │    Nível     │    Comando     │    Interface     │  Estado do tempo   │
+  ├──────────────┼────────────────┼──────────────────┼────────────────────┤
+  │ L1 —         │ pav journal    │                  │ NL ad-hoc (padrão  │
+  │ Declarativo  │ create -t      │ one-shot CLI     │ atual)             │
+  │              │ "..."          │                  │                    │
+  ├──────────────┼────────────────┼──────────────────┼────────────────────┤
+  │ L2 —         │ pav journal    │ questionary      │ Estruturado +      │
+  │ Interativo   │ interact       │ prompt session   │ validado           │
+  │              │                │                  │ (proposto)         │
+  ├──────────────┼────────────────┼──────────────────┼────────────────────┤
+  │              │ pav tui        │ Textual screen   │ Mesmo que L2,      │
+  │ L3 — TUI     │ --screen       │ com forms        │ stateful           │
+  │              │ journal        │                  │                    │
+  └──────────────┴────────────────┴──────────────────┴────────────────────┘
+
+  L2 é a peça que falta — adiciona captura sistemática sem requerer a TUI
+  inteira. L3 usa L2 internamente.
+
+  ---
+
+  pav journal interact — fluxo proposto
+
+  $ pav journal interact --date 2026-08-26
+
+    ┌── PAV Daily Journal (2026-08-26) ──────────────────┐
+    │                                                     │
+    │  [1] ⏰ Wake-up         → HH:MM  [05:00]           │
+    │  [2] 😴 Sleep onset    → HH:MM  [23:00]           │
+    │  [3] 🌅 MANHÃ block    → HH:MM→HH:MM  [05:00→08:30] │
+    │  [4] 🍽️ Lunch pause    → HH:MM→HH:MM  [11:00→12:00] │
+    │  [5] 💻 TARDE block    → HH:MM→HH:MM  [15:00→19:00] │
+    │  [6] 🌙 NOITE block    → HH:MM→HH:MM  [21:00→23:00] │
+    │  [7] 🍅 Pomodoro       → checkbox rounds [1][2][3][4] │
+    │  [8] 📝 Free-form NL   → optional text               │
+    │                                                     │
+    │  ⚡ Energia (1-10): [7]   🎯 Foco (1-10): [8]      │
+    │  😊 Humor manhã (1-5): [4]   🌙 Humor noite (1-5): [3] │
+    │                                                     │
+    │  [w] Escrever entry   [c] Cancelar                  │
+    └─────────────────────────────────────────────────────┘
+
+  Validators compartilhados (extraídos para pav/input_validation.py):
+
+  # Validadores reutilizáveis em CLI (questionary) e TUI (Textual forms)
+  def validate_HHMM(value: str) -> time:
+      """HH:MM → time, com range 00:00–23:59."""
+      ...
+
+  def validate_block_times(start: time, end: time) -> tuple[time, time, int]:
+      """start < end, retorna (start, end, duration_minutes)."""
+      ...
+
+  def validate_period_label(value: str) -> Period:
+      """Aceita 'manha'/'morning'/'MANHÃ' → Period.MANHA."""
+      ...
+
+  ---
+
+  Relação com vault-journal (Phase 6b)
+
+  Os eventos de tempo em pav journal interact alimentam:
+
+  1. TimeBlock → PAV computa duração, detecta desvios (end - start)
+  2. SleepRecord → PAV computa calcular_horas_sono() → sleep_quality
+  3. Habit.streak → Se um block corresponde a uma Routine com nome iguais,
+     atualiza streak
+  4. JournalEntry → consolidado com Energy/Focus/Humor + NL free-form
+  5. Policy FSM → consolidate_daily() lê todos os dados acima → transição
+     PUSH/MAINTAIN/REDUCE/RECOVER
+
+  Via MCP (Phase 6b):
+  - vault_consume lê tasks do vault-journal → marca como completadas no PAV
+  - PAV gera JournalEntry → journal_create no vault-journal via MCP
+
+  ---
+
+  Onde implementar (próximos passos)
+
+  life-ops/operational/apps/cli/src/operational/cli/commands/
+  ├── journal_cmd.py          # L1 (existing)
+  ├── journal_interact.py      # L2 (NEW — questionary session)
+  └── journal_screen.py        # L3 (refactor to use L2 validators)
+
+  L2 usa questionary diretamente; L3 importa os mesmos validadores de
+  pav/input_validation.py. Isso garante que CLI e TUI validam horários da mesma
+  forma.
+
+✻ Baked for 3m 56s · done 11:33 AM
+
+❯ /superpowers:subagent-driven-development                                      
+
+  Thought for 5s (ctrl+o to expand)
+
+● Let me check for the progress ledger and any available implementation plans.
+
+  Thought for 16s, searched for 4 patterns, read 1 file (ctrl+o to expand)
+
+● The /subagent-driven-development skill requires a plan file to execute — it
+  dispatches implementer subagents per task from a pre-written plan.
+
+  There's no plan in scope for what we just discussed (Phase 6b + questionary
+  journal input). The work so far was analysis + doc edit, not an implementation
+  plan.
+
+  What would you like to execute?
+
+  Option A — Write the plan first (superpowers:writing-plans): I can take the
+  Phase 6b architecture and the pav journal interact design and write a proper
+  implementation plan with tasks, then execute it with subagents.
+
+  Option B — Execute an existing plan: Point me at a plan file (.md in plans/, a
+  memory doc, or a GitHub issue) and I'll run the skill on it.
+
+  Option C — Use it on a different existing plan: Looking at your memory,
+  there's job-hunter-core-extraction.md (GAP-07, Option A vs B) and the
+  byd-case-* deliverables — any of those have implementation plans worth
+  subagent-driving?
+
+  Which direction?
+
+✻ Churned for 41s · done 11:34 AM
+❯ A                                                                             
+
+  Thought for 4s (ctrl+o to expand)
+
+● Skill(superpowers:writing-plans)
+  ⎿  Successfully loaded skill
+
+  Thought for 9s (ctrl+o to expand)
+
+● I'm using the writing-plans skill to create the implementation plan.
+
+  Thought for 12s, ran 1 shell command (ctrl+o to expand)
+
+● Now I'll write the plan. First, let me check the existing journal and
+  time-block entities for exact field names.
+
+  Thought for 10s, searched for 1 pattern, read 3 files (ctrl+o to expand)
+
+● Now let me check the state.py and enums.py for exact types, and check if
+  questionary is already a dependency.
+
+  Thought for 18s, searched for 3 patterns, read 1 file (ctrl+o to expand)
+
+● Now I have all the context needed. Let me write the plan.
+
+● Write(life-ops\operational\docs\superpowers\plans\2026-08-26-journal-interact-
+       questionary.md)
+  ⎿  Wrote 854 lines to life-ops\operational\docs\superpowers\plans\2026-08
+     -26-journal-interact-questionary.md
+      1 # Journal Interact — Systematic Time Input via `questionary`
+      3 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:su
+        bagent-driven-development (recommended) or superpowers:executing-
+         [ ]`) syntax for tracking.
+      4 
+        `questionary` session) that systematically collects sleep times, 
+        time-block start/end pairs, pomodoro rounds, energy/focus/mood ra
+        tities (`SleepRecord`, `TimeBlock`, `PomodoroRound`, `JournalEntr
+        y`, `RoutineLog`) in one session.
+      7 **Architecture:** Thin Typer command in `cli
+     … +984 lines (ctrl+o to expand)
+
+  Thought for 12s (ctrl+o to expand)
+
+● Plan complete. Let me do the self-review and then set up the progress ledger.
+
+  Thought for 6s, ran 2 shell commands (ctrl+o to expand)
+
+● Plan complete and saved to life-ops/operational/docs/superpowers/plans/2026-08
+  -26-journal-interact-questionary.md.
+
+  Plan summary — 4 tasks:
+
+  ┌─────┬───────────────────────────┬───────────────────────────────────────┐
+  │  #  │           Task            │             Files touched             │
+  ├─────┼───────────────────────────┼───────────────────────────────────────┤
+  │     │ Extract time validators   │                                       │
+  │ 1   │ to operational/input_vali │ New input_validation.py, unit tests   │
+  │     │ dation.py                 │                                       │
+  ├─────┼───────────────────────────┼───────────────────────────────────────┤
+  │ 2   │ Add questionary dep +     │ apps/cli/pyproject.toml, factories.py │
+  │     │ make_routine_log factory  │                                       │
+  ├─────┼───────────────────────────┼───────────────────────────────────────┤
+  │     │ Create                    │                                       │
+  │ 3   │ journal_interact_cmd.py + │ New command, app.py                   │
+  │     │  register in app.py       │                                       │
+  ├─────┼───────────────────────────┼───────────────────────────────────────┤
+  │ 4   │ Integration tests for the │ New tests/integration/test_journal_in │
+  │     │  command                  │ teract_cmd.py                         │
+  └─────┴───────────────────────────┴───────────────────────────────────────┘
+
+  ---
+
+  Two execution options:
+
+  1. Subagent-Driven (recommended) — I dispatch a fresh implementer subagent per
+  task, review between tasks, fast iteration.
+
+  2. Inline Execution — Execute tasks in this session using executing-plans,
+  batch execution with checkpoints.
+
+  Which approach?
+
+✻ Crunched for 4m 4s · done 11:41 AM
+
+※ recap: Just finished Phase 6b doc edit to vault-journal unification proposal and wrote a 4-task implementation plan for `pav journal interact` — the systematic time-input CLI layer using `questionary`. Plan saved, ledger initialized. Awaiting execution direction (subagent-driven vs inline). (disable recaps in /config)
+
+❯ 1                                                                             
+
+  Thought for 16s, read 1 file, ran 1 shell command (ctrl+o to expand)
+
+● BASE=afac4341. Now extracting the task brief and dispatching Task 1
+  implementer.
+
+  Thought for 7s, ran 3 shell commands (ctrl+o to expand)
+
+❯ ultracode                                                                     
+
+  Thought for 20s (ctrl+o to expand)
+
+● Ultra enabled. Continuing with Task 1 dispatch.
+
+● Write(.git\sdd\ledger.md)
+  ⎿  Wrote 12 lines to .git\sdd\ledger.md
+      1 # SDD Progress Ledger
+      2 
+      3 Plan: 2026-08-26-journal-interact-questionary.md
+      4 
+      5 ## Tasks
+      6 - Task 1: [ ] Extract time validators → input_validation.py
+      7 - Task 2: [ ] questionary dep + make_routine_log factory
+      8 - Task 3: [ ] journal_interact_cmd.py + app.py registration
+      9 - Task 4: [ ] Integration tests
+     … +2 lines (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● Agent(Implement Task 1: input_validation.py)
+
+  Thought for 2s (ctrl+o to expand)
+
+● Task 1 implementer dispatched. Waiting for completion before reviewing.
+
+❯ /claude-auto:list                                                             
+
+  Thought for 3s (ctrl+o to expand)
+
+● Skill(claude-auto:list)
+  ⎿  Successfully loaded skill · 1 tool allowed
+  Thought for 5s, ran 1 shell command (ctrl+o to expand)
+
+● No autonomous cron jobs configured. To set up your first one:
+
+  /claude-auto:setup
+
+  This will guide you through creating an autonomous job — for example, daily or
+  weekly codebase improvement sessions targeting this repo (life-oss/life).
+
+  ---
+
+  Returning to Task 1 review — waiting on the implementer subagent to report
+  back.
+
+※ recap: Implementing `pav journal interact` — L2 questionary session for systematic time-block/sleep/pomodoro input. Task 1 implementer (input_validation.py) is running; next step is review then dispatch Task 2 (questionary dep + make_routine_log factory). Also checked: no cron jobs configured. (disable recaps in /config)
+
+
+› Message from @implementer-task1 (ctrl+o to expand)
+
+  Thought for 4s (ctrl+o to expand)
+
+● Task 1 implementer done. Running review package and dispatching reviewer.
+
+  Thought for 7s, ran 2 shell commands (ctrl+o to expand)
+
+● Agent(Review Task 1: input_validation)
+
+  Thought for 3s (ctrl+o to expand)
+
+● Task 1 reviewer dispatched. Waiting for verdict before proceeding to Task 2.
+
+
+● Teammate @implementer-task1 finished
+
+  Thought for 4s (ctrl+o to expand)
+
+● Idle notification from implementer — expected, it's done and waiting. Reviewer
+  is running. No action needed.
+
+
+› Message from @reviewer-task1 (ctrl+o to expand)
+
+  Thought for 20s (ctrl+o to expand)
+
+● Task 1 review: Approved — Needs fixes (1 Important: error message in
+  validate_block_times).
+
+  Marking Task 1 complete, noting fix needed, and proceeding to Task 2 dispatch.
+
+  Thought for 6s, ran 1 shell command (ctrl+o to expand)
+
+● Task 1 fix + Task 2 dispatch in parallel (independent).
+
+● 2 background agents launched (↓ to manage)
+   ├ @fixer-task1
+   └ @implementer-task2
+
+  Thought for 22s (ctrl+o to expand)
+
+● Task 1 fixer + Task 2 implementer dispatched in parallel. Waiting for both to
+  complete.
+
+
+● Teammate @reviewer-task1 finished
+
+  Thought for 3s (ctrl+o to expand)
+
+● Reviewer idle — expected, it's done. Waiting on fixer-task1 and
+  implementer-task2.
+
+
+› Message from @fixer-task1 (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● Task 1 fix done. Re-reviewing fix + waiting on Task 2.
+
+  Thought for 3s, ran 1 shell command (ctrl+o to expand)
+
+● Update(.git\sdd\ledger.md)
+  ⎿  Added 2 lines
+      10  
+      11  ## Execution log
+      12  - 2026-08-26T11:44:00-03:00 — Starting Task 1
+      13 +- 2026-08-26T14:XX — Task 1 fix (validate_block_times message) 
+         +→ dfc1e53                                                      
+      14 +- 2026-08-26T14:XX — Task 2 implementer running (pending)      
+
+  Thought for 3s (ctrl+o to expand)
+
+● Review fix in parallel with Task 2. Fix review + Task 2 implementer running.
+
+● Agent(Re-review Task 1 fix)
+  Thought for 3s (ctrl+o to expand)
+
+● Waiting on implementer-task2 + reviewer-fix1.
+
+
+● Teammate @fixer-task1 finished
+
+  Thought for 2s (ctrl+o to expand)
+
+● fixer-task1 idle — done. Still waiting on implementer-task2 and reviewer-fix1.
+
+
+› Message from @reviewer-fix1 (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● Task 1 fully approved. Still waiting on implementer-task2.
+
+
+● Teammate @reviewer-fix1 finished
+
+  Thought for 2s (ctrl+o to expand)
+
+● Still waiting on implementer-task2 to complete.
+
+
+› Message from @implementer-task2 (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● Task 2 done. Running review package and dispatching reviewer.
+
+  Thought for 3s, ran 1 shell command (ctrl+o to expand)
+
+● Agent(Review Task 2: questionary + make_routine_log)
+
+  Thought for 6s (ctrl+o to expand)
+
+● Task 2 reviewer dispatched. Waiting for verdict before extracting Task 3
+  brief.
+
+
+● Teammate @implementer-task2 finished
+
+  Thought for 4s (ctrl+o to expand)
+
+● implementer-task2 idle — done. reviewer-task2 still running.
+
+
+› Message from @reviewer-task2 (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● Task 2 approved. Updating ledger + extracting Task 3 brief.
+
+● Update(.git\sdd\ledger.md)
+  ⎿  Added 1 line, removed 1 line
+      11  ## Execution log
+      12  - 2026-08-26T11:44:00-03:00 — Starting Task 1
+      13  - 2026-08-26T14:XX — Task 1 fix (validate_block_times message) 
+          → dfc1e53
+      14 -- 2026-08-26T14:XX — Task 2 implementer running (pending)      
+      14 +- 2026-08-26T14:XX — Task 2 complete → d214e83 (review: Approve
+         +d)                                                             
+
+  Thought for 4s, ran 1 shell command (ctrl+o to expand)
+
+● Agent(Implement Task 3: journal_interact_cmd.py)
+
+  Thought for 2s (ctrl+o to expand)
+
+● Task 3 implementer dispatched. Waiting for completion before review.
+
+
+● Teammate @reviewer-task2 finished
+  Thought for 3s (ctrl+o to expand)
+
+● reviewer-task2 idle. Still waiting on implementer-task3.
+
+※ recap: Running subagent-driven implementation of `pav journal interact` — systematic time-input session via `questionary`. Tasks 1 and 2 are done and approved. Task 3 (the main `journal_interact_cmd.py` + app registration) is currently being implemented by a subagent. Awaiting its completion, then will review and move to Task 4 (integration tests). (disable recaps in /config)
+
+
+› Message from @implementer-task1 (ctrl+o to expand)
+
+  Thought for 5s (ctrl+o to expand)
+
+● That idle message is from implementer-task1 responding to an unrelated context
+  — no action needed. Still waiting on implementer-task3 (our current active
+  task).
+
+
+● Teammate @implementer-task1 finished
+
+  Thought for 2s (ctrl+o to expand)
+
+● Still waiting on implementer-task3.
+
+※ recap: Running subagent-driven implementation of `pav journal interact` (4-task plan). Tasks 1 and 2 done and approved. Task 3 implementer still running — creates the main `journal_interact_cmd.py` with `questionary` prompts. Task 4 (integration tests) queued after review.
+
+
+› Message from @implementer-task3 (ctrl+o to expand)
+
+  Thought for 9s (ctrl+o to expand)
+
+● Let me verify the actual git state before accepting — Tasks 3 and 4 weren't
+  reviewed yet.
+
+  Thought for 5s, ran 1 shell command (ctrl+o to expand)
+
+● Tasks 1-3 done but Tasks 3+4 not reviewed yet. Running review for Task 3 now.
+
+  Thought for 1s, ran 1 shell command (ctrl+o to expand)
+
+● Agent(Review Task 3: journal_interact_cmd.py)
+  ⎿  Read ..\..\.git\sdd\ledger.md (16 lines)
+  ⎿  Referenced file 
+     docs\superpowers\plans\2026-08-26-journal-interact-questionary.md
+  ⎿  Referenced file ..\..\..\..\apps\vault-journal\docs\unification-proposal.md
+  ⎿  Read CLAUDE.md (289 lines)
+  ⎿  Read apps\cli\src\operational\cli\state.py (418 lines)
+  ⎿  Skills restored (claude-auto:list, superpowers:writing-plans, 
+     superpowers:subagent-driven-development)
+
+  Thought for 37s, read 1 file, listed 2 directories, ran 3 shell commands (ctrl+o to expand)
+
+● Task 3 approved. Now dispatching Task 4 reviewer.
+
+● Agent(Review Task 4: integration tests)
+
+  Thought for 3s (ctrl+o to expand)
+
+● Waiting for Task 3 fix review and Task 4 review to complete.
+
+
+● Teammate @implementer-task3 finished
+
+› Message from @reviewer-task3 (ctrl+o to expand)
+
+● Teammate @reviewer-task3 finished
+
+  Thought for 8s, read 1 file (ctrl+o to expand)
+
+● Task 3 approved. Waiting for Task 4 reviewer to complete.
+
+› Message from @reviewer-task4 (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● All 4 tasks approved. Updating ledger and dispatching final whole-branch
+  review.
+
+  Thought for 21s, searched for 1 pattern, read 1 file, ran 3 shell commands (ctrl+o to expand)
+
+● Skill(superpowers:requesting-code-review)
+  ⎿  Successfully loaded skill
+
+  Thought for 18s, read 1 file, ran 1 shell command (ctrl+o to expand)
+
+● Agent(Final code review: journal-interact-questionary) MiniMax-M3
+
+  Thought for 2s (ctrl+o to expand)
+
+● Final reviewer dispatched — 74 commits, 1.7MB diff. Waiting for verdict.
+
+
+● Teammate @reviewer-task4 finished
+
+  Thought for 3s (ctrl+o to expand)
+
+● Still waiting for final-reviewer to complete.
+
+
+● Teammate @final-reviewer finished
+
+  Thought for 13s, read 1 file, listed 1 directory (ctrl+o to expand)
+
+● Ready to merge. Two minor cleanups to apply, then done.
+
+  Thought for 10s, searched for 1 pattern, read 2 files (ctrl+o to expand)
+
+● Both confirmed. Applying fixes now:
+
+● Update(life-ops\operational\apps\cli\src\operational\cli\commands\journal_inte
+        ract_cmd.py)
+  ⎿  Removed 5 lines
+       94      return Period.NOITE
+       95  
+       96  
+       97 -def _now_naive() -> datetime:                                 
+       98 -    """Return current UTC time as naive datetime (no tzinfo)."
+          -""                                                            
+       99 -    return datetime.now(tz=UTC).replace(tzinfo=None)          
+      100 -                                                              
+      101 -                                                              
+       97  # ------------------------------------------------------------
+           ---------------
+       98  # Command
+       99  # ------------------------------------------------------------
+           ---------------
+
+  Thought for 2s (ctrl+o to expand)
+
+● Update(life-ops\operational\packages\core\src\operational\input_validation.py)
+  ⎿  Removed 1 line
+      1 -# packages/core/src/operational/input_validation.py             
+      1  """Time input validation helpers — shared between CLI (questiona
+         ry) and TUI."""
+      2  
+      3  from __future__ import annotations
+
+  Thought for 10s, ran 2 shell commands (ctrl+o to expand)
+
+● Clean. Committing the two fix commits:
+
+  Thought for 17s, committed 210bed2, ran 4 shell commands (ctrl+o to expand)
+
+● Done. Commit 210bed2. Updating ledger:
+
+  Thought for 2s, read 1 file (ctrl+o to expand)
+
+● Plan complete. All 4 tasks delivered, reviewed, and approved. Final cleanup
+  committed.
+
+  gitbutler/workspace → master
+  Commits:
+    b0ec0a0  feat(core): add input_validation module with HHMM validators
+    dfc1e53  fix(core): align validate_block_times error message to brief spec
+    d214e83  feat: add questionary>=2.0 dependency + make_routine_log factory
+    6d134c6  feat(cli): add journal interact L2 command with questionary
+    210bed2  fix: remove dead _now_naive helper and stale path comment
+
+  What was built:
+  - pav journal interact — L2 questionary session with 5 sections (sleep → time
+    blocks → pomodoros → energy/focus/mood → free-form note)
+  - packages/core/src/operational/input_validation.py — pure-stdlib HHMM
+    validators
+  - packages/core/src/operational/meta/factories.py — make_routine_log factory
+  - 7 integration tests + 9 unit tests, all passing
+  - Existing journal create/journal list preserved
+
+❯ please lets build up a full report!                                           
+
+  Thought for 1m 13s, read 2 files, listed 1 directory, ran 2 shell commands (ctrl+o to expand)
+
+● Write(life-ops\operational\docs\superpowers\plans\2026-08-26-journal-interact-
+       REPORT.md)
+  ⎿  Wrote 211 lines to life-ops\operational\docs\superpowers\plans\2026-08
+     -26-journal-interact-REPORT.md
+      1 # Journal Interact — Implementation Report
+      2 
+      3 > **Feature:** `pav journal interact` — L2 questionary session fo
+        r systematic daily time input
+      4 > **Plan:** `2026-08-26-journal-interact-questionary.md`
+      5 > **Branch:** `gitbutler/workspace` → `master`
+      6 > **Commits:** `b0ec0a0` → `210bed2` (5 commits, all approved)
+      7 > **Date:** 2026-08-26
+      8 
+      9 ---
+     … +260 lines (ctrl+o to expand)
+
+  Thought for 3s (ctrl+o to expand)
+
+● Artifact(C:\Users\mathe\code_space\life-oss\life\life-ops\operational\docs\sup
+          erpowers\plans\2026-08-26-journal-interact-REPORT.md)
+  ⎿  Error: Artifacts need a claude.ai login, and this session is authenticating
+     with ANTHROPIC_AUTH_TOKEN, which takes precedence over a claude.ai 
+     account. Unset the ANTHROPIC_AUTH_TOKEN environment variable. Then run 
+     /login and select "Claude account with subscription".
+  Thought for 2s (ctrl+o to expand)
+
+● The artifact publish failed (no claude.ai login in this environment), but the
+  report is saved at
+  docs/superpowers/plans/2026-08-26-journal-interact-REPORT.md.
+
+  Here's the full report:
+
+  ---
+
+  Journal Interact — Implementation Report
+
+  Feature: pav journal interact — L2 questionary session for systematic daily
+  time input
+  Branch: gitbutler/workspace → master
+  Commits: b0ec0a0 → 210bed2 (5 commits, all approved)
+  Date: 2026-08-26
+
+  ---
+
+  Executive Summary
+
+  Added pav journal interact — a guided daily journal session that collects
+  sleep times, time blocks with start/end pairs, pomodoro rounds,
+  energy/focus/mood ratings, and free-form narrative notes, then upserts all
+  corresponding PAV entities in one command. Zero breaking changes: existing
+  journal create and journal list are regression-tested and fully preserved.
+
+  Final review verdict: Ready to merge. No Critical or Important issues.
+
+  ---
+
+  What Was Built
+
+  New Files
+
+  File: packages/core/src/operational/input_validation.py
+  Lines: 82
+  Purpose: Pure-stdlib HH:MM validators
+  ────────────────────────────────────────
+  File: apps/cli/src/operational/cli/commands/journal_interact_cmd.py
+  Lines: 321
+  Purpose: L2 questionary session — 5 sections
+  ────────────────────────────────────────
+  File: tests/integration/test_journal_interact.py
+  Lines: 190
+  Purpose: 7 integration tests
+  ────────────────────────────────────────
+  File: tests/unit/test_input_validation.py
+  Lines: ~65
+  Purpose: 9 unit tests
+
+  Modified Files
+
+  ┌──────────────────────────────────────────────┬───────┬─────────────────┐
+  │                     File                     │ Chang │     Purpose     │
+  │                                              │   e   │                 │
+  ├──────────────────────────────────────────────┼───────┼─────────────────┤
+  │ apps/cli/pyproject.toml                      │ +1    │ Added questiona │
+  │                                              │ line  │ ry>=2.0         │
+  ├──────────────────────────────────────────────┼───────┼─────────────────┤
+  │                                              │       │ Registered      │
+  │ apps/cli/src/operational/cli/app.py          │ +30/− │ journal         │
+  │                                              │ 3     │ interact under  │
+  │                                              │       │ journal         │
+  ├──────────────────────────────────────────────┼───────┼─────────────────┤
+  │ packages/core/src/operational/meta/factories │ +57   │ Added make_rout │
+  │ .py                                          │       │ ine_log         │
+  └──────────────────────────────────────────────┴───────┴─────────────────┘
+
+  ---
+
+  Architecture
+
+  packages/core/src/operational/
+  ├── input_validation.py          # NEW — pure stdlib, shared CLI/TUI
+  │   ├── HHMMValidationError     # custom ValueError subclass
+  │   ├── parse_HHMM(value: str) → tuple[int, int]   # parse only
+  │   ├── validate_HHMM(value: str) → time            # parse + range-check
+  │   └── validate_block_times(start, end) → (start, end, minutes)
+  │
+  └── meta/factories.py          # MODIFIED — +make_routine_log
+
+  apps/cli/src/operational/cli/
+  ├── commands/journal_interact_cmd.py   # NEW — thin Typer controller
+  │   ├── _ask_hhmm(prompt, default) → time
+  │   ├── _ask_block(prompt, default) → (start, end, minutes)
+  │   ├── _infer_period_from_time(t) → Period
+  │   └── interact(target_date, json_output)
+  └── app.py                    # MODIFIED — merged under journal
+
+  All global constraints verified end-to-end:
+  - ✅ Thin Typer controller, no business logic in CLI
+  - ✅ All time validation via input_validation.py
+  - ✅ All entity construction via meta/factories.py factories
+  - ✅ All writes via _PersistentRepo singletons
+  - ✅ No framework imports in packages/core/
+  - ✅ journal create/journal list regression-tested
+  - ✅ journal interact registered as journal interact
+
+  ---
+
+  The 5-Section Session
+
+  pav journal interact [--date YYYY-MM-DD] [--json]
+
+  1/5 ⏰ Sleep
+     Wake-up time (HH:MM)       → SleepRecord
+     Sleep onset time (HH:MM)
+     Sleep quality (1-10)
+
+  2/5 🕐 Time Blocks  [loop — press Enter to finish]
+     Block label (e.g. "Morning Focus", "Lunch Pause")
+     Start/end (HH:MM - HH:MM)  → validate_HHMM + validate_block_times
+
+  3/5 🍅 Pomodoros
+     Rounds completed (0-12)
+
+  4/5 ⚡ Metrics
+     Energy / Focus (1-10)
+     Mood morning / evening (1-5)
+
+  5/5 📝 Notes
+     Free-form narrative
+
+  ---
+
+  Validation Design
+
+  parse_HHMM("05:30")   → (5, 30)       # pure parsing, rejects bad format
+  validate_HHMM("05:30") → time(5, 30)  # parse + range check (0-23h, 0-59m)
+
+  validate_block_times(time(5,0), time(8,30))
+    → (time(5,0), time(8,30), 210)        # raises ValueError if end <= start
+
+  ---
+
+  Test Strategy
+
+  CliRunner.invoke(input="...") doesn't work with questionary — it reads from
+  prompt_toolkit's Vt100 terminal, not stdin. Solution: _patch_questionary_ask
+  monkeypatches questionary.Question.ask with a callable returning
+  pre-programmed answers.
+
+  Isolation: conftest.py sets TIME_TASKER_STATE_DIR to a tmp dir before
+  importing the app. Autouse _isolated_state fixture clears all 15 repos
+  before/after every test.
+
+  7 tests:
+
+  ┌───────────────────────────────────────────────────────┬──────────────────┐
+  │                         Test                          │     Scenario     │
+  ├───────────────────────────────────────────────────────┼──────────────────┤
+  │ test_journal_interact_creates_all_entities            │ Full session,    │
+  │                                                       │ all 5 sections   │
+  ├───────────────────────────────────────────────────────┼──────────────────┤
+  │ test_journal_interact_with_minimal_input              │ Empty block      │
+  │                                                       │ loop, defaults   │
+  ├───────────────────────────────────────────────────────┼──────────────────┤
+  │ test_journal_interact_json_flag_returns_valid_payload │ --json flag      │
+  ├───────────────────────────────────────────────────────┼──────────────────┤
+  │ test_journal_interact_invalid_date_exits_with_error   │ Bad --date →     │
+  │                                                       │ exit 1           │
+  ├───────────────────────────────────────────────────────┼──────────────────┤
+  │ test_journal_interact_empty_answers_do_not_crash      │ Empty input →    │
+  │                                                       │ graceful exit    │
+  ├───────────────────────────────────────────────────────┼──────────────────┤
+  │ test_journal_create_still_works                       │ Regression:      │
+  │                                                       │ journal create   │
+  ├───────────────────────────────────────────────────────┼──────────────────┤
+  │ test_journal_list_still_works                         │ Regression:      │
+  │                                                       │ journal list     │
+  └───────────────────────────────────────────────────────┴──────────────────┘
+
+  ---
+
+  Commit History
+
+  ┌─────────┬──────────────────────────────────────────────────┬─────────────┐
+  │ Commit  │                   Description                    │   Review    │
+  ├─────────┼──────────────────────────────────────────────────┼─────────────┤
+  │ b0ec0a0 │ feat(core): add input_validation module with     │ Approved    │
+  │         │ HHMM validators                                  │             │
+  ├─────────┼──────────────────────────────────────────────────┼─────────────┤
+  │ dfc1e53 │ fix(core): align validate_block_times error      │ Approved    │
+  │         │ message to spec                                  │             │
+  ├─────────┼──────────────────────────────────────────────────┼─────────────┤
+  │ d214e83 │ feat: add questionary>=2.0 + make_routine_log    │ Approved    │
+  │         │ factory                                          │             │
+  ├─────────┼──────────────────────────────────────────────────┼─────────────┤
+  │ 6d134c6 │ feat(cli): add journal interact L2 command with  │ Approved    │
+  │         │ questionary                                      │             │
+  ├─────────┼──────────────────────────────────────────────────┼─────────────┤
+  │ 210bed2 │ fix: remove dead _now_naive helper and stale     │ Post-review │
+  │         │ path comment                                     │             │
+  └─────────┴──────────────────────────────────────────────────┴─────────────┘
+
+  ---
+
+  Usage
+
+  pav journal interact                          # today
+  pav journal interact --date 2026-08-25      # specific date
+  pav journal interact --date 2026-08-25 --json  # machine-readable
+
+  {
+    "journal_id": "jrn_<hex>",
+    "date": "2026-08-25",
+    "sleep": { "bedtime": "23:00", "wake": "06:00", "quality_score": 7 },
+    "blocks": [
+      { "id": "blk_<hex>", "label": "Morning Focus", "start": "06:00", "end":
+  "08:30", "duration_minutes": 150, "period": "MANHA" }
+    ],
+    "pomodoros": 4,
+    "energia": 7,
+    "foco": 8,
+    "humor_morning": 4,
+    "humor_evening": 3,
+    "note_preview": "Good deep work session..."
+  }
+
+  Report saved at docs/superpowers/plans/2026-08-26-journal-interact-REPORT.md.
+
+※ recap: `pav journal interact` is done — 5 commits, all reviewed and approved. Just need to merge `gitbutler/workspace` into `master` when ready.

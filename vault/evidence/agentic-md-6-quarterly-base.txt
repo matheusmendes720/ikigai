@@ -1,0 +1,93 @@
+name: Quarterly Plans
+description: All quarterly period reports — Test de Fogo, IKIGAi alignment, dreams roll-up
+icon: 📊
+
+filters:
+  and:
+    - 'file.ext == "md"'
+    - 'period == "quarterly"'
+    - or:
+        - 'file.path contains "_templates_periodos"'
+        - 'file.path contains "_templates_periodos_v2"'
+
+formulas:
+  teste_fogo_avg: 'mean(rows.verdict_score) ?? 0'
+  ikigai_delta: '(ikigai_score_fim - ikigai_score_inicio) ?? 0'
+  proportionality_5x3x3: 'if(verdict_score >= 0.70, "ON_TARGET", if(verdict_score >= 0.50, "PARTIAL", "OFF_TARGET"))'
+  dream_count: 'length(file.tasks)'
+  policy_color: 'if(policy_recommendation == "push", "🟢", if(policy_recommendation == "maintain", "🟡", if(policy_recommendation == "reduce", "🟠", "🔴")))'
+
+properties:
+  period:
+    displayName: Period
+  date_start:
+    displayName: Start
+  date_end:
+    displayName: End
+  verdict:
+    displayName: Verdict
+  verdict_score:
+    displayName: Score
+  ikigai_vector:
+    displayName: IKIGAi
+  policy_recommendation:
+    displayName: Policy
+  ikigai_score_inicio:
+    displayName: IKIGAi Start
+  ikigai_score_fim:
+    displayName: IKIGAi End
+  formula.teste_fogo_avg:
+    displayName: Teste de Fogo Avg
+  formula.ikigai_delta:
+    displayName: IKIGAi Delta
+  formula.proportionality_5x3x3:
+    displayName: 5x3x3 Status
+
+views:
+  - type: table
+    name: All Quarters
+    order:
+      - file.name
+      - date_start
+      - date_end
+      - verdict
+      - verdict_score
+      - formula.teste_fogo_avg
+      - ikigai_vector
+      - formula.policy_color
+      - policy_recommendation
+    sort:
+      - property: date_start
+        direction: DESC
+
+  - type: cards
+    name: Active Quarter
+    filters:
+      and:
+        - 'status == "active"'
+        - 'verdict == "ACTIVE"'
+    order:
+      - file.name
+      - date_start
+      - date_end
+      - verdict_score
+      - formula.proportionality_5x3x3
+      - policy_recommendation
+    groupBy:
+      property: ikigai_vector
+      direction: ASC
+
+  - type: table
+    name: 5x3x3 Proportionality Heatmap
+    filters:
+      and:
+        - 'verdict_score != null'
+    order:
+      - file.name
+      - verdict_score
+      - formula.teste_fogo_avg
+      - formula.proportionality_5x3x3
+    groupBy:
+      property: proportionality_5x3x3
+      direction: ASC
+

@@ -1,0 +1,2 @@
+YAML OK. Keys: ['date_end', 'date_start', 'entity_type', 'id', 'ikigai_cluster', 'ikigai_score_fim', 'ikigai_score_inicio', 'ikigai_vector', 'parent_period', 'period', 'sonho_id', 'status', 'tags', 'template_role', 'template_version', 'type', 'vault_hash', 'vault_path', 'verdict', 'verdict_score']
+Required: True

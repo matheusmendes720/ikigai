@@ -1,0 +1,3 @@
+VALID: PASS 0.85
+STRICT_MODE_OK: ValidationError
+VERDICT_CHECK_OK: ValidationError

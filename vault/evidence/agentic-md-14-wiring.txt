@@ -1,0 +1,6 @@
+
+.claude\skills\quarterly-planner\workflows\correction-protocol.yml:31:    spec: .claude/agents/swarm/mesh-coordinator.md
+.claude\skills\quarterly-planner\workflows\dream-falsification.yml:36:    spec: .claude/agents/consensus/quorum-manager.md
+.claude\skills\quarterly-planner\workflows\quarterly-replan.yml:40:    spec: .claude/agents/swarm/hierarchical-coordinator.md
+.claude\skills\quarterly-planner\workflows\test-de-fogo-rollup.yml:38:    spec: .claude/agents/swarm/adaptive-coordinator.md
+

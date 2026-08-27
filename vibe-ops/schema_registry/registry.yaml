@@ -16,6 +16,55 @@ domains:
             status: "draft"
             breaking_changes: ["Adição de metric_id obrigatório em v2"]
 
+  job_applying:
+    owner: "matheus"
+    products:
+      job_applying_pipeline:
+        versions:
+          "1.0.0":
+            contract_path: "contracts/job_applying_v1.json"
+            status: "active"
+            pydantic_models: ["JobApplying"]
+            slas:
+              freshness: "4h"
+              availability: "99.5%"
+            stats:
+              total_jobs: 1483
+              snapshot_ts: "2026-08-26T00:00:00Z"
+              tier_b_eligible: 36
+              tier_c_generated: 1443
+              avg_score: 0.46
+              remote_pct: 4.8
+              top_sources:
+                telegram: 1162
+                hnjobs: 245
+                linkedin: 74
+              top_archetypes:
+                ml-ai-engineer: 9
+                ai-platform-llmops: 7
+                data-engineer: 6
+                agentic-ai-engineer: 5
+              ultracode_top10:
+                - "[1.00] Agentic Software Engineer (GitHub Copilot) - FullStack"
+                - "[1.00] Engenheiro de Soluções de IA - BairesDev"
+                - "[1.00] Engenheiro de Machine Learning Sênior - BairesDev"
+                - "[1.00] AI Machine Learning Engineer - FullStack"
+                - "[1.00] Engenheiro ML - BairesDev"
+                - "[1.00] Engenheiro de Machine Learning Sênior - BairesDev"
+                - "[1.00] Engenheiro de Software (Treinamento de IA) - Alignerr"
+                - "[1.00] Engenheiro de Big Data - BairesDev"
+                - "[0.95] Senior AI Engineer (Google ADK + Python) - FullStack"
+                - "[0.95] Senior AI-Native Engineering Lead - FullStack"
+      job_applying_stats:
+        versions:
+          "1.0.0":
+            contract_path: "contracts/job_applying_stats_v1.json"
+            status: "active"
+            pydantic_models: ["JobApplyingStats"]
+            slas:
+              freshness: "4h"
+              availability: "99.5%"
+
   development:
     owner: "software_architect"
     products:

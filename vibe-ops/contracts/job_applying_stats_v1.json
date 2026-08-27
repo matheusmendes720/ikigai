@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JobApplyingStats Contract v1",
+  "description": "Contrato de dados para métricas operacionais do pipeline de aplicação a vagas.",
+  "type": "object",
+  "properties": {
+    "entity_type": { "type": "string", "const": "job_applying_stats" },
+    "snapshot_id": { "type": "string", "pattern": "^jas_[a-z0-9_]+$" },
+    "snapshot_ts": { "type": "string", "format": "date-time" },
+    "pipeline_stats": {
+      "type": "object",
+      "properties": {
+        "total_jobs": { "type": "integer" },
+        "new_jobs_24h": { "type": "integer" },
+        "tier_b_eligible": { "type": "integer" },
+        "tier_c_generated": { "type": "integer" },
+        "tier_b_generated": { "type": "integer" },
+        "avg_score": { "type": "number" },
+        "median_score": { "type": "number" }
+      }
+    },
+    "by_source": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
+    "by_status": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
+    "by_archetype": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
+    "by_work_mode": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
+    "top_companies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "company": { "type": "string" },
+          "count": { "type": "integer" }
+        }
+      }
+    },
+    "top_skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "skill": { "type": "string" },
+          "count": { "type": "integer" }
+        }
+      }
+    },
+    "ultracode": {
+      "type": "object",
+      "properties": {
+        "apply_first_count": { "type": "integer" },
+        "apply_week_count": { "type": "integer" },
+        "apply_later_count": { "type": "integer" },
+        "top10": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "rank": { "type": "integer" },
+              "score": { "type": "number" },
+              "role": { "type": "string" },
+              "company": { "type": "string" },
+              "archetype": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "pipeline_health": {
+      "type": "object",
+      "properties": {
+        "tier_a_last_run": { "type": "string" },
+        "tier_b_last_run": { "type": "string" },
+        "tier_c_last_run": { "type": "string" },
+        "scrape_4h_status": { "type": "string", "enum": ["ok", "degraded", "down"] },
+        "linkedin_scrape_4h_status": { "type": "string", "enum": ["ok", "degraded", "down"] },
+        "telegram_scrape_4h_status": { "type": "string", "enum": ["ok", "degraded", "down"] }
+      }
+    }
+  },
+  "required": ["entity_type", "snapshot_id", "snapshot_ts", "pipeline_stats"]
+}

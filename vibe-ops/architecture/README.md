@@ -20,6 +20,7 @@
 | ADR-003 | IKIGAi as Meta-Brain | Proposta | 2026-06-05 | ~280 | [`ADR-003-ikigai-as-meta-brain.md`](ADR-003-ikigai-as-meta-brain.md) |
 | ADR-004 | Hybrid RAG Strategy | Proposta | 2026-06-05 | ~250 | [`ADR-004-hybrid-rag-strategy.md`](ADR-004-hybrid-rag-strategy.md) |
 | ADR-005 | Data Mesh Topology | Proposta | 2026-06-05 | ~250 | [`ADR-005-data-mesh-topology.md`](ADR-005-data-mesh-topology.md) |
+| ADR-006 | Period Reports Schema | Aceita | 2026-06-26 | ~340 | [`ADR-006-period-reports-schema.md`](ADR-006-period-reports-schema.md) |
 
 ## Princípios Arquiteturais (consolidados de ADR-001 §2.1)
 

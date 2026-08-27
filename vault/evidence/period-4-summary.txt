@@ -1,0 +1,37 @@
+==================================================
+PERIOD-REPORTS-SYNC T4 — CLI Commands Verification
+==================================================
+
+[1] sync sub-typer registration:
+    PASS - vault, list, hierarchy commands visible
+
+[2] state migrate registration:
+    PASS - --db and --json options visible
+
+[3] sync vault pipeline:
+    PASS - ingested=1 errors=0
+
+[4] sync list:
+    PASS - count=1 first_id=test-sonho
+
+[5] sync hierarchy:
+    PASS - sonho_id=test-sonho count=1
+
+[6] state migrate (cold):
+    PASS - applied=['001_initial']
+
+[7] state migrate idempotency:
+    PASS - second run applied=[]
+
+[8] sync vault idempotency:
+    PASS - second run skipped=1 ingested=0
+
+[9] sync list --period filter:
+    PASS - filtered count=1
+
+[10] non-JSON output:
+    PASS - text output contains id
+
+==================================================
+ALL 10 SCENARIOS PASS
+==================================================

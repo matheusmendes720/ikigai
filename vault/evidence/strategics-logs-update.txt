@@ -1,0 +1,33 @@
+# Evidence: strategics-logs-update
+
+**Date:** 2026-06-30
+**Operation:** Append Commit Log and Session Log to 00-ÍNDICE-PROGRESSIVO.md
+
+## Files Modified
+
+- `strategics/00-ÍNDICE-PROGRESSIVO.md` (+23 lines)
+
+## Commit
+
+```
+git add strategics/00-ÍNDICE-PROGRESSIVO.md
+git commit -m "docs(strategics): append commit + session log for central engine integration"
+```
+
+**Result:** Commit successful (`c3cfbc3`)
+
+## Sections Added
+
+### Commit Log
+- 2026-06-30 — Central Engine Integration
+  - planning-with-files v3.1.3 cloned to strategics/planning-with-files/
+  - Index, policy docs, and 5 theory docs updated
+  - Commits recorded: ebf049d (index), next commit (theory docs)
+  - Update policy documented
+
+### Session Log
+- 2 boulders closed (period-reports-sync + agentic-markdown-system), 91 evidence files
+- planning-with-files repo cloned to strategics/ as central engine
+- Routes updated across 8 strategics docs
+- Current HEAD: ebfoo49d62baac43e7b3c6b9000967fc92cfb951c
+- Next available plans: vault-bidirectional-sync.md, pav-tui-textualize.md

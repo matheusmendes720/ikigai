@@ -1,0 +1,146 @@
+F3 CLI BRIDGE FIX VERIFICATION
+Date: 2026-06-30
+Tester: F3 (Real Manual QA Tester)
+
+Before fix: ImportError: attempted relative import with no known parent package
+Fix applied: commit a09d9ec — changed plan_cmd.py to use 'python -m agents.pae_maintainer'
+(module mode) instead of 'python script.py' (script mode).
+After fix: PARTIAL (direct CLI works; operational CLI bridge still broken)
+
+=========================================================
+STEP 1 — Direct CLI: pae_maintainer run --cycle-id fix-test
+=========================================================
+CWD: life (repo root)
+PYTHONPATH: life-ops/operational/packages/core/src;vibe-ops/src/agents;vibe-ops/src
+CMD: python -m agents.pae_maintainer run --cycle-id fix-test --once
+OUTPUT:
+  PAE cycle 'fix-test' completed:
+    iteration:    3
+    last_step:    commit
+    balancer:     UNDERLOAD
+    qhe_score:    0.65
+    terminated:   False
+RESULT: PASS (exit 0, expected output produced)
+
+=========================================================
+STEP 2 — Direct CLI status / balance
+=========================================================
+CMD: python -m agents.pae_maintainer status --cycle-id fix-test
+OUTPUT:
+  Cycle: fix-test (2026-06-30 to 2027-12-31)
+    iteration:    3
+    last_step:    commit
+    balancer:     UNDERLOAD
+    qhe_score:    0.65
+    active_nodes: 0
+    terminated:   False
+RESULT: PASS
+
+CMD: python -m agents.pae_maintainer balance --cycle-id fix-test
+OUTPUT:
+  Balance check for cycle fix-test:
+    workload:    0.0h
+    capacity:     8.0h
+    qhe_score:    0.65
+    state:        UNDERLOAD
+    reason:       workload 0.00h < 0.5x capacity 8.00h
+    histerese:    1 day(s) — pending
+RESULT: PASS
+
+=========================================================
+STEP 3 — Operational CLI bridge (pav plan run/status/balance)
+=========================================================
+CWD: life-ops/operational
+
+ISSUE 1 — app.py has no 'if __name__ == "__main__":' guard.
+CMD: python -m operational.cli.app plan run --cycle-id fix-test2
+OUTPUT: <empty>
+EXIT: 0 (Typer never invoked)
+Same for 'plan status' and 'plan balance': all return exit 0 with no output.
+
+ISSUE 2 — Bridge subprocess fails due to namespace collision.
+When invoked through app() (forcing Typer to run), plan_cmd.py calls
+subprocess.run([sys.executable, '-m', 'agents.pae_maintainer', ...]).
+The subprocess PYTHONPATH includes 'vibe-ops/src/agents' (correct),
+but cwd 'life-ops/operational' adds itself as sys.path[0] (empty string).
+A CONFLICTING PACKAGE exists at life-ops/operational/agents/
+(contains harness/, orchestrator/, workflows/, __init__.py — verified).
+Python resolves 'agents' to the local one BEFORE the PYTHONPATH entry,
+shadowing vibe-ops/src/agents.pae_maintainer.
+
+Direct verification of the shadow:
+  >>> import agents; agents.__file__
+  'C:\Users\mathe\code_space\life-oss\life\life-ops\operational\agents\__init__.py'
+  >>> import agents.pae_maintainer
+  ModuleNotFoundError: No module named 'agents.pae_maintainer'
+
+Subprocess stderr from plan_cmd.py.invoke():
+  C:\Python314\python.exe: No module named agents.pae_maintainer
+  2026-06-30T15:00:36Z [error] plan.run.failed  duration_ms=265.15
+  ==> SystemExit(1)
+
+RESULT for step 3:
+  - pav plan run --cycle-id fix-test2:    FAIL (silent no-op via 'python -m', or SystemExit(1) via app())
+  - pav plan status --cycle-id fix-test2: FAIL (silent no-op via 'python -m')
+  - pav plan balance --cycle-id fix-test2: FAIL (silent no-op via 'python -m')
+
+ROOT-CAUSE ANALYSIS:
+  The a09d9ec fix switched from script-mode to module-mode invocation.
+  This DOES resolve the 'attempted relative import with no known parent
+  package' error that occurred because main.py uses '.state', '.graph',
+  '.nodes' relative imports.
+  But the fix did NOT address:
+  (a) Missing __main__ guard in app.py (no Typer invocation on 'python -m')
+  (b) Local 'agents/' package at life-ops/operational/agents/ shadowing
+      vibe-ops/src/agents/ when invoked from operational cwd.
+  Required additional fix: either rename one of the conflicting packages
+  (e.g. 'vibe_agents'), or set PYTHONPATH in a way that prepends vibe-ops/src
+  with absolute path BEFORE subprocess starts, or use sys.executable with
+  a '-I' flag to isolate path.
+
+=========================================================
+STEP 4 — E2E tests (pytest vibe-ops/tests/e2e/)
+=========================================================
+CMD: python -m pytest vibe-ops/tests/e2e/ -v --tb=short
+RESULT: 12 passed in 0.75s (875 warnings — non-fatal deprecation about
+         datetime.utcnow() in pae_maintainer/state.py and graph.py)
+All 12 tests passed:
+  - test_pae_q1_2026.py: 11 PASSED
+  - test_period_reports_full_cycle.py: 1 PASSED
+RESULT: PASS
+
+=========================================================
+SUMMARY (per format spec)
+=========================================================
+
+F3 CLI BRIDGE FIX VERIFICATION
+
+Before fix: ImportError: attempted relative import with no known parent package
+After fix: PARTIAL (only direct CLI invocation works)
+
+Direct CLI:
+- pae_maintainer run --cycle-id fix-test: PASS
+- pae_maintainer status --cycle-id fix-test: PASS
+- pae_maintainer balance --cycle-id fix-test: PASS
+
+Operational CLI bridge:
+- pav plan run --cycle-id fix-test2: FAIL
+- pav plan status --cycle-id fix-test2: FAIL
+- pav plan balance --cycle-id fix-test2: FAIL
+
+E2E test:
+- pytest e2e/: PASS (12 passed, 0 failed)
+
+VERDICT: REJECT
+
+Reason: The fix in commit a09d9ec addressed the originally reported error
+(relative import from script mode). Direct CLI invocations of pae_maintainer
+now work, and E2E tests pass. However, the operational CLI bridge
+(`pav plan run/status/balance`) is still broken due to TWO pre-existing
+issues that the fix did not address:
+(1) apps/cli/src/operational/cli/app.py lacks 'if __name__ == "__main__":'
+    so 'python -m operational.cli.app' silently exits 0 without invoking Typer.
+(2) life-ops/operational/agents/ package shadows vibe-ops/src/agents/
+    when subprocess is launched from life-ops/operational/ cwd.
+These two issues together mean the new T11 subcommand (pav plan ...)
+cannot be exercised from the operational CLI surface.
