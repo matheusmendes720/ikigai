@@ -340,41 +340,30 @@ async def _call_tool(ctx, params) -> CallToolResult:
 
             # Persist final state to plan_entities.db for ikigai_sync_vault
             try:
+                from ikigai.propagation.sqlite_adapter import SQLiteAdapter
+
                 plan_db = Path.home() / ".ikigai" / "plan_entities.db"
-                plan_db.parent.mkdir(parents=True, exist_ok=True)
-                conn = sqlite3.connect(str(plan_db))
-                cur = conn.cursor()
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS plan_entities (
-                        cycle_id TEXT PRIMARY KEY,
-                        regime TEXT,
-                        q_he REAL,
-                        passion REAL, skill REAL, market REAL, revenue REAL, course REAL,
-                        meta_vector REAL,
-                        corrections TEXT,
-                        created_at TEXT
-                    )
-                """)
+                adapter = SQLiteAdapter(db_path=plan_db)
+
+                cycle_id = final.get("cycle_id")
+                created_at = dt.datetime.now().isoformat()
+                ueid = f"cycle:{cycle_id}"
                 vs = final.get("vector_scores", {})
-                cur.execute("""
-                    INSERT OR REPLACE INTO plan_entities
-                    (cycle_id, regime, q_he, passion, skill, market, revenue, course, meta_vector, corrections, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    final.get("cycle_id"),
-                    final.get("regime_state"),
-                    final.get("q_he_score"),
-                    vs.get("passion"),
-                    vs.get("skill"),
-                    vs.get("market"),
-                    vs.get("revenue"),
-                    vs.get("course"),
-                    final.get("meta_vector_score"),
-                    json.dumps(final.get("corrections", [])),
-                    dt.datetime.now().isoformat(),
-                ))
-                conn.commit()
-                conn.close()
+
+                adapter.upsert(
+                    ueid=ueid,
+                    entity_type="cycle",
+                    slug=cycle_id,
+                    title=f"Cycle {cycle_id}",
+                    description=f"Regime: {final.get('regime_state')}, Q_HE: {final.get('q_he_score')}",
+                    status="ACTIVE",
+                    created_at=created_at,
+                    updated_at=created_at,
+                    ikigai_vectors=vs,
+                    primary_score=final.get("q_he_score"),
+                    regime_at_creation=final.get("regime_state"),
+                    custom={"corrections": final.get("corrections", []), "meta_vector": final.get("meta_vector_score")},
+                )
             except Exception:
                 pass  # non-fatal
 

@@ -63,56 +63,30 @@ def _write_to_sqlite(
     meta_vector: float,
     corrections: list[dict],
 ) -> str:
-    """Write cycle record to plan_entities SQLite table."""
+    """Write cycle record to plan_entities SQLite table via SQLiteAdapter."""
     try:
-        import sqlite3
+        from ikigai.propagation.sqlite_adapter import SQLiteAdapter
+
         db_path = Path.home() / ".ikigai" / "plan_entities.db"
-        db_path.parent.mkdir(parents=True, exist_ok=True)
+        adapter = SQLiteAdapter(db_path=db_path)
 
-        conn = sqlite3.connect(str(db_path))
-        cursor = conn.cursor()
+        created_at = dt.datetime.now().isoformat()
+        ueid = f"cycle:{cycle_id}"
 
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS plan_entities (
-                cycle_id TEXT,
-                regime TEXT,
-                q_he REAL,
-                passion REAL,
-                skill REAL,
-                market REAL,
-                revenue REAL,
-                course REAL,
-                meta_vector REAL,
-                corrections TEXT,
-                created_at TEXT
-            )
-            """
+        adapter.upsert(
+            ueid=ueid,
+            entity_type="cycle",
+            slug=cycle_id,
+            title=f"Cycle {cycle_id}",
+            description=f"Regime: {regime}, Q_HE: {q_he}",
+            status="ACTIVE",
+            created_at=created_at,
+            updated_at=created_at,
+            ikigai_vectors=vector_scores,
+            primary_score=q_he,
+            regime_at_creation=regime,
+            custom={"corrections": corrections, "meta_vector": meta_vector},
         )
-
-        cursor.execute(
-            """
-            INSERT INTO plan_entities
-            (cycle_id, regime, q_he, passion, skill, market, revenue, course, meta_vector, corrections, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                cycle_id,
-                regime,
-                q_he,
-                vector_scores.get("passion", 0.0),
-                vector_scores.get("skill", 0.0),
-                vector_scores.get("market", 0.0),
-                vector_scores.get("revenue", 0.0),
-                vector_scores.get("course", 0.0),
-                meta_vector,
-                __import__("json").dumps(corrections),
-                dt.datetime.now().isoformat(),
-            ),
-        )
-
-        conn.commit()
-        conn.close()
         return f"ok (cycle={cycle_id})"
     except Exception as e:
         return f"error: {e}"
