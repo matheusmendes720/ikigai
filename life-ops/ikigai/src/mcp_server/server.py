@@ -653,6 +653,8 @@ _TOOL_DISPATCH: dict[str, callable] = {
     "ikigai_plan_cycle": _handle_ikigai_plan_cycle,
     "ikigai_checkpoint": _handle_ikigai_checkpoint,
     "ikigai_sync_vault": _handle_ikigai_sync_vault,
+    "ikigai_write_tasks": _write_tasks_to_data,
+    "ikigai_read_tasks": _read_tasks_from_data,
 }
 
 
