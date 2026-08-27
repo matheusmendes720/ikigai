@@ -1,0 +1,137 @@
+F3 REAL MANUAL QA
+
+Date: 2026-06-30
+Target: agentic-markdown-system plan (T11/T12)
+
+==================================================================
+Scenarios [5/6]:
+- [PASS] Full E2E test passes
+       12/12 tests passed in vibe-ops/tests/e2e/
+       (test_pae_q1_2026.py: 11 tests, test_period_reports_full_cycle.py: 1 test)
+       Command: python -m pytest vibe-ops/tests/e2e/ -v --tb=short
+       Result: "12 passed, 875 warnings in 0.82s"
+
+- [PASS] CLI pae_maintainer run works
+       Command: python -m agents.pae_maintainer run --dry-run --once
+       Output: "PAE cycle 'default-cycle' completed: iteration=1 last_step=commit balancer=UNDERLOAD qhe_score=0.65 terminated=False"
+
+- [PASS] CLI pae_maintainer status works
+       Command: python -m agents.pae_maintainer status --cycle-id test-cycle-002
+       Output: "Cycle: test-cycle-002 (2026-06-30 to 2027-12-31) iteration=1 last_step=commit balancer=UNDERLOAD qhe_score=0.65 active_nodes=0 terminated=False"
+       Note: Requires non-dry-run first to persist state. Status returns gracefully with "No state found" when cycle is missing (exit 0).
+
+- [PASS] CLI pae_maintainer balance works
+       Command: python -m agents.pae_maintainer balance --cycle-id test-cycle-002
+       Output: "Balance check for cycle test-cycle-002: workload=0.0h capacity=8.0h qhe_score=0.65 state=UNDERLOAD reason='workload 0.00h < 0.5x capacity 8.00h' histerese=1 day(s) - pending"
+
+- [FAIL] Operational pav plan integration works
+       Command: PYTHONPATH=apps/cli/src;packages/core/src python -m operational.cli.app plan --help
+       CLI surface exists: run/status/balance subcommands registered.
+       BUG: actual command execution FAILS with ImportError:
+            "from .state import ( PAEState, )"
+            "ImportError: attempted relative import with no known parent package"
+       Root cause: vibe-ops/src/agents/pae_maintainer/main.py uses RELATIVE imports
+            (`.state`, `.graph`, `.nodes`) but apps/cli/src/operational/cli/commands/plan_cmd.py
+            invokes it as a script via `python _PAE_MAINTAINER_SCRIPT` (line 62), not as
+            `python -m agents.pae_maintainer`. Script-mode invocation cannot resolve relative imports.
+       Standalone CLI (`python -m agents.pae_maintainer run`) WORKS because module-mode is correct.
+       Impact: `pav plan run/status/balance` are completely non-functional. The bridge between
+            operational and pae_maintainer is broken at the subprocess invocation layer.
+       Fix: Either (a) change plan_cmd.py to invoke `python -m agents.pae_maintainer ...`, OR
+            (b) refactor pae_maintainer/main.py to use absolute imports + add sys.path bootstrap.
+
+- [PASS] All 9 templates importable
+       Templates dir: vibe-ops/planning/_templates_periodos_v2/
+       All 9 templates + 1 RELEASE-NOTES have valid YAML frontmatter:
+         00-quartely-planning.md  OK
+         01-sonho.md              OK
+         02-avaliacao-trimestral.md OK
+         03-onda.md               OK
+         04-revisao-semanal.md    OK
+         05-relatorio-diario.md   OK
+         06-quartely-review.md    OK
+         07-sprint-kickoff.md     OK
+         08-sprint-retrospective.md OK
+         RELEASE-NOTES.md         OK
+       Validation: yaml.safe_load(frontmatter) succeeds for all 10 .md files.
+
+==================================================================
+Integration [2/3]:
+- [PASS] Template -> Agent flow
+       All 9 period templates parse cleanly via frontmatter/YAML.
+       Templates encode sonho->onda->weekly->daily hierarchy that matches
+       the fixture in test_pae_q1_2026.py (1 sonho + 3 ondas + 12 weeklies + 21 dailies).
+
+- [FAIL] Agent -> CLI bridge
+       pae_maintainer/main.py uses relative imports but is invoked as a script
+       by pav plan bridge. This is a wiring defect, not a logic defect.
+       See "Operational pav plan integration works" failure above.
+
+- [PASS] CLI -> DB persistence
+       Status command successfully restores state after non-dry-run persist:
+       - run --once -> writes to vibe_ops.db
+       - status -> restores from vibe_ops.db
+       - balance -> uses restored state
+       SQLite path ./vibe_ops.db created on demand when missing (edge case 1).
+
+==================================================================
+Edge Cases [4/4]:
+- [PASS] Missing DB path (auto-create)
+       Removed pre-existing test_edge_db.db, ran:
+       python -m agents.pae_maintainer run --once --cycle-id edge-missing-db --db test_edge_db.db
+       DB auto-created (12288 bytes), cycle completed successfully.
+
+- [PASS] Invalid cycle_id (graceful handling)
+       Tested with special chars: "invalid cycle id with spaces and !@#$%^"
+       Tested with empty string: ""
+       Both ran without error. No input validation enforced but no crash either.
+       Status for nonexistent cycle_id returns "No state found" message and exit 0
+       (minor: prints error message but exits 0 - inconsistent but not broken).
+
+- [PASS] Extreme workload (OVERLOAD trigger)
+       workload=50.0h vs capacity=8.0h -> state=OVERLOAD
+       Cycle result: kill_switch_triggered=True, terminated=True, last_step=commit_skipped_overload
+       Confirmed via E2E test test_overload_triggers_kill_switch + manual reproduction.
+
+- [PASS] Daemon loop (3 cycles)
+       3 cycles executed via execute_pae_maintainer_once():
+         cycle 1: balancer=UNDERLOAD qhe=0.65
+         cycle 2: balancer=UNDERLOAD qhe=0.65
+         cycle 3: balancer=UNDERLOAD qhe=0.65
+       Underlying loop logic works correctly.
+       CLI daemon command (python -m agents.pae_maintainer daemon --interval 1) is harder
+       to verify on Windows due to subprocess interruption semantics, but the API it calls
+       is verified working.
+
+==================================================================
+SUMMARY
+
+Total scenarios: 6
+Passed:          5
+Failed:          1 (pav plan integration broken)
+
+Critical finding: The pav plan bridge in
+  life-ops/operational/apps/cli/src/operational/cli/commands/plan_cmd.py
+invokes pae_maintainer via direct script path instead of module mode, but
+  vibe-ops/src/agents/pae_maintainer/main.py
+uses relative imports that REQUIRE module-mode invocation.
+
+This blocks the T11 deliverable's "operational integration" milestone.
+
+The pae_maintainer agent itself works correctly when invoked properly
+(verified via E2E tests + direct module invocation). The defect is purely
+in the subprocess invocation pattern in plan_cmd.py.
+
+VERDICT: REJECT
+
+Reason: agentic-markdown-system T11 integration with operational CLI is non-functional.
+The pav plan run/status/balance commands crash with ImportError on first use.
+This must be fixed before approval.
+
+Recommendation:
+  Fix in plan_cmd.py line 60-65: change from
+    full_args = [sys.executable, str(_PAE_MAINTAINER_SCRIPT), cmd, *args]
+  to
+    full_args = [sys.executable, "-m", "agents.pae_maintainer", cmd, *args]
+  (with appropriate working directory or PYTHONPATH adjustment so that
+  "agents.pae_maintainer" resolves from vibe-ops/src).

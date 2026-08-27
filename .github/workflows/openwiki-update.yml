@@ -1,0 +1,82 @@
+name: OpenWiki Update
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub schedules use UTC; 08:00 UTC = 05:00 BRT (São Paulo).
+    - cron: "0 8 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          # Full history so `openwiki code --update` can diff HEAD against the
+          # commit it last documented; a shallow clone hides that commit and the
+          # update runs against an empty change summary.
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install OpenWiki
+        # mermaid + jsdom are optional but recommended — they add high-fidelity
+        # validation of Mermaid diagrams so no broken diagram ever ships.
+        run: npm install --global openwiki mermaid@11.16.0 jsdom@29.1.1
+
+      - name: Run OpenWiki (code mode, update)
+        run: openwiki code --update --print
+        env:
+          # ---- Provider: Anthropic-compatible (MiniMax gateway) ----
+          OPENWIKI_PROVIDER: anthropic
+          ANTHROPIC_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
+          OPENWIKI_MODEL_ID: MiniMax-M2.7-highspeed
+
+          # ---- LangSmith tracing (required per user request) ----
+          OPENWIKI_LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+          LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+          LANGSMITH_TRACING: "true"
+          LANGSMITH_PROJECT: algorithmic-life-os-openwiki
+          LANGCHAIN_TRACING_V2: "true"
+          LANGCHAIN_PROJECT: algorithmic-life-os-openwiki
+
+          # ---- Telemetry off in CI ----
+          OPENWIKI_TELEMETRY_DISABLED: "1"
+
+      - name: Export visualizer (static, for GitHub Pages)
+        if: success()
+        run: |
+          mkdir -p docs/openwiki-visualizer
+          openwiki visualize openwiki --export docs/openwiki-visualizer --no-open
+
+      - name: Create OpenWiki update pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: |
+            openwiki
+            AGENTS.md
+            CLAUDE.md
+            docs/openwiki-visualizer
+            .github/workflows/openwiki-update.yml
+          branch: openwiki/update
+          commit-message: "docs: update OpenWiki"
+          title: "docs: update OpenWiki"
+          body: |
+            Automated OpenWiki regeneration.
+
+            - **Provider:** Anthropic-compatible (MiniMax gateway, `MiniMax-M2.7-highspeed`)
+            - **LangSmith:** tracing enabled, project `algorithmic-life-os-openwiki`
+            - **Visualizer:** exported to `docs/openwiki-visualizer/` for GitHub Pages
+
+            Review the diff and merge if the wiki changes look correct.
+            On merge, GitHub Pages will pick up the new visualizer automatically.

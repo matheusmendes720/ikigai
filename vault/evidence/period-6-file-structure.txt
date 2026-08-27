@@ -1,0 +1,53 @@
+Integration tests for PeriodReportSync - File Structure
+=======================================================
+
+Date: 2026-06-26
+Task: T6 of period-reports-sync plan
+Source: .omo/plans/period-reports-sync.md
+
+Files Created:
+-------------
+1. vibe-ops/tests/integration/__init__.py
+   - Empty init file (5 bytes)
+
+2. vibe-ops/tests/integration/test_period_sync.py
+   - 9 integration tests for PeriodReportSync
+   - Uses real SQLite + real parser (no mocks)
+   - tmp_path fixtures for vault and DB
+
+Test Coverage:
+--------------
+TestPeriodReportSync class with 9 tests:
+1. test_migration_applies_on_init
+   - Verifies _ensure_migration() creates period_reports table on init
+2. test_sync_ingests_all_valid_reports_first_pass
+   - First sync: 3 valid reports ingested, 1 orphan, broken.md filtered (None)
+3. test_idempotent_re_sync
+   - Re-running sync with no changes skips all 3 valid reports
+4. test_get_period_hierarchy
+   - Returns nested tree: sonho → Q1 → week-01
+5. test_broken_yaml_does_not_abort
+   - Broken file does not block other valid files from ingesting
+6. test_missing_vault_folder_records_error
+   - Missing _templates_periodos/ records 1 error
+7. test_update_existing_report
+   - Documents implementation behavior: id-based idempotency check
+     causes modifications (same id, different content) to NOT propagate
+8. test_new_id_with_modified_content_is_ingested
+   - New id bypasses the id-based skip; new record is created
+9. test_sync_db_to_vault_is_noop
+   - Reverse sync returns empty PeriodSyncStats (no-op for v1.1)
+
+Test Results:
+-------------
+9 passed, 1 warning (PytestUnknownMarkWarning for `integration` mark)
+Execution time: ~0.5s
+No mocks used — real sqlite3, real frontmatter parser, real filesystem
+
+Known Implementation Behaviors Documented:
+-------------------------------------------
+1. parse_file() returning None → sync does `continue` without incrementing
+   any counter (broken.md silently filtered out, skipped stays at 0)
+2. _fetch_existing(vault_hash, id) uses OR semantics: once an id is in DB,
+   re-sync always skips regardless of vault_hash change. Modifications to
+   existing records are NOT auto-propagated (workaround: use new id)

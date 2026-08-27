@@ -1,0 +1,4 @@
+Happy: last_step=commit, balancer=OK, terminated=False
+Overload: last_step=commit_skipped_overload, kill_switch=True, terminated=True
+Roundtrip: restored cycle_id=test-cycle-1
+GRAPH_OK

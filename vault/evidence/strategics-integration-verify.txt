@@ -1,0 +1,47 @@
+CENTRAL ENGINE INTEGRATION VERIFICATION
+========================================
+
+Target: 8 strategics docs
+Generated: 2026-06-30
+
+FILE-BY-FILE PRESENCE (grep -c "Central Engine")
+-------------------------------------------------
+[✓] Modelagem Operacional.md                                 : 1
+[✗] Planejamento (Estratégico e Tático).md                   : 0
+[✗] Hierarquia de Objetivos.md                                : 0
+[✗] Desempenho Subjacente.md                                  : 0
+[✗] Integracao_Tatica.md                                     : 0
+[✗] Análise (Tático e Operacional).md                        : 0
+[✓] system_architecture_and_tracking_framework.md            : 1
+[✓] design_system_and_knowledge_tracking.md                  : 1
+
+Summary: 3/8 files contain the "Central Engine" reference.
+
+Other strategics/*.md files (out of target list of 8):
+- 00-ÍNDICE-PROGRESSIVO.md                                    : 1  (not in 8-file target)
+
+PLAN FILE PATH
+--------------
+strategics/planning-with-files/skills/planning-with-files/SKILL.md  : PRESENT
+strategics/planning-with-files/                                     : PRESENT (clone)
+
+RECENT COMMITS (git log --oneline -5)
+-------------------------------------
+- ebf049d docs(strategics): add planning-with-files as central engine reference
+- a0d6630 fix(agentic-md): operational CLI bridge — add __main__ guard + fix PAE namespace shadowing
+- a09d9ec fix(agentic-md): use python -m module mode for pae_maintainer CLI bridge
+- 74ed70a docs(agentic-md): SPEC.md per Warp spec format
+- a70c39d feat(agentic-md): wire 4 agent specs from .claude/agents/
+
+FILES STILL MISSING THE REFERENCE (5)
+-------------------------------------
+- Planejamento (Estratégico e Tático).md
+- Hierarquia de Objetivos.md
+- Desempenho Subjacente.md
+- Integracao_Tatica.md
+- Análise (Tático e Operacional).md
+
+VERDICT
+-------
+INCOMPLETE — 5/8 strategics docs still lack the "Central Engine" reference.
+The planning-with-files clone and SKILL.md exist, but 5 target docs were not updated.

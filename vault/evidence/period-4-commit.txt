@@ -1,0 +1,6 @@
+error: cannot spawn .git/hooks/post-commit: No such file or directory
+[gitbutler/workspace 1c4ab61] feat(period-sync): CLI commands (sync vault|list|hierarchy) + state migrate
+ 5 files changed, 319 insertions(+)
+ create mode 100644 life-ops/operational/apps/cli/src/operational/cli/commands/sync_cmd.py
+ create mode 100644 vibe-ops/src/cli/__init__.py
+ create mode 100644 vibe-ops/src/cli/period_sync_cli.py

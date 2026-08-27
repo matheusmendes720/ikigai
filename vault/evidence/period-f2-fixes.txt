@@ -1,0 +1,155 @@
+================================================================================
+F2 (Code Quality Review) Fixes + F4 (Scope Fidelity) Gap - Evidence
+================================================================================
+Plan: .omo/plans/period-reports-sync.md
+Date: 2026-06-26
+Branch: gitbutler/workspace
+
+--------------------------------------------------------------------------------
+SUMMARY
+--------------------------------------------------------------------------------
+3 surgical fixes applied across 3 files. All F2 issues from the review fixed
+exactly as specified. F4 gap closed (hypothesis now in dev deps). No regressions:
+all 56 period-sync tests still pass.
+
+--------------------------------------------------------------------------------
+COMMITS (3 atomic commits)
+--------------------------------------------------------------------------------
+  307f5f0  fix(period-sync): add hypothesis to dev dependencies for T7 property tests
+  1dd462b  fix(period-sync): add type arguments to dict in _build_subtree
+  0f8c4c8  fix(period-sync): remove dead imports + noqa directive in operational entity
+  e7f53cd  (previous) docs(period-sync): SPEC.md per Warp spec format
+
+--------------------------------------------------------------------------------
+FIX 1: period_report.py (commit 0f8c4c8)
+--------------------------------------------------------------------------------
+File: life-ops/operational/packages/core/src/operational/entities/period_report.py
+Scope: F2 — Code Quality Review
+
+Changes:
+  - REMOVED  dead import: `from uuid import uuid4`                        (line 17)
+  - REMOVED  dead import: `field_validator` from pydantic import          (line 19)
+  - REMOVED  dead import: `from operational.enums import EnergyLevel`     (line 21)
+  - REMOVED  unused noqa directive `# noqa: TC001` (RUF100)              (line 21)
+  - FIXED    EM102 (f-string-in-exception) at lines 111, 116, 123
+  - FIXED    EM101 (string-literal-in-exception) at line 127
+             Applied codebase convention: msg = f"..."; raise ValueError(msg)
+             (matches packages/core/src/operational/constants.py:247 pattern)
+
+Diff:
+  -from uuid import uuid4
+  -
+  -from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+  -
+  -from operational.enums import EnergyLevel  # noqa: TC001
+  +from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+   allowed = _PERIOD_VERDICTS.get(self.period, set())
+   if self.verdict not in allowed:
+  -    raise ValueError(
+  +    msg = (
+           f"verdict {self.verdict!r} not allowed for period {self.period!r}. "
+           f"Allowed: {sorted(allowed)}"
+       )
+  +    raise ValueError(msg)
+
+   (similar msg = ...; raise ValueError(msg) for 3 more sites)
+
+--------------------------------------------------------------------------------
+FIX 2: period_sync.py (commit 1dd462b)
+--------------------------------------------------------------------------------
+File: vibe-ops/src/middleware/period_sync.py
+Scope: F2 — Code Quality Review (mypy UP006/UP007 generic-instead-of-dict)
+
+Change:
+  -    def _build_subtree(self, node: dict, nodes: dict) -> dict:
+  +    def _build_subtree(self, node: dict[str, Any], nodes: dict[str, Any]) -> dict[str, Any]:
+       """Recursively build child tree."""
+
+`Any` already imported at module top (line 18: `from typing import Any`).
+
+--------------------------------------------------------------------------------
+FIX 3: pyproject.toml (commit 307f5f0)
+--------------------------------------------------------------------------------
+File: vibe-ops/pyproject.toml
+Scope: F4 — Scope Fidelity Gap (T7 property tests need hypothesis)
+
+Change:
+   [dependency-groups]
+   dev = [
+       "pytest>=9.1.1",
+       "pytest-cov>=7.1.0",
+       "python-frontmatter>=1.1.0",
+  +    "hypothesis>=6.100,<7.0",
+   ]
+
+NOTE: Project uses PEP 735 [dependency-groups] (more modern than
+[project.optional-dependencies]). Preserved existing structure and pins;
+added only the missing hypothesis package.
+
+================================================================================
+F2 VERIFICATION: Ruff on operational
+================================================================================
+
+Command:
+  cd "C:\Users\mathe\code_space\life-oss\life\life-ops\operational"
+  uv run --with ruff ruff check packages/core/src/operational/entities/period_report.py apps/cli/src/operational/cli/commands/sync_cmd.py
+
+period_report.py: BEFORE 17 errors → AFTER 2 errors
+  REMAINING (out of F2 review scope):
+    - TC003  Move standard-library `datetime` into a TYPE_CHECKING block   (line 15)
+    - UP037  Remove quotes from type annotation "PeriodReport"             (line 90)
+
+  These two issues were NOT listed in the F2 review (see plan file) and
+  the task explicitly said: "Do NOT modify any other files" + the 4 listed
+  issues per file. Out of scope.
+
+sync_cmd.py: 7 errors (FBT001/FBT003 on boolean flags).
+  Per task instructions: "DO NOT FIX — accept as consistent style
+  (matches policy_cmd.py convention)."
+
+SUMMARY: All user-specified F2 issues fixed. Remaining 9 errors are either
+explicitly out of scope (FBT in sync_cmd.py) or were not in the F2 review
+scope (TC003/UP037 in period_report.py).
+
+================================================================================
+F2 VERIFICATION: mypy on period_sync.py
+================================================================================
+
+Command:
+  cd "C:\Users\mathe\code_space\life-oss\life\vibe-ops"
+  uv run --with pydantic --with mypy mypy src/middleware/period_sync.py --ignore-missing-imports
+
+Result: CLEAN (0 errors). Only an informational warning about
+"vibe-ops contains __init__.py but is not a valid Python package name"
+which is pre-existing and unrelated.
+
+================================================================================
+TEST VERIFICATION: 56/56 PASSING
+================================================================================
+
+Command:
+  cd "C:\Users\mathe\code_space\life-oss\life\vibe-ops"
+  uv run --with pydantic --with python-frontmatter --with pytest --with hypothesis \
+      python -m pytest tests/ -v --tb=short \
+      --ignore=tests/test_knowledge_telemetry.py \
+      --ignore=tests/test_mvl_orchestrator.py
+
+Result: ======================= 56 passed, 9 warnings in 1.50s =======================
+
+The 2 ignored test files have pre-existing collection errors
+(ModuleNotFoundError: No module named 'vibe_ops' — import path mismatch
+with package name 'vibe-ops'). Verified PRE-EXISTING by stashing my
+changes and re-running — same errors occur. Unrelated to F2 fixes.
+
+================================================================================
+COMPLIANCE WITH TASK CONSTRAINTS
+================================================================================
+[X] Did NOT change FBT pattern in sync_cmd.py (per "must NOT do")
+[X] Did NOT add new dependencies beyond hypothesis (only added hypothesis to dev)
+[X] Did NOT modify any other files (only the 3 listed)
+[X] Did NOT skip verification steps
+[X] Used Edit tool for surgical changes (not rewrite)
+[X] Verified each fix with the appropriate tool before moving on
+[X] All 56 period-sync tests still passing
+[X] Reported exact commit hashes (3 commits above)

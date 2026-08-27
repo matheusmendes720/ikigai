@@ -1,0 +1,238 @@
+============================================================
+PAE-Maintainer T11 Evidence — agentic-md-11-pae-cli.txt
+============================================================
+Date: 2026-06-30
+T11: PAE-Maintainer entry point + CLI integration
+Reference: .omo/plans/agentic-markdown-system.md
+Codebase commit: T10 done (2511d24)
+============================================================
+
+Files created (paths verified to exist):
+  - vibe-ops/src/agents/__init__.py (package marker)
+  - vibe-ops/src/agents/pae_maintainer/__main__.py (module entry)
+  - vibe-ops/src/agents/pae_maintainer/main.py (CLI entry with argparse)
+  - life-ops/operational/apps/cli/src/operational/cli/commands/plan_cmd.py (NEW Typer subcommand)
+
+Files modified:
+  - life-ops/operational/apps/cli/src/operational/cli/app.py (registered plan_app)
+
+============================================================
+TEST 1: Direct CLI invocation: python -m pae_maintainer --help
+============================================================
+usage: python.exe -m pae_maintainer [-h] {run,daemon,status,balance} ...
+
+PAE-Maintainer — Always-on strategic planning agent
+
+positional arguments:
+  {run,daemon,status,balance}
+    run                 Run one cycle
+    daemon              Run cycles in a loop
+    status              Show last persisted state
+    balance             Show balance node output
+
+options:
+  -h, --help            show this help message and exit
+
+============================================================
+TEST 2: python -m pae_maintainer run --help
+============================================================
+usage: python.exe -m pae_maintainer run [-h] [--db DB] [--cycle-id CYCLE_ID]
+                                        [--start START] [--end END]
+                                        [--dry-run] [--verbose] [--json]
+                                        [--once]
+
+options:
+  -h, --help           show this help message and exit
+  --db DB
+  --cycle-id CYCLE_ID
+  --start START
+  --end END
+  --dry-run            Run cycle in-memory only, skip DB checkpoint write.
+  --verbose, -v        Print additional diagnostic information.
+  --json
+  --once               Run exactly one cycle (default; explicit for clarity).
+
+============================================================
+TEST 3: python -m pae_maintainer run --dry-run --verbose (no DB write)
+============================================================
+[dry-run] no checkpoint written
+PAE cycle 't11-dry-test' completed:
+  iteration:    1
+  last_step:    commit
+  balancer:     UNDERLOAD
+  qhe_score:    0.65
+  terminated:   False
+  tier:         sonho
+  cycle_start:  2026-06-30
+  cycle_end:    2027-12-31
+
+After dry-run, DB file should NOT exist:
+False
+
+============================================================
+TEST 4: python -m pae_maintainer run (real, writes to DB)
+============================================================
+PAE cycle 't11-real' completed:
+  iteration:    1
+  last_step:    commit
+  balancer:     UNDERLOAD
+  qhe_score:    0.65
+  terminated:   False
+
+============================================================
+TEST 5: python -m pae_maintainer status --json
+============================================================
+{
+  "cycle_id": "t11-real",
+  "cycle_start": "2026-06-30",
+  "cycle_end": "2027-12-31",
+  "prospective": null,
+  "retrospective": null,
+  "balancer": {
+    "workload_estimate": 0.0,
+    "capacity_estimate": 8.0,
+    "qhe_score": 0.65,
+    "is_histerese_active": false,
+    "days_in_current_state": 1,
+    "state": "UNDERLOAD",
+    "reason": "workload 0.00h < 0.5x capacity 8.00h",
+    "overload_factor": 1.2,
+    "underload_factor": 0.5,
+    "qhe_recover_threshold": 0.6,
+    "histerese_upgrade_days": 3
+  },
+  "active_nodes": [],
+  "archive": [],
+  "iteration": 1,
+  "last_step": "commit",
+  "terminated": false,
+  "kill_switch_triggered": false
+}
+
+============================================================
+TEST 6: python -m pae_maintainer balance
+============================================================
+Balance check for cycle t11-real:
+  workload:    0.0h
+  capacity:     8.0h
+  qhe_score:    0.65
+  state:        UNDERLOAD
+  reason:       workload 0.00h < 0.5x capacity 8.00h
+  histerese:    1 day(s) — pending
+
+============================================================
+TEST 7: pav plan --help (via operational CLI app)
+============================================================
+2026-06-30T14:16:39.441450Z [info     ] log_configured                 [pav] extra={'level': 'INFO', 'json': False, 'log_file': ''}
+                                                                               
+ Usage: pav plan [OPTIONS] COMMAND [ARGS]...                                   
+                                                                               
+ Strategic planning via PAE-Maintainer agent (NEW subcommand for T11).         
+                                                                               
+┌─ Options ───────────────────────────────────────────────────────────────────┐
+│ --help          Show this message and exit.                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌─ Commands ──────────────────────────────────────────────────────────────────┐
+│ run      Run one PAE cycle (default) or loop continuously.                  │
+│ status   Show last persisted PAE state.                                     │
+│ balance  Show balance node output (workload vs capacity vs Q_HE).           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+============================================================
+TEST 8: pav plan run --help
+============================================================
+2026-06-30T14:16:40.360958Z [info     ] log_configured                 [pav] extra={'level': 'INFO', 'json': False, 'log_file': ''}
+                                                                               
+ Usage: pav plan run [OPTIONS]                                                 
+                                                                               
+ Run one PAE cycle (default) or loop continuously.                             
+                                                                               
+┌─ Options ───────────────────────────────────────────────────────────────────┐
+│ --once          --loop          Run once or loop [default: once]            │
+│ --dry-run                       Skip DB checkpoint write                    │
+│ --verbose   -v                  Verbose output                              │
+│ --db                      TEXT  Path to SQLite DB [default: ./vibe_ops.db]  │
+│ --cycle-id                TEXT  [default: default-cycle]                    │
+│ --json                                                                      │
+│ --help                          Show this message and exit.                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+============================================================
+TEST 9: pav plan status --help
+============================================================
+2026-06-30T14:16:41.176812Z [info     ] log_configured                 [pav] extra={'level': 'INFO', 'json': False, 'log_file': ''}
+                                                                               
+ Usage: pav plan status [OPTIONS]                                              
+                                                                               
+ Show last persisted PAE state.                                                
+                                                                               
+┌─ Options ───────────────────────────────────────────────────────────────────┐
+│ --db              TEXT  [default: ./vibe_ops.db]                            │
+│ --cycle-id        TEXT  [default: default-cycle]                            │
+│ --json                                                                      │
+│ --help                  Show this message and exit.                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+============================================================
+TEST 10: pav plan balance --help
+============================================================
+2026-06-30T14:16:42.014772Z [info     ] log_configured                 [pav] extra={'level': 'INFO', 'json': False, 'log_file': ''}
+                                                                               
+ Usage: pav plan balance [OPTIONS]                                             
+                                                                               
+ Show balance node output (workload vs capacity vs Q_HE).                      
+                                                                               
+┌─ Options ───────────────────────────────────────────────────────────────────┐
+│ --db              TEXT  [default: ./vibe_ops.db]                            │
+│ --cycle-id        TEXT  [default: default-cycle]                            │
+│ --help                  Show this message and exit.                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+============================================================
+TEST 11: pav (top-level --help shows plan subcommand registered)
+============================================================
+                                                                               
+ Usage: pav [OPTIONS] COMMAND [ARGS]...                                        
+                                                                               
+ ◆ PAV-OS v2 — production-grade visual. Cybernetic Life OS — Target. Sense.    
+ Adjust.                                                                       
+                                                                               
+┌─ Options ───────────────────────────────────────────────────────────────────┐
+│ --verbose             -v            Enable TRACE-level structured logging   │
+│                                     on stderr.                              │
+│ --json-log                          Output all telemetry as structured JSON │
+│                                     on stderr (machine-readable).           │
+│ --log-file                    TEXT  Append all telemetry logs to this file  │
+│                                     (path is created if needed).            │
+│ --install-completion                Install completion for the current      │
+│                                     shell.                                  │
+│ --show-completion                   Show completion for the current shell,  │
+│                                     to copy it or customize the             │
+│                                     installation.                           │
+│ --help                              Show this message and exit.             │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌─ Commands ──────────────────────────────────────────────────────────────────┐
+│ doctor     Run a comprehensive health check on the operational CLI.         │
+│ home       Menu interativo — PAV-OS v2 menu (definitive edition).           │
+│ tui        Launch the PAV TUI (Textual-based 8-screen terminal UI).         │
+│ routine    Gerenciar rotinas (MANHA/TARDE/NOITE).                           │
+│ block      Gerenciar blocos de tempo.                                       │
+│ journal    Gerenciar entradas do diário.                                    │
+│ habit      Gerenciar hábitos com Q_HE.                                      │
+│ metric     Registrar métricas (sono, energia).                              │
+│ policy     Gerenciar setpoints e decisões PUSH/MAINTAIN/REDUCE/RECOVER.     │
+│ demo       Gerenciar dados de demonstração (seed/clear/show).               │
+│ report     Gerar relatórios diário/semanal (PAV-OS v2 design system).       │
+│ state      Dashboard do dia corrente (PAV-OS v2 design system).             │
+│ reflect    OKRs — reflexão de entrada/saída.                                │
+│ lunch      Registrar almoço (eat + rest + flag pesado).                     │
+│ analytics  Analytics e data storytelling — 180 dias de dados.               │
+│ sync       Sync vault period reports with vibe_ops.db.                      │
+│ plan       Strategic planning via PAE-Maintainer agent (NEW subcommand for  │
+│            T11).                                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+

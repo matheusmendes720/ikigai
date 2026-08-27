@@ -3,11 +3,13 @@ import re
 from typing import Any, Dict, Optional, Type
 from pydantic import BaseModel, ValidationError
 from models import (
-    Wave, Cycle, Phase, Habit, StudyMaterial, StudyTopic, 
-    StudySession, Project, Skill, RoadmapItem, 
-    BacklogTask, ChangelogEntry, SleepRecord, HealthMetrics, 
+    Wave, Cycle, Phase, Habit, StudyMaterial, StudyTopic,
+    StudySession, Project, Skill, RoadmapItem,
+    BacklogTask, ChangelogEntry, SleepRecord, HealthMetrics,
     DailyMetrics, ReviewEvent, PolicyDecision, DecisionRecord, TimeBlock,
-    StudyProject, StudyNoteIndex, DocBackend, DocFrontend, PriorityMatrix, CyberneticFeedback
+    StudyProject, PeriodReport,
+    FalsifiableHypothesis, HypothesisEvaluation,
+    Dream,
 )
 
 class FrontmatterParser:
@@ -35,7 +37,11 @@ class FrontmatterParser:
         "review_event": ReviewEvent,
         "policy_decision": PolicyDecision,
         "decision_record": DecisionRecord,
-        "time_block": TimeBlock
+        "time_block": TimeBlock,
+        "period_report": PeriodReport,
+        "falsifiable_hypothesis": FalsifiableHypothesis,
+        "hypothesis_evaluation": HypothesisEvaluation,
+        "dream": Dream,
     }
 
     FRONTMATTER_PATTERN = re.compile(r'^---\s*\n(.*?)\n---\s*\n', re.DOTALL)

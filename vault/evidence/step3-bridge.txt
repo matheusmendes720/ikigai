@@ -1,0 +1,11 @@
+=== STEP 3a: pav plan run (user's exact command, using uv-omitted python) ===
+OUTPUT (stdout+stderr): 
+---EXIT: 0---
+
+=== STEP 3b: pav plan status ===
+OUTPUT: 
+---EXIT: 0---
+
+=== STEP 3c: pav plan balance ===
+OUTPUT: 
+---EXIT: 0---

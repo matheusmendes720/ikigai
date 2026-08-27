@@ -1,0 +1,39 @@
+PeriodReportSync (T3) — QA Matrix Evidence
+===========================================
+Date: 2026-06-26
+Branch: gitbutler/workspace
+Test runner: uv run --with pydantic --with python-frontmatter python
+Source verification: .omo/evidence/period-3-verify.py
+Raw output: .omo/evidence/period-3-sync-full.txt
+
+QA Scenario                              Expected        Actual          Status
+---------------------------------------------------------------------------
+PASS1 — sonho ingested                   ingested=1      ingested=1      PASS
+PASS1 — broken.md silently skipped       errors=0        errors=0        PASS
+PASS1 — Q1-2026 → orphan (parent missing) orphans=1      orphans=1       PASS
+PASS1 — vault scan sorted order          skipped=0       skipped=0       PASS
+PASS2 — multi-pass recovery (Q1-2026)    ingested=1      ingested=1      PASS
+PASS2 — idempotent (sonho-1 already in)  skipped=1       skipped=1       PASS
+PASS2 — orphans resolved                 orphans=0       orphans=0       PASS
+HIERARCHY — root = sonho-1               roots=1         roots=1         PASS
+HIERARCHY — children count = 1           children=1      children=1      PASS
+DB_ROWS — total persisted                =2              =2              PASS
+SYNC_DBV — no-op stub returns zeros      all 0           all 0           PASS
+
+Migration 004 auto-applied (via PeriodReportSync.__init__):
+  - CREATE TABLE IF NOT EXISTS period_reports
+  - 7 indexes (idx_period_reports_period/sonho/parent/verdict/policy/vault_hash/updated)
+  - 1 trigger (trg_period_reports_updated)
+  - 2 views (v_period_hierarchy, v_onda_aggregated)
+
+Multi-pass orphan recovery verified:
+  - Pass 1: Q1-2026 rejected (parent sonho-1 not yet in DB)
+  - Pass 2: Q1-2026 accepted (parent sonho-1 now in DB)
+  - After 2 passes: 0 orphans, all valid reports ingested
+
+Idempotency verified:
+  - vault_hash match → skipped
+  - id match → skipped
+  - INSERT ... ON CONFLICT(id) DO UPDATE pattern (vault-wins)
+
+Verification complete. All scenarios pass.

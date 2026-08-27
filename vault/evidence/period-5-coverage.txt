@@ -1,0 +1,19 @@
+warning: No `requires-python` value found in the workspace. Defaulting to `>=3.13`.
+============================= test session starts =============================
+platform win32 -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\mathe\code_space\life-oss\life\vibe-ops
+configfile: pyproject.toml
+plugins: anyio-4.13.0, cov-7.1.0
+collected 37 items
+
+tests\test_period_report.py .....................................        [100%]
+
+=============================== tests coverage ================================
+______________ coverage: platform win32, python 3.13.13-final-0 _______________
+
+Name                          Stmts   Miss  Cover   Missing
+-----------------------------------------------------------
+src\models\period_report.py     104      3    97%   95, 177-178
+-----------------------------------------------------------
+TOTAL                           104      3    97%
+============================= 37 passed in 0.43s ==============================

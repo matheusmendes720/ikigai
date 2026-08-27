@@ -1,0 +1,19 @@
+{
+  "$schema": "https://github.com/langchain-ai/openwiki/blob/main/docs/langsmith-config.md",
+  "_comment": "OpenWiki reads this file at run time to know which LangSmith workspaces + projects to pull traces from. The key itself is NEVER stored here — only its workspace region and project names. The API key is read from OPENWIKI_LANGSMITH_API_KEY at runtime.",
+  "workspaces": [
+    {
+      "region": "us",
+      "_endpoint": "https://api.smith.langchain.com",
+      "_key_env": "OPENWIKI_LANGSMITH_API_KEY",
+      "projects": [
+        "ikigai",
+        "algorithmic-life-os-openwiki"
+      ]
+    }
+  ],
+  "_comment_2": "Add an EU or APAC entry here if you document projects in multiple regions. Each entry gets its own key env var: OPENWIKI_LANGSMITH_API_KEY_2, _3, etc.",
+  "_comment_3": "To document only what openwiki has already generated (skip LangSmith), set an empty projects array per workspace.",
+  "_comment_4": "Traced but NOT claimed by OpenWiki: connector-derived facts (Gmail, Notion, Slack, etc.) — those belong in personal mode, not code mode.",
+  "_usage": "Update this list whenever you add or remove a LangSmith project you want documented in the wiki."
+}
