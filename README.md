@@ -43,13 +43,15 @@
 | Subsystem | Language | Role | Status |
 |-----------|----------|------|--------|
 | `life/` (root) | Python | CLI hub — Typer orchestrator | 🟡 Stable |
-| `life-ops/operational/` | Python | **PAV productivity kernel** (CLI + TUI, uv workspace) | 🟢 **Active** |
+| `life-ops/operational/` | Python | PAV productivity kernel (uv workspace; CLI broken post-`604d6af`) | 🟡 Restoring |
 | `life-ops/life_tatics/` | Python | Standalone time-block planner | 🟡 Stable |
+| `life-ops/ikigai/` | Python | **IKIGAi meta-brain** — MCP server (8 tools), deep-agent harness, OpenTelemetry wiring, reliability layer | 🟢 **Active** |
 | `vibe-ops/` | Python + Rust | Cybernetic loop · Target-Sensor-Adjuster · 3-cluster data | 🟡 Stable |
+| `apps/{kanban/tuiboard,dev-tools/taskdog,calendar/solverforge}/` | TS / Python / Rust | 3 external MCP servers — observability branches pending merge | 🟡 In review |
 | `strategics/` | PT-BR prose | Strategic frameworks (pyramid, dual-frame, 4 regimes) | 🟢 Read-only |
 | `taskwarrior/` | Bash + Python | Taskwarrior binary + scripts + config | 🟢 Stable |
 
-**Primary development:** `life-ops/operational/` (the PAV kernel).
+**Primary development:** `life-ops/ikigai/` (observability sprint across 4 repos — IKIGAI + 3 external MCP servers). See `life-ops/ikigai/docs/observability/0{1..4}-*.md` for the 4 follow-up specs (server-side reliability, smoke test, merge plan, worktree dissolve).
 
 ---
 
