@@ -428,6 +428,10 @@ Total: **2400-2700 tests** for MVP+.
 - `vibe-ops/architecture/ADR-003-ikigai-as-meta-brain.md` — meta-brain decision
 - `vibe-ops/architecture/ADR-005-data-mesh-topology.md` — 6 cross-domain contracts
 - `life-ops/operational/` — quality benchmark (2717 tests, mypy --strict)
+- `strategics/Modelagem Operacional.md` — **constitutional foundation**: 5 tensões, 4 regimes, hysteresis assimétrica
+- `strategics/` (INNER GUIDELINES) — **TENSÃO→COMPORTAMENTO→SOLUÇÃO** principle; regime thresholds (PUSH≥0.85, MAINTAIN 0.70-0.85, REDUCE 0.60-0.70, RECOVER<0.60); hysteresis: UP 3d, DOWN 2d
+- `.omo/ikigai/meta/cycle-bootstrap-analysis-2026-08-26.md` — first-cycle bootstrap analysis with field-level explanation
+- `.omo/ikigai/meta/algorithm-issues-registry.md` — open issues (D03=A02 resolved, A02.1 pending)
 
 ---
 
