@@ -1,3 +1,9 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Pre-pivot systems topology mapping PAV/IKIGAI/Hypervisor/centrals as
+> integrated surfaces. PAV is desativado; IKIGAi in design; canonical is
+> deep-agent over forks-prontas widgets ↔ vault `.db.markdown`. Retained
+> as audit reference per append-only invariant.
+
 # SYSTEMS_TOPOLOGY.md
 
 > **Índice-of-índices + Mapa de Middlewares do Algorithmic Life OS**
