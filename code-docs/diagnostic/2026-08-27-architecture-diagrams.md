@@ -1,3 +1,10 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> This visualization companion to the pre-pivot master-system-diagnostic depicts
+> PAV TUI/CLI + IKIGAI 8-node graphs as cargo-chefe architecture. PAV is
+> desativado; canonical flows are deep-agent over forks-prontas widgets ↔
+> vault `.db.markdown`. Use the doc-migration plan as current sequencing
+> reference.
+
 # Architecture Diagrams — 5 Critical Paths
 
 > **Date:** 2026-08-27
