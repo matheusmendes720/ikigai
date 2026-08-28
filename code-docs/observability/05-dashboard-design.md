@@ -1,3 +1,17 @@
+> **[GRAPH-SEQUENCE MISMATCH — parked 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> This spec describes an 8-node graph sequence (\`observe→orient→decide→…\`).
+> The current deep-agent canonical architecture (per
+> master-branch-carro-chefe-2026-08-28) operates as bidirectional sync
+> between forks-prontas widgets ↔ vault local \`.db.markdown\`, not as the
+> 8-node OODA-style flow this spec assumes. Per algorithm-decisions-defer-
+> 2026-08-28, dashboard design is paused until 5+ manual SONHO logs prove
+> the workflow. **Do not cite the 8-node sequence as current.**
+>
+> The 3 external MCP server OTel infra (tuiboard/taskdog/solverforge-
+> calendar) referenced via 1.4 row 4 IS still load-bearing for the
+> canonical architecture — that part is kept; the IKIGAI-specific
+> dashboards 1.1-1.3 + 1.5-1.6 are parked.
+
 # Observability Dashboard Design
 
 **Spec:** 05-dashboard-design
