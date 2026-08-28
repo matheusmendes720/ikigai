@@ -1,3 +1,14 @@
+> **[STATUS-CHANGED 2026-08-28 — see claude-md-reconciliation-2026-08-28]**
+> This ADR proposed two strategies (Option A boundary headers / Option B
+> merge + delete root). The 2026-08-28 reconciliation pass effectively
+> implemented Option B outcomes — root \`CLAUDE.md\` was restructured to
+> redirect into life/CLAUDE.md as authoritative, and life/CLAUDE.md
+> absorbed monorepo-level orientation. **This ADR is effectively
+> superseded by the applied reconciliation**; retained for audit trail.
+> Per CLAUDE.md reconciliation memory: fixed poetry→uv, src/operational/
+> paths, added Current Mode + Root Layout + LangGraph Graphs sections.
+> **Do not re-litigate the option choice.**
+
 # ADR-010 — Dual CLAUDE.md Scope Strategy
 
 **Status:** Proposta
