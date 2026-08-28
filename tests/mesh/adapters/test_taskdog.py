@@ -15,7 +15,7 @@ def taskdog_db(tmp_path: Path, monkeypatch) -> Path:
     conn.executescript("""
         CREATE TABLE tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ueid TEXT,
+            ueid TEXT UNIQUE,
             name TEXT,
             status TEXT,
             priority INTEGER,
@@ -24,7 +24,7 @@ def taskdog_db(tmp_path: Path, monkeypatch) -> Path:
             deadline TEXT,
             created_at TEXT
         );
-        CREATE INDEX idx_tasks_ueid ON tasks(ueid);
+        CREATE UNIQUE INDEX idx_tasks_ueid ON tasks(ueid);
     """)
     conn.commit()
     conn.close()
