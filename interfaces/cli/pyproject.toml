@@ -3,7 +3,7 @@ name = "life-interface-cli"
 version = "0.1.0"
 description = "Interface CLI — reads structured tasks from data/tasks.jsonl"
 requires-python = ">=3.11"
-dependencies = ["typer>=0.12", "rich>=13.7"]
+dependencies = ["typer>=0.15", "rich>=13.7"]
 
 [project.scripts]
 life = "interfaces.cli.read_tasks:app"
