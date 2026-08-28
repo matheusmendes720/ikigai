@@ -1,3 +1,9 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Test coverage strategy for S-M4/S-M5/S-M6 testing-gap issues in the pre-pivot
+> master-system-diagnostic. Many issues are reframed; coverage strategy
+> retained as audit reference but not active. IKIGAI feature work paused per
+> ADR-007; new tests should target deep-agent contracts not legacy PAV/IKIGAI.
+
 # Test Coverage Strategy — S-M4 / S-M5 / S-M6 — 2026-08-27
 
 > **Companion doc** to `2026-08-27-master-system-diagnostic.md` §2.3 (MEDIUM).
