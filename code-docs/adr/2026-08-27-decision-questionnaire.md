@@ -1,3 +1,9 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Decision questionnaire for pre-pivot Proposta ADRs (ADR-008..011).
+> PAV is desativado; decision flow is paused per data-first methodology
+> (ADR-007) until 5+ manual SONHO logs exist. Answers to this
+> questionnaire are deferred with the underlying ADR scope.
+
 # Decision Questionnaire — 2026-08-27 — Proposta ADRs
 
 > **Companion to:** `code-docs/adr/ADR-008..011` (4 Proposta ADRs awaiting human decision)
