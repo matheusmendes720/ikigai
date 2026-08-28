@@ -130,9 +130,9 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - uses: astral-sh/setup-uv@v4
-      - name: Verify vibe-ops model imports
+      - name: Vibe-ops scratch smoke test
         run: |
-          uv sync && uv run python verify_mesh.py
+          cd vibe-ops && uv run python -m pytest scratch/ -q --no-header
 
   git-hooks:
     name: Pre-commit Hooks
