@@ -1,3 +1,10 @@
+> **[SUPERSEDED 2026-08-28 §4 only — see master-branch-carro-chefe-2026-08-28]**
+> Sections 1-3, 6+ of this Phase 3 v1 spec remain canonical for the data mesh
+> design. **§4 Error Handling** is stale: recovery playbooks reference \`pav agent\`
+> CLI commands (e.g. \`pav agent retry\`, \`pav agent vault-replay\`, \`pav agent status\`)
+> from the desativado PAV TUI/CLI era. Replace those references with the
+> deep-agent harness equivalents under design per master-branch-carro-chefe-2026-08-28.
+
 # Phase 3 Data Mesh Unification — Design Spec
 
 **Date:** 2026-08-28
