@@ -1,3 +1,9 @@
+> **[SUPERSEDED 2026-08-28 — KEEP for ADR; see master-branch-carro-chefe-2026-08-28]**
+> Error code catalog at \`src/ikigai/exceptions.py\` registry + raise sites
+> remains a valid audit reference, but the surrounding IKIGAI server.py is
+> paused per ADR-007 (5+ SONHO logs gate). Catalog content retained for when
+> IKIGAI un-pauses; do not extend with new error codes until then.
+
 # IKIGAI Error Code Catalog
 
 **Scan root:** `C:\Users\mathe\code_space\life-oss\life\life-ops\ikigai\`
