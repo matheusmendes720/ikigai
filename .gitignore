@@ -24,6 +24,12 @@ vault/.ruff_cache/
 vault/.mypy_cache/
 vault/.pytest_cache/
 
+# ─── BYD D2 Plotly HTMLs (regenerable artifacts) ────────────────
+# 6 Plotly HTMLs at ~4.85 MB each = 27.88 MB committed. Regenerable
+# from src/ikigai/data/matheus/deliverables/byd-d2-outputs/{byd-econometric-vulnerability.py,.ipynb}.
+# Source files (.py, .ipynb, 1-pager-summary.md) stay tracked.
+src/ikigai/data/matheus/**/outputs/*.html
+
 # ─── Editor & OS ─────────────────────────────────────────────────
 .vscode/
 .idea/
