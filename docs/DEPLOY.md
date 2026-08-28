@@ -1,3 +1,9 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> WSL2 / Ubuntu VPS cloud-agent bootstrap for the pre-pivot PAV TUI/CLI +
+> multi-agent orchestration stack. PAV is desativado; orchestration under
+> design as deep-agent harness. Retain this doc as audit reference for the
+> WSL2/VPS bootstrap pattern but do not follow the PAV-specific steps.
+
 # Deploy — WSL2 & Ubuntu VPS Cloud Agent Setup
 
 > How to bootstrap a cloud venv agent environment on WSL2 or Ubuntu VPS for multi-agent orchestration.
