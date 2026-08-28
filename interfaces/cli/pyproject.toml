@@ -6,4 +6,4 @@ requires-python = ">=3.11"
 dependencies = ["typer>=0.12", "rich>=13.7"]
 
 [project.scripts]
-life-tasks = "read_tasks:app"
+life = "interfaces.cli.read_tasks:app"
