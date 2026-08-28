@@ -1,3 +1,8 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> This document describes the pre-2026-08-26 PAV TUI/CLI era when 6 LangGraph
+> graphs (PAE-maintainer + 4 swarm) were registered as canonical. PAV is now
+> desativado; canonical flows are owned by deep-agent over forks-prontas widgets.
+
 # LangGraph Dev - Single-Project Agentic Flows
 
 > **Status:** Active · **Config:** `langgraph.json` · **Entry point:** `vibe-ops/src/langgraph_entry.py`
