@@ -1,48 +1,48 @@
-# 01 — Axiom: Probability Foundations
+# 01 — Axioma: Fundamentos de Probabilidade
 
-> **Category:** §1 Axiomatic base
-> **Audience:** Self + future agents
-> **Source material:** habit_engine.py `EnergyLevel` map, IKIGAi vector scoring, PAV §6 energy model
+> **Categoria:** §1 Base axiomática
+> **Público:** Eu mesmo + agentes futuros
+> **Material de origem:** mapa `EnergyLevel` em habit_engine.py, scoring vetorial IKIGAi, modelo de energia do PAV §6
 
 ---
 
-## §1 — Plain-language intuition
+## §1 — Intuição em linguagem simples
 
-Some measurements are noisy. A user reports "HIGH energy" today, but the underlying signal could be anywhere from 70 to 95. We need a way to talk about **expectations** without knowing the exact outcome — that's what expected value gives us. **Variance** then tells us how much the answer can wobble.
+Algumas medidas são ruidosas. Você reporta "energia ALTA" hoje, mas o sinal subjacente pode estar em qualquer valor entre 70 e 95. Precisamos de uma forma de falar sobre **expectativas** sem conhecer o resultado exato — é isso que o valor esperado oferece. A **variância** então nos diz quanto a resposta pode oscilar.
 
-## §2 — Formal statement
+## §2 — Enunciado formal
 
-For a discrete random variable X with values {xᵢ} and probabilities {pᵢ}:
+Para uma variável aleatória discreta X com valores {xᵢ} e probabilidades {pᵢ}:
 
 ```
 E[X]   = Σᵢ pᵢ · xᵢ
 Var(X) = E[(X − E[X])²] = E[X²] − (E[X])²
 ```
 
-For continuous X with density f(x):
+Para X contínua com densidade f(x):
 
 ```
-E[X] = ∫ x · f(x) dx
+E[X]   = ∫ x · f(x) dx
 Var(X) = ∫ (x − E[X])² · f(x) dx
 ```
 
-Conditional probability: `P(A|B) = P(A ∩ B) / P(B)`.
+Probabilidade condicional: `P(A|B) = P(A ∩ B) / P(B)`.
 
-## §3 — Non-technical rationale
+## §3 — Justificativa não-técnica
 
-Imagine your self-reported energy as a noisy gauge. You say "HIGH" today, but yesterday you said "MEDIUM" even though both days felt similar. The system treats HIGH/MEDIUM/LOW as discrete tiers mapped to {1.0, 0.6, 0.3} ratios — that's a **quantized expected value** under the user's reporting noise. Even an imprecise reading has a useful average; variance just reminds us that the answer can wobble.
+Imagine sua energia autorelatada como um medidor ruidoso. Você diz "ALTA" hoje, mas ontem disse "MÉDIA" embora os dois dias tenham parecido semelhantes. O sistema trata ALTA/MÉDIA/BAIXA como faixas discretas mapeadas em razões {1.0, 0.6, 0.3} — isto é um **valor esperado quantizado** sob o ruído do relato. Mesmo uma leitura imprecisa tem uma média útil; a variância apenas nos lembra que a resposta pode oscilar.
 
-This is why the system can act on a single daily reading: we trust the **expected value** is close to the true signal even if we can't observe it directly.
+É por isso que o sistema consegue agir sobre uma única leitura diária: confiamos que o **valor esperado** esteja próximo do sinal verdadeiro, mesmo sem observá-lo diretamente.
 
-## §4 — Cross-references (downstream consumers)
+## §4 — Referências cruzadas (consumidores downstream)
 
-- **06-postulate-habit-momentum** — uses E/E_max as the energy term of QHE
-- **13-engine-habit-engine** — maps `EnergyLevel` enum to ratio via discrete distribution
-- **15-meta-ikigai-5-vector-scoring** — 5 vectors each aggregate noisy per-habit signals
+- **06-postulado-habit-momentum** — usa E/E_max como termo de energia do Q_HE
+- **13-engine-habit-engine** — mapeia o enum `EnergyLevel` em razão via distribuição discreta
+- **15-meta-ikigai-5-vector-scoring** — os 5 vetores agregam sinais ruidosos por hábito
 
-## §5 — Sources
+## §5 — Fontes
 
-- `src/operational/packages/core/src/operational/core/habit_engine.py` — `EnergyLevel` → ratio map
-- `src/ikigai/src/ikigai/core/scoring/vector_scores.py` — 5-vector expected-value scoring
-- `src/operational/docs/adr/PRD-CORE-HABIT-ENGINE.md` §4.5 — streak-bonus distribution
-- `vibe-ops/base/Produtividade Algorítmica Visual.md` §6 — energy model derivation
+- `src/operational/packages/core/src/operational/core/habit_engine.py` — mapa `EnergyLevel` → razão
+- `src/ikigai/src/ikigai/core/scoring/vector_scores.py` — scoring de valor esperado nos 5 vetores
+- `src/operational/docs/adr/PRD-CORE-HABIT-ENGINE.md` §4.5 — distribuição do bônus de sequência
+- `vibe-ops/base/Produtividade Algorítmica Visual.md` §6 — derivação do modelo de energia

@@ -1,53 +1,53 @@
-# 04 — Axiom: Ordering Relations & Monotonicity
+# 04 — Axioma: Relações de Ordem e Monotonicidade
 
-> **Category:** §1 Axiomatic base
-> **Audience:** Self + future agents
-> **Source material:** habit_engine.py monotonicity tests, PRD-CORE-POLICY-CONSOLIDATOR §4.4 hysteresis
+> **Categoria:** §1 Base axiomática
+> **Público:** Eu mesmo + agentes futuros
+> **Material de origem:** testes de monotonicidade em habit_engine.py, histerese em PRD-CORE-POLICY-CONSOLIDATOR §4.4
 
 ---
 
-## §1 — Plain-language intuition
+## §1 — Intuição em linguagem simples
 
-Some things can be **ordered**; others can't. A streak of 30 days is "more than" a streak of 10. But "I want to be an engineer" and "I want to be a designer" don't have a clear ordering — they're just different. **Partial orders** capture "ordered enough" without forcing total comparisons; **monotonicity** is the property that "more input → more output" (or vice versa).
+Algumas coisas podem ser **ordenadas**; outras, não. Uma sequência de 30 dias é "mais que" uma de 10 dias. Mas "quero ser engenheiro" e "quero ser designer" não têm uma ordenação clara — são apenas diferentes. **Ordens parciais** capturam "ordenado o suficiente" sem forçar comparações totais; **monotonicidade** é a propriedade de que "mais entrada → mais saída" (ou vice-versa).
 
-## §2 — Formal statement
+## §2 — Enunciado formal
 
-A **partial order** `(≤)` on a set `S` satisfies three axioms:
+Uma **ordem parcial** `(≤)` sobre um conjunto `S` satisfaz três axiomas:
 
-| Axiom | Statement |
-|:------|:----------|
-| Reflexivity | `a ≤ a` for all `a ∈ S` |
-| Antisymmetry | if `a ≤ b` and `b ≤ a` then `a = b` |
-| Transitivity | if `a ≤ b` and `b ≤ c` then `a ≤ c` |
+| Axioma          | Enunciado                                                  |
+|:----------------|:-----------------------------------------------------------|
+| Reflexividade   | `a ≤ a` para todo `a ∈ S`                                 |
+| Antissimetria   | se `a ≤ b` e `b ≤ a` então `a = b`                         |
+| Transitividade  | se `a ≤ b` e `b ≤ c` então `a ≤ c`                         |
 
-A **total order** additionally requires **comparability**: for all `a, b ∈ S`, either `a ≤ b` or `b ≤ a`.
+Uma **ordem total** exige adicionalmente **comparabilidade**: para todo `a, b ∈ S`, ou `a ≤ b` ou `b ≤ a`.
 
-A function `f: S → T` is **monotonically non-decreasing** in `x` iff `x ≤ y ⟹ f(x) ≤ f(y)`.
+Uma função `f: S → T` é **monotonicamente não-decrescente** em `x` sse `x ≤ y ⟹ f(x) ≤ f(y)`.
 
-## §3 — Non-technical rationale
+## §3 — Justificativa não-técnica
 
-The system needs to track "did this get better or worse" over time. That's **monotonicity** — a partial order on the metric space. Concretely:
+O sistema precisa acompanhar "isto ficou melhor ou pior" ao longo do tempo. Isso é **monotonicidade** — uma ordem parcial sobre o espaço de métricas. Concretamente:
 
-- **QHE** is monotonically non-decreasing in `H_avg` (more habits done → higher QHE) and in `E/E_max` (more energy → higher QHE)
-- **H(t)** is monotonically non-decreasing in streak `t` (longer streak → more consolidation) and in learning rate `λ`
-- **Efficiency ratio** is monotonically non-decreasing in `H(t)` for fixed `R`
-- **Time** is a total order (any two days have a clear ordering)
+- **Q_HE** é monotonicamente não-decrescente em `H_avg` (mais hábitos feitos → Q_HE maior) e em `E/E_max` (mais energia → Q_HE maior)
+- **H(t)** é monotonicamente não-decrescente na sequência `t` (sequência mais longa → mais consolidação) e na taxa de aprendizado `λ`
+- **Razão de eficiência** é monotonicamente não-decrescente em `H(t)` para `R` fixo
+- **Tempo** é uma ordem total (quaisquer dois dias têm uma ordenação clara)
 
-This guarantees the system responds **predictably** to user actions: do more habits → QHE goes up; sleep more → energy goes up. If the math were non-monotonic, small improvements could paradoxically make the score worse — breaking user trust.
+Isso garante que o sistema responda **de modo previsível** às ações do usuário: fazer mais hábitos → Q_HE sobe; dormir mais → energia sobe. Se a matemática fosse não-monotônica, pequenas melhorias poderiam paradoxalmente piorar o score — quebrando a confiança do usuário.
 
-In the policy FSM, **asymmetric hysteresis** (3 days to upgrade, 2 to downgrade) is a partial-order property on regime transitions: the system requires stronger evidence to promote than to demote. This biases the system toward caution, which matters when recommendations change the user's day.
+Na FSM de política, a **histerese assimétrica** (3 dias para subir, 2 para descer) é uma propriedade de ordem parcial sobre as transições de regime: o sistema exige evidência mais forte para promover do que para rebaixar. Isso viesa o sistema para a cautela, o que importa quando as recomendações mudam o dia do usuário.
 
-## §4 — Cross-references (downstream consumers)
+## §4 — Referências cruzadas (consumidores downstream)
 
-- **13-engine-habit-engine** — every function has monotonicity proofs in tests
-- **14-engine-policy-engine-fsm** — asymmetric hysteresis = partial-order on regime transitions
-- **16-meta-regime-fsm** — IKIGAi 4-state FSM with same hysteresis pattern
-- **All scoring engines** — QHE, vectors, RICE: monotonic in their inputs
+- **13-engine-habit-engine** — toda função tem provas de monotonicidade nos testes
+- **14-engine-policy-engine-fsm** — histerese assimétrica = ordem parcial sobre transições de regime
+- **16-meta-regime-fsm** — FSM de 4 estados do IKIGAi com o mesmo padrão de histerese
+- **Todas as engines de scoring** — Q_HE, vetores, RICE: monotônicas nas suas entradas
 
-## §5 — Sources
+## §5 — Fontes
 
-- `src/operational/packages/core/src/operational/core/habit_engine.py` — monotonicity tests (parametric over `H(s)` and `efficiency(H)`)
-- `src/operational/docs/adr/PRD-CORE-HABIT-ENGINE.md` §4.1 — `H(s)` properties (H(0)=0, H(∞)→1, monotonic)
-- `src/operational/docs/adr/PRD-CORE-POLICY-CONSOLIDATOR.md` §4.4 — "asymmetric histerese" design rationale
-- `src/ikigai/src/ikigai/core/heuristics/regime.py` — IKIGAi hysteresis constants `HYSTERESIS_UPGRADE_DAYS=3`, `HYSTERESIS_DOWNGRADE_DAYS=2`
-- Davey, B. A., & Priestley, H. A. (2002). *Introduction to Lattices and Order*. 2nd ed. Cambridge University Press.
+- `src/operational/packages/core/src/operational/core/habit_engine.py` — testes de monotonicidade (paramétricos sobre `H(s)` e `efficiency(H)`)
+- `src/operational/docs/adr/PRD-CORE-HABIT-ENGINE.md` §4.1 — propriedades de `H(s)` (H(0)=0, H(∞)→1, monotônica)
+- `src/operational/docs/adr/PRD-CORE-POLICY-CONSOLIDATOR.md` §4.4 — rationale do design da "histerese assimétrica"
+- `src/ikigai/src/ikigai/core/heuristics/regime.py` — constantes de histerese do IKIGAi: `HYSTERESIS_UPGRADE_DAYS=3`, `HYSTERESIS_DOWNGRADE_DAYS=2`
+- Davey, B. A., & Priestley, H. A. (2002). *Introduction to Lattices and Order*. 2ª ed. Cambridge University Press.
