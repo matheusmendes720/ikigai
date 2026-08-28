@@ -1,3 +1,11 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> This Phase 0 migration plan was authored 2026-08-25, before the AI-native
+> pivot (2026-08-26). It assumes PAV is the canonical kernel and vault
+> migration is pre-work for the IKIGAI meta-brain to plug into PAV's persistence.
+> Post-pivot, PAV is desativado; canonical is deep-agent over forks-prontas widgets.
+> The 5+ SONHO log gate (ADR-007 data-first methodology) still applies — defer
+> any frontmatter-strict-migration until evidence accumulates.
+
 # IKIGAi Vault — Phase 0 Migration Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
