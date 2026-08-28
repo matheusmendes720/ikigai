@@ -1,3 +1,10 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Pre-pivot IKIGAi persona-vault layer expansion spec. IKIGAi is now
+> in design as deep-agent (AI-native) over forks-prontas widgets ↔
+> vault local \`.db.markdown\`; vault structure is governed by the
+> canonical architecture, not this layer-expansion spec. Retained as
+> audit reference per append-only invariant.
+
 # IKIGAi Persona Vault — Hierarchical Layer Expansion
 
 **Status:** DRAFT — pending user review (Task #6 of brainstorming checklist)
