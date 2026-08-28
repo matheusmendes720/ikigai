@@ -113,3 +113,42 @@ def test_solverforge_adapter_supports_field():
     assert adapter.supports_field("end_at") is True
     assert adapter.supports_field("rrule") is True
     assert adapter.supports_field("deadline") is False  # taskdog uses this
+
+
+def test_solverforge_adapter_id_is_stable_across_reruns(upi_db_with_migration: Path):
+    """Re-applying the same UEID preserves the existing id (no PK churn).
+
+    ueid is the canonical join key; id is fork-internal. Re-runs of
+    apply_change() with the same UEID must reuse the original id so the
+    row's PK stays stable across propagate() cycles.
+    """
+    from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
+
+    adapter = SolverforgeCalendarAdapter()
+    event = _sample_event()
+
+    # First call: INSERT
+    adapter.apply_change(event)
+    conn = sqlite3.connect(upi_db_with_migration)
+    first_id = conn.execute(
+        "SELECT id FROM unified_planning_items WHERE ueid = ?", (event.ueid,)
+    ).fetchone()[0]
+    assert first_id is not None
+
+    # Second call: must UPDATE (not churn id)
+    adapter.apply_change(event)
+    second_id = conn.execute(
+        "SELECT id FROM unified_planning_items WHERE ueid = ?", (event.ueid,)
+    ).fetchone()[0]
+
+    # PK stability assertion (Phase 3 v1 minor finding #1)
+    assert second_id == first_id, (
+        f"id churned on UPSERT: first={first_id}, second={second_id}"
+    )
+
+    # Exactly one row for the UEID (no duplicates inserted)
+    count = conn.execute(
+        "SELECT COUNT(*) FROM unified_planning_items WHERE ueid = ?", (event.ueid,)
+    ).fetchone()[0]
+    assert count == 1
+    conn.close()

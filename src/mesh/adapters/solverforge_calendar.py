@@ -72,15 +72,30 @@ class SolverforgeCalendarAdapter:
                 "source_fork": event.source_fork,
                 "approved_at": event.approved_at.isoformat(),
             }
-            new_id = str(uuid.uuid4())
-            conn.execute(
-                """INSERT INTO unified_planning_items (id, ueid, status, blocked_by, tags, ikigai, provenance)
-                   VALUES (?, ?, 'planned', '[]', '[]', ?, '{}')
-                   ON CONFLICT(ueid) DO UPDATE SET
-                     status=excluded.status,
-                     ikigai=excluded.ikigai""",
-                (new_id, event.ueid, json.dumps(ikigai)),
-            )
+            ikigai_json = json.dumps(ikigai)
+
+            # PK stability: ueid is the canonical join key; id is fork-internal.
+            # On re-runs with the same UEID, reuse the existing id instead of
+            # generating a fresh one (preserves history, prevents PK churn).
+            existing_id = conn.execute(
+                "SELECT id FROM unified_planning_items WHERE ueid = ?",
+                (event.ueid,),
+            ).fetchone()
+
+            if existing_id is not None:
+                conn.execute(
+                    """UPDATE unified_planning_items
+                       SET status = 'planned', ikigai = ?
+                       WHERE ueid = ?""",
+                    (ikigai_json, event.ueid),
+                )
+            else:
+                new_id = str(uuid.uuid4())
+                conn.execute(
+                    """INSERT INTO unified_planning_items (id, ueid, status, blocked_by, tags, ikigai, provenance)
+                       VALUES (?, ?, 'planned', '[]', '[]', ?, '{}')""",
+                    (new_id, event.ueid, ikigai_json),
+                )
             conn.commit()
         finally:
             conn.close()
