@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -95,3 +96,41 @@ def test_propagate_is_idempotent(sample_event):
     # Both results are success
     assert result1[0].success is True
     assert result2[0].success is True
+
+
+def test_propagate_acks_partial_propagation_in_queue(sample_event, tmp_path, monkeypatch):
+    """propagate() acks queue as 'partial_propagation' so consume_pending() skips it."""
+    from src.mesh import queue
+    from src.mesh.agent_propagator import propagate
+    from src.mesh.adapters.base import ForkAdapter
+
+    # Isolate queue dir
+    qdir = tmp_path / "queue"
+    qdir.mkdir()
+    monkeypatch.setattr(queue, "QUEUE_DIR", qdir)
+
+    # Enqueue the sample event
+    queue.enqueue(sample_event)
+    assert len(list(queue.consume_pending())) == 1  # sanity check
+
+    adapter_ok = MagicMock(spec=ForkAdapter)
+    adapter_ok.name = "taskdog"
+    adapter_ok.apply_change.return_value = MagicMock(success=True)
+
+    adapter_fail = MagicMock(spec=ForkAdapter)
+    adapter_fail.name = "solverforge_calendar"
+    adapter_fail.apply_change.side_effect = ConnectionError("solverforge down")
+
+    result = propagate(
+        sample_event,
+        ValidationResult(Decision.APPROVE, approved_fields=sample_event.fields),
+        adapters=[adapter_ok, adapter_fail],
+    )
+
+    # Partial propagation observed
+    assert any(not r.success for r in result)
+
+    # Queue event is acked as partial_propagation
+    assert list(queue.consume_pending()) == []
+    content = json.loads((qdir / f"{sample_event.event_id}.json").read_text())
+    assert content["status"] == "partial_propagation"
