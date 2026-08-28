@@ -1,3 +1,8 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Pre-merge checklist for the pre-pivot Observability Sprint across 4 repos.
+> OTel migration is paused; MCP contracts (HTTP+SSE) deferred per ADR-011.
+> Most checklist items are no longer applicable under deep-agent canonical.
+
 # Pre-Merge Checklist — Observability Sprint (4 Repos)
 
 > **Date:** 2026-08-27
