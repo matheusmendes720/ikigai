@@ -1,3 +1,9 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Cross-cutting triage of pre-pivot ADRs (ADR-008..011). Synthesizes
+> shared concerns from the PAV/IKIGAI era. PAV is desativado; triage
+> conclusions are not binding on the canonical architecture
+> (deep-agent over forks-prontas widgets ↔ vault \`.db.markdown\`).
+
 # Cross-Cutting ADR Triage — 2026-08-27
 
 > **Companion to:** `code-docs/adr/ADR-008..011` (4 Proposta ADRs) + `code-docs/adr/2026-08-27-decision-questionnaire.md`
