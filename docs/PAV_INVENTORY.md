@@ -1,3 +1,11 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> PAV Productivity Kernel inventory (1976 lines, generated 2026-06-30) for
+> \`life-ops/operational/\` — entry points (\`pav\`, \`pav-os\`), entity model,
+> CLI/TUI surface, math algorithms. PAV is desativado per master-branch-
+> carro-chefe-2026-08-28; \`src/operational/\` is retained as reference
+> implementation but is no longer the canonical kernel. Do not use the
+> conclusions of this inventory for new work.
+
 # PAV Productivity Kernel — Complete Inventory
 
 > **Project:** `C:\Users\mathe\code_space\life-oss\life\life-ops\operational\`
