@@ -1,3 +1,10 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Pre-pivot conceptual model anchoring math-driven auto-performace algorithms
+> (Q_HE composite, IKIGAI 5-vector heuristics, regime FSM). PAV desativado;
+> algorithm/template/registry polish deferred per algorithm-decisions-defer-
+> 2026-08-28. For canonical model, see master-branch-carro-chefe-2026-08-28
+> + code-docs/glossary.md.
+
 # CONCEPTUAL_MODEL.md
 
 > **O Modelo Conceitual do Algorithmic Life OS**
