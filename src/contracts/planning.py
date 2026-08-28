@@ -17,7 +17,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from contracts.common import EntityType, Period, Priority, StrEnum, UEID
+from .common import EntityType, Period, Priority, StrEnum, UEID
 
 
 # ---------------------------------------------------------------------------
