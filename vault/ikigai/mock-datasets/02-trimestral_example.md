@@ -32,7 +32,7 @@ tags: [period/quarterly, ikigai/plan, template/quarterly-planning, persona/marin
 
 > **Horizonte:** 90 dias (2026-07-06 → 2026-09-30) · **Cluster:** PLAN (Estrategico) · **Persona:** Marina Souza
 >
-> Sonho pai: `00-sonho_example.md` · `sonho_id: marina.climate-tech-lead.2027`
+> Sonho pai: `01-sonho_example.md` · `sonho_id: marina.climate-tech-lead.2027`
 > Ondas filhas: `onda-01-climate-tech-internal-demo`, `onda-02-climate-interview-prep`, `onda-03-half-marathon-block`
 > Regimes previstos: **PUSH para Q3 (Onda 1+2) → MAINTAIN para Q4 (Onda 3, decisão promo vs oferta)**
 
@@ -138,7 +138,7 @@ periodic_proportions = Execucao(0.50) : Analise(0.20) : Planejamento(0.15) : Apr
 
 ### 4.1 Onda 1 (2026-07-06 → 2026-07-24, 15 dias úteis)
 
-> **Ver exemplo detalhado:** `02-onda_example.md`
+> **Ver exemplo detalhado:** `03-onda_example.md`
 
 - **Tema:** **Climate-Tech Internal Demo — Fundamentação Técnica**
 - **Goal unico:** *"Repo público `marina/climate-impact-sim` com MVP funcional + apresentação 12-min gravada."*
@@ -146,7 +146,7 @@ periodic_proportions = Execucao(0.50) : Analise(0.20) : Planejamento(0.15) : Apr
   - Semana 1 (2026-07-06 → 2026-07-12): Estudo de stack (Python + Polars + Streamlit) + prototipagem
   - Semana 2 (2026-07-13 → 2026-07-19): Implementação MVP + primeiro deploy
   - Semana 3 (2026-07-20 → 2026-07-24): Pitch gravado + publicação GitHub
-- **Verdict esperado:** **CONTINUE_WAVE** (já executada; ver `02-onda_example.md`)
+- **Verdict esperado:** **CONTINUE_WAVE** (já executada; ver `03-onda_example.md`)
 - **Verdict real:** **CONTINUE_WAVE** (verdict_score 0.83)
 - **Onda 2 herda:** Repo MVP + script do pitch + 150 pomodoros acumulados
 

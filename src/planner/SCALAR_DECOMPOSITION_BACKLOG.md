@@ -39,7 +39,7 @@ def habit_formation(t: float, lambda_rate: float = 0.1) -> float:
 - Input: `t: float` (elapsed days, ≥0), `lambda_rate: float` (learning rate, >0)
 - Output: `float` in [0, 1]
 
-**Module:** `life/vibe-ops/src/models/habit_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/habit_engine.py`
 
 **Dependencies:** `math.exp`
 
@@ -65,7 +65,7 @@ def energy_curve(t: float, k: float = 0.05) -> float:
 - Input: `t: float` (day within WAVE, ≥0), `k: float` (fatigue rate, >0)
 - Output: `float` (unscaled energy units)
 
-**Module:** `life/vibe-ops/src/models/habit_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/habit_engine.py`
 
 **Dependencies:** `math.exp`
 
@@ -94,7 +94,7 @@ def performance(t: float, k: float = 0.05, lambda_rate: float = 0.1, resistance:
 - Input: `t, k, lambda_rate, resistance`
 - Output: `float` (performance units)
 
-**Module:** `life/vibe-ops/src/models/habit_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/habit_engine.py`
 
 **Dependencies:** MODEL-001, MODEL-002
 
@@ -128,7 +128,7 @@ def energy_with_supercompensation(
 - Input: `t` plus supercompensation params
 - Output: `float`
 
-**Module:** `life/vibe-ops/src/models/habit_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/habit_engine.py`
 
 **Dependencies:** `math.exp`
 
@@ -163,7 +163,7 @@ def calculate_qhe(
 - Input: `habits: list[HabitState]`, `energy_ratio: float` (E(t)/E_max), `streak: int`
 - Output: `float` in [0, ~1.15]
 
-**Module:** `life/vibe-ops/src/models/policy_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/policy_engine.py`
 
 **Dependencies:** MODEL-001 (for H_i(t)), MODEL-002 (for E(t) ratio)
 
@@ -204,7 +204,7 @@ def review_operator(
 - Input: `HabitState`, `ReviewQuality` enum, `consistency: float`, `energy_variance: float`, `streak_delta: int`
 - Output: `HabitState` (updated)
 
-**Module:** `life/vibe-ops/src/models/habit_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/habit_engine.py`
 
 **Dependencies:** `HabitState` dataclass, `ReviewQuality` enum
 
@@ -248,7 +248,7 @@ def policy_matrix(
 - Input: `qhe: float`, `consistency: float`, `infractions_24h: int`, `day_type: DayType`
 - Output: `Policy` enum
 
-**Module:** `life/vibe-ops/src/models/policy_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/policy_engine.py`
 
 **Dependencies:** MODEL-005 (for Q_HE), `DayType` enum, `Policy` enum
 
@@ -288,7 +288,7 @@ def hysteresis_transition(
 - Input: `qhe_history: list[float]`, `current_policy: Policy`
 - Output: `PolicyTransition` enum
 
-**Module:** `life/vibe-ops/src/models/policy_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/policy_engine.py`
 
 **Dependencies:** MODEL-005, MODEL-007
 
@@ -313,7 +313,7 @@ def consistency_index(days_completed: int, total_days: int = 15) -> float:
 - Input: `days_completed: int`, `total_days: int`
 - Output: `float`
 
-**Module:** `life/vibe-ops/src/models/analytics.py`
+**Module:** `src/operational/packages/core/src/operational/core/analytics.py`
 
 **Dependencies:** None
 
@@ -338,7 +338,7 @@ def calendar_alignment(deliveries_done: int, workdays_available: int) -> float:
 - Input: `deliveries_done: int`, `workdays_available: int`
 - Output: `float`
 
-**Module:** `life/vibe-ops/src/models/analytics.py`
+**Module:** `src/operational/packages/core/src/operational/core/analytics.py`
 
 **Dependencies:** None
 
@@ -364,7 +364,7 @@ def ic_index(completed: int, planned: int) -> float:
 - Input: `completed: int`, `planned: int`
 - Output: `float`
 
-**Module:** `life/vibe-ops/src/models/analytics.py`
+**Module:** `src/operational/packages/core/src/operational/core/analytics.py`
 
 **Dependencies:** None
 
@@ -390,7 +390,7 @@ def adaptation_quotient(load_initial: float, load_final: float, cycle_days: int 
 - Input: `load_initial: float`, `load_final: float`, `cycle_days: int`
 - Output: `float`
 
-**Module:** `life/vibe-ops/src/models/analytics.py`
+**Module:** `src/operational/packages/core/src/operational/core/analytics.py`
 
 **Dependencies:** None
 
@@ -416,7 +416,7 @@ def cognitive_load_ratio(study_hours: float, work_hours: float) -> float:
 - Input: `study_hours: float`, `work_hours: float`
 - Output: `float`
 
-**Module:** `life/vibe-ops/src/models/analytics.py`
+**Module:** `src/operational/packages/core/src/operational/core/analytics.py`
 
 **Dependencies:** None
 
@@ -442,7 +442,7 @@ def supercompensation_factor(monday_metric: float, friday_metric: float) -> floa
 - Input: `monday_metric: float`, `friday_metric: float`
 - Output: `float`
 
-**Module:** `life/vibe-ops/src/models/analytics.py`
+**Module:** `src/operational/packages/core/src/operational/core/analytics.py`
 
 **Dependencies:** None
 
@@ -468,7 +468,7 @@ def cycle_efficiency(results: float, energy_spent: float, time_spent: float) -> 
 - Input: `results: float`, `energy_spent: float`, `time_spent: float`
 - Output: `float`
 
-**Module:** `life/vibe-ops/src/models/analytics.py`
+**Module:** `src/operational/packages/core/src/operational/core/analytics.py`
 
 **Dependencies:** None
 
@@ -494,7 +494,7 @@ def kaizen_factor(t: int, daily_rate: float = 0.01) -> float:
 - Input: `t: int` (days), `daily_rate: float`
 - Output: `float`
 
-**Module:** `life/vibe-ops/src/models/analytics.py`
+**Module:** `src/operational/packages/core/src/operational/core/analytics.py`
 
 **Dependencies:** None
 
@@ -524,7 +524,7 @@ def efficiency_index(habit_level: float, streak: int, prev_streak: int, resistan
 - Input: `habit_level: float`, `streak: int`, `prev_streak: int`, `resistance: float`
 - Output: `float`
 
-**Module:** `life/vibe-ops/src/models/habit_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/habit_engine.py`
 
 **Dependencies:** None
 
@@ -558,7 +558,7 @@ def ucb_score(
 - Input: `efficiency: float`, `total_selections: int`, `habit_selections: int`
 - Output: `float`
 
-**Module:** `life/vibe-ops/src/models/habit_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/habit_engine.py`
 
 **Dependencies:** `math.log`, `math.sqrt`, MODEL-017
 
@@ -603,7 +603,7 @@ def bellman_value(
 - Input: `SystemState`, `actions: list[Action]`, `gamma: float`, `max_depth: int`
 - Output: `tuple[Action, float]` (best action, its value)
 
-**Module:** `life/vibe-ops/src/models/mdp_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/mdp_engine.py`
 
 **Dependencies:** MODEL-002, MODEL-003
 
@@ -641,7 +641,7 @@ def knapsack_habits(
 - Input: `habits: list[HabitItem]`, `energy_budget: float`
 - Output: `list[HabitItem]` (selected subset)
 
-**Module:** `life/vibe-ops/src/models/mdp_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/mdp_engine.py`
 
 **Dependencies:** MODEL-003 (for P_i)
 
@@ -669,7 +669,7 @@ def load_function(t: int, base_load: float, alpha: float, is_workday: bool) -> f
 - Input: `t: int` (day), `base_load: float`, `alpha: float`, `is_workday: bool`
 - Output: `float`
 
-**Module:** `life/vibe-ops/src/models/habit_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/habit_engine.py`
 
 **Dependencies:** None
 
@@ -695,7 +695,7 @@ def fitness_fatigue(fitness: float, fatigue: float) -> float:
 - Input: `fitness: float`, `fatigue: float`
 - Output: `float`
 
-**Module:** `life/vibe-ops/src/models/habit_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/habit_engine.py`
 
 **Dependencies:** None
 
@@ -727,7 +727,7 @@ def streak_transition_probability(streak: int, mu: float = 0.1) -> float:
 - Input: `execution_probability: float` or `streak: int, mu: float`
 - Output: `float`
 
-**Module:** `life/vibe-ops/src/models/habit_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/habit_engine.py`
 
 **Dependencies:** `math.exp`
 
@@ -771,7 +771,7 @@ def find_optimal_peak_t(
 - Input: `k: float`, `lambda_rate: float`, `t0: float`
 - Output: `float` (optimal day t*)
 
-**Module:** `life/vibe-ops/src/models/habit_engine.py`
+**Module:** `src/operational/packages/core/src/operational/core/habit_engine.py`
 
 **Dependencies:** `math.exp`
 
@@ -801,7 +801,7 @@ def workdays_to_corridos(total_workdays: float) -> float:
 - Input: `total_days: float` or `total_workdays: float`
 - Output: `float`
 
-**Module:** `life/vibe-ops/src/models/temporal.py`
+**Module:** `src/operational/packages/core/src/operational/core/temporal.py`
 
 **Dependencies:** None
 
@@ -827,7 +827,7 @@ def temporal_state(t: int) -> tuple[int, int]:
 - Input: `t: int` (elapsed days)
 - Output: `tuple[int, int]`
 
-**Module:** `life/vibe-ops/src/models/temporal.py`
+**Module:** `src/operational/packages/core/src/operational/core/temporal.py`
 
 **Dependencies:** None
 
@@ -863,7 +863,7 @@ def cycle_progress(elapsed_days: int) -> dict[str, float]:
 - Input: `elapsed_days: int`
 - Output: `dict`
 
-**Module:** `life/vibe-ops/src/models/temporal.py`
+**Module:** `src/operational/packages/core/src/operational/core/temporal.py`
 
 **Dependencies:** MODEL-025
 
@@ -1995,48 +1995,64 @@ class DailyMetrics(BaseModel):
 
 ## 4. MODULE/FILE MAP
 
+> **Note:** Module paths below reflect the **post-reorg canonical PAV location**
+> (`src/operational/packages/core/src/operational/`), aligned with the
+> "Standalone" invariant (`life-ops/operational/` imports nothing from
+> `vibe-ops/`). Some modules listed here are aspirational (not yet
+> implemented); only the paths that exist in the current tree are tagged.
+
 ```
-life/vibe-ops/src/
-├── models/
-│   ├── habit_engine.py       # MODEL-001 through MODEL-004, MODEL-006, MODEL-017, MODEL-018, MODEL-021, MODEL-022, MODEL-023, MODEL-024
-│   ├── policy_engine.py      # MODEL-005, MODEL-007, MODEL-008
-│   ├── temporal.py           # MODEL-025, MODEL-026, MODEL-027, BL-007, BL-028
-│   ├── analytics.py          # MODEL-009 through MODEL-016, MODEL-019, MODEL-020, BL-019, BL-020, BL-035
-│   ├── mdp_engine.py         # MODEL-019, MODEL-020, BL-012, BL-013
-│   ├── study.py              # ENTITY-005, ENTITY-006, ENTITY-007, BL-008
-│   ├── skills.py             # ENTITY-015, BL-009
-│   ├── decision.py           # ENTITY-013, BL-005
-│   ├── health.py             # ENTITY-011, ENTITY-012, BL-014
-│   ├── infractions.py        # BL-031
-│   ├── hypervisor.py         # BL-033
-│   └── ikigai.py             # BL-021
-├── cli/
-│   ├── daily_plan.py         # BL-015
-│   ├── weekly_review.py      # BL-023
-│   ├── recovery_handler.py   # BL-032
-│   ├── content_lab.py        # BL-034
-│   └── health_input.py       # BL-014
-├── pipeline/
-│   ├── frontmatter_parser.py # BL-026
-│   ├── validator.py          # BL-024
-│   ├── payload_generator.py  # BL-025
-│   ├── reverse_sync.py       # BL-016
-│   └── triager.py            # BL-017
-├── mesh/
-│   └── schema.py             # BL-006
-├── bi/
-│   └── dashboard.py          # BL-027
-└── models/ (entities)
-    ├── wave.py               # ENTITY-001
-    ├── cycle.py              # ENTITY-002
-    ├── phase.py              # ENTITY-003
-    ├── habit.py              # ENTITY-004
-    ├── review_event.py       # ENTITY-008
-    ├── policy_decision.py    # ENTITY-009
-    ├── time_block.py         # ENTITY-010
-    ├── daily_metrics.py      # ENTITY-016
-    ├── project.py            # ENTITY-014
-    └── job_search.py         # BL-030
+src/operational/packages/core/src/operational/
+├── core/
+│   ├── habit_engine.py       # ✓ MODEL-001, MODEL-002, MODEL-003, MODEL-004, MODEL-006, MODEL-017, MODEL-021, MODEL-022
+│   ├── policy_engine.py      # ✓ MODEL-005, MODEL-007, MODEL-008
+│   ├── analytics.py          # ✓ MODEL-009 through MODEL-016, MODEL-019, MODEL-020, BL-019, BL-020, BL-035
+│   ├── temporal.py           # (PLANNED) MODEL-025, MODEL-026, MODEL-027, BL-007, BL-028
+│   ├── mdp_engine.py         # (PLANNED) MODEL-019, MODEL-020, BL-012, BL-013
+│   ├── infractions.py        # (PLANNED) BL-031
+│   ├── hypervisor.py         # (PLANNED) BL-033
+│   ├── ikigai.py             # (PLANNED) BL-021
+│   ├── study.py              # (PLANNED) ENTITY-005, ENTITY-006, ENTITY-007, BL-008
+│   ├── skills.py             # (PLANNED) ENTITY-015, BL-009
+│   ├── decision.py           # (PLANNED) ENTITY-013, BL-005
+│   └── health.py             # (PLANNED) ENTITY-011, ENTITY-012, BL-014
+├── entities/
+│   ├── habit.py              # ✓ ENTITY-004
+│   ├── policy.py             # ✓ ENTITY-009 (policy_decision)
+│   ├── time_block.py         # ✓ ENTITY-010
+│   ├── period_report.py      # ✓ ENTITY-008/016 (review + metrics)
+│   ├── consolidation.py      # ✓ (linked to BL-016)
+│   ├── pomodoro.py           # ✓ ENTITY-014 (project→task payload)
+│   ├── routine.py            # ✓
+│   ├── portfolio.py          # ✓
+│   ├── journal.py            # ✓
+│   ├── ajuste_fino.py        # ✓
+│   ├── wave.py               # (PLANNED) ENTITY-001
+│   ├── cycle.py              # (PLANNED) ENTITY-002
+│   ├── phase.py              # (PLANNED) ENTITY-003
+│   ├── review_event.py       # (PLANNED)
+│   ├── project.py            # (PLANNED)
+│   └── metric.py             # ✓ ENTITY-016
+├── reports/
+│   ├── daily_summary.py      # ✓
+│   └── weekly_report.py      # ✓
+├── parsers/
+│   ├── frontmatter.py        # ✓ BL-026
+│   └── time_block_parser.py  # ✓
+├── analytics/
+│   ├── engine.py             # ✓
+│   └── circadian.py          # ✓
+├── persistence/
+│   ├── sqlite.py             # ✓
+│   └── runner.py             # ✓
+├── meta/
+│   ├── registry.py           # ✓
+│   ├── factories.py          # ✓
+│   └── validators.py         # ✓
+├── enums.py                  # ✓
+├── types.py                  # ✓
+├── constants.py              # ✓
+└── exceptions.py             # ✓
 ```
 
 ---

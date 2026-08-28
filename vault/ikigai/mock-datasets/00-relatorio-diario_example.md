@@ -22,7 +22,7 @@ tags: [period/daily, ikigai/plan, relatorio-diario, persona/marina, dia/2026-07-
 
 > **Horizonte:** 1 dia · **Cluster:** PLAN (Operacional) · **Persona:** Marina Souza · **Estado do policy:** **PUSH**
 >
-> Vinculado a: `03-revisao-semanal_example.md` (semana-01, dia 3/7) · `02-onda_example.md` (onda-01, dia 3/15)
+> Vinculado a: `04-revisao-semanal_example.md` (semana-01, dia 3/7) · `03-onda_example.md` (onda-01, dia 3/15)
 > Sonho pai: `marina.climate-tech-lead.2027` · Verdict do dia: **PASS**
 
 ---
@@ -32,8 +32,8 @@ tags: [period/daily, ikigai/plan, relatorio-diario, persona/marina, dia/2026-07-
 - **Data:** 2026-07-08
 - **Dia da Semana:** [ ] Seg  [ ] Ter  [x] **Qua**  [ ] Qui  [ ] Sex  [ ] Sáb  [ ] Dom
 - **Tipo de Dia:** [x] **Workday**  [ ] Weekend  [ ] Holiday  [ ] Sick
-- **Semana Pai:** `semana-01` (FK → `03-revisao-semanal_example.md`)
-- **Onda Pai:** `onda-01-climate-tech-internal-demo` (FK → `02-onda_example.md`)
+- **Semana Pai:** `semana-01` (FK → `04-revisao-semanal_example.md`)
+- **Onda Pai:** `onda-01-climate-tech-internal-demo` (FK → `03-onda_example.md`)
 - **Status:** [ ] Draft  [x] **Fechado** (encerrado 21:30 BRT)
 
 ---
@@ -47,7 +47,7 @@ tags: [period/daily, ikigai/plan, relatorio-diario, persona/marina, dia/2026-07-
 - **Horas de Sono:** **7.6h** (5:48 − 22:14 da noite anterior; meta ≥ 7.5h ✓)
 - **Energia Inicial (1-10):** **8**
 - **Treino Matinal:** [x] **Sim** — Corrida 35min (5.2km, pace 6:43/km) **+ 35min**
-- **Meditação:** [x] **Sim** — 10min呼吸 meditation (Insight Timer) **+ 10min**
+- **Meditação:** [x] **Sim** — 10min meditação respiratória (Insight Timer) **+ 10min**
 - **Café da Manhã:** [x] **Sim** — omelete + café + fruta (302 kcal)
 
 ---
