@@ -73,6 +73,14 @@ vibe-ops/.ruff_cache/
 vibe-ops/.mypy_cache/
 vibe-ops/.pytest_cache/
 
+# ─── Go build artifacts (medic) ──────────────────────────────────
+# First-party Go tool at src/operational/medic/ (module github.com/life-oss/medic).
+# 2026-08-28 audit: 24 MB of committed .exe was inflating every clone.
+# Source (.go, go.mod, go.sum) IS tracked; binaries are local build outputs.
+# Per structure-audit-2026-08-28 §HIGH "verify-medic-claim" finding.
+src/operational/medic/medic.exe
+src/operational/medic/bin/
+
 # ─── Node (GitNexus runner) ──────────────────────────────────────
 node_modules/
 .gitnexus/cache/
