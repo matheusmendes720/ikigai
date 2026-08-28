@@ -32,7 +32,7 @@ install: install-langgraph
 
 test:
 	uv run --with pydantic --with python-frontmatter pytest vibe-ops/tests/ -v --tb=short
-	cd life-ops/operational && poetry run pytest tests/ -v --tb=short
+	cd src/operational && uv run pytest tests/ -v --tb=short
 	uv run --with langgraph --with pydantic pytest langgraph_tests/ -v --tb=short
 
 logs:
