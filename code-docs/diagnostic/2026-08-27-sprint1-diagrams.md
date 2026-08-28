@@ -1,3 +1,11 @@
+> **[SUPERSEDED 2026-08-28 — diagram-as-ADR superseded; see master-branch-carro-chefe-2026-08-28]**
+> Sprint 1 diagrams describe the pre-pivot 8-node ikigai_maintainer graph
+> (observe → orient → decide → act → …) which never matched the implemented
+> graph.py (observe → score_vectors → heuristics → balance → decompose →
+> plan → reflect → commit). PAV is desativado; canonical graphs are owned by
+> deep-agent under design. For accurate node sequences, read source at
+> \`code-docs/adr/2026-08-28-adr-008-011-decision-package-appendix.md\`.
+
 # Sprint 1 Diagrams — 2026-08-27
 
 > **Source:** `code-docs/diagnostic/2026-08-27-sprint1-implementation-plan.md` (16 TDD tasks, ~24.5d serial, ~9d with 2 engineers).
