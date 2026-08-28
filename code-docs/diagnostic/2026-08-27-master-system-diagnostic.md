@@ -1,3 +1,10 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Cross-cutting diagnostic of pre-pivot state (77+ issues across PAV, IKIGAI,
+> vibe-ops, MCP servers). Many issues are reframed under deep-agent canonical
+> (CLI broken → not a defect; OTel gaps → MCP contract; dual CLAUDE.md →
+> boundaries added). For current sprint sequencing, see the 4 Proposta ADR
+> decision package (2026-08-28).
+
 # Master System Diagnostic — 2026-08-27
 
 > **Scope:** Cross-cutting diagnostic of all known issues across the Algorithmic
