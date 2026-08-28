@@ -1,3 +1,22 @@
+> **[STATUS-CLARIFIED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> This spec covers OTel wiring for the 3 external MCP servers
+> (tuiboard, taskdog, solverforge-calendar). These ARE the forks-prontas
+> widgets in the canonical architecture (deep-agent ↔ forks ↔ vault
+> \`.db.markdown\`); their OTel infra is **load-bearing** under the new
+> architecture, not parked.
+>
+> IKIGAI-side OTel wiring (§2 reference) is **parked** per data-first
+> methodology (ADR-007): 5+ manual SONHO logs gate new code. Per 06 §1
+> "taskdog already merged" status: that fact supersedes the migration
+> ordering in §5 — taskdog is the on-disk ground truth now.
+>
+> Path references to \`life-ops/ikigai/docs/observability/01..04-*.md\`
+> remain valid as legacy reference (the parent docs were moved to
+> \`code-docs/observability/\` in the 2026-08-28 structure audit but
+> the legacy paths are preserved per append-only invariant); when
+> cross-referencing, prefer the current \`code-docs/observability/\`
+> paths.
+
 # OTel Integration Plan — 3 External MCP Servers
 
 > **Status:** Draft — 2026-08-28
