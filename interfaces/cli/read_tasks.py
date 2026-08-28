@@ -202,5 +202,98 @@ def stats() -> None:
         console.print(f"  {p:12s}: {c}")
 
 
+# === Phase 3: mesh show + task_add commands ===
+
+import uuid as uuid_lib
+from datetime import datetime, timezone
+
+from src.contracts.common import UEID
+from src.contracts.task_change import TaskChange, PropagationEvent, TaskAction
+from src.mesh.adapters.cli import CliAdapter
+from src.mesh.adapters.taskdog import TaskdogAdapter
+from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
+from src.mesh import queue
+
+
+def show_mesh(ueid: str) -> dict:
+    """Show cross-fork view for one UEID. Returns status matrix + slices."""
+    parsed_ueid = UEID(ueid)  # validates format
+
+    adapters = {
+        "cli": CliAdapter(),
+        "taskdog": TaskdogAdapter(),
+        "solverforge_calendar": SolverforgeCalendarAdapter(),
+    }
+
+    view = {}
+    for name, adapter in adapters.items():
+        try:
+            view[name] = adapter.read(parsed_ueid)
+        except Exception as e:
+            view[name] = {"error": str(e)}
+
+    # Detect mismatches
+    statuses = [v.get("status") for v in view.values() if isinstance(v, dict) and "status" in v]
+    mismatches = []
+    if len(set(statuses)) > 1:
+        mismatches.append(f"Status differs across forks: {statuses}")
+
+    return {"ueid": str(parsed_ueid), "view": view, "mismatches": mismatches}
+
+
+@app.command()
+def mesh_show(ueid: str):
+    """Show cross-fork view for one UEID."""
+    result = show_mesh(ueid)
+    console.print_json(json.dumps(result, default=str))
+
+
+def generate_ueid(slug: str) -> UEID:
+    """Generate 5-part UEID: tsk:slug:uuid:hash."""
+    short_uuid = str(uuid_lib.uuid4())
+    short_hash = uuid_lib.uuid4().hex[:16]
+    return UEID(f"tsk:{slug}:{short_uuid}:{short_hash}")
+
+
+@app.command()
+def task_add(
+    title: str = typer.Option(..., "--title", "-t", help="Task title"),
+    due: str = typer.Option(None, "--due", "-d", help="Due date YYYY-MM-DD"),
+    priority: str = typer.Option("medium", "--priority", "-p", help="high/medium/low"),
+):
+    """Add a new task. Writes to interfaces/cli slice + emits to review queue."""
+    slug = title.lower().replace(" ", "-")[:50]
+    ueid = generate_ueid(slug)
+
+    # 1. Write to interfaces/cli slice
+    cli_adapter = CliAdapter()
+    event = TaskChange(
+        event_id=f"evt_{uuid_lib.uuid4().hex[:12]}",
+        ueid=ueid,
+        action=TaskAction.CREATE,
+        fields={"title": title, "due": due, "priority": priority},
+        source_fork="interfaces/cli",
+        timestamp=datetime.now(timezone.utc),
+    )
+    cli_adapter.apply_change(PropagationEvent(
+        event_id=event.event_id,
+        ueid=event.ueid,
+        action=event.action,
+        fields=event.fields,
+        approved_at=event.timestamp,
+        source_fork=event.source_fork,
+    ))
+
+    # 2. Emit event to review queue
+    queue.enqueue(event)
+
+    console.print_json(json.dumps({
+        "ueid": str(ueid),
+        "event_id": event.event_id,
+        "status": "pending",
+        "message": "Task added to interfaces/cli; awaiting agent review for propagation to other forks.",
+    }, default=str))
+
+
 if __name__ == "__main__":
     app()
