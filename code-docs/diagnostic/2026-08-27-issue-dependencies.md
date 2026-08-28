@@ -1,3 +1,11 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> This issue dependency + sprint plan was authored against the pre-2026-08-26
+> PAV TUI/CLI-as-cargo-chefe architecture. PAV is desativado; many of the
+> blockers (CLI broken, OTel gaps, dcode MCP, dual CLAUDE.md scope) are
+> resolved or reframed under the deep-agent master-branch canonical model.
+> For current sprint/sequencing context, see the 4 Proposta ADR decision
+> package and the post-pivot structure audit.
+
 # Issue Dependencies & Sprint Plan — 2026-08-27
 
 > **Companion doc** to `2026-08-27-master-system-diagnostic.md`. Maps every
