@@ -352,9 +352,9 @@ Sem exploration (UCB), o sistema converge para **local optimum**: PUSH em dias b
 | **#11** frozen Pydantic | `src/contracts/__init__.py` | Garante que rename QHE é breaking change forçado |
 | **#12** append-only queue | `src/mesh/queue.py` | Garante replay-safe do auto-feedback (idempotência) |
 | **#13** ForkAdapter Protocol | `src/mesh/adapters/base.py` | Garante adapters podem ser plugados para UCB feedback |
-| **#15** hysteresis FSM | `src/operational/.../policy_engine.py` | Implementa amortecimento bayesiano (3-up/2-down) |
-| **#18** hybrid meta-vector | `src/ikigai/.../state.py` | Implementa agregação geométrica+harmônica (sensibilidade a zeros — C7) |
-| **#20** 5 IKIGAi vectors | `src/ikigai/.../vector_scores.py` | Implementa observation signals (V_paixão, ..., V_curso) |
+| **#15** hysteresis FSM | `src/operational/packages/core/src/operational/core/policy_engine.py` | Implementa amortecimento bayesiano (3-up/2-down) |
+| **#18** hybrid meta-vector | `src/ikigai/src/agents/ikigai_maintainer/state.py` | Implementa agregação geométrica+harmônica (sensibilidade a zeros — C7) |
+| **#20** 5 IKIGAi vectors | `src/ikigai/src/ikigai/core/scoring/vector_scores.py` | Implementa observation signals (V_paixão, ..., V_curso) |
 
 ## §10 — Validação empírica (5 SONHO logs gate)
 
@@ -397,10 +397,10 @@ Isto é **estocástico** (não determinístico), **auto-feedback** (não supervi
 - `src/contracts/metrics.py:QHEScore` — score model
 - `src/mesh/queue.py` — append-only queue
 - `src/mesh/adapters/base.py:ForkAdapter` — actuator protocol
-- `src/operational/.../policy_engine.py` — 4-state FSM
-- `src/ikigai/.../vector_scores.py` — 5 IKIGAi vectors
-- `src/ikigai/.../qhe.py` — additive QHE (Σw=1.0 normalization needed)
-- `src/ikigai/.../state.py:compute_meta_vector` — hybrid 0.6/0.4
+- `src/operational/packages/core/src/operational/core/policy_engine.py` — 4-state FSM
+- `src/ikigai/src/ikigai/core/scoring/vector_scores.py` — 5 IKIGAi vectors
+- `src/ikigai/src/ikigai/core/scoring/qhe.py` — additive QHE (Σw=1.0 normalization needed)
+- `src/ikigai/src/agents/ikigai_maintainer/state.py:compute_meta_vector` — hybrid 0.6/0.4
 
 ### Docs (analisados)
 - `docs/auto-performance-os/00-INDEX.md` — template 5-section
