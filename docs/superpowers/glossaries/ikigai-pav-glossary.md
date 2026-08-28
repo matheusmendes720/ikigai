@@ -1,3 +1,10 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> This glossary bridges IKIGAI vault terminology with PAV kernel terminology.
+> Post-pivot, PAV is desativado; PAV terms are retained for audit only. For
+> current canonical terminology, see:
+> - \`code-docs/glossary.md\` (master glossary)
+> - \`vault/.db.markdown\` schema (canonical source of truth for IKIGAI entities)
+
 # Glossário IKIGAI × PAV — Métricas e Nomenclaturas
 
 > **Fonte unificada:** IKIGAI vault (SPEC.md + entidades Pydantic) · PAV kernel (constants.py + core algorithms) · strategics/ (PT-BR framework)
