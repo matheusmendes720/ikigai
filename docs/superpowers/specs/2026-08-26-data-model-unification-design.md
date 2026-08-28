@@ -1,3 +1,11 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Pre-pivot IKIGAI data-model unification spec (4 surfaces → 1 canonical
+> IKIGAiRecord + Unified MCP Gateway). PAV is desativado; the
+> data-model unification direction is governed by the canonical
+> architecture (deep-agent over forks-prontas widgets ↔ vault local
+> \`.db.markdown\`). Retained as audit reference per append-only
+> invariant; specific surface choices superseded.
+
 # IKIGAI Data Model Unification — Design Spec
 
 > **Goal:** Replace 4 ad-hoc data surfaces (vault markdown, plan_entities.db, LangGraph checkpoints, in-memory `IKIGAiStateDict`) with **one canonical `IKIGAiRecord`** root class that round-trips losslessly across all surfaces, written first by an agentic writer into the in-repo vault at `data/matheus/`, mirrored to SQLite downstream, and surfaced through a Unified MCP Gateway to three downstream MCP servers (tuiboard, taskdog-mcp, solverforge-calendar).
