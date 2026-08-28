@@ -1,3 +1,11 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> ADR-009 (Pydantic strict mode invariance) was decided in the pre-pivot
+> era. PAV is desativado; algorithm/template/registry polish deferred per
+> algorithm-decisions-defer-2026-08-28. The Pydantic-strict invariant in
+> \`src/contracts/\` is preserved (still load-bearing for deep-agent
+> contracts) but the implementation scope (which entities it gates) is
+> governed by deep-agent design, not by this ADR.
+
 # ADR-009 — Pydantic Strict Mode Invariance for All Entities
 
 **Status:** Proposta
