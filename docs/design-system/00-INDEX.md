@@ -51,13 +51,14 @@ Layer 7 — Validation & heuristics (Nielsen + ADR-007 data-first)
 | Layer | Faixa  | Categoria          | # docs | Status |
 |:-----:|:------:|:-------------------|:------:|:-------|
 | 0     | 00     | Top-level index    | 1      | ✅ este doc |
-| 1     | 01-03  | Topology & narrative | 3    | ⏳ batch 1 |
-| 2     | 04-08  | Architecture canvases | 5   | ⏳ batch 2 |
+| 1     | 01-03  | Topology & narrative | 3    | ✅ batch 1 (commit a3621b1) |
+| 2     | 04-08  | Architecture canvases | 5   | ✅ batch 2 (commit b2a0136) |
 | 3     | 10-19  | Patterns catalog   | 10     | ⏳ batches 3-4 |
 | 4     | 20-23  | Forks catalog      | 4      | ⏳ batch 5 |
 | 5     | 30-34  | Tokens & components | 5     | ⏳ batch 6 |
 | 6     | 40-45  | User journeys & screens | 6  | ⏳ batch 7 |
 | 7     | 50-53  | Validation & heuristics | 4   | ⏳ batch 8 |
+| 8     | 09-10  | Critical analysis + unified model | 2 | ✅ batch-análise (commit 0e002f0) |
 
 ## §3 — Mapa de dependências (preliminar)
 
