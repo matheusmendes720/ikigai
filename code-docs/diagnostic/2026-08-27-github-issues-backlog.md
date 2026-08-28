@@ -1,3 +1,9 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Pre-pivot backlog organized around IKIGAI / PAV / Observability sprint
+> (16 issues, ~24.5d, Q1-Q4 risk). Many issues are reframed under deep-agent
+> canonical; IKIGAI feature work is paused per ADR-007 (5+ SONHO logs gate).
+> For current sprint sequencing, see the doc-migration plan.
+
 # GitHub Issues Backlog — IKIGAI / PAV / Observability Sprint
 
 > **Date:** 2026-08-27
