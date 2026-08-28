@@ -60,6 +60,7 @@ htmlcov/
 # All mutable runtime state: SQLite, Chroma, boulder JSON, session logs
 data/*.db
 data/*.json
+data/*.jsonl
 data/chroma_db/
 data/*.log
 data/session-*.md

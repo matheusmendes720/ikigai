@@ -205,6 +205,7 @@ def stats() -> None:
 # === Phase 3: mesh show + task_add commands ===
 
 import uuid as uuid_lib
+import re
 from datetime import datetime, timezone
 
 from src.contracts.common import UEID
@@ -248,22 +249,40 @@ def mesh_show(ueid: str):
     console.print_json(json.dumps(result, default=str))
 
 
-def generate_ueid(slug: str) -> UEID:
-    """Generate 5-part UEID: tsk:slug:uuid:hash."""
+def _slugify(title: str, max_len: int = 50) -> str:
+    """Sanitize a title into a UEID slug segment.
+
+    UEID regex requires [a-z0-9-]+ in the slug segment. We:
+      - lowercase
+      - collapse any non-allowed run into a single hyphen
+      - strip edge hyphens
+      - truncate to max_len
+      - fall back to "task" if title was entirely non-allowed (e.g. !!!)
+    """
+    slug = re.sub(r"[^a-z0-9-]+", "-", title.lower()).strip("-")[:max_len]
+    return slug or "task"
+
+
+def generate_ueid(title: str) -> UEID:
+    """Generate 5-part UEID from a title: tsk:<sanitized-slug>:uuid:hash.
+
+    Defense-in-depth: sanitizes the title internally so callers don't have to.
+    """
+    slug = _slugify(title)
     short_uuid = str(uuid_lib.uuid4())
     short_hash = uuid_lib.uuid4().hex[:16]
     return UEID(f"tsk:{slug}:{short_uuid}:{short_hash}")
 
 
-@app.command()
-def task_add(
-    title: str = typer.Option(..., "--title", "-t", help="Task title"),
-    due: str = typer.Option(None, "--due", "-d", help="Due date YYYY-MM-DD"),
-    priority: str = typer.Option("medium", "--priority", "-p", help="high/medium/low"),
-):
-    """Add a new task. Writes to interfaces/cli slice + emits to review queue."""
-    slug = title.lower().replace(" ", "-")[:50]
-    ueid = generate_ueid(slug)
+def do_task_add(title: str, due: str | None, priority: str) -> dict:
+    """Add a new task — writes to interfaces/cli slice + emits to review queue.
+
+    Returns a dict describing the new task (ueid, event_id, status, message).
+    Separated from the Typer command so tests can call it without going
+    through Click/Typer's option-resolution path (which wraps defaults in
+    OptionInfo objects in Typer 0.25+).
+    """
+    ueid = generate_ueid(title)
 
     # 1. Write to interfaces/cli slice
     cli_adapter = CliAdapter()
@@ -287,12 +306,23 @@ def task_add(
     # 2. Emit event to review queue
     queue.enqueue(event)
 
-    console.print_json(json.dumps({
+    return {
         "ueid": str(ueid),
         "event_id": event.event_id,
         "status": "pending",
         "message": "Task added to interfaces/cli; awaiting agent review for propagation to other forks.",
-    }, default=str))
+    }
+
+
+@app.command()
+def task_add(
+    title: str = typer.Option(..., "--title", "-t", help="Task title"),
+    due: str = typer.Option(None, "--due", "-d", help="Due date YYYY-MM-DD"),
+    priority: str = typer.Option("medium", "--priority", "-p", help="high/medium/low"),
+):
+    """Add a new task. Writes to interfaces/cli slice + emits to review queue."""
+    result = do_task_add(title=title, due=due, priority=priority)
+    console.print_json(json.dumps(result, default=str))
 
 
 if __name__ == "__main__":
