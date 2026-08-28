@@ -17,69 +17,64 @@ from pydantic import BaseModel, Field, PlainValidator
 # UEID — Universal Entity Identifier
 # ---------------------------------------------------------------------------
 
-_UEID_PATTERN = re.compile(r"^[a-z][a-z0-9]{2,30}_[a-z0-9_]+$")
-"""Canonical UEID regex: <prefix>_<slug> with 3-31 total chars."""
+import uuid
+
+import pydantic_core
+from pydantic import GetCoreSchemaHandler
+from pydantic_core import CoreSchema, core_schema
+
+_UEID_PATTERN = re.compile(r"^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$")
+"""Canonical UEID regex: 5-part format type:slug:uuid:hash."""
 
 
-def _validate_ueid(value: str) -> str:
-    if not _UEID_PATTERN.match(value):
-        raise ValueError(
-            f"Invalid UEID '{value}'. Must match { _UEID_PATTERN.pattern!r}. "
-            "Format: <prefix>_<slug>, 3-31 chars, lowercase."
+class UEID(str):
+    """Universal Entity Identifier — canonical str type for all entity IDs.
+
+    Format: ``<type>:<slug>:<uuid>:<hash>`` where:
+    - type: 2-5 lowercase letters (e.g. ``tsk``, ``proj``, ``hab``)
+    - slug: lowercase alphanumeric with dashes (e.g. ``byd-case-review``)
+    - uuid: lowercase hex with dashes (e.g. ``abc12345-1234-5678-9abc-def012345678``)
+    - hash: lowercase hex (e.g. ``0123456789abcdef``)
+
+    Examples:
+        - ``tsk:byd-case-review:abc12345-1234-5678-9abc-def012345678:0123456789abcdef``
+        - ``hab:sleep-8h:11111111-2222-3333-4444-555555555555:ffffffffffffffff``
+        - ``proj:vaga-remota-2026:00000000-0000-0000-0000-000000000000:0000000000000000``
+
+    Canonical types:
+        ===============  =========================================
+        Type             Entity
+        ===============  =========================================
+        ``tsk``          Task
+        ``sub``           Subtask
+        ``chk``           ChecklistItem
+        ``proj``          Project
+        ``msl``           Milestone
+        ``del``           Deliverable
+        ``hab``           Habit
+        ``hst``           HabitState
+        ``qhe``           QHEMetrics
+        ``cyc``           PlanningCycle
+        ``wave``          Wave
+        ``sprint``        Sprint
+        ===============  =========================================
+    """
+
+    def __new__(cls, value: str) -> "UEID":
+        if not _UEID_PATTERN.match(value):
+            raise ValueError(
+                f"Invalid UEID '{value}'. Must match {_UEID_PATTERN.pattern!r}. "
+                "Format: type:slug:uuid:hash (all lowercase, 4 parts separated by colons)."
+            )
+        return super().__new__(cls, value)
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: type, handler: GetCoreSchemaHandler) -> CoreSchema:
+        """Tell Pydantic how to handle UEID in model fields."""
+        return core_schema.no_info_after_validator_function(
+            cls,
+            core_schema.str_schema(),
         )
-    return value
-
-
-UEID = Annotated[str, PlainValidator(_validate_ueid)]
-"""Universal Entity Identifier — canonical str type for all entity IDs.
-
-Format: ``<prefix>_<slug>`` where prefix identifies the entity type
-(e.g. ``hab``, ``task``, ``proj``, ``wave``, ``cyc``) and slug is a
-kebab-case descriptor.
-
-Examples:
-    - ``hab_sleep_8h``
-    - ``task_byd_market_research``
-    - ``proj_vaga_remota_2026``
-    - ``wave_W01_Aug_2026``
-    - ``cyc_q3_2026``
-
-Canonical prefixes:
-    ===============  =========================================
-    Prefix            Entity
-    ===============  =========================================
-    ``hab``           Habit
-    ``hst``           HabitState (habit_<id>_<date>)
-    ``qhe``           QHEMetrics (qhe_<date>)
-    ``task``          Task
-    ``sub``           Subtask
-    ``chk``           ChecklistItem
-    ``proj``          Project
-    ``msl``           Milestone
-    ``del``           Deliverable
-    ``cyc``           PlanningCycle
-    ``wave``          Wave (W<num>_<Mon>_<YYYY>)
-    ``sprint``        Sprint
-    ``slp``           SleepRecord
-    ``erg``           EnergyReading
-    ``day``           DailyLog
-    ``cnl``           DailyConsolidation
-    ``wkl``           WeeklyAggregate
-    ``pol``           PolicyDecision
-    ``rec``           DecisionRecord
-    ``set``           PolicySetpoints
-    ``blk``           TimeBlock
-    ``pmo``           PomodoroConfig
-    ``pmor``          PomodoroRound
-    ``pms``           PomodoroSession
-    ``ind``           AutoIndagacao
-    ``aju``           AjusteFino
-    ``port``          PortfolioArtifact
-    ``ctx``           DayContext
-    ``ref``           DailyReflection
-    ``lun``           LunchRecord
-    ===============  =========================================
-"""
 
 # ---------------------------------------------------------------------------
 # Enums
