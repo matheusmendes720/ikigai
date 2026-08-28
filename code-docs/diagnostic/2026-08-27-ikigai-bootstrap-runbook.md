@@ -1,3 +1,10 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Bootstrap runbook authored to take the IKIGAI meta-brain "does not boot" → "8 MCP
+> tools answer". Most fixes (C1-C5) are still relevant as audit findings, but the
+> P0 boilerplate (CLI broken post-604d6af, OTel gaps) is reframed under
+> deep-agent canonical. IKIGAi is paused per ADR-007 data-first methodology
+> (5+ SONHO logs gate) — do not execute this runbook until un-paused.
+
 # IKIGAI Bootstrap Runbook — 2026-08-27
 
 > **Scope:** Operator procedure to take the IKIGAI meta-brain from "does not boot"
