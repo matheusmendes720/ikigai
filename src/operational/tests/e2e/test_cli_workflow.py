@@ -1,6 +1,17 @@
 """E2E: CLI end-to-end workflow — create, list, report across domains."""
 from __future__ import annotations
 
+import pytest
+
+# Orphan test — preserved for future PAV CLI/TUI restoration.
+# `operational.cli` was deleted (apps/cli, apps/tui removed); tests reference it.
+# Re-enable by restoring the operational/cli module.
+pytest.skip(
+    "orphan: operational/cli deleted; PAV CLI is future feature "
+    "(see memory pav-cli-tui-future-feature-2026-08-27)",
+    allow_module_level=True,
+)
+
 from typer.testing import CliRunner
 
 from operational.cli import app
