@@ -1,3 +1,12 @@
+> **[SUPERSEDED 2026-08-28 — ADR superseded; see master-branch-carro-chefe-2026-08-28]**
+> This implementation plan (solverforge-calendar MCP UPI extension + mcp-gateway
+> router + HTTP+SSE dual-transport) was authored 2026-08-26, the day of the
+> AI-native pivot. It treats solverforge-calendar as the canonical UPI surface
+> + gateway as the chokepoint. Post-pivot, solverforge-calendar is one of three
+> forks-prontas widgets, not the canonical sync target — deep-agent owns the
+> sync logic. The MCP-gateway concept is preserved as transport; the UPI layer
+> becomes an MCP contract consumed by external apps rather than a kernel feature.
+
 # Phase MCP: Unified Planning MCP Servers — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
