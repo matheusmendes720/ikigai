@@ -1,3 +1,8 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Detailed expansion of 10 mini-specs for the pre-pivot PAV/IKIGAI sprint.
+> Most constructions are deferred per ADR-007 (5+ SONHO logs gate) and the
+> post-pivot reframing. See doc-migration plan for current state.
+
 # Pending Constructions Detail (A-J)
 
 **Date:** 2026-08-27
