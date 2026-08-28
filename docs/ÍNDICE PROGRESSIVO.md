@@ -1,3 +1,12 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> This document indexes the pre-2026-08-26 era: strategics + life-ops + vibe-ops
+> as 3 layers, with cli/centrals/handlers as the canonical CLI hub. PAV CLI/TUI
+> is now desativado; master branch = deep-agent over forks-prontas widgets.
+> For current navigation, see:
+> - `vault/` (canonical markdown source of truth)
+> - `code-docs/` (current ADRs / PRDs / BRDs / diagnostics)
+> - `docs/diagnostics/2026-08-28-structure-audit/` (post-pivot structure audit)
+
 # ÍNDICE PROGRESSIVO — Algorithmic Life OS
 
 > **Mapa mestre de navegação** entre a camada estratégica, tática, operacional e a topologia de código.
