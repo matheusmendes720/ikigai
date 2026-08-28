@@ -76,7 +76,7 @@ class TaskdogAdapter:
                 CREATE INDEX IF NOT EXISTS idx_tasks_ueid ON tasks(ueid);
             """)
 
-            # UPSERT: check if exists, then insert or update
+            # Native SQLite UPSERT: single INSERT with ON CONFLICT
             priority = event.fields.get("priority")
             if isinstance(priority, str):
                 priority_map = {"high": 1, "medium": 2, "low": 3}
@@ -86,22 +86,15 @@ class TaskdogAdapter:
             due = event.fields.get("due")
             approved_at = event.approved_at.isoformat()
 
-            # Check if record exists
-            existing = conn.execute(
-                "SELECT id FROM tasks WHERE ueid = ?", (event.ueid,)
-            ).fetchone()
-
-            if existing:
-                conn.execute(
-                    """UPDATE tasks SET name=?, priority=?, deadline=? WHERE ueid=?""",
-                    (title, priority, due, event.ueid),
-                )
-            else:
-                conn.execute(
-                    """INSERT INTO tasks (ueid, name, status, priority, deadline, created_at)
-                       VALUES (?, ?, 'planned', ?, ?, ?)""",
-                    (event.ueid, title, priority, due, approved_at),
-                )
+            conn.execute(
+                """INSERT INTO tasks (ueid, name, status, priority, deadline, created_at)
+                   VALUES (?, ?, 'planned', ?, ?, ?)
+                   ON CONFLICT(ueid) DO UPDATE SET
+                       name=excluded.name,
+                       priority=excluded.priority,
+                       deadline=excluded.deadline""",
+                (event.ueid, title, priority, due, approved_at),
+            )
             conn.commit()
         finally:
             conn.close()
