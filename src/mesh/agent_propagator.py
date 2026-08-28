@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 
 from src.contracts.task_change import TaskChange, PropagationEvent
+from src.mesh import queue as _queue
 from src.mesh.agent_consumer import ValidationResult
 from src.mesh.adapters.base import ForkAdapter
 
@@ -18,7 +19,11 @@ def propagate(
     validation: ValidationResult,
     adapters: list[ForkAdapter],
 ) -> list[PropagationResult]:
-    """Propagate approved event to all adapters. Per-adapter failures are isolated."""
+    """Propagate approved event to all adapters. Per-adapter failures are isolated.
+
+    On partial propagation (any adapter fails), the queue event is acked as
+    'partial_propagation' so consume_pending() does not re-process it.
+    """
     if validation.decision.value != "approve":
         return []
 
@@ -44,4 +49,8 @@ def propagate(
                     error=str(e),
                 )
             )
+
+    if results and any(not r.success for r in results):
+        _queue.ack(event.event_id, "partial_propagation")
+
     return results
