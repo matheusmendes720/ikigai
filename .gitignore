@@ -3,6 +3,18 @@
 .atl/
 .life/
 
+# ─── Stray paths from shell-quote bugs ──────────────────────────
+# Literal-tilde dirs (e.g. `~/` typed in a path that was replayed
+# as a literal string → `src/ikigai/~/.ikigai/*.db` was tracked).
+# These are NOT user-home expansions; treat `~` as a path component.
+**/~/**
+**/~*.db
+# Stray zero-byte / one-char / shell-quote-garbage files at repo root.
+# These came from malformed bash redirection (e.g. `> agent('Execute')`).
+# Listed individually because gitignore glob character classes can't
+# reliably match quotes/backticks/brackets across shells.
+# Examples seen 2026-08-28: '  `  -  0  6.0  None  For  d.classification  list[object]  s.docs
+
 # ─── Vault (Obsidian KB — runtime only) ─────────────────────────
 # Source vault (wikilinks, markdown) IS tracked.
 # Runtime artifacts inside vault/ are ignored.

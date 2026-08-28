@@ -1,5 +1,5 @@
-# Pre-commit hooks for life-ops/operational
-# Install: cd life-ops/operational && uv run pre-commit install --install-hooks
+# Pre-commit hooks for src/operational (PAV kernel, uv-managed)
+# Install: cd src/operational && uv run pre-commit install --install-hooks
 # Run manually: uv run pre-commit run --all-files
 
 repos:

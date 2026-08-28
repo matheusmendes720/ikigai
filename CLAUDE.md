@@ -157,7 +157,7 @@ uv run mypy src/
 
 ```bash
 cd src/ikigai
-poetry install
+uv sync                 # uv-managed (NOT poetry — see q3-q4-resolved memory)
 ikigai.bat mcp          # start MCP server (8 tools)
 ikigai.bat agent <thread>
 ikigai.bat chat <thread>
@@ -224,6 +224,53 @@ Cross-fork task view + bidirectional sync via Deep Agent gateway. **v1 scope = `
 UEID format: `<CLUSTER>:<ENTITY>:<ID>`.
 
 PolicyEngine states (PUSH / MAINTAIN / REDUCE / RECOVER) with hysteresis.
+
+---
+
+## Current Mode (2026-08-28)
+
+**Data-first methodology** — IKIGAi está pausado. Não escrever novo código
+até 5+ SONHO logs manuais
+(`vault/ikigai/closing-2026/01-q3-2026/04-relatórios-diários/`). Decisões de
+algoritmo (M01/N01/A02/A06, IKIGAI vector weights) deferidas até evidência
+empírica. Estado vivo em
+`~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/MEMORY.md`.
+
+## Root Layout (não-`src/`)
+
+O Typer CLI raiz (`python -m life.cli …`) vive em diretórios paralelos a `src/`:
+
+- `centrals/` — registradores (top-level handlers)
+- `cli/` — entrypoints do CLI raiz
+- `handlers/` — consumidores de plugins
+- `plugins/` — extensões carregadas pelo CLI hub
+- `tests/` — testes de integração top-level
+- `openwiki/` — workspace parasita (≠ `.openwiki/` que é cache/config)
+
+Pastas `.` de tooling também no root (não interferem no runtime, ignore):
+`.agents`, `.atl`, `.claude-flow`, `.codex`, `.gitnexus`, `.hermes`,
+`.hypothesis`, `.life`, `.openwiki`, `.pi`.
+
+**Zero-byte artifacts untracked** (5): `0`, `14`, `agent('Execute`, `int`,
+`None`. Causa provável: redirecionamento bash malformado
+(`> agent('Execute')` virou arquivo em vez de string). Recomenda-se adicionar
+ao `.gitignore` antes do próximo commit.
+
+## LangGraph Graphs (vibe-ops, não src/)
+
+Todos os 6 graphs registrados em `langgraph.json` montam em
+`./vibe-ops/src/langgraph_entry.py`:
+
+| Graph | Entry factory |
+|-------|---------------|
+| `pae_maintainer` | `make_pae_graph` |
+| `ikigai_maintainer` | `make_ikigai_graph` |
+| `quarterly_replan` | `make_replan_graph` |
+| `correction_protocol` | `make_correction_graph` |
+| `dream_falsification` | `make_falsification_graph` |
+| `test_de_fogo_rollup` | `make_rollup_graph` |
+
+Para subir um graph específico: `make dev-graph NAME=ikigai_maintainer`.
 
 ---
 
