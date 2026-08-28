@@ -1,3 +1,9 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Appendix to the pre-pivot ADR-008..011 decision package (impact tables,
+> open questions, implementation gotchas). PAV is desativado; appendix
+> scope is no longer active. Canonical direction is deep-agent over
+> forks-prontas widgets ↔ vault \`.db.markdown\`.
+
 # ADR-008..011 Decision Package — Appendix
 
 > **Companion to:** `code-docs/adr/2026-08-28-adr-008-011-decision-package.md`
