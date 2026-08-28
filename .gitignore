@@ -73,6 +73,7 @@ life-ops/operational/dist/
 life-ops/operational/build/
 life-ops/operational/*.egg-link
 life-ops/operational/.pytest_cache/
+.pytest-tmp/
 vibe-ops/.venv/
 vibe-ops/__pycache__/
 vibe-ops/.ruff_cache/
