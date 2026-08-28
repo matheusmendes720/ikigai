@@ -1,3 +1,11 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> This is the architecture index for the pre-pivot PAV TUI/CLI + IKIGAI +
+> vibe-ops as cargo-chefe. PAV is desativado; canonical architecture is
+> deep-agent over forks-prontas widgets (tuiboard/taskdog/solverforge-calendar)
+> ↔ vault `.db.markdown`. Most sub-sections here are stale; for current state,
+> see \`docs/diagnostics/2026-08-28-structure-audit/00-INDEX.md\` (post-pivot
+> audit) + \`docs/diagnostics/2026-08-28-doc-migration/00-INDEX.md\`.
+
 # ARCHITECTURE_INDEX.md
 
 > **Índice de Arquitetura do Algorithmic Life OS**
