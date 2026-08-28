@@ -1,3 +1,9 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> 2D risk × effort matrix for the pre-pivot PAV/IKIGAI sprint backlog.
+> Backlog is paused per ADR-007 (5+ SONHO logs gate); prioritization is
+> stale. For current risk view, see doc-migration plan + 4 Proposta ADR
+> decision package.
+
 # Risk & Effort Matrix — 2026-08-27
 
 > **Companion doc** to `2026-08-27-master-system-diagnostic.md`. 2D matrix
