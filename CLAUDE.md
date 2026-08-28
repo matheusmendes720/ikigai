@@ -52,11 +52,21 @@ vault (NL planning)
 ```
 life/
 ├── src/
-│   ├── contracts/              ← CANONICAL Pydantic contracts (NEW)
+│   ├── contracts/              ← CANONICAL Pydantic contracts
 │   │   ├── common.py           UEID, Period, Priority, EntityType, RegimeState
 │   │   ├── task.py            Task, Subtask, ChecklistItem, Project, Milestone, Deliverable
+│   │   ├── task_change.py     TaskChange, PropagationEvent, TaskAction (Phase 3 v1)
 │   │   ├── planning.py        PlanningCycle, Wave, Sprint, VaultEvent
 │   │   └── metrics.py         Burndown, ExecutionRate, QHEScore
+│   ├── mesh/                   ← DATA MESH (Phase 3 v1 — create action)
+│   │   ├── queue.py           Filesystem append-only review queue (atomic writes)
+│   │   ├── agent_consumer.py  Deep Agent validation (PAE rules: APPROVE/REJECT/CLARIFY)
+│   │   ├── agent_propagator.py Deep Agent propagation (per-adapter failure isolation)
+│   │   └── adapters/
+│   │       ├── base.py        ForkAdapter Protocol (@runtime_checkable)
+│   │       ├── cli.py         CliAdapter (data/tasks.jsonl)
+│   │       ├── taskdog.py     TaskdogAdapter (SQLite UPSERT on ueid)
+│   │       └── solverforge_calendar.py SolverforgeCalendarAdapter (UPI ueid column)
 │   ├── operational/            ← was life-ops/operational/ (PAV kernel)
 │   ├── ikigai/                ← was life-ops/ikigai/ (Deep Agent + MCP)
 │   ├── life_tatics/            ← was life-ops/life_tatics/
@@ -82,9 +92,9 @@ life/
 │   ├── test-fixtures/          test databases
 │   └── session-*.md            session transcripts
 │
-├── interfaces/                  INTERFACE LAYER (consumers — to be built)
-│   ├── cli/                   daily-view, kanban, gantt, calendar
-│   └── tui/                   TUI apps
+├── interfaces/                  INTERFACE LAYER (consumers)
+│   ├── cli/                   Typer CLI — `life mesh show`, `life task add` (Phase 3 v1)
+│   └── tui/                   TUI apps (planned)
 │
 ├── strategics/                  STRATEGIC KNOWLEDGE (PT-BR, read-only)
 │   ├── Hierarquia de Objetivos.md
@@ -193,8 +203,19 @@ Shared Pydantic v2 models. All layers import from here.
 |--------|--------|
 | `common.py` | `UEID`, `Period`, `Priority`, `EntityType`, `RegimeState` |
 | `task.py` | `Task`, `Subtask`, `ChecklistItem`, `Project`, `Milestone`, `Deliverable` |
+| `task_change.py` | `TaskChange`, `PropagationEvent`, `TaskAction` (Phase 3 v1) |
 | `planning.py` | `PlanningCycle`, `Wave`, `Sprint`, `VaultEvent` |
 | `metrics.py` | `Burndown`, `ExecutionRate`, `QHEScore` |
+
+### Data Mesh (src/mesh/) — Phase 3 v1
+
+Cross-fork task view + bidirectional sync via Deep Agent gateway. **v1 scope = `create` action only.**
+
+- **UEID** is the canonical join key across all forks (5-part regex `^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$`)
+- **Write path**: fork → CLI enqueues `TaskChange` to `data/review_queue/` → Agent validates → propagates `PropagationEvent` to all forks
+- **Read path**: `life mesh show <ueid>` joins slices from all 3 adapters (CLI / taskdog / UPI)
+- **3 adapters** (all implement `ForkAdapter` Protocol): `CliAdapter`, `TaskdogAdapter`, `SolverforgeCalendarAdapter`
+- **v1.2+ (out of scope)**: `update`, `delete`, `done` actions; tuiboard adapter; LLM-driven validation
 
 ### Vibe-ops: Target-Sensor-Adjuster Loop
 
@@ -208,10 +229,12 @@ PolicyEngine states (PUSH / MAINTAIN / REDUCE / RECOVER) with hysteresis.
 
 ## What Is Broken / TODO
 
-- **interfaces/ is empty** — needs building (Phase 4-6 of reorg)
+- **interfaces/tui/ is empty** — Phase 4-6 of reorg (CLI shipped in Phase 3 v1)
 - **MCP Gateway described in docs but not wired as code**
 - **Deep Agent harness exists but doesn't fill interfaces yet**
 - **vibe_ops.db moved to data/** — some code paths may still reference old locations
+- **Phase 3 v1 ships `create` only** — `update`/`delete`/`done` deferred to v1.2-v1.4 (gated on data-first methodology: 5+ SONHO logs)
+- **Phase 3 minor findings (logged, non-blocking)**: UPI `id` churn on UPSERT conflict; `propagate()` doesn't auto-ack `partial_propagation` status
 
 ---
 
@@ -219,11 +242,13 @@ PolicyEngine states (PUSH / MAINTAIN / REDUCE / RECOVER) with hysteresis.
 
 | Task | Start here |
 |------|-----------|
+| Using mesh | `life mesh show <ueid>` (after `life task add ...`) |
 | Building interfaces | interfaces/cli/ or interfaces/tui/ |
 | Deep Agent development | src/ikigai/src/agents/ + vault/ |
-| Unifying contracts | src/contracts/ (Phase 3 DONE — verify imports) |
+| Unifying contracts | src/contracts/ + src/mesh/ (Phase 3 DONE) |
 | MCP Gateway integration | src/ikigai/MCP_GATEWAY.md |
 | Understanding the system | docs/ARCHITECTURE_INDEX.md |
+| Phase 3 spec/plan | docs/superpowers/specs/ + docs/superpowers/plans/ (2026-08-28) |
 
 ---
 
@@ -237,9 +262,10 @@ If touching vault/, vibe-ops/, or strategics/: stop → propose Action Plan → 
 
 - **Don't restore old PAV TUI/CLI** — apps/cli and apps/tui were deleted intentionally; build new interfaces under interfaces/
 - **Deep Agent writes vault; interfaces don't** — interfaces only read from data/
-- **Append-only rule** enforced on vault/, vibe-ops/, strategics/
+- **Append-only rule** enforced on vault/, vibe-ops/, strategics/, AND `data/review_queue/`
 - **vibe_ops.db lives in data/** — update any code paths that reference it at the old root location
+- **v1 mesh scope = create only** — adapters early-return on non-create actions; do not add update/delete/done logic until v1.2
 
 ---
 
-*Algorithmic Life OS — CLAUDE.md — 2026-08-27*
+*Algorithmic Life OS — CLAUDE.md — 2026-08-28*
