@@ -1,3 +1,8 @@
+> **[SUPERSEDED 2026-08-28 — ADR superseded; see master-branch-carro-chefe-2026-08-28]**
+> Vector weight mechanism deferred per algorithm-decisions-defer-2026-08-28;
+> ADR-007 (data-first) gate of 5+ SONHO logs still required before promotion.
+> See 2026-08-28-adr-008-011-decision-package.md for current recommendation.
+
 # ADR-008 — IKIGAI Vector Count (5 vs 4)
 
 **Status:** Proposta
