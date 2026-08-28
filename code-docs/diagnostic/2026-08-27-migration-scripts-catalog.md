@@ -1,3 +1,9 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Catalog of migration scripts (MIG-5, MIG-8, MIG-S-M3 etc.) planned to
+> pre-pivot IKIGAI / PAV / Pydantic strict. Most migrations are deferred per
+> ADR-007 data-first methodology. Do not execute; review decisions in the
+> 4 Proposta ADR decision package.
+
 # Migration Scripts Catalog — 2026-08-27
 
 > **Companion doc** to `2026-08-27-master-system-diagnostic.md`. Concrete specs
