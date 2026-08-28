@@ -1,3 +1,9 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Operator runbook for 13 silent-failure modes in the pre-pivot IKIGAI server
+> stack. Most failure modes are reframed under deep-agent canonical (CLI
+> broken → not a defect; OTel gaps → MCP contract); IKIGAI feature work is
+> paused per ADR-007. Keep this runbook as a reference but do not execute.
+
 # Incident Response Runbook — IKIGAI / Algorithmic Life OS
 
 **Date:** 2026-08-27
