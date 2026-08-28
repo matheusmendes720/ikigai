@@ -1,3 +1,9 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Sprint 1 implementation plan with 16 TDD tasks (24.5d serial / 9d parallel)
+> organized against the pre-pivot master-system-diagnostic. Many tasks are
+> deferred or reframed under deep-agent canonical; IKIGAI feature work paused
+> per ADR-007. See doc-migration plan for current sequencing.
+
 # Sprint 1 Implementation Plan — 2026-08-27
 
 > **Source of truth:** `code-docs/diagnostic/2026-08-27-github-issues-backlog.md §1` (16 issues, ~24.5d).
