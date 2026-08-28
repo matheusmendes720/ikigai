@@ -1,3 +1,10 @@
+> **[SUPERSEDED 2026-08-28 — see master-branch-carro-chefe-2026-08-28]**
+> Pre-pivot decision package for ADR-008..011. PAV is desativado; the
+> algorithms/template/registry scope of these ADRs is no longer the active
+> focus per algorithm-decisions-defer-2026-08-28. Decisions relevant to
+> the canonical architecture (deep-agent over forks-prontas widgets ↔
+> vault \`.db.markdown\`) supersede these.
+
 # ADR-008..011 Decision Package — Ready for User Sign-off
 
 > **Status:** 🟡 Draft — 2026-08-28
