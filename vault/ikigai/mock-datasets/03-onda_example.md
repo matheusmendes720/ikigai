@@ -22,8 +22,8 @@ tags: [period/onda, ikigai/plan, micro-fase, persona/marina, onda/01, demo/clima
 
 > **Horizonte:** 15 dias úteis (3 semanas) · **Cluster:** PLAN (Tático) · **Persona:** Marina Souza
 >
-> Vinculado a: `00-sonho_example.md` (sonho pai) · `01-trimestral_example.md` (trimestre pai)
-> Filhas: `03-revisao-semanal_example.md` (semana 01) · `semana-02` (W2) · `semana-03` (W3)
+> Vinculado a: `01-sonho_example.md` (sonho pai) · `02-trimestral_example.md` (trimestre pai)
+> Filhas: `04-revisao-semanal_example.md` (semana 01) · `semana-02` (W2) · `semana-03` (W3)
 > Status: **FECHADA** em 2026-07-24 com verdict CONTINUE_WAVE.
 
 ---
@@ -33,8 +33,8 @@ tags: [period/onda, ikigai/plan, micro-fase, persona/marina, onda/01, demo/clima
 - **Onda ID:** `onda-01-climate-tech-internal-demo`
 - **Período:** 2026-07-06 → 2026-07-24 (15 dias úteis: 3 semanas completas)
 - **Tema Central:** Construir o MVP da demo interna de climate-tech + gravar pitch de 12 min
-- **Sonho Pai:** `marina.climate-tech-lead.2027` (FK → `00-sonho_example.md`)
-- **Trimestre Pai:** `quarterly-2026-Q3` (FK → `01-trimestral_example.md`)
+- **Sonho Pai:** `marina.climate-tech-lead.2027` (FK → `01-sonho_example.md`)
+- **Trimestre Pai:** `quarterly-2026-Q3` (FK → `02-trimestral_example.md`)
 - **IKIGAi Vetor:** [x] Passion  [x] Skill  [ ] Market  [ ] Revenue  (vetor primário: Skill)
 - **Status:** [ ] Draft  [ ] Em Execução  [x] **Em Revisão**  [x] Fechada (2026-07-24)
 
@@ -165,7 +165,7 @@ Estado final:      PUSH (verdict CONTINUE_WAVE autoriza)
 
 ## Sincronização e Fechamento
 
-- [x] As 3 Semanais foram consolidadas (ver `03-revisao-semanal_example.md` para W1; W2/W3 em arquivos paralelos)
+- [x] As 3 Semanais foram consolidadas (ver `04-revisao-semanal_example.md` para W1; W2/W3 em arquivos paralelos)
 - [x] Completion rate médio calculado (0-1): **0.85**
 - [x] Diagnóstico de gaps preenchido (4 dims)
 - [x] Verdict computado (CONTINUE_WAVE)

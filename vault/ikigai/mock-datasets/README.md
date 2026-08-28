@@ -13,36 +13,36 @@
 
 | # | File | Period | Horizon | Purpose |
 |---|------|--------|---------|---------|
-| 0 | `00-sonho_example.md` | Sonho (Dream) | 18 months | Strategic falsifiable hypothesis + IKIGAi 5-vector snapshot + Kill Switch |
-| 1 | `01-trimestral_example.md` | Trimestral (Quarterly) | 90 days | Aggregates 3 months → 3 Ondas → 9 Semanais → 45 Diários |
-| 2 | `02-onda_example.md` | Onda (Wave) | 15 business days | Tactical sprint; aggregates 3 weekly reviews |
-| 3 | `03-revisao-semanal_example.md` | Revisão Semanal | 7 days | Sensor/adjuster of the cybernetic loop; aggregates 7 daily reports |
-| 4 | `04-relatorio-diario_example.md` | Relatório Diário | 1 day | Atomic unit — pomodoros, habits, Q_HE, PolicyEngine decision |
+| 0 | `01-sonho_example.md` | Sonho (Dream) | 18 months | Strategic falsifiable hypothesis + IKIGAi 5-vector snapshot + Kill Switch |
+| 1 | `02-trimestral_example.md` | Trimestral (Quarterly) | 90 days | Aggregates 3 months → 3 Ondas → 9 Semanais → 45 Diários |
+| 2 | `03-onda_example.md` | Onda (Wave) | 15 business days | Tactical sprint; aggregates 3 weekly reviews |
+| 3 | `04-revisao-semanal_example.md` | Revisão Semanal | 7 days | Sensor/adjuster of the cybernetic loop; aggregates 7 daily reports |
+| 4 | `00-relatorio-diario_example.md` | Relatório Diário | 1 day | Atomic unit — pomodoros, habits, Q_HE, PolicyEngine decision |
 
 ---
 
 ## 5-Minute Walkthrough
 
-1. **Start at the top of the pyramid** — open `00-sonho_example.md`. This is Marina's dream in
+1. **Start at the top of the pyramid** — open `01-sonho_example.md`. This is Marina's dream in
    one falsifiable sentence: *"Become a tech lead at a climate-tech startup within 3 years,
    while sustaining 8h sleep and 3x/week training for a half-marathon in 2027."* Note the
    `sonho_id: marina.climate-tech-lead.2027` — that's the foreign key every downstream
    report will reference.
 
-2. **Drop down one level** — open `01-trimestral_example.md`. This is her **Q3-2026** plan.
+2. **Drop down one level** — open `02-trimestral_example.md`. This is her **Q3-2026** plan.
    The trimestre is broken into **3 Ondas** of ~45 business days each. The bet for Q3-2026 is
    *"Build internal demo + first climate-tech interview."* Verdict mechanism (PASS/PARTIAL/FAIL)
    is shown populated with realistic numbers.
 
-3. **Drop to the tactical layer** — open `02-onda_example.md`. This is **Onda 1** of Q3
+3. **Drop to the tactical layer** — open `03-onda_example.md`. This is **Onda 1** of Q3
    (`onda-01-climate-tech-internal-demo`), running 2026-07-06 → 2026-07-24. Three weekly
    reviews aggregate here. The verdict formula is computed in §4.
 
-4. **Drop to the operational layer** — open `03-revisao-semanal_example.md`. This is
+4. **Drop to the operational layer** — open `04-revisao-semanal_example.md`. This is
    **Week 1** of Onda 1 (`semana-01`), Mon 2026-07-06 → Sun 2026-07-12. Each daily report
    feeds this. PolicyEngine trail (PUSH/MAINTAIN/REDUCE/RECOVER) is recorded day-by-day.
 
-5. **Hit the atomic layer** — open `04-relatorio-diario_example.md`. This is **Wednesday
+5. **Hit the atomic layer** — open `00-relatorio-diario_example.md`. This is **Wednesday
    2026-07-08**, a PUSH day with 5/6 pomodoros completed, Q_HE 0.71, sleep 7.6h. Verdict:
    PASS. Recommendation: tomorrow also PUSH.
 
@@ -72,8 +72,8 @@ sonho:       marina.climate-tech-lead.2027          (horizon: 2026-07-06 → 202
 
 **Every parent_period field in the YAML frontmatter of each file points up one level.**
 
-Example: `02-onda_example.md` frontmatter has `parent_period: quarterly-2026-Q3`.
-Example: `04-relatorio-diario_example.md` frontmatter has `parent_period: semana-01`.
+Example: `03-onda_example.md` frontmatter has `parent_period: quarterly-2026-Q3`.
+Example: `00-relatorio-diario_example.md` frontmatter has `parent_period: semana-01`.
 
 ---
 
@@ -111,9 +111,9 @@ Each report shows the **current state vs the start-of-period state** so the delt
    (or your own name).
 2. **Replace the persona.** Change `Marina Souza` → your name everywhere. Change
    `marina.climate-tech-lead.2027` → a slug matching your dream.
-3. **Rewrite `00-sonho_example.md` first.** Pick one falsifiable dream. Set horizons. Set
+3. **Rewrite `01-sonho_example.md` first.** Pick one falsifiable dream. Set horizons. Set
    kill switches. Don't move on until that is honest.
-4. **Fill `01-trimestral_example.md`.** Pick the current quarter. Set the bet. Choose the
+4. **Fill `02-trimestral_example.md`.** Pick the current quarter. Set the bet. Choose the
    regime (PUSH/MAINTAIN/REDUCE/RECOVER).
 5. **Generate the Onda.** One of three inside the trimestre. Make it concrete: a single
    observable outcome.

@@ -31,6 +31,8 @@ Diferenciamos o tempo de **Estudo** (7/7) do tempo de **Trabalho** (5/7) atravé
 
 $$ \text{WORK\_RATIO} = \frac{22}{30} \approx 0.7333 $$
 
+*Justificativa:* ≈5 dias úteis/semana × 4.4 semanas médias/mês ÷ 30 dias corridos ≈ 22 workdays / 30 calendar days. Calendário federal brasileiro típico (5 feriados móveis/fixos médios subtraídos do potencial 22 wd); normalização adota 22/30 como aproximação estável.
+
 Para converter qualquer período $t$ (em dias corridos) para sua equivalência em dias úteis:
 $$ f(t) = t \cdot \text{WORK\_RATIO} $$
 

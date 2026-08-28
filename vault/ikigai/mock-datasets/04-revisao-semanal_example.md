@@ -22,8 +22,8 @@ tags: [period/weekly, ikigai/plan, revisao-semanal, persona/marina, onda/01, sem
 
 > **Horizonte:** 7 dias (Mon 2026-07-06 → Sun 2026-07-12) · **Cluster:** PLAN (Tático) · **Persona:** Marina Souza
 >
-> Vinculada a: `02-onda_example.md` (onda pai) · `00-sonho_example.md` (sonho pai)
-> Filha: `04-relatorio-diario_example.md` (2026-07-08, Wed) + 6 outros diários em `_periodos/dia-NN-2026-W07.md`
+> Vinculada a: `03-onda_example.md` (onda pai) · `01-sonho_example.md` (sonho pai)
+> Filha: `00-relatorio-diario_example.md` (2026-07-08, Wed) + 6 outros diários em `_periodos/dia-NN-2026-W07.md`
 > Status: **FECHADA** com verdict PASS.
 
 ---
@@ -32,8 +32,8 @@ tags: [period/weekly, ikigai/plan, revisao-semanal, persona/marina, onda/01, sem
 
 - **Semana ID:** `semana-01` (W01 da onda-01)
 - **Período:** 2026-07-06 → 2026-07-12 (Mon-Sun, 5 dias úteis + 2 de recovery parcial)
-- **Onda Pai:** `onda-01-climate-tech-internal-demo` (FK → `02-onda_example.md`)
-- **Sonho Pai:** `marina.climate-tech-lead.2027` (FK → `00-sonho_example.md`)
+- **Onda Pai:** `onda-01-climate-tech-internal-demo` (FK → `03-onda_example.md`)
+- **Sonho Pai:** `marina.climate-tech-lead.2027` (FK → `01-sonho_example.md`)
 - **Status:** [ ] Draft  [ ] Em Revisão  [x] **Fechada** (2026-07-12 21:00 BRT)
 
 ---
@@ -67,7 +67,7 @@ Cálculo: (0.83 + 0.86 + 0.92 + 0.71 + 0.94 + 0.88 + 0.86) / 7 = **6.00 / 7 = 0.
 |-----|:---:|
 | Seg 2026-07-06 | 0.83 (5/6) |
 | Ter 2026-07-07 | 0.86 (6/7) |
-| Qua 2026-07-08 | **0.83** (5/6) ← exemplo detalhado em `04-relatorio-diario_example.md` |
+| Qua 2026-07-08 | **0.83** (5/6) ← exemplo detalhado em `00-relatorio-diario_example.md` |
 | Qui 2026-07-09 | 0.71 (5/7) |
 | Sex 2026-07-10 | 0.94 (5/5+1) — convertido em long run |
 | Sáb 2026-07-11 | 0.88 (recuperação ativa + 1 treino) |

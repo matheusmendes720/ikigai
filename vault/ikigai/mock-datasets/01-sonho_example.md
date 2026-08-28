@@ -22,7 +22,7 @@ tags: [period/sonho, ikigai/plan, falsifiable, persona/marina, horizon/18m]
 
 > **Horizonte:** 18 meses (2026-07-06 → 2027-12-31) · **Cluster:** PLAN (Estratégico) · **Persona:** Marina Souza
 >
-> Vinculado a: `01-trimestral_example.md` (Q3-2026, Q4-2026) · `01-sonho-2027-q1.md` (forward).
+> Vinculado a: `02-trimestral_example.md` (Q3-2026, Q4-2026) · `01-sonho-2027-q1.md` (forward).
 > Este é o sonho root; todos os trimestres descendentes herdam o `sonho_id: marina.climate-tech-lead.2027`.
 
 ---
