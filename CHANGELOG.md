@@ -15,6 +15,47 @@ This file covers phases that touch multiple layers or that ship under the
 
 ## [unreleased] — 2026-08-29
 
+### B5.B — Agent Wiring Minimum Viable Wire-Up
+
+**Status:** shipped 2026-08-29 as 4 commits. Closes B5.0 audit finding
+**F14** + adds E2E coverage proving B4 review-queue worker delivers to
+all 3 adapters (Cli/Taskdog/SolverforgeCalendar).
+
+**Commits:**
+- `5b7e6ce` — `fix(ikigai): resolve F14 broken ikigai.mcp_server.server import`
+  (lazy import inside `commit_node()` body; eager fails due to
+  `mcp_server.tracing` dependency chain requiring sys.path setup).
+- `edea89b` — `test(mesh): add TaskdogAdapter E2E coverage for worker pipeline`
+  (drives full pipeline → SQLite UPSERT verified in temp DB).
+- `cfad989` — `test(mesh): add SolverforgeCalendarAdapter E2E coverage for worker pipeline`
+  (drives full pipeline → UPI write verified with id-reuse on UEID conflict).
+- `a2288eb` — `test(ikigai): remove dead _install_ikigai_mcp_shim after F14 fix`
+  + adds `tests/ikigai/conftest.py` for still-needed sys.path setup
+  (matches `src/ikigai/tests/conftest.py` precedent).
+
+**Verification:**
+- `tests/ikigai/` — 3/3 PASS (post-shim-removal)
+- `interfaces/cli/tests/test_review_queue_worker.py` — 9/9 PASS
+- `interfaces/cli/tests/test_review_queue_worker_e2e.py` — 8/8 PASS
+  (6 original + CliAdapter + TaskdogAdapter + SolverforgeCalendarAdapter)
+- `interfaces/cli/tests/adapters/` + agent + queue — 27/27 PASS
+- **Total: 47/47 PASS** in 6.89s
+
+**Why this matters:** "The agent layer is wired up" was a B4 architectural
+claim that only had stub-adapter E2E coverage. B5.B adds real-adapter E2E
+tests for all 3 adapters — turns the claim into checkable test evidence.
+Also fixes the production-breaking broken import in `commit.py:12` so
+graph execution works outside test contexts.
+
+**Pre-existing hygiene debt (NOT this commit):**
+- Algorithm gate preserved: zero lines of math touched in `**/scoring/**`,
+  `**/formula**`, `**/qhe**`, `**/regime/**`, `**/weight`.
+- F7 (propagator DLQ/retry) deferred to v1.2+ per audit §1.3.
+
+---
+
+## [unreleased] — 2026-08-29
+
 ### Hygiene sweep — gitignore fix (clean slate before B5)
 
 **Status:** shipped 2026-08-29. Closes the dangling alternation-syntax
