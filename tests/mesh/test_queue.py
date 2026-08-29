@@ -82,3 +82,42 @@ def test_replay_after_restart_re_processes_pending(queue_dir: Path):
     events = list(queue.replay_after_restart())
     assert len(events) == 3
     assert {e.event_id for e in events} == {"evt_1", "evt_2", "evt_3"}
+
+
+def test_atomic_write_retries_on_transient_oserror(queue_dir: Path, monkeypatch):
+    """Per audit B5.0-F13: transient OSError during write should be retried, not crash."""
+    target = queue_dir / "retry_test.json"
+    call_count = {"n": 0}
+
+    original_replace = queue.os.replace
+
+    def flaky_replace(src, dst):
+        call_count["n"] += 1
+        if call_count["n"] < 3:
+            raise PermissionError("simulated EBUSY")
+        return original_replace(src, dst)
+
+    monkeypatch.setattr(queue.os, "replace", flaky_replace)
+
+    queue._atomic_write_json(target, '{"ok": true}')
+
+    # After 2 failures, the 3rd attempt succeeds
+    assert call_count["n"] == 3
+    assert target.exists()
+    assert target.read_text() == '{"ok": true}'
+
+
+def test_atomic_write_gives_up_after_max_attempts(queue_dir: Path, monkeypatch):
+    """After max retries, the OSError propagates (caller can decide how to handle)."""
+    target = queue_dir / "doomed.json"
+
+    def always_fail(src, dst):
+        raise PermissionError("persistent EBUSY")
+
+    monkeypatch.setattr(queue.os, "replace", always_fail)
+
+    with pytest.raises(PermissionError):
+        queue._atomic_write_json(target, '{"x": 1}')
+
+    # Target must not exist (write aborted)
+    assert not target.exists()

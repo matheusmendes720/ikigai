@@ -50,6 +50,48 @@ explicit lines (alternation unsupported)`
 
 ---
 
+## [unreleased] — 2026-08-29
+
+### Phase B5.1 — Graph & agent-loop hardening (infra-only)
+
+**Status:** shipped 2026-08-29. Closes 6 of 14 findings from the B5.0
+audit (`docs/superpowers/plans/2026-08-29-phase-b5-graph-agent-loop-audit.md`).
+Strict scope fence preserved: 0 lines of math touched (no edits to
+scoring/formula/qhe/regime/weight code).
+
+**Findings closed (B5.1.1 → B5.1.6):**
+
+| # | Finding | Fix | Files touched |
+|---|---------|-----|---------------|
+| F9 | FilesystemBackend scoped to `Path.home()` (full system write access) | Scope to `_FS_ROOT = data/`, allowlist `_VAULT_ROOT = vault/`, `virtual_mode=True` | `deepagents_harness.py` |
+| F4 | SqliteSaver connection leak (singleton graph never closed) | Stash `conn` on compiled graph, add `close_graph()`, register `atexit` hook | `graph.py` |
+| F13 | Zero retry/timeout at transport layer | `_retry_atomic_write` decorator on `queue.py` (`enqueue`, `ack`); 4 attempts, exponential backoff + jitter, OSError/PermissionError | `src/mesh/queue.py` |
+| F3 | No error_node terminal — exceptions crashed the graph | New `nodes/error.py` terminal; `_safe_node()` wrapper around all 8 nodes; conditional edges after every node check `error_type` and route to error_node | `graph.py`, `state.py`, new `nodes/error.py` |
+| F10 | Default checkpoint DB at `~/.ikigai/ikigai_checkpoints.db` (Windows-lock risk per `life-ops-ikigai-lock-2026-08-27`) | Default to `<project_root>/data/ikigai_checkpoints.db`; honors `IKIGAI_CHECKPOINT_DB` env override | `graph.py`, `deepagents_harness.py`, `tools.py` |
+| F1 | Dual `langgraph.json` (root + `src/ikigai/`); root had broken path `life-ops/ikigai/src` (renamed to `src/ikigai/`) | Fix `vibe-ops/src/langgraph_entry.py` path resolution (`PROJECT_ROOT`, `VIBE_OPS_SRC`, `IKIGAI_SRC`); import via `agents.ikigai_maintainer.graph` (post-reorg path); delete duplicate `src/ikigai/langgraph.json` | `vibe-ops/src/langgraph_entry.py` |
+
+**Verification (post-fix):**
+- `tests/mesh/test_queue.py` — 7/7 PASS (5 pre-existing + 2 new retry tests)
+- `tests/ikigai/test_error_node.py` — 3/3 PASS (graph compiles 9 nodes,
+  injected exception routes to error_node, clean run skips error_node)
+- Combined: `pytest tests/mesh/test_queue.py tests/ikigai/test_error_node.py`
+  → 10/10 PASS
+- `ruff check` on new/touched files (queue.py, error.py, graph.py,
+  __init__.py): clean (pre-existing ruff debt in langgraph_entry.py
+  out of scope)
+
+**What B5.1 did NOT touch (deferred per algorithm gate):**
+- 8 LOW/MEDIUM findings (F2, F5, F6, F7, F8, F11, F12, F14) — deferred
+  to B5.2/B5.3 unless time permits
+- Any algorithm code: `state.py` constants, `score_vectors.py`,
+  `heuristics.py`, `balance.py`, `metrics.py` (QHE) — all preserved
+  per [[algorithm-gate-system-readiness-not-sonho-2026-08-29]]
+
+**Commits (single batch):** F9 + F4 + F13 + F3 + F10 + F1 + tests + CHANGELOG
+landed in one commit per the audit's "batch B5.1 together" guidance.
+
+---
+
 ### ADR-007 propagation gap — STATUS banner sweep (27 files)
 
 **Status:** shipped 2026-08-29. Closes the gap after commit `118060e`
