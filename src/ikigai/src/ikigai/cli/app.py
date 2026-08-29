@@ -8,6 +8,11 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+
+# Ensure ikigai package is on path (required for ikigai.* imports)
+_ikigai_src = Path(__file__).parent.parent
+if str(_ikigai_src) not in sys.path:
+    sys.path.insert(0, str(_ikigai_src))
 from typing import Any
 
 import typer
@@ -508,6 +513,38 @@ def sync_index(
     path = db.index_save()
     data = {"index_path": str(path), "vault_root": str(db.vault_root)}
     _output(data, ctx.obj.get("json_out", False))
+
+
+@sync_app.command("vault-to-taskdog")
+def sync_vault_to_taskdog(
+    ctx: typer.Context,
+    vault_root: Path = typer.Option(
+        Path("vault"),
+        "--vault",
+        help="Path to vault root directory.",
+    ),
+    state_path: Path = typer.Option(
+        Path("data/sync-state.json"),
+        "--state",
+        help="Path to sync state file.",
+    ),
+) -> None:
+    """Sync vault frontmatter-tagged tasks → taskdog via MCP.
+
+    Incremental, idempotent. Only syncs files where frontmatter has
+    ``tags: [task]`` or ``type: task``. Skips drafts, MOCs, evidence,
+    strategics. Run ``ikigai sync vault-to-taskdog --help`` for options.
+    """
+    from ikigai.gateway.clients.taskdog import TaskdogAdapter
+    from ikigai.vault.sync import run_sync
+
+    adapter = TaskdogAdapter()
+    result = run_sync(
+        vault_root=vault_root,
+        state_path=state_path,
+        adapter=adapter,
+    )
+    _output(result.model_dump(mode="json"), ctx.obj.get("json_out", False))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
