@@ -14,6 +14,15 @@
 # Listed individually because gitignore glob character classes can't
 # reliably match quotes/backticks/brackets across shells.
 # Examples seen 2026-08-28: '  `  -  0  6.0  None  For  d.classification  list[object]  s.docs
+# Examples seen 2026-08-29: '  2  6  None  com  dict[str  formal  one  str  Algorítmica
+# Root-level bare digits (bash > digit bugs)
+/[0-9]
+# Root-level files starting with shell-special chars (', [, {, `)
+/['\[\{`]
+# Root-level Python keyword / short-token names that appear from
+# malformed redirect targets (None / str / int / float / bool / list /
+# dict / com / formal / one / etc.). Conservative deny-list.
+/(None|str|int|float|bool|list|dict|com|formal|one)\b
 
 # ─── Vault (Obsidian KB — runtime only) ─────────────────────────
 # Source vault (wikilinks, markdown) IS tracked.
