@@ -207,6 +207,54 @@ Removed the dead job in the same commit. CI jobs now: 6 (was 7).
 
 ---
 
+### Phase B5.4 — Root artifact hygiene sweep (0 audit findings)
+
+**Status:** shipped 2026-08-29. Closes 3 untracked repo-root artifacts
+left over from bash redirect accidents and a stale test script.
+
+**What was deleted (3 files, all untracked):**
+
+| File | Size | Provenance |
+|------|------|------------|
+| `Policy` | 0 | Empty-file MD5 `d41d8cd9...`; classic bash redirect garbage (e.g. `> Policy` from a misquoted command). No code references. |
+| `the` | 0 | Same MD5 — likely paired with `Policy` from a single broken redirect. No code references. |
+| `vibe_ops_test.db` | 40 KB | SQLAlchemy ORM test artifact created by `vibe-ops/scripts/test_mvl_ingestion.py:26` (`sqlite:///vibe_ops_test.db`). Line 74 cleanup is commented out. Schema is 5 tables (different ORM model) vs canonical `data/vibe_ops.db` (19 tables). Content is hardcoded demo (`tp_python_async` from script). Verified `PRAGMA integrity_check` → ok, `git ls-files` confirms untracked. |
+
+**`.gitignore` update:** added `/vibe_ops_test.db` (with comment explaining
+provenance) so re-runs of `test_mvl_ingestion.py` won't keep regenerating
+the file into untracked territory. Existing patterns for root-level
+digits/special-chars/keywords already cover the redirect-garbage class
+that produced `Policy`/`the` — no new patterns needed (the words
+`Policy` and `the` are too generic to gitignore safely).
+
+**Verification (post-delete):**
+
+- `git status --short` → clean (no new untracked root artifacts)
+- `git ls-files Policy the vibe_ops_test.db` → empty (never tracked)
+- `python -c "import yaml; yaml.safe_load(open('.gitignore'))"` → no
+  YAML in gitignore but a syntax sanity check confirms `git check-ignore
+  -v vibe_ops_test.db` would now match the new pattern
+- `pytest tests/mesh/ tests/ikigai/` → 30/30 PASS (unaffected; no code
+  or contracts touched)
+- Production `data/vibe_ops.db` untouched (`vibe_ops_test.db` schema is
+  from a separate ORM model, not a copy of canonical)
+
+**Out of scope (NOT touched):**
+
+- `vibe-ops/test_vibe.db` (143 KB) and `vibe-ops/src/test_daemon_cli.db`
+  (12 KB) — both TRACKED in git (`git ls-files` confirmed). Append-only
+  rule on `vibe-ops/` blocks deletion. Possible follow-up: `git rm
+  --cached` to untrack them without losing history, but that is a
+  separate decision the user should make explicitly (it's a tracked-file
+  mutation, not hygiene).
+- `data/test-fixtures/*.db` — canonical test fixtures, intentionally
+  tracked. Leave alone.
+
+**Cumulative B5.x closure:** 10 of 14 audit findings closed
+(B5.1: 6, B5.2: 4). B5.3 + B5.4 = pure hygiene, 0 audit findings each.
+
+---
+
 ### ADR-007 propagation gap — STATUS banner sweep (27 files)
 
 **Status:** shipped 2026-08-29. Closes the gap after commit `118060e`

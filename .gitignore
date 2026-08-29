@@ -41,6 +41,11 @@
 /set\[*
 /frozenset\[*
 
+# Root-level test DB created by vibe-ops/scripts/test_mvl_ingestion.py
+# whose cleanup line is commented out. Different schema (5 tables, ORM)
+# from canonical data/vibe_ops.db (19 tables). No production refs.
+/vibe_ops_test.db
+
 # ─── Vault (Obsidian KB — runtime only) ─────────────────────────
 # Source vault (wikilinks, markdown) IS tracked.
 # Runtime artifacts inside vault/ are ignored.
