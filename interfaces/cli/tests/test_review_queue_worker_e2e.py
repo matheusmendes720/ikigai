@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import sqlite3
 
 from src.contracts.common import UEID
 from src.contracts.task_change import PropagationEvent, TaskAction, TaskChange, TaskStatus
@@ -237,3 +238,53 @@ def test_end_to_end_with_cli_adapter_writes_real_file(
         assert _read_status("e2e-cli-001") == "propagated"
     finally:
         _cleanup("e2e-cli-001")
+
+
+def test_end_to_end_with_taskdog_adapter_writes_real_db(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Real TaskdogAdapter: validates worker.run_once → SQLite UPSERT into tasks table."""
+    # Redirect TaskdogAdapter's TASKDOG_DB to a temp dir
+    import src.mesh.adapters.taskdog as taskdog_adapter_mod
+
+    temp_db = tmp_path / "taskdog.db"
+    monkeypatch.setattr(taskdog_adapter_mod, "TASKDOG_DB", temp_db)
+
+    event = _make_event(
+        event_id="e2e-taskdog-001",
+        ueid="tsk:taskdog:b1c2:d3e4",
+        title="Real taskdog UPSERT test",
+        source_fork="mcp_gateway",
+    )
+    queue_mod.enqueue(event)
+
+    try:
+        from src.mesh.adapters.taskdog import TaskdogAdapter
+
+        adapter = TaskdogAdapter()
+        result = worker_mod.run_once([adapter])
+
+        assert result.consumed == 1
+        assert result.approved == 1
+        assert result.partial == 0
+
+        # Real DB was written by TaskdogAdapter.apply_change
+        assert temp_db.exists()
+        conn = sqlite3.connect(temp_db)
+        try:
+            row = conn.execute(
+                "SELECT ueid, name, status, priority, deadline FROM tasks WHERE ueid = ?",
+                (event.ueid,),
+            ).fetchone()
+            assert row is not None, "TaskdogAdapter did not UPSERT the row"
+            assert row[0] == "tsk:taskdog:b1c2:d3e4"
+            assert row[1] == "Real taskdog UPSERT test"
+            assert row[2] == "planned"
+            assert row[3] == 1  # high priority
+            # deadline is due date (string)
+            assert row[4] is not None
+        finally:
+            conn.close()
+        assert _read_status("e2e-taskdog-001") == "propagated"
+    finally:
+        _cleanup("e2e-taskdog-001")
