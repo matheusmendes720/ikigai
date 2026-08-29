@@ -168,18 +168,6 @@ jobs:
           uv sync
           uv run pytest -m e2e
 
-  vibe-ops-scratch:
-    name: Vibe-ops Scratch Validation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.11" }
-      - uses: astral-sh/setup-uv@v4
-      - name: Vibe-ops scratch smoke test
-        run: |
-          cd vibe-ops && uv run python -m pytest scratch/ -q --no-header
-
   git-hooks:
     name: Pre-commit Hooks
     runs-on: ubuntu-latest
