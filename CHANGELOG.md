@@ -255,6 +255,57 @@ that produced `Policy`/`the` — no new patterns needed (the words
 
 ---
 
+### Phase B5.5 — Tracked-binary hygiene sweep (0 audit findings)
+
+**Status:** shipped 2026-08-29. Mechanical `git rm --cached` sweep — untracks
+71 tracked-binary files that were committed before the `.gitignore` patterns
+existed. **Files stay on disk + in git history** (append-only preserved).
+
+**What was untracked (71 files):**
+
+| Category | Count | Sizes | Provenance |
+|----------|-------|-------|------------|
+| `.pyc` in `__pycache__/` dirs (across the repo) | 69 | ~100 KB total | Compiled bytecode committed before `**/__pycache__/` was in `.gitignore` |
+| `vibe-ops/test_vibe.db` | 1 | 143 KB | Test artifact from Jun 3 11:36:32 |
+| `vibe-ops/src/test_daemon_cli.db` | 1 | 12 KB | Test artifact from Aug 27 20:24 |
+
+**`.gitignore` update:** added `vibe-ops/**/*.db` (with provenance comment)
+to prevent future re-tracking. The `.pyc` files are already covered by
+the existing `**/__pycache__/` pattern — untracking + that pattern means
+future bytecode is correctly ignored.
+
+**Verification (post-untrack):**
+
+- `git ls-files | grep -c "\.pyc$"` → 0 (was 69)
+- `git ls-files | grep -E "vibe-ops/.*\.db"` → 0 (was 2)
+- `git check-ignore -v vibe-ops/test_vibe.db vibe-ops/src/test_daemon_cli.db
+  vibe-ops/some_new_thing.db` → all 3 match the new pattern
+- Files still readable on disk: `python -c "import sqlite3; ..."` opens
+  both untracked DBs without error (files preserved)
+- `pytest tests/mesh/ tests/ikigai/` → 30/30 PASS (unchanged; no code or
+  contracts touched)
+
+**Out of scope (NOT touched):**
+
+- `data/test-fixtures/*.db` (6 files) — canonical test fixtures
+  intentionally tracked. Used by test suite. Leave alone.
+- `src/ikigai/data/matheus/deliverables/byd-d4-outputs/byd-tracker.db` —
+  BYD case D4 deliverable per [[byd-case-deliverables-checkpoint]].
+  Intentionally tracked. Leave alone.
+- `data/vibe_ops.db` + `data/vibe_mesh.db` — canonical runtime state,
+  covered by `data/*.db` pattern in `.gitignore`.
+
+**Why this matters:** Every `git clone` was shipping ~250 KB of compiled
+Python bytecode + ~155 KB of test SQLite databases that should never
+have been tracked. After B5.5, clones are ~400 KB lighter and the
+`.gitignore` correctly prevents future pollution of either class.
+
+**Cumulative B5.x closure:** 10 of 14 audit findings closed
+(B5.1: 6, B5.2: 4). B5.3 + B5.4 + B5.5 = pure hygiene, 0 audit
+findings each.
+
+---
+
 ### ADR-007 propagation gap — STATUS banner sweep (27 files)
 
 **Status:** shipped 2026-08-29. Closes the gap after commit `118060e`

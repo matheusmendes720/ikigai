@@ -46,6 +46,12 @@
 # from canonical data/vibe_ops.db (19 tables). No production refs.
 /vibe_ops_test.db
 
+# vibe-ops/ test artifacts (left behind by ad-hoc scripts whose cleanup
+# is commented out). Pre-existing tracked files were untracked in B5.5
+# (`git rm --cached`); this pattern prevents future re-tracking.
+# `data/*.db` (canonical runtime state) is a separate pattern.
+vibe-ops/**/*.db
+
 # ─── Vault (Obsidian KB — runtime only) ─────────────────────────
 # Source vault (wikilinks, markdown) IS tracked.
 # Runtime artifacts inside vault/ are ignored.
