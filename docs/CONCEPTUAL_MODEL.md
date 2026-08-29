@@ -519,3 +519,42 @@ com facilidade, o regime está certo e o sistema está funcionando.
 ### Versão
 
 - **v1.0** (2026-06-05): primeira versão do modelo conceitual T→B→S, identifica 5 tensões, 4 regimes, 3 frequências, 8 middlewares e suas correspondências.
+
+---
+
+## Cross-references ao novo design-system (2026-08-28)
+
+Este doc é o modelo conceitual pré-pivot (SUPERSEDED), ancorando
+matemática de auto-performace algorithms (Q_HE composite, IKIGAI 5-vector
+heuristics, regime FSM). PAV está desativado; polish algorítmico deferido
+per algorithm-decisions-defer-2026-08-28. A canonical reference pós-pivot
+vive em [`docs/design-system/`](design-system/00-INDEX.md) (40 docs em 9
+camadas). O framework T→B→S continua válido como heurística de leitura,
+mas as 5 tensões e os 8 middlewares foram reformulados para a era deep-agent.
+
+**Camada 1 (narrativa canônica — substitui a T do T→B→S):**
+- [`docs/design-system/00-INDEX.md`](design-system/00-INDEX.md) — índice navegável
+- [`docs/design-system/01-master-branch-carro-chefe-2026-08-28.md`](design-system/01-master-branch-carro-chefe-2026-08-28.md) — narrativa canônica deep-agent
+- [`docs/design-system/02-interfaces-dual-layer-architecture.md`](design-system/02-interfaces-dual-layer-architecture.md) — forks vs native cli/tui
+
+**Camada 2 (architecture canvases — substitui o B do T→B→S):**
+- [`docs/design-system/04-canvas-mesh-architecture.md`](design-system/04-canvas-mesh-architecture.md) — mesh canvas (cross-fork view)
+- [`docs/design-system/05-canvas-contracts-architecture.md`](design-system/05-canvas-contracts-architecture.md) — contracts canvas (Pydantic v2 strict)
+- [`docs/design-system/06-canvas-agents-architecture.md`](design-system/06-canvas-agents-architecture.md) — agents canvas (deep-agent harness)
+- [`docs/design-system/07-canvas-sync-architecture.md`](design-system/07-canvas-sync-architecture.md) — sync canvas (vault ↔ forks)
+- [`docs/design-system/08-canvas-cybernetic-loop.md`](design-system/08-canvas-cybernetic-loop.md) — cybernetic loop (Target→Sensor→Adjuster)
+
+**Camada 3 (patterns — substitui parte do S do T→B→S):**
+- [`docs/design-system/10-pattern-ueid-tri-key.md`](design-system/10-pattern-ueid-tri-key.md) — UEID tri-key
+- [`docs/design-system/15-pattern-hysteresis-fsm.md`](design-system/15-pattern-hysteresis-fsm.md) — FSM com histerese (substitui regime FSM da §3)
+- [`docs/design-system/16-pattern-hybrid-meta-vector.md`](design-system/16-pattern-hybrid-meta-vector.md) — meta-vetor híbrido (substitui IKIGAI 5-vector)
+- [`docs/design-system/19-pattern-5-stage-scaffold.md`](design-system/19-pattern-5-stage-scaffold.md) — scaffold 5 estágios (substitui IKIGAI 5-stage vault)
+
+**Camada 8 (análise crítica — onde a matemática antiga foi revisada):**
+- [`docs/design-system/09-analise-critica-segunda-ordem-arquitetura.md`](design-system/09-analise-critica-segunda-ordem-arquitetura.md) — 46 issues de segunda ordem (revisita Q_HE composite)
+- [`docs/design-system/10-modelo-unificado-auto-feedback-estocastico.md`](design-system/10-modelo-unificado-auto-feedback-estocastico.md) — modelo unificado auto-feedback estocástico (substitui a matemática determinística das 5 tensões)
+
+**Camada 7 (gating):**
+- [`docs/design-system/53-adr-007-data-first-gate.md`](design-system/53-adr-007-data-first-gate.md) — ADR-007 data-first gate (razão pela qual polish algorítmico é deferido até 5+ SONHO logs)
+
+*Mapa mental: a §7 (8 middlewares) deste doc corresponde aproximadamente às 5 architecture canvases da Camada 2 do design-system; a §3 (4 regimes) corresponde aos estados do hysteresis FSM (Camada 3, doc 15); a §6 (3 frequências) corresponde aos user journeys da Camada 6. As tensões da §2 continuam válidas como heurística, mas a matemática da §4 (Q_HE, IKIGAI vector weights) é stardarded até evidência empírica.*

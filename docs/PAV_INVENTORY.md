@@ -1980,3 +1980,39 @@ erDiagram
 ---
 
 *End of inventory — generated 2026-06-30, intended as raw structural reference for IKIGAI unification work. All formulas, threshold constants, and field types preserved verbatim from source.*
+
+---
+
+## Cross-references ao novo design-system (2026-08-28)
+
+Este doc é o inventário estrutural pré-pivot do kernel PAV (SUPERSEDED,
+preservado verbatim como referência histórica — 1982 linhas, fórmulas,
+threshold constants e field types intactos). A canonical reference
+pós-pivot 2026-08-26 vive em [`docs/design-system/`](design-system/00-INDEX.md)
+(40 docs em 9 camadas). PAV está desativado; este inventário permanece
+para auditoria e migração, mas **não é a fonte de verdade** para nenhuma
+decisão de algoritmo, threshold, ou tipo de campo na era deep-agent.
+
+**Mapa de migração PAV → deep-agent:**
+- [`docs/design-system/34-superseded-pav-era-tokens.md`](design-system/34-superseded-pav-era-tokens.md) — **mapa canônico de migração** PAV-era tokens → deep-agent tokens. Consultar antes de qualquer tentativa de portar lógica deste inventário.
+- [`docs/design-system/30-tokens-deep-agent-era.md`](design-system/30-tokens-deep-agent-era.md) — tokens canônicos da era deep-agent (substituem PAV tokens)
+
+**Camada 0–1 (narrativa canônica — contexto pós-pivot):**
+- [`docs/design-system/00-INDEX.md`](design-system/00-INDEX.md) — índice navegável
+- [`docs/design-system/01-master-branch-carro-chefe-2026-08-28.md`](design-system/01-master-branch-carro-chefe-2026-08-28.md) — master branch = deep-agent (PAV desativado)
+- [`docs/design-system/02-interfaces-dual-layer-architecture.md`](design-system/02-interfaces-dual-layer-architecture.md) — forks = user views; cli/tui = operator
+
+**Camada 3 (patterns — substituem contratos PAV detalhados neste inventário):**
+- [`docs/design-system/10-pattern-ueid-tri-key.md`](design-system/10-pattern-ueid-tri-key.md) — UEID tri-key (substitui identificadores PAV)
+- [`docs/design-system/11-pattern-frozen-pydantic-strict.md`](design-system/11-pattern-frozen-pydantic-strict.md) — Pydantic v2 strict (substitui entidades PAV desta §)
+- [`docs/design-system/15-pattern-hysteresis-fsm.md`](design-system/15-pattern-hysteresis-fsm.md) — hysteresis FSM (substitui PolicyEngine 4-state deste inventário)
+- [`docs/design-system/16-pattern-hybrid-meta-vector.md`](design-system/16-pattern-hybrid-meta-vector.md) — meta-vetor híbrido (substitui IKIGAI vectors desta §)
+
+**Camada 8 (análise crítica — onde a matemática PAV foi revisada):**
+- [`docs/design-system/09-analise-critica-segunda-ordem-arquitetura.md`](design-system/09-analise-critica-segunda-ordem-arquitetura.md) — 46 issues de segunda ordem (revisita fórmulas e thresholds deste inventário)
+- [`docs/design-system/10-modelo-unificado-auto-feedback-estocastico.md`](design-system/10-modelo-unificado-auto-feedback-estocastico.md) — modelo unificado auto-feedback estocástico (substitui matemática determinística PAV)
+
+**Camada 7 (gating):**
+- [`docs/design-system/53-adr-007-data-first-gate.md`](design-system/53-adr-007-data-first-gate.md) — ADR-007 data-first gate (razão pela qual polish de Q_HE / IKIGAI vectors deste inventário está deferido até 5+ SONHO logs)
+
+*Mapa mental: §X (entities) → Camada 3 pattern 11 (frozen pydantic); §Y (policy FSM) → Camada 3 pattern 15 (hysteresis FSM); §Z (IKIGAI vectors / Q_HE formulas) → Camada 3 pattern 16 (hybrid meta-vector) + Camada 8 doc 10 (unified stochastic model). Qualquer decisão algorítmica que dependa de fórmula/threshold deste inventário deve passar pelo data-first gate (Camada 7, doc 53) antes de ser implementada.*

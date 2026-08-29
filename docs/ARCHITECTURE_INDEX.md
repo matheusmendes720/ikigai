@@ -685,3 +685,55 @@ Este índice se conecta com:
 ---
 
 *ARCHITECTURE_INDEX.md — v1.0 — 2026-06-05 — Índice de Arquitetura canônico do Algorithmic Life OS*
+
+---
+
+## Cross-references ao novo design-system (2026-08-28)
+
+Este doc é a arquitetura pré-pivot (SUPERSEDED). A canonical reference
+pós-pivot 2026-08-26 vive em
+[`docs/design-system/`](design-system/00-INDEX.md) — 40 docs em 9 camadas.
+Abaixo, os cross-links load-bearing para que leitores deste índice possam
+navegar até a era deep-agent sem perder a leitura histórica das 4 facetas
+(§0) e 5 sub-sistemas (§5) aqui preservadas.
+
+**Camada 0–1 (topologia & narrativa canônica):**
+- [`docs/design-system/00-INDEX.md`](design-system/00-INDEX.md) — índice navegável
+- [`docs/design-system/01-master-branch-carro-chefe-2026-08-28.md`](design-system/01-master-branch-carro-chefe-2026-08-28.md) — master branch = deep-agent (canônico)
+- [`docs/design-system/02-interfaces-dual-layer-architecture.md`](design-system/02-interfaces-dual-layer-architecture.md) — arquitetura dual-layer (forks = user views; cli/tui = operator control plane)
+- [`docs/design-system/03-design-system-roadmap.md`](design-system/03-design-system-roadmap.md) — roadmap do design-system
+
+**Camada 2 (architecture canvases — substituem §5 sub-sistemas):**
+- [`docs/design-system/04-canvas-mesh-architecture.md`](design-system/04-canvas-mesh-architecture.md) — canvas mesh (cross-fork view)
+- [`docs/design-system/05-canvas-contracts-architecture.md`](design-system/05-canvas-contracts-architecture.md) — canvas contracts (Pydantic v2 strict)
+- [`docs/design-system/06-canvas-agents-architecture.md`](design-system/06-canvas-agents-architecture.md) — canvas agents (deep-agent harness)
+- [`docs/design-system/07-canvas-sync-architecture.md`](design-system/07-canvas-sync-architecture.md) — canvas sync (bidirecional vault ↔ forks)
+- [`docs/design-system/08-canvas-cybernetic-loop.md`](design-system/08-canvas-cybernetic-loop.md) — canvas cybernetic loop (Target→Sensor→Adjuster)
+
+**Camada 3 (patterns — substituem §3 contratos):**
+- [`docs/design-system/10-pattern-ueid-tri-key.md`](design-system/10-pattern-ueid-tri-key.md) — UEID tri-key (canônico cross-fork)
+- [`docs/design-system/11-pattern-frozen-pydantic-strict.md`](design-system/11-pattern-frozen-pydantic-strict.md) — Pydantic v2 strict
+- [`docs/design-system/12-pattern-append-only-queue.md`](design-system/12-pattern-append-only-queue.md) — append-only review queue
+- [`docs/design-system/13-pattern-fork-adapter-protocol.md`](design-system/13-pattern-fork-adapter-protocol.md) — ForkAdapter Protocol
+- [`docs/design-system/14-pattern-idempotency-upstream-id.md`](design-system/14-pattern-idempotency-upstream-id.md) — idempotência via upstream_id
+- [`docs/design-system/15-pattern-hysteresis-fsm.md`](design-system/15-pattern-hysteresis-fsm.md) — FSM com histerese
+
+**Camada 4 (forks — substituem §5.3 forks-prontas):**
+- [`docs/design-system/20-fork-tuiboard-architecture.md`](design-system/20-fork-tuiboard-architecture.md) — fork tuiboard (TS/Bun Kanban)
+- [`docs/design-system/21-fork-taskdog-architecture.md`](design-system/21-fork-taskdog-architecture.md) — fork taskdog (Python)
+- [`docs/design-system/22-fork-solverforge-calendar-architecture.md`](design-system/22-fork-solverforge-calendar-architecture.md) — fork solverforge-calendar (Rust)
+- [`docs/design-system/23-fork-status-enum-mapping.md`](design-system/23-fork-status-enum-mapping.md) — mapeamento de status entre forks
+
+**Camada 5 (tokens):**
+- [`docs/design-system/30-tokens-deep-agent-era.md`](design-system/30-tokens-deep-agent-era.md) — tokens canônicos era deep-agent
+- [`docs/design-system/34-superseded-pav-era-tokens.md`](design-system/34-superseded-pav-era-tokens.md) — mapa PAV → deep-agent
+
+**Camada 7 (validação) e Camada 8 (análise crítica):**
+- [`docs/design-system/50-nielsen-heuristics-coverage.md`](design-system/50-nielsen-heuristics-coverage.md) — cobertura Nielsen
+- [`docs/design-system/51-usability-checklist.md`](design-system/51-usability-checklist.md) — checklist usabilidade
+- [`docs/design-system/52-known-risks-mitigations.md`](design-system/52-known-risks-mitigations.md) — riscos + mitigações
+- [`docs/design-system/53-adr-007-data-first-gate.md`](design-system/53-adr-007-data-first-gate.md) — ADR-007 data-first gate
+- [`docs/design-system/09-analise-critica-segunda-ordem-arquitetura.md`](design-system/09-analise-critica-segunda-ordem-arquitetura.md) — 46 issues de segunda ordem
+- [`docs/design-system/10-modelo-unificado-auto-feedback-estocastico.md`](design-system/10-modelo-unificado-auto-feedback-estocastico.md) — modelo unificado auto-feedback estocástico
+
+*Mapa mental para leitores deste índice histórico: as 4 facetas (PLANEJAMENTO / DOCUMENTAÇÃO / CÓDIGO / DADOS) da §0 continuam mapeando 1-1 para as 9 camadas do design-system; cada sub-sistema da §5 corresponde aproximadamente a uma architecture canvas da Camada 2.*

@@ -202,3 +202,44 @@ life/
 ---
 
 *Algorithmic Life OS — Root README — rewritten 2026-08-28 under canonical architecture*
+
+---
+
+## Documentation index (2026-08-28 refactor)
+
+Este README cobre apenas a camada raiz. A canonical reference completa
+vive em [`docs/design-system/`](design-system/00-INDEX.md) (40 docs em 9 camadas).
+Abaixo, índice de todas as sub-árvores de documentação sob `docs/` para
+navegação rápida:
+
+**Camada canônica (referência pós-pivot 2026-08-26):**
+- [`docs/design-system/`](design-system/00-INDEX.md) — **canônico**. 40 docs, 9 camadas: topology, architecture canvases, patterns, forks, tokens, journeys, validation, critical analysis. **Comece aqui.**
+- [`docs/auto-performance-os/`](auto-performance-os/) — matemática deep-agent (derivação dos auto-performace algorithms que substituem o PAV)
+
+**Auditorias & migrações (diagnósticos 2026-08-28):**
+- [`docs/diagnostics/2026-08-28-structure-audit/`](diagnostics/2026-08-28-structure-audit/) — varredura estrutural pós-pivot (40 findings, 13 refuted)
+- [`docs/diagnostics/2026-08-28-doc-migration/`](diagnostics/2026-08-28-doc-migration/) — migração de docs legacy (95 docs classificados, 33 trailers aplicados)
+
+**Plano & specs (superpowers, com trailers aplicados):**
+- [`docs/superpowers/`](superpowers/) — specs formais, planos de implementação, glossários (maioria já trailer SUPERSEDED 2026-08-28)
+
+**Integrações & visualizadores (escopo preservado):**
+- [`docs/integrations/`](integrations/) — integrações externas (job-hunter, fin_ops, etc.)
+- [`docs/openwiki-visualizer/`](openwiki-visualizer/) — workspace parasita OpenWiki (visualização)
+- [`docs/research/`](research/) — research notes, papers, references
+
+**Root docs preservados (escopo legacy PAV-era, com trailers):**
+- [`docs/SPEC.md`](SPEC.md) — índice de ADRs/PRDs/BRDs (escopo preservado)
+- [`docs/ARCHITECTURE_INDEX.md`](ARCHITECTURE_INDEX.md) — [SUPERSEDED] índice pré-pivot
+- [`docs/CONCEPTUAL_MODEL.md`](CONCEPTUAL_MODEL.md) — [SUPERSEDED] modelo conceitual T→B→S pré-pivot
+- [`docs/SYSTEMS_TOPOLOGY.md`](SYSTEMS_TOPOLOGY.md) — [SUPERSEDED] mapa de middlewares pré-pivot
+- [`docs/PAV_INVENTORY.md`](PAV_INVENTORY.md) — [SUPERSEDED] inventário PAV kernel (1982L)
+- [`docs/DEPLOY.md`](DEPLOY.md) — [SUPERSEDED] WSL2 / VPS bootstrap
+
+**Regra de navegação:** comece pelo [`docs/design-system/00-INDEX.md`](design-system/00-INDEX.md)
+e só desça para `auto-performance-os/` ou `superpowers/` quando o deep-agent
+pedir matemática derivada ou specs formais específicas.
+
+*Para a entry-point por persona (humano vs AI agent), ver a tabela
+"Entry Points by Persona" acima neste README; o equivalente atualizado vive
+no design-system/00-INDEX.md.*
