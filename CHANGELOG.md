@@ -15,6 +15,54 @@ This file covers phases that touch multiple layers or that ship under the
 
 ## [unreleased] — 2026-08-29
 
+### ADR-007 propagation gap — STATUS banner sweep (27 files)
+
+**Status:** shipped 2026-08-29. Closes the gap after commit `118060e`
+(ADR-007 + 53-adr-007-data-first-gate.md + 5 Q3 placeholders). This sweep
+applies the same STATUS blockquote pattern to the remaining 27 files
+that cite the "5 SONHO logs gate" framing.
+
+**Why:** the user's 2026-08-29 correction was that the "5 SONHO logs gate"
+framing is a **propagated misconception** of ADR-007. ADR-007's rule is
+**observation depth**, not a release gate. The actual gate for
+algorithm/IKIGAi work is **system readiness** (backend + data + agent
+functional), independent of the SONHO counter. See
+`~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md`
+for the canonical clarification.
+
+**Scope:** 27 files / 64 insertions. Pure docs — no code or contract
+changes. Append-only invariant preserved (STATUS blockquotes appended at
+top of each doc; nothing deleted).
+
+**Files (27):**
+- `docs/design-system/*` (18 files): 09, 10-pattern-ueid-tri-key,
+  10-modelo-unificado-auto-feedback-estocastico, 12, 13, 14, 15, 16, 17,
+  18, 19, 30, 31, 32, 33, 34, 43, 45. File 34 was already SUPERSEDED;
+  got a lightweight note rather than the full banner.
+- `vault/ikigai/closing-2026/02-q4-2026/*` (5 placeholders): SONHO,
+  Plano Trimestral, Onda 1, Onda 2, Onda 3. Mirror Q3 banner pattern.
+- 1 each: `docs/superpowers/plans/2026-08-25-ikigai-vault-layers.md`
+  (banner appended after existing SUPERSEDED blockquote),
+  `docs/auto-performance-os/09-postulado-ikigai-5-vetores.md`,
+  `vault/ikigai/meta/algorithm-issues-registry.md`,
+  `src/ikigai/data/matheus/ikigai_state/profile-2026-07-03.md`.
+
+**Two banner variants:**
+- **ADR-007 propagation note** (default, 22 files): flags "5 SONHO logs
+  gate (ADR-007)" as propagated misconception; clarifies actual gate.
+- **Q4 placeholder STATUS** (5 files): same shape as Q3 banners.
+
+**Commit:** `48b2c08` — `docs: close ADR-007 propagation gap — STATUS
+banners on 27 files`
+
+**Scope-expansion note:** the proposal cited 18 files (13 docs + 5
+placeholders). The grep that produced the actual list revealed 27 (full
+audit). User had authorized with "ok .. continue"; commit ships the full
+sweep rather than partial. Work type identical to proposal (STATUS
+banners); only file count differs.
+
+---
+
 ### v1.2 — CliAdapter dedup fix
 
 **Status:** shipped 2026-08-29. Closes the "CliAdapter append-without-dedup"
