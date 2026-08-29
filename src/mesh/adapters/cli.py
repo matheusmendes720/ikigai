@@ -44,9 +44,25 @@ class CliAdapter:
         }
         line = json.dumps(record) + "\n"
 
+        # Dedup: read existing, skip if ueid already present. This is O(n) but
+        # acceptable for v1 task counts (dozens, not millions). The other
+        # adapters (Taskdog, SolverforgeCalendar) use SQLite UPSERT; CliAdapter
+        # uses JSONL because the slice is meant to be human-readable.
+        existing = TASKS_JSONL.read_text() if TASKS_JSONL.exists() else ""
+        for prev_line in existing.splitlines():
+            if not prev_line.strip():
+                continue
+            try:
+                prev = json.loads(prev_line)
+            except json.JSONDecodeError:
+                continue
+            if prev.get("ueid") == str(event.ueid):
+                # Idempotent: do_task_add + worker.run_once both call us
+                # for the same CREATE event; only the first call writes.
+                return
+
         # Atomic append via temp + rename (works on Windows + Unix)
         tmp = TASKS_JSONL.with_suffix(".tmp")
-        existing = TASKS_JSONL.read_text() if TASKS_JSONL.exists() else ""
         tmp.write_text(existing + line)
         os.replace(tmp, TASKS_JSONL)
 
