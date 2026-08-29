@@ -2,7 +2,7 @@
 # Wraps the planning-with-files-engine + agentic-markdown-system flows
 # under a single langgraph dev server.
 
-.PHONY: help dev install install-langgraph test clean logs status
+.PHONY: help dev install install-langgraph test clean logs status mcp-inspect
 
 help:
 	@echo "langgraph dev Makefile - Single-project agentic flows"
@@ -15,6 +15,7 @@ help:
 	@echo "  make test             - Run all 250+ IKIGAi tests + new graph tests"
 	@echo "  make logs             - Tail langgraph dev logs"
 	@echo "  make status           - Show all registered graphs + their status"
+	@echo "  make mcp-inspect      - MCP gateway contract test (stdio handshake)"
 	@echo "  make clean            - Clear state + checkpoints"
 
 dev:
@@ -48,3 +49,6 @@ status:
 clean:
 	rm -rf .langgraph/state.db .langgraph/checkpoints/
 	@echo "Cleared langgraph state and checkpoints."
+
+mcp-inspect:
+	@python scripts/mcp_inspect.py

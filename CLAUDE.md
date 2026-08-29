@@ -163,6 +163,18 @@ ikigai.bat agent <thread>
 ikigai.bat chat <thread>
 ```
 
+### Phase B3 — MCP Gateway
+
+```bash
+# Contract test — enumerates tools + resources via stdio handshake
+make mcp-inspect              # POSIX (uses system python)
+scripts/mcp-inspect.bat       # Windows cmd/PowerShell wrapper
+python scripts/mcp_inspect.py # Direct invocation (any platform)
+
+# Optional flags
+python scripts/mcp_inspect.py --tool-count 13 --resource-count 3
+```
+
 ### Vibe-ops
 
 ```bash
