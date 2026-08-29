@@ -53,6 +53,32 @@ class TaskdogAdapter:
         finally:
             conn.close()
 
+    def list_all(self) -> list[dict[str, Any]]:
+        """Enumerate all rows from taskdog SQLite. Returns [] if DB missing."""
+        if not TASKDOG_DB.exists():
+            return []
+        conn = sqlite3.connect(TASKDOG_DB)
+        try:
+            rows = conn.execute(
+                "SELECT ueid, name, status, priority, planned_start, planned_end, deadline, created_at "
+                "FROM tasks"
+            ).fetchall()
+            return [
+                {
+                    "ueid": r[0],
+                    "name": r[1],
+                    "status": r[2],
+                    "priority": r[3],
+                    "planned_start": r[4],
+                    "planned_end": r[5],
+                    "deadline": r[6],
+                    "created_at": r[7],
+                }
+                for r in rows
+            ]
+        finally:
+            conn.close()
+
     def apply_change(self, event: PropagationEvent) -> None:
         if event.action.value != "create":
             return  # v1 only supports create
