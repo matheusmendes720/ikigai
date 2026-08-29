@@ -15,6 +15,41 @@ This file covers phases that touch multiple layers or that ship under the
 
 ## [unreleased] — 2026-08-29
 
+### Hygiene sweep — gitignore fix (clean slate before B5)
+
+**Status:** shipped 2026-08-29. Closes the dangling alternation-syntax
+bug in `.gitignore` keyword patterns; verified with `git check-ignore -v`
+against all 15 target files.
+
+**Why:** gitignore does NOT support alternation `/(a|b)` or word-boundary
+`\b` in match patterns. The previous patterns
+(`/(None|str|int|...)\b` and `/(dict\[|list\[|...)`) were silently inert.
+This means root-level files like `None`, `dict[str`, etc. created by
+malformed bash redirects (`> None`, `> dict[str`) would NOT be ignored.
+
+**Fix:** switch to one explicit line per keyword (`/None`, `/str`, ...) and
+use `*` suffix for type-fragment patterns (`/dict\[*`) so `\[` matches one
+literal `[` and `*` matches the rest.
+
+**Verification (post-fix):**
+- `git check-ignore -v None str int float bool list dict com formal one` →
+  all 10 match their patterns.
+- `git check-ignore -v 'dict[str' 'list[int]' 'tuple[date' 'set[str]' 'frozenset[bytes]'`
+  → all 5 match their patterns.
+- Root-level zero-byte files: 0 (clean).
+- Untracked files outside `.claude/`: 0 (clean).
+
+**Commit:** `ea6e4e4` — `fix(gitignore): switch keyword deny-list to
+explicit lines (alternation unsupported)`
+
+**Pre-existing hygiene debt (NOT this commit):**
+- `ruff check src/`: 1427 errors (mostly F401 unused imports across
+  `src/contracts/`) — pre-existing, not regression. Out of scope.
+- `pytest --collect-only`: 785 tests collect, 57 collection errors in
+  `vibe-ops/scratch/` (broken imports) — pre-existing. Out of scope.
+
+---
+
 ### ADR-007 propagation gap — STATUS banner sweep (27 files)
 
 **Status:** shipped 2026-08-29. Closes the gap after commit `118060e`
