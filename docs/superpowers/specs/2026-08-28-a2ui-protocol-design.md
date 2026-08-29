@@ -254,6 +254,23 @@ class MeshSubscribeParams(BaseModel):
 - Stderr: server logs (UI redirects to journal/console)
 - Termination: UI closes stdin → server shuts down gracefully
 
+**Realization (resolved 2026-08-28):** the wire envelope and lifecycle
+specified in Sections 3 + 6.1 are realized by **Model Context Protocol (MCP)
+over stdio**, protocol version `2025-06-18`. MCP's primitives map onto
+A2UI's three methods:
+
+| A2UI method | MCP primitive |
+|---|---|
+| `mesh.read` | `tools/call` with tool `ikigai_mesh_show` (or `resources/read` for `ueid://{ueid}`) |
+| `task.write` | `tools/call` with tool `ikigai_task_create` |
+| `mesh.subscribe` | `resources/subscribe` on `queue://pending` |
+
+The A2UI method names above remain the **logical contract** that UI
+authors read; the wire-level method names follow MCP. Both surfaces speak
+JSON-RPC 2.0, so the schemas in `src/mesh/adapters/a2ui_schema.py` are
+reused as the Pydantic shapes for MCP tool inputs/outputs. See Section 12
+for the full binding decision and rationale.
+
 ### 6.2 HTTP+SSE (future v1.1)
 
 - `POST /a2ui/v1/rpc` — JSON-RPC request body, response body
@@ -315,6 +332,15 @@ async with subprocess_a2ui_gateway() as gw:
 | Q4 | Reference implementation: chat UI consuming A2UI | Phase B6 (vault sync era) |
 | Q5 | Reference implementation: TUI dashboard consuming A2UI | After B2 (server-mgmt CLI) |
 | Q6 | Federation: multiple IKIGAI instances talking via A2UI | v2.0 |
+
+## 11. Resolved Decisions
+
+| # | Decision | Resolved | Rationale |
+|---|---|---|---|
+| R1 | **Transport realization:** stdio JSON-RPC 2.0 is realized via **MCP protocol `2025-06-18`** (FastMCP server SDK). A2UI method names (`mesh.read`, `task.write`, `mesh.subscribe`) remain as the **logical contract**; wire-level method names follow MCP primitives (`tools/call`, `resources/subscribe`). | 2026-08-28 (Hybrid option per AskUserQuestion) | MCP gives free host-portability (Claude Desktop, Cursor, VS Code, Continue). Pydantic schemas in `src/mesh/adapters/a2ui_schema.py` are reused as MCP tool input/output shapes. See `docs/research/2026-08-28-mcp-sdk-landscape.md` for SDK/transport decision matrix. |
+| R2 | **Server SDK:** Python `mcp` (FastMCP). Implementation: `src/ikigai/src/mcp_server/server_v2.py` (refactor of existing `server.py`). | 2026-08-28 | Already partial in tree; native Pydantic contracts in `src/contracts/`. |
+| R3 | **UI client SDKs (multi-language):** Python `mcp` for our CLI bridge; TypeScript `@modelcontextprotocol/sdk` for browser/web UIs (v2); Rust `rmcp` for `vibeops-tui` consumer (v2, when TUI needs IPC). | 2026-08-28 | Per SDK landscape research, each language has a Tier-1 official MCP SDK. |
+| R4 | **Resources exposed in v1:** `ueid://{ueid}`, `queue://pending`, `queue://events/{id}`, `health://gateway`, `plans://cycles`, `plans://cycles/{id}`. **Prompts deferred to v1.1.** | 2026-08-28 | Resources give UIs free read-only views; Prompts require UI surface we don't have yet. |
 
 ---
 
