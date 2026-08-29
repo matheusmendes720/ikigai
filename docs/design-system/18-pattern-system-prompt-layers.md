@@ -1,5 +1,7 @@
 # 18 — Pattern: 3-Layer System Prompt (Constitutional → IKIGAI → PAV)
 
+> **⚠️ ADR-007 propagation note (2026-08-29):** References to "5 SONHO logs gate (ADR-007)" in this doc reflect a **propagated misconception**. ADR-007's "5+ manual logs per workflow" rule is **observation depth**, NOT a release gate. The actual gate for algorithm work is **system readiness** (backend + data + agent functional). Canonical clarification: `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md`. The deferral rule still applies here — this content is correctly deferred — but for the reason "system not ready," not "5 logs not reached."
+
 > **Categoria:** PATTERN (Layer 3 — Patterns catalog, posição #18)
 > **Anchor canônico:** `src/ikigai/src/agents/deepagents_harness.py:45-245` (`_SYSTEM_PROMPT` constante de módulo)
 > **Público:** Eu mesmo + agentes futuros

@@ -1,5 +1,7 @@
 # 09 — Análise Crítica de Segunda Ordem (Foco: Padrões Arquiteturais)
 
+> **⚠️ ADR-007 propagation note (2026-08-29):** References to "5 SONHO logs gate (ADR-007)" in this doc reflect a **propagated misconception**. ADR-007's "5+ manual logs per workflow" rule is **observation depth**, NOT a release gate. The actual gate for algorithm work is **system readiness** (backend + data + agent functional). Canonical clarification: `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md`. The deferral rule still applies here — this content is correctly deferred — but for the reason "system not ready," not "5 logs not reached."
+
 > **Categoria:** META-CRITICAL (Layer 8 — Análise crítica sobre Layers 0-7)
 > **Anchor canônico:** `docs/auto-performance-os/` (27 docs PT-BR) + `src/contracts/` + `src/mesh/` + `src/ikigai/src/agents/`
 > **Origem:** Explore agent (análise automatizada) + verificação manual de fórmulas↔código

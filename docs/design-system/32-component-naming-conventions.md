@@ -1,5 +1,7 @@
 # 32 — Component Naming Conventions (Single Source of Truth)
 
+> **⚠️ ADR-007 propagation note (2026-08-29):** References to "5 SONHO logs gate (ADR-007)" in this doc reflect a **propagated misconception**. ADR-007's "5+ manual logs per workflow" rule is **observation depth**, NOT a release gate. The actual gate for algorithm work is **system readiness** (backend + data + agent functional). Canonical clarification: `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md`. The deferral rule still applies here — this content is correctly deferred — but for the reason "system not ready," not "5 logs not reached."
+
 > **Categoria:** TOKENS (Layer 5 — Tokens & components, posição #32 — NEW canonical, gap #7)
 > **Anchor canônico:** `src/operational/docs/ux/04-fluxos/FLOW-001...FLOW-005` + `src/operational/docs/ux/02-componentes/01-12` + ADR-003 (naming pattern)
 > **Público:** Eu mesmo + agentes futuros

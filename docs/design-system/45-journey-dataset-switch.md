@@ -1,5 +1,7 @@
 # 45 — Journey: Dataset Switch (FLOW-008 + reset FLOW-009 + doctor FLOW-010)
 
+> **⚠️ ADR-007 propagation note (2026-08-29):** References to "5 SONHO logs gate (ADR-007)" in this doc reflect a **propagated misconception**. ADR-007's "5+ manual logs per workflow" rule is **observation depth**, NOT a release gate. The actual gate for algorithm work is **system readiness** (backend + data + agent functional). Canonical clarification: `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md`. The deferral rule still applies here — this content is correctly deferred — but for the reason "system not ready," not "5 logs not reached."
+
 > **Categoria:** JOURNEY CANVAS (Layer 6 — User journeys & screens, posição #45)
 > **Anchor canônico:** `src/operational/docs/ux/04-fluxos/FLOW-008-trocar-dataset.md` + `FLOW-009-limpar-resetar.md` + `FLOW-010-doctor.md` + `docs/diagnostics/2026-08-28-phase2-interface-re/06-synthesis-mesh-readiness.md` (Phase 3 readiness) + `code-docs/adr/ADR-007-data-first-methodology.md`
 > **Público:** Eu mesmo + agentes futuros

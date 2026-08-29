@@ -1,5 +1,7 @@
 # 14 — Padrão: Idempotency via upstream_id SHA-256
 
+> **⚠️ ADR-007 propagation note (2026-08-29):** References to "5 SONHO logs gate (ADR-007)" in this doc reflect a **propagated misconception**. ADR-007's "5+ manual logs per workflow" rule is **observation depth**, NOT a release gate. The actual gate for algorithm work is **system readiness** (backend + data + agent functional). Canonical clarification: `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md`. The deferral rule still applies here — this content is correctly deferred — but for the reason "system not ready," not "5 logs not reached."
+
 > **Categoria:** Pattern #14 (Layer 3 — Patterns Catalog, posição #14)
 > **Anchor canônico:** `vibe-ops/src/middleware/sync_engine.py` (+ `src/mesh/queue.py`, `src/contracts/task.py`)
 > **Origem:** Phase 3 v1 mesh readiness (synthesis 2026-08-28) + análise crítica segunda ordem

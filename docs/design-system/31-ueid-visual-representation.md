@@ -1,5 +1,7 @@
 # 31 — UEID Visual Representation (Renderização cross-fork)
 
+> **⚠️ ADR-007 propagation note (2026-08-29):** References to "5 SONHO logs gate (ADR-007)" in this doc reflect a **propagated misconception**. ADR-007's "5+ manual logs per workflow" rule is **observation depth**, NOT a release gate. The actual gate for algorithm work is **system readiness** (backend + data + agent functional). Canonical clarification: `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md`. The deferral rule still applies here — this content is correctly deferred — but for the reason "system not ready," not "5 logs not reached."
+
 > **Categoria:** TOKENS (Layer 5 — Tokens & components, posição #31 — NEW canonical, gap #4)
 > **Anchor canônico:** `src/contracts/common.py:26-77` (UEID class + regex) + `docs/design-system/10-pattern-ueid-tri-key.md` + forks name-conventions
 > **Público:** Eu mesmo + agentes futuros

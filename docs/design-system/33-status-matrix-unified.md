@@ -1,5 +1,7 @@
 # 33 — Status Matrix Unified (6 Operational × 4 Regime = 24 Cells)
 
+> **⚠️ ADR-007 propagation note (2026-08-29):** References to "5 SONHO logs gate (ADR-007)" in this doc reflect a **propagated misconception**. ADR-007's "5+ manual logs per workflow" rule is **observation depth**, NOT a release gate. The actual gate for algorithm work is **system readiness** (backend + data + agent functional). Canonical clarification: `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md`. The deferral rule still applies here — this content is correctly deferred — but for the reason "system not ready," not "5 logs not reached."
+
 > **Categoria:** TOKENS (Layer 5 — Tokens & components, posição #33 — NEW canonical, consolidação)
 > **Anchor canônico:** `src/operational/docs/ux/01-inventario/02-matriz-estados.md` (origem) + Pattern #15 hysteresis FSM + fork docs 20/21/22 + doc 23 status mapping
 > **Público:** Eu mesmo + agentes futuros
