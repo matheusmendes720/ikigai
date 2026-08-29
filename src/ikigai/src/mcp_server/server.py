@@ -646,6 +646,53 @@ def ikigai_read_tasks(
 
 
 # ---------------------------------------------------------------------------
+# Phase B3.2 — 3 new mesh tools (delegate to tools_mesh.py)
+# ---------------------------------------------------------------------------
+from mcp_server.tools_mesh import (
+    ikigai_health,
+    ikigai_mesh_show,
+    ikigai_task_create,
+)
+
+
+@MCP.tool(
+    name="ikigai_mesh_show",
+    description="Cross-fork view for one UEID (joins CLI + taskdog + solverforge_calendar)",
+)
+def _ikigai_mesh_show_tool(ueid: str) -> str:
+    """A2UI mesh.read realization — see docs/.../a2ui-protocol-design.md §11 R1."""
+    return ikigai_mesh_show(ueid=ueid)
+
+
+@MCP.tool(
+    name="ikigai_task_create",
+    description="Emit a TaskChange to data/review_queue/<id>.json (create action only in v1)",
+)
+def _ikigai_task_create_tool(
+    ueid: str,
+    fields: dict,
+    source_fork: str,
+    action: str = "create",
+) -> str:
+    """A2UI task.write realization (create action only)."""
+    return ikigai_task_create(
+        ueid=ueid,
+        fields=fields,
+        source_fork=source_fork,
+        action=action,
+    )
+
+
+@MCP.tool(
+    name="ikigai_health",
+    description="Gateway heartbeat: version, uptime, adapter statuses",
+)
+def _ikigai_health_tool() -> str:
+    """Returns gateway health snapshot."""
+    return ikigai_health()
+
+
+# ---------------------------------------------------------------------------
 # Backward-compat TOOLS list — exposes registered tools for test introspection
 # ---------------------------------------------------------------------------
 TOOLS = list(MCP._tool_manager._tools.values())
