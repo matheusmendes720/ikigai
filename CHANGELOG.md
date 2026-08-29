@@ -56,6 +56,86 @@ graph execution works outside test contexts.
 
 ## [unreleased] — 2026-08-29
 
+### B6 — Vault Sync Protocol (Layer 5, LAST)
+
+**Status:** shipped 2026-08-29 as 5 commits. Closes Phase B (the last
+backend phase per `backend-phase-reordering-2026-08-28`). Ships
+unidirectional vault→taskdog MVP per D1-D5.
+
+**Why this matters:** B6 is the missing bridge between vault markdown
+(source of truth for tasks) and the taskdog fork (one of 3 user views
+per `interfaces-architecture-2026-08-27`). Until B6, vault tasks were
+inert — they existed as markdown but never propagated to a fork. Now
+vault→taskdog sync is wired end-to-end with full test coverage.
+
+**Commits:**
+- `e7f5ec4` — `feat(ikigai): B6.1 vault-to-taskdog sync engine module`
+  (5 Pydantic models + 6 public functions; amended to fix 2 brief
+  defects — see Memory below).
+- `912c03e` — `feat(ikigai): B6.2 add ikigai sync vault-to-taskdog CLI subcommand`
+  (Typer subcommand on `sync_app`; sys.path setup added at lines 12-15).
+- `079294f` — `test(ikigai): B6.3 unit tests for vault-to-taskdog sync engine`
+  (7 unit tests; brief specified 6, implementer added `test_run_sync_increments_state`).
+- `3e62ff1` — `test(ikigai): B6.4 E2E test for vault-to-taskdog sync`
+  (in-process `MockStdioAdapter` mirroring `StubAdapter` from
+  test_review_queue_worker_e2e.py; verifies adapter call counts + state
+  file updates).
+- `775fb27` — `test(smoke): B6.5 vault-to-taskdog sync smoke tests`
+  (4-step bash + parallel bat; verify CLI wiring + parse + diff stages
+  MCP-independently; full sync attempt with 8s timeout graceful).
+
+**Verification:**
+- `src/ikigai/tests/test_vault_sync.py` — 7/7 PASS
+- `src/ikigai/tests/test_vault_sync_e2e.py` — 1/1 PASS
+- `tests/smoke/test_sync_vault_to_taskdog.sh` — 4/4 steps PASS
+- `interfaces/cli/tests/test_review_queue_worker.py` — 9/9 PASS
+- `interfaces/cli/tests/test_review_queue_worker_e2e.py` — 8/8 PASS
+- `src/ikigai/tests/test_frontmatter_to_dict.py` — 6/6 PASS
+- **Total: 8 vault-sync + 23 pre-flight regression = 31/31 PASS**
+
+**Architectural notes:**
+- D4 discriminator (`tags contains "task"` OR `type == "task"`) is the
+  sole sync filter; non-task markdown (drafts, MOCs, evidence,
+  strategics) is silently skipped.
+- 5-part UEID remains canonical join key across forks.
+- `data/sync-state.json` is the incremental diff state file;
+  `os.replace()` atomic write (Windows-safe — POSIX `rename()` fails
+  on second call).
+- per-task try/except in `push()` ensures 1 failure doesn't abort batch.
+- Scope: `create` action only (NEW + CHANGED-not-done push;
+  UNCHANGED skipped silently; CHANGED_TO_DONE deferred to v1.2).
+
+**Brief defects caught (2 critical + 3 smoke-specific):**
+
+1. **`SyncResult` declared `frozen=True` but mutated 7 times** —
+   smoke test crashed with `ValidationError: Instance is frozen`.
+   Fix: `SyncResult` is an accumulator, not a snapshot → `frozen=False`.
+   Other 4 models remain frozen.
+2. **`save_state` used `tmp.rename(state_path)` which fails on Windows
+   second call** (POSIX silently replaces; Windows raises
+   `FileExistsError`). Fix: `os.replace(tmp, state_path)` (atomic on
+   POSIX, replaces-on-Windows via MOVEFILE_REPLACE_EXISTING).
+3. Brief's smoke test PYTHONPATH was `.` instead of `src/ikigai/src`.
+4. Brief's smoke test had `--json` AFTER subcommand (Typer rejects —
+   `--json` is on `@app.callback`, not on the sync subcommand).
+5. Brief's smoke test would hang indefinitely without MCP server
+   (TaskdogAdapter spawns `taskdog_mcp.server` subprocess which
+   blocks if module doesn't exist).
+
+**Pattern: main-session verification catches what peer reviewers miss.**
+Per [[verify-agent-fabricated-failures]], the b6-1-reviewer agent went
+idle without producing review output (per [[btw-fork-failure]]). Main
+session caught all 5 critical brief defects that the reviewer would
+have missed.
+
+**Pre-existing hygiene debt (NOT this commit):**
+- Algorithm gate preserved: zero lines of math touched.
+- Update/delete/done actions deferred to v1.2+ per master-branch-carro-chefe-2026-08-28.
+
+---
+
+## [unreleased] — 2026-08-29
+
 ### Hygiene sweep — gitignore fix (clean slate before B5)
 
 **Status:** shipped 2026-08-29. Closes the dangling alternation-syntax
