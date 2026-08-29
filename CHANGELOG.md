@@ -15,6 +15,70 @@ This file covers phases that touch multiple layers or that ship under the
 
 ## [unreleased] — 2026-08-29
 
+### Phase B5.1 — MVP Marco CLI wrappers (live)
+
+**Status:** shipped 2026-08-29. User greenlit on 2026-08-29 ("aprovado,
+começa com MVP menor") after the B4 retroactive trail.
+
+**Scope:** tiny — two Typer wrappers around existing mesh functions.
+No new business logic. No policy engine / QHE / scoring imports.
+
+**Why:** the user wanted "the smallest viable Marco demo" (`plan-add`
++ `plan-list`) to prove the chain `cli add → queue → worker → 3
+adapters → cross-fork read` works end-to-end with existing code.
+Per the user's binding constraint: backend works on vault sync only;
+policy engines remain DEACTIVATED as business rule.
+
+**Commits:**
+
+| SHA | Subject | Files |
+|---|---|---|
+| `4e28873` | `test(smoke): add MVP Marco cycle verification (Phase B5.0)` | `scripts/smoke/mvp_marco.py` (199L) |
+| `4543b1b` | `feat(interfaces): add plan-add/plan-list CLI wrappers (Phase B5.1)` | `interfaces/cli/read_tasks.py` (+128L), `scripts/smoke/mvp_marco_cli.py` (+125L), `scripts/smoke/mvp_marco.py` (noqa + F541 fixes) |
+
+**Validation at ship time:**
+
+- `scripts/smoke/mvp_marco.py`: 7/7 PASS (UEID build → CLI slice → enqueue
+  → run_once drains 1 → 3-adapter cross-fork read → idempotent 2nd run →
+  queue ack `propagated`)
+- `scripts/smoke/mvp_marco_cli.py`: 5/5 PASS (do_task_add returns UEID →
+  run_once drains → show_mesh returns 3-fork view → title persisted in
+  all forks → CLI fork row count)
+- Both smokes run in tmp_path isolation; production `data/` untouched
+- Both scripts pass `ruff check` clean
+
+**Commands added:**
+
+```bash
+python -m interfaces.cli.read_tasks plan-add TITLE [DUE]
+python -m interfaces.cli.read_tasks plan-list [--all-forks] [--json]
+```
+
+**Phase B5 (the umbrella; deferred after Step 2):**
+
+The remaining Phase B5 work is agent consumer + propagator wiring
+(LangGraph `pae_maintainer` + `ikigai_maintainer` real connection).
+Per user 2026-08-29: this is **deferred pending explicit greenlight**.
+Autonomous-mode overreach rule from [[/btw fork failure 2026-08-28]]:
+don't ship Phase B5.2+ autonomously.
+
+**B5.1 minor findings (non-blocking, NOT fixed here):**
+
+1. `CliAdapter.apply_change` appends without dedup → `do_task_add` +
+   `run_once` writes the same event twice to `data/tasks.jsonl`.
+   `plan-list --all-forks` is unaffected (other adapters use UPSERT);
+   `plan-list` (CLI fork only) shows the dup. Fix in v1.2.
+2. Root `cli/cli.py` (the `life` command per CLAUDE.md) is broken
+   pre-existing (`from life import __version__` fails; no top-level
+   `life/` package). The wrappers were inlined into the only
+   currently-invokable Typer app (`interfaces.cli.read_tasks`). Root
+   CLI integration is deferred until the package layout is fixed.
+
+**Reviewer path:** both smoke files are self-documenting; the commit
+messages above carry the design rationale and the bug-list.
+
+---
+
 ### Phase B4 — Review Queue Worker (retroactive approval)
 
 **Status:** shipped 2026-08-29 under autonomous mode (`/loop` + `ultrcode`).
