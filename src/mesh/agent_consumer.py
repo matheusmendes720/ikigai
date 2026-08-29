@@ -1,9 +1,12 @@
 """Deep Agent consumer: validates events against vault context + PAE rules."""
+import logging
 from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 
 from src.contracts.task_change import TaskChange
+
+logger = logging.getLogger(__name__)
 
 
 class Decision(str, Enum):
@@ -59,8 +62,13 @@ def validate(event: TaskChange) -> ValidationResult:
                         Decision.REJECT,
                         f"UEID collision: {event.ueid} already exists with different content.",
                     )
-    except (ImportError, AttributeError):
-        # Queue module doesn't exist yet (Task 4 not done)
-        pass
+    except (ImportError, AttributeError) as exc:
+        # Per B5.0-F6: was a silent pass before; now log a warning so this
+        # silent failure mode doesn't slip past code review unnoticed.
+        logger.warning(
+            "UEID collision check skipped: queue module unavailable (%s: %s)",
+            type(exc).__name__,
+            exc,
+        )
 
     return ValidationResult(Decision.APPROVE, approved_fields=event.fields)

@@ -23,22 +23,48 @@ def _install_ikigai_mcp_shim() -> None:
     but the real module lives at src/ikigai/src/mcp_server/server.py. We
     inject a stub that re-exports the real symbol via the package path so
     we don't have to edit commit.py (out of B5.1-F3 scope).
+
+    B5.2: temporarily prepend src/ikigai/src to sys.path so the real
+    `mcp_server` package (which itself does `from mcp_server.tracing import ...`)
+    is importable. Idempotent — re-entry just re-attaches the shim.
     """
-    if "ikigai.mcp_server.server" in sys.modules:
+    if "ikigai.mcp_server.server" in sys.modules and (
+        getattr(sys.modules["ikigai.mcp_server.server"], "_write_tasks_to_data", None)
+        is not None
+    ):
         return
 
-    real = importlib.import_module("mcp_server.server")
+    # The real mcp_server module does `from mcp_server.tracing import ...` at
+    # import time, which requires `src/ikigai/src/` on sys.path. Prepend it
+    # for the duration of the import, then leave it in place (other tests in
+    # this file don't need the `src.` namespace package).
+    # Test file lives at tests/ikigai/test_error_node.py, so .resolve()
+    # gives project_root/tests/ikigai/test_error_node.py — need 3 .parent calls
+    # to reach the project root.
+    _project_root = Path(__file__).resolve().parent.parent.parent
+    _ikigai_src = _project_root / "src" / "ikigai" / "src"
+    _ikigai_src_str = str(_ikigai_src)
+    if _ikigai_src_str not in sys.path:
+        sys.path.insert(0, _ikigai_src_str)
+
+    real_server = importlib.import_module("mcp_server.server")
 
     pkg_ikigai = types.ModuleType("ikigai")
     pkg_ikigai.__path__ = []  # mark as package
     pkg_mcp = types.ModuleType("ikigai.mcp_server")
     pkg_mcp.__path__ = []
     mod_server = types.ModuleType("ikigai.mcp_server.server")
-    mod_server._write_tasks_to_data = real._write_tasks_to_data
+    mod_server._write_tasks_to_data = real_server._write_tasks_to_data
 
     sys.modules["ikigai"] = pkg_ikigai
     sys.modules["ikigai.mcp_server"] = pkg_mcp
     sys.modules["ikigai.mcp_server.server"] = mod_server
+
+
+# Run the shim at module import so every test in this file benefits. The
+# fixture-level call remains for safety, but this guarantees the path is
+# on sys.path before any test's graph_module import runs.
+_install_ikigai_mcp_shim()
 
 
 @pytest.fixture

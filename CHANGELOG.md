@@ -92,6 +92,62 @@ landed in one commit per the audit's "batch B5.1 together" guidance.
 
 ---
 
+### Phase B5.2 — Graph & agent-loop quality sweep (infra-only)
+
+**Status:** shipped 2026-08-29. Closes 4 of the 8 LOW/MEDIUM findings that
+B5.1 deferred (F2, F5, F6, F12). Same scope fence as B5.1: 0 lines of
+math touched.
+
+**Findings closed (B5.2 sweep):**
+
+| # | Finding | Fix | Files touched |
+|---|---------|-----|---------------|
+| F2 | 4 `Literal` return types on routing functions declared unused branches | Tightened to match the actual return surface (dropped "balance" from `_route_after_score_vectors`, "decompose" from `_route_after_heuristics`, "commit" from `_route_after_plan`, `END` from `_route_after_reflect`) | `src/ikigai/src/agents/ikigai_maintainer/graph.py` |
+| F5 | Silent tracing no-exporters failure mode — `init_tracing()` no-ops when neither LangSmith nor Langfuse creds are in env | Emit a clear WARNING at module load when init succeeds but no exporters are configured, so operators see why spans aren't reaching the dashboard | `src/ikigai/src/agents/ikigai_maintainer/graph.py` |
+| F6 | UEID collision check silently swallowed `ImportError`/`AttributeError` via `except ... : pass` | Replaced with `logger.warning(...)` so the silent failure mode is visible in logs | `src/mesh/agent_consumer.py` |
+| F12 | `IKIGAiStateDict` used `total=False` (all-optional) so a node that dropped identity fields wouldn't be caught at the type level | Switched to per-field `NotRequired[...]`; 4 identity fields (`cycle_id`, `cycle_start`, `cycle_end`, `iteration`) are now required at the type level — nodes that drop them will be caught by `safe_node` and routed to `error_node`. LangGraph partial-update semantics preserved | `src/ikigai/src/agents/ikigai_maintainer/state.py` |
+
+**Test fixture fix (collateral):**
+
+`tests/ikigai/test_error_node.py` fixture had a wrong relative path
+(`Path(__file__).resolve().parent.parent` resolves to `tests/`, NOT the
+project root — test file is 3 levels deep). Fixed to use 3 `.parent`
+calls. Also moved the shim install to module-level (runs at import
+time, not just inside fixtures) so the path is guaranteed to be on
+`sys.path` before any test's graph_module import runs.
+
+**Verification (post-fix):**
+
+- `tests/mesh/` — 23/23 PASS (7 queue + 4 agent_consumer + 4 propagator +
+  8 adapters)
+- `tests/ikigai/test_error_node.py` — 3/3 PASS (graph compiles 9 nodes,
+  injected exception routes to error_node, clean run skips error_node)
+- Combined: `pytest tests/mesh/ tests/ikigai/` → 30/30 PASS
+- `ruff check src/mesh/agent_consumer.py tests/ikigai/test_error_node.py`
+  → clean (no new errors; pre-existing F401/C420 in state.py +
+  I001 in graph.py are out of scope)
+
+**What B5.2 did NOT touch (deferred per scope fence):**
+
+- 4 findings still deferred to B5.3+:
+  - F7 (orphan tests in vibe-ops/)
+  - F8 (CLI dual-layout, lifecycle of `cli/cli.py`)
+  - F11 (depth-limited git scan — too big for sweep)
+  - F14 (commit.py pre-existing broken import — out of B5.x scope)
+- Any algorithm code: `state.py` constants (except the TypedDict shape
+  which is B5.1-F3 territory), `score_vectors.py`, `heuristics.py`,
+  `balance.py`, `metrics.py` (QHE) — all preserved per
+  [[algorithm-gate-system-readiness-not-sonho-2026-08-29]]
+- Pre-existing ruff debt in `state.py` (F401 unused `import datetime as
+  dt`, C420 dict comprehension) — drive-by fix would be scope creep
+
+**Reviewer path:** the session memory file
+`~/.claude/projects/.../memory/phase-b5-2-shipped-2026-08-29.md`
+holds the full task list, the 4 fixes, the test-fixture debugging
+journey, and the lessons-learned additions. Read that file for context.
+
+---
+
 ### ADR-007 propagation gap — STATUS banner sweep (27 files)
 
 **Status:** shipped 2026-08-29. Closes the gap after commit `118060e`
