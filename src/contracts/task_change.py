@@ -23,7 +23,7 @@ class TaskAction(str, Enum):
     DONE = "done"
 
 
-TaskStatus = Literal["pending", "approved", "rejected", "propagated", "partial_propagation"]
+TaskStatus = Literal["pending", "approved", "rejected", "propagated", "partial_propagation", "clarified"]
 
 
 class TaskChange(BaseModel):
