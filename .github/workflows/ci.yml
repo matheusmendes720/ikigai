@@ -153,7 +153,7 @@ jobs:
 
       - name: Run review queue worker contract test
         run: |
-          PYTHONPATH=. python -m pytest interfaces/cli/tests/test_review_queue_worker.py -v
+          PYTHONPATH=. python -m pytest interfaces/cli/tests/test_review_queue_worker.py interfaces/cli/tests/test_review_queue_worker_e2e.py -v
 
   operational-e2e:
     name: Operational E2E Tests
