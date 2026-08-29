@@ -91,6 +91,10 @@ def get_adapter(name: str) -> AdapterInfo:
 
 # === Backend process registry ===
 
+# Path to pidfile that the (future) gateway-start command will write.
+# For B3.4 we only READ this; gateway-start lands in a later phase.
+MCP_GATEWAY_PIDFILE = Path(__file__).parent.parent.parent / "data" / "run" / "mcp_gateway.pid"
+
 # Backend processes that B4-B5 will populate with real status. Each entry
 # is a dict the future status-checker fills in (pid, started_at, etc.).
 BACKEND_PROCESSES: dict[str, dict[str, Any]] = {
@@ -108,7 +112,8 @@ BACKEND_PROCESSES: dict[str, dict[str, Any]] = {
     },
     "mcp_gateway": {
         "phase": "B3",
-        "description": "8+2 tools IPC server (src/ikigai/src/mcp_server/server.py)",
+        "description": "13 tools + 6 resources MCP gateway (B3.1-B3.3)",
+        "pidfile_path": MCP_GATEWAY_PIDFILE,
     },
 }
 
@@ -116,12 +121,15 @@ BACKEND_PROCESSES: dict[str, dict[str, Any]] = {
 def backend_status() -> list[dict[str, Any]]:
     """Return status snapshot for all backend processes.
 
-    v1 shape (B2): every process reports `running=false` because the actual
-    supervisor lands in B4-B5. Fields are stable so future code can populate
-    `pid`, `started_at`, `last_heartbeat` without changing consumers.
+    For mcp_gateway (B3.4): reads pidfile + checks PID alive (via
+    interfaces.cli.mcp_gateway_probe). Other 3 processes still report
+    running=False (their wiring lands in B4-B5).
     """
-    return [
-        {
+    from interfaces.cli.mcp_gateway_probe import probe_mcp_gateway
+
+    rows = []
+    for name, meta in BACKEND_PROCESSES.items():
+        row = {
             "name": name,
             "phase": meta["phase"],
             "description": meta["description"],
@@ -129,8 +137,15 @@ def backend_status() -> list[dict[str, Any]]:
             "pid": None,
             "started_at": None,
         }
-        for name, meta in BACKEND_PROCESSES.items()
-    ]
+        if name == "mcp_gateway":
+            pidfile = meta.get("pidfile_path")
+            if pidfile is not None:
+                probe = probe_mcp_gateway(pidfile_path=pidfile)
+                row["running"] = probe["running"]
+                row["pid"] = probe["pid"]
+                row["started_at"] = probe["started_at"]
+        rows.append(row)
+    return rows
 
 
 # === Typer sub-app ===
@@ -268,6 +283,7 @@ __all__ = [
     "AdapterInfo",
     "ADAPTER_REGISTRY",
     "BACKEND_PROCESSES",
+    "MCP_GATEWAY_PIDFILE",
     "list_adapters",
     "get_adapter",
     "backend_status",

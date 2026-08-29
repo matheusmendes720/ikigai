@@ -134,10 +134,16 @@ def test_backend_status_returns_4_records() -> None:
     assert len(snapshot) == 4
 
 
-def test_backend_status_v1_all_report_not_running() -> None:
-    """v1 stub: every process reports running=false (wires up in B4-B5)."""
+def test_backend_status_v1_only_mcp_gateway_can_report_running() -> None:
+    """B3.4: mcp_gateway reports real status via pidfile; other 3 still report running=False (B4-B5)."""
     snapshot = backend_status()
-    assert all(row["running"] is False for row in snapshot)
+    by_name = {r["name"]: r for r in snapshot}
+    assert by_name["review_queue_worker"]["running"] is False
+    assert by_name["agent_consumer"]["running"] is False
+    assert by_name["agent_propagator"]["running"] is False
+    # mcp_gateway: depends on whether pidfile exists + PID alive — just assert
+    # the field is a bool (don't pin to False; default state when no pidfile IS False)
+    assert isinstance(by_name["mcp_gateway"]["running"], bool)
 
 
 def test_backend_status_shape_is_stable() -> None:
@@ -147,6 +153,37 @@ def test_backend_status_shape_is_stable() -> None:
         assert set(row.keys()) == {"name", "phase", "description", "running", "pid", "started_at"}
         assert row["pid"] is None
         assert row["started_at"] is None
+
+
+def test_backend_status_mcp_gateway_uses_pidfile(monkeypatch) -> None:
+    """When pidfile points to a live PID (current process), mcp_gateway.running=True."""
+    import tempfile
+    from interfaces.cli import server as srv
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pidfile = Path(tmpdir) / "mcp_gateway.pid"
+        pidfile.write_text(str(os.getpid()))
+        # Patch the BACKEND_PROCESSES dict entry directly (it's used at runtime)
+        monkeypatch.setitem(srv.BACKEND_PROCESSES["mcp_gateway"], "pidfile_path", pidfile)
+
+        snapshot = backend_status()
+    row = next(r for r in snapshot if r["name"] == "mcp_gateway")
+    assert row["running"] is True
+    assert row["pid"] == os.getpid()
+
+
+def test_backend_status_mcp_gateway_no_pidfile(monkeypatch) -> None:
+    """When pidfile missing, mcp_gateway.running=False."""
+    import tempfile
+    from interfaces.cli import server as srv
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        monkeypatch.setattr(srv, "MCP_GATEWAY_PIDFILE", Path(tmpdir) / "missing.pid")
+
+        snapshot = backend_status()
+    row = next(r for r in snapshot if r["name"] == "mcp_gateway")
+    assert row["running"] is False
+    assert row["pid"] is None
 
 
 # === Typer command rendering (no-exception smoke tests) ===
