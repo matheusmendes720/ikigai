@@ -752,4 +752,4 @@ TOOLS = list(MCP._tool_manager._tools.values())
 # ---------------------------------------------------------------------------
 async def main() -> None:
     """Run the FastMCP gateway over stdio."""
-    await MCP.run_async(transport="stdio")
+    await MCP.run_stdio_async()
