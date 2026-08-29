@@ -135,7 +135,13 @@ def test_backend_status_returns_4_records() -> None:
 
 
 def test_backend_status_v1_only_mcp_gateway_can_report_running() -> None:
-    """B3.4: mcp_gateway reports real status via pidfile; other 3 still report running=False (B4-B5)."""
+    """B4.2: mcp_gateway + review_queue_worker report real status via pidfile;
+    agent_consumer + agent_propagator still report running=False (B5).
+
+    When no pidfile exists on disk (default test environment), the pidfile-backed
+    processes also report running=False. Asserting running=False here is therefore
+    safe but only proves the no-pidfile path — a pidfile-with-live-PID scenario
+    is out of scope for this v1 test."""
     snapshot = backend_status()
     by_name = {r["name"]: r for r in snapshot}
     assert by_name["review_queue_worker"]["running"] is False

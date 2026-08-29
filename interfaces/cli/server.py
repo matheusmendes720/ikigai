@@ -94,6 +94,9 @@ def get_adapter(name: str) -> AdapterInfo:
 # Path to pidfile that the (future) gateway-start command will write.
 # For B3.4 we only READ this; gateway-start lands in a later phase.
 MCP_GATEWAY_PIDFILE = Path(__file__).parent.parent.parent / "data" / "run" / "mcp_gateway.pid"
+REVIEW_QUEUE_WORKER_PIDFILE = (
+    Path(__file__).parent.parent.parent / "data" / "run" / "review_queue_worker.pid"
+)
 
 # Backend processes that B4-B5 will populate with real status. Each entry
 # is a dict the future status-checker fills in (pid, started_at, etc.).
@@ -101,6 +104,7 @@ BACKEND_PROCESSES: dict[str, dict[str, Any]] = {
     "review_queue_worker": {
         "phase": "B4",
         "description": "Consumes data/review_queue/<id>.json events",
+        "pidfile_path": REVIEW_QUEUE_WORKER_PIDFILE,
     },
     "agent_consumer": {
         "phase": "B5",
@@ -121,11 +125,12 @@ BACKEND_PROCESSES: dict[str, dict[str, Any]] = {
 def backend_status() -> list[dict[str, Any]]:
     """Return status snapshot for all backend processes.
 
-    For mcp_gateway (B3.4): reads pidfile + checks PID alive (via
-    interfaces.cli.mcp_gateway_probe). Other 3 processes still report
-    running=False (their wiring lands in B4-B5).
+    For mcp_gateway (B3.4) and review_queue_worker (B4.2): reads pidfile +
+    checks PID alive. Other 2 processes still report running=False (their
+    wiring lands in B5).
     """
     from interfaces.cli.mcp_gateway_probe import probe_mcp_gateway
+    from src.mesh.review_queue_worker import worker_status
 
     rows = []
     for name, meta in BACKEND_PROCESSES.items():
@@ -137,10 +142,15 @@ def backend_status() -> list[dict[str, Any]]:
             "pid": None,
             "started_at": None,
         }
-        if name == "mcp_gateway":
-            pidfile = meta.get("pidfile_path")
-            if pidfile is not None:
+        pidfile = meta.get("pidfile_path")
+        if pidfile is not None:
+            if name == "mcp_gateway":
                 probe = probe_mcp_gateway(pidfile_path=pidfile)
+            elif name == "review_queue_worker":
+                probe = worker_status(pidfile)
+            else:
+                probe = None
+            if probe is not None:
                 row["running"] = probe["running"]
                 row["pid"] = probe["pid"]
                 row["started_at"] = probe["started_at"]
