@@ -325,5 +325,133 @@ def task_add(
     console.print_json(json.dumps(result, default=str))
 
 
+# === Phase B5: `plan add/list` — thin wrappers for the Marco demo ===
+#
+# These wrap the existing `do_task_add` and `show_mesh` so the user can drive
+# the create + cross-fork-read cycle from a single command pair.
+#
+# No new business logic; pure delegation.
+# Zero policy engine / QHE / scoring imports (per user 2026-08-29 constraint).
+
+@app.command(name="plan-add")
+def plan_add(
+    title: str = typer.Argument(..., help="Task title"),
+    due: str = typer.Argument(None, help="Due date YYYY-MM-DD"),
+    priority: str = typer.Option("medium", "--priority", "-p", help="high/medium/low"),
+    json_out: bool = typer.Option(False, "--json"),
+) -> None:
+    """Add a new task via the mesh create cycle (positional args).
+
+    Writes to interfaces/cli slice + emits TaskChange to review_queue/.
+    The worker drains the queue and propagates to other forks.
+    """
+    result = do_task_add(title=title, due=due, priority=priority)
+    if json_out:
+        console.print_json(json.dumps(result, default=str))
+    else:
+        console.print(f"[green]ueid:[/green] {result['ueid']}")
+        console.print(f"[green]event_id:[/green] {result['event_id']}")
+        console.print(f"[green]status:[/green] {result['status']}")
+        console.print(f"[dim]{result['message']}[/dim]")
+
+
+@app.command(name="plan-list")
+def plan_list(
+    all_forks: bool = typer.Option(
+        False,
+        "--all-forks",
+        "-a",
+        help="Join each row with mesh_show for cross-fork view",
+    ),
+    json_out: bool = typer.Option(False, "--json"),
+    limit: int = typer.Option(50, "--limit", "-n", help="Max tasks to show"),
+) -> None:
+    """List tasks from data/tasks.jsonl (CLI fork).
+
+    With `--all-forks`, joins each row with show_mesh so you can see what
+    the other adapters (taskdog, solverforge_calendar) actually received.
+    """
+    path = _tasks_path()
+    if not path.exists():
+        if json_out:
+            console.print_json(json.dumps({"tasks": []}))
+        else:
+            console.print("[dim]No tasks found.[/dim]")
+        return
+
+    rows: list[dict] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+
+    if all_forks:
+        # Mesh join — proves the sync cycle read path
+        joined: list[dict] = []
+        for row in rows[:limit]:
+            ueid = row.get("ueid")
+            if not ueid:
+                continue
+            mesh = show_mesh(ueid)
+            row_out = dict(row)
+            row_out["_mesh"] = mesh
+            joined.append(row_out)
+        if json_out:
+            console.print_json(json.dumps(joined, default=str))
+        else:
+            table = Table(title=f"Plan (all-forks) — {len(joined)} tasks")
+            table.add_column("UEID", style="cyan")
+            table.add_column("Title", style="white")
+            table.add_column("CLI", style="green", width=5)
+            table.add_column("Taskdog", style="green", width=8)
+            table.add_column("Solverforge", style="green", width=12)
+            for r in joined:
+                mesh_view = r.get("_mesh", {}).get("view", {})
+                cli_ok = "OK" if mesh_view.get("cli") else "-"
+                td_ok = "OK" if mesh_view.get("taskdog") else "-"
+                sf_ok = "OK" if mesh_view.get("solverforge_calendar") else "-"
+                table.add_row(
+                    str(r.get("ueid", "?"))[:36],
+                    (r.get("title", "?") or "?")[:40],
+                    cli_ok,
+                    td_ok,
+                    sf_ok,
+                )
+            console.print(table)
+            mismatches_flat = [
+                m
+                for j in joined
+                for m in j.get("_mesh", {}).get("mismatches", [])
+            ]
+            if mismatches_flat:
+                console.print("\n[yellow]Mismatches detected:[/yellow]")
+                for m in mismatches_flat:
+                    console.print(f"  - {m}")
+        return
+
+    # Default view: CLI fork only
+    if json_out:
+        console.print_json(json.dumps(rows[:limit], default=str))
+        return
+
+    table = Table(title=f"Plan — {len(rows)} tasks")
+    table.add_column("UEID", style="cyan")
+    table.add_column("Title", style="white")
+    table.add_column("Due", style="yellow", width=12)
+    table.add_column("Priority", style="magenta", width=8)
+    for r in rows[:limit]:
+        table.add_row(
+            str(r.get("ueid", "?"))[:36],
+            (r.get("title", "?") or "?")[:50],
+            str(r.get("due", "-") or "-"),
+            str(r.get("priority", "medium") or "medium"),
+        )
+    console.print(table)
+
+
 if __name__ == "__main__":
     app()

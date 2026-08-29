@@ -35,18 +35,18 @@ from pathlib import Path
 # Resolve repo root so we can import src.* without PYTHONPATH gymnastics
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "src"))
+sys.path.insert(0, str(REPO_ROOT / "src"))  # noqa: E402
 
-from src.contracts.common import UEID
-from src.contracts.task_change import PropagationEvent, TaskAction, TaskChange
-from src.mesh.adapters import cli as cli_mod
-from src.mesh.adapters import solverforge_calendar as solforge_mod
-from src.mesh.adapters import taskdog as taskdog_mod
-from src.mesh.adapters.cli import CliAdapter
-from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
-from src.mesh.adapters.taskdog import TaskdogAdapter
-from src.mesh import queue as queue_mod
-from src.mesh.review_queue_worker import run_once
+from src.contracts.common import UEID  # noqa: E402
+from src.contracts.task_change import PropagationEvent, TaskAction, TaskChange  # noqa: E402
+from src.mesh.adapters import cli as cli_mod  # noqa: E402
+from src.mesh.adapters import solverforge_calendar as solforge_mod  # noqa: E402
+from src.mesh.adapters import taskdog as taskdog_mod  # noqa: E402
+from src.mesh.adapters.cli import CliAdapter  # noqa: E402
+from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter  # noqa: E402
+from src.mesh.adapters.taskdog import TaskdogAdapter  # noqa: E402
+from src.mesh import queue as queue_mod  # noqa: E402
+from src.mesh.review_queue_worker import run_once  # noqa: E402
 
 
 def _setup_isolated_paths(tmp: Path) -> None:
@@ -112,7 +112,7 @@ def main() -> int:
                 if rec.get("ueid") != str(ueid):
                     failures.append(f"Cli record ueid mismatch: {rec.get('ueid')}")
                 else:
-                    summary.append(f"[2] CliAdapter wrote 1 record to tasks.jsonl ✓")
+                    summary.append("[2] CliAdapter wrote 1 record to tasks.jsonl ✓")
 
         # --- Step 3: enqueue event ---
         queue_mod.enqueue(event)
@@ -120,7 +120,7 @@ def main() -> int:
         if len(queue_files) != 1:
             failures.append(f"Expected 1 queue file, got {len(queue_files)}")
         else:
-            summary.append(f"[3] Enqueued 1 event to review_queue/ ✓")
+            summary.append("[3] Enqueued 1 event to review_queue/ ✓")
 
         # --- Step 4: worker drains via run_once with 3 adapters ---
         adapters = [CliAdapter(), TaskdogAdapter(), SolverforgeCalendarAdapter()]
