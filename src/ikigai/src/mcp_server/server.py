@@ -9,125 +9,20 @@ import datetime as dt
 import json
 import sqlite3
 from pathlib import Path
-from typing import Any
+from typing import Any, Annotated
 
-import frontmatter
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent, ListToolsResult, CallToolResult
+from mcp.server.fastmcp import FastMCP
 
 from mcp_server.tracing import init_mcp_tracing, traced_tool_dispatch
 
 
 # ---------------------------------------------------------------------------
-# Tool list
+# FastMCP instance
 # ---------------------------------------------------------------------------
-TOOLS: list[Tool] = [
-    Tool(
-        name="ikigai_score",
-        description="Returns current IKIGAi 5-vector scores and meta-vector score",
-        inputSchema={"type": "object", "properties": {}},
-    ),
-    Tool(
-        name="ikigai_regime",
-        description="Returns current regime (PUSH/MAINTAIN/REDUCE/RECOVER) and days in regime",
-        inputSchema={"type": "object", "properties": {}},
-    ),
-    Tool(
-        name="ikigai_phase",
-        description="Returns current phase (FUNDAÇÃO/BUSCA/HACKATHON/RECUPERACAO/OVERCLOCK)",
-        inputSchema={"type": "object", "properties": {}},
-    ),
-    Tool(
-        name="ikigai_decompose",
-        description="Decompose a Dream UEID into its full UEID hierarchy",
-        inputSchema={
-            "type": "object",
-            "properties": {"dream_ueid": {"type": "string", "description": "Dream UEID"}},
-            "required": ["dream_ueid"],
-        },
-    ),
-    Tool(
-        name="ikigai_corrections",
-        description="List recent correction signals from H1-H6 heuristics",
-        inputSchema={
-            "type": "object",
-            "properties": {"limit": {"type": "integer", "default": 20}},
-        },
-    ),
-    Tool(
-        name="ikigai_plan_cycle",
-        description="Trigger an IKIGAi plan cycle — runs the full LangGraph agent",
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "active_dream_ueid": {"type": "string"},
-                "cycle_start": {"type": "string"},
-                "cycle_end": {"type": "string"},
-            },
-        },
-    ),
-    Tool(
-        name="ikigai_checkpoint",
-        description="Get or set a named checkpoint in the IKIGAi checkpoint DB",
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "action": {"type": "string", "enum": ["get", "set", "list"]},
-                "thread_id": {"type": "string"},
-                "state_snapshot": {"type": "object"},
-            },
-        },
-    ),
-    Tool(
-        name="ikigai_sync_vault",
-        description="Sync IKIGAi cycle data to the markdown vault",
-        inputSchema={
-            "type": "object",
-            "properties": {"cycle_id": {"type": "string"}},
-            "required": ["cycle_id"],
-        },
-    ),
-    Tool(
-        name="ikigai_write_tasks",
-        description="Write structured tasks to data/tasks.jsonl — Deep Agent output for interfaces",
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "tasks": {
-                    "type": "array",
-                    "description": "List of task objects to write",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "title": {"type": "string"},
-                            "description": {"type": "string"},
-                            "horizon": {"type": "string", "enum": ["today", "tomorrow", "this_week", "next_week", "this_month", "next_month", "this_quarter", "next_quarter", "this_year", "onda", "sprint"]},
-                            "priority": {"type": "string", "enum": ["critical", "high", "medium", "low"]},
-                            "project_id": {"type": "string"},
-                            "estimated_minutes": {"type": "integer"},
-                        },
-                        "required": ["title", "horizon"],
-                    },
-                },
-            },
-            "required": ["tasks"],
-        },
-    ),
-    Tool(
-        name="ikigai_read_tasks",
-        description="Read structured tasks from data/tasks.jsonl — interfaces consumer",
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "horizon": {"type": "string"},
-                "done": {"type": "boolean"},
-                "project_id": {"type": "string"},
-                "limit": {"type": "integer", "default": 50},
-            },
-        },
-    ),
-]
+MCP = FastMCP("ikigai-gateway")
+
+# Initialize OpenTelemetry tracing (idempotent)
+init_mcp_tracing()
 
 
 # ---------------------------------------------------------------------------
@@ -366,15 +261,6 @@ def _read_tasks_from_data(
         return json.dumps([])
 
     return json.dumps(results, indent=2)
-
-
-# ---------------------------------------------------------------------------
-# Server instance — mcp>=1.1 decorator-based API
-# ---------------------------------------------------------------------------
-SERVER = Server("ikigai-maintainer")
-
-# Initialize OpenTelemetry tracing (idempotent)
-init_mcp_tracing()
 
 
 # ---------------------------------------------------------------------------
@@ -643,59 +529,131 @@ _No corrections emitted in this cycle._
         return json.dumps({"error": str(e)})
 
 
-# Tool dispatch mapping
-_TOOL_DISPATCH: dict[str, callable] = {
-    "ikigai_score": _handle_ikigai_score,
-    "ikigai_regime": _handle_ikigai_regime,
-    "ikigai_phase": _handle_ikigai_phase,
-    "ikigai_decompose": _handle_ikigai_decompose,
-    "ikigai_corrections": _handle_ikigai_corrections,
-    "ikigai_plan_cycle": _handle_ikigai_plan_cycle,
-    "ikigai_checkpoint": _handle_ikigai_checkpoint,
-    "ikigai_sync_vault": _handle_ikigai_sync_vault,
-    "ikigai_write_tasks": _write_tasks_to_data,
-    "ikigai_read_tasks": _read_tasks_from_data,
-}
-
-
 # ---------------------------------------------------------------------------
-# Tool handlers
+# FastMCP tool wrappers — delegate to existing handlers via traced dispatch
 # ---------------------------------------------------------------------------
 
 
-@SERVER.list_tools()
-async def _list_tools(request) -> ListToolsResult:
-    """Return the list of 8 IKIGAI tools."""
-    return ListToolsResult(tools=TOOLS)
+@MCP.tool(
+    name="ikigai_score",
+    description="Returns current IKIGAi 5-vector scores and meta-vector score",
+)
+def ikigai_score() -> str:
+    """5-vector IKIGAi scores (passion/skill/market/revenue/course) + meta-vector."""
+    return traced_tool_dispatch("ikigai_score", _handle_ikigai_score, {})
 
 
-@SERVER.call_tool()
-async def _call_tool(name: str, arguments: dict[str, Any] | None) -> CallToolResult:
-    """Dispatch one tool call by name with OpenTelemetry tracing."""
-    arguments = arguments or {}
+@MCP.tool(
+    name="ikigai_regime",
+    description="Returns current regime (PUSH/MAINTAIN/REDUCE/RECOVER) and days in regime",
+)
+def ikigai_regime() -> str:
+    """Current IKIGAi regime and days-in-regime."""
+    return traced_tool_dispatch("ikigai_regime", _handle_ikigai_regime, {})
 
-    handler = _TOOL_DISPATCH.get(name)
-    if handler is None:
-        return CallToolResult(
-            content=[TextContent(type="text", text=f"Unknown tool: {name}")],
-            is_error=True,
-        )
 
-    try:
-        text = traced_tool_dispatch(name, handler, arguments)
-        is_error = text.startswith('{"error"')
-        return CallToolResult(content=[TextContent(type="text", text=text)], is_error=is_error)
-    except Exception as exc:
-        # traced_tool_dispatch already captured the traceback in the span.
-        return CallToolResult(
-            content=[TextContent(type="text", text=f"ERROR: {type(exc).__name__}: {exc}")],
-            is_error=True,
-        )
+@MCP.tool(
+    name="ikigai_phase",
+    description="Returns current phase (FUNDAÇÃO/BUSCA/HACKATHON/RECUPERACAO/OVERCLOCK)",
+)
+def ikigai_phase() -> str:
+    """Current IKIGAi phase and phase iteration."""
+    return traced_tool_dispatch("ikigai_phase", _handle_ikigai_phase, {})
+
+
+@MCP.tool(
+    name="ikigai_decompose",
+    description="Decompose a Dream UEID into its full UEID hierarchy",
+)
+def ikigai_decompose(dream_ueid: str) -> str:
+    """Decompose a Dream UEID into its full UEID hierarchy."""
+    return traced_tool_dispatch("ikigai_decompose", _handle_ikigai_decompose, {"dream_ueid": dream_ueid})
+
+
+@MCP.tool(
+    name="ikigai_corrections",
+    description="List recent correction signals from H1-H6 heuristics",
+)
+def ikigai_corrections(limit: int = 20) -> str:
+    """List recent correction signals from H1-H6 heuristics."""
+    return traced_tool_dispatch("ikigai_corrections", _handle_ikigai_corrections, {"limit": limit})
+
+
+@MCP.tool(
+    name="ikigai_plan_cycle",
+    description="Trigger an IKIGAi plan cycle — runs the full LangGraph agent",
+)
+def ikigai_plan_cycle(
+    active_dream_ueid: str | None = None,
+    cycle_start: str | None = None,
+    cycle_end: str | None = None,
+) -> str:
+    """Trigger an IKIGAi plan cycle — runs the full LangGraph agent."""
+    return traced_tool_dispatch("ikigai_plan_cycle", _handle_ikigai_plan_cycle, {
+        "active_dream_ueid": active_dream_ueid,
+        "cycle_start": cycle_start,
+        "cycle_end": cycle_end,
+    })
+
+
+@MCP.tool(
+    name="ikigai_checkpoint",
+    description="Get or set a named checkpoint in the IKIGAi checkpoint DB",
+)
+def ikigai_checkpoint(
+    action: str = "get",
+    thread_id: str | None = None,
+    state_snapshot: dict | None = None,
+) -> str:
+    """Get or set a named checkpoint in the IKIGAi checkpoint DB."""
+    return traced_tool_dispatch("ikigai_checkpoint", _handle_ikigai_checkpoint, {
+        "action": action,
+        "thread_id": thread_id,
+        "state_snapshot": state_snapshot,
+    })
+
+
+@MCP.tool(
+    name="ikigai_sync_vault",
+    description="Sync IKIGAi cycle data to the markdown vault",
+)
+def ikigai_sync_vault(cycle_id: str) -> str:
+    """Sync IKIGAi cycle data to the markdown vault."""
+    return traced_tool_dispatch("ikigai_sync_vault", _handle_ikigai_sync_vault, {"cycle_id": cycle_id})
+
+
+@MCP.tool(
+    name="ikigai_write_tasks",
+    description="Write structured tasks to data/tasks.jsonl — Deep Agent output for interfaces",
+)
+def ikigai_write_tasks(tasks: list[dict]) -> str:
+    """Write structured tasks to data/tasks.jsonl — Deep Agent output for interfaces."""
+    return _write_tasks_to_data(tasks)
+
+
+@MCP.tool(
+    name="ikigai_read_tasks",
+    description="Read structured tasks from data/tasks.jsonl — interfaces consumer",
+)
+def ikigai_read_tasks(
+    horizon: str | None = None,
+    done: bool | None = None,
+    project_id: str | None = None,
+    limit: int = 50,
+) -> str:
+    """Read structured tasks from data/tasks.jsonl — interfaces consumer."""
+    return _read_tasks_from_data(horizon=horizon, done=done, project_id=project_id, limit=limit)
+
+
+# ---------------------------------------------------------------------------
+# Backward-compat TOOLS list — exposes registered tools for test introspection
+# ---------------------------------------------------------------------------
+TOOLS = list(MCP._tool_manager._tools.values())
 
 
 # ---------------------------------------------------------------------------
 # Entrypoint
 # ---------------------------------------------------------------------------
-async def main():
-    async with stdio_server() as (read_stream, write_stream):
-        await SERVER.run(read_stream, write_stream, SERVER.create_initialization_options())
+async def main() -> None:
+    """Run the FastMCP gateway over stdio."""
+    await MCP.run_async(transport="stdio")
