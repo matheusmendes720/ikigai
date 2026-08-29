@@ -826,6 +826,49 @@ done
 
 ---
 
+## Cross-references ao novo design-system (2026-08-28)
+
+Este doc é o mapa técnico pré-pivot (SUPERSEDED) dos middlewares da era
+PAV. A canonical reference pós-pivot 2026-08-26 vive em
+[`docs/design-system/`](design-system/00-INDEX.md) — 40 docs em 9 camadas.
+O **mapa canônico de middlewares** agora vive na **Camada 2 (architecture
+canvases)** do design-system — substitui este SYSTEMS_TOPOLOGY como
+referência de middlewares.
+
+**Camada 0–1 (topologia & narrativa):**
+- [`docs/design-system/00-INDEX.md`](design-system/00-INDEX.md) — índice navegável
+- [`docs/design-system/01-master-branch-carro-chefe-2026-08-28.md`](design-system/01-master-branch-carro-chefe-2026-08-28.md) — master branch narrativa canônica
+- [`docs/design-system/02-interfaces-dual-layer-architecture.md`](design-system/02-interfaces-dual-layer-architecture.md) — arquitetura dual-layer
+
+**Camada 2 (architecture canvases — mapa canônico de middlewares):**
+- [`docs/design-system/04-canvas-mesh-architecture.md`](design-system/04-canvas-mesh-architecture.md) — mesh middleware (substitui §3 mesh)
+- [`docs/design-system/05-canvas-contracts-architecture.md`](design-system/05-canvas-contracts-architecture.md) — contracts middleware (substitui §4 contracts)
+- [`docs/design-system/06-canvas-agents-architecture.md`](design-system/06-canvas-agents-architecture.md) — agents middleware (deep-agent harness; substitui §5 agents)
+- [`docs/design-system/07-canvas-sync-architecture.md`](design-system/07-canvas-sync-architecture.md) — sync middleware (vault ↔ forks; substitui §6 sync)
+- [`docs/design-system/08-canvas-cybernetic-loop.md`](design-system/08-canvas-cybernetic-loop.md) — cybernetic loop (Target→Sensor→Adjuster; substitui §7 cybernetic)
+
+**Camada 3 (patterns load-bearing — substituem contratos detalhados da §8):**
+- [`docs/design-system/10-pattern-ueid-tri-key.md`](design-system/10-pattern-ueid-tri-key.md) — UEID tri-key
+- [`docs/design-system/11-pattern-frozen-pydantic-strict.md`](design-system/11-pattern-frozen-pydantic-strict.md) — Pydantic v2 strict
+- [`docs/design-system/12-pattern-append-only-queue.md`](design-system/12-pattern-append-only-queue.md) — append-only queue
+- [`docs/design-system/13-pattern-fork-adapter-protocol.md`](design-system/13-pattern-fork-adapter-protocol.md) — ForkAdapter Protocol
+- [`docs/design-system/14-pattern-idempotency-upstream-id.md`](design-system/14-pattern-idempotency-upstream-id.md) — idempotência
+- [`docs/design-system/15-pattern-hysteresis-fsm.md`](design-system/15-pattern-hysteresis-fsm.md) — hysteresis FSM
+- [`docs/design-system/17-pattern-reliability-decorators.md`](design-system/17-pattern-reliability-decorators.md) — reliability decorators
+- [`docs/design-system/18-pattern-system-prompt-layers.md`](design-system/18-pattern-system-prompt-layers.md) — system prompt layers
+
+**Camada 4 (forks — substituem §5.3 fork specs):**
+- [`docs/design-system/20-fork-tuiboard-architecture.md`](design-system/20-fork-tuiboard-architecture.md) — fork tuiboard
+- [`docs/design-system/21-fork-taskdog-architecture.md`](design-system/21-fork-taskdog-architecture.md) — fork taskdog
+- [`docs/design-system/22-fork-solverforge-calendar-architecture.md`](design-system/22-fork-solverforge-calendar-architecture.md) — fork solverforge-calendar
+- [`docs/design-system/23-fork-status-enum-mapping.md`](design-system/23-fork-status-enum-mapping.md) — status enum mapping
+
+**Camada 7 (riscos & gating):**
+- [`docs/design-system/52-known-risks-mitigations.md`](design-system/52-known-risks-mitigations.md) — riscos + mitigações (atualiza §9.3 riscos)
+- [`docs/design-system/53-adr-007-data-first-gate.md`](design-system/53-adr-007-data-first-gate.md) — ADR-007 data-first gate
+
+*Mapa mental: §3 (mesh) → Camada 2 canvas 04 + Camada 3 pattern 12 + 13; §4 (contracts) → Camada 2 canvas 05 + Camada 3 pattern 11; §5 (agents) → Camada 2 canvas 06 + Camada 3 pattern 18; §6 (sync) → Camada 2 canvas 07 + Camada 3 pattern 14; §7 (cybernetic) → Camada 2 canvas 08 + Camada 3 pattern 15. O §9.5 roadmap (10 sprints) foi colapsado para rev.3 backend phase re-ordering (B0-B6) registrado na memória.*
+
 
 
 
