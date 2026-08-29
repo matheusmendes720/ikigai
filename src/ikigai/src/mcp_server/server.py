@@ -693,6 +693,55 @@ def _ikigai_health_tool() -> str:
 
 
 # ---------------------------------------------------------------------------
+# Phase B3.3 — 6 MCP resources (delegate to resources.py)
+# ---------------------------------------------------------------------------
+from mcp_server.resources import (
+    health_resource,
+    plans_cycle_resource,
+    plans_cycles_resource,
+    queue_event_resource,
+    queue_pending_resource,
+    ueid_resource,
+)
+
+
+@MCP.resource("ueid://{ueid}")
+def _ueid_resource(ueid: str) -> str:
+    """Cross-fork view for one UEID."""
+    return ueid_resource(ueid)
+
+
+@MCP.resource("queue://pending")
+def _queue_pending_resource() -> str:
+    """List of pending TaskChange events."""
+    return queue_pending_resource()
+
+
+@MCP.resource("queue://events/{event_id}")
+def _queue_event_resource(event_id: str) -> str:
+    """One TaskChange event by ID."""
+    return queue_event_resource(event_id)
+
+
+@MCP.resource("health://gateway")
+def _health_resource() -> str:
+    """Gateway heartbeat."""
+    return health_resource()
+
+
+@MCP.resource("plans://cycles")
+def _plans_cycles_resource() -> str:
+    """List of recent PlanningCycles."""
+    return plans_cycles_resource()
+
+
+@MCP.resource("plans://cycles/{cycle_id}")
+def _plans_cycle_resource(cycle_id: str) -> str:
+    """One PlanningCycle full record."""
+    return plans_cycle_resource(cycle_id)
+
+
+# ---------------------------------------------------------------------------
 # Backward-compat TOOLS list — exposes registered tools for test introspection
 # ---------------------------------------------------------------------------
 TOOLS = list(MCP._tool_manager._tools.values())
