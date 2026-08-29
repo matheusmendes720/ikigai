@@ -141,10 +141,69 @@ time, not just inside fixtures) so the path is guaranteed to be on
 - Pre-existing ruff debt in `state.py` (F401 unused `import datetime as
   dt`, C420 dict comprehension) — drive-by fix would be scope creep
 
+> ⚠️ **CORRECTION (added 2026-08-29 in B5.3 commit):** the F7 label
+> above was **incorrect**. Audit's actual F7 is `agent_propagator.py:53-54`
+> (partial_propagation without DLQ/retry; "Future v1.2+ work" per audit).
+> "Orphan tests in vibe-ops/" was pre-existing trash I encountered while
+> investigating F7 — handled in B5.3 as pure hygiene. See B5.3 entry for
+> the corrected deferred list.
+
 **Reviewer path:** the session memory file
 `~/.claude/projects/.../memory/phase-b5-2-shipped-2026-08-29.md`
 holds the full task list, the 4 fixes, the test-fixture debugging
 journey, and the lessons-learned additions. Read that file for context.
+
+---
+
+### Phase B5.3 — `vibe-ops/scratch/` cleanup (hygiene-only, 0 audit findings)
+
+**Status:** shipped 2026-08-29. Pure hygiene sweep — deletes a
+10-file pre-reorg exploratory sandbox + its dead CI job. Closes
+**0 audit findings** (the dir was not in any B5.0 audit row).
+
+**CHANGELOG CORRECTION (B5.2 mislabel fix):** My B5.2 entry labeled
+F7 as "orphan tests in vibe-ops/". That was **incorrect** — the audit's
+actual F7 is `agent_propagator.py:53-54` (partial_propagation ack
+without DLQ/retry; "Future v1.2+ work"). The vibe-ops scratch cleanup
+below is NOT an audit finding — it's pre-existing trash that I
+encountered while checking what F7 really was. The corrected
+still-deferred list after B5.1+B5.2+B5.3:
+
+| # | Audit finding | Status |
+|---|---------------|--------|
+| F7 | propagator DLQ/retry (audit §1.3) | Deferred to v1.2+ per audit |
+| F8 | CLI dual-layout (lifecycle of `cli/cli.py`) | Architectural decision needed |
+| F11 | depth-limited git scan | Rejected by audit ("too big for sweep") |
+| F14 | `commit.py` pre-existing broken import | Out of B5.x scope (pre-existing) |
+
+**What was deleted (10 files, all 2026-06-03 11:36:32):**
+
+| File | Lines | Why broken / obsolete |
+|------|-------|-----------------------|
+| `check_sqlite_vec.py` | 17 | Diagnostic (not a test) |
+| `test_policy.py` | 38 | Imports `schemas.pydantic_v2` (does not exist) |
+| `test_tasklib.py` – `_v7.py` | 8 files, 15-31 ea | Iterative WSL TaskWarrior debugging v1→v7; hardcoded path `c:/Users/mathe/code_space/produtividade/taskwarrior` (deleted pre-reorg) |
+
+**CI cleanup:** the `vibe-ops-scratch` CI job (`.github/workflows/ci.yml:171-181`)
+was **already broken** — every CI run failed with 8 collection errors.
+Removed the dead job in the same commit. CI jobs now: 6 (was 7).
+
+**Verification (post-delete):**
+- `pytest tests/mesh/ tests/ikigai/` → 30/30 PASS (unchanged)
+- `python -c "import yaml; yaml.safe_load(ci.yml)"` → YAML valid
+- CI job list verified: `['code-review-checks', 'quality-gates',
+  'mcp-gateway-contract', 'review-queue-worker-contract',
+  'operational-e2e', 'git-hooks']`
+
+**Out of scope (NOT touched):**
+- `--ignore=scratch` flags in `code_review.py` and `test_review.py`
+  become no-ops but are harmless; left in place to avoid scope creep.
+- 3 historical docs that mention `vibe-ops-scratch` by name
+  (`.git/sdd/B3.6-dispatch-draft.md`, `04-agent-mcp-interfaces.md`,
+  `b3-6-report.md`) — they're historical record; left untouched.
+
+**Cumulative B5.x closure:** 10 of 14 audit findings closed
+(B5.1: 6, B5.2: 4). B5.3 = hygiene only.
 
 ---
 
