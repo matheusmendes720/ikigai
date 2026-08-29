@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any
 
 from ..state import IKIGAiStateDict
-from ikigai.mcp_server.server import _write_tasks_to_data
 
 
 # Kill switch — set to True to block all writes
@@ -22,6 +21,11 @@ def commit_node(state: IKIGAiStateDict) -> dict[str, Any]:
     Writes are append-only (plan_entities table). Skipped if kill_switch is active.
     Returns summary of what was committed.
     """
+    # B5.B.1: lazy import as fallback if eager fails at graph compile time
+    # (the ikigai.mcp_server.* package does not exist under src/ikigai/src/ikigai/;
+    # the real _write_tasks_to_data is at src/ikigai/src/mcp_server/server.py:188)
+    from src.ikigai.src.mcp_server.server import _write_tasks_to_data
+
     if _KILL_SWITCH:
         return {
             "commit_summary": "Kill switch active — no writes performed",
