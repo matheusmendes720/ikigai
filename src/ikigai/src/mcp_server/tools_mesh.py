@@ -74,6 +74,9 @@ def ikigai_mesh_show(ueid: Annotated[str, "UEID to look up across forks"]) -> st
             view[adapter.name] = None
             mismatches.append(f"{adapter.name}: {type(e).__name__}: {e}")
 
+    # A2uiAdapter is deferred per spec §1 — include a null entry to preserve the contract
+    view["a2ui"] = None
+
     statuses = {
         name: rec.get("status")
         for name, rec in view.items()
@@ -110,11 +113,11 @@ def ikigai_task_create(
     except ValueError as e:
         return json.dumps({"error": f"Invalid UEID: {e}"})
 
-    if not source_fork or len(source_fork) < 2:
-        return json.dumps({"error": "source_fork must be >= 2 chars"})
-
     if not fields.get("title"):
         return json.dumps({"error": "fields.title is required"})
+
+    if not source_fork or len(source_fork) < 2:
+        return json.dumps({"error": "source_fork must be >= 2 chars"})
 
     try:
         event = TaskChange(

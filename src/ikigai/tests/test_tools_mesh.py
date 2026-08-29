@@ -24,7 +24,8 @@ def test_mesh_show_joins_across_adapters() -> None:
         result = json.loads(ikigai_mesh_show(ueid=str(VALID_UEID)))
     assert result["ueid"] == str(VALID_UEID)
     assert "view" in result
-    assert set(result["view"].keys()) == {"cli", "taskdog", "solverforge_calendar"}
+    assert set(result["view"].keys()) == {"cli", "taskdog", "solverforge_calendar", "a2ui"}
+    assert result["view"]["a2ui"] is None
 
 
 def test_mesh_show_rejects_invalid_ueid() -> None:
