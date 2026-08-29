@@ -22,7 +22,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Domain models
 # ─────────────────────────────────────────────────────────────────────────────
@@ -100,6 +99,39 @@ class SyncResult(BaseModel):
     duration_s: float = 0.0
 
 
+class ReverseSyncTaskEntry(BaseModel):
+    """Per-UEID entry stored in sync-state-reverse.json."""
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    last_seen_status: str
+    last_seen_title: str
+    taskdog_id: int | None = None
+    vault_path: str | None = None
+
+
+class ReverseSyncState(BaseModel):
+    """Full reverse sync state document — taskdog-side snapshot."""
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    version: int = 1
+    last_sync_at: str | None = None
+    tasks: dict[str, ReverseSyncTaskEntry] = Field(default_factory=dict)
+
+
+class ReverseSyncResult(BaseModel):
+    """Summary returned by reverse_sync() — NOT frozen, accumulates."""
+
+    model_config = {"frozen": False, "extra": "forbid"}
+
+    scanned: int = 0
+    emitted: int = 0
+    skipped: int = 0
+    errors: list[dict[str, Any]] = Field(default_factory=list)
+    duration_s: float = 0.0
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Public API
 # ─────────────────────────────────────────────────────────────────────────────
@@ -163,6 +195,22 @@ def save_state(state_path: Path, state: SyncState) -> None:
     raises FileExistsError if the target exists — breaking the second
     save_state() call in any per-task loop.
     """
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = state_path.with_suffix(".tmp")
+    tmp.write_text(state.model_dump_json(), encoding="utf-8")
+    os.replace(tmp, state_path)
+
+
+def load_reverse_state(state_path: Path) -> ReverseSyncState:
+    """Read reverse sync state. Initialise empty state if file absent."""
+    if state_path.exists():
+        data = json.loads(state_path.read_text(encoding="utf-8"))
+        return ReverseSyncState.model_validate(data)
+    return ReverseSyncState(version=1)
+
+
+def save_reverse_state(state_path: Path, state: ReverseSyncState) -> None:
+    """Atomic write: write to .tmp then os.replace() (cross-platform safe)."""
     state_path.parent.mkdir(parents=True, exist_ok=True)
     tmp = state_path.with_suffix(".tmp")
     tmp.write_text(state.model_dump_json(), encoding="utf-8")
