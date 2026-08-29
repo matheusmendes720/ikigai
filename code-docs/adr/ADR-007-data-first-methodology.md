@@ -1,5 +1,11 @@
 # ADR-007 — Data-First Methodology
 
+> **STATUS CLARIFICATION (2026-08-29):** The "5+ manual logs per workflow" rule in §Decision.2 and §Implementation Rules.1 is **observation depth** (observe a workflow this many times before designing code for it), NOT a release gate. The methodology's purpose is to ensure specs are grounded in observed behavior, not to gate IKIGAi/algorithm work behind a counter.
+>
+> The actual gate for algorithm/IKIGAi work is **system readiness** — backend + data + agent layers must be functional before algorithm code is written. This is the canonical framework per `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md` and was reaffirmed by user on 2026-08-29 in response to the "5 SONHO logs gate" propagated misconception.
+>
+> **Downstream impact:** Any doc that frames ADR-007 as a "5 SONHO logs gate" (e.g., `docs/design-system/53-adr-007-data-first-gate.md`, references in `10-`, `16-`, `17-`, `18-`, `19-` design-system files) is using the wrong framing. The deferral rule still applies (algorithms still wait), but the reason is system readiness, not a SONHO counter.
+
 **Status:** Accepted
 **Date:** 2026-07-02
 **Deciders:** human (Matheus) + agent swarm

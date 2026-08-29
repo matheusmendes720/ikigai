@@ -1,5 +1,13 @@
 # 53 — ADR-007 Data-First Gate (5+ SONHO logs validation)
 
+> **⚠️ STATUS CLARIFICATION (2026-08-29):** This doc was built around the "5+ SONHO logs gate" framing, which is a **propagated misconception** of ADR-007. ADR-007's "5+ manual logs per workflow" rule is **observation depth** (observe before designing), NOT a release gate.
+>
+> The actual gate for IKIGAi agent runs is **system readiness** (backend + data + agent layers functional), not a counter of SONHO logs. The SONHO counter (1/5 as of 2026-08-28) is a measurement of user discipline, NOT a release gate.
+>
+> The deferral rule still applies — IKIGAi agent runs should not happen until system layers are ready — but for the reason "system not ready," not "5 logs not reached." Canonical clarification: `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md`.
+>
+> **This doc is preserved (NOT deleted) for historical/audit value.** The §1-§6 content remains accurate as a description of WHAT the gate-mechanism was. The WHY in §1 is now wrong; refer to the STATUS blockquote above for the correct rationale.
+
 > **Categoria:** VALIDATION (Layer 7 — Validation & heuristics, posição #53)
 > **Anchor canônico:** `code-docs/adr/ADR-007-data-first-methodology.md` (ADR-007, Accepted 2026-07-02)
 > **Público:** Eu mesmo + agentes futuros
