@@ -15,6 +15,48 @@ This file covers phases that touch multiple layers or that ship under the
 
 ## [unreleased] — 2026-08-29
 
+### v1.2 — CliAdapter dedup fix
+
+**Status:** shipped 2026-08-29. Closes the "CliAdapter append-without-dedup"
+minor finding from Phase B5.1 (`scripts/smoke/mvp_marco_cli.py` showed CLI
+fork with 2 task(s) instead of 1).
+
+**Scope:** one-line behavior change + dedicated smoke. No new business
+logic. No policy engine / QHE / scoring imports.
+
+**Why:** `do_task_add` + `worker.run_once` both call `CliAdapter.apply_change`
+for the same CREATE event, so `data/tasks.jsonl` ended up with two lines
+per UEID. The other forks (Taskdog, SolverforgeCalendar) use SQLite UPSERT
+and were unaffected. The dup surfaced only in `plan-list` (CLI fork only)
+or any consumer reading the JSONL slice directly.
+
+**Commit:** `abb355f` — `fix(mesh): dedup CliAdapter.apply_change by ueid (v1.2)`
+
+**Files:**
+- `src/mesh/adapters/cli.py` (+17, -1): O(n) read-then-write inside
+  `apply_change`; skip if UEID already present. Append still goes through
+  temp + `os.replace` for atomicity.
+- `scripts/smoke/cli_dedup.py` (+149): 5-step verification smoke that
+  asserts the new invariant directly.
+
+**Validation at ship time:**
+
+- `scripts/smoke/cli_dedup.py`: 5/5 PASS (1st apply_change → 1 line;
+  2nd apply_change same UEID → still 1 line; 3rd apply_change new
+  UEID → 2 lines; `read()` returns records for both UEIDs; JSONL
+  integrity — every line valid JSON with a UEID)
+- `scripts/smoke/mvp_marco.py`: 7/7 PASS (unchanged from B5.1)
+- `scripts/smoke/mvp_marco_cli.py`: 5/5 PASS — CLI fork row count
+  dropped from "2 task(s)" to "1 task(s)"
+- `ruff check scripts/smoke/cli_dedup.py`: All checks passed
+- Production `data/` untouched (all smokes use `tmp_path` isolation)
+
+**Pre-existing F401 left alone:** `tempfile` import at
+`src/mesh/adapters/cli.py:4` is unused (not introduced by this change).
+Drive-by fix would be scope creep; tracked separately.
+
+---
+
 ### Phase B5.1 — MVP Marco CLI wrappers (live)
 
 **Status:** shipped 2026-08-29. User greenlit on 2026-08-29 ("aprovado,
