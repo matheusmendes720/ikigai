@@ -20,9 +20,26 @@
 # Root-level files starting with shell-special chars (', [, {, `)
 /['\[\{`]
 # Root-level Python keyword / short-token names that appear from
-# malformed redirect targets (None / str / int / float / bool / list /
-# dict / com / formal / one / etc.). Conservative deny-list.
-/(None|str|int|float|bool|list|dict|com|formal|one)\b
+# malformed redirect targets. Listed individually — gitignore does
+# not support alternation `(a|b)` or braces `{a,b}` in match patterns.
+/None
+/str
+/int
+/float
+/bool
+/list
+/dict
+/com
+/formal
+/one
+# Root-level type-annotation fragments (e.g. `dict[str`, `list[object]`).
+# `\[` matches one literal `[`; `*` matches the rest. Without `*` the
+# pattern would only match the prefix without the bracket content.
+/dict\[*
+/list\[*
+/tuple\[*
+/set\[*
+/frozenset\[*
 
 # ─── Vault (Obsidian KB — runtime only) ─────────────────────────
 # Source vault (wikilinks, markdown) IS tracked.
