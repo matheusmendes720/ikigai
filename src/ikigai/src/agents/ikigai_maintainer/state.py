@@ -11,7 +11,7 @@ import datetime as dt
 import math
 import operator
 from enum import Enum
-from typing import Annotated, Literal, TypedDict
+from typing import Annotated, Literal, NotRequired, TypedDict
 
 # ---------------------------------------------------------------------------
 # IKIGAi vector types
@@ -104,7 +104,7 @@ class CorrectionSignal(TypedDict):
 # ---------------------------------------------------------------------------
 
 
-class IKIGAiStateDict(TypedDict, total=False):
+class IKIGAiStateDict(TypedDict):
     """Canonical state for the IKIGAi-Maintainer LangGraph.
 
     This TypedDict is the single source of state shape for all nodes.
@@ -112,68 +112,80 @@ class IKIGAiStateDict(TypedDict, total=False):
 
     LangGraph ephemeral state: held in working memory during graph execution.
     Checkpointed to SQLite at node boundaries via SqliteSaver.
+
+    Per B5.2-F12: required identity fields are declared without NotRequired;
+    everything else uses NotRequired so partial updates from individual nodes
+    preserve the LangGraph merge semantics (no field is implicitly erased by
+    a node returning an incomplete update dict).
     """
 
-    # Identity
+    # ---- Required identity fields (B5.2-F12) ------------------------------
+    # These MUST be present on every state instance — nodes that drop them
+    # will be caught by the safe_node wrapper and routed to error_node.
     cycle_id: str
     cycle_start: str  # ISO date
     cycle_end: str  # ISO date
     iteration: int
-    last_step: str
+
+    # ---- Optional state (LangGraph partial-update semantics) --------------
+
+    # Identity (last_step is always set by the wrapping nodes, but we don't
+    # type-enforce that — safe_node writes it on every node path)
+    last_step: NotRequired[str]
 
     # Regime FSM (H1)
-    regime_state: REGIME_STATES
-    q_he_score: float
-    days_in_regime: int
-    is_hysteresis_active: bool
+    regime_state: NotRequired[REGIME_STATES]
+    q_he_score: NotRequired[float]
+    days_in_regime: NotRequired[int]
+    is_hysteresis_active: NotRequired[bool]
 
     # Phase FSM (H2)
-    phase: PHASE_STATES
-    phase_iteration: int
-    phase_converged: bool
-    phase_weights: dict[str, float]
+    phase: NotRequired[PHASE_STATES]
+    phase_iteration: NotRequired[int]
+    phase_converged: NotRequired[bool]
+    phase_weights: NotRequired[dict[str, float]]
 
     # IKIGAi 5-vector scores
-    vector_scores: dict[VECTOR_TYPES, float]
-    meta_vector_score: float
+    vector_scores: NotRequired[dict[VECTOR_TYPES, float]]
+    meta_vector_score: NotRequired[float]
 
     # UEID hierarchy (Dream → Goal → Objective → Project → Task)
-    active_dream_ueid: str | None
-    active_goal_ueids: list[str]
-    active_objective_ueids: list[str]
-    active_project_ueids: list[str]
-    active_task_ueids: list[str]
+    active_dream_ueid: NotRequired[str | None]
+    active_goal_ueids: NotRequired[list[str]]
+    active_objective_ueids: NotRequired[list[str]]
+    active_project_ueids: NotRequired[list[str]]
+    active_task_ueids: NotRequired[list[str]]
 
     # Balancer (shared between channels)
-    workload_estimate: float
-    capacity_estimate: float
-    balancer_verdict: BALANCER_VERDICTS
+    workload_estimate: NotRequired[float]
+    capacity_estimate: NotRequired[float]
+    balancer_verdict: NotRequired[BALANCER_VERDICTS]
 
     # Prospective channel — forward-drafting
-    prospective_buffer: Annotated[list[str], operator.add]
+    prospective_buffer: NotRequired[Annotated[list[str], operator.add]]
 
     # Retrospective channel — backward-aggregation
-    retrospective_log: Annotated[list[str], operator.add]
+    retrospective_log: NotRequired[Annotated[list[str], operator.add]]
 
     # Corrections emitted by H1-H6
-    corrections: Annotated[list[CorrectionSignal], operator.add]
+    corrections: NotRequired[Annotated[list[CorrectionSignal], operator.add]]
 
     # Kill switch — halts graph if True
-    kill_switch_triggered: bool
-    terminated: bool
+    kill_switch_triggered: NotRequired[bool]
+    terminated: NotRequired[bool]
 
     # Error channel (B5.1-F3) — populated when a wrapped node raises;
     # error_node consumes these to produce a failed commit_summary.
-    originating_node: str
-    error_type: str
-    error_message: str
-    traceback_str: str
-    error_traceback: str  # written by error_node
-    commit_summary: str  # written by commit_node on success, error_node on failure
+    originating_node: NotRequired[str]
+    error_type: NotRequired[str]
+    error_message: NotRequired[str]
+    traceback_str: NotRequired[str]
+    error_traceback: NotRequired[str]  # written by error_node
+    commit_summary: NotRequired[str]  # written by commit_node on success, error_node on failure
 
     # Chat mode — message history accumulated across turns
-    messages: Annotated[list[dict], operator.add]  # [{"role": "user"|"agent", "content": str}]
-    user_input: str | None  # scratchpad for current turn input
+    messages: NotRequired[Annotated[list[dict], operator.add]]  # [{"role": "user"|"agent", "content": str}]
+    user_input: NotRequired[str | None]  # scratchpad for current turn input
 
 
 # ---------------------------------------------------------------------------

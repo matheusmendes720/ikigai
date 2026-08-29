@@ -29,10 +29,44 @@ from .nodes.error import error_node
 # ---------------------------------------------------------------------------
 # Observability — init at module load; manual span on the graph factory.
 # ---------------------------------------------------------------------------
+import logging
+import os
+
 from observability import init_tracing, get_tracer
 
-init_tracing()
+_init_tracing_ok = True
+try:
+    init_tracing()
+except Exception as exc:  # noqa: BLE001 — tracing must never crash the graph
+    _init_tracing_ok = False
+    # Defer the warning until we have a logger; graph.py may be imported
+    # before logging.basicConfig has been called by the host application.
+    logging.getLogger(__name__).warning(
+        "init_tracing() raised %s: %s — graph will run without spans.",
+        type(exc).__name__,
+        exc,
+    )
+
 _graph_tracer = get_tracer("ikigai.graph")
+
+# B5.2-F5: surface the silent-no-exporters failure mode. init_tracing() is
+# designed never to raise (it logs missing-OTel-libs to stderr and moves on),
+# and if neither LangSmith nor Langfuse credentials are in env, the
+# TracerProvider has no real span processors — every span is a no-op.
+# Operators running in CI / local-only environments should see this clearly
+# instead of wondering why spans aren't appearing in the dashboard.
+if _init_tracing_ok and not (
+    os.environ.get("LANGSMITH_API_KEY")
+    or (
+        os.environ.get("LANGFUSE_PUBLIC_KEY")
+        and os.environ.get("LANGFUSE_SECRET_KEY")
+    )
+):
+    logging.getLogger(__name__).warning(
+        "IKIGAi tracing has no exporters configured "
+        "(set LANGSMITH_API_KEY or LANGFUSE_PUBLIC_KEY+LANGFUSE_SECRET_KEY). "
+        "Spans created via _graph_tracer will be dropped."
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -99,8 +133,13 @@ def _route_after_observe(state: IKIGAiStateDict) -> Literal[
 
 def _route_after_score_vectors(
     state: IKIGAiStateDict,
-) -> Literal["heuristics", "balance", "error"]:
-    """After score_vectors: run heuristics unless an upstream error fired."""
+) -> Literal["heuristics", "error"]:
+    """After score_vectors: run heuristics unless an upstream error fired.
+
+    Per B5.2-F2: the previous Literal type declared "balance" as a possible
+    return but the function only ever returned "heuristics". Tightened to
+    match the actual return surface.
+    """
     if state.get("error_type"):
         return "error"
     return "heuristics"
@@ -108,8 +147,11 @@ def _route_after_score_vectors(
 
 def _route_after_heuristics(
     state: IKIGAiStateDict,
-) -> Literal["balance", "decompose", "error"]:
-    """After heuristics: run balance check unless an upstream error fired."""
+) -> Literal["balance", "error"]:
+    """After heuristics: run balance check unless an upstream error fired.
+
+    Per B5.2-F2: dropped the unused "decompose" branch from the Literal type.
+    """
     if state.get("error_type"):
         return "error"
     return "balance"
@@ -131,8 +173,11 @@ def _route_after_balance(
 
 def _route_after_decompose(
     state: IKIGAiStateDict,
-) -> Literal["plan", "reflect", "error"]:
-    """After decompose: always proceed to plan unless upstream error fired."""
+) -> Literal["plan", "error"]:
+    """After decompose: always proceed to plan unless upstream error fired.
+
+    Per B5.2-F2: dropped the unused "reflect" branch from the Literal type.
+    """
     if state.get("error_type"):
         return "error"
     return "plan"
@@ -140,8 +185,11 @@ def _route_after_decompose(
 
 def _route_after_plan(
     state: IKIGAiStateDict,
-) -> Literal["reflect", "commit", "error"]:
-    """After plan: reflect unless upstream error fired."""
+) -> Literal["reflect", "error"]:
+    """After plan: reflect unless upstream error fired.
+
+    Per B5.2-F2: dropped the unused "commit" branch from the Literal type.
+    """
     if state.get("error_type"):
         return "error"
     return "reflect"
@@ -149,8 +197,12 @@ def _route_after_plan(
 
 def _route_after_reflect(
     state: IKIGAiStateDict,
-) -> Literal["commit", END, "error"]:
-    """After reflect: commit and end unless upstream error fired."""
+) -> Literal["commit", "error"]:
+    """After reflect: commit unless upstream error fired.
+
+    Per B5.2-F2: dropped the unused `END` branch from the Literal type.
+    END is the unconditional edge from `commit` after a clean run.
+    """
     if state.get("error_type"):
         return "error"
     return "commit"
