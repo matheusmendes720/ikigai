@@ -21,6 +21,7 @@ from typing import Any
 
 import pytest
 import sqlite3
+import uuid
 
 from src.contracts.common import UEID
 from src.contracts.task_change import PropagationEvent, TaskAction, TaskChange, TaskStatus
@@ -288,3 +289,59 @@ def test_end_to_end_with_taskdog_adapter_writes_real_db(
         assert _read_status("e2e-taskdog-001") == "propagated"
     finally:
         _cleanup("e2e-taskdog-001")
+
+
+def test_end_to_end_with_solverforge_calendar_adapter_writes_real_upi(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Real SolverforgeCalendarAdapter: validates worker.run_once → UPI write with id reuse."""
+    # Redirect SolverforgeCalendarAdapter's UPI_DB to a temp dir
+    import src.mesh.adapters.solverforge_calendar as upi_adapter_mod
+
+    temp_db = tmp_path / "upi.db"
+    monkeypatch.setattr(upi_adapter_mod, "UPI_DB", temp_db)
+
+    event = _make_event(
+        event_id="e2e-upi-001",
+        ueid="tsk:upi:b1c2:d3e4",
+        title="Real UPI write test",
+        source_fork="mcp_gateway",
+    )
+    queue_mod.enqueue(event)
+
+    try:
+        from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
+
+        adapter = SolverforgeCalendarAdapter()
+        result = worker_mod.run_once([adapter])
+
+        assert result.consumed == 1
+        assert result.approved == 1
+        assert result.partial == 0
+
+        # Real DB was written by SolverforgeCalendarAdapter.apply_change
+        assert temp_db.exists()
+        conn = sqlite3.connect(temp_db)
+        try:
+            row = conn.execute(
+                "SELECT id, ueid, status, ikigai FROM unified_planning_items WHERE ueid = ?",
+                (event.ueid,),
+            ).fetchone()
+            assert row is not None, "SolverforgeCalendarAdapter did not write the row"
+            pk_id, ueid_val, status_val, ikigai_json = row
+            assert ueid_val == "tsk:upi:b1c2:d3e4"
+            assert status_val == "planned"
+            # id is a UUID string (TEXT PRIMARY KEY)
+            assert isinstance(pk_id, str) and len(pk_id) > 0
+
+            # ikigai column is JSON with the expected fields
+            ikigai = json.loads(ikigai_json)
+            assert ikigai["title"] == "Real UPI write test"
+            assert ikigai["source_fork"] == "mcp_gateway"
+            assert ikigai["due"] is not None  # 30 days from now (set in _make_event)
+            assert "approved_at" in ikigai
+        finally:
+            conn.close()
+        assert _read_status("e2e-upi-001") == "propagated"
+    finally:
+        _cleanup("e2e-upi-001")
