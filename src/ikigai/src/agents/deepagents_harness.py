@@ -34,9 +34,18 @@ _tracer = get_tracer("ikigai.harness")
 # ---------------------------------------------------------------------------
 _CHECKPOINT_DB = os.environ.get(
     "IKIGAI_CHECKPOINT_DB",
-    str(Path.home() / ".ikigai" / "ikigai_checkpoints.db"),
+    str(Path.cwd() / "data" / "ikigai_checkpoints.db"),
 )
 _THREAD_ID = os.environ.get("IKIGAI_THREAD_ID", "default")
+
+# Filesystem backend root — scope to project data/ + vault/ directories only.
+# This prevents the agent from reading or writing outside the project sandbox.
+# Per audit B5.0-F9: previous default was Path.home() with virtual_mode=False,
+# which granted unrestricted system access (security blast radius risk).
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
+_FS_ROOT = _PROJECT_ROOT / "data"
+_VAULT_ROOT = _PROJECT_ROOT / "vault"
+_FS_ALLOWED_ROOTS: tuple[Path, ...] = (_FS_ROOT, _VAULT_ROOT)
 
 
 # ---------------------------------------------------------------------------
@@ -181,13 +190,17 @@ IKIGAi core (8 tools):
   ikigai_sync_vault   — write checkpoint to vault markdown
   ikigai_checkpoint   — list / get checkpoint threads
 
-Filesystem (built-in via FilesystemBackend — full system access):
-  ls <path>             — list directory contents
-  read_file <path>      — read file contents
-  write_file <path>     — write content to file
-  edit_file <path>      — edit file (shows diff)
-  glob <pattern>        — glob pattern search (e.g. **/*.py)
-  grep <pattern> <path> — search for pattern in directory
+Filesystem (built-in via FilesystemBackend — scoped to project data/):
+  ls <path>             — list directory contents under data/
+  read_file <path>      — read file contents (data/ only)
+  write_file <path>     — write content to file (data/ only, HITL-required)
+  edit_file <path>      — edit file (shows diff, data/ only)
+  glob <pattern>        — glob pattern search under data/
+  grep <pattern> <path> — search for pattern under data/
+
+  ⚠️ Scope: agent can ONLY access files under <project_root>/data/.
+  Vault/ files are accessed via ikigai_decompose / ikigai_sync_vault tools,
+  not via filesystem tools. The root_dir is enforced by FilesystemBackend.
 
 Solverforge Calendar (Rust CLI):
   solverforge_list_events  — list upcoming events (default 7 days)
@@ -281,10 +294,15 @@ def _make_agent(
     if human_in_the_loop:
         interrupt_on = {"write_file": True}
 
-    # Filesystem backend — grants the agent full read/write access to any directory
+    # Filesystem backend — scoped to project data/ + vault/ only.
+    # Per audit B5.0-F9: previous default was Path.home() with virtual_mode=False,
+    # which granted unrestricted system access (blast radius). Now scoped.
     backend = FilesystemBackend(
-        root_dir=Path.home(),  # agent can access ANY directory on the system
-        virtual_mode=False,    # real filesystem writes
+        root_dir=_FS_ROOT,  # data/ is primary working area
+        virtual_mode=True,  # virtual paths relative to root_dir
+        # NOTE: vault/ is a sibling, not under data/. If the agent needs to
+        # read vault, the REPL shortcut (ls/cat in run_chat) handles it
+        # outside the LLM tool surface. LLM tools are scoped to data/ only.
     )
 
     # Load IKIGAi tools

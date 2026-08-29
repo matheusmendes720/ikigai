@@ -162,6 +162,15 @@ class IKIGAiStateDict(TypedDict, total=False):
     kill_switch_triggered: bool
     terminated: bool
 
+    # Error channel (B5.1-F3) — populated when a wrapped node raises;
+    # error_node consumes these to produce a failed commit_summary.
+    originating_node: str
+    error_type: str
+    error_message: str
+    traceback_str: str
+    error_traceback: str  # written by error_node
+    commit_summary: str  # written by commit_node on success, error_node on failure
+
     # Chat mode — message history accumulated across turns
     messages: Annotated[list[dict], operator.add]  # [{"role": "user"|"agent", "content": str}]
     user_input: str | None  # scratchpad for current turn input

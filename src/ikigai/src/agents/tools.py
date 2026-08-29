@@ -46,8 +46,10 @@ _TASKDOG_CLI = os.environ.get("TASKDOG_CLI", "taskdog.exe")
 # Helpers
 # ---------------------------------------------------------------------------
 
-_CHECKPOINT_DB = str(Path.home() / ".ikigai" / "ikigai_checkpoints.db")
-_VAULT_DIR = Path.home() / ".ikigai" / "vault"
+# Project-local defaults (avoid ~/.ikigai/ — Windows-lock risk per audit B5.0-F10).
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
+_CHECKPOINT_DB = str(_PROJECT_ROOT / "data" / "ikigai_checkpoints.db")
+_VAULT_DIR = _PROJECT_ROOT / "vault"
 
 
 def _get_checkpoint_path() -> Path:

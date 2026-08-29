@@ -22,9 +22,15 @@ from langgraph.types import Command, RunnableConfig
 
 # Import the existing custom graph runtime
 import sys
-VIBE_OPS_SRC = Path(__file__).parent / "vibe-ops" / "src"
+
+# B5.1-F1: this file lives at vibe-ops/src/langgraph_entry.py, so
+# Path(__file__).parent is already vibe-ops/src/. The OLD path appended
+# another "vibe-ops/src" (broken) and referenced "life-ops/ikigai/src"
+# which was renamed to "src/ikigai/src" during the 2026-08 reorg.
+PROJECT_ROOT = Path(__file__).parent.parent.parent  # = life/ (project root)
+VIBE_OPS_SRC = Path(__file__).parent  # = vibe-ops/src/
 PAE_SRC = VIBE_OPS_SRC / "agents"
-IKIGAI_SRC = Path(__file__).parent.parent.parent / "life-ops" / "ikigai" / "src"
+IKIGAI_SRC = PROJECT_ROOT / "src" / "ikigai" / "src"
 sys.path.insert(0, str(VIBE_OPS_SRC))
 sys.path.insert(0, str(PAE_SRC))
 sys.path.insert(0, str(IKIGAI_SRC))
@@ -212,11 +218,14 @@ def make_ikigai_graph(config: RunnableConfig | None = None) -> StateGraph:
 
     Delegates to the ikigai_maintainer graph factory, which provides:
     - observe → score_vectors → heuristics → balance → decompose
-      → plan → reflect → commit (8-node pipeline)
-    - SqliteSaver checkpointing
+      → plan → reflect → commit (8-node pipeline) + error_node terminal (B5.1-F3)
+    - SqliteSaver checkpointing (project-local; no ~/.ikigai/ lock risk)
     - Dual-channel (prospective + retrospective)
     - H1–H6 deterministic heuristics
+
+    B5.1-F1: import from `agents.ikigai_maintainer.graph` (post-reorg path)
+    instead of the stale `ikigai_maintainer.graph` import.
     """
-    from ikigai_maintainer.graph import make_ikigai_graph as _make
+    from agents.ikigai_maintainer.graph import make_ikigai_graph as _make
 
     return _make()
