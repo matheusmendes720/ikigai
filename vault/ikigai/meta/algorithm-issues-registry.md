@@ -1,5 +1,7 @@
 # Algorithm Issues Registry — IKIGAi / PAV — Data-First Phase
 
+> **⚠️ ADR-007 propagation note (2026-08-29):** The 31 items catalogued in this registry are **correctly deferred** (algorithm work waits), but the cited reason ("5 SONHO logs gate") was a **propagated misconception**. The actual gate is **system readiness** (backend + data + agent functional), per `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md`. Re-resolution of items in this registry requires the system-readiness gate to open, NOT a SONHO counter to reach 5/5.
+
 > **Status.** Living document. Created 2026-07-02 during the closing-2026 data-first
 > documentation pass. **No code changes** — only diagnostic findings, mapped to the canonical
 > TW (Trajectory/Planning) × EW (Execution/Logging) hierarchy. Each issue carries:

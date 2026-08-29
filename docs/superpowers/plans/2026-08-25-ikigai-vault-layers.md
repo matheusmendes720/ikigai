@@ -6,6 +6,8 @@
 > The 5+ SONHO log gate (ADR-007 data-first methodology) still applies — defer
 > any frontmatter-strict-migration until evidence accumulates.
 
+> **⚠️ ADR-007 propagation note (2026-08-29):** The "5+ SONHO log gate" reference above reflects a **propagated misconception**. ADR-007's "5+ manual logs per workflow" rule is **observation depth**, NOT a release gate. The actual gate for algorithm/IKIGAI work is **system readiness** (backend + data + agent functional). Canonical clarification: `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md`.
+
 # IKIGAi Vault — Phase 0 Migration Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

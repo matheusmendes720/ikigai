@@ -1,5 +1,7 @@
 # 12 — Padrão: Append-only Queue (Mesh Review Queue)
 
+> **⚠️ ADR-007 propagation note (2026-08-29):** References to "5 SONHO logs gate (ADR-007)" in this doc reflect a **propagated misconception**. ADR-007's "5+ manual logs per workflow" rule is **observation depth**, NOT a release gate. The actual gate for algorithm work is **system readiness** (backend + data + agent functional). Canonical clarification: `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md`. The deferral rule still applies here — this content is correctly deferred — but for the reason "system not ready," not "5 logs not reached."
+
 > **Categoria:** Layer 3 — Patterns Catalog (Padrão #12)
 > **Anchor canônico:** `src/mesh/queue.py` + `src/mesh/agent_consumer.py` + `src/mesh/agent_propagator.py`
 > **Publico:** Eu mesmo + agentes futuros

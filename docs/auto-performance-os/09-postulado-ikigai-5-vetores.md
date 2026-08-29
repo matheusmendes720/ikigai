@@ -1,5 +1,7 @@
 # 09 — Postulado: IKIGAi 5-Vetores
 
+> **⚠️ ADR-007 propagation note (2026-08-29):** The 5 IKIGAi vector definitions are **algorithm code**, deferred until **system readiness** (backend + data + agent layers functional). The deferral is NOT gated by "5 SONHO logs" (which is a propagated misconception of ADR-007). Canonical clarification: `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md`.
+
 > **Categoria:** §2 Primitivos de domínio
 > **Público:** Eu mesmo + agentes futuros
 > **Material de origem:** ADR-003 §3, vector_scores.py, IKIGAi meta-cérebro

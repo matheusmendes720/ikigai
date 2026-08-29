@@ -1,5 +1,7 @@
 # 34 — SUPERSEDED Trailer: PAV-OS Era Tokens (2026-08-26 pivot)
 
+> **Note (2026-08-29):** This doc is already flagged SUPERSEDED by the 2026-08-26 PAV-OS pivot. Any "5 SONHO logs gate (ADR-007)" references inside also reflect the propagated misconception (ADR-007's rule is observation depth, not a release gate). Canonical clarification: `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md`. No further action needed — doc is preserved append-only.
+
 > **Categoria:** TOKENS (Layer 5 — Tokens & components, posição #34 — SUPERSEDED trailer)
 > **Anchor canônico:** `src/operational/docs/design-system/DESIGN-SYSTEM.md` (PAV-era, 676 LOC, sendo marcado SUPERSEDED)
 > **Público:** Eu mesmo + agentes futuros

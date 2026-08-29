@@ -1,5 +1,7 @@
 # 43 — Journey: Policy Decision (PAV daily review + IKIGAI reflect)
 
+> **⚠️ ADR-007 propagation note (2026-08-29):** References to "5 SONHO logs gate (ADR-007)" in this doc reflect a **propagated misconception**. ADR-007's "5+ manual logs per workflow" rule is **observation depth**, NOT a release gate. The actual gate for algorithm work is **system readiness** (backend + data + agent functional). Canonical clarification: `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-system-readiness-not-sonho-2026-08-29.md`. The deferral rule still applies here — this content is correctly deferred — but for the reason "system not ready," not "5 logs not reached."
+
 > **Categoria:** JOURNEY CANVAS (Layer 6 — User journeys & screens, posição #43)
 > **Anchor canônico:** `src/operational/packages/core/src/operational/core/policy_engine.py:99-105` (Pattern #15 hysteresis FSM) + `vibe-ops/src/cybernetics/daily_loop.py:CyberneticDailyLoop` + `docs/design-system/23-fork-status-enum-mapping.md` + `docs/design-system/33-status-matrix-unified.md`
 > **Público:** Eu mesmo + agentes futuros
