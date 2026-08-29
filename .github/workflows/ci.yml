@@ -137,6 +137,24 @@ jobs:
         run: |
           python scripts/mcp_inspect.py
 
+  review-queue-worker-contract:
+    name: Review Queue Worker Contract (B4.3)
+    runs-on: ubuntu-latest
+    needs: quality-gates
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: Install pytest
+        run: pip install --quiet pytest
+
+      - name: Run review queue worker contract test
+        run: |
+          PYTHONPATH=. python -m pytest interfaces/cli/tests/test_review_queue_worker.py -v
+
   operational-e2e:
     name: Operational E2E Tests
     runs-on: ubuntu-latest
