@@ -1,5 +1,7 @@
 # Operational Design System (ODS) v2.0
 
+> **SUPERSEDED (2026-08-28):** Este doc PAV-era (676 LOC) foi marcado obsoleto após pivot arquitetural deep-agent canonical. O **canonical profundo-agent era design system vive em `docs/design-system/`** — especialmente `docs/design-system/30-tokens-deep-agent-era.md` (tokens canônicos), `docs/design-system/31-ueid-visual-representation.md` (UEID visual), `docs/design-system/34-superseded-pav-era-tokens.md` (migration map PAV → deep-agent). **Não deletar conteúdo** (invariante append-only — ver [[docs-superseded-trailer-2026-08-28]]).
+
 > **Status:** Spec proposta. Implementação em fase 2 deste loop.
 > **Re-brand completo:** "Time-Tasker / operational" → **"PAV-OS"** (Produtividade
 > Algorítmica Visual — Operating System).
