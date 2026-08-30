@@ -3,6 +3,7 @@
 Transport-only scaffold (Phase A1). Tools (sf_availability, sf_schedule,
 sf_replan) are added in A2-A4.
 """
+
 from __future__ import annotations
 
 import logging
@@ -16,7 +17,19 @@ logger = logging.getLogger(__name__)
 def _build_server() -> StdioServerBase:
     data_dir = os.environ.get("SOLVERFORGE_DATA_DIR", "data/solverforge_calendar")
     os.makedirs(data_dir, exist_ok=True)
-    return StdioServerBase(name="solverforge-calendar", version="0.1.0")
+    server = StdioServerBase(name="solverforge-calendar", version="0.1.0")
+    # A2: read tools
+    from solverforge_calendar.tools.sf_availability import handle as sf_avail
+    from solverforge_calendar.models import SfAvailabilityInput
+
+    server.register_tool(
+        name="sf_availability",
+        handler=sf_avail,
+        schema=SfAvailabilityInput.model_json_schema(),
+    )
+    # A3: write tools (sf_schedule) added in next phase
+    # A4: advanced tools (sf_replan) added in later phase
+    return server
 
 
 def main() -> None:

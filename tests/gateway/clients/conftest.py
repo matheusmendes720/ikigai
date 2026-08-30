@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -40,14 +41,17 @@ def server_process_factory(tmp_path: Path):
     """
     spawned: list[subprocess.Popen] = []
 
+    @contextmanager
     def _factory(module: str, *, env: dict[str, str] | None = None) -> Iterator[tuple]:
-        # Add repo root and src/ikigai to PYTHONPATH so the fork module resolves
+        # Add repo root, src, and src/ikigai to PYTHONPATH so the fork module resolves
         # AND so `from ikigai.gateway.stdio_server_base import ...` works.
         repo_root = Path(__file__).resolve().parents[3]
+        src_dir = repo_root / "src"
         ikigai_src = repo_root / "src" / "ikigai" / "src"
+        os = __import__("os")
         proc_env = {
-            **__import__("os").environ,
-            "PYTHONPATH": f"{repo_root}{__import__("os").sep}{ikigai_src}",
+            **os.environ,
+            "PYTHONPATH": os.pathsep.join([str(repo_root), str(src_dir), str(ikigai_src)]),
             **(env or {}),
         }
         proc = subprocess.Popen(
