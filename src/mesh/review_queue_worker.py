@@ -12,11 +12,11 @@ The worker operates in two modes:
 For cross-platform pidfile management, we reuse _is_pid_alive from
 interfaces.cli.mcp_gateway_probe.
 """
+
 from __future__ import annotations
 
 import os
 import signal
-import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -191,3 +191,86 @@ _SIGTERM_AVAILABLE = hasattr(signal, "SIGTERM")
 
 
 __all__ = ["RunResult", "run_once", "start_worker", "stop_worker", "worker_status"]
+
+
+# === CLI entrypoint (B2: enables `python -m src.mesh.review_queue_worker {start,stop,run-once}`) ===
+
+DEFAULT_PIDFILE = (
+    Path(__file__).resolve().parents[2] / "data" / "run" / "review_queue_worker.pid"
+)
+
+
+def _build_adapters() -> list[ForkAdapter]:
+    """Default adapter list for the worker (same as `interfaces/cli/server.py` registry)."""
+    from src.mesh.adapters import CliAdapter, TaskdogAdapter
+    from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
+
+    return [CliAdapter(), TaskdogAdapter(), SolverforgeCalendarAdapter()]
+
+
+def _cli() -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="python -m src.mesh.review_queue_worker",
+        description="Review queue worker CLI (B2): start daemon, stop daemon, or run a single pass.",
+    )
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    p_start = sub.add_parser(
+        "start", help="Write pidfile, loop run_once() until SIGTERM/KeyboardInterrupt."
+    )
+    p_start.add_argument(
+        "--pidfile",
+        type=Path,
+        default=DEFAULT_PIDFILE,
+        help=f"Pidfile path (default: {DEFAULT_PIDFILE})",
+    )
+    p_start.add_argument(
+        "--poll-interval",
+        type=float,
+        default=1.0,
+        help="Seconds between drain passes (default: 1.0)",
+    )
+
+    p_stop = sub.add_parser(
+        "stop", help="Read pidfile, kill PID, remove pidfile. Idempotent."
+    )
+    p_stop.add_argument(
+        "--pidfile",
+        type=Path,
+        default=DEFAULT_PIDFILE,
+        help=f"Pidfile path (default: {DEFAULT_PIDFILE})",
+    )
+
+    sub.add_parser(
+        "run-once", help="Single drain pass; exits with RunResult counts on stdout."
+    )
+
+    args = parser.parse_args()
+
+    if args.cmd == "start":
+        start_worker(
+            _build_adapters(),
+            pidfile_path=args.pidfile,
+            poll_interval=args.poll_interval,
+        )
+        return 0
+    if args.cmd == "stop":
+        killed = stop_worker(args.pidfile)
+        print("killed" if killed else "no-op")
+        return 0
+    if args.cmd == "run-once":
+        result = run_once(_build_adapters())
+        print(
+            f"consumed={result.consumed} approved={result.approved} "
+            f"rejected={result.rejected} clarified={result.clarified} partial={result.partial}"
+        )
+        return 0
+
+    parser.error(f"unknown subcommand: {args.cmd}")
+    return 2  # unreachable
+
+
+if __name__ == "__main__":
+    raise SystemExit(_cli())

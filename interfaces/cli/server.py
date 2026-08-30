@@ -19,9 +19,14 @@ Design notes:
     so users can probe the surface today. Real wiring lands in B4 (queue
     worker) and B5 (agent consumer/propagator).
 """
+
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+import os
+import subprocess
+import sys
+import time
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
@@ -29,16 +34,17 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from src.mesh.adapters import CliAdapter, TaskdogAdapter
 from src.mesh.adapters.cli import TASKS_JSONL
-from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter, UPI_DB
+from src.mesh.adapters.solverforge_calendar import UPI_DB
 from src.mesh.adapters.taskdog import TASKDOG_DB
 
 # === Registry ===
 
+
 @dataclass(frozen=True)
 class AdapterInfo:
     """Metadata for one fork adapter in the IKIGAI mesh topology."""
+
     name: str
     slice_type: str  # "jsonl" | "sqlite" | "spec-only"
     storage_path: Path | None  # None when slice_type is "spec-only"
@@ -93,7 +99,9 @@ def get_adapter(name: str) -> AdapterInfo:
 
 # Path to pidfile that the (future) gateway-start command will write.
 # For B3.4 we only READ this; gateway-start lands in a later phase.
-MCP_GATEWAY_PIDFILE = Path(__file__).parent.parent.parent / "data" / "run" / "mcp_gateway.pid"
+MCP_GATEWAY_PIDFILE = (
+    Path(__file__).parent.parent.parent / "data" / "run" / "mcp_gateway.pid"
+)
 REVIEW_QUEUE_WORKER_PIDFILE = (
     Path(__file__).parent.parent.parent / "data" / "run" / "review_queue_worker.pid"
 )
@@ -108,11 +116,11 @@ BACKEND_PROCESSES: dict[str, dict[str, Any]] = {
     },
     "agent_consumer": {
         "phase": "B5",
-        "description": "Validates TaskChange (PAE: APPROVE/REJECT/CLARIFY)",
+        "description": "Validates TaskChange (PAE: APPROVE/REJECT/CLARIFY) — runs inside review_queue_worker, not a separate process",
     },
     "agent_propagator": {
         "phase": "B5",
-        "description": "Emits PropagationEvents to all fork adapters",
+        "description": "Emits PropagationEvents to all fork adapters — runs inside review_queue_worker, not a separate process",
     },
     "mcp_gateway": {
         "phase": "B3",
@@ -120,6 +128,141 @@ BACKEND_PROCESSES: dict[str, dict[str, Any]] = {
         "pidfile_path": MCP_GATEWAY_PIDFILE,
     },
 }
+
+# === B2: subprocess management ===
+# Per-process subprocess command (argv list). agent_consumer + agent_propagator
+# are intentionally NOT here — they are functions called by review_queue_worker
+# and have no standalone entrypoint.
+#
+# PYTHONPATH=. is set so `python -m src.<...>` resolves from repo root regardless
+# of the cwd from which `life server start` was invoked.
+START_COMMANDS: dict[str, list[str]] = {
+    "mcp_gateway": [sys.executable, "-m", "src.ikigai.src.mcp_server"],
+    "review_queue_worker": [
+        sys.executable,
+        "-m",
+        "src.mesh.review_queue_worker",
+        "start",
+    ],
+}
+
+LOG_DIR = Path(__file__).parent.parent.parent / "data" / "run" / "logs"
+
+
+def _pid_alive(pid: int) -> bool:
+    """Cross-platform liveness check. Delegates to gateway_probe to keep one impl."""
+    from interfaces.cli.mcp_gateway_probe import _is_pid_alive
+
+    return _is_pid_alive(pid)
+
+
+def _read_pidfile(pidfile_path: Path) -> int | None:
+    """Read PID from pidfile. Returns None if missing or invalid."""
+    if not pidfile_path.exists():
+        return None
+    try:
+        return int(pidfile_path.read_text().strip())
+    except (ValueError, OSError):
+        return None
+
+
+def _start_process(name: str, cmd: list[str], pidfile_path: Path) -> tuple[bool, str]:
+    """Spawn cmd as detached subprocess, write pidfile, return (ok, message).
+
+    Refuses to start if pidfile exists AND PID is alive (already-running).
+    Cleans up stale pidfile (PID dead) before spawning.
+
+    Returns (False, "already running with PID=N") when refused.
+    Returns (False, "process exited within Ns after spawn") when spawn dies fast.
+    Returns (True, "started with PID=N") on success.
+    """
+    pidfile_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Check for already-running
+    existing = _read_pidfile(pidfile_path)
+    if existing is not None and _pid_alive(existing):
+        return False, f"already running with PID={existing} (pidfile={pidfile_path})"
+
+    # Stale pidfile from a previous crash: remove before spawning
+    if pidfile_path.exists():
+        pidfile_path.unlink(missing_ok=True)
+
+    # Log files for stdout/stderr (operator can tail for debugging)
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    stdout_log = LOG_DIR / f"{name}.stdout.log"
+    stderr_log = LOG_DIR / f"{name}.stderr.log"
+
+    env = os.environ.copy()
+    # Ensure subprocess can resolve `src.<...>` absolute imports
+    env.setdefault("PYTHONPATH", str(Path(__file__).parent.parent.parent))
+
+    proc = subprocess.Popen(  # noqa: S603 — controlled command list
+        cmd,
+        env=env,
+        stdout=stdout_log.open("ab"),
+        stderr=stderr_log.open("ab"),
+        stdin=subprocess.DEVNULL,
+        # New process group on POSIX so we can SIGTERM the whole tree later.
+        # On Windows, CREATE_NEW_PROCESS_GROUP = 0x00000200.
+        creationflags=0x00000200 if os.name == "nt" else 0,
+        start_new_session=os.name != "nt",
+    )
+
+    pidfile_path.write_text(str(proc.pid))
+
+    # Brief liveness probe — give the subprocess ~500ms to crash on import errors
+    time.sleep(0.5)
+    if proc.poll() is not None:
+        # Died immediately
+        pidfile_path.unlink(missing_ok=True)
+        return (
+            False,
+            f"process exited within 0.5s of spawn (exit={proc.returncode}; see {stderr_log})",
+        )
+
+    if not _pid_alive(proc.pid):
+        pidfile_path.unlink(missing_ok=True)
+        return False, f"process PID={proc.pid} not alive after spawn (see {stderr_log})"
+
+    return True, f"started with PID={proc.pid} (log={stdout_log})"
+
+
+def _stop_process(name: str, pidfile_path: Path) -> tuple[bool, str]:
+    """Read pidfile, kill PID (cross-platform), remove pidfile. Idempotent.
+
+    Returns (killed, message):
+      killed=True  → process was alive, we killed it
+      killed=False → no-op (pidfile missing OR PID already dead)
+    """
+    pid = _read_pidfile(pidfile_path)
+    if pid is None:
+        return False, "no pidfile (nothing to stop)"
+
+    if not _pid_alive(pid):
+        # Stale pidfile — clean up and report no-op
+        pidfile_path.unlink(missing_ok=True)
+        return False, f"pidfile stale (PID={pid} not alive); cleaned up"
+
+    # Cross-platform kill
+    try:
+        if os.name == "nt":
+            # Windows: SIGTERM not always available; use TerminateProcess via taskkill
+            # /T = kill process tree, /F = force. Force is the only reliable way
+            # when the subprocess uses CREATE_NEW_PROCESS_GROUP.
+            subprocess.run(  # noqa: S603 — controlled invocation
+                ["taskkill", "/PID", str(pid), "/T", "/F"],
+                check=False,
+                capture_output=True,
+            )
+        else:
+            import signal
+
+            os.kill(pid, signal.SIGTERM)
+    except OSError as exc:
+        return False, f"kill failed for PID={pid}: {exc}"
+
+    pidfile_path.unlink(missing_ok=True)
+    return True, f"killed PID={pid}"
 
 
 def backend_status() -> list[dict[str, Any]]:
@@ -166,7 +309,9 @@ console = Console()
 
 @server_app.command("ls")
 def ls(
-    json_output: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
+    json_output: bool = typer.Option(
+        False, "--json", help="Machine-readable JSON output"
+    ),
 ) -> None:
     """List all registered fork adapters."""
     adapters = list_adapters()
@@ -201,8 +346,12 @@ def ls(
 
 @server_app.command("inspect")
 def inspect(
-    name: str = typer.Argument(..., help="Adapter name (cli, taskdog, solverforge_calendar, a2ui)"),
-    json_output: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
+    name: str = typer.Argument(
+        ..., help="Adapter name (cli, taskdog, solverforge_calendar, a2ui)"
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Machine-readable JSON output"
+    ),
 ) -> None:
     """Show detailed view of one adapter."""
     try:
@@ -227,12 +376,16 @@ def inspect(
         console.print(f"[bold]Exists:[/bold] {'✅ yes' if info.exists() else '❌ no'}")
     else:
         console.print(f"[bold]Spec ref:[/bold] {info.spec_ref}")
-    console.print(f"[dim]Available fields: see {info.name} adapter's SUPPORTED_FIELDS[/dim]")
+    console.print(
+        f"[dim]Available fields: see {info.name} adapter's SUPPORTED_FIELDS[/dim]"
+    )
 
 
 @server_app.command("status")
 def status(
-    json_output: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
+    json_output: bool = typer.Option(
+        False, "--json", help="Machine-readable JSON output"
+    ),
 ) -> None:
     """Show backend process status (B4-B5 deliverable; v1 reports all stopped)."""
     snapshot = backend_status()
@@ -252,41 +405,70 @@ def status(
         table.add_row(row["name"], row["phase"], running_mark, row["description"])
 
     console.print(table)
-    console.print("\n[dim]All processes report running=false (B2 stub). Real wiring in B4-B5.[/dim]")
+    console.print(
+        "\n[dim]All processes report running=false (B2 stub). Real wiring in B4-B5.[/dim]"
+    )
 
 
 @server_app.command("start")
 def start(
-    name: str = typer.Argument(..., help="Backend process name (review_queue_worker, agent_consumer, agent_propagator, mcp_gateway)"),
+    name: str = typer.Argument(
+        ..., help="Backend process name (review_queue_worker, mcp_gateway)"
+    ),
 ) -> None:
-    """Start a backend process. STUB — wires up in B4 (queue worker) and B5 (agent)."""
+    """Start a backend process as a detached subprocess.
+
+    Real wiring (B2). agent_consumer + agent_propagator are NOT separate
+    processes — they run inside review_queue_worker. Use --reason to inspect.
+    """
     if name not in BACKEND_PROCESSES:
         available = ", ".join(sorted(BACKEND_PROCESSES))
         console.print(f"[red]Unknown process {name!r}. Available: {available}[/red]")
         raise typer.Exit(1)
 
-    phase = BACKEND_PROCESSES[name]["phase"]
-    console.print(
-        f"[yellow]STUB:[/yellow] start {name} not implemented yet. "
-        f"Delivers in phase {phase} per docs/superpowers/plans/2026-08-28-backend-phase-reordering.md."
-    )
+    # agent_consumer / agent_propagator are functions inside the worker, not processes
+    if name not in START_COMMANDS:
+        console.print(
+            f"[yellow]Not a standalone process:[/yellow] {name} runs inside review_queue_worker. "
+            f"Start that instead with: [cyan]life server start review_queue_worker[/cyan]"
+        )
+        raise typer.Exit(0)
+
+    pidfile_path = BACKEND_PROCESSES[name]["pidfile_path"]
+    cmd = START_COMMANDS[name]
+
+    ok, msg = _start_process(name, cmd, pidfile_path)
+    if ok:
+        console.print(f"[green]✓[/green] {name}: {msg}")
+    else:
+        console.print(f"[red]✗[/red] {name}: {msg}")
+        raise typer.Exit(1)
 
 
 @server_app.command("stop")
 def stop(
     name: str = typer.Argument(..., help="Backend process name"),
 ) -> None:
-    """Stop a backend process. STUB — wires up in B4 (queue worker) and B5 (agent)."""
+    """Stop a backend process (kill PID from pidfile, remove pidfile). Idempotent."""
     if name not in BACKEND_PROCESSES:
         available = ", ".join(sorted(BACKEND_PROCESSES))
         console.print(f"[red]Unknown process {name!r}. Available: {available}[/red]")
         raise typer.Exit(1)
 
-    phase = BACKEND_PROCESSES[name]["phase"]
-    console.print(
-        f"[yellow]STUB:[/yellow] stop {name} not implemented yet. "
-        f"Delivers in phase {phase}."
-    )
+    # agent_consumer / agent_propagator have no pidfile — they're functions, not processes
+    pidfile_path = BACKEND_PROCESSES[name].get("pidfile_path")
+    if pidfile_path is None:
+        console.print(
+            f"[yellow]Not a standalone process:[/yellow] {name} runs inside review_queue_worker. "
+            f"Stop that instead with: [cyan]life server stop review_queue_worker[/cyan]"
+        )
+        raise typer.Exit(0)
+
+    killed, msg = _stop_process(name, pidfile_path)
+    if killed:
+        console.print(f"[green]✓[/green] {name}: {msg}")
+    else:
+        console.print(f"[dim]{name}:[/dim] {msg}")
 
 
 __all__ = [
