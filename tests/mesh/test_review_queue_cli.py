@@ -213,3 +213,99 @@ def test_list_subcommand_skips_malformed_files(
         if ln.strip()
     ]
     assert [p["event_id"] for p in parsed] == ["evt_good"]
+
+
+# ─────────────────── Human-readable table mode ───────────────────
+
+
+def test_human_flag_prints_table_not_json(
+    queue_with_events: list[TaskChange],
+    queue_dir: Path,
+    capsys: pytest.CaptureFixture,
+) -> None:
+    """`--human` forces aligned ASCII table even when capsys (non-TTY)."""
+    rc = main(["list", "--queue-dir", str(queue_dir), "--human"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    lines = [ln for ln in out.strip().splitlines() if ln.strip()]
+    # First line is the uppercase header row
+    assert "STATUS" in lines[0] and "EVENT_ID" in lines[0] and "ACTION" in lines[0]
+    # Body lines are NOT valid JSON
+    for ln in lines[2:]:
+        assert not ln.lstrip().startswith("{")
+
+
+def test_json_flag_in_pipe_friendly_format(
+    queue_with_events: list[TaskChange],
+    queue_dir: Path,
+    capsys: pytest.CaptureFixture,
+) -> None:
+    """`--json` forces JSON-per-line even when stdout would be a TTY."""
+    rc = main(["list", "--queue-dir", str(queue_dir), "--json"])
+    assert rc == 0
+    lines = [ln for ln in capsys.readouterr().out.strip().splitlines() if ln.strip()]
+    parsed = [json.loads(ln) for ln in lines]
+    assert len(parsed) == 5
+    assert {p["event_id"] for p in parsed} == {"evt_001", "evt_002", "evt_003", "evt_004", "evt_005"}
+
+
+def test_default_mode_with_capsys_is_json(
+    queue_with_events: list[TaskChange],
+    queue_dir: Path,
+    capsys: pytest.CaptureFixture,
+) -> None:
+    """Without --json/--human, capsys is non-TTY → JSON mode preserved."""
+    rc = main(["list", "--queue-dir", str(queue_dir)])
+    assert rc == 0
+    lines = [ln for ln in capsys.readouterr().out.strip().splitlines() if ln.strip()]
+    parsed = [json.loads(ln) for ln in lines]
+    assert len(parsed) == 5
+
+
+def test_human_status_shows_aligned_columns(
+    queue_with_events: list[TaskChange],
+    queue_dir: Path,
+    capsys: pytest.CaptureFixture,
+) -> None:
+    """`status --human` renders status rows as an aligned table."""
+    rc = main(["status", "--queue-dir", str(queue_dir), "--human"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "STATUS" in out and "COUNT" in out
+    # Total appears in the header line
+    assert "total: 5" in out
+
+
+def test_human_status_handles_missing_dir(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """`status --human` on missing dir prints queue_dir header + aligned zero rows."""
+    rc = main(["status", "--queue-dir", str(tmp_path / "never_existed"), "--human"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "STATUS" in out and "COUNT" in out
+    # Each status row: '<status-padded>  0    ' — verify by line starts + 0 presence.
+    for status in ("pending", "approved", "rejected", "propagated", "partial_propagation", "clarified"):
+        line = next(ln for ln in out.splitlines() if ln.lstrip().startswith(status))
+        assert "0" in line
+
+
+def test_human_show_prints_summary_and_fields(
+    queue_with_events: list[TaskChange],
+    queue_dir: Path,
+    capsys: pytest.CaptureFixture,
+) -> None:
+    """`show <id> --human` prints key=value summary block + indented JSON fields."""
+    rc = main(["show", "--queue-dir", str(queue_dir), "evt_001", "--human"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "event_id:   evt_001" in out
+    assert "action:     create" in out
+    assert "status:     pending" in out
+    assert "fields:" in out
+
+
+def test_mutually_exclusive_json_and_human() -> None:
+    """argparse rejects --json + --human together (mutually_exclusive_group)."""
+    with pytest.raises(SystemExit):
+        main(["list", "--json", "--human"])
