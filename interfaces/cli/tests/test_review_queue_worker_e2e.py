@@ -345,3 +345,102 @@ def test_end_to_end_with_solverforge_calendar_adapter_writes_real_upi(
         assert _read_status("e2e-upi-001") == "propagated"
     finally:
         _cleanup("e2e-upi-001")
+
+
+# === Vault-propagation tests ===
+
+from types import SimpleNamespace
+from src.contracts.task_change import TaskChange, TaskAction
+
+
+def _make_fake_validation() -> Any:
+    """Minimal ValidationResult duck-type for propagate()."""
+    return SimpleNamespace(
+        decision=SimpleNamespace(value="approve"),
+        approved_fields=None,
+    )
+
+
+def test_propagator_vault_target_invokes_vault_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When event.source_fork=='vault', propagate() calls vault_write."""
+    from src.mesh import agent_propagator
+
+    # Patch the module that the propagator's lazy import resolves to
+    import src.ikigai.src.ikigai.vault.vault_write as vw_direct
+    from src.ikigai.src.ikigai.vault import vault_write as vw_pkg
+
+    captured: list[dict] = []
+
+    def _stub(vault_root, vault_path, frontmatter_fields, body):
+        captured.append({
+            "vault_root": str(vault_root),
+            "vault_path": vault_path,
+            "frontmatter": frontmatter_fields,
+            "body": body,
+        })
+        return {"written": True, "vault_path": vault_path, "sha256": "deadbeef"}
+
+    monkeypatch.setattr(vw_direct, "vault_write", _stub)
+    monkeypatch.setattr(vw_pkg, "vault_write", _stub)
+
+    event = TaskChange(
+        event_id="vault-target-001",
+        ueid="tsk:abc:a1b2:c3d4",  # 4-part UEID
+        action=TaskAction.DONE,
+        fields={
+            "status": "done",
+            "title": "Test Vault Task",
+            "vault_path": "test-vault-task.md",
+        },
+        source_fork="vault",
+        timestamp=datetime.now(),
+    )
+
+    result = agent_propagator.propagate(
+        event=event,
+        validation=_make_fake_validation(),
+        adapters=[],
+    )
+
+    assert len(captured) == 1, f"vault_write should be called once, got {len(captured)}"
+    assert captured[0]["vault_path"] == "test-vault-task.md"
+    assert captured[0]["frontmatter"]["ueid"] == "tsk:abc:a1b2:c3d4"
+    assert captured[0]["frontmatter"]["status"] == "done"
+
+
+def test_propagator_non_vault_target_does_not_touch_vault(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """source_fork=='taskdog' means propagate() MUST NOT call vault_write."""
+    from src.mesh import agent_propagator
+
+    import src.ikigai.src.ikigai.vault.vault_write as vw_direct
+    from src.ikigai.src.ikigai.vault import vault_write as vw_pkg
+
+    called = {"n": 0}
+
+    def _stub(*a, **kw):
+        called["n"] += 1
+        return {"written": True, "vault_path": kw.get("vault_path", ""), "sha256": "x"}
+
+    monkeypatch.setattr(vw_direct, "vault_write", _stub)
+    monkeypatch.setattr(vw_pkg, "vault_write", _stub)
+
+    event = TaskChange(
+        event_id="non-vault-001",
+        ueid="tsk:taskdog:a1b2:c3d4",  # 4-part UEID, hex-only
+        action=TaskAction.UPDATE,
+        fields={"status": "in_progress", "title": "Taskdog Task"},
+        source_fork="taskdog",
+        timestamp=datetime.now(),
+    )
+
+    result = agent_propagator.propagate(
+        event=event,
+        validation=_make_fake_validation(),
+        adapters=[],
+    )
+
+    assert called["n"] == 0, f"vault_write should NOT be called for taskdog, got {called['n']}"
