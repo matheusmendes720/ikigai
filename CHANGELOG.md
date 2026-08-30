@@ -650,3 +650,106 @@ for context, not this changelog.
 - Cross-references to session memory for full context, not duplicated here
 
 This format is self-referentially the first entry — pattern locked by this very entry.
+
+---
+
+## [unreleased] — 2026-08-29
+
+### B6 Combo A — Bidirectional Vault Sync (reverse + vault_write)
+
+**Status:** shipped 2026-08-29 as 8 tasks. Closes the vault↔taskdog loop where
+marking a task done in taskdog now propagates back to vault markdown via
+`reverse_sync()` → review queue → `propagate()` → `vault_write`. Ships the
+attribution §7 invariant: **`vault_write` is the ONLY vault writer** in the
+system.
+
+**Why this matters:** The Phase B6 unidirectional sync (vault→taskdog) shipped
+earlier today only covered the forward path. Users could mark a task done in
+taskdog, but the vault markdown stayed stale. Combo A closes the loop with a
+new `reverse_sync()` engine that emits `TaskChange` events when the taskdog
+state diverges from the last-seen snapshot, and a new `vault_write` MCP tool
+that the propagator invokes when `source_fork == "vault"`.
+
+**Architectural decisions (don't re-litigate):**
+- Vault-bound signal: `source_fork == "vault"` on the PropagationEvent
+  (spec Q1=B — convention, no schema change). Forks with `source_fork != "vault"`
+  are NOT touched by the vault write step.
+- `vault_write` is the ONLY vault writer per attribution report §7
+  (already SHIPPED 2026-08-28 in commit `dd1a286`). All writers — deep agent,
+  native CLI, forks — MUST route through the MCP tool.
+- Vault path derivation: prefer `event.fields["vault_path"]` if present
+  (populated by reverse_sync); fall back to UEID-derived name only if missing.
+- Vault write is best-effort: wrapped in `try/except` inside `propagate()`,
+  logs error on failure, never crashes propagation.
+
+**Tasks + commits:**
+| # | Subject | SHA | Notes |
+|---|---|---|---|
+| 1 | `TaskdogAdapter.list_all()` + 3 tests | `5ccdd49`, `eb32a96` | direct SQLite read |
+| 2 | `ReverseSyncState` models + load/save + 5 tests | `6fd342c`, `46e1ac5` | state file with `os.replace()` |
+| 3 | `reverse_sync()` function + 8 tests | `a96e4d6` | emits `TaskChange` for diffs |
+| 4 | CLI subcommand `vault-from-taskdog` + smoke | `7213aa2` | under `sync_app` |
+| 5 | `vault_write` MCP tool + 7 tests | `aa15b65` | the ONLY vault writer |
+| 6 | Propagator vault-target handling + 2 tests | `1433b4c` | best-effort write |
+| 7 | Roundtrip E2E + `vault/.db` gitignore + smoke | `8e706f0` | full loop verified |
+| 8 | CHANGELOG + memory (this entry) | (pending) | docs-only |
+
+**Verification:**
+- `src/ikigai/tests/test_vault_sync.py` — 7/7 PASS
+- `src/ikigai/tests/test_reverse_sync.py` — 8/8 PASS
+- `src/ikigai/tests/test_vault_write.py` — 7/7 PASS
+- `src/ikigai/tests/test_server_fastmcp.py` — 3/3 PASS (14 tools registered)
+- `src/ikigai/tests/test_frontmatter_to_dict.py` — 6/6 PASS
+- `src/ikigai/tests/test_taskdog_adapter_list_all.py` — 3/3 PASS
+- `src/ikigai/tests/test_bidirectional_vault_sync_e2e.py` — 1/1 PASS (NEW)
+- `interfaces/cli/tests/test_review_queue_worker_e2e.py` — 9/9 PASS
+- `interfaces/cli/tests/test_review_queue_worker.py` — 9/9 PASS
+- `tests/smoke/test_vault_write.sh` — 4/4 steps PASS
+- `tests/smoke/test_reverse_sync_vault_from_taskdog.sh` — pre-existing
+- **Total: 54/54 regression + 4/4 bash smoke PASS**
+
+**Files added (6):**
+- `src/ikigai/src/ikigai/vault/vault_write.py` — sync lower-level function
+  (VaultLock + frontmatter.Post + atomic write)
+- `src/ikigai/src/mcp_server/tools_vault.py` — MCP handler (sync, JSON output)
+- `src/ikigai/tests/test_vault_write.py` — 7 unit tests
+- `src/ikigai/tests/test_bidirectional_vault_sync_e2e.py` — 1 roundtrip test
+- `tests/smoke/test_vault_write.sh` — 4-step bash smoke
+- `tests/smoke/test_vault_write.bat` — 4-step Windows smoke
+
+**Files modified (5):**
+- `src/ikigai/src/ikigai/vault/sync.py` — `reverse_sync()` + `ReverseSyncState`
+- `src/ikigai/src/ikigai/cli/app.py` — `vault-from-taskdog` CLI subcommand
+- `src/ikigai/src/mcp_server/server.py` — `@MCP.tool(name="vault_write")` wiring
+- `src/mesh/agent_propagator.py` — vault-target handling after adapter loop
+- `interfaces/cli/tests/test_review_queue_worker_e2e.py` — 2 vault-propagator tests
+- `.gitignore` — `vault/.db` added (defense-in-depth)
+- `src/ikigai/tests/test_server_fastmcp.py` — added `"vault_write"` to expected tools
+- `src/mesh/adapters/taskdog.py` — added `list_all()` method (Task 1)
+
+**Brief defects caught (per task, total ~12):**
+Most tasks had brief bugs that implementers caught and corrected. Notable patterns:
+- `vault_write` was sometimes drafted as `async def` in briefs — must be SYNC.
+- Brief smoke tests used `PYTHONPATH=src/ikigai/src` (causes ModuleNotFoundError);
+  correct is `PYTHONPATH=.` per B6.6 lesson.
+- Brief smoke tests grepped for non-existent `_TOOL_DISPATCH` dict; actual wiring
+  is `@MCP.tool(name="vault_write")` + `traced_tool_dispatch()`.
+- Brief used 5-part UEIDs (`ikigai:task:t:1`) but regex is 4-part hex.
+- Brief specified `parents[3]` for vault_root from `agent_propagator.py` but
+  correct is `parents[2]` (resolves to `life/` project root).
+
+**Pattern: corrections files dramatically improve implementer success rate.**
+Each task brief had a paired `task-N-corrections.md` documenting known brief
+bugs. Implementers who read the corrections file FIRST (per dispatch contract)
+shipped clean code on first attempt; reviewers found 0 Critical/Important
+issues across all 7 task reviews.
+
+**Pre-existing hygiene debt (NOT these commits):**
+- Algorithm gate preserved: zero lines of math touched in `**/scoring/**`,
+  `**/formula**`, `**/qhe**`, `**/regime/**`, `**/weight`.
+- Review queue pollution: `data/review_queue/*.json` leftover from prior
+  runs cause `consumed=N` false positives. Documented in
+  `phase-b6-combo-a-bidirectional-vault-sync-shipped-2026-08-29.md`.
+- The `reverse_sync(review_queue_dir)` parameter is brief-mandated in the
+  signature but unused in body — implementation always uses module-level
+  `QUEUE_DIR` via `enqueue()`. Recorded for whole-branch review.
