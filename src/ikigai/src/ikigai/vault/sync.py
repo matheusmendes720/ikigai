@@ -20,6 +20,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+import src.mesh.queue
 from pydantic import BaseModel, Field
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -353,6 +354,116 @@ def run_sync(
             tasks=new_tasks,
         )
         save_state(state_path, new_state)
+
+    result.duration_s = time.monotonic() - t0
+    return result
+
+
+def reverse_sync(
+    state_path: Path,
+    adapter: Any,
+    review_queue_dir: Path | None = None,
+    source_fork: str = "taskdog",
+) -> ReverseSyncResult:
+    """Enumerate adapter (taskdog) state, diff vs snapshot, emit TaskChange events.
+
+    Pipeline:
+      1. Load reverse snapshot
+      2. list_all() from adapter
+      3. For each row, classify (NEW/CHANGED/CHANGED_TO_DONE/UNCHANGED)
+      4. Emit TaskChange to data/review_queue/<event_id>.json for non-UNCHANGED
+      5. Update snapshot atomically per task (or at end)
+
+    Orphan handling (v1): NEW UEIDs not in snapshot are SKIPPED (vault_path
+    unknown). v1.3 will add vault lookup.
+    """
+    import uuid
+
+    from src.contracts.task_change import TaskAction, TaskChange
+
+    t0 = time.monotonic()
+    result = ReverseSyncResult()
+
+    # 1. Load state
+    state = load_reverse_state(state_path)
+
+    # 2. Enumerate adapter
+    try:
+        rows = adapter.list_all()
+    except Exception as exc:
+        result.errors.append({"error": f"adapter_list_failed: {exc}"})
+        result.duration_s = time.monotonic() - t0
+        return result
+
+    result.scanned = len(rows)
+
+    # 3-4. Classify + emit
+    new_tasks: dict[str, ReverseSyncTaskEntry] = dict(state.tasks)
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    for row in rows:
+        ueid = row.get("ueid")
+        if not ueid:
+            result.skipped += 1
+            continue
+
+        status = row.get("status", "planned")
+        title = row.get("name", "")  # taskdog uses 'name' not 'title'
+
+        entry = state.tasks.get(ueid)
+
+        # Orphan: new UEID not in snapshot -> skip (v1)
+        if entry is None:
+            result.skipped += 1
+            continue
+
+        # Unchanged
+        if entry.last_seen_status == status and entry.last_seen_title == title:
+            result.skipped += 1
+            continue
+
+        # Classify action
+        if status == "done" and entry.last_seen_status != "done":
+            action = TaskAction.DONE
+        else:
+            action = TaskAction.UPDATE
+
+        # Emit
+        try:
+            event = TaskChange(
+                event_id=str(uuid.uuid4()),
+                ueid=ueid,
+                action=action,
+                fields={
+                    "status": status,
+                    "title": title,
+                    "vault_path": entry.vault_path,
+                },
+                source_fork=source_fork,
+                timestamp=datetime.now(timezone.utc),
+            )
+            # Use dynamic import to allow test patching
+            src.mesh.queue.enqueue(event)
+            result.emitted += 1
+        except Exception as exc:
+            result.errors.append({"ueid": ueid, "error": str(exc)})
+            continue
+
+        # Update snapshot entry
+        new_tasks[ueid] = ReverseSyncTaskEntry(
+            last_seen_status=status,
+            last_seen_title=title,
+            taskdog_id=entry.taskdog_id,
+            vault_path=entry.vault_path,
+        )
+
+    # 5. Save updated snapshot
+    new_state = ReverseSyncState(
+        version=1,
+        last_sync_at=now_iso,
+        tasks=new_tasks,
+    )
+    save_reverse_state(state_path, new_state)
 
     result.duration_s = time.monotonic() - t0
     return result
