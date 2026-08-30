@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from mcp_server.server import MCP, main, TOOLS
+from mcp_server.server import MCP, TOOLS, main
 
 
 def test_fastmcp_instance_exists() -> None:
@@ -29,6 +29,8 @@ def test_all_ten_tools_registered() -> None:
         "ikigai_health",
         # Phase B6.7 additions
         "vault_write",
+        # Phase B7.1 additions
+        "vault_read",
     }
     registered = {tool.name for tool in TOOLS}
     assert registered == expected_tools, (
