@@ -313,3 +313,20 @@ main() {
 }
 
 main "$@"
+
+# ─────────────────────────────────────────────────────────────────────
+# SUPERSEDED 2026-08-30 — see docs/superpowers/specs/2026-08-30-fork-connection-architecture.md
+#
+# This shell script predates the StdioAdapter refactor (Task 14, 2026-08-30).
+# It references:
+#   - $SOLVERFORGE_ROOT/target/release/solverforge-calendar-cli (Rust binary — DOES NOT EXIST)
+#   - $TUIBOARD_ROOT/bin/tuiboard-mcp.ts (TypeScript/Bun — DOES NOT EXIST in this repo)
+#   - WSL2-specific paths (/mnt/c/...) — bit-rotted
+#
+# Modern architecture uses Python factory adapters at:
+#   src/ikigai/src/ikigai/gateway/clients/{solverforge_calendar,tuiboard}.py
+# which spawn `python -m <module>` (fork servers live in src/).
+#
+# Replacement: `python -m ikigai.gateway.start_gateway` (cross-platform).
+# This shell file is preserved per append-only invariant. Do not delete.
+# ─────────────────────────────────────────────────────────────────────
