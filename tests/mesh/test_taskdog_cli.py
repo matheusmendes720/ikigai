@@ -389,3 +389,177 @@ def test_show_with_db_path_override(
     assert rc == 0
     parsed = json.loads(capsys.readouterr().out)
     assert parsed["name"] == "Lookup me"
+
+
+# ──────────────────── status subcommand ────────────────────
+
+
+def test_status_prints_total_and_counts(
+    db_with_three_tasks: list[PropagationEvent],
+    capsys: pytest.CaptureFixture,
+) -> None:
+    """Default (capsys = non-TTY) → JSON-style key=value lines.
+
+    Verifies the full set of known statuses + priorities is printed even
+    when the count is zero, so operators can grep for any status name.
+    """
+    rc = main(["status"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "db_path:" in out
+    assert "total: 3" in out
+    assert "planned: 1" in out
+    assert "in_progress: 1" in out
+    assert "done: 1" in out
+    assert "cancelled: 0" in out
+    assert "priority 1: 1" in out
+    assert "priority 2: 1" in out
+    assert "priority 3: 1" in out
+
+
+def test_status_empty_db_shows_zeros(
+    taskdog_db: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """Empty DB → total: 0 + zeros for every known status + priority."""
+    rc = main(["status"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "total: 0" in out
+    assert "planned: 0" in out
+    assert "in_progress: 0" in out
+    assert "done: 0" in out
+    assert "cancelled: 0" in out
+    assert "priority 1: 0" in out
+    assert "priority 3: 0" in out
+
+
+def test_status_human_renders_two_aligned_tables(
+    db_with_three_tasks: list[PropagationEvent],
+    capsys: pytest.CaptureFixture,
+) -> None:
+    """Human mode emits header + table for status, then header + table for priority."""
+    rc = main(["status", "--human"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    # First table: STATUS + COUNT
+    assert "STATUS" in out
+    assert "COUNT" in out
+    # Second table: PRIORITY + COUNT
+    assert "PRIORITY" in out
+    # Header line carries the total
+    assert "total: 3" in out
+    # All four known statuses appear in the body
+    for status in ("planned", "in_progress", "done", "cancelled"):
+        assert status in out
+    # All three priorities appear
+    assert "1" in out
+    assert "2" in out
+    assert "3" in out
+
+
+def test_status_human_empty_db_renders_all_zero_rows(
+    taskdog_db: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """Human mode on empty DB: header + separator + four zero rows for each table."""
+    rc = main(["status", "--human"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    out_lines = [ln for ln in out.splitlines() if ln.strip()]
+    # Two header rows (status table, then priority table)
+    header_rows = [ln for ln in out_lines if "STATUS" in ln or "PRIORITY" in ln]
+    assert len(header_rows) == 2
+    # Each table still has its separator line under the header (rows list is
+    # always 4 entries because _KNOWN_STATUSES / _KNOWN_PRIORITIES are fixed).
+    separators = [ln for ln in out_lines if set(ln) <= {"-", " "} and "-" in ln]
+    assert len(separators) == 2
+    # Every known status + priority appears as a row, all with count 0.
+    assert "cancelled" in out
+    assert "0" in out
+
+
+def test_status_ignores_unknown_statuses(
+    db_with_three_tasks: list[PropagationEvent],
+    taskdog_db: Path,
+    capsys: pytest.CaptureFixture,
+) -> None:
+    """Rows with statuses outside the known set are not counted (but don't crash)."""
+    # Inject a row with an unknown status directly via raw SQL
+    import sqlite3
+
+    conn = sqlite3.connect(taskdog_db)
+    conn.execute(
+        "INSERT INTO tasks (ueid, name, status, priority, deadline, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (
+            "tsk:weird:00000000-0000-0000-0000-000000000000:0000000000000000",
+            "weird status",
+            "frozen",  # not in _KNOWN_STATUSES
+            2,
+            None,
+            "2026-08-30T14:30:00+00:00",
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+    rc = main(["status"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    # Total reflects the extra row
+    assert "total: 4" in out
+    # Known counts unchanged (unknown status not added to any bucket)
+    assert "planned: 1" in out
+    assert "in_progress: 1" in out
+    assert "done: 1" in out
+
+
+def test_status_with_db_path_override(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """`status --db-path` reads from the overridden DB."""
+    other = tmp_path / "other.db"
+    conn = __import__("sqlite3").connect(other)
+    conn.executescript("""
+        CREATE TABLE tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ueid TEXT UNIQUE,
+            name TEXT,
+            status TEXT,
+            priority INTEGER,
+            planned_start TEXT,
+            planned_end TEXT,
+            deadline TEXT,
+            created_at TEXT
+        );
+    """)
+    for ueid, status, prio in [
+        ("tsk:a:00000000-0000-0000-0000-000000000000:0000000000000001", "planned", 1),
+        ("tsk:b:00000000-0000-0000-0000-000000000000:0000000000000002", "planned", 2),
+        ("tsk:c:00000000-0000-0000-0000-000000000000:0000000000000003", "done", 3),
+    ]:
+        conn.execute(
+            "INSERT INTO tasks (ueid, name, status, priority, deadline, created_at) "
+            "VALUES (?, ?, ?, ?, NULL, '2026-08-30T14:30:00+00:00')",
+            (ueid, "x", status, prio),
+        )
+    conn.commit()
+    conn.close()
+
+    rc = main(["status", "--db-path", str(other)])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "total: 3" in out
+    assert "planned: 2" in out
+    assert "done: 1" in out
+    assert "cancelled: 0" in out
+
+
+def test_status_missing_db_returns_zero_total(
+    taskdog_db: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """Missing DB file → total: 0 (adapter returns [] for list_all)."""
+    taskdog_db.unlink()
+    rc = main(["status"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "total: 0" in out

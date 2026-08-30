@@ -40,6 +40,10 @@ from src.mesh.adapters.taskdog import TaskdogAdapter
 # expands; the CLI does not enforce a fixed enum on reads.
 _KNOWN_STATUSES: tuple[str, ...] = ("planned", "in_progress", "done", "cancelled")
 
+# Priority integers per the TaskdogAdapter.apply_change priority_map
+# (high=1, medium=2, low=3). Listed descending so the table reads top-down.
+_KNOWN_PRIORITIES: tuple[int, ...] = (1, 2, 3)
+
 _MAX_NAME = 40
 _MAX_UEID = 36  # one full 5-part UEID fits; truncate only if longer
 
@@ -134,6 +138,45 @@ def cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_status(args: argparse.Namespace) -> int:
+    _apply_db_override(args.db_path)
+    adapter = TaskdogAdapter()
+    tasks = adapter.list_all()
+
+    # Initialize counts with zeros for all known statuses + priorities so
+    # the table always renders the same shape even on empty/partial DBs.
+    status_counts: dict[str, int] = {s: 0 for s in _KNOWN_STATUSES}
+    priority_counts: dict[int, int] = {p: 0 for p in _KNOWN_PRIORITIES}
+    for task in tasks:
+        s = task.get("status")
+        if s in status_counts:
+            status_counts[s] += 1
+        p = task.get("priority")
+        if p in priority_counts:
+            priority_counts[p] += 1
+
+    if _wants_human(args):
+        print(
+            f"db_path: {taskdog_mod.TASKDOG_DB}    total: {len(tasks)}",
+            flush=True,
+        )
+        _render_table(
+            ["status", "count"], [[s, str(status_counts[s])] for s in _KNOWN_STATUSES]
+        )
+        _render_table(
+            ["priority", "count"],
+            [[str(p), str(priority_counts[p])] for p in _KNOWN_PRIORITIES],
+        )
+    else:
+        print(f"db_path: {taskdog_mod.TASKDOG_DB}", flush=True)
+        print(f"total: {len(tasks)}", flush=True)
+        for status in _KNOWN_STATUSES:
+            print(f"  {status}: {status_counts[status]}", flush=True)
+        for priority in _KNOWN_PRIORITIES:
+            print(f"  priority {priority}: {priority_counts[priority]}", flush=True)
+    return 0
+
+
 def cmd_show(args: argparse.Namespace) -> int:
     _apply_db_override(args.db_path)
     adapter = TaskdogAdapter()
@@ -207,6 +250,10 @@ def main(argv: list[str] | None = None) -> int:
     _add_db_path(list_p)
     _add_output_flags(list_p)
 
+    status_p = sub.add_parser("status", help="show task counts by status + priority")
+    _add_db_path(status_p)
+    _add_output_flags(status_p)
+
     show_p = sub.add_parser("show", help="show full slice for one ueid")
     show_p.add_argument("ueid", help="UEID to inspect (5-part format)")
     _add_db_path(show_p)
@@ -216,6 +263,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "list":
         return cmd_list(args)
+    if args.command == "status":
+        return cmd_status(args)
     if args.command == "show":
         return cmd_show(args)
     parser.error(f"unknown command: {args.command}")
