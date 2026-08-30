@@ -264,10 +264,10 @@ def cmd_sync(args: argparse.Namespace) -> int:
             "completed": result.completed,
             "skipped": result.skipped,
             "parse_errors": result.parse_errors,
-            "errors": result.errors,
+            "errors": [e.model_dump(mode="json") for e in result.errors],
             "duration_s": round(result.duration_s, 3),
         }
-        print(json.dumps(payload, default=str, indent=2), flush=True)
+        print(json.dumps(payload, indent=2), flush=True)
 
     return 0
 
@@ -343,10 +343,10 @@ def cmd_reverse(args: argparse.Namespace) -> int:
             "scanned": result.scanned,
             "emitted": result.emitted,
             "skipped": result.skipped,
-            "errors": result.errors,
+            "errors": [e.model_dump(mode="json") for e in result.errors],
             "duration_s": round(result.duration_s, 3),
         }
-        print(json.dumps(payload, default=str, indent=2), flush=True)
+        print(json.dumps(payload, indent=2), flush=True)
 
     return 0
 

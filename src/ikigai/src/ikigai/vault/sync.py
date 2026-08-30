@@ -36,6 +36,37 @@ class SyncActionKind(str, Enum):
     UNCHANGED = "unchanged"
 
 
+class SyncAdapterError(BaseModel):
+    """Adapter-level error — happens BEFORE per-task loop.
+
+    Used for failures that have no per-UEID context (e.g. vault parse
+    fails before any task is processed, or `adapter.list_all()` throws).
+    Discriminator: NO `ueid` field.
+    """
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    error: str
+
+
+class SyncPerTaskError(BaseModel):
+    """Per-task push/emit error — has UEID context.
+
+    Used when an individual task's adapter call fails inside the
+    per-task loop. Discriminator: HAS `ueid` field.
+    """
+
+    model_config = {"frozen": True, "extra": "forbid"}
+
+    ueid: str
+    error: str
+
+
+# Discriminated union for SyncResult.errors / ReverseSyncResult.errors.
+# Pydantic v2 picks the right model by field presence (ueid present → PerTask).
+SyncError = SyncPerTaskError | SyncAdapterError
+
+
 class TaskRecord(BaseModel):
     """One task extracted from a vault markdown frontmatter."""
 
@@ -97,7 +128,7 @@ class SyncResult(BaseModel):
     completed: int = 0
     skipped: int = 0
     parse_errors: int = 0
-    errors: list[dict[str, Any]] = Field(default_factory=list)
+    errors: list[SyncError] = Field(default_factory=list)
     duration_s: float = 0.0
 
 
@@ -130,7 +161,7 @@ class ReverseSyncResult(BaseModel):
     scanned: int = 0
     emitted: int = 0
     skipped: int = 0
-    errors: list[dict[str, Any]] = Field(default_factory=list)
+    errors: list[SyncError] = Field(default_factory=list)
     duration_s: float = 0.0
 
 
@@ -249,7 +280,7 @@ def push(actions: list[SyncAction], adapter: Any) -> tuple[list[SyncAction], lis
     On success the action.taskdog_id is set.
     """
     updated: list[SyncAction] = []
-    errors: list[dict[str, Any]] = []
+    errors: list[SyncError] = []
 
     for action in actions:
         if action.kind == SyncActionKind.UNCHANGED:
@@ -280,7 +311,7 @@ def push(actions: list[SyncAction], adapter: Any) -> tuple[list[SyncAction], lis
             )
             updated.append(updated_action)
         except Exception as exc:
-            errors.append({"ueid": action.record.ueid, "error": str(exc)})
+            errors.append(SyncPerTaskError(ueid=action.record.ueid, error=str(exc)))
             updated.append(action)  # preserve action but not updated
 
     return updated, errors
@@ -303,7 +334,7 @@ def run_sync(
         tasks = parse_vault_tasks(vault_root)
     except Exception as exc:
         result.parse_errors = 1
-        result.errors.append({"error": f"vault_parse_failed: {exc}"})
+        result.errors.append(SyncAdapterError(error=f"vault_parse_failed: {exc}"))
         result.duration_s = time.monotonic() - t0
         return result
 
@@ -388,7 +419,7 @@ def reverse_sync(
     try:
         rows = adapter.list_all()
     except Exception as exc:
-        result.errors.append({"error": f"adapter_list_failed: {exc}"})
+        result.errors.append(SyncAdapterError(error=f"adapter_list_failed: {exc}"))
         result.duration_s = time.monotonic() - t0
         return result
 
@@ -443,7 +474,7 @@ def reverse_sync(
             src.mesh.queue.enqueue(event)
             result.emitted += 1
         except Exception as exc:
-            result.errors.append({"ueid": ueid, "error": str(exc)})
+            result.errors.append(SyncPerTaskError(ueid=ueid, error=str(exc)))
             continue
 
         # Update snapshot entry

@@ -252,8 +252,8 @@ def test_push_per_task_isolation() -> None:
     updated, errors = push(actions, adapter)
 
     assert len(errors) == 1
-    assert errors[0]["ueid"] == "ikigai:task:foo:001"
-    assert "simulated MCP failure" in errors[0]["error"]
+    assert errors[0].ueid == "ikigai:task:foo:001"
+    assert "simulated MCP failure" in errors[0].error
     # bar succeeded
     bar_action = next(a for a in updated if a.record.ueid == "ikigai:task:bar:002")
     assert bar_action.taskdog_id == "td-99"
