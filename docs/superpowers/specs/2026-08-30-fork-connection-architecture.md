@@ -1,7 +1,7 @@
 # Fork-Connection Architecture Spec
 
 **Date:** 2026-08-30
-**Status:** DRAFT (awaiting user review per Brainstorming skill gate)
+**Status:** SHIPPED 2026-08-30 — Phase A1+A2+A3+A4+A5 complete; 7 MCP tools live + vault_write conformance enforced + ADR-012 ratified. See "SHIPPED trailer" at end of file.
 **Author:** Phase B8 diagnostic + spec authoring
 **Predecessors:** [[fork-connection-defer-2026-08-30]] (the original defer), [[fork-connection-diagnostic-correction-2026-08-30]] (the diagnostic correction), [[interfaces-architecture-2026-08-27]] (the dual-layer interfaces topology)
 **Scope boundary:** Spec ONLY. No code changes in this phase. Implementation gated on user approval of this spec, then `writing-plans` produces an implementation plan, then `subagent-driven-development` (or future parallel session) executes it.
@@ -1052,3 +1052,70 @@ User accepted all 6 recommendations. Drill-down in companion doc `docs/superpowe
 - Vault conformance: `vault_write` is ONLY vault writer; grep test catches regressions
 
 **Any change to a locked decision** → update this section + memory + re-review affected phases of the plan.
+
+---
+
+## SHIPPED trailer — 2026-08-30
+
+**Implementation completed in 5 phases over a single session.** This spec is the binding contract for the architecture that landed; deviations require new user approval + spec revision.
+
+### Phase rollup
+
+| Phase | Deliverable | Range | Tools shipped | Test result |
+|---|---|---|---|---|
+| A1 — foundation | JSON-RPC 2.0 stdio scaffolds per fork + `register_default_adapters()` wiring + `start_gateway.py` + transport base + 2 E2E handshakes | `ac3c93a..d1fbee8` (8 commits) | `initialize`/`tools/list`/`tools/call` infra | 8 E2E PASS |
+| A2 — reads | Pydantic v2 frozen models (solverforge + tuiboard) + SQLite UPI manager + 60s-cached availability tool + tuiboard snapshot store + tuiboard_diff | `5ebf546..299c846` (8 commits incl. CRITICAL Windows stdio binary-mode fix `b93a1f3`) | `sf_availability`, `tuiboard_diff`, `tuiboard_snapshot` (stub) | 13/13 PASS |
+| A3 — writes | sf_schedule (UPSERT + conflict detection) + tuiboard.aggregator (CLI reader) + tuiboard_snapshot full impl + tuiboard_render (4 layouts) + regression sweep | `c56e7df..2b5b383` (5 commits) | `sf_schedule`, `tuiboard_snapshot`, `tuiboard_render` | 14/14 PASS in 9.16s |
+| A4 — advanced | sf_replan (greedy constraint solver) + aggregator 3-fork precedence + tuiboard_aggregate (7th MCP tool) + regression | `4ad6138..f5a9a60` (4 commits) | `sf_replan`, `tuiboard_aggregate` | 155/155 PASS in 18.48s |
+| A5 — cleanup | vault_write conformance grep test (Q6 enforcement) + SUPERSEDED trailer on `start_mcp_gateway.sh` + `mcp_config.json` → in-repo Python forks + **ADR-012** | `074d1bb..c3921bf` (4 commits) | (no new tools) | 157/157 PASS in 11.89s |
+
+### Architecture decisions that landed (locked)
+
+All 6 open-question recommendations were accepted 2026-08-30 (commit `d33c71d`):
+
+| Q | Locked | Where it lives |
+|---|---|---|
+| Q1 | β in-repo Python forks | `src/solverforge_calendar/`, `src/tuiboard/` |
+| Q2 | i hand-rolled JSON-RPC 2.0 | `src/ikigai/src/ikigai/gateway/stdio_server_base.py` + per-fork `server.py` |
+| Q3 | a no auth | Localhost-only (loopback) |
+| Q4 | i single JSONL event log | `data/gateway/events.jsonl` (append-only) |
+| Q5 | γ YAGNI (no tool versioning) | v1 tools are stable; add suffix only when schema breaks |
+| Q6 | I+III docs + grep test | `tests/gateway/clients/test_vault_write_conformance.py` + ADR-012 §Decision #6 |
+
+### Tool surface shipped (7 MCP tools)
+
+| # | Fork | Tool | Type | E2E test |
+|---|---|---|---|---|
+| 1 | solverforge-calendar | `sf_availability` | READ | `test_sf_availability.py` |
+| 2 | solverforge-calendar | `sf_schedule` | WRITE (UPSERT + conflict detection) | `test_sf_schedule.py` |
+| 3 | solverforge-calendar | `sf_replan` | READ (constraint solver) | `test_sf_replan.py` |
+| 4 | tuiboard | `tuiboard_diff` | READ | `test_tuiboard_diff.py` |
+| 5 | tuiboard | `tuiboard_snapshot` | WRITE (idempotent JSONL) | `test_tuiboard_snapshot.py` |
+| 6 | tuiboard | `tuiboard_render` | READ (4 layouts) | `test_tuiboard_render.py` |
+| 7 | tuiboard | `tuiboard_aggregate` | READ (multi-fork aggregator) | `test_tuiboard_aggregate.py` |
+
+### Verification
+
+- **A4.4 full regression:** 155/155 PASS in 18.48s (`tests/gateway/clients/` + `tests/tuiboard/` + `tests/mesh/`)
+- **A5.5 final regression (this trailer):** 157/157 PASS in 11.89s (A4.4's 155 + 2 new grep tests)
+- **ruff:** clean on all changed Python files
+- **mcp_config.json:** valid JSON (verified `python -m json.tool`)
+- **Windows stdio:** critical fix `b93a1f3` (binary-mode readline) keeps E2E tests reliable across platforms
+
+### Pointer to ADR
+
+Architecture rationale, alternatives considered, consequences (positive + negative + neutral):
+→ **`code-docs/adr/ADR-012-fork-connection-architecture.md`** (71 lines, accepted 2026-08-30)
+
+### Out of scope (deferred)
+
+- taskdog fork adapter wiring (separate concern; taskdog already connected via external repo + HTTP)
+- solverforge-calendar advanced constraint types beyond greedy v1 (linear programming, SAT solver)
+- tuiboard web UI (rendering fork delivers JSON frames; UI client lives outside this repo)
+- LLM-driven validation in the review queue (per `algorithm-gate` memory: deferred until system readiness)
+- `vault_write` runtime enforcement (grep test + docs is the agreed enforcement per Q6=I+III)
+
+### Phase A5.5 closeout
+
+This trailer marks the end of Phase A (fork connection implementation). Next: **final whole-branch review** + **merge to master** (per the Phase A5 plan).
+
