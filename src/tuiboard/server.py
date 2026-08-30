@@ -16,7 +16,24 @@ logger = logging.getLogger(__name__)
 def _build_server() -> StdioServerBase:
     snapshots_dir = os.environ.get("TUIBOARD_SNAPSHOTS_DIR", "data/tuiboard/snapshots")
     os.makedirs(snapshots_dir, exist_ok=True)
-    return StdioServerBase(name="tuiboard", version="0.1.0")
+    server = StdioServerBase(name="tuiboard", version="0.1.0")
+    # A2: read tools
+    from tuiboard.tools.tuiboard_diff import handle as tb_diff
+    from tuiboard.models import TuiboardDiffInput
+    server.register_tool(
+        name="tuiboard_diff",
+        handler=tb_diff,
+        schema=TuiboardDiffInput.model_json_schema(),
+    )
+    # A3: write tools (tuiboard_snapshot) - stub added in A2.6 for E2E
+    from tuiboard.tools.tuiboard_snapshot import handle as tb_snapshot
+    from tuiboard.models import TuiboardSnapshotInput
+    server.register_tool(
+        name="tuiboard_snapshot",
+        handler=tb_snapshot,
+        schema=TuiboardSnapshotInput.model_json_schema(),
+    )
+    return server
 
 
 def main() -> None:
