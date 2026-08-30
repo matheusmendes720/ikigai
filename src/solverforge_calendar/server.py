@@ -27,7 +27,15 @@ def _build_server() -> StdioServerBase:
         handler=sf_avail,
         schema=SfAvailabilityInput.model_json_schema(),
     )
-    # A3: write tools (sf_schedule) added in next phase
+    # A3: write tools
+    from solverforge_calendar.tools.sf_schedule import handle as sf_sched
+    from solverforge_calendar.models import SfScheduleInput
+
+    server.register_tool(
+        name="sf_schedule",
+        handler=sf_sched,
+        schema=SfScheduleInput.model_json_schema(),
+    )
     # A4: advanced tools (sf_replan) added in later phase
     return server
 
