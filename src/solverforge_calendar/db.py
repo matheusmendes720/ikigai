@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import sqlite3
@@ -57,7 +57,7 @@ class SolverforgeDB:
         ikigai: dict | None = None,
         status: str = "scheduled",
     ) -> dict:
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         row_id = str(uuid.uuid4().hex)
         with self._conn() as c:
             # UPSERT: insert new with new uuid, or update existing row in place
