@@ -60,6 +60,7 @@ vault/__pycache__/
 vault/.ruff_cache/
 vault/.mypy_cache/
 vault/.pytest_cache/
+vault/.db
 
 # ─── BYD D2 Plotly HTMLs (regenerable artifacts) ────────────────
 # 6 Plotly HTMLs at ~4.85 MB each = 27.88 MB committed. Regenerable
