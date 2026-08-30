@@ -10,6 +10,7 @@ D3: taskdog is MVP fork (not tuiboard/solverforge-calendar).
 D4: frontmatter-tagged tasks as sync unit (tags:[task] OR type:task).
 D5: data/sync-state.json incremental diff.
 """
+
 from __future__ import annotations
 
 import json
@@ -233,21 +234,15 @@ def diff(tasks: list[TaskRecord], state: SyncState) -> list[SyncAction]:
             actions.append(SyncAction(kind=SyncActionKind.NEW, record=record))
         elif entry.last_status != record.status:
             if record.status == "done":
-                actions.append(
-                    SyncAction(kind=SyncActionKind.CHANGED_TO_DONE, record=record)
-                )
+                actions.append(SyncAction(kind=SyncActionKind.CHANGED_TO_DONE, record=record))
             else:
                 actions.append(SyncAction(kind=SyncActionKind.CHANGED, record=record))
         else:
-            actions.append(
-                SyncAction(kind=SyncActionKind.UNCHANGED, record=record)
-            )
+            actions.append(SyncAction(kind=SyncActionKind.UNCHANGED, record=record))
     return actions
 
 
-def push(
-    actions: list[SyncAction], adapter: Any
-) -> tuple[list[SyncAction], list[dict[str, Any]]]:
+def push(actions: list[SyncAction], adapter: Any) -> tuple[list[SyncAction], list[dict[str, Any]]]:
     """Execute each SyncAction against the taskdog MCP adapter.
 
     Per-action try/except isolation. Returns (updated_actions, errors).
@@ -285,9 +280,7 @@ def push(
             )
             updated.append(updated_action)
         except Exception as exc:
-            errors.append(
-                {"ueid": action.record.ueid, "error": str(exc)}
-            )
+            errors.append({"ueid": action.record.ueid, "error": str(exc)})
             updated.append(action)  # preserve action but not updated
 
     return updated, errors

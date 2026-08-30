@@ -1,4 +1,5 @@
 """CorrectionSignal — typed IKIGAi cycle output."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -14,8 +15,14 @@ class CorrectionSignal(BaseModel):
 
     heuristic: str
     signal_type: Literal[
-        "drift", "overload", "underload", "recover",
-        "kill", "abandon", "pivot", "falsify",
+        "drift",
+        "overload",
+        "underload",
+        "recover",
+        "kill",
+        "abandon",
+        "pivot",
+        "falsify",
     ]
     description: str
     target_ueid: Optional[UEID] = None

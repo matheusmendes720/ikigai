@@ -6,6 +6,7 @@ polymorphic IKIGAiRecord root.
 
 Task 10 of data-model-unification.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -20,7 +21,11 @@ from ikigai.entities.score_value import ScoreUnit, ScoreValue
 # Default phase weights when state does not supply them (I7: phase weights
 # live on IKIGAiRecord, NOT PhaseSnapshot).
 _DEFAULT_PHASE_WEIGHTS: dict[str, float] = {
-    "passion": 0.20, "skill": 0.20, "market": 0.20, "revenue": 0.20, "course": 0.20,
+    "passion": 0.20,
+    "skill": 0.20,
+    "market": 0.20,
+    "revenue": 0.20,
+    "course": 0.20,
 }
 
 
@@ -56,9 +61,11 @@ class StateReducer:
             ikigai_vectors=list(state.get("vector_scores", {}).keys()),
             vector_scores=StateReducer._map_vector_scores(state.get("vector_scores", {})),
             meta_vector_score=ScoreValue(value=float(meta_raw), unit=ScoreUnit.RATIO)
-                if meta_raw is not None else None,
+            if meta_raw is not None
+            else None,
             q_he_score=ScoreValue(value=float(qhe_raw), unit=ScoreUnit.RATIO)
-                if qhe_raw is not None else None,
+            if qhe_raw is not None
+            else None,
             regime=StateReducer._map_regime(state),
             phase=state.get("phase"),
             phase_iteration=state.get("phase_iteration", 0),
@@ -96,8 +103,7 @@ class StateReducer:
         The state dict stores raw ratios (0..1); we scale up here.
         """
         return {
-            k: ScoreValue(value=float(v) * 100.0, unit=ScoreUnit.PERCENT)
-            for k, v in scores.items()
+            k: ScoreValue(value=float(v) * 100.0, unit=ScoreUnit.PERCENT) for k, v in scores.items()
         }
 
     @staticmethod
@@ -110,19 +116,34 @@ class StateReducer:
         # without overreaching what the state dict knows.
         return FractalRegime(
             levels=[
-                FractalRegimeState(level="global", regime=regime_name,
-                                    days_in_regime=state.get("days_in_regime", 0),
-                                    is_hysteresis_active=state.get("is_hysteresis_active", False),
-                                    hysteresis_days=0),
-                FractalRegimeState(level="cluster", regime="MAINTAIN",
-                                    days_in_regime=0, is_hysteresis_active=False,
-                                    hysteresis_days=0),
-                FractalRegimeState(level="vector", regime="MAINTAIN",
-                                    days_in_regime=0, is_hysteresis_active=False,
-                                    hysteresis_days=0),
-                FractalRegimeState(level="sub_vector", regime="MAINTAIN",
-                                    days_in_regime=0, is_hysteresis_active=False,
-                                    hysteresis_days=0),
+                FractalRegimeState(
+                    level="global",
+                    regime=regime_name,
+                    days_in_regime=state.get("days_in_regime", 0),
+                    is_hysteresis_active=state.get("is_hysteresis_active", False),
+                    hysteresis_days=0,
+                ),
+                FractalRegimeState(
+                    level="cluster",
+                    regime="MAINTAIN",
+                    days_in_regime=0,
+                    is_hysteresis_active=False,
+                    hysteresis_days=0,
+                ),
+                FractalRegimeState(
+                    level="vector",
+                    regime="MAINTAIN",
+                    days_in_regime=0,
+                    is_hysteresis_active=False,
+                    hysteresis_days=0,
+                ),
+                FractalRegimeState(
+                    level="sub_vector",
+                    regime="MAINTAIN",
+                    days_in_regime=0,
+                    is_hysteresis_active=False,
+                    hysteresis_days=0,
+                ),
             ],
         )
 

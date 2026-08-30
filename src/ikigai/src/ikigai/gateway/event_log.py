@@ -166,9 +166,7 @@ class EventLog:
                     try:
                         yield json.loads(line)
                     except json.JSONDecodeError as e:
-                        logger.warning(
-                            "skipping corrupt line in %s: %s", path, e
-                        )
+                        logger.warning("skipping corrupt line in %s: %s", path, e)
                         continue
         except OSError as e:
             logger.warning("could not read %s: %s", path, e)

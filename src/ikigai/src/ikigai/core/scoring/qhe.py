@@ -38,7 +38,13 @@ def compute_qhe_components(
     s_streak: float,
 ) -> list[QHEComponent]:
     """Return list of 5 Q_HE components."""
-    for name, v in [("h_sono", h_sono), ("h_med", h_med), ("h_workout", h_workout), ("h_lunch", h_lunch), ("s_streak", s_streak)]:
+    for name, v in [
+        ("h_sono", h_sono),
+        ("h_med", h_med),
+        ("h_workout", h_workout),
+        ("h_lunch", h_lunch),
+        ("s_streak", s_streak),
+    ]:
         if not 0 <= v <= 1:
             raise ValueError(f"{name} must be in [0, 1], got {v}")
 

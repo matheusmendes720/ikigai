@@ -244,7 +244,10 @@ class SQLiteAdapter:
                 "SELECT * FROM plan_entities_history WHERE ueid = ? ORDER BY changed_at",
                 (ueid,),
             ).fetchall()
-            cols = [d[0] for d in conn.execute("SELECT * FROM plan_entities_history LIMIT 0").description]
+            cols = [
+                d[0]
+                for d in conn.execute("SELECT * FROM plan_entities_history LIMIT 0").description
+            ]
             return [dict(zip(cols, r, strict=False)) for r in rows]
 
     def mtime_for(self, ueid: str) -> datetime | None:
@@ -300,13 +303,19 @@ class SQLiteAdapter:
         related_json = json.dumps(related_ueids or [])
         vectors_json = json.dumps(ikigai_vectors or {})
         weights_json = json.dumps(vector_weights_snapshot or {})
-        primary_score_json = json.dumps({"value": primary_score, "unit": "score"}) if primary_score is not None else None
+        primary_score_json = (
+            json.dumps({"value": primary_score, "unit": "score"})
+            if primary_score is not None
+            else None
+        )
         custom_json = json.dumps(custom or {})
         tags_json = json.dumps(tags or [])
 
         with self._connect() as conn:
             # Check if entity exists
-            existing = conn.execute("SELECT ueid FROM plan_entities WHERE ueid = ?", (ueid,)).fetchone()
+            existing = conn.execute(
+                "SELECT ueid FROM plan_entities WHERE ueid = ?", (ueid,)
+            ).fetchone()
             change_kind = "updated" if existing else "created"
 
             # Disable triggers temporarily for upsert operation
@@ -415,7 +424,6 @@ class SQLiteAdapter:
                 (ueid, change_kind, json.dumps(snapshot, default=str)),
             )
 
-
     # ─────────────────────────────────────────────────────────────────────────
     # upsert_ikigai_record — IKIGAiRecord → append-only upsert
     # ─────────────────────────────────────────────────────────────────────────
@@ -448,22 +456,24 @@ class SQLiteAdapter:
             created_at=record.created_at.isoformat(),
             updated_at=record.updated_at.isoformat(),
             last_reviewed_at=record.last_reviewed_at.isoformat()
-            if record.last_reviewed_at else None,
+            if record.last_reviewed_at
+            else None,
             archived_at=None,  # bridge never archives directly
             ikigai_vectors=vector_scores,
-            vector_weights_snapshot=dict(record.vector_weights_snapshot) if record.vector_weights_snapshot else {},
-            phase_at_creation=record.phase_at_creation.value
-            if record.phase_at_creation else None,
+            vector_weights_snapshot=dict(record.vector_weights_snapshot)
+            if record.vector_weights_snapshot
+            else {},
+            phase_at_creation=record.phase_at_creation.value if record.phase_at_creation else None,
             regime_at_creation=record.regime_at_creation.value
-            if record.regime_at_creation else None,
+            if record.regime_at_creation
+            else None,
             horizon_days=None,
             primary_score=record.primary_score.value if record.primary_score else None,
             is_placeholder=record.is_placeholder,
             placeholder_owner=record.placeholder_owner,
             claimed_by=None,
             source="ikigai",
-            source_md_path=record.source_md_path.as_posix()
-            if record.source_md_path else None,
+            source_md_path=record.source_md_path.as_posix() if record.source_md_path else None,
             custom=dict(record.custom) if record.custom else {},
             tags=[],
         )

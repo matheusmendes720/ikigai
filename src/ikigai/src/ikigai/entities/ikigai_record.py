@@ -5,6 +5,7 @@ Layer 1 of the unified data model (§1). The discriminated union lives on
 mirror, JsonPlusSerializer checkpoint, MCP Gateway) all round-trip the
 same shape.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -29,6 +30,7 @@ VectorKey = Annotated[str, StringConstraints(min_length=1, max_length=128)]
 
 
 # ──────── Discriminators (polymorphism per D6) ────────
+
 
 class EntityType(str, Enum):
     """Polymorphic discriminator (§3.2). Each variant may carry extra
@@ -67,6 +69,7 @@ class StatusType(str, Enum):
 
 
 # ──────── THE ROOT ────────
+
 
 class IKIGAiRecord(BaseModel):
     """Canonical IKIGAi state — single root, polymorphic per SPEC D6.
@@ -159,9 +162,14 @@ class IKIGAiRecord(BaseModel):
     source_md_path: Path
 
     # ── Cross-cluster routing (§3.2 forward-compat)
-    target_subsystem: Optional[Literal[
-        "CLUSTER_PLAN", "life_tatics", "vibe_ops", "taskwarrior",
-    ]] = None
+    target_subsystem: Optional[
+        Literal[
+            "CLUSTER_PLAN",
+            "life_tatics",
+            "vibe_ops",
+            "taskwarrior",
+        ]
+    ] = None
 
     # ── Typed forward-compat (entity-specific fields live here)
     custom: dict[str, Any] = Field(default_factory=dict)

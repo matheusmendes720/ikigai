@@ -200,7 +200,9 @@ class MarkdownDB:
                 continue
             if ikigai_vector:
                 root = ikigai_vector.split(".", 1)[0]
-                if not any(v.value == root or v.value == ikigai_vector for v in entity.ikigai_vectors):
+                if not any(
+                    v.value == root or v.value == ikigai_vector for v in entity.ikigai_vectors
+                ):
                     continue
             if needs_review_days is not None:
                 if entity.last_reviewed_at is None:
@@ -234,7 +236,9 @@ class MarkdownDB:
                         "status": entity.status.value,
                         "ikigai_vectors": [v.value for v in entity.ikigai_vectors],
                         "parent_ueid": str(entity.parent_ueid) if entity.parent_ueid else None,
-                        "phase_at_creation": entity.phase_at_creation.value if entity.phase_at_creation else None,
+                        "phase_at_creation": entity.phase_at_creation.value
+                        if entity.phase_at_creation
+                        else None,
                         "last_reviewed_at": (
                             entity.last_reviewed_at.isoformat() if entity.last_reviewed_at else None
                         ),
@@ -251,7 +255,9 @@ class MarkdownDB:
             path = self.vault_root / "meta" / "vault_index.json"
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(self.index_dump(), indent=2, ensure_ascii=False), encoding="utf-8")
+        path.write_text(
+            json.dumps(self.index_dump(), indent=2, ensure_ascii=False), encoding="utf-8"
+        )
         return path
 
 

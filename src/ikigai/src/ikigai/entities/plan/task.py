@@ -48,7 +48,9 @@ class TaskEntity(PlanEntity):
     @property
     def rice_score(self) -> float:
         """RICE score = (R × I × C) / E."""
-        return (self.rice_reach * self.rice_impact * self.rice_confidence) / max(self.rice_effort_h, 0.5)
+        return (self.rice_reach * self.rice_impact * self.rice_confidence) / max(
+            self.rice_effort_h, 0.5
+        )
 
     @model_validator(mode="after")
     def _validate_task_status(self) -> "TaskEntity":

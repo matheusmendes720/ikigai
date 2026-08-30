@@ -154,7 +154,7 @@ class UnifiedMCPGateway:
             "solverforge-calendar": "sf_",
         }
         prefix = prefix_map.get(namespace)
-        tool_short = tool[len(prefix):] if prefix and tool.startswith(prefix) else tool
+        tool_short = tool[len(prefix) :] if prefix and tool.startswith(prefix) else tool
         self.publish_event(
             f"{namespace}.{tool_short}",
             {
@@ -315,9 +315,7 @@ class UnifiedMCPGateway:
                     def write_chunk(chunk: bytes) -> bool:
                         """Returns False if client has disconnected."""
                         try:
-                            self.wfile.write(
-                                f"{len(chunk):x}\r\n".encode() + chunk + b"\r\n"
-                            )
+                            self.wfile.write(f"{len(chunk):x}\r\n".encode() + chunk + b"\r\n")
                             self.wfile.flush()
                             return True
                         except (BrokenPipeError, ConnectionResetError, OSError) as e:
@@ -325,12 +323,8 @@ class UnifiedMCPGateway:
                             return False
 
                     # Initial ready event so clients know which adapters are live
-                    ready_payload = json.dumps(
-                        {"adapters": adapter_names}, default=str
-                    ).encode()
-                    if not write_chunk(
-                        b"event: gateway.ready\ndata: " + ready_payload + b"\n\n"
-                    ):
+                    ready_payload = json.dumps({"adapters": adapter_names}, default=str).encode()
+                    if not write_chunk(b"event: gateway.ready\ndata: " + ready_payload + b"\n\n"):
                         return
 
                     last_heartbeat = time.monotonic()
@@ -341,11 +335,7 @@ class UnifiedMCPGateway:
                         try:
                             event, data = sub_q.get(timeout=1.0)
                             payload = json.dumps(data, default=str).encode()
-                            chunk = (
-                                f"event: {event}\ndata: ".encode()
-                                + payload
-                                + b"\n\n"
-                            )
+                            chunk = f"event: {event}\ndata: ".encode() + payload + b"\n\n"
                             if not write_chunk(chunk):
                                 return
                         except queue.Empty:
@@ -355,9 +345,7 @@ class UnifiedMCPGateway:
                         if now - last_heartbeat >= heartbeat_s:
                             # SSE comment line — invisible to EventSource consumers,
                             # but keeps the TCP connection warm.
-                            if not write_chunk(
-                                f": heartbeat {int(now)}\n\n".encode()
-                            ):
+                            if not write_chunk(f": heartbeat {int(now)}\n\n".encode()):
                                 return
                             last_heartbeat = now
                 finally:

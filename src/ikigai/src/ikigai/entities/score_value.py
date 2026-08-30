@@ -1,4 +1,5 @@
 """ScoreValue — typed numeric with unit (SPEC I3 percent, I4 ratio)."""
+
 from __future__ import annotations
 
 from enum import Enum
@@ -7,8 +8,8 @@ from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class ScoreUnit(str, Enum):
-    PERCENT = "percent"   # SPEC I3: vector scores ∈ [0, 100]
-    RATIO = "ratio"       # SPEC I4: Q_HE ∈ [0, 1]
+    PERCENT = "percent"  # SPEC I3: vector scores ∈ [0, 100]
+    RATIO = "ratio"  # SPEC I4: Q_HE ∈ [0, 1]
 
 
 class ScoreValue(BaseModel):

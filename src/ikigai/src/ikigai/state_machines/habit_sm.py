@@ -8,7 +8,9 @@ def habit_state_machine() -> StateMachine:
     sm.add_transition(Transition("active", "paused", "pause", audit_message="Habit paused"))
     sm.add_transition(Transition("paused", "active", "resume", audit_message="Habit resumed"))
     sm.add_transition(Transition("active", "archived", "archive", audit_message="Archived"))
-    sm.add_transition(Transition("paused", "archived", "archive", audit_message="Archived from pause"))
+    sm.add_transition(
+        Transition("paused", "archived", "archive", audit_message="Archived from pause")
+    )
     sm.add_transition(Transition("active", "mastered", "master", audit_message="Habit mastered"))
     return sm
 

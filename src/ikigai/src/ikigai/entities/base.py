@@ -136,9 +136,7 @@ class PlanEntity(BaseModel):
         """Vector weights must be in [0, 1.5]."""
         for vec, w in self.vector_weights_snapshot.items():
             if not 0.0 <= w <= 1.5:
-                raise ValueError(
-                    f"Vector weight for {vec} out of range [0, 1.5]: {w}"
-                )
+                raise ValueError(f"Vector weight for {vec} out of range [0, 1.5]: {w}")
         return self
 
     @model_validator(mode="after")
@@ -170,7 +168,9 @@ class PlanEntity(BaseModel):
         d = self.model_dump(mode="json", exclude={"custom"})
         # Flatten VectorType keys to strings
         if "ikigai_vectors" in d:
-            d["ikigai_vectors"] = [v if isinstance(v, str) else v.value for v in d["ikigai_vectors"]]
+            d["ikigai_vectors"] = [
+                v if isinstance(v, str) else v.value for v in d["ikigai_vectors"]
+            ]
         if "vector_weights_snapshot" in d:
             d["vector_weights_snapshot"] = {
                 (k if isinstance(k, str) else k.value): v

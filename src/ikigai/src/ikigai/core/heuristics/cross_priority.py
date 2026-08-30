@@ -23,7 +23,9 @@ def compute_weighted_priority(
         days_to_deadline: optional days until deadline.
     """
     weights_map = w_ikigai_by_vector or W_IKIGAI_BY_VECTOR
-    rice = compute_rice_score(task.rice_reach, task.rice_impact, task.rice_confidence, task.rice_effort_h)
+    rice = compute_rice_score(
+        task.rice_reach, task.rice_impact, task.rice_confidence, task.rice_effort_h
+    )
     w_deadline = _deadline_weight(days_to_deadline)
 
     # Aggregate w_ikigai from task's vectors

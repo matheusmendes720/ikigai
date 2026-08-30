@@ -74,14 +74,20 @@ def score_market(
 
     All inputs in [0, 100].
     """
-    for name, v in [("fit_avg", fit_avg), ("skills_demand_avg", skills_demand_avg), ("opportunities_pipeline", opportunities_pipeline)]:
+    for name, v in [
+        ("fit_avg", fit_avg),
+        ("skills_demand_avg", skills_demand_avg),
+        ("opportunities_pipeline", opportunities_pipeline),
+    ]:
         if not 0 <= v <= 100:
             raise ValueError(f"{name} must be in [0, 100], got {v}")
     market_score = fit_avg * 0.4 + skills_demand_avg * 0.4 + opportunities_pipeline * 0.2
     return ScoreValue(value=round(min(100.0, market_score), 2), unit="percent")
 
 
-def score_revenue(revenue_actual: float, revenue_target: float, pipeline_health: float = 0.0) -> ScoreValue:
+def score_revenue(
+    revenue_actual: float, revenue_target: float, pipeline_health: float = 0.0
+) -> ScoreValue:
     """Revenue vector = (actual / target) × 70 + pipeline × 30.
 
     Args:
@@ -112,7 +118,11 @@ def score_course(
 
     All inputs in [0, 100].
     """
-    for name, v in [("attendance_rate", attendance_rate), ("assignments_on_time", assignments_on_time), ("exam_avg", exam_avg)]:
+    for name, v in [
+        ("attendance_rate", attendance_rate),
+        ("assignments_on_time", assignments_on_time),
+        ("exam_avg", exam_avg),
+    ]:
         if not 0 <= v <= 100:
             raise ValueError(f"{name} must be in [0, 100], got {v}")
     course_score = attendance_rate * 0.5 + assignments_on_time * 0.3 + exam_avg * 0.2

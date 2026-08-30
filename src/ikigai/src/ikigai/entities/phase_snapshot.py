@@ -7,6 +7,7 @@ critical for retrospectives and regime-shift forensics.
 
 UEID format (per §3.1 + design spec): `ikigai:phase_snapshot:{cycle_id}:{iter}:{hash}`
 """
+
 from __future__ import annotations
 
 from datetime import datetime

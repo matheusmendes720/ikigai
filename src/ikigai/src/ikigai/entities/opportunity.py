@@ -36,10 +36,14 @@ class OpportunitySignal(BaseModel):
     estimated_hours: float | None = None
     deadline: date | None = None
 
-    fit_score: ScoreValue = Field(default_factory=lambda: ScoreValue(value=0.5, unit="ratio"))  # 0-1
+    fit_score: ScoreValue = Field(
+        default_factory=lambda: ScoreValue(value=0.5, unit="ratio")
+    )  # 0-1
     status: OpportunityStatus = OpportunityStatus.DETECTED
 
-    ikigai_alignment: dict[VectorType, float] = Field(default_factory=dict)  # vector → alignment (0-1)
+    ikigai_alignment: dict[VectorType, float] = Field(
+        default_factory=dict
+    )  # vector → alignment (0-1)
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     notes: str | None = None

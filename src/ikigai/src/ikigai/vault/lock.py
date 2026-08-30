@@ -3,6 +3,7 @@
 Cross-platform: msvcrt on Windows (locking), fcntl on POSIX.
 Releases on normal exit AND on exception (context manager contract).
 """
+
 from __future__ import annotations
 
 import os

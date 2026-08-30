@@ -10,11 +10,17 @@ def project_state_machine() -> StateMachine:
     sm.add_transition(Transition("backlog", "active", "start", audit_message="Project started"))
     sm.add_transition(Transition("active", "paused", "pause", audit_message="Project paused"))
     sm.add_transition(Transition("paused", "active", "resume", audit_message="Project resumed"))
-    sm.add_transition(Transition("active", "completed", "complete", audit_message="Project completed"))
+    sm.add_transition(
+        Transition("active", "completed", "complete", audit_message="Project completed")
+    )
     sm.add_transition(Transition("active", "blocked", "block", audit_message="Project blocked"))
     sm.add_transition(Transition("blocked", "active", "unblock", audit_message="Project unblocked"))
-    sm.add_transition(Transition("active", "cancelled", "cancel", audit_message="Project cancelled"))
-    sm.add_transition(Transition("paused", "cancelled", "cancel", audit_message="Cancelled from pause"))
+    sm.add_transition(
+        Transition("active", "cancelled", "cancel", audit_message="Project cancelled")
+    )
+    sm.add_transition(
+        Transition("paused", "cancelled", "cancel", audit_message="Cancelled from pause")
+    )
     return sm
 
 

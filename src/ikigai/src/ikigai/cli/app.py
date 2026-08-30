@@ -230,11 +230,21 @@ def vector_meta(
     from ikigai.enums import VectorType
 
     scores = {
-        VectorType.PASSION: __import__("ikigai.types", fromlist=["ScoreValue"]).ScoreValue(value=passion, unit="percent"),
-        VectorType.SKILL: __import__("ikigai.types", fromlist=["ScoreValue"]).ScoreValue(value=skill, unit="percent"),
-        VectorType.MARKET: __import__("ikigai.types", fromlist=["ScoreValue"]).ScoreValue(value=market, unit="percent"),
-        VectorType.REVENUE: __import__("ikigai.types", fromlist=["ScoreValue"]).ScoreValue(value=revenue, unit="percent"),
-        VectorType.COURSE: __import__("ikigai.types", fromlist=["ScoreValue"]).ScoreValue(value=course, unit="percent"),
+        VectorType.PASSION: __import__("ikigai.types", fromlist=["ScoreValue"]).ScoreValue(
+            value=passion, unit="percent"
+        ),
+        VectorType.SKILL: __import__("ikigai.types", fromlist=["ScoreValue"]).ScoreValue(
+            value=skill, unit="percent"
+        ),
+        VectorType.MARKET: __import__("ikigai.types", fromlist=["ScoreValue"]).ScoreValue(
+            value=market, unit="percent"
+        ),
+        VectorType.REVENUE: __import__("ikigai.types", fromlist=["ScoreValue"]).ScoreValue(
+            value=revenue, unit="percent"
+        ),
+        VectorType.COURSE: __import__("ikigai.types", fromlist=["ScoreValue"]).ScoreValue(
+            value=course, unit="percent"
+        ),
     }
     weights = {
         VectorType.PASSION: 0.15,
@@ -262,7 +272,9 @@ def vector_meta(
 @plan_app.command("list")
 def plan_list(
     ctx: typer.Context,
-    entity_type: str = typer.Option("dream", help="Entity type: dream|goal|objective|project|task|deliverable"),
+    entity_type: str = typer.Option(
+        "dream", help="Entity type: dream|goal|objective|project|task|deliverable"
+    ),
     status: str | None = typer.Option(None, help="Filter by status."),
 ) -> None:
     """List plan entities of a given type."""
@@ -457,7 +469,10 @@ def sync_run(
         data = {"action": "markdown→sqlite", "inserted": count, "skipped": "existing"}
     elif prefer == "sqlite":
         # Write SQLite state back to markdown (destructive to vault)
-        _err("--prefer sqlite not yet implemented (destructive; use with caution)", code="ERR_CLI_501")
+        _err(
+            "--prefer sqlite not yet implemented (destructive; use with caution)",
+            code="ERR_CLI_501",
+        )
     else:  # merge
         # Generate triagem.md
         from ikigai.propagation.triagem import Triagem, DriftEntry
@@ -499,7 +514,11 @@ def sync_run(
             except Exception:
                 continue
         triagem_path = triagem.write()
-        data = {"action": "merge", "triagem_path": str(triagem_path), "drift_entries": len(triagem.entries)}
+        data = {
+            "action": "merge",
+            "triagem_path": str(triagem_path),
+            "drift_entries": len(triagem.entries),
+        }
 
     _output(data, ctx.obj.get("json_out", False))
 

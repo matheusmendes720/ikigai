@@ -10,7 +10,9 @@ def goal_state_machine() -> StateMachine:
     sm.add_transition(Transition("active", "abandoned", "abandon", audit_message="Goal abandoned"))
     sm.add_transition(Transition("active", "paused", "pause", audit_message="Goal paused"))
     sm.add_transition(Transition("paused", "active", "resume", audit_message="Goal resumed"))
-    sm.add_transition(Transition("paused", "abandoned", "abandon", audit_message="Abandoned from pause"))
+    sm.add_transition(
+        Transition("paused", "abandoned", "abandon", audit_message="Abandoned from pause")
+    )
     sm.add_transition(Transition("abandoned", "archived", "archive", audit_message="Archived"))
     sm.add_transition(Transition("achieved", "archived", "archive", audit_message="Archived"))
     return sm

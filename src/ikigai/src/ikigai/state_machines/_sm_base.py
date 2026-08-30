@@ -9,6 +9,7 @@ from typing import Any, Callable
 
 class TransitionError(Exception):
     """Raised when a guarded transition is blocked."""
+
     pass
 
 
@@ -68,15 +69,11 @@ class StateMachine:
 
         key = (self.current_state, target_state)
         if key not in self._transitions:
-            raise TransitionError(
-                f"No transition from {self.current_state!r} → {target_state!r}"
-            )
+            raise TransitionError(f"No transition from {self.current_state!r} → {target_state!r}")
 
         t = self._transitions[key]
         if not t.is_allowed(self.context):
-            raise TransitionError(
-                f"Guard blocked {self.current_state} → {target_state}"
-            )
+            raise TransitionError(f"Guard blocked {self.current_state} → {target_state}")
 
         now = datetime.now(timezone.utc)
         self.audit_log.append(

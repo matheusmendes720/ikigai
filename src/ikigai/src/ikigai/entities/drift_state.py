@@ -1,4 +1,5 @@
 """DriftState — markdown-vs-mirror consistency (SPEC D14, §8.2)."""
+
 from __future__ import annotations
 
 from enum import Enum
