@@ -23,6 +23,7 @@ Atomicity:
 NOTE: function is SYNC (NOT async). MCP handlers in this repo are sync —
 they return JSON strings, never await anything.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -71,9 +72,7 @@ def vault_write(
     try:
         target.relative_to(vault_root_resolved)
     except ValueError as exc:
-        raise ValueError(
-            f"path {vault_path!r} resolves outside vault root"
-        ) from exc
+        raise ValueError(f"path {vault_path!r} resolves outside vault root") from exc
 
     target.parent.mkdir(parents=True, exist_ok=True)
     lock_path = vault_root / ".vault.lock"
@@ -89,9 +88,7 @@ def vault_write(
         # same filesystem) and silently replaces on Windows. Cross-dir
         # rename can fail on Windows if target dir is on a different
         # drive — vault_root is the parent of target, so this is safe.
-        fd, tmp_path = tempfile.mkstemp(
-            prefix=".tmp_vault_write_", dir=str(vault_root)
-        )
+        fd, tmp_path = tempfile.mkstemp(prefix=".tmp_vault_write_", dir=str(vault_root))
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 f.write(body_str)

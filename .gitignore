@@ -40,6 +40,15 @@
 /tuple\[*
 /set\[*
 /frozenset\[*
+# Examples seen 2026-08-29: comma+plus literals, capitalized paths,
+# parens-wrapped calls, backtick fragments, single lowercase words
+# from bash redirects like `> Path`, `> emit`, `> no`, `> frontmatter.dumps()`.
+/0,+,+
+/Path
+/emit
+/no
+/frontmatter.dumps()
+/str\`
 
 # Root-level test DB created by vibe-ops/scripts/test_mvl_ingestion.py
 # whose cleanup line is commented out. Different schema (5 tables, ORM)
@@ -113,6 +122,8 @@ life-ops/operational/build/
 life-ops/operational/*.egg-link
 life-ops/operational/.pytest_cache/
 .pytest-tmp/
+.pytest_tmp/
+.tmp_test/
 vibe-ops/.venv/
 vibe-ops/__pycache__/
 vibe-ops/.ruff_cache/
