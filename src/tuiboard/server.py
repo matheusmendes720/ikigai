@@ -33,6 +33,14 @@ def _build_server() -> StdioServerBase:
         handler=tb_snapshot,
         schema=TuiboardSnapshotInput.model_json_schema(),
     )
+    # A3.4: render tool (4 layouts)
+    from tuiboard.tools.tuiboard_render import handle as tb_render
+    from tuiboard.models import TuiboardRenderInput
+    server.register_tool(
+        name="tuiboard_render",
+        handler=tb_render,
+        schema=TuiboardRenderInput.model_json_schema(),
+    )
     return server
 
 
