@@ -130,7 +130,6 @@ def test_roundtrip_done_status_propagates_back_to_vault(fresh_env, monkeypatch):
     result = reverse_sync(
         state_path=state_path,
         adapter=LiveAdapter(db_path),
-        review_queue_dir=qdir,
         source_fork="taskdog",
     )
     assert result.emitted == 1, f"expected 1 emitted, got {result.emitted}"
