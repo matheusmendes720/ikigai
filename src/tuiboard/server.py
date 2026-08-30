@@ -41,13 +41,22 @@ def _build_server() -> StdioServerBase:
         handler=tb_render,
         schema=TuiboardRenderInput.model_json_schema(),
     )
+    # A4.3: aggregator-driven tool (multi-fork read)
+    from tuiboard.tools.tuiboard_aggregate import handle as tb_aggregate
+    from tuiboard.models import TuiboardAggregateInput
+    server.register_tool(
+        name="tuiboard_aggregate",
+        handler=tb_aggregate,
+        schema=TuiboardAggregateInput.model_json_schema(),
+    )
     return server
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, stream=__import__("sys").stderr)
     server = _build_server()
-    # Tools registered in A2 (tuiboard_diff), A3 (tuiboard_snapshot, tuiboard_render)
+    # Tools registered in A2 (tuiboard_diff), A3 (tuiboard_snapshot, tuiboard_render),
+    # A4.3 (tuiboard_aggregate)
     server.serve_forever()
 
 

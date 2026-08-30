@@ -40,3 +40,21 @@ def test_tuiboard_tools_list_nonempty(server_process_factory, skip_if_no_module)
             assert "tuiboard_render" in tool_names
     except (ImportError, ModuleNotFoundError, EOFError, OSError, TimeoutError) as e:
         pytest.skip(f"tuiboard server not functional: {e}")
+
+
+def test_tuiboard_tools_list_includes_aggregate(server_process_factory, skip_if_no_module):
+    """After A4.3, tuiboard_aggregate is the 4th registered tool."""
+    try:
+        with server_process_factory("tuiboard.server") as (proc, stdin, stdout):
+            _send_request(stdin, {
+                "jsonrpc": "2.0", "id": 3, "method": "tools/list", "params": {},
+            })
+            response = _read_response(stdout)
+            tool_names = {t["name"] for t in response["result"]["tools"]}
+            assert "tuiboard_aggregate" in tool_names
+            # Other 3 still present
+            assert "tuiboard_diff" in tool_names
+            assert "tuiboard_snapshot" in tool_names
+            assert "tuiboard_render" in tool_names
+    except (ImportError, ModuleNotFoundError, EOFError, OSError, TimeoutError) as e:
+        pytest.skip(f"tuiboard server not functional: {e}")

@@ -105,3 +105,26 @@ class TuiboardDiffOutput(_Base):
     removed: list[TuiboardTaskEntry]
     changed: list[TuiboardChange]
     unchanged_count: int = 0
+
+
+class TuiboardAggregateInput(_Base):
+    """Input for tuiboard_aggregate tool — no parameters required."""
+    pass
+
+
+class TuiboardAggregateTask(_Base):
+    """One task in the aggregated view across all forks."""
+    ueid: str
+    title: str
+    status: str | None = None
+    source: Literal["cli", "taskdog", "solverforge-calendar"]
+    due: str | None = None
+    vector: str | None = None
+    tags: list[str] = []
+
+
+class TuiboardAggregateOutput(_Base):
+    """Aggregated view across all 3 forks with source breakdown."""
+    tasks: list[TuiboardAggregateTask]
+    count: int
+    sources: dict[str, int]
