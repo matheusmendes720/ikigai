@@ -654,3 +654,105 @@ def test_validate_json_flag_emits_object(cli_env: dict, capsys: pytest.CaptureFi
     assert "missing_vault_files" in parsed
     assert "missing" in parsed
     assert parsed["missing"] == []
+
+
+# ──────────────────── --dry-run on sync ────────────────────
+
+
+def test_sync_dry_run_does_not_write_state(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """`sync --dry-run` parses + diffs but does NOT touch sync-state.json."""
+    _write_task_md(
+        cli_env["vault"],
+        "plans/q3/dry.md",
+        "tsk:dry:66666666-6666-6666-6666-666666666666:6666666666666666",
+        "Dry",
+    )
+    rc = main(["sync", "--dry-run"])
+    assert rc == 0
+    parsed = json.loads(capsys.readouterr().out.strip())
+    assert parsed["dry_run"] is True
+    # State file MUST NOT exist
+    assert not cli_env["state"].exists()
+
+
+def test_sync_dry_run_does_not_call_adapter(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """`sync --dry-run` MUST NOT invoke adapter.call_tool — preview only."""
+    _write_task_md(
+        cli_env["vault"],
+        "plans/q3/dry.md",
+        "tsk:dry:77777777-7777-7777-7777-777777777777:7777777777777777",
+        "Dry",
+    )
+    adapter = cli_env["adapter"]
+    rc = main(["sync", "--dry-run"])
+    assert rc == 0
+    capsys.readouterr()
+    assert adapter._calls == []  # no adapter invocations
+
+
+def test_sync_dry_run_json_flag(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """`sync --dry-run --json` prints a JSON object with the planned actions."""
+    _write_task_md(
+        cli_env["vault"],
+        "plans/q3/dry.md",
+        "tsk:dry:88888888-8888-8888-8888-888888888888:8888888888888888",
+        "Dry",
+    )
+    rc = main(["sync", "--dry-run", "--json"])
+    assert rc == 0
+    parsed = json.loads(capsys.readouterr().out.strip())
+    assert "dry_run" in parsed
+    assert parsed["dry_run"] is True
+    assert "planned_actions" in parsed
+    assert len(parsed["planned_actions"]) == 1
+    assert parsed["planned_actions"][0]["kind"] == "new"
+
+
+# ──────────────────── --dry-run on reverse ────────────────────
+
+
+def test_reverse_dry_run_does_not_enqueue(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """`reverse --dry-run` MUST NOT enqueue TaskChange events."""
+    ueid = "tsk:known:99999999-9999-9999-9999-999999999999:9999999999999999"
+    _seed_reverse_state(
+        cli_env["rev_state"],
+        {
+            ueid: {
+                "last_seen_status": "planned",
+                "last_seen_title": "Known",
+                "taskdog_id": 1,
+                "vault_path": "plans/q3/known.md",
+            }
+        },
+    )
+    cli_env["adapter"].call_tool(
+        "taskdog_add",
+        {"ueid": ueid, "title": "Known", "priority": 1, "due": "2026-09-15"},
+    )
+    # Promote to done directly via SQL
+    conn = sqlite3.connect(cli_env["taskdog_db"])
+    try:
+        conn.execute("UPDATE tasks SET status = 'done' WHERE ueid = ?", (ueid,))
+        conn.commit()
+    finally:
+        conn.close()
+
+    rc = main(["reverse", "--dry-run", "--json"])
+    assert rc == 0
+    parsed = json.loads(capsys.readouterr().out.strip())
+    assert parsed["dry_run"] is True
+    # No review queue files
+    from src.mesh.queue import QUEUE_DIR
+
+    queue_files = list(QUEUE_DIR.glob("*.json"))
+    assert queue_files == []
+
+
+def test_reverse_dry_run_json_flag(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """`reverse --dry-run --json` prints planned emits."""
+    rc = main(["reverse", "--dry-run", "--json"])
+    assert rc == 0
+    parsed = json.loads(capsys.readouterr().out.strip())
+    assert "dry_run" in parsed
+    assert parsed["dry_run"] is True
+    assert "planned_emits" in parsed
