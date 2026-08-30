@@ -36,7 +36,15 @@ def _build_server() -> StdioServerBase:
         handler=sf_sched,
         schema=SfScheduleInput.model_json_schema(),
     )
-    # A4: advanced tools (sf_replan) added in later phase
+    # A4: advanced tools
+    from solverforge_calendar.tools.sf_replan import handle as sf_replan
+    from solverforge_calendar.models import SfReplanInput
+
+    server.register_tool(
+        name="sf_replan",
+        handler=sf_replan,
+        schema=SfReplanInput.model_json_schema(),
+    )
     return server
 
 
