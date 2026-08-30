@@ -14,10 +14,15 @@ from pathlib import Path
 from langchain_core.tools import tool
 from src.ikigai.src.ikigai.vault.vault_read import vault_read
 
-# Mirrors the _PROJECT_ROOT pattern used elsewhere in src/ikigai/src/agents/
-# (5 parents up from src/ikigai/src/agents/ to reach the project root).
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
-_VAULT_DIR = _PROJECT_ROOT / "vault"
+
+def _get_vault_dir() -> Path:
+    """Lazily resolve vault root at call time.
+
+    5 parents up from src/ikigai/src/agents/ reaches the project root.
+    Resolved on every call so tests can monkeypatch this function to
+    point at a temp vault without polluting the project's real vault.
+    """
+    return Path(__file__).resolve().parent.parent.parent.parent.parent / "vault"
 
 
 @tool
@@ -30,7 +35,7 @@ def ikigai_read_vault(vault_path: str) -> str:
     Read-only — never writes. Errors are returned as JSON for downstream parsing.
     """
     try:
-        result = vault_read(_VAULT_DIR, vault_path)
+        result = vault_read(_get_vault_dir(), vault_path)
     except (ValueError, FileNotFoundError) as e:
         return json.dumps({"error": str(e), "vault_path": vault_path})
     return json.dumps(result)

@@ -6,10 +6,8 @@ Read-only — never writes. Exposed as `vault_read` MCP tool.
 Security:
   - Rejects absolute paths
   - Rejects paths resolving outside vault_root
-  - VaultLock for cross-platform concurrency safety
-
-Concurrency:
-  - VaultLock for cross-platform concurrency safety
+  - VaultLock for cross-platform concurrency safety (shared reader lock;
+    mirrors vault_write's exclusive writer lock)
 """
 
 from __future__ import annotations

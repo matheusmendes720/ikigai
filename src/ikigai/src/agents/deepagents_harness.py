@@ -471,11 +471,19 @@ def _route_command(user_input: str, thread_id: str, registry: dict) -> str | Non
 
 
 def _invoke_agent_or_fallback(agent, messages: list, config: dict, thread_id: str) -> dict | None:
-    """Invoke the deep agent; return result or None on failure (graceful fallback)."""
+    """Invoke the deep agent; return result or None on failure (graceful fallback).
+
+    Narrows the catch to expected invoke-failure modes so control-flow
+    exceptions (KeyboardInterrupt, SystemExit, GeneratorExit) propagate
+    instead of being silently swallowed.
+    """
     _ = thread_id  # reserved for future per-thread overrides
     try:
         return agent.invoke({"messages": messages}, config=config)
-    except Exception:
+    except (RuntimeError, ValueError, KeyError, TypeError, AttributeError, OSError) as exc:
+        # Re-raise control-flow exceptions — these are NOT graceful-fallback candidates.
+        if isinstance(exc, (KeyboardInterrupt, SystemExit, GeneratorExit)):
+            raise
         return None
 
 

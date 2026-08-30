@@ -7,10 +7,12 @@ end-to-end:
     1. test_chain_vault_read_then_strategics — vault_read then load_strategics
     2. test_chain_strategics_then_vault_write — load_strategics then vault_write
     3. test_chain_vault_read_then_vault_write_round_trip — full read/derive/write/read
+    4. test_chain_langchain_ikigai_read_vault_round_trip — agent-facing tool
+       (LangChain @tool wrapper) reads via lazy _get_vault_dir (Minor #3)
 
   MCP subprocess tests (spawn FastMCP server, drive JSON-RPC chain via stdio):
-    4. test_mcp_server_starts_via_stdio — server boots, initialize handshake works
-    5. test_mcp_lists_vault_read_and_vault_write_tools — tools/list advertises both
+    5. test_mcp_server_starts_via_stdio — server boots, initialize handshake works
+    6. test_mcp_lists_vault_read_and_vault_write_tools — tools/list advertises both
        (also asserts >= 15 tools per B7.1 vault_read ship)
 
 Per B5.0 audit lessons, smoke tests for MCP-dependent code MUST handle MCP
@@ -109,6 +111,48 @@ def test_chain_vault_read_then_vault_write_round_trip(tmp_path: Path) -> None:
     assert result["frontmatter"]["status"] == "in_progress"
     assert result["frontmatter"]["title"] == "Original"
     assert "# Original" in result["body"]
+
+
+def test_chain_langchain_ikigai_read_vault_round_trip(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Agent-facing LangChain tool reads via the lazy _get_vault_dir resolver.
+
+    Exercises ikigai_read_vault (LangChain @tool) end-to-end:
+      1. Build a tmp vault with a markdown file (frontmatter + body)
+      2. Monkeypatch `_get_vault_dir` to point at the tmp vault
+         (validates Minor #3: lazy resolution, not import-time hard-coding)
+      3. Invoke ikigai_read_vault via `.invoke({...})` (LangChain tool API)
+      4. Parse the JSON response and assert frontmatter + body match
+
+    Confirms that the agent-facing tool is wired correctly through vault_read
+    and that lazy vault-root resolution enables clean test isolation.
+    """
+    import json
+
+    from src.ikigai.src.agents import ikigai_read_vault as ikigai_read_vault_mod
+
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "task.md").write_text(
+        "---\ntitle: Hello\nstatus: planned\nueid: ikigai:task:langchain:001\n---\n"
+        "# Hello body\n\nSome markdown.\n",
+        encoding="utf-8",
+    )
+
+    # Patch the lazy resolver to point at our tmp vault (Minor #3 invariant).
+    monkeypatch.setattr(ikigai_read_vault_mod, "_get_vault_dir", lambda: vault)
+
+    # Invoke the LangChain tool (this is what the deep agent does internally).
+    raw = ikigai_read_vault_mod.ikigai_read_vault.invoke({"vault_path": "task.md"})
+    parsed = json.loads(raw)
+
+    assert parsed["frontmatter"]["title"] == "Hello"
+    assert parsed["frontmatter"]["status"] == "planned"
+    assert parsed["frontmatter"]["ueid"] == "ikigai:task:langchain:001"
+    assert "# Hello body" in parsed["body"]
+    assert "Some markdown." in parsed["body"]
+    assert len(parsed["sha256"]) == 64  # sha256 hex length
 
 
 # ── MCP subprocess helpers (canonical FastMCP stdio pattern) ─────────────
