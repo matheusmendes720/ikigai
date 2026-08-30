@@ -986,3 +986,15 @@ IKIGAI_TOOLS = [
     taskdog_complete_task,
     taskdog_get_task,
 ]
+
+
+# ---------------------------------------------------------------------------
+# B7.3 — vault-grounded agent tools (appended; vault_write remains ONLY writer)
+# ---------------------------------------------------------------------------
+from .ikigai_read_strategics import ikigai_read_strategics  # noqa: E402
+from .ikigai_read_vault import ikigai_read_vault  # noqa: E402
+
+IKIGAI_TOOLS.extend([
+    ikigai_read_strategics,
+    ikigai_read_vault,
+])

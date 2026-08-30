@@ -404,296 +404,122 @@ def main():
     print(result)
 
 
-def run_chat(agent, thread_id: str):
-    """Run the deep agent in interactive chat mode.
+# ---------------------------------------------------------------------------
+# F11 helpers — extracted from run_chat for B7.3.
+# Single source of truth for the 5-step read → dispatch → invoke → render loop.
+# ---------------------------------------------------------------------------
 
-    deepagents provides a built-in REPL via the graph's stream or invoke.
-    We wrap it with conversation history accumulation.
+
+def _extract_assistant_text(result: dict) -> str:
+    """Pull the last AI message content from a deepagents invoke result.
+
+    Returns the content of the last assistant-role message as a string.
+    If content is structured (a list of blocks), coerces via str() — the
+    detail of structured-content rendering is deferred (per spec B7.3).
     """
-    from deepagents.graph import DeepAgentState
+    messages = result.get("messages", [])
+    for msg in reversed(messages):
+        if msg.get("role") == "assistant":
+            content = msg.get("content", "")
+            return content if isinstance(content, str) else str(content)
+    return ""
+
+
+def _register_builtin_commands() -> dict:
+    """Return a dict mapping command name → callable(thread_id).
+
+    Each callable invokes the corresponding LangChain @tool with a thread_id
+    argument and returns its string output. The orchestrator tries these
+    first for fast-path REPL responses; anything not in the registry falls
+    through to the deep-agent invoke.
+    """
+    from .tools import (
+        ikigai_checkpoint,
+        ikigai_corrections,
+        ikigai_phase,
+        ikigai_plan_cycle,
+        ikigai_regime,
+        ikigai_score,
+        ikigai_sync_vault,
+    )
+
+    def _call(tool, thread_id: str):
+        return tool.invoke({"thread_id": thread_id})
+
+    return {
+        "score": lambda tid: _call(ikigai_score, tid),
+        "scores": lambda tid: _call(ikigai_score, tid),
+        "regime": lambda tid: _call(ikigai_regime, tid),
+        "phase": lambda tid: _call(ikigai_phase, tid),
+        "corrections": lambda tid: _call(ikigai_corrections, tid),
+        "plan": lambda tid: _call(ikigai_plan_cycle, tid),
+        "sync": lambda tid: _call(ikigai_sync_vault, tid),
+        "checkpoint": lambda tid: _call(ikigai_checkpoint, tid),
+    }
+
+
+def _route_command(user_input: str, thread_id: str, registry: dict) -> str | None:
+    """Dispatch a built-in command if user_input matches; else None.
+
+    Normalizes input (lowercase + strip) before registry lookup.
+    """
+    key = user_input.lower().strip()
+    handler = registry.get(key)
+    if handler is None:
+        return None
+    return handler(thread_id)
+
+
+def _invoke_agent_or_fallback(agent, messages: list, config: dict, thread_id: str) -> dict | None:
+    """Invoke the deep agent; return result or None on failure (graceful fallback)."""
+    _ = thread_id  # reserved for future per-thread overrides
+    try:
+        return agent.invoke({"messages": messages}, config=config)
+    except Exception:
+        return None
+
+
+def run_chat(agent, thread_id: str):
+    """Orchestrator: loop read → dispatch → invoke → render. ≤ 60 LOC."""
+    from .tools import ikigai_plan_cycle
 
     print("IKIGAi Conversational Agent — powered by deepagents")
     print("Ctrl+C to exit\n")
-    print(
-        "Commands: score | regime | phase | corrections | decompose <ueid> | plan | sync | checkpoint\n"
-    )
-
-    # Bootstrap: run one plan cycle first to get initial state
-    from .tools import ikigai_plan_cycle
+    print("Commands: score | regime | phase | corrections | plan | sync | checkpoint\n")
 
     print("Bootstrapping IKIGAi state...")
     init_result = ikigai_plan_cycle.invoke({"thread_id": thread_id})
     print(f"  {init_result}\n")
 
     config = {"configurable": {"thread_id": thread_id}}
-
     messages: list[dict] = []
+    registry = _register_builtin_commands()
 
-    def show_state():
-        """Print current checkpointed state."""
-        from .tools import ikigai_regime, ikigai_phase, ikigai_score
+    while True:
+        try:
+            user_input = input("\n🧑 > ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\n\nGoodbye.")
+            break
+        if not user_input:
+            continue
 
-        print("\n📊 Current State:")
-        print("  " + ikigai_regime.invoke({"thread_id": thread_id}))
-        print("  " + ikigai_phase.invoke({"thread_id": thread_id}))
-        score_result = ikigai_score.invoke({"thread_id": thread_id})
-        for line in score_result.split("\n"):
-            print(f"  {line}")
+        cmd_result = _route_command(user_input, thread_id, registry)
+        if cmd_result is not None:
+            print(cmd_result)
+            continue
 
-    try:
-        while True:
-            try:
-                user_input = input("\n🧑 > ").strip()
-            except (EOFError, KeyboardInterrupt):
-                print("\n\nGoodbye.")
-                break
-            if not user_input:
-                continue
+        messages.append({"role": "user", "content": user_input})
+        result = _invoke_agent_or_fallback(agent, messages, config, thread_id)
+        if result is None:
+            print("(agent unavailable; please use a built-in command)")
+            continue
+        assistant_text = _extract_assistant_text(result)
+        messages = result.get("messages", messages)
+        print(assistant_text)
 
-            # Built-in direct commands
-            t = user_input.lower().strip()
-            if t in ("score", "scores"):
-                from .tools import ikigai_score
-
-                print("\n" + ikigai_score.invoke({"thread_id": thread_id}))
-                continue
-            if t in ("regime", "state", "status"):
-                from .tools import ikigai_regime
-
-                print("\n" + ikigai_regime.invoke({"thread_id": thread_id}))
-                continue
-            if t in ("phase", "phases", "weights"):
-                from .tools import ikigai_phase
-
-                print("\n" + ikigai_phase.invoke({"thread_id": thread_id}))
-                continue
-            if t in ("corrections", "signals"):
-                from .tools import ikigai_corrections
-
-                print("\n" + ikigai_corrections.invoke({"thread_id": thread_id}))
-                continue
-            if t in ("sync", "vault"):
-                from .tools import ikigai_sync_vault
-
-                print("\n" + ikigai_sync_vault.invoke({"thread_id": thread_id}))
-                continue
-            if t.startswith("decompose ") or t.startswith("decomp "):
-                parts = user_input.strip().split(None, 1)
-                ueid = parts[1] if len(parts) > 1 else ""
-                from .tools import ikigai_decompose
-
-                print("\n" + ikigai_decompose.invoke({"ueid": ueid, "thread_id": thread_id}))
-                continue
-            if t.startswith("checkpoint"):
-                parts = user_input.strip().split(None, 1)
-                action = parts[1] if len(parts) > 1 else "list"
-                from .tools import ikigai_checkpoint
-
-                print("\n" + ikigai_checkpoint.invoke({"action": action, "thread_id": thread_id}))
-                continue
-            if t in ("plan", "plan_cycle", "cycle", "run"):
-                print()
-                print(ikigai_plan_cycle.invoke({"thread_id": thread_id}))
-                continue
-            if t in ("state", "show"):
-                show_state()
-                continue
-            if t in ("help", "?"):
-                print(
-                    "\nCommands:\n"
-                    "  IKIGAi:   score | regime | phase | corrections | decompose <ueid>\n"
-                    "            plan | sync | checkpoint | state\n"
-                    "  Calendar:  cal <days> | new-event <title> <date> [time]\n"
-                    "  Kanban:    boards | board <path> [col] [filter]\n"
-                    "  Tasks:     tasks [status] | new-task <name> | done <id> | task <id>\n"
-                    "  Filesystem: ls <path> | cat <file> | find <pattern>\n"
-                    "\nOr just chat naturally."
-                )
-                continue
-
-            # Calendar shortcuts
-            if t.startswith("cal "):
-                days = int(t.split()[1]) if len(t.split()) > 1 else 7
-                from .tools import solverforge_list_events
-
-                print("\n" + solverforge_list_events.invoke({"days": days}))
-                continue
-
-            if t.startswith("new-event "):
-                parts = user_input.strip().split(None, 3)
-                if len(parts) < 3:
-                    print("Usage: new-event <title> <date> [time]")
-                    continue
-                title, date = parts[1], parts[2]
-                time = parts[3] if len(parts) > 3 else "09:00"
-                from .tools import solverforge_create_event
-
-                print(
-                    "\n"
-                    + solverforge_create_event.invoke({"title": title, "date": date, "time": time})
-                )
-                continue
-
-            # Kanban shortcuts
-            if t == "boards":
-                from .tools import tuiboard_list_boards
-
-                print("\n" + tuiboard_list_boards.invoke({}))
-                continue
-
-            if t.startswith("board "):
-                parts = user_input.strip().split(None, 4)
-                if len(parts) < 2:
-                    print("Usage: board <path> [col] [filter]")
-                    continue
-                bp = parts[1]
-                col = int(parts[2]) if len(parts) > 2 else None
-                flt = parts[3] if len(parts) > 3 else "all"
-                from .tools import tuiboard_get_tasks
-
-                print(
-                    "\n"
-                    + tuiboard_get_tasks.invoke({"board_path": bp, "column": col, "filter": flt})
-                )
-                continue
-
-            # Task shortcuts
-            if t.startswith("tasks"):
-                parts = user_input.strip().split(None, 2)
-                status = parts[1].upper() if len(parts) > 1 else None
-                from .tools import taskdog_list_tasks
-
-                print(
-                    "\n" + taskdog_list_tasks.invoke({"status": status, "include_archived": False})
-                )
-                continue
-
-            if t.startswith("new-task ") or t.startswith("newtask "):
-                name = user_input.strip().split(None, 1)[1] if " " in user_input.strip() else ""
-                if not name:
-                    print("Usage: new-task <name>")
-                    continue
-                from .tools import taskdog_create_task
-
-                print("\n" + taskdog_create_task.invoke({"name": name}))
-                continue
-
-            if t.startswith("done "):
-                try:
-                    tid = int(t.split()[1])
-                    from .tools import taskdog_complete_task
-
-                    print("\n" + taskdog_complete_task.invoke({"task_id": tid}))
-                except (ValueError, IndexError):
-                    print("Usage: done <task_id>")
-                continue
-
-            if t.startswith("task "):
-                try:
-                    tid = int(t.split()[1])
-                    from .tools import taskdog_get_task
-
-                    print("\n" + taskdog_get_task.invoke({"task_id": tid}))
-                except (ValueError, IndexError):
-                    print("Usage: task <task_id>")
-                continue
-
-            # Filesystem shortcuts
-            if t.startswith("ls "):
-                path = t.split(None, 1)[1]
-                p = Path(path).expanduser()
-                if p.is_dir():
-                    for item in sorted(p.iterdir()):
-                        tag = "[DIR]" if item.is_dir() else "[FILE]"
-                        print(f"  {tag}  {item.name}")
-                else:
-                    print(f"  Not a directory: {path}")
-                continue
-
-            if t.startswith("cat "):
-                path = t.split(None, 1)[1]
-                p = Path(path).expanduser()
-                if p.is_file():
-                    print(p.read_text(encoding="utf-8", errors="replace"))
-                else:
-                    print(f"  File not found: {path}")
-                continue
-
-            if t.startswith("find "):
-                pattern = t.split(None, 1)[1] if " " in t else ""
-                import glob as _glob
-
-                matches = _glob.glob(str(Path.home() / pattern), recursive=True)[:20]
-                for m in matches:
-                    print(f"  {m}")
-                if not matches:
-                    print("  (no matches)")
-                continue
-
-            # Natural language → deep agent
-            print()
-            messages.append({"role": "user", "content": user_input})
-
-            try:
-                # Use invoke() for reliable full-response retrieval
-                result = agent.invoke(
-                    {"messages": messages},
-                    config=config,
-                )
-                # Result is the final state dict; extract assistant text from messages
-                response_content = ""
-                if isinstance(result, dict):
-                    for msg in result.get("messages", []):
-                        # Handle both plain dicts and LangChain message objects
-                        if isinstance(msg, dict):
-                            role = msg.get("role", "")
-                            content = msg.get("content", "")
-                        else:
-                            # LangChain message: HumanMessage, AIMessage, SystemMessage, etc.
-                            role = getattr(msg, "type", getattr(msg, "role", ""))
-                            content = getattr(msg, "content", "")
-
-                        if role == "ai" and content:
-                            # deepagents returns structured content: [{type, text, ...}, ...]
-                            # Extract readable text, skipping 'thinking' blocks
-                            if isinstance(content, list):
-                                for block in content:
-                                    if isinstance(block, dict) and block.get("type") == "text":
-                                        text = block.get("text", "")
-                                        if text:
-                                            print(text, end="", flush=True)
-                                            response_content += text + "\n"
-                            elif isinstance(content, str) and content:
-                                print(content, end="", flush=True)
-                                response_content += content + "\n"
-                elif isinstance(result, str):
-                    print(result, end="")
-                    response_content = result
-                print()  # newline after response
-
-                if response_content:
-                    messages.append({"role": "assistant", "content": response_content.strip()})
-
-            except Exception as e:
-                # Record the exception in the active trace so Langfuse shows
-                # the full stack trace alongside the LLM span that triggered it.
-                with _tracer.start_as_current_span("ikigai.run_chat.error") as span:
-                    span.set_status(_otel_trace.Status(_otel_trace.StatusCode.ERROR, str(e)))
-                    span.record_exception(e)
-                print(f"\n[Agent error: {e}]")
-                # Fallback: try plan cycle
-                print("Falling back to plan cycle...")
-                try:
-                    print(ikigai_plan_cycle.invoke({"thread_id": thread_id}))
-                except Exception as e2:
-                    print(f"  [Fallback failed: {e2}]")
-
-    except KeyboardInterrupt:
-        print("\n\nGoodbye.")
-
-    finally:
-        # Flush any pending spans to both exporters before the process exits.
-        shutdown_tracing()
+    # Flush any pending spans to both exporters before the process exits.
+    shutdown_tracing()
 
 
 # ---------------------------------------------------------------------------
