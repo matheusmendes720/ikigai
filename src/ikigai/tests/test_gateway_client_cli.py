@@ -203,9 +203,14 @@ def test_main_watch_parses_args(capsys: pytest.CaptureFixture) -> None:
         port: int = 8765,
         event_filter: str | None = None,
         duration_s: float = 0.0,
+        human: bool = False,
     ) -> int:
         captured.update(
-            host=host, port=port, event_filter=event_filter, duration_s=duration_s
+            host=host,
+            port=port,
+            event_filter=event_filter,
+            duration_s=duration_s,
+            human=human,
         )
         print(json.dumps({"event": "hello", "data": {"k": "v"}}), flush=True)
         return 0
@@ -229,6 +234,122 @@ def test_main_watch_parses_args(capsys: pytest.CaptureFixture) -> None:
         "port": 9999,
         "event_filter": "taskdog.",
         "duration_s": 5.0,
+        # Default with capsys (non-TTY) → human=False (JSON mode).
+        "human": False,
     }
     parsed = json.loads(capsys.readouterr().out.strip())
     assert parsed["event"] == "hello"
+
+
+# ──────── Human-readable mode ────────
+
+
+def test_summarize_data_tool_call() -> None:
+    """Tool-shaped payloads get a compact `tool=...()` rendering."""
+    from ikigai.gateway.client_cli import _summarize_data
+
+    summary = _summarize_data({"tool": "taskdog.add", "arguments": {"title": "x"}})
+    assert "taskdog.add" in summary
+    assert "title" in summary
+
+
+def test_summarize_data_long_payload_truncated() -> None:
+    """Payloads >100 chars get truncated for streaming readability."""
+    from ikigai.gateway.client_cli import _summarize_data
+
+    huge = {"blob": "x" * 200}
+    summary = _summarize_data(huge)
+    assert len(summary) <= 100
+    assert summary.endswith("...")
+
+
+def test_summarize_data_result_field() -> None:
+    """Dicts with a top-level `result` collapse to `result=...`."""
+    from ikigai.gateway.client_cli import _summarize_data
+
+    summary = _summarize_data({"result": "ok"})
+    assert summary.startswith("result=")
+
+
+def test_format_event_human_shape() -> None:
+    """Human line starts with `[HH:MM:SS.mmm]` then event name + data summary."""
+    from ikigai.gateway.client_cli import _format_event_human
+
+    line = _format_event_human({"event": "task.created", "data": {"title": "hi"}})
+    # Verify the bracket+timestamp prefix is preserved
+    assert line.startswith("[")
+    assert "]" in line[:14]
+    assert "task.created" in line
+    # The exact timestamp varies — but `title` from the summary appears after
+    assert "title" in line
+
+
+def test_watch_human_emits_compact_lines_not_json() -> None:
+    """`watch(human=True)` renders one compact line per event, not JSON."""
+    script = (
+        _chunk(b"event: task.created\ndata: " + json.dumps({"title": "Build wiremesh"}).encode() + b"\n\n")
+        + _chunk(b"event: gateway.heartbeat\ndata: {}\n\n")
+        + b"0\r\n\r\n"
+    )
+    server = _StubHTTPServer(script)
+    try:
+        rc = watch(host="127.0.0.1", port=server.port, duration_s=2.0, human=True)
+        assert rc == 0
+    finally:
+        server.close()
+
+
+def test_main_json_flag_forces_json_mode(capsys: pytest.CaptureFixture) -> None:
+    """`--json` forces JSON-per-line output (default behavior, but explicit)."""
+    import ikigai.gateway.client_cli as cli_mod
+    captured: dict = {}
+
+    def fake_watch(
+        host: str = "127.0.0.1",
+        port: int = 8765,
+        event_filter: str | None = None,
+        duration_s: float = 0.0,
+        human: bool = False,
+    ) -> int:
+        captured["human"] = human
+        return 0
+
+    original = cli_mod.watch
+    cli_mod.watch = fake_watch  # type: ignore[assignment]
+    try:
+        rc = main(["watch", "--json"])
+    finally:
+        cli_mod.watch = original  # type: ignore[assignment]
+    assert rc == 0
+    assert captured["human"] is False
+
+
+def test_main_human_flag_forces_human_mode(capsys: pytest.CaptureFixture) -> None:
+    """`--human` forces compact rendered lines."""
+    import ikigai.gateway.client_cli as cli_mod
+    captured: dict = {}
+
+    def fake_watch(
+        host: str = "127.0.0.1",
+        port: int = 8765,
+        event_filter: str | None = None,
+        duration_s: float = 0.0,
+        human: bool = False,
+    ) -> int:
+        captured["human"] = human
+        return 0
+
+    original = cli_mod.watch
+    cli_mod.watch = fake_watch  # type: ignore[assignment]
+    try:
+        rc = main(["watch", "--human"])
+    finally:
+        cli_mod.watch = original  # type: ignore[assignment]
+    assert rc == 0
+    assert captured["human"] is True
+
+
+def test_main_json_and_human_mutually_exclusive() -> None:
+    """Passing both --json and --human must fail (argparse)."""
+    with pytest.raises(SystemExit):
+        main(["watch", "--json", "--human"])
