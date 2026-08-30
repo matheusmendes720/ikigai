@@ -730,6 +730,7 @@ from mcp_server.tools_mesh import (
     ikigai_task_create,
 )
 from mcp_server.tools_vault import vault_write as _handle_vault_write
+from mcp_server.tools_vault import vault_read as _handle_vault_read
 
 
 @MCP.tool(
@@ -790,6 +791,25 @@ def vault_write(
         "vault_write",
         _handle_vault_write,
         {"vault_path": vault_path, "frontmatter": frontmatter, "body": body},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase B7.1 — vault_read (read-side mirror of vault_write)
+# ---------------------------------------------------------------------------
+@MCP.tool(
+    name="vault_read",
+    description=(
+        "Read markdown file from vault. Returns parsed frontmatter, body, sha256, mtime. "
+        "Read-only — never writes. Mirror of vault_write security model."
+    ),
+)
+def vault_read(vault_path: str) -> str:
+    """Read markdown file from vault. Read-side mirror of vault_write (B7.1)."""
+    return traced_tool_dispatch(
+        "vault_read",
+        _handle_vault_read,
+        {"vault_path": vault_path},
     )
 
 
