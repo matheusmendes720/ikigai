@@ -1,8 +1,15 @@
 """SSE consumer CLI for the UnifiedMCPGateway.
 
-Streams events from the gateway's /events endpoint as JSON lines on
-stdout. Each line is `{"event": <name>, "data": <payload>}` — useful
-for piping into `jq`, log aggregators, or shell scripts.
+Streams events from the gateway's /events endpoint. Default (pipes/scripts)
+emits one JSON object per line — useful for piping into `jq`, log
+aggregators, or shell scripts. Default (TTY, operator's terminal) emits
+one compact rendered line per event — easier to read at a glance.
+
+Output modes:
+    Default (TTY):     one `[ts] EVENT_NAME  data_summary` line per event.
+    Default (pipe):    one JSON object per line (scriptable).
+    --human:           force compact rendered lines even when piped.
+    --json:            force JSON lines even when on a TTY.
 
 Usage:
     python -m ikigai.gateway.client_cli watch
@@ -21,18 +28,68 @@ Why raw sockets (not urllib / http.client):
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import logging
 import socket
 import sys
 import time
 from collections.abc import Iterator
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 DEFAULT_DURATION_S = 0.0  # 0 = run until interrupted
+_DATA_SUMMARY_MAX_CHARS = 100
+
+
+def _summarize_data(data: Any) -> str:
+    """One-line compact summary of a payload for human-readable streaming output.
+
+    Mirrors the logic in event_log_cli._summarize_data (kept inline to avoid
+    a CLI-to-CLI import inside the same package).
+    """
+    if isinstance(data, dict):
+        if "tool" in data:
+            tool = data.get("tool")
+            args = data.get("arguments") or data.get("args")
+            if args is not None:
+                args_str = json.dumps(args, default=str)
+                if len(args_str) > 60:
+                    args_str = args_str[:57] + "..."
+                return f"tool={tool}({args_str})"
+            return f"tool={tool}"
+        if "result" in data:
+            return f"result={json.dumps(data['result'], default=str)[:60]}"
+    compact = json.dumps(data, default=str)
+    if len(compact) > _DATA_SUMMARY_MAX_CHARS:
+        compact = compact[: _DATA_SUMMARY_MAX_CHARS - 3] + "..."
+    return compact
+
+
+def _format_event_human(event: dict) -> str:
+    """Render one event as a compact human-readable line.
+
+    Format: `[HH:MM:SS.mmm] EVENT_NAME  data_summary`
+
+    No header — this is a continuous stream, not a one-shot table.
+    """
+    name = str(event.get("event", ""))
+    now = datetime.datetime.now()
+    ts = now.strftime("%H:%M:%S.") + f"{now.microsecond // 1000:03d}"
+    summary = _summarize_data(event.get("data"))
+    return f"[{ts}] {name}  {summary}"
+
+
+def _wants_human(args: argparse.Namespace) -> bool:
+    """Resolve output mode: --json wins, else --human wins, else TTY default."""
+    if getattr(args, "json", False):
+        return False
+    if getattr(args, "human", False):
+        return True
+    return sys.stdout.isatty()
 
 
 def parse_sse_stream(sock: socket.socket) -> Iterator[dict]:
@@ -185,14 +242,20 @@ def watch(
     port: int = DEFAULT_PORT,
     event_filter: str | None = None,
     duration_s: float = DEFAULT_DURATION_S,
+    human: bool = False,
 ) -> int:
-    """Stream SSE events to stdout as JSON lines.
+    """Stream SSE events to stdout.
+
+    Output format depends on `human`:
+        True  → one compact rendered line per event (`[ts] NAME  summary`)
+        False → one JSON object per line (scriptable default)
 
     Args:
         host: gateway host (default 127.0.0.1)
         port: gateway port (default 8765)
         event_filter: if set, only emit events whose name starts with this prefix
         duration_s: auto-exit after N seconds (0 = run until interrupted)
+        human: render compact lines instead of JSON-per-line
 
     Returns:
         process exit code (0 = clean exit)
@@ -212,7 +275,10 @@ def watch(
             name = event["event"]
             if event_filter and not name.startswith(event_filter):
                 continue
-            print(json.dumps(event, default=str), flush=True)
+            if human:
+                print(_format_event_human(event), flush=True)
+            else:
+                print(json.dumps(event, default=str), flush=True)
         return 0
     except KeyboardInterrupt:
         return 0
@@ -229,7 +295,7 @@ def main(argv: list[str] | None = None) -> int:
         description="Stream SSE events from the UnifiedMCPGateway /events endpoint.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
-    watch_p = sub.add_parser("watch", help="stream events to stdout as JSON lines")
+    watch_p = sub.add_parser("watch", help="stream events to stdout")
     watch_p.add_argument("--host", default=DEFAULT_HOST, help="gateway host")
     watch_p.add_argument("--port", type=int, default=DEFAULT_PORT, help="gateway port")
     watch_p.add_argument(
@@ -245,13 +311,27 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_DURATION_S,
         help="auto-exit after N seconds (0 = run until interrupted)",
     )
+    out_grp = watch_p.add_mutually_exclusive_group()
+    out_grp.add_argument(
+        "--json",
+        action="store_true",
+        help="force JSON-per-line output (default when piped)",
+    )
+    out_grp.add_argument(
+        "--human",
+        action="store_true",
+        help="force compact rendered lines (default when on a TTY)",
+    )
     args = parser.parse_args(argv)
     if args.command == "watch":
+        # Resolve human flag: --json wins, --human wins, else TTY default.
+        human = bool(args.human) or (not args.json and sys.stdout.isatty())
         return watch(
             host=args.host,
             port=args.port,
             event_filter=args.event_filter,
             duration_s=args.duration_s,
+            human=human,
         )
     parser.error(f"unknown command: {args.command}")
     return 2  # unreachable
