@@ -13,7 +13,12 @@ Concurrency:
   - VaultLock (existing) for cross-platform file locking
 
 Atomicity:
-  - frontmatter.dump() writes temp + renames (atomic, Windows-safe)
+  - Writes to a tmp file via frontmatter.dumps() (NOT frontmatter.dump(),
+    which only does f.write() — NOT atomic), then os.replace()s to target.
+    os.replace() is atomic on POSIX and silently replaces an existing target
+    on Windows; Path.rename() calls os.rename(), which on Windows raises
+    FileExistsError if the target exists. This pattern matches save_state()
+    at sync.py:198-202 (B6.4 lesson).
 
 NOTE: function is SYNC (NOT async). MCP handlers in this repo are sync —
 they return JSON strings, never await anything.
@@ -21,6 +26,8 @@ they return JSON strings, never await anything.
 from __future__ import annotations
 
 import hashlib
+import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -71,11 +78,40 @@ def vault_write(
     target.parent.mkdir(parents=True, exist_ok=True)
     lock_path = vault_root / ".vault.lock"
 
+    # Serialize post to string (uses frontmatter.dumps, NOT frontmatter.dump
+    # which only does f.write — NOT atomic).
+    post = frontmatter.Post(content=body, **frontmatter_fields)
+    body_str = frontmatter.dumps(post)
+
     with VaultLock(lock_path):
-        frontmatter.dump(
-            frontmatter.Post(content=body, **frontmatter_fields),
-            str(target),
+        # Atomic write: write to tmp file in same dir, then os.replace.
+        # Same dir guarantees os.replace is atomic on POSIX (rename within
+        # same filesystem) and silently replaces on Windows. Cross-dir
+        # rename can fail on Windows if target dir is on a different
+        # drive — vault_root is the parent of target, so this is safe.
+        fd, tmp_path = tempfile.mkstemp(
+            prefix=".tmp_vault_write_", dir=str(vault_root)
         )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(body_str)
+                # frontmatter.dumps() ends with a newline already, but be
+                # defensive — never leave a file without trailing newline.
+                if not body_str.endswith("\n"):
+                    f.write("\n")
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_path, target)
+        except Exception:
+            # Clean up tmp file on any failure (write error, fsync error,
+            # os.replace error). Without this, a failed write would leave
+            # the tmp file behind.
+            if os.path.exists(tmp_path):
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+            raise
 
     sha256 = hashlib.sha256(target.read_bytes()).hexdigest()
     return {
