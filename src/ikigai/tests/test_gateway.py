@@ -191,10 +191,12 @@ def test_sse_endpoint_streams_messages() -> None:
         sock = socket.create_connection((host, port), timeout=5)
         sock.sendall(b"GET /events HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
         sock.settimeout(2.0)
-        # Read response headers (terminated by \r\n\r\n)
+        # Read until we have both response headers AND the first body chunk
+        # (gateway.ready). With threading, the handler runs in a worker
+        # thread, so headers may arrive before the chunked body has flushed.
         buf = b""
-        deadline = time.monotonic() + 2.0
-        while b"\r\n\r\n" not in buf and time.monotonic() < deadline:
+        deadline = time.monotonic() + 3.0
+        while b"gateway.ready" not in buf and time.monotonic() < deadline:
             try:
                 chunk = sock.recv(4096)
             except TimeoutError:
@@ -216,11 +218,14 @@ def test_sse_endpoint_streams_messages() -> None:
         )
         sock.close()  # signals BrokenPipeError → handler exits at next heartbeat
         # Wait long enough for the handler to detect the closed socket and exit.
-        # On Windows, BrokenPipeError is delayed (writes can buffer past the
-        # close for several iterations before the OS raises); 2s gives ~10
-        # heartbeat attempts at 0.2s interval, which exceeds the typical
-        # Windows TCP buffer-fill latency.
-        time.sleep(2.0)
+        # Poll the subscriber list instead of fixed sleep so we don't slow
+        # down the suite when the OS propagates RST quickly.
+        deadline = time.monotonic() + 5.0
+        while time.monotonic() < deadline:
+            with gateway._lock:  # type: ignore[attr-defined]
+                if gateway._event_subscribers == []:  # type: ignore[attr-defined]
+                    break
+            time.sleep(0.1)
     finally:
         server.shutdown()
         server.server_close()
@@ -299,7 +304,7 @@ def test_sse_publish_drops_for_full_subscriber_others_still_receive() -> None:
 
 def test_sse_subscriber_is_removed_after_disconnect() -> None:
     """After the client disconnects, the handler must call unsubscribe_events."""
-    cfg = GatewayConfig(sse_heartbeat_interval_s=0.2)
+    cfg = GatewayConfig(sse_heartbeat_interval_s=0.1)
     gateway = UnifiedMCPGateway(cfg)
     gateway.register(FakeAdapter("tuiboard"))
 
@@ -314,12 +319,130 @@ def test_sse_subscriber_is_removed_after_disconnect() -> None:
         with gateway._lock:  # type: ignore[attr-defined]
             assert len(gateway._event_subscribers) == 1  # type: ignore[attr-defined]
         sock.close()
-        # Wait long enough for the next heartbeat write to surface BrokenPipeError
-        # (TCP RST propagation on Windows can take a few iterations), then for
-        # the handler's finally block to unsubscribe.
-        time.sleep(2.0)
+        # Poll for the subscriber to be removed. Heartbeat=0.1s means the
+        # handler tries a write every 100ms; once the OS propagates RST
+        # the next write raises BrokenPipeError and the handler exits.
+        deadline = time.monotonic() + 5.0
+        while time.monotonic() < deadline:
+            with gateway._lock:  # type: ignore[attr-defined]
+                if gateway._event_subscribers == []:  # type: ignore[attr-defined]
+                    break
+            time.sleep(0.1)
         with gateway._lock:  # type: ignore[attr-defined]
             assert gateway._event_subscribers == []  # type: ignore[attr-defined]
     finally:
         server.shutdown()
         server.server_close()
+
+
+# ──────── Adapter call → SSE event wiring (Task 14 follow-on) ────────
+
+
+def _expected_tool_short(namespace: str, tool: str) -> str:
+    """Mirror the prefix table in gateway.emit_adapter_call."""
+    prefix_map = {
+        "taskdog": "taskdog_",
+        "tuiboard": "tuiboard_",
+        "solverforge-calendar": "sf_",
+    }
+    prefix = prefix_map.get(namespace)
+    return tool[len(prefix):] if prefix and tool.startswith(prefix) else tool
+
+
+@pytest.mark.parametrize(
+    ("namespace", "tool", "expected_event"),
+    [
+        ("taskdog", "taskdog_add", "taskdog.add"),
+        ("taskdog", "taskdog_done", "taskdog.done"),
+        ("tuiboard", "tuiboard_render", "tuiboard.render"),
+        ("solverforge-calendar", "sf_schedule", "solverforge-calendar.schedule"),
+        # Unknown namespace: full tool name becomes the short form
+        ("custom", "do_thing", "custom.do_thing"),
+    ],
+)
+def test_emit_adapter_call_publishes_namespaced_event(
+    namespace: str, tool: str, expected_event: str
+) -> None:
+    cfg = GatewayConfig()
+    gateway = UnifiedMCPGateway(cfg)
+    sub_q = gateway.subscribe_events()
+    try:
+        gateway.emit_adapter_call(
+            namespace, tool, {"ueid": "ikigai:task:abc:1:2"}
+        )
+        event, payload = sub_q.get(timeout=1.0)
+        assert event == expected_event
+        assert payload["namespace"] == namespace
+        assert payload["tool"] == tool
+        assert payload["tool_short"] == _expected_tool_short(namespace, tool)
+        assert payload["arguments"] == {"ueid": "ikigai:task:abc:1:2"}
+        # Result body must NOT leak into the payload
+        assert "result" not in payload
+    finally:
+        gateway.unsubscribe_events(sub_q)
+
+
+def test_emit_adapter_call_no_subscriber_is_silent() -> None:
+    """With no SSE subscribers, emit_adapter_call must not raise."""
+    cfg = GatewayConfig()
+    gateway = UnifiedMCPGateway(cfg)
+    # Should be a no-op, no exception, no log spam
+    gateway.emit_adapter_call("taskdog", "taskdog_add", {})
+
+
+def test_post_call_emits_sse_event_for_subscribers() -> None:
+    """E2E: POST /call must trigger an SSE event for subscribers."""
+    cfg = GatewayConfig(sse_heartbeat_interval_s=10.0)  # no heartbeat in this test
+    gateway = UnifiedMCPGateway(cfg)
+    fake_taskdog = FakeAdapter(
+        "taskdog",
+        responses={"taskdog_add": {"id": "td-1", "status": "queued"}},
+    )
+    gateway.register(fake_taskdog)
+    sub_q = gateway.subscribe_events()
+    url, server = _start_gateway(gateway)
+    try:
+        resp = _post(url, {
+            "namespace": "taskdog",
+            "tool": "taskdog_add",
+            "arguments": {"title": "smoke task"},
+        })
+        assert resp == {"result": {"id": "td-1", "status": "queued"}}
+        event, payload = sub_q.get(timeout=1.0)
+        assert event == "taskdog.add"
+        assert payload["namespace"] == "taskdog"
+        assert payload["tool"] == "taskdog_add"
+        assert payload["arguments"] == {"title": "smoke task"}
+        # Result body must NOT leak
+        assert "result" not in payload
+    finally:
+        gateway.unsubscribe_events(sub_q)
+        _stop_gateway(server)
+
+
+def test_post_call_does_not_emit_on_adapter_error() -> None:
+    """Adapter exceptions (502) must NOT publish an SSE event."""
+
+    class BoomAdapter(MCPClientAdapter):
+        def __init__(self) -> None:
+            super().__init__(name="boom", command=["fake"])
+
+        def call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
+            raise RuntimeError("downstream exploded")
+
+    cfg = GatewayConfig()
+    gateway = UnifiedMCPGateway(cfg)
+    gateway.register(BoomAdapter())
+    sub_q = gateway.subscribe_events()
+    url, server = _start_gateway(gateway)
+    try:
+        import urllib.error
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            _post(url, {"namespace": "boom", "tool": "x", "arguments": {}})
+        assert exc.value.code == 502
+        # No event must have been published
+        assert sub_q.qsize() == 0
+    finally:
+        gateway.unsubscribe_events(sub_q)
+        _stop_gateway(server)
+
