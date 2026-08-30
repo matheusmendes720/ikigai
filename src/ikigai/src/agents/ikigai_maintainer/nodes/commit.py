@@ -2,6 +2,7 @@
 
 Append-only writes guarded by kill_switch. Emits plan cycle log.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -48,7 +49,9 @@ def commit_node(state: IKIGAiStateDict) -> dict[str, Any]:
     # 2. Append to markdown vault cycle log
     vault_path = _get_vault_path()
     if vault_path:
-        appended = _append_to_vault(vault_path, cycle_id, regime, q_he, vector_scores, meta_vector, corrections)
+        appended = _append_to_vault(
+            vault_path, cycle_id, regime, q_he, vector_scores, meta_vector, corrections
+        )
         summary_lines.append(f"Vault: {appended}")
     else:
         summary_lines.append("Vault: not configured")
@@ -137,6 +140,7 @@ def _append_to_vault(
 def _get_vault_path() -> Path | None:
     """Return vault path from config or env."""
     import os
+
     vault = os.environ.get("IKIGAI_VAULT_PATH")
     if vault:
         return Path(vault)

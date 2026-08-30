@@ -2,6 +2,7 @@
 
 Run with: python run_mcp_server.py
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -60,15 +61,17 @@ def _decompose_ueid(ueid: str) -> dict[str, Any]:
                 continue
             try:
                 post = frontmatter.loads(md_file.read_text(encoding="utf-8"))
-                results.append({
-                    "file": str(md_file.relative_to(vault_root)),
-                    "ueid": post.metadata.get("ueid", ""),
-                    "title": post.metadata.get("title", md_file.stem),
-                    "status": post.metadata.get("status", "UNKNOWN"),
-                    "slug": post.metadata.get("slug", md_file.stem),
-                    "parent_ueid": post.metadata.get("parent_ueid"),
-                    "related_ueids": post.metadata.get("related_ueids", []),
-                })
+                results.append(
+                    {
+                        "file": str(md_file.relative_to(vault_root)),
+                        "ueid": post.metadata.get("ueid", ""),
+                        "title": post.metadata.get("title", md_file.stem),
+                        "status": post.metadata.get("status", "UNKNOWN"),
+                        "slug": post.metadata.get("slug", md_file.stem),
+                        "parent_ueid": post.metadata.get("parent_ueid"),
+                        "related_ueids": post.metadata.get("related_ueids", []),
+                    }
+                )
             except Exception:
                 pass
         return results
@@ -99,8 +102,12 @@ def _decompose_ueid(ueid: str) -> dict[str, Any]:
     projects = _read_entity("projects", dream_slug)
 
     # Filter objectives to those whose parent_ueid or related_ueids match this dream
-    dream_objectives = [o for o in objectives if o.get("parent_ueid") == ueid or ueid in o.get("related_ueids", [])]
-    dream_projects = [p for p in projects if p.get("parent_ueid") in [o.get("ueid") for o in dream_objectives]]
+    dream_objectives = [
+        o for o in objectives if o.get("parent_ueid") == ueid or ueid in o.get("related_ueids", [])
+    ]
+    dream_projects = [
+        p for p in projects if p.get("parent_ueid") in [o.get("ueid") for o in dream_objectives]
+    ]
 
     return {
         "dream": dream_data,
@@ -122,6 +129,7 @@ def _read_checkpoint(thread_id: str | None = None) -> dict[str, Any]:
         return {}
     try:
         import pickle
+
         conn = sqlite3.connect(str(path))
         cur = conn.cursor()
         if thread_id:
@@ -148,7 +156,10 @@ def _read_plan_entity(cycle_id: str) -> dict[str, Any]:
     try:
         conn = sqlite3.connect(str(plan_db))
         cur = conn.cursor()
-        cur.execute("SELECT * FROM plan_entities WHERE cycle_id = ? ORDER BY created_at DESC LIMIT 1", (cycle_id,))
+        cur.execute(
+            "SELECT * FROM plan_entities WHERE cycle_id = ? ORDER BY created_at DESC LIMIT 1",
+            (cycle_id,),
+        )
         row = cur.fetchone()
         cols = [d[0] for d in cur.description] if cur.description else []
         conn.close()
@@ -178,6 +189,7 @@ def _read_entity(table: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Task I/O — Deep Agent ↔ interfaces via data/tasks.jsonl
 # ---------------------------------------------------------------------------
+
 
 def _tasks_path() -> Path:
     """Path to the shared tasks file. Lives in data/ at repo root."""
@@ -267,6 +279,7 @@ def _read_tasks_from_data(
 # Tool handler functions (for traced dispatch)
 # ---------------------------------------------------------------------------
 
+
 def _handle_ikigai_score(arguments: dict[str, Any]) -> str:
     d = _read_checkpoint()
     vs = d.get("vector_scores", {})
@@ -278,7 +291,9 @@ def _handle_ikigai_score(arguments: dict[str, Any]) -> str:
             vs = {k: row.get(k, 0.0) for k in ("passion", "skill", "market", "revenue", "course")}
             mv = row.get("meta_vector", 0.0)
             qhe = row.get("q_he")
-    return json.dumps({"vector_scores": vs, "meta_vector_score": round(mv, 4), "q_he_score": qhe}, indent=2)
+    return json.dumps(
+        {"vector_scores": vs, "meta_vector_score": round(mv, 4), "q_he_score": qhe}, indent=2
+    )
 
 
 def _handle_ikigai_regime(arguments: dict[str, Any]) -> str:
@@ -296,12 +311,15 @@ def _handle_ikigai_regime(arguments: dict[str, Any]) -> str:
 
 def _handle_ikigai_phase(arguments: dict[str, Any]) -> str:
     d = _read_checkpoint()
-    return json.dumps({
-        "phase": d.get("phase", "BUSCA"),
-        "phase_iteration": d.get("phase_iteration", 0),
-        "phase_converged": d.get("phase_converged", False),
-        "phase_weights": d.get("phase_weights", {}),
-    }, indent=2)
+    return json.dumps(
+        {
+            "phase": d.get("phase", "BUSCA"),
+            "phase_iteration": d.get("phase_iteration", 0),
+            "phase_converged": d.get("phase_converged", False),
+            "phase_weights": d.get("phase_weights", {}),
+        },
+        indent=2,
+    )
 
 
 def _handle_ikigai_decompose(arguments: dict[str, Any]) -> str:
@@ -329,29 +347,49 @@ def _handle_ikigai_plan_cycle(arguments: dict[str, Any]) -> str:
     try:
         import sys
         from pathlib import Path as P
+
         _src = P(__file__).parent.parent  # .../ikigai/src/
         if str(_src) not in sys.path:
             sys.path.insert(0, str(_src))
         from agents.ikigai_maintainer import make_ikigai_graph
+
         today = dt.date.today()
         graph = make_ikigai_graph()
         initial = {
             "cycle_id": today.isoformat(),
             "cycle_start": arguments.get("cycle_start") or today.isoformat(),
             "cycle_end": arguments.get("cycle_end") or (today + dt.timedelta(days=45)).isoformat(),
-            "iteration": 0, "last_step": "",
-            "regime_state": "MAINTAIN", "q_he_score": 0.65,
-            "days_in_regime": 1, "is_hysteresis_active": False,
-            "phase": "BUSCA", "phase_iteration": 0, "phase_converged": False,
-            "phase_weights": {"passion": 0.15, "skill": 0.25, "market": 0.25, "revenue": 0.20, "course": 0.15},
-            "vector_scores": {}, "meta_vector_score": 0.0,
+            "iteration": 0,
+            "last_step": "",
+            "regime_state": "MAINTAIN",
+            "q_he_score": 0.65,
+            "days_in_regime": 1,
+            "is_hysteresis_active": False,
+            "phase": "BUSCA",
+            "phase_iteration": 0,
+            "phase_converged": False,
+            "phase_weights": {
+                "passion": 0.15,
+                "skill": 0.25,
+                "market": 0.25,
+                "revenue": 0.20,
+                "course": 0.15,
+            },
+            "vector_scores": {},
+            "meta_vector_score": 0.0,
             "active_dream_ueid": arguments.get("active_dream_ueid"),
-            "active_goal_ueids": [], "active_objective_ueids": [],
-            "active_project_ueids": [], "active_task_ueids": [],
-            "workload_estimate": 2.0, "capacity_estimate": 8.0,
+            "active_goal_ueids": [],
+            "active_objective_ueids": [],
+            "active_project_ueids": [],
+            "active_task_ueids": [],
+            "workload_estimate": 2.0,
+            "capacity_estimate": 8.0,
             "balancer_verdict": "OK",
-            "prospective_buffer": [], "retrospective_log": [],
-            "corrections": [], "kill_switch_triggered": False, "terminated": False,
+            "prospective_buffer": [],
+            "retrospective_log": [],
+            "corrections": [],
+            "kill_switch_triggered": False,
+            "terminated": False,
         }
         config = {"configurable": {"thread_id": f"cycle_{today.isoformat()}"}}
         final = graph.invoke(initial, config)
@@ -374,37 +412,43 @@ def _handle_ikigai_plan_cycle(arguments: dict[str, Any]) -> str:
                 )
             """)
             vs = final.get("vector_scores", {})
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT OR REPLACE INTO plan_entities
                 (cycle_id, regime, q_he, passion, skill, market, revenue, course, meta_vector, corrections, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                final.get("cycle_id"),
-                final.get("regime_state"),
-                final.get("q_he_score"),
-                vs.get("passion"),
-                vs.get("skill"),
-                vs.get("market"),
-                vs.get("revenue"),
-                vs.get("course"),
-                final.get("meta_vector_score"),
-                json.dumps(final.get("corrections", [])),
-                dt.datetime.now().isoformat(),
-            ))
+            """,
+                (
+                    final.get("cycle_id"),
+                    final.get("regime_state"),
+                    final.get("q_he_score"),
+                    vs.get("passion"),
+                    vs.get("skill"),
+                    vs.get("market"),
+                    vs.get("revenue"),
+                    vs.get("course"),
+                    final.get("meta_vector_score"),
+                    json.dumps(final.get("corrections", [])),
+                    dt.datetime.now().isoformat(),
+                ),
+            )
             conn.commit()
             conn.close()
         except Exception:
             pass  # non-fatal
 
-        return json.dumps({
-            "cycle_id": final.get("cycle_id"),
-            "regime": final.get("regime_state"),
-            "q_he": final.get("q_he_score"),
-            "meta_vector": final.get("meta_vector_score"),
-            "corrections_count": len(final.get("corrections", [])),
-            "prospective_buffer_size": len(final.get("prospective_buffer", [])),
-            "retrospective_log_size": len(final.get("retrospective_log", [])),
-        }, indent=2)
+        return json.dumps(
+            {
+                "cycle_id": final.get("cycle_id"),
+                "regime": final.get("regime_state"),
+                "q_he": final.get("q_he_score"),
+                "meta_vector": final.get("meta_vector_score"),
+                "corrections_count": len(final.get("corrections", [])),
+                "prospective_buffer_size": len(final.get("prospective_buffer", [])),
+                "retrospective_log_size": len(final.get("retrospective_log", [])),
+            },
+            indent=2,
+        )
     except Exception as e:
         return json.dumps({"error": str(e)})
 
@@ -419,10 +463,14 @@ def _handle_ikigai_checkpoint(arguments: dict[str, Any]) -> str:
         else:
             conn = sqlite3.connect(str(path))
             cur = conn.cursor()
-            cur.execute("SELECT thread_id, checkpoint_id, metadata FROM checkpoints ORDER BY checkpoint_id DESC LIMIT 50")
+            cur.execute(
+                "SELECT thread_id, checkpoint_id, metadata FROM checkpoints ORDER BY checkpoint_id DESC LIMIT 50"
+            )
             rows = cur.fetchall()
             conn.close()
-            return json.dumps({"checkpoints": [{"thread_id": r[0], "checkpoint_id": r[1]} for r in rows]})
+            return json.dumps(
+                {"checkpoints": [{"thread_id": r[0], "checkpoint_id": r[1]} for r in rows]}
+            )
     elif action == "get":
         if not thread_id:
             return json.dumps({"error": "thread_id required"})
@@ -431,14 +479,20 @@ def _handle_ikigai_checkpoint(arguments: dict[str, Any]) -> str:
         else:
             conn = sqlite3.connect(str(path))
             cur = conn.cursor()
-            cur.execute("SELECT checkpoint, metadata FROM checkpoints WHERE thread_id = ? ORDER BY checkpoint_id DESC LIMIT 1", (thread_id,))
+            cur.execute(
+                "SELECT checkpoint, metadata FROM checkpoints WHERE thread_id = ? ORDER BY checkpoint_id DESC LIMIT 1",
+                (thread_id,),
+            )
             row = cur.fetchone()
             conn.close()
             if row:
                 import pickle
+
                 ckpt = pickle.loads(row[0]) if row[0] else {}
                 meta = pickle.loads(row[1]) if row[1] else {}
-                return json.dumps({"thread_id": thread_id, "checkpoint": str(ckpt), "metadata": str(meta)})
+                return json.dumps(
+                    {"thread_id": thread_id, "checkpoint": str(ckpt), "metadata": str(meta)}
+                )
             else:
                 return json.dumps({"error": "checkpoint not found"})
     elif action == "set":
@@ -447,12 +501,20 @@ def _handle_ikigai_checkpoint(arguments: dict[str, Any]) -> str:
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
             import pickle
+
             conn = sqlite3.connect(str(path))
             cur = conn.cursor()
             now = dt.datetime.now().isoformat()
             cur.execute(
                 "INSERT OR REPLACE INTO checkpoints (thread_id, checkpoint_ns, checkpoint_id, type, checkpoint, metadata) VALUES (?, ?, ?, ?, ?, ?)",
-                (thread_id, "", now, "manual", pickle.dumps(arguments["state_snapshot"]), pickle.dumps({"source": "mcp"}))
+                (
+                    thread_id,
+                    "",
+                    now,
+                    "manual",
+                    pickle.dumps(arguments["state_snapshot"]),
+                    pickle.dumps({"source": "mcp"}),
+                ),
             )
             conn.commit()
             conn.close()
@@ -473,7 +535,9 @@ def _handle_ikigai_sync_vault(arguments: dict[str, Any]) -> str:
     # Read from plan_entities.db (written by ikigai_plan_cycle)
     row = _read_plan_entity(cycle_id)
     if not row:
-        return json.dumps({"error": f"no cycle {cycle_id} in plan_entities.db — run ikigai_plan_cycle first"})
+        return json.dumps(
+            {"error": f"no cycle {cycle_id} in plan_entities.db — run ikigai_plan_cycle first"}
+        )
     try:
         log_file = vault_dir / f"cycle-{cycle_id}.md"
         vs = {
@@ -487,11 +551,11 @@ def _handle_ikigai_sync_vault(arguments: dict[str, Any]) -> str:
 ueid: ikigai:cycle:{cycle_id}
 cycle_id: {cycle_id}
 date: {dt.date.today().isoformat()}
-regime: {row.get('regime', 'UNKNOWN')}
-q_he: {row.get('q_he')}
-meta_vector: {row.get('meta_vector')}
+regime: {row.get("regime", "UNKNOWN")}
+q_he: {row.get("q_he")}
+meta_vector: {row.get("meta_vector")}
 vector_scores: {json.dumps(vs)}
-phase: {row.get('phase', 'BUSCA')}
+phase: {row.get("phase", "BUSCA")}
 corrections_count: 0
 prospective_buffer_size: 0
 retrospective_log_size: 0
@@ -503,18 +567,18 @@ retrospective_log_size: 0
 
 | Vector | Score |
 |--------|-------|
-| Passion | {row.get('passion', 'N/A')} |
-| Skill | {row.get('skill', 'N/A')} |
-| Market | {row.get('market', 'N/A')} |
-| Revenue | {row.get('revenue', 'N/A')} |
-| Course | {row.get('course', 'N/A')} |
+| Passion | {row.get("passion", "N/A")} |
+| Skill | {row.get("skill", "N/A")} |
+| Market | {row.get("market", "N/A")} |
+| Revenue | {row.get("revenue", "N/A")} |
+| Course | {row.get("course", "N/A")} |
 
-**Meta-vector:** {row.get('meta_vector', 'N/A')}
+**Meta-vector:** {row.get("meta_vector", "N/A")}
 
 ## Regime
 
-- **State:** {row.get('regime', 'UNKNOWN')}
-- **Q_HE:** {row.get('q_he', 'N/A')}
+- **State:** {row.get("regime", "UNKNOWN")}
+- **Q_HE:** {row.get("q_he", "N/A")}
 
 ## Corrections (0)
 
@@ -567,7 +631,9 @@ def ikigai_phase() -> str:
 )
 def ikigai_decompose(dream_ueid: str) -> str:
     """Decompose a Dream UEID into its full UEID hierarchy."""
-    return traced_tool_dispatch("ikigai_decompose", _handle_ikigai_decompose, {"dream_ueid": dream_ueid})
+    return traced_tool_dispatch(
+        "ikigai_decompose", _handle_ikigai_decompose, {"dream_ueid": dream_ueid}
+    )
 
 
 @MCP.tool(
@@ -589,11 +655,15 @@ def ikigai_plan_cycle(
     cycle_end: str | None = None,
 ) -> str:
     """Trigger an IKIGAi plan cycle — runs the full LangGraph agent."""
-    return traced_tool_dispatch("ikigai_plan_cycle", _handle_ikigai_plan_cycle, {
-        "active_dream_ueid": active_dream_ueid,
-        "cycle_start": cycle_start,
-        "cycle_end": cycle_end,
-    })
+    return traced_tool_dispatch(
+        "ikigai_plan_cycle",
+        _handle_ikigai_plan_cycle,
+        {
+            "active_dream_ueid": active_dream_ueid,
+            "cycle_start": cycle_start,
+            "cycle_end": cycle_end,
+        },
+    )
 
 
 @MCP.tool(
@@ -606,11 +676,15 @@ def ikigai_checkpoint(
     state_snapshot: dict | None = None,
 ) -> str:
     """Get or set a named checkpoint in the IKIGAi checkpoint DB."""
-    return traced_tool_dispatch("ikigai_checkpoint", _handle_ikigai_checkpoint, {
-        "action": action,
-        "thread_id": thread_id,
-        "state_snapshot": state_snapshot,
-    })
+    return traced_tool_dispatch(
+        "ikigai_checkpoint",
+        _handle_ikigai_checkpoint,
+        {
+            "action": action,
+            "thread_id": thread_id,
+            "state_snapshot": state_snapshot,
+        },
+    )
 
 
 @MCP.tool(
@@ -619,7 +693,9 @@ def ikigai_checkpoint(
 )
 def ikigai_sync_vault(cycle_id: str) -> str:
     """Sync IKIGAi cycle data to the markdown vault."""
-    return traced_tool_dispatch("ikigai_sync_vault", _handle_ikigai_sync_vault, {"cycle_id": cycle_id})
+    return traced_tool_dispatch(
+        "ikigai_sync_vault", _handle_ikigai_sync_vault, {"cycle_id": cycle_id}
+    )
 
 
 @MCP.tool(

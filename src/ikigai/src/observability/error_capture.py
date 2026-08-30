@@ -19,6 +19,7 @@ Usage::
     def read_entity(path: str) -> str:
         return open(path, encoding="utf-8").read()
 """
+
 from __future__ import annotations
 
 import functools
@@ -53,10 +54,7 @@ def observed_tool(tool_name: str) -> Callable:
             try:
                 bound = sig.bind_partial(*args, **kwargs)
                 bound.apply_defaults()
-                attrs = {
-                    f"tool.arg.{k}": repr(v)[:200]
-                    for k, v in bound.arguments.items()
-                }
+                attrs = {f"tool.arg.{k}": repr(v)[:200] for k, v in bound.arguments.items()}
             except Exception:  # noqa: BLE001 — bind failures shouldn't kill the tool
                 attrs = {}
 

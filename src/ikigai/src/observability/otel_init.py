@@ -19,6 +19,7 @@ Env vars consumed (see ``.env.example`` for the template):
 - ``OTEL_SERVICE_NAME`` — defaults to ``ikigai-maintainer``.
 - ``IKIGAI_ENV`` — deployment.environment attribute (default ``local``).
 """
+
 from __future__ import annotations
 
 import base64
@@ -92,17 +93,11 @@ def init_tracing() -> None:
 
         # LangSmith — primary, LLM observability
         if os.environ.get("LANGSMITH_API_KEY"):
-            provider.add_span_processor(
-                BatchSpanProcessor(_build_langsmith_exporter())
-            )
+            provider.add_span_processor(BatchSpanProcessor(_build_langsmith_exporter()))
 
         # Langfuse — secondary, stack traces + custom events
-        if os.environ.get("LANGFUSE_PUBLIC_KEY") and os.environ.get(
-            "LANGFUSE_SECRET_KEY"
-        ):
-            provider.add_span_processor(
-                BatchSpanProcessor(_build_langfuse_exporter())
-            )
+        if os.environ.get("LANGFUSE_PUBLIC_KEY") and os.environ.get("LANGFUSE_SECRET_KEY"):
+            provider.add_span_processor(BatchSpanProcessor(_build_langfuse_exporter()))
 
         trace.set_tracer_provider(provider)
 

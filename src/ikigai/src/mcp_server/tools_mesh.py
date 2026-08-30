@@ -9,6 +9,7 @@ These are the three MCP tools that map directly to A2UI's three methods
 
 v1 scope: create action only. Other actions return -32601 (deferred to v1.2+).
 """
+
 from __future__ import annotations
 
 import json
@@ -85,11 +86,15 @@ def ikigai_mesh_show(ueid: Annotated[str, "UEID to look up across forks"]) -> st
     if len(set(statuses.values())) > 1:
         mismatches.append(f"status mismatch across adapters: {statuses}")
 
-    return json.dumps({
-        "ueid": str(parsed),
-        "view": view,
-        "mismatches": mismatches,
-    }, indent=2, default=str)
+    return json.dumps(
+        {
+            "ueid": str(parsed),
+            "view": view,
+            "mismatches": mismatches,
+        },
+        indent=2,
+        default=str,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -103,10 +108,12 @@ def ikigai_task_create(
 ) -> str:
     """Emit a TaskChange to data/review_queue/<id>.json (atomic append-only)."""
     if action != "create":
-        return json.dumps({
-            "error": f"action={action!r} not supported in v1 (create only)",
-            "code": -32601,
-        })
+        return json.dumps(
+            {
+                "error": f"action={action!r} not supported in v1 (create only)",
+                "code": -32601,
+            }
+        )
 
     try:
         parsed_ueid = UEID(ueid)
@@ -136,11 +143,14 @@ def ikigai_task_create(
     except Exception as e:
         return json.dumps({"error": f"queue enqueue failed: {e}"})
 
-    return json.dumps({
-        "event_id": event.event_id,
-        "status": "pending",
-        "ueid": str(parsed_ueid),
-    }, indent=2)
+    return json.dumps(
+        {
+            "event_id": event.event_id,
+            "status": "pending",
+            "ueid": str(parsed_ueid),
+        },
+        indent=2,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -149,13 +159,16 @@ def ikigai_task_create(
 def ikigai_health() -> str:
     """Gateway heartbeat: version, uptime, adapter statuses."""
     adapters = _load_adapters()
-    return json.dumps({
-        "name": "ikigai-gateway",
-        "version": _GATEWAY_VERSION,
-        "started_at": _GATEWAY_STARTED_AT,
-        "uptime_s": round(_time.time() - _GATEWAY_STARTED_AT, 3),
-        "adapters": [_adapter_status(a) for a in adapters],
-    }, indent=2)
+    return json.dumps(
+        {
+            "name": "ikigai-gateway",
+            "version": _GATEWAY_VERSION,
+            "started_at": _GATEWAY_STARTED_AT,
+            "uptime_s": round(_time.time() - _GATEWAY_STARTED_AT, 3),
+            "adapters": [_adapter_status(a) for a in adapters],
+        },
+        indent=2,
+    )
 
 
 __all__ = [

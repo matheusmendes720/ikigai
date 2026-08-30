@@ -6,6 +6,7 @@ This module provides decorators for:
 - Session cache invalidation on connection failures
 - OTel span emission for every retry attempt
 """
+
 from __future__ import annotations
 
 import functools
@@ -53,7 +54,11 @@ class CircuitBreakerConfig:
 def retry_with_backoff(
     *,
     name: str,
-    retryable_exceptions: tuple[type[BaseException], ...] = (ConnectionError, TimeoutError, OSError),
+    retryable_exceptions: tuple[type[BaseException], ...] = (
+        ConnectionError,
+        TimeoutError,
+        OSError,
+    ),
     config: RetryConfig = RetryConfig(),
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Decorator: retry a function with exponential backoff + jitter.
@@ -71,9 +76,7 @@ def retry_with_backoff(
             tracer = trace.get_tracer("ikigai.reliability")
             last_exc: BaseException | None = None
             for attempt in range(1, config.max_attempts + 1):
-                with tracer.start_as_current_span(
-                    f"reliability.{name}.attempt_{attempt}"
-                ) as span:
+                with tracer.start_as_current_span(f"reliability.{name}.attempt_{attempt}") as span:
                     span.set_attribute("reliability.attempt", attempt)
                     span.set_attribute("reliability.max_attempts", config.max_attempts)
                     start = time.perf_counter()
@@ -137,10 +140,7 @@ class _CircuitBreaker:
 
     def record_failure(self) -> None:
         self.consecutive_failures += 1
-        if (
-            self.consecutive_failures >= self.config.failure_threshold
-            and self.opened_at is None
-        ):
+        if self.consecutive_failures >= self.config.failure_threshold and self.opened_at is None:
             _log.warning(
                 "circuit_breaker.%s OPENED after %d failures",
                 self.name,

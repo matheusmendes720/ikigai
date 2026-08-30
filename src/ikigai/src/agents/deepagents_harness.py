@@ -12,6 +12,7 @@ Run with:
     python -m agents.deepagents_harness --chat --thread default
     python -m agents.deepagents_harness --chat --thread default --human-in-the-loop
 """
+
 from __future__ import annotations
 
 import os
@@ -262,6 +263,7 @@ IDIOMA — Idioma mandatory:
 # Agent factory
 # ---------------------------------------------------------------------------
 
+
 def _make_agent(
     thread_id: str = _THREAD_ID,
     checkpoint_db: str = _CHECKPOINT_DB,
@@ -340,6 +342,7 @@ def _make_agent(
 # CLI entrypoint
 # ---------------------------------------------------------------------------
 
+
 def main():
     import argparse
 
@@ -411,7 +414,9 @@ def run_chat(agent, thread_id: str):
 
     print("IKIGAi Conversational Agent — powered by deepagents")
     print("Ctrl+C to exit\n")
-    print("Commands: score | regime | phase | corrections | decompose <ueid> | plan | sync | checkpoint\n")
+    print(
+        "Commands: score | regime | phase | corrections | decompose <ueid> | plan | sync | checkpoint\n"
+    )
 
     # Bootstrap: run one plan cycle first to get initial state
     from .tools import ikigai_plan_cycle
@@ -510,6 +515,7 @@ def run_chat(agent, thread_id: str):
             if t.startswith("cal "):
                 days = int(t.split()[1]) if len(t.split()) > 1 else 7
                 from .tools import solverforge_list_events
+
                 print("\n" + solverforge_list_events.invoke({"days": days}))
                 continue
 
@@ -521,13 +527,17 @@ def run_chat(agent, thread_id: str):
                 title, date = parts[1], parts[2]
                 time = parts[3] if len(parts) > 3 else "09:00"
                 from .tools import solverforge_create_event
-                print("\n" + solverforge_create_event.invoke(
-                    {"title": title, "date": date, "time": time}))
+
+                print(
+                    "\n"
+                    + solverforge_create_event.invoke({"title": title, "date": date, "time": time})
+                )
                 continue
 
             # Kanban shortcuts
             if t == "boards":
                 from .tools import tuiboard_list_boards
+
                 print("\n" + tuiboard_list_boards.invoke({}))
                 continue
 
@@ -540,8 +550,11 @@ def run_chat(agent, thread_id: str):
                 col = int(parts[2]) if len(parts) > 2 else None
                 flt = parts[3] if len(parts) > 3 else "all"
                 from .tools import tuiboard_get_tasks
-                print("\n" + tuiboard_get_tasks.invoke(
-                    {"board_path": bp, "column": col, "filter": flt}))
+
+                print(
+                    "\n"
+                    + tuiboard_get_tasks.invoke({"board_path": bp, "column": col, "filter": flt})
+                )
                 continue
 
             # Task shortcuts
@@ -549,8 +562,10 @@ def run_chat(agent, thread_id: str):
                 parts = user_input.strip().split(None, 2)
                 status = parts[1].upper() if len(parts) > 1 else None
                 from .tools import taskdog_list_tasks
-                print("\n" + taskdog_list_tasks.invoke(
-                    {"status": status, "include_archived": False}))
+
+                print(
+                    "\n" + taskdog_list_tasks.invoke({"status": status, "include_archived": False})
+                )
                 continue
 
             if t.startswith("new-task ") or t.startswith("newtask "):
@@ -559,6 +574,7 @@ def run_chat(agent, thread_id: str):
                     print("Usage: new-task <name>")
                     continue
                 from .tools import taskdog_create_task
+
                 print("\n" + taskdog_create_task.invoke({"name": name}))
                 continue
 
@@ -566,6 +582,7 @@ def run_chat(agent, thread_id: str):
                 try:
                     tid = int(t.split()[1])
                     from .tools import taskdog_complete_task
+
                     print("\n" + taskdog_complete_task.invoke({"task_id": tid}))
                 except (ValueError, IndexError):
                     print("Usage: done <task_id>")
@@ -575,6 +592,7 @@ def run_chat(agent, thread_id: str):
                 try:
                     tid = int(t.split()[1])
                     from .tools import taskdog_get_task
+
                     print("\n" + taskdog_get_task.invoke({"task_id": tid}))
                 except (ValueError, IndexError):
                     print("Usage: task <task_id>")
@@ -604,6 +622,7 @@ def run_chat(agent, thread_id: str):
             if t.startswith("find "):
                 pattern = t.split(None, 1)[1] if " " in t else ""
                 import glob as _glob
+
                 matches = _glob.glob(str(Path.home() / pattern), recursive=True)[:20]
                 for m in matches:
                     print(f"  {m}")

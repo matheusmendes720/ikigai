@@ -11,6 +11,7 @@ Resources:
   plans://cycles           list of recent PlanningCycles
   plans://cycles/{id}      one PlanningCycle full record
 """
+
 from __future__ import annotations
 
 import json
@@ -55,14 +56,16 @@ def queue_pending_resource() -> str:
     events = []
     try:
         for event in _queue.consume_pending():
-            events.append({
-                "event_id": event.event_id,
-                "ueid": str(event.ueid),
-                "action": event.action.value,
-                "source_fork": event.source_fork,
-                "timestamp": event.timestamp.isoformat(),
-                "status": event.status,
-            })
+            events.append(
+                {
+                    "event_id": event.event_id,
+                    "ueid": str(event.ueid),
+                    "action": event.action.value,
+                    "source_fork": event.source_fork,
+                    "timestamp": event.timestamp.isoformat(),
+                    "status": event.status,
+                }
+            )
     except Exception as e:
         return json.dumps({"error": f"queue read failed: {e}"})
 
@@ -104,6 +107,7 @@ def plans_cycles_resource() -> str:
 
     try:
         import sqlite3
+
         conn = sqlite3.connect(str(plan_db))
         cur = conn.cursor()
         cur.execute(
@@ -135,6 +139,7 @@ def plans_cycle_resource(cycle_id: str) -> str:
 
     try:
         import sqlite3
+
         conn = sqlite3.connect(str(plan_db))
         cur = conn.cursor()
         cur.execute("SELECT * FROM plan_entities WHERE cycle_id = ?", (cycle_id,))

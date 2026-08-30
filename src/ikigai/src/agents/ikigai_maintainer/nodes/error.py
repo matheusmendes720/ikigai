@@ -10,6 +10,7 @@ commit_summary.
 Scope: infrastructure-only. Does NOT modify scoring/formula/QHE/regime/weight
 math — see [[b5-0-audit-findings-2026-08-29]] scope fence.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -33,10 +34,7 @@ def error_node(state: IKIGAiStateDict) -> dict[str, Any]:
     tb = state.get("traceback_str", "")
 
     timestamp = dt.datetime.now().isoformat()
-    summary = (
-        f"ERROR in node '{originating}' at {timestamp}: "
-        f"{err_type}: {err_msg}"
-    )
+    summary = f"ERROR in node '{originating}' at {timestamp}: {err_type}: {err_msg}"
 
     return {
         "commit_summary": summary,

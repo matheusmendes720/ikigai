@@ -4,6 +4,7 @@ Provides traced_tool_dispatch() that opens a span ikigai.mcp.{tool_name}
 per MCP tool call, capturing tool.name, tool.arguments_hash, tool.duration_ms,
 and on error: tool.error.class, tool.error.message, tool.error.traceback.
 """
+
 from __future__ import annotations
 
 import hashlib

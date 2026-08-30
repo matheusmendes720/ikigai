@@ -7,6 +7,7 @@ Per audit B5.0-F3: every node is wrapped in `_safe_node` which catches
 exceptions and populates error-channel state fields. The terminal `error_node`
 is reached via a conditional edge from `commit` when those fields are set.
 """
+
 from __future__ import annotations
 
 import traceback
@@ -57,10 +58,7 @@ _graph_tracer = get_tracer("ikigai.graph")
 # instead of wondering why spans aren't appearing in the dashboard.
 if _init_tracing_ok and not (
     os.environ.get("LANGSMITH_API_KEY")
-    or (
-        os.environ.get("LANGFUSE_PUBLIC_KEY")
-        and os.environ.get("LANGFUSE_SECRET_KEY")
-    )
+    or (os.environ.get("LANGFUSE_PUBLIC_KEY") and os.environ.get("LANGFUSE_SECRET_KEY"))
 ):
     logging.getLogger(__name__).warning(
         "IKIGAi tracing has no exporters configured "
@@ -116,9 +114,9 @@ def _safe_node(name: str, fn):
 # ---------------------------------------------------------------------------
 # Conditional edge routing
 # ---------------------------------------------------------------------------
-def _route_after_observe(state: IKIGAiStateDict) -> Literal[
-    "score_vectors", "balance", "commit", "error"
-]:
+def _route_after_observe(
+    state: IKIGAiStateDict,
+) -> Literal["score_vectors", "balance", "commit", "error"]:
     """After observe: always score vectors, unless kill_switch or upstream error.
 
     Per B5.1-F3: if the safe_node wrapper captured an exception in any prior
@@ -343,6 +341,7 @@ def make_ikigai_graph(checkpoint_db: str | None = None) -> StateGraph:
 # Module-level singleton for langgraph dev / langgraph.json
 # ---------------------------------------------------------------------------
 import os
+
 _graph_instance = None
 
 
@@ -380,4 +379,5 @@ def close_graph() -> None:
 
 # Register atexit hook so the connection is released on normal process exit.
 import atexit
+
 atexit.register(close_graph)

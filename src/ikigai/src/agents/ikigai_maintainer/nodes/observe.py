@@ -3,6 +3,7 @@
 Reads Q_HE from policy_engine, workload from habit_engine, and UPI state
 from the solverforge-calendar-mcp via subprocess.
 """
+
 from __future__ import annotations
 
 import subprocess
@@ -69,13 +70,15 @@ def observe_node(state: IKIGAiStateDict) -> dict[str, Any]:
     else:
         balancer = "OK"
 
-    updates.update({
-        "q_he_score": q_he_score,
-        "workload_estimate": workload_estimate,
-        "capacity_estimate": capacity_estimate,
-        "regime_state": regime,
-        "balancer_verdict": balancer,
-    })
+    updates.update(
+        {
+            "q_he_score": q_he_score,
+            "workload_estimate": workload_estimate,
+            "capacity_estimate": capacity_estimate,
+            "regime_state": regime,
+            "balancer_verdict": balancer,
+        }
+    )
     return updates
 
 

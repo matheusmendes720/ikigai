@@ -3,6 +3,7 @@
 Each tool is a clean function with docstring + TypedDict return type.
 These are the 8 operations the conversational agent can call.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -416,16 +417,16 @@ def ikigai_sync_vault(thread_id: str = "default") -> str:
 ## Vector Scores
 | Vector | Score |
 |--------|-------|
-| Passion | {vs.get('passion', 0.0)} |
-| Skill | {vs.get('skill', 0.0)} |
-| Market | {vs.get('market', 0.0)} |
-| Revenue | {vs.get('revenue', 0.0)} |
-| Course | {vs.get('course', 0.0)} |
+| Passion | {vs.get("passion", 0.0)} |
+| Skill | {vs.get("skill", 0.0)} |
+| Market | {vs.get("market", 0.0)} |
+| Revenue | {vs.get("revenue", 0.0)} |
+| Course | {vs.get("course", 0.0)} |
 
 ## Phase: {phase}
 
 ## Corrections: {len(corrections)}
-{''.join(f"- [{c.get('heuristic','?')}] {c.get('description','')}\n" for c in corrections[-5:]) if corrections else '_None_'}
+{"".join(f"- [{c.get('heuristic', '?')}] {c.get('description', '')}\n" for c in corrections[-5:]) if corrections else "_None_"}
 """
 
     result = _vault_write_impl(
@@ -596,7 +597,17 @@ def solverforge_create_event(title: str, date: str, time: str = "09:00") -> str:
     """
     try:
         result = subprocess.run(
-            [_SOLVERFORGE_CLI, "events", "create", "--title", title, "--date", date, "--time", time],
+            [
+                _SOLVERFORGE_CLI,
+                "events",
+                "create",
+                "--title",
+                title,
+                "--date",
+                date,
+                "--time",
+                time,
+            ],
             capture_output=True,
             text=True,
             timeout=30,
@@ -705,13 +716,17 @@ def tuiboard_get_tasks(board_path: str, column: int | None = None, filter: str =
         Formatted task list or error message.
     """
     try:
-        result = _tuiboard_rpc("get_tasks", {"board_path": board_path, "column": column, "filter": filter})
+        result = _tuiboard_rpc(
+            "get_tasks", {"board_path": board_path, "column": column, "filter": filter}
+        )
         if not result:
             return "⚠️ No tasks found"
         lines = [f"**Tasks from {board_path}:**", ""]
         for task in result:
             status = "✅" if task.get("done") else "⬜"
-            lines.append(f"  {status} {task.get('title', 'untitled')} [{task.get('priority', '?')}]")
+            lines.append(
+                f"  {status} {task.get('title', 'untitled')} [{task.get('priority', '?')}]"
+            )
         return "\n".join(lines)
     except (subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError):
         invalidate_session_cache("tuiboard")
@@ -739,7 +754,9 @@ def tuiboard_create_task(board_path: str, title: str, column: int = 0) -> str:
         Confirmation message or error.
     """
     try:
-        result = _tuiboard_rpc("create_task", {"board_path": board_path, "title": title, "column": column})
+        result = _tuiboard_rpc(
+            "create_task", {"board_path": board_path, "title": title, "column": column}
+        )
         return f"✅ Task created: {result.get('id', 'unknown')}"
     except (subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError):
         invalidate_session_cache("tuiboard")

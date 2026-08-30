@@ -2,6 +2,7 @@
 
 Implements H4 (market fit) and H5 (skill velocity) from the IKIGAi SPEC.
 """
+
 from __future__ import annotations
 
 import math
@@ -70,13 +71,16 @@ def score_vectors_node(state: IKIGAiStateDict) -> dict[str, Any]:
     }
 
     # Phase-weighted meta-vector
-    phase_weights = state.get("phase_weights", {
-        "passion": 0.15,
-        "skill": 0.25,
-        "market": 0.25,
-        "revenue": 0.20,
-        "course": 0.15,
-    })
+    phase_weights = state.get(
+        "phase_weights",
+        {
+            "passion": 0.15,
+            "skill": 0.25,
+            "market": 0.25,
+            "revenue": 0.20,
+            "course": 0.15,
+        },
+    )
     meta_vector = compute_meta_vector(vector_scores, phase_weights)
 
     return {
@@ -102,6 +106,7 @@ def _compute_skill_score(state: IKIGAiStateDict) -> float:
     Reads completed projects from the vault as skill evidence.
     """
     import frontmatter as _fm
+
     try:
         vault_root = Path(__file__).parent.parent.parent.parent / "data" / "matheus"
         projects_dir = vault_root / "projects"
@@ -130,6 +135,7 @@ def _compute_market_score(state: IKIGAiStateDict) -> float:
     Active projects = market activity signal (outreach, pipeline).
     """
     import frontmatter as _fm
+
     try:
         vault_root = Path(__file__).parent.parent.parent.parent / "data" / "matheus"
         projects_dir = vault_root / "projects"
@@ -161,6 +167,7 @@ def _compute_revenue_score(state: IKIGAiStateDict) -> float:
     Proxied by projects with 'revenue' or 'outreach' in tags or title.
     """
     import frontmatter as _fm
+
     try:
         vault_root = Path(__file__).parent.parent.parent.parent / "data" / "matheus"
         projects_dir = vault_root / "projects"
@@ -193,6 +200,7 @@ def _compute_course_score(state: IKIGAiStateDict) -> float:
     # SENAI data is read from a local JSON file managed outside this repo
     try:
         import json as _json
+
         senai_path = Path.home() / ".ikigai" / "senai_attendance.json"
         if senai_path.exists():
             data = _json.loads(senai_path.read_text())

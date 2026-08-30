@@ -1,4 +1,5 @@
 """plan node — prospective channel: draft next actions for current tier."""
+
 from __future__ import annotations
 
 import datetime as dt

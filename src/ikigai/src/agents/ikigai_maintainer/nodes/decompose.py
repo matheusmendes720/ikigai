@@ -3,6 +3,7 @@
 Traverses the IKIGAi UEID hierarchy: Dream → Goal → Objective → Project → Task → Deliverable.
 Emits proposed decomposition for any active dream.
 """
+
 from __future__ import annotations
 
 from typing import Any

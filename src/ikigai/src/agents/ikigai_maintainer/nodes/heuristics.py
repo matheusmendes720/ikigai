@@ -2,6 +2,7 @@
 
 Each heuristic evaluates one aspect of the plan state and emits corrections.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -52,14 +53,16 @@ def _h1_energy_required(state: IKIGAiStateDict) -> list[CorrectionSignal]:
     # Energy requirement proxy: inverse of Q_HE
     energy_factor = 1.0 - q_he
     if energy_factor > 0.4:
-        corrections.append({
-            "heuristic": "H1",
-            "signal_type": "high_energy_required",
-            "description": f"Energy factor {energy_factor:.2f} — low habit consistency demands more willpower",
-            "target_ueid": None,
-            "urgency": "high" if energy_factor > 0.6 else "medium",
-            "metadata": {"energy_factor": round(energy_factor, 3), "q_he": round(q_he, 3)},
-        })
+        corrections.append(
+            {
+                "heuristic": "H1",
+                "signal_type": "high_energy_required",
+                "description": f"Energy factor {energy_factor:.2f} — low habit consistency demands more willpower",
+                "target_ueid": None,
+                "urgency": "high" if energy_factor > 0.6 else "medium",
+                "metadata": {"energy_factor": round(energy_factor, 3), "q_he": round(q_he, 3)},
+            }
+        )
     return corrections
 
 
@@ -74,14 +77,20 @@ def _h2_qhe_composite(state: IKIGAiStateDict) -> list[CorrectionSignal]:
     deviation = target - q_he
 
     if deviation > 0.15:
-        corrections.append({
-            "heuristic": "H2",
-            "signal_type": "qhe_below_target",
-            "description": f"Q_HE {q_he:.2f} is {deviation:.2f} below {regime} target {target:.2f}",
-            "target_ueid": None,
-            "urgency": "critical" if deviation > 0.3 else "high",
-            "metadata": {"q_he": round(q_he, 3), "target": target, "deviation": round(deviation, 3)},
-        })
+        corrections.append(
+            {
+                "heuristic": "H2",
+                "signal_type": "qhe_below_target",
+                "description": f"Q_HE {q_he:.2f} is {deviation:.2f} below {regime} target {target:.2f}",
+                "target_ueid": None,
+                "urgency": "critical" if deviation > 0.3 else "high",
+                "metadata": {
+                    "q_he": round(q_he, 3),
+                    "target": target,
+                    "deviation": round(deviation, 3),
+                },
+            }
+        )
     return corrections
 
 
@@ -94,23 +103,27 @@ def _h3_regime_fsm(state: IKIGAiStateDict) -> list[CorrectionSignal]:
 
     # Only suggest upgrade when hysteresis is clear
     if regime == "MAINTAIN" and days >= 14:
-        corrections.append({
-            "heuristic": "H3",
-            "signal_type": "potential_upgrade",
-            "description": "14+ days in MAINTAIN — consider PUSH if Q_HE > 0.80",
-            "target_ueid": None,
-            "urgency": "low",
-            "metadata": {"regime": regime, "days_in_regime": days},
-        })
+        corrections.append(
+            {
+                "heuristic": "H3",
+                "signal_type": "potential_upgrade",
+                "description": "14+ days in MAINTAIN — consider PUSH if Q_HE > 0.80",
+                "target_ueid": None,
+                "urgency": "low",
+                "metadata": {"regime": regime, "days_in_regime": days},
+            }
+        )
     elif regime == "PUSH" and days >= 10 and not is_hysteresis:
-        corrections.append({
-            "heuristic": "H3",
-            "signal_type": "potential_downgrade",
-            "description": "10+ days in PUSH without sustained Q_HE — consider MAINTAIN",
-            "target_ueid": None,
-            "urgency": "medium",
-            "metadata": {"regime": regime, "days_in_regime": days},
-        })
+        corrections.append(
+            {
+                "heuristic": "H3",
+                "signal_type": "potential_downgrade",
+                "description": "10+ days in PUSH without sustained Q_HE — consider MAINTAIN",
+                "target_ueid": None,
+                "urgency": "medium",
+                "metadata": {"regime": regime, "days_in_regime": days},
+            }
+        )
     return corrections
 
 
@@ -131,12 +144,18 @@ def _h6_severity(state: IKIGAiStateDict) -> list[CorrectionSignal]:
     severity = infractions * abs(hours_dev) * consistency
 
     if severity > 0.5:
-        corrections.append({
-            "heuristic": "H6",
-            "signal_type": "high_severity",
-            "description": f"Severity {severity:.2f} — infractions={infractions}, hours_dev={hours_dev:.2f}",
-            "target_ueid": None,
-            "urgency": "critical" if severity > 1.0 else "high",
-            "metadata": {"severity": round(severity, 3), "infractions": infractions, "hours_dev": round(hours_dev, 3)},
-        })
+        corrections.append(
+            {
+                "heuristic": "H6",
+                "signal_type": "high_severity",
+                "description": f"Severity {severity:.2f} — infractions={infractions}, hours_dev={hours_dev:.2f}",
+                "target_ueid": None,
+                "urgency": "critical" if severity > 1.0 else "high",
+                "metadata": {
+                    "severity": round(severity, 3),
+                    "infractions": infractions,
+                    "hours_dev": round(hours_dev, 3),
+                },
+            }
+        )
     return corrections

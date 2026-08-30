@@ -1,4 +1,5 @@
 """balance node — hysteresis-aware workload/capacity balancer."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -54,23 +55,27 @@ def balance_node(state: IKIGAiStateDict) -> dict[str, Any]:
     # Emit corrections
     corrections = []
     if verdict == "RECOVER":
-        corrections.append({
-            "heuristic": "H1",
-            "signal_type": "regime_override",
-            "description": f"Q_HE {q_he:.2f} below recover threshold {DEFAULT_QHE_RECOVER}",
-            "target_ueid": None,
-            "urgency": "critical",
-            "metadata": {"current_regime": regime, "days_in_regime": days},
-        })
+        corrections.append(
+            {
+                "heuristic": "H1",
+                "signal_type": "regime_override",
+                "description": f"Q_HE {q_he:.2f} below recover threshold {DEFAULT_QHE_RECOVER}",
+                "target_ueid": None,
+                "urgency": "critical",
+                "metadata": {"current_regime": regime, "days_in_regime": days},
+            }
+        )
     elif verdict == "OVERLOAD":
-        corrections.append({
-            "heuristic": "H1",
-            "signal_type": "workload_overload",
-            "description": f"Workload {workload:.1f}h/day exceeds {DEFAULT_WORKLOAD_OVERLOAD_FACTOR}x capacity",
-            "target_ueid": None,
-            "urgency": "high",
-            "metadata": {"workload": workload, "capacity": capacity},
-        })
+        corrections.append(
+            {
+                "heuristic": "H1",
+                "signal_type": "workload_overload",
+                "description": f"Workload {workload:.1f}h/day exceeds {DEFAULT_WORKLOAD_OVERLOAD_FACTOR}x capacity",
+                "target_ueid": None,
+                "urgency": "high",
+                "metadata": {"workload": workload, "capacity": capacity},
+            }
+        )
 
     return {
         "balancer_verdict": verdict,

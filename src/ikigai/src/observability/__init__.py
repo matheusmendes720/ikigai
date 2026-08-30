@@ -12,6 +12,7 @@ Configures two OTLP exporters from env vars (see ``.env.example``):
 - LangSmith — primary LLM observability (project ``ikigai``).
 - Langfuse — secondary stack-trace capture (cloud.langfuse.com).
 """
+
 from .otel_init import init_tracing, get_tracer, shutdown_tracing
 from .error_capture import observed_tool
 

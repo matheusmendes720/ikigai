@@ -5,6 +5,7 @@ All other modules in this package consume it.
 
 Imports Q_HE and policy constants from the operational core.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -184,7 +185,9 @@ class IKIGAiStateDict(TypedDict):
     commit_summary: NotRequired[str]  # written by commit_node on success, error_node on failure
 
     # Chat mode — message history accumulated across turns
-    messages: NotRequired[Annotated[list[dict], operator.add]]  # [{"role": "user"|"agent", "content": str}]
+    messages: NotRequired[
+        Annotated[list[dict], operator.add]
+    ]  # [{"role": "user"|"agent", "content": str}]
     user_input: NotRequired[str | None]  # scratchpad for current turn input
 
 

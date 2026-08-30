@@ -5,6 +5,7 @@ without forcing renames in run_mcp_server.py or tests.
 
 Created in Phase B3 (2026-08-28).
 """
+
 from mcp_server.server import (
     MCP,
     TOOLS,
