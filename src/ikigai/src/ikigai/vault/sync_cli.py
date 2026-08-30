@@ -6,13 +6,18 @@ lives in `ikigai.vault.sync` and remains untouched.
 
 Subcommands:
     sync [--vault-root PATH] [--sync-state PATH] [--taskdog-db PATH]
-         [--human|--json]
+         [--dry-run] [--human|--json]
         Run vault → taskdog sync. Prints summary counters.
-    reverse [--sync-state PATH] [--taskdog-db PATH] [--human|--json]
-        Run taskdog → vault reverse sync. Stub in Task 1.
+    reverse [--sync-state PATH] [--taskdog-db PATH] [--dry-run]
+            [--human|--json]
+        Run taskdog → vault reverse sync (emits TaskChange events).
     status [--sync-state PATH] [--reverse-state PATH] [--human|--json]
         Print counts from sync-state.json + sync-state-reverse.json.
-        Stub in Task 1.
+    list [--direction forward|reverse] [--sync-state PATH]
+         [--reverse-state PATH] [--human|--json]
+        Enumerate entries in the sync state.
+    validate [--sync-state PATH] [--human|--json]
+        Check that every sync-state entry's vault_path still exists on disk.
 
 Output modes:
     Default (TTY): aligned ASCII table.
@@ -298,6 +303,83 @@ def cmd_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_list(args: argparse.Namespace) -> int:
+    """Enumerate entries in sync-state.json (forward) or sync-state-reverse.json."""
+    _apply_state_override(args.sync_state)
+    _apply_rev_state_override(args.reverse_state)
+
+    if args.direction == "reverse":
+        state = load_reverse_state(REVERSE_SYNC_STATE)
+        entries_iter = ((ueid, entry) for ueid, entry in state.tasks.items())
+        fields = ("ueid", "last_seen_status", "last_seen_title", "taskdog_id", "vault_path")
+    else:
+        state = load_state(SYNC_STATE)
+        entries_iter = ((ueid, entry) for ueid, entry in state.tasks.items())
+        fields = ("ueid", "last_status", "taskdog_id", "vault_path")
+
+    if _wants_human(args):
+        rows = []
+        for ueid, entry in entries_iter:
+            row = [ueid]
+            for f in fields[1:]:
+                row.append(str(getattr(entry, f, "") or ""))
+            rows.append(row)
+        _render_table(list(fields), rows)
+    else:
+        # JSON-per-line — one entry per line, mirrors cli_cli/taskdog_cli
+        for ueid, entry in entries_iter:
+            payload: dict[str, Any] = {"ueid": ueid}
+            for f in fields[1:]:
+                payload[f] = getattr(entry, f, None)
+            print(json.dumps(payload, default=str), flush=True)
+    return 0
+
+
+def cmd_validate(args: argparse.Namespace) -> int:
+    """Check that every sync-state entry's vault_path still exists on disk."""
+    _apply_state_override(args.sync_state)
+    state = load_state(SYNC_STATE)
+
+    missing: list[dict[str, Any]] = []
+    for ueid, entry in state.tasks.items():
+        vault_path = entry.vault_path
+        if not vault_path:
+            missing.append({"ueid": ueid, "reason": "no_vault_path"})
+            continue
+        if not Path(vault_path).exists():
+            missing.append({"ueid": ueid, "vault_path": vault_path, "reason": "missing_file"})
+
+    checked = len(state.tasks)
+    payload = {
+        "sync_state": str(SYNC_STATE),
+        "checked": checked,
+        "missing_vault_files": len(missing),
+        "missing": missing,
+    }
+
+    if _wants_human(args):
+        print(f"sync_state: {payload['sync_state']}", flush=True)
+        _render_table(
+            ["counter", "value"],
+            [
+                ["checked", str(checked)],
+                ["missing_vault_files", str(len(missing))],
+            ],
+        )
+        if missing:
+            print("", flush=True)
+            print("missing:", flush=True)
+            for m in missing:
+                print(
+                    f"  - {m['ueid']}: {m.get('vault_path', m.get('reason'))}",
+                    flush=True,
+                )
+    else:
+        print(json.dumps(payload, indent=2), flush=True)
+
+    return 1 if missing else 0
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Entry point
 # ─────────────────────────────────────────────────────────────────────────────
@@ -346,7 +428,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     _add_output_flags(rev_p)
 
-    status_p = sub.add_parser("status", help="show sync state counts (stub in Task 1)")
+    status_p = sub.add_parser("status", help="show sync state counts")
     status_p.add_argument(
         "--sync-state",
         type=str,
@@ -361,6 +443,37 @@ def main(argv: list[str] | None = None) -> int:
     )
     _add_output_flags(status_p)
 
+    list_p = sub.add_parser("list", help="enumerate sync-state entries")
+    list_p.add_argument(
+        "--direction",
+        type=str,
+        choices=["forward", "reverse"],
+        default="forward",
+        help="which state file to enumerate (default: forward)",
+    )
+    list_p.add_argument(
+        "--sync-state",
+        type=str,
+        default=str(SYNC_STATE),
+        help=f"path to sync-state.json (default: {SYNC_STATE})",
+    )
+    list_p.add_argument(
+        "--reverse-state",
+        type=str,
+        default=str(REVERSE_SYNC_STATE),
+        help=f"path to sync-state-reverse.json (default: {REVERSE_SYNC_STATE})",
+    )
+    _add_output_flags(list_p)
+
+    validate_p = sub.add_parser("validate", help="check sync-state entries for missing vault files")
+    validate_p.add_argument(
+        "--sync-state",
+        type=str,
+        default=str(SYNC_STATE),
+        help=f"path to sync-state.json (default: {SYNC_STATE})",
+    )
+    _add_output_flags(validate_p)
+
     args = parser.parse_args(argv)
 
     if args.command == "sync":
@@ -369,6 +482,10 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_reverse(args)
     if args.command == "status":
         return cmd_status(args)
+    if args.command == "list":
+        return cmd_list(args)
+    if args.command == "validate":
+        return cmd_validate(args)
     parser.error(f"unknown command: {args.command}")
     return 2  # unreachable
 
