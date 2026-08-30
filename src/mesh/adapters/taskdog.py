@@ -1,6 +1,6 @@
 """Adapter for taskdog SQLite (simplified schema for v1; full SQLAlchemy in v2)."""
+
 import sqlite3
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 

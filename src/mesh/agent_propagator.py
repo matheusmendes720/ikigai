@@ -1,4 +1,5 @@
 """Deep Agent propagator: emits approved events to all relevant forks + vault."""
+
 from dataclasses import dataclass
 import logging
 from pathlib import Path

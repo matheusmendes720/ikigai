@@ -3,6 +3,7 @@
 Precedent: src/ikigai/src/mcp_server/tools_mesh.py (handlers are sync,
 return JSON strings, errors returned as {"error": "..."}).
 """
+
 from __future__ import annotations
 
 import json
