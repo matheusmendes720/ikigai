@@ -83,6 +83,7 @@ def test_vault_read_handles_unicode(tmp_path: Path) -> None:
 def test_vault_read_concurrent_readers_do_not_block(tmp_path: Path) -> None:
     """Two concurrent readers can both hold VaultLock (shared lock)."""
     import threading
+
     from src.ikigai.src.ikigai.vault.vault_read import vault_read
 
     vault = tmp_path / "vault"
@@ -111,6 +112,7 @@ def test_vault_read_concurrent_readers_do_not_block(tmp_path: Path) -> None:
 def test_vault_read_returns_sha256_matches_file_content(tmp_path: Path) -> None:
     """SHA256 hash matches actual file bytes on disk."""
     import hashlib
+
     from src.ikigai.src.ikigai.vault.vault_read import vault_read
 
     vault = tmp_path / "vault"
