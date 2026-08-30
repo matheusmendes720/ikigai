@@ -17,14 +17,14 @@ import os
 import sys
 from pathlib import Path
 
+# EventLog is defined in ikigai.gateway.event_log but not re-exported by the
+# package __init__; import directly to keep the fix inside start_gateway.py
+# (per A1.7 brief AC#7: NO files outside the 2 listed paths).
 from ikigai.gateway import (
     GatewayConfig,
     UnifiedMCPGateway,
     register_default_adapters,
 )
-# EventLog is defined in ikigai.gateway.event_log but not re-exported by the
-# package __init__; import directly to keep the fix inside start_gateway.py
-# (per A1.7 brief AC#7: NO files outside the 2 listed paths).
 from ikigai.gateway.event_log import EventLog
 
 logger = logging.getLogger(__name__)
