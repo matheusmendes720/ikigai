@@ -1027,3 +1027,28 @@ After user approves this spec, the next steps are:
 4. **Memory update + SPEC supersede trailer** if architecture diverges during implementation
 
 This spec is the contract for that work. Any deviation requires user re-approval.
+
+---
+
+## Decisions on open questions (resolved 2026-08-30)
+
+User accepted all 6 recommendations. Drill-down in companion doc `docs/superpowers/specs/2026-08-30-fork-connection-architecture-Q-expanded.md`.
+
+| Q | Recommended | Locked | Why |
+|---|---|---|---|
+| Q1 | β in-repo | **β in-repo** | Single clone; CI always runs; matches "fully local" invariant; most reversible |
+| Q2 | i hand-rolled | **i hand-rolled JSON-RPC** | Zero new deps per fork; ~150 LOC; matches what `StdioAdapter` already expects |
+| Q3 | a no auth | **a no auth** | Localhost-only is sufficient; YAGNI; document the assumption |
+| Q4 | i single JSONL | **i single JSONL** | Volume bounded (~36MB/yr); append-only invariant sacred; grep+awk sufficient |
+| Q5 | γ YAGNI | **γ YAGNI** | Decide when concrete pain arrives; not speculative complexity |
+| Q6 | I+III docs+grep | **I+III docs + grep test** | Constraint already in attribution §7; grep catches regressions cheaply |
+
+**Implementation defaults (apply throughout the plan):**
+- Fork servers: `src/solverforge_calendar/server.py` + `src/tuiboard/server.py`
+- Transport: hand-rolled JSON-RPC 2.0 over stdio (Content-Length framing)
+- Gateway: no auth; listens on `127.0.0.1:8765`
+- Event log: `data/gateway/events.jsonl` (append-only JSONL)
+- Tool versioning: no version suffix in v1; add only when schema breaks
+- Vault conformance: `vault_write` is ONLY vault writer; grep test catches regressions
+
+**Any change to a locked decision** → update this section + memory + re-review affected phases of the plan.
