@@ -1,15 +1,15 @@
-"""tuiboard_snapshot — save a snapshot (minimal stub for E2E).
+"""tuiboard_snapshot — save a snapshot of current fork tasks (filtered)."""
 
-Per A2.6 deviation: minimal stub that accepts {name, layout} args and
-calls SnapshotStore.save() with empty tasks list. Full handler ships in A3.
-"""
 from __future__ import annotations
 
 import os
 from pathlib import Path
 
-from tuiboard.models import TuiboardSnapshotInput
+from tuiboard.aggregator import TaskAggregator, AggregatedTask
+from tuiboard.models import TuiboardSnapshotInput, TuiboardSnapshotOutput
 from tuiboard.snapshots import SnapshotStore
+
+# Filter pipeline order (deviation #2): status -> vector -> tags -> due_before
 
 
 def _store() -> SnapshotStore:
@@ -17,16 +17,48 @@ def _store() -> SnapshotStore:
     return SnapshotStore(sd)
 
 
+def _data_dir() -> Path:
+    return Path(os.environ.get("TUIBOARD_DATA_DIR", "data"))
+
+
+def _apply_filters(tasks: list[AggregatedTask], filters) -> list[AggregatedTask]:
+    if filters is None:
+        return tasks
+    result = tasks
+    if filters.status is not None:
+        result = [t for t in result if t.status == filters.status]
+    if filters.vector is not None:
+        result = [t for t in result if t.vector == filters.vector]
+    if filters.tags:
+        result = [t for t in result if all(tag in t.tags for tag in filters.tags)]
+    if filters.due_before is not None:
+        result = [t for t in result if t.due is not None and t.due < filters.due_before]
+    return result
+
+
+def _to_dict(t: AggregatedTask) -> dict:
+    return {
+        "ueid": t.ueid,
+        "title": t.title,
+        "status": t.status,
+        "due": t.due,
+        "vector": t.vector,
+        "tags": list(t.tags),
+    }
+
+
 def handle(args: dict) -> dict:
-    # Minimal validation - just accept name and layout
     inp = TuiboardSnapshotInput.model_validate(args)
     store = _store()
-    # Extract layout as filters dict for the store
-    filters = {"layout": inp.layout} if inp.layout else {}
-    result = store.save(
+    aggregator = TaskAggregator(data_dir=_data_dir())
+    all_tasks = aggregator.aggregate()
+    filtered = _apply_filters(all_tasks, inp.filters)
+    task_dicts = [_to_dict(t) for t in filtered]
+    saved = store.save(
         name=inp.name,
-        tasks=[],  # Empty tasks list for stub
-        filters=filters,
+        tasks=task_dicts,
+        filters=inp.filters.model_dump() if inp.filters else None,
         description=inp.description,
     )
-    return result
+    output = TuiboardSnapshotOutput(**saved)
+    return output.model_dump(mode="json")
