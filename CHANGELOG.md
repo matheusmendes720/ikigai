@@ -753,3 +753,27 @@ issues across all 7 task reviews.
 - The `reverse_sync(review_queue_dir)` parameter is brief-mandated in the
   signature but unused in body — implementation always uses module-level
   `QUEUE_DIR` via `enqueue()`. Recorded for whole-branch review.
+
+### B6 Combo A — Post-Review Fixes (2026-08-29)
+
+Whole-branch review (`dd1a286..013c822`) returned 3 Important findings.
+Fixed in-place:
+
+| # | Subject | SHA | Notes |
+|---|---|---|---|
+| F1 | `reverse_sync` dead param | `9d73d15` | refactor: drop `review_queue_dir` parameter (was never used in body — `enqueue()` always uses module-level `QUEUE_DIR`) |
+| F2 | `vault_write` atomicity | `a9f35cc` | fix: replace `frontmatter.dump()` with explicit temp-write + `os.replace()` pattern; B6.4 lesson now actually applied (was only documented); added 3 atomicity tests |
+
+**Verification:** 57/57 regression PASS (54 pre-existing + 3 new atomicity), 2/2 smoke PASS.
+Both fixes **main-session verified** per [[verify-agent-fabricated-failures]].
+
+**Backlog (NOT fixed in Combo A — see `combo-a-whole-branch-review-backlog-2026-08-29.md`):**
+- `ikigai_sync_vault` in `tools.py:420` is a pre-existing direct vault writer
+  that bypasses `vault_write` (violates attribution §7 for the deep agent
+  harness path). Pre-existing (commit `c0065bd`), not Combo A's fault.
+- `agentic_writer.py:35` still uses `frontmatter.dump()` directly (out of
+  scope per spec — explicit deferred path for IKIGAiRecord).
+- 5 Minor findings (ruff format on 3 new files, pre-existing taskdog unused
+  imports, error shape inconsistency, queue pollution no auto-cleanup, lazy
+  import in propagator) — deferred to next hygiene pass.
+
