@@ -87,7 +87,8 @@
 │  UnifiedMCPGateway (port 8765, HTTP+SSE front)                    ✅ B3 │
 │   ├─ POST /call      {namespace, tool, arguments} → JSON                │
 │   ├─ GET  /health    {status: ok, adapters: [...]}                       │
-│   └─ GET  /events    ⚠️ minimal SSE (one event, then close — TODO Task 14)│
+│   └─ GET  /events    ✅ real streaming (chunked TE, 15s heartbeat,       │
+│                    │   event bus via publish_event/subscribe_events)    │
 │                                                                          │
 │  StdioAdapter (per fork, subprocess JSON-RPC over stdin/stdout)   ✅     │
 │   ├─ content-length framing                                              │
@@ -110,7 +111,7 @@
 | Layer | Component | Status | Last shipped | Notes |
 |-------|-----------|--------|--------------|-------|
 | 0 | UnifiedMCPGateway | ✅ DONE | B3 (`phase-b3-mcp-gateway-complete-2026-08-28`) | Pure stdlib, no starlette |
-| 0 | SSE real streaming | ❌ TODO | — | Comment line 164-165 says "Task 14" |
+| 0 | SSE real streaming | ✅ DONE | `0ebb57c` | Event bus (publish/subscribe), chunked TE, 15s heartbeat, graceful disconnect |
 | 1 | vault/ canonical SOT | ✅ DONE | — | Append-only invariant enforced |
 | 1 | data/review_queue/ | ✅ DONE | B4 (`phase-b4-review-queue-worker-complete-2026-08-29`) | pidfile + worker_status |
 | 1 | data/taskdog/tasks.db | ✅ DONE | B5.B | Lazy SQLite UPSERT |
@@ -264,9 +265,9 @@ Per [[post-phase-b-audit-hygiene-2026-08-29]]:
 | 1 | B2 start/stop: implement subprocess.Popen + pidfile | 2-4h | UX blocker | [[backend-phase-reordering-2026-08-28]] | ✅ SHIPPED `0e82e4e` |
 | 2 | F9 FilesystemBackend: scope to vault/ | 1-2h | SECURITY | B5.0 audit F9 | ✅ already closed B5.1 `a5837df` |
 | 3 | F4 SqliteSaver: wrap in context manager | 1-2h | leak | B5.0 audit F4 | ✅ already closed B5.1 `a5837df` |
-| 4 | F14 per-node smoke tests (8 nodes) | 4-6h | HIGH (quality gate) | B5.0 audit F14 | ❌ OPEN — NEXT |
+| 4 | F14 per-node smoke tests (8 nodes) | 4-6h | HIGH (quality gate) | B5.0 audit F14 | ✅ SHIPPED `fefaa52` |
 | 5 | Combo A backlog: #3 ikigai_sync_vault bypass + 5 Minor | 2-3h | MEDIUM | [[combo-a-whole-branch-review-backlog-2026-08-29]] | ✅ SHIPPED `08dcb23` (#3 + #2 already-resolved); 4 Minor deferred |
-| 6 | SSE real streaming (Task 14 deferred) | 4-6h | LOW | gateway.py:164-165 TODO | ❌ OPEN |
+| 6 | SSE real streaming (Task 14 deferred) | 4-6h | LOW | gateway.py:164-165 TODO | ✅ SHIPPED `0ebb57c` (event bus + chunked TE + heartbeat; full adapter integration still TODO) |
 | 7 | interfaces/tui/README.md SUPERSEDED trailer | 5-10min | doc hygiene | user-flagged 2026-08-29 | ✅ SHIPPED `2211881` |
 
 **Updated totals:** Items 2-3 are no-ops (already done). Realistic remaining work: 10-15h for items 4-7.
