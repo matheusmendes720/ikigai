@@ -1,17 +1,22 @@
 {
   "mcpServers": {
     "ikigai": {
-      "command": "/tmp/ikigai-test/bin/python",
-      "args": ["run_mcp_server.py"],
-      "cwd": "/mnt/c/Users/mathe/code_space/life-oss/life/life-ops/ikigai",
+      "command": "python",
+      "args": ["-m", "ikigai.gateway.start_gateway"],
       "env": {},
-      "description": "IKIGAi meta-brain — 8+ tools: score, regime, phase, decompose, corrections, plan_cycle, checkpoint, sync_vault, write_tasks, read_tasks"
+      "description": "IKIGAi meta-brain gateway (HTTP+SSE on configurable port)"
+    },
+    "solverforge-calendar": {
+      "command": "python",
+      "args": ["-m", "solverforge_calendar.server"],
+      "env": {},
+      "description": "Calendar planning fork — sf_availability, sf_schedule, sf_replan"
     },
     "tuiboard": {
-      "command": "/home/flytwist/.bun/bin/bun",
-      "args": ["run", "/mnt/c/Users/mathe/code_space/apps/kanban/tuiboard/bin/tuiboard-mcp.ts"],
-      "env": {},
-      "description": "Kanban boards — list, read, create, update, delete tasks (BYD-Camacari-CV board)"
+      "command": "python",
+      "args": ["-m", "tuiboard.server"],
+      "env": {"TUIBOARD_DATA_DIR": "data"},
+      "description": "Kanban rendering fork — tuiboard_diff, tuiboard_snapshot, tuiboard_render, tuiboard_aggregate (wraps all 3 forks)"
     },
     "taskdog": {
       "command": "/usr/bin/bash",
@@ -21,8 +26,9 @@
     }
   },
   "notes": {
-    "solverforge": "Not available — requires Rust toolchain with cc linker (WSL2 missing build-essential)",
+    "solverforge": "In-repo Python factory at src/solverforge_calendar/server.py (3 tools)",
     "taskdog_server": "Must be running on :8000 — start with: cd $TASKDOG_ROOT && nohup uv run taskdog-server &",
-    "vault_migration": "Vault moved from .omo/ to vault/. MCP server vault reads use data/matheus/ as root."
+    "vault_migration": "Vault moved from .omo/ to vault/. MCP server vault reads use data/matheus/ as root.",
+    "fork_connection": "solverforge-calendar + tuiboard now connected via Python stdio servers (Phase A1-A4, 2026-08-30). See ADR-012."
   }
 }
