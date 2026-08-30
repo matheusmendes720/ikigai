@@ -363,8 +363,13 @@ def ikigai_plan_cycle(thread_id: str = "default") -> str:
 def ikigai_sync_vault(thread_id: str = "default") -> str:
     """Sync the latest checkpoint to a vault markdown file.
 
-    Writes a cycle log to ~/.ikigai/vault/cycle-YYYY-MM-DD.md
-    with current vector scores, regime, phase, and corrections.
+    Writes a cycle log to vault/cycle-YYYY-MM-DD.md with current vector
+    scores, regime, phase, and corrections.
+
+    Per attribution §7 (combo-a-whole-branch-review-backlog-2026-08-29
+    Important #3): all vault writes go through `vault_write` for atomicity
+    + VaultLock concurrency + path-traversal protection. This tool no
+    longer calls `Path.write_text` directly.
 
     Args:
         thread_id: Checkpoint thread to read from. Defaults to "default".
@@ -373,6 +378,10 @@ def ikigai_sync_vault(thread_id: str = "default") -> str:
         Path to the written vault file.
     """
     import datetime as _dt
+
+    from src.ikigai.src.ikigai.vault.vault_write import (  # type: ignore[import-not-found]
+        vault_write as _vault_write_impl,
+    )
 
     d = _read_checkpoint_data(thread_id)
     cycle_id = d.get("cycle_id", _dt.date.today().isoformat())
@@ -383,23 +392,24 @@ def ikigai_sync_vault(thread_id: str = "default") -> str:
     phase = d.get("phase", "BUSCA")
     corrections = d.get("corrections", [])
 
-    vault_dir = _VAULT_DIR
-    vault_dir.mkdir(parents=True, exist_ok=True)
-    log_file = vault_dir / f"cycle-{cycle_id}.md"
+    vault_root = _VAULT_DIR
+    vault_root.mkdir(parents=True, exist_ok=True)
+    relative_path = f"cycle-{cycle_id}.md"
 
-    content = f"""---
-ueid: ikigai:cycle:{cycle_id}
-cycle_id: {cycle_id}
-date: {_dt.date.today().isoformat()}
-regime: {regime}
-q_he: {qhe}
-meta_vector: {mv}
-phase: {phase}
-corrections_count: {len(corrections)}
-vector_scores: {json.dumps(vs)}
----
-
-# IKIGAi Cycle — {cycle_id}
+    # Build frontmatter_fields and body separately — vault_write composes
+    # them with frontmatter.dumps() + atomic os.replace() (B6.4 pattern).
+    frontmatter_fields: dict[str, Any] = {
+        "ueid": f"ikigai:cycle:{cycle_id}",
+        "cycle_id": cycle_id,
+        "date": _dt.date.today().isoformat(),
+        "regime": regime,
+        "q_he": qhe,
+        "meta_vector": mv,
+        "phase": phase,
+        "corrections_count": len(corrections),
+        "vector_scores": json.dumps(vs),
+    }
+    body = f"""# IKIGAi Cycle — {cycle_id}
 
 ## Regime: {regime}  |  Q_HE: {qhe:.4f}  |  Meta: {mv:.4f}
 
@@ -417,8 +427,14 @@ vector_scores: {json.dumps(vs)}
 ## Corrections: {len(corrections)}
 {''.join(f"- [{c.get('heuristic','?')}] {c.get('description','')}\n" for c in corrections[-5:]) if corrections else '_None_'}
 """
-    log_file.write_text(content, encoding="utf-8")
-    return f"✅ Synced to vault: {log_file}"
+
+    result = _vault_write_impl(
+        vault_root=vault_root,
+        vault_path=relative_path,
+        frontmatter_fields=frontmatter_fields,
+        body=body,
+    )
+    return f"✅ Synced to vault: {vault_root / relative_path} (sha256={result['sha256'][:8]}...)"
 
 
 # ---------------------------------------------------------------------------
