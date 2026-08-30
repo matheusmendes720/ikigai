@@ -159,7 +159,7 @@ def _strip_chunked_framing(buf: str) -> str:
                 # Skip the 0 line + its trailing CRLF + the CRLF that follows
                 # (HTTP/1.1 chunked terminator is "0\\r\\n\\r\\n")
                 end = nl + 2
-                if buf[end:end + 2] == "\r\n":
+                if buf[end : end + 2] == "\r\n":
                     pos = end + 2
                 else:
                     pos = end
@@ -171,7 +171,7 @@ def _strip_chunked_framing(buf: str) -> str:
             # End of chunked body
             pos = nl + 2
             # Skip optional trailers + final CRLF CRLF
-            if buf[pos:pos + 2] == "\r\n":
+            if buf[pos : pos + 2] == "\r\n":
                 pos += 2
             break
         # Read `size` bytes after the size line
@@ -213,7 +213,9 @@ def _parse_sse_frame(frame: str) -> tuple[str | None, str]:
 
 def _connect(host: str, port: int, timeout: float = 5.0) -> socket.socket:
     sock = socket.create_connection((host, port), timeout=timeout)
-    sock.sendall(b"GET /events HTTP/1.1\r\nHost: localhost\r\nAccept: text/event-stream\r\nConnection: close\r\n\r\n")
+    sock.sendall(
+        b"GET /events HTTP/1.1\r\nHost: localhost\r\nAccept: text/event-stream\r\nConnection: close\r\n\r\n"
+    )
     return sock
 
 

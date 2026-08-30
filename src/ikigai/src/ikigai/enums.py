@@ -153,11 +153,41 @@ class Phase(str, Enum):
     def vector_weights(self) -> dict[str, float]:
         """Default vector weights for this phase (snapshot at phase entry)."""
         return {
-            Phase.FUNDACAO: {"passion": 0.15, "skill": 0.40, "market": 0.15, "revenue": 0.10, "course": 0.20},
-            Phase.BUSCA: {"passion": 0.10, "skill": 0.15, "market": 0.45, "revenue": 0.20, "course": 0.10},
-            Phase.HACKATHON: {"passion": 0.10, "skill": 0.20, "market": 0.20, "revenue": 0.40, "course": 0.10},
-            Phase.RECUPERACAO: {"passion": 0.50, "skill": 0.10, "market": 0.05, "revenue": 0.05, "course": 0.30},
-            Phase.OVERCLOCKING: {"passion": 0.15, "skill": 0.15, "market": 0.15, "revenue": 0.50, "course": 0.05},
+            Phase.FUNDACAO: {
+                "passion": 0.15,
+                "skill": 0.40,
+                "market": 0.15,
+                "revenue": 0.10,
+                "course": 0.20,
+            },
+            Phase.BUSCA: {
+                "passion": 0.10,
+                "skill": 0.15,
+                "market": 0.45,
+                "revenue": 0.20,
+                "course": 0.10,
+            },
+            Phase.HACKATHON: {
+                "passion": 0.10,
+                "skill": 0.20,
+                "market": 0.20,
+                "revenue": 0.40,
+                "course": 0.10,
+            },
+            Phase.RECUPERACAO: {
+                "passion": 0.50,
+                "skill": 0.10,
+                "market": 0.05,
+                "revenue": 0.05,
+                "course": 0.30,
+            },
+            Phase.OVERCLOCKING: {
+                "passion": 0.15,
+                "skill": 0.15,
+                "market": 0.15,
+                "revenue": 0.50,
+                "course": 0.05,
+            },
         }[self]
 
 

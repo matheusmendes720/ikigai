@@ -7,11 +7,19 @@ def objective_state_machine() -> StateMachine:
     sm = StateMachine(initial_state="draft", name="objective")
     sm.add_transition(Transition("draft", "planned", "plan", audit_message="Objective planned"))
     sm.add_transition(Transition("planned", "active", "start", audit_message="Objective activated"))
-    sm.add_transition(Transition("active", "done", "complete", audit_message="All key results done"))
-    sm.add_transition(Transition("active", "blocked", "block", audit_message="Blocked on dependency"))
+    sm.add_transition(
+        Transition("active", "done", "complete", audit_message="All key results done")
+    )
+    sm.add_transition(
+        Transition("active", "blocked", "block", audit_message="Blocked on dependency")
+    )
     sm.add_transition(Transition("blocked", "active", "unblock", audit_message="Unblocked"))
-    sm.add_transition(Transition("active", "abandoned", "abandon", audit_message="Objective abandoned"))
-    sm.add_transition(Transition("planned", "abandoned", "abandon", audit_message="Abandoned before start"))
+    sm.add_transition(
+        Transition("active", "abandoned", "abandon", audit_message="Objective abandoned")
+    )
+    sm.add_transition(
+        Transition("planned", "abandoned", "abandon", audit_message="Abandoned before start")
+    )
     return sm
 
 

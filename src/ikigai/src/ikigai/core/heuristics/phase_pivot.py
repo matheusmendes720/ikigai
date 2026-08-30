@@ -121,7 +121,9 @@ def compute_phase(
         new_weights = {VectorType(k): float(v) for k, v in phase.vector_weights.items()}
 
         # Convergence check
-        max_delta = max(abs(new_weights.get(k, 0) - weights.get(k, 0)) for k in set(new_weights) | set(weights))
+        max_delta = max(
+            abs(new_weights.get(k, 0) - weights.get(k, 0)) for k in set(new_weights) | set(weights)
+        )
         weights = new_weights
         final_phase = phase
 

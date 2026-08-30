@@ -45,7 +45,9 @@ class IKIGAiVectorEntity(BaseModel):
     description: str = ""
 
     # Scores (0-100)
-    current_score: ScoreValue = Field(default_factory=lambda: ScoreValue(value=50.0, unit="percent"))
+    current_score: ScoreValue = Field(
+        default_factory=lambda: ScoreValue(value=50.0, unit="percent")
+    )
     target_score: ScoreValue = Field(default_factory=lambda: ScoreValue(value=80.0, unit="percent"))
     score_history: list[VectorScorePoint] = Field(default_factory=list)
 

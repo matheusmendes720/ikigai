@@ -33,9 +33,7 @@ DEFAULT_LOG_PATH = "data/sse_events.jsonl"
 def _format_record(record: dict) -> str:
     """One JSON line per record. ts is rendered as ISO 8601 for humans."""
     out = {
-        "ts_iso": time.strftime(
-            "%Y-%m-%dT%H:%M:%SZ", time.gmtime(record.get("ts", 0.0))
-        ),
+        "ts_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(record.get("ts", 0.0))),
         "ts": record.get("ts"),
         "event": record.get("event"),
         "data": record.get("data"),

@@ -6,6 +6,7 @@ Preserves:
   - Unknown frontmatter keys pass through (RT-06) so the validator's
     `extra="allow"` config (SPEC D6) accepts them.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

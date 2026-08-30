@@ -48,12 +48,7 @@ def compute_opportunity_fit(
     else:
         alignment_avg = sum(ikigai_alignment.values()) / len(ikigai_alignment)
 
-    fit = (
-        skills_match * 0.4
-        + deadline_feasible * 0.2
-        + rph_normalized * 0.2
-        + alignment_avg * 0.2
-    )
+    fit = skills_match * 0.4 + deadline_feasible * 0.2 + rph_normalized * 0.2 + alignment_avg * 0.2
     return round(min(1.0, max(0.0, fit)), 4)
 
 

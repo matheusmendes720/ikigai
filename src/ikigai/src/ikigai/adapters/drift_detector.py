@@ -13,6 +13,7 @@ Findings come in 4 DriftState variants:
 `scan()` also writes a triagem.md summary to the vault root by default
 (SEC/§8.2 contract) so a human operator can see the drift queue.
 """
+
 from __future__ import annotations
 
 import hashlib

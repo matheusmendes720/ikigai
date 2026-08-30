@@ -12,7 +12,9 @@ class IKIGAiError(Exception):
 
     code: str = "ERR_IKIGAI_000"
 
-    def __init__(self, message: str, *, code: str | None = None, context: dict | None = None) -> None:
+    def __init__(
+        self, message: str, *, code: str | None = None, context: dict | None = None
+    ) -> None:
         super().__init__(message)
         if code is not None:
             self.code = code

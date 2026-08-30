@@ -3,6 +3,7 @@
 Format: <namespace>:<entity_type>:<slug>:<uuid_short>:<content_hash_short>
 Namespaces: ikigai | tw | obsidian | external
 """
+
 from __future__ import annotations
 
 from typing import Annotated

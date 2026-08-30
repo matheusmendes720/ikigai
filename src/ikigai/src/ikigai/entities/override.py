@@ -1,4 +1,5 @@
 """OverrideRecord — SPEC D12 typed audit trail entry."""
+
 from __future__ import annotations
 
 from datetime import datetime

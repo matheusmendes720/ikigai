@@ -90,7 +90,9 @@ def dict_to_frontmatter(data: dict[str, Any]) -> dict[str, Any]:
             pass
     if "ikigai_vectors" in out and isinstance(out["ikigai_vectors"], list):
         out["ikigai_vectors"] = [
-            VectorType(v.split(".", 1)[0]) if isinstance(v, str) and "." in v else (VectorType(v) if isinstance(v, str) else v)
+            VectorType(v.split(".", 1)[0])
+            if isinstance(v, str) and "." in v
+            else (VectorType(v) if isinstance(v, str) else v)
             for v in out["ikigai_vectors"]
         ]
     if "source_md_path" in out and out["source_md_path"]:

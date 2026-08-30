@@ -57,7 +57,9 @@ class Triagem:
             for e in entries:
                 lines.append(f"### `{e.entity_path.name}` ({e.entity_ueid})")
                 lines.append(f"- markdown mtime: `{e.markdown_mtime.isoformat()}`")
-                lines.append(f"- sqlite mtime:   `{e.sqlite_mtime.isoformat() if e.sqlite_mtime else 'N/A'}`")
+                lines.append(
+                    f"- sqlite mtime:   `{e.sqlite_mtime.isoformat() if e.sqlite_mtime else 'N/A'}`"
+                )
                 lines.append(f"- decision: **{e.decision}**")
                 if e.resolution:
                     lines.append(f"- resolution: {e.resolution}")

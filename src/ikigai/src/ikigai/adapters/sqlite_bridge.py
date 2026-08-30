@@ -4,6 +4,7 @@ Task 11 of data-model-unification: this class is kept as a re-export shim
 for backward compatibility. The canonical implementation lives on
 SQLiteAdapter.upsert_ikigai_record().
 """
+
 from __future__ import annotations
 
 from ikigai.entities.ikigai_record import IKIGAiRecord

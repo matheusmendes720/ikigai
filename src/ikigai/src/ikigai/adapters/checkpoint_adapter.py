@@ -5,6 +5,7 @@ Replaces raw pickle.loads at src/mcp_server/server.py:188-201, 419-421, 430-436.
 SA-03: the serialized blob in `state_blob` MUST start with `{` / `[` (JSON),
 never with `b"\x80"` (pickle protocol header).
 """
+
 from __future__ import annotations
 
 import sqlite3
@@ -41,10 +42,13 @@ class CheckpointAdapter:
         # Store as JSON-safe: type header + base64-encoded blob. NOT raw
         # pickle — both ends of this adapter are pure JSON.
         import base64, json
-        envelope = json.dumps({
-            "type": type_string,
-            "data": base64.b64encode(blob).decode("ascii"),
-        })
+
+        envelope = json.dumps(
+            {
+                "type": type_string,
+                "data": base64.b64encode(blob).decode("ascii"),
+            }
+        )
         with sqlite3.connect(str(self.db_path)) as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO checkpoints (thread_id, state_blob) VALUES (?, ?)",
@@ -60,6 +64,7 @@ class CheckpointAdapter:
         if row is None:
             return None
         import base64, json
+
         envelope = json.loads(row[0])
         type_string = envelope["type"]
         blob = base64.b64decode(envelope["data"])

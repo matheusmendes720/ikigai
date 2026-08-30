@@ -3,6 +3,7 @@
 Replaces f-string writer at src/agents/tools.py:350-385.
 Sole authority for IKIGAiRecord → markdown round-trip.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

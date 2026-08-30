@@ -9,8 +9,12 @@ def dream_state_machine() -> StateMachine:
     sm.add_transition(Transition("active", "fulfilled", "achieve", audit_message="Dream fulfilled"))
     sm.add_transition(Transition("active", "abandoned", "abandon", audit_message="Dream abandoned"))
     sm.add_transition(Transition("active", "archived", "archive", audit_message="Dream archived"))
-    sm.add_transition(Transition("abandoned", "archived", "archive", audit_message="Archived after abandonment"))
-    sm.add_transition(Transition("fulfilled", "archived", "archive", audit_message="Archived after fulfillment"))
+    sm.add_transition(
+        Transition("abandoned", "archived", "archive", audit_message="Archived after abandonment")
+    )
+    sm.add_transition(
+        Transition("fulfilled", "archived", "archive", audit_message="Archived after fulfillment")
+    )
     return sm
 
 

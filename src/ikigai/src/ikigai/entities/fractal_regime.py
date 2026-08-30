@@ -3,6 +3,7 @@
 Levels (top-down): global → cluster → vector → sub_vector.
 Each level carries its own hysteresis_days per SPEC §8.3 + I10.
 """
+
 from __future__ import annotations
 
 from typing import Literal

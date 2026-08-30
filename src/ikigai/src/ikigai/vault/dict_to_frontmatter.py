@@ -9,6 +9,7 @@ Preserves:
     like DreamEntity.motivation survive
   - The `custom` dict (forward-compat container)
 """
+
 from __future__ import annotations
 
 from datetime import datetime

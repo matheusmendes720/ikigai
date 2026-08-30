@@ -25,13 +25,23 @@ class ProfileSnapshot(BaseModel):
     course: ScoreValue = Field(default_factory=lambda: ScoreValue(value=50.0, unit="percent"))
 
     # Zones (intersection scores, 0-100)
-    vocacao_score: ScoreValue = Field(default_factory=lambda: ScoreValue(value=0.0, unit="percent"))  # passion ∩ skill
-    missao_score: ScoreValue = Field(default_factory=lambda: ScoreValue(value=0.0, unit="percent"))  # passion ∩ market
-    profissao_score: ScoreValue = Field(default_factory=lambda: ScoreValue(value=0.0, unit="percent"))  # skill ∩ market ∩ revenue
-    negocio_score: ScoreValue = Field(default_factory=lambda: ScoreValue(value=0.0, unit="percent"))  # market ∩ revenue
+    vocacao_score: ScoreValue = Field(
+        default_factory=lambda: ScoreValue(value=0.0, unit="percent")
+    )  # passion ∩ skill
+    missao_score: ScoreValue = Field(
+        default_factory=lambda: ScoreValue(value=0.0, unit="percent")
+    )  # passion ∩ market
+    profissao_score: ScoreValue = Field(
+        default_factory=lambda: ScoreValue(value=0.0, unit="percent")
+    )  # skill ∩ market ∩ revenue
+    negocio_score: ScoreValue = Field(
+        default_factory=lambda: ScoreValue(value=0.0, unit="percent")
+    )  # market ∩ revenue
 
     # Aggregate
-    ikigai_score: ScoreValue = Field(default_factory=lambda: ScoreValue(value=50.0, unit="percent"))  # meta-vetor
+    ikigai_score: ScoreValue = Field(
+        default_factory=lambda: ScoreValue(value=50.0, unit="percent")
+    )  # meta-vetor
     alignment_label: AlignmentLabel = AlignmentLabel.CONVERGING
 
     # Diagnostics

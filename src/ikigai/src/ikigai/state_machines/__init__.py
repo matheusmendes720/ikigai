@@ -34,11 +34,13 @@ from ikigai.state_machines._registry import (
 # Import these lazily to avoid cycle
 import importlib
 
+
 def __getattr__(name: str):
     if name in ("StateMachine", "Transition"):
         mod = importlib.import_module("ikigai.state_machines._sm_base")
         return getattr(mod, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "dream_state_machine",

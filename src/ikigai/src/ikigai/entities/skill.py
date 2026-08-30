@@ -42,7 +42,9 @@ class SkillNode(BaseModel):
     category: SkillCategory = SkillCategory.OTHER
     level: SkillLevel = SkillLevel.BEGINNER
     level_score: ScoreValue = Field(default_factory=lambda: ScoreValue(value=10.0, unit="percent"))
-    market_demand: ScoreValue = Field(default_factory=lambda: ScoreValue(value=50.0, unit="percent"))
+    market_demand: ScoreValue = Field(
+        default_factory=lambda: ScoreValue(value=50.0, unit="percent")
+    )
     learning_hours: float = 0.0
     last_practiced: date | None = None
     prerequisites: list[UEID] = Field(default_factory=list)
