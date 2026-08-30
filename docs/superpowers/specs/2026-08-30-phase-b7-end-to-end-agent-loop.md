@@ -53,10 +53,10 @@ vault/*.md (cycle log + TaskChange resolution)
 | `agent_consumer.py` (queue → adapters) | ⚠️ MVP 75 LOC | B5.2 (F6 closed) |
 | `agent_propagator.py` (TaskChange → adapters) | ⚠️ MVP 103 LOC | B5.B |
 | `reverse_sync` (taskdog → vault via TaskChange) | ✅ SHIPPED | B6.6 |
-| `IKIGAiAgenticWriter` (`agentic_writer.py`) | ⚠️ ORPHANED | pre-attribution, still in tree |
+| `IKIGAiAgenticWriter` (`agentic_writer.py`) | ⚠️ ORPHANED → **DELETE in B7.5** | pre-attribution, user-confirmed 2026-08-30 |
 | End-to-end round-trip test | ❌ MISSING | no integration test |
 | F8 multi-tool MCP chain test | ❌ OPEN | B5.0 audit |
-| F11 `run_chat()` 270-line REPL refactor | ❌ OPEN | B5.0 audit |
+| F11 `run_chat()` 270-line REPL refactor | ❌ OPEN → **REFACTOR NOW in B7.3** (5-step extraction) | user-confirmed 2026-08-30 |
 | Algorithm gate evaluation ADR | ❌ MISSING | per [[algorithm-gate-system-readiness-not-…]] |
 
 **Critical gap:** the agent harness in `src/ikigai/src/agents/tools.py` has 17 deepagent tools, but **NONE reads vault markdown**. All read paths are:
@@ -66,13 +66,17 @@ vault/*.md (cycle log + TaskChange resolution)
 
 The attribution report ([[algorithm-attribution-decisions-2026-08-29]]) says `./strategics/ PT-BR is SOT for instructions`, but no agent loader actually reads it. The current agent loop is **self-referential** (cycle → checkpoint → cycle), not **vault-grounded**.
 
-### 1.3 Attribution §7 violation still open
+### 1.3 Attribution §7 violation — RESOLVED via DELETE
 
-`src/ikigai/src/ikigai/vault/agentic_writer.py` (57 lines) is a parallel writer to `vault_write.py` (121 lines, canonical). The attribution report §7 says vault_write is the **ONLY** vault writer. `agentic_writer.py` should be either:
-1. Routed through `vault_write()` (canonical path), OR
-2. Removed if unused
+`src/ikigai/src/ikigai/vault/agentic_writer.py` (57 lines) is a parallel writer to `vault_write.py` (121 lines, canonical). The attribution report §7 says vault_write is the **ONLY** vault writer.
 
-This is a hygiene item, not a runtime defect (it uses VaultLock + frontmatter, so it works), but the dual-writer pattern is exactly what §7 forbids.
+**Decision (2026-08-30):** DELETE both `agentic_writer.py` AND its test (`test_agentic_writer.py`). Reasons:
+- Zero production callers — only `test_agentic_writer.py:13` imports `IKIGAiAgenticWriter`
+- Uses non-atomic `frontmatter.dump()` — exactly the bug `vault_write` was created to fix (B6.4 lesson)
+- Orphaned from creation (commit `c0065bd`)
+- `IKIGAiRecord` survives via 3 other consumers (`sqlite_bridge`, `checkpoint_adapter`, `dict_to_frontmatter`)
+
+Risk: LOW. Migration path: 6 doc references updated with `SUPERSEDED` trailer (append-only invariant preserved).
 
 ---
 
@@ -182,13 +186,15 @@ This is the gate condition for **any** algorithm work (M01/N01/A02/A06, IKIGAI w
 - 8+ unit tests (load, filter by tag, empty dir, parse errors)
 - Smoke: prints 3 doc titles from `./strategics/`
 
-### Task B7.3 — Wire agent to vault_read + strategics in `ikigai_plan_cycle`
+### Task B7.3 — Wire agent to vault_read + strategics + F11 partial refactor
 
 **Files:**
 - Modify: `src/ikigai/src/agents/tools.py` (`ikigai_plan_cycle` ~+20 LOC)
 - Create: `src/ikigai/src/agents/ikigai_read_strategics.py` (~30 LOC, LangChain @tool)
 - Create: `src/ikigai/src/agents/ikigai_read_vault.py` (~30 LOC, LangChain @tool)
 - Modify: `IKIGAI_TOOLS` list (`tools.py:965`) — register 2 new tools
+- **Refactor (F11 partial):** `src/ikigai/src/agents/deepagents_harness.py` `run_chat()` 290 LOC → 50-LOC orchestrator + 4 helpers (see §5.3.1 below)
+- Modify: `src/ikigai/src/agents/deepagents_harness.py` (~290 LOC extraction)
 
 **Spec:**
 - Add `ikigai_read_strategics()` → returns summarized strategics as text
@@ -196,39 +202,85 @@ This is the gate condition for **any** algorithm work (M01/N01/A02/A06, IKIGAI w
 - `ikigai_plan_cycle()` now passes strategics + vault context into graph state
 - Graph `observe` node reads vault before scoring (currently reads only checkpoint)
 
+#### §5.3.1 F11 `run_chat()` partial refactor (5-step extraction)
+
+Decision (2026-08-30): REFACTOR NOW within B7.3 — minimum-viable split. `run_chat()` (lines 407-696 in `deepagents_harness.py`, ~290 LOC, ZERO test coverage, never refactored since creation at `8acbddc`) packed 9 distinct concerns into 1 function.
+
+Extraction steps (each becomes a standalone function with own unit tests):
+
+1. **`_extract_assistant_text(result) → str`** (lines 644-672, ~28 LOC) — **highest ROI**, pure function, testable in isolation
+2. **`_route_command(user_input, thread_id, registry) → CommandResult | None`** (lines 453-631, ~178 LOC) — dict-driven registry lookup (replaces inline if-elif chain for IKIGAi shortcuts, calendar, kanban, task, filesystem commands)
+3. **`_register_builtin_commands()` (~30 LOC)** — populates the registry from the 19+ built-in commands
+4. **`_invoke_agent_or_fallback(agent, messages, config, thread_id)`** (lines 635-689, ~55 LOC) — wraps invoke() with try/except + fallback to local command execution
+5. **`run_chat()` becomes orchestrator** (~50 LOC after) — loops read → dispatch → invoke → render
+
+**Deferred to B7.x/B8 (out of B7.3 scope):**
+- rich/prompt_toolkit rendering
+- auto-help
+- command history
+
 **Acceptance:**
 - New tools exposed in deepagent tool list
 - `ikigai_plan_cycle` does not regress on existing 10/10 plan_cycle tests
-- F11 partial: extracted vault-loading logic into standalone functions
+- F11 partial: 5 helpers extracted; `run_chat()` ≤ 60 LOC; ≥ 10 new unit tests for the 4 helpers (orchestrator gets integration coverage)
+- No new dependencies
+- ruff + mypy clean
 
 ### Task B7.4 — End-to-end round-trip test (vault → agent → forks → vault)
 
 **Files:**
+- Create: `src/ikigai/tests/e2e/conftest.py` (HYBRID trace fixture, see §5.4.1 below)
 - Create: `src/ikigai/tests/e2e/test_vault_agent_round_trip.py` (~5 tests, 1 happy-path + 4 edge cases)
-- Create: `docs/superpowers/specs/2026-08-30-vault-agent-e2e-trace.md` (the test trace as artifact)
+- Create: `src/ikigai/tests/reports/b7-4-report.md` (HYBRID trace artifact, regenerated by fixture)
 
 **Spec:**
 - **Happy path:** create `vault/plans/q3/test-task.md` → invoke agent via MCP `ikigai_plan_cycle` → assert TaskChange enqueued in `data/review_queue/` → run propagator → assert taskdog has the task → invoke `ikigai_sync_vault` → assert vault file updated
 - **Reverse path:** mark task done in taskdog → invoke `reverse_sync` → assert new TaskChange in queue → invoke `vault_write` → assert vault file reflects `status: done`
 - **Edge cases:** vault file deleted mid-loop, queue consumer crash mid-batch, MCP server absent (must degrade gracefully per B5.0 F13)
 
+#### §5.4.1 HYBRID trace artifact (decision Q1)
+
+Decision (2026-08-30): HYBRID — pytest fixture writes trace to `src/ikigai/tests/reports/b7-4-report.md`.
+
+**Pattern** (precedent: B3-B4 era, abandoned after B4):
+- Format: Implementer Report with Status, Commits, Test Results (VERBATIM fenced pytest output), Spec Compliance, Self-Review, Notes for Reviewer
+- Location: `src/ikigai/tests/reports/b7-4-report.md` (NOT `docs/superpowers/specs/` as initially proposed — breaks B3-B4 precedent)
+- Regeneration: pytest fixture in `src/ikigai/tests/e2e/conftest.py` writes the trace after a successful run
+- Canonical: committed at ship-time; drift risk minimal because re-generated per run
+
 **Acceptance:**
 - 1 happy-path E2E passes in CI
 - 4 edge cases pass (or documented graceful failure)
-- Trace artifact saved as `.md` (reference doc, not test output)
+- Trace artifact auto-generated, committed, contains verbatim test output
+- 0 permanent doc files in `docs/superpowers/specs/` for the trace (B7.4)
 
-### Task B7.5 — Deprecate `agentic_writer.py` (attribution §7)
+### Task B7.5 — DELETE `agentic_writer.py` (attribution §7 violation)
 
 **Files:**
-- Modify: `src/ikigai/src/ikigai/vault/agentic_writer.py` (route through vault_write, OR)
-- Delete: `src/ikigai/src/ikigai/vault/agentic_writer.py` (if unused)
+- Delete: `src/ikigai/src/ikigai/vault/agentic_writer.py` (57 LOC)
+- Delete: `src/ikigai/tests/test_agentic_writer.py` (95 LOC, 4 tests)
+- Modify: 6 doc references (add `SUPERSEDED` trailer, append-only invariant preserved)
 
-**Investigation first:** grep for `IKIGAiAgenticWriter` usage. If zero callers → delete. If callers exist → refactor to call `vault_write()` internally.
+**Why DELETE (not refactor):**
+- Zero production callers (only `test_agentic_writer.py:13` imports `IKIGAiAgenticWriter`)
+- Uses non-atomic `frontmatter.dump()` — exactly the bug `vault_write` was created to fix (B6.4 lesson)
+- Orphaned from creation (commit `c0065bd`); pre-attribution
+- `IKIGAiRecord` survives via 3 other consumers (`sqlite_bridge`, `checkpoint_adapter`, `dict_to_frontmatter`)
+
+**Pre-delete verification (mandatory):**
+```bash
+cd src/ikigai
+grep -r "IKIGAiAgenticWriter\|agentic_writer" --include="*.py" src/ tests/
+# Expected: ONLY agentic_writer.py + test_agentic_writer.py (the deletes)
+# Any other result → STOP, escalate to user
+```
 
 **Acceptance:**
-- Zero references to `IKIGAiAgenticWriter` outside the module
-- Or: `agentic_writer.py` rewritten as thin wrapper over `vault_write`
+- `agentic_writer.py` and `test_agentic_writer.py` removed
+- Grep above returns zero matches outside deletion candidates
+- 6 doc references updated with `SUPERSEDED` trailer (preserves append-only invariant)
 - ruff + mypy clean
+- All existing tests still pass (no regression)
 
 ### Task B7.6 — Multi-tool MCP chain test (F8 from B5.0 audit)
 
@@ -256,18 +308,27 @@ This is the gate condition for **any** algorithm work (M01/N01/A02/A06, IKIGAI w
   1. Backend layer functional? (mesh, queue, MCP gateway, CLI, server mgmt) — ✅ YES, all shipped
   2. Data layer functional? (vault/data/ runtime, sync contracts, persistence verified) — ✅ YES after B6/Combo A
   3. Agent layer functional? (Deep Agent harness reads/writes contracts + data) — ✅ YES after B7.1–B7.4
-- Decision matrix for each algorithm component:
-  - M01 (vector scoring) — DEFER or SHIP? depends on strategist validation
-  - N01 (regime thresholds) — DEFER (math auditing still WIP per memory)
-  - A02 (Q_HE formula) — DEFER (3 divergent formulas; user must decide)
-  - A06 (kill conditions) — DEFER (depends on M01+N01+A02)
-  - IKIGAI weights — DEFER until user explicit override per [[user-revenue-weight-preference]]
-- Final verdict: gate is **OPEN for [X], CLOSED for [Y]**
-- Reference: [[algorithm-issues-registry-2026-07-02]] 31 issues still pending user decision
+- Decision matrix for each algorithm component (decision Q2, 2026-08-30):
+  - **M01 (vector scoring)** — **DEFER**. Depends on N01 (5 vs 4 vectors undecided) and persona-vs-user-pref conflict.
+  - **N01 (regime FSM)** — **DEFER**. 3 divergent RECOVER rules; threshold drift; math auditing still WIP per memory.
+  - **A02 (Q_HE formula)** — **DEFER, BLOCKING**. 3 divergent formulas (`src/ikigai/.../qhe.py:4` additive; `src/contracts/metrics.py:139` multiplicative; `src/operational/.../habit_engine.py:430` independent). User must pick 1.
+  - **A06 (kill conditions)** — **DEFER, dependent**. Depends on M01+N01+A02.
+  - **IKIGAI weights** — **DEFER**. Triple conflict: user pref (Revenue ≥ all) vs persona (Revenue=3) vs defer framework. User explicit override pending per [[user-revenue-weight-preference]].
+- Final verdict: gate is **OPEN for [none]**, **CLOSED for [all 5]**. Algorithm work stays DEFERRED per memory until user explicitly unblocks per-component.
+- Reference: [[algorithm-issues-registry-2026-07-02]] 31 issues still pending user decision (memory hygiene: update entry to reflect new framing; pre-superseded by canonical gate memory).
+
+**Open ADR questions for user (decision Q2, listed for transparency — DO NOT block B7):**
+1. A02 — pick 1 canonical Q_HE formula?
+2. N01 — 5 vectors (template edits) or 4 (fold Course→Skill)?
+3. N01 — which RECOVER trigger rule?
+4. IKIGAI weights — hard-rule / soft-pref / codified-default?
+5. A06 — define kill thresholds (Q_HE floor, regime dwell, vector collapse)?
+6. B7.4 E2E green-light criterion before algorithm work?
 
 **Acceptance:**
 - ADR committed
 - Each algorithm component has explicit DEFER / SHIP / PARTIAL verdict
+- 6 open questions enumerated but algorithm work NOT unblocked
 - Cross-references all relevant memories
 
 ---
@@ -279,10 +340,11 @@ This is the gate condition for **any** algorithm work (M01/N01/A02/A06, IKIGAI w
 3. ✅ Strategics loader serves `./strategics/*.md` to agent
 4. ✅ End-to-end vault ↔ agent ↔ taskdog ↔ vault round-trip demonstrable
 5. ✅ B5.0 audit F8 closed (multi-tool MCP chain test)
-6. ✅ F11 partial progress (vault loading extracted; run_chat refactor deferred to B7.x or B8)
-7. ✅ Attribution §7 violation resolved (agentic_writer.py removed or refactored)
-8. ✅ System readiness ADR committed with explicit per-component verdicts
+6. ✅ **F11 `run_chat()` refactored** — 5 helpers extracted; orchestrator ≤ 60 LOC; ≥ 10 new unit tests; full coverage of 4 helpers (integration coverage for orchestrator)
+7. ✅ Attribution §7 violation resolved (agentic_writer.py + test_agentic_writer.py DELETED; 6 doc references SUPERSEDED)
+8. ✅ System readiness ADR committed with explicit per-component verdicts (all 5 algorithm components DEFER; A02 BLOCKING; 6 open ADR questions)
 9. ✅ No algorithm code added (gate still closed until ADR says otherwise)
+10. ✅ HYBRID trace artifact: pytest fixture auto-generates `src/ikigai/tests/reports/b7-4-report.md` on E2E run; committed at ship-time
 
 ---
 
@@ -332,12 +394,16 @@ This is the gate condition for **any** algorithm work (M01/N01/A02/A06, IKIGAI w
 
 ---
 
-## 10. Open questions for user (deferred to plan phase)
+## 10. Open questions — RESOLVED 2026-08-30
 
-1. **B7.4 E2E trace artifact** — save as `.md` under `docs/superpowers/specs/` (test documentation)? Or skip and let pytest output be the trace?
-2. **B7.7 ADR verdict threshold** — what counts as "system readiness" for each algorithm component? User's call.
-3. **B7.5 deletion vs refactor** — preference? Both satisfy attribution §7.
-4. **F11 full refactor timing** — within B7.3, or as separate B7.x?
+| # | Question | Decision | Section |
+|---|----------|----------|---------|
+| 1 | E2E trace artifact location? | **HYBRID** — pytest fixture writes `src/ikigai/tests/reports/b7-4-report.md` | §5.4.1 |
+| 2 | B7.7 ADR verdict threshold? | **All 5 algorithm components DEFER**; A02 (QHE) BLOCKING; 6 ADR questions open (informational, not blocking B7) | §5.7 |
+| 3 | B7.5 deletion vs refactor? | **DELETE both** `agentic_writer.py` + `test_agentic_writer.py` | §5.5 |
+| 4 | F11 full refactor timing? | **REFACTOR NOW within B7.3** — 5-step minimum-viable extraction | §5.3.1 |
+
+All 4 blocking questions resolved. Spec is ready for plan phase.
 
 ---
 
@@ -357,9 +423,12 @@ This is the gate condition for **any** algorithm work (M01/N01/A02/A06, IKIGAI w
 
 ## 12. Status
 
-DRAFT — needs user review for:
-- Task decomposition granularity (7 tasks vs. consolidated into 4)
-- ADR threshold for B7.7
-- Effort estimates (5-week sprint vs. compressed)
+**APPROVED 2026-08-30** — all 4 open questions resolved. Ready for plan phase.
+
+Resolved this session:
+- B7.4 trace artifact → HYBRID (`src/ikigai/tests/reports/b7-4-report.md`, §5.4.1)
+- B7.7 ADR threshold → all 5 algorithm components DEFER; A02 BLOCKING (§5.7)
+- B7.5 attribution §7 → DELETE both `agentic_writer.py` + `test_agentic_writer.py` (§5.5)
+- F11 timing → REFACTOR NOW within B7.3, 5-step extraction (§5.3.1)
 
 Next step: convert to implementation plan via `superpowers:writing-plans` skill, then execute task-by-task via `superpowers:subagent-driven-development`.
