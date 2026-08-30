@@ -83,14 +83,18 @@ class StdioServerBase:
         """Read Content-Length-framed JSON-RPC requests from stdin, write to stdout.
 
         Frame format: Content-Length: <N>\\r\\n\\r\\n<N bytes of JSON>
+
+        Uses sys.stdin.buffer (binary mode) because text-mode readline() hangs on
+        Windows subprocess pipes (CPython bug). All decoding is ASCII since the
+        JSON-RPC framing is ASCII-only.
         """
         while True:
             headers = {}
             while True:
-                line = sys.stdin.readline()
+                line = sys.stdin.buffer.readline()
                 if not line:  # EOF
                     return
-                line = line.rstrip("\r\n")
+                line = line.decode("ascii", errors="replace").rstrip("\r\n")
                 if line == "":
                     break
                 if ":" in line:
