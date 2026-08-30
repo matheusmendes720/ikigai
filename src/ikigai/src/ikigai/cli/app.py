@@ -547,6 +547,45 @@ def sync_vault_to_taskdog(
     _output(result.model_dump(mode="json"), ctx.obj.get("json_out", False))
 
 
+@sync_app.command("vault-from-taskdog")
+def sync_vault_from_taskdog(
+    ctx: typer.Context,
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Show diff, don't emit events",
+    ),
+    state_file: Path = typer.Option(
+        Path("data/sync-state-reverse.json"),
+        "--state-file",
+        help="Reverse sync snapshot path",
+    ),
+) -> None:
+    """Read taskdog state, diff vs snapshot, emit TaskChange to review_queue.
+
+    Run this to push fork-side changes back into the agent review path.
+    """
+    from ikigai.vault.sync import reverse_sync
+    from src.mesh.adapters.taskdog import TaskdogAdapter
+
+    adapter = TaskdogAdapter()
+
+    if dry_run:
+        typer.echo("[dry-run] would reverse-sync from taskdog")
+        typer.echo(f"[dry-run] state file: {state_file}")
+        # Show current taskdog state for preview
+        tasks = adapter.list_all()
+        typer.echo(f"[dry-run] {len(tasks)} tasks in taskdog")
+        return
+
+    result = reverse_sync(
+        state_path=state_file,
+        adapter=adapter,
+        source_fork="taskdog",
+    )
+    _output(result.model_dump(mode="json"), ctx.obj.get("json_out", False))
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Entry point
 # ─────────────────────────────────────────────────────────────────────────────
