@@ -112,6 +112,40 @@ class UnifiedMCPGateway:
                     event,
                 )
 
+    def emit_adapter_call(
+        self,
+        namespace: str,
+        tool: str,
+        arguments: dict[str, Any],
+    ) -> None:
+        """Publish an SSE event after a successful adapter call_tool.
+
+        Event name: ``{namespace}.{tool_short}`` where tool_short strips a
+        known namespace prefix (e.g. ``taskdog_add`` → ``add``,
+        ``tuiboard_render`` → ``render``, ``sf_schedule`` → ``schedule``).
+        If no known prefix matches, the full tool name is used as the
+        short form.
+
+        Payload intentionally excludes the result body (potentially large
+        or sensitive); consumers can re-fetch via /call if they need it.
+        """
+        prefix_map = {
+            "taskdog": "taskdog_",
+            "tuiboard": "tuiboard_",
+            "solverforge-calendar": "sf_",
+        }
+        prefix = prefix_map.get(namespace)
+        tool_short = tool[len(prefix):] if prefix and tool.startswith(prefix) else tool
+        self.publish_event(
+            f"{namespace}.{tool_short}",
+            {
+                "namespace": namespace,
+                "tool": tool,
+                "tool_short": tool_short,
+                "arguments": arguments,
+            },
+        )
+
     # ──────── HTTP handler factory ────────
 
     def make_handler(self):  # returns a BaseHTTPRequestHandler subclass
@@ -191,6 +225,11 @@ class UnifiedMCPGateway:
                         },
                     )
                     return
+
+                # Fan out an SSE event so subscribers see adapter activity.
+                # Result is intentionally NOT in the payload (potentially
+                # large / sensitive). Consumers can re-fetch via /call.
+                gateway_ref.emit_adapter_call(namespace, tool, arguments)
 
                 # Result must be JSON-serialisable; coerce dicts via default=str.
                 try:
