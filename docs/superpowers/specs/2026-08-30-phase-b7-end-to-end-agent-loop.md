@@ -438,3 +438,7 @@ Resolved this session:
 - **Scope reframe 2026-08-30** (post-approval) → IKIGAI = planner with stochastic PAE feedback, NOT scoring engine; vectors/regimes/weights/QHE/kill thresholds live as prompt-chain policy in workflow templates, NOT as Python constants. See [[algorithm-scope-reframed-2026-08-30]]. This unblocks B7 execution: no algorithm code needed for backend to ship.
 
 Next step: convert to implementation plan via `superpowers:writing-plans` skill, then execute task-by-task via `superpowers:subagent-driven-development`.
+
+---
+
+**SUPERSEDED 2026-08-30 (B7.5):** `src/ikigai/src/ikigai/vault/agentic_writer.py` and its test DELETED. Zero production callers; uses non-atomic `frontmatter.dump()` (regression vs `vault_write`). `IKIGAiRecord` survives via 3 other consumers (`sqlite_bridge`, `checkpoint_adapter`, `dict_to_frontmatter`). See Phase B7 spec §5.5.

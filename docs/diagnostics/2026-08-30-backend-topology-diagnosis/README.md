@@ -295,3 +295,7 @@ Per [[post-phase-b-audit-hygiene-2026-08-29]]:
 - [[algorithm-gate-system-readiness-not-sonho-2026-08-29]] — algorithm work gating
 - [[phase-b6-vault-sync-shipped-2026-08-29]] — Phase B close
 - [[post-phase-b-audit-hygiene-2026-08-29]] — pre-existing tech debt boundaries
+
+---
+
+**SUPERSEDED 2026-08-30 (B7.5):** `src/ikigai/src/ikigai/vault/agentic_writer.py` and its test DELETED. Zero production callers; uses non-atomic `frontmatter.dump()` (regression vs `vault_write`). `IKIGAiRecord` survives via 3 other consumers (`sqlite_bridge`, `checkpoint_adapter`, `dict_to_frontmatter`). See Phase B7 spec §5.5.
