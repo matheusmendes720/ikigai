@@ -308,16 +308,18 @@ grep -r "IKIGAiAgenticWriter\|agentic_writer" --include="*.py" src/ tests/
   1. Backend layer functional? (mesh, queue, MCP gateway, CLI, server mgmt) — ✅ YES, all shipped
   2. Data layer functional? (vault/data/ runtime, sync contracts, persistence verified) — ✅ YES after B6/Combo A
   3. Agent layer functional? (Deep Agent harness reads/writes contracts + data) — ✅ YES after B7.1–B7.4
-- Decision matrix for each algorithm component (decision Q2, **REFRAMED 2026-08-30** per [[algorithm-scope-reframed-2026-08-30]]):
-  - **M01 (vector scoring)** — **OUT OF BACKEND SCOPE**. Vectors declared per-workflow via prompt context (DREAM/OBJECTIVE templates). Not backend code.
-  - **N01 (regime FSM)** — **OUT OF BACKEND SCOPE**. Agent decides in next cycle via stochastic PAE feedback on planned-vs-actual; no hardcoded FSM needed.
-  - **A02 (Q_HE formula)** — **OUT OF BACKEND SCOPE**. Lives as prompt-chain in workflow templates; per-workflow configuration, not Python constants.
-  - **A06 (kill conditions)** — **OUT OF BACKEND SCOPE**. Agent decides repivot/abandon in next cycle; human-in-loop via PAE feedback.
-  - **IKIGAI weights** — **OUT OF BACKEND SCOPE**. Soft-pref at prompt level per workflow; documented in `strategics/Planejamento.md` (PT-BR) as convention, not Python constant.
-- Final verdict: gate is **PERMANENTLY CLOSED for [all 5]** (these are not backend concerns). Algorithm work continues DEFERRED → OUT OF SCOPE.
-- Reference: [[algorithm-scope-reframed-2026-08-30]] (CANONICAL scope reframe); [[algorithm-issues-registry-2026-07-02]] 31 issues → SUPERSEDED 2026-08-30 (issues resolved by reframe: they live in prompt-templates, not code).
+- Decision matrix for each algorithm component (decision Q2, **REFRAMED 2026-08-30** per [[algorithm-scope-reframed-2026-08-30]]; attribution filter applied 2026-08-30 per `docs/architecture/2026-08-29-attribution-report.md` §3):
+  - **M01 (vector scoring)** — IKIGAI hierarchy (DREAM/OBJECTIVE/PROJECT/DELIVERABLE) = IKIGAI scope; "Course/Skill" mapping to PAV (habits/learning) = PAV desativated → for IKIGAI scope = **4 vectors (DREAM/OBJECTIVE/PROJECT/DELIVERABLE)**, declared as prompt-chain in workflow templates; **OUT OF BACKEND SCOPE**.
+  - **N01 (regime FSM)** — **OUT OF IKIGAI SCOPE**. "Transição PUSH → MAINTAIN" is PAV hysteresis per attribution §3; PAV desativated; question permanently closed for IKIGAI. NOT on the ADR open-questions table.
+  - **A02 (Q_HE formula)** — **OUT OF IKIGAI SCOPE**. "Q_HE desta semana" is PAV's aritmética per attribution §3; PAV desativated; question permanently closed for IKIGAI. NOT on the ADR open-questions table.
+  - **A06 (kill conditions)** — **OUT OF IKIGAI SCOPE**. "Q_HE floor / regime dwell / vector collapse" all map to PAV per attribution §3; PAV desativated; question permanently closed for IKIGAI. NOT on the ADR open-questions table.
+  - **IKIGAI weights** — IKIGAI scope (priority between SONHOS/PROJETOS); **OUT OF BACKEND SCOPE**. Soft-pref at prompt level per workflow; documented in `strategics/Planejamento.md` (PT-BR) as convention; Revenue ≥ all per [[user-revenue-weight-preference]].
+- Final verdict: gate is **PERMANENTLY CLOSED for [all 5]** with attribution distinctions:
+  - 3 OUT OF IKIGAI SCOPE (Q1/Q3/Q5 → PAV's domain per §3; PAV desativated; permanently closed)
+  - 2 OUT OF BACKEND SCOPE (Q2/Q4 → IKIGAI prompt-template policy)
+- Reference: [[algorithm-scope-reframed-2026-08-30]] (CANONICAL scope reframe); `docs/architecture/2026-08-29-attribution-report.md` §3 (attribution authority).
 
-**Key insight (canonical phrase):** "O agent IKIGAI não é um scoring engine — é um planner com feedback estocástico. Vetores, regimes e pesos vivem como configuração de prompt dentro de workflows bem estruturados, não como constantes Python."
+**Key insight (canonical phrase):** "O agent IKIGAI não é um scoring engine — é um planner com feedback estocástico. Vetores, regimes e pesos vivem como configuração de prompt dentro de workflows bem estruturados, não como constantes Python. Perguntas que pertencem à aritmética/hysteresis do PAV nem sequer entram nas atribuições do IKIGAI — PAV está desativado."
 
 **Agent's job per [[master-branch-carro-chefe-2026-08-28]] + attribution report 2026-08-29:**
 - Planejamento de tarefas entre projetos e metas
@@ -343,7 +345,7 @@ grep -r "IKIGAiAgenticWriter\|agentic_writer" --include="*.py" src/ tests/
 5. ✅ B5.0 audit F8 closed (multi-tool MCP chain test)
 6. ✅ **F11 `run_chat()` refactored** — 5 helpers extracted; orchestrator ≤ 60 LOC; ≥ 10 new unit tests; full coverage of 4 helpers (integration coverage for orchestrator)
 7. ✅ Attribution §7 violation resolved (agentic_writer.py + test_agentic_writer.py DELETED; 6 doc references SUPERSEDED)
-8. ✅ System readiness ADR committed with explicit per-component verdicts (**all 5 algorithm components OUT OF BACKEND SCOPE per [[algorithm-scope-reframed-2026-08-30]]**; 6 open ADR questions reframed as prompt-template concerns, not backend code)
+8. ✅ System readiness ADR committed with explicit per-component verdicts (**3 OUT OF IKIGAI SCOPE** per attribution report §3 [PAV desativated, permanently closed]; **2 OUT OF BACKEND SCOPE** per [[algorithm-scope-reframed-2026-08-30]] [IKIGAI prompt-template]; **6 open ADR questions reframed as prompt-template concerns, not backend code**)
 9. ✅ No algorithm code added (gate permanently closed for backend per scope reframe; vector/regime/weights/QHE/kill live in prompt-templates, not Python constants)
 10. ✅ HYBRID trace artifact: pytest fixture auto-generates `src/ikigai/tests/reports/b7-4-report.md` on E2E run; committed at ship-time
 
@@ -400,7 +402,7 @@ grep -r "IKIGAiAgenticWriter\|agentic_writer" --include="*.py" src/ tests/
 | # | Question | Decision | Section |
 |---|----------|----------|---------|
 | 1 | E2E trace artifact location? | **HYBRID** — pytest fixture writes `src/ikigai/tests/reports/b7-4-report.md` | §5.4.1 |
-| 2 | B7.7 ADR verdict threshold? | **All 5 algorithm components OUT OF BACKEND SCOPE** per [[algorithm-scope-reframed-2026-08-30]] (reframed from DEFERRED); 6 ADR questions are prompt-template concerns (B8+), not backend code | §5.7 |
+| 2 | B7.7 ADR verdict threshold? | **3 OUT OF IKIGAI SCOPE (PAV desativated per attribution §3)** + **2 OUT OF BACKEND SCOPE (IKIGAI prompt-template)** per [[algorithm-scope-reframed-2026-08-30]] (reframed from DEFERRED); 6 ADR questions are prompt-template concerns (B8+), not backend code | §5.7 |
 | 3 | B7.5 deletion vs refactor? | **DELETE both** `agentic_writer.py` + `test_agentic_writer.py` | §5.5 |
 | 4 | F11 full refactor timing? | **REFACTOR NOW within B7.3** — 5-step minimum-viable extraction | §5.3.1 |
 
@@ -411,7 +413,7 @@ All 4 blocking questions resolved. Spec is ready for plan phase.
 ## 11. Related memories
 
 - [[algorithm-gate-system-readiness-not-sonho-2026-08-29]] — gate criterion B7.7 applies (backend → data → agent → prompt-templates, not algorithms)
-- [[algorithm-scope-reframed-2026-08-30]] — **CANONICAL scope reframe**: 5 IKIGAI components OUT OF BACKEND SCOPE (live in prompt-templates, not Python constants)
+- [[algorithm-scope-reframed-2026-08-30]] — **CANONICAL scope reframe**: 3 components OUT OF IKIGAI SCOPE (PAV desativated per attribution §3); 2 components OUT OF BACKEND SCOPE (IKIGAI prompt-template, live in prompt-templates not Python constants)
 - [[master-branch-carro-chefe-2026-08-28]] — agent canonical flow B7 implements (planner + stochastic PAE feedback)
 - [[algorithm-attribution-decisions-2026-08-29]] — strategics/ SOT, vault_write ONLY writer
 - [[backend-topology-diagnosis-2026-08-30]] — current state pre-B7
@@ -429,7 +431,8 @@ All 4 blocking questions resolved. Spec is ready for plan phase.
 
 Resolved this session:
 - B7.4 trace artifact → HYBRID (`src/ikigai/tests/reports/b7-4-report.md`, §5.4.1)
-- B7.7 ADR threshold → all 5 algorithm components OUT OF BACKEND SCOPE per [[algorithm-scope-reframed-2026-08-30]] (reframed from DEFERRED; 6 ADR questions live in prompt-templates, not Python); A02 prompt-template, not BLOCKING for backend (§5.7)
+- B7.7 ADR threshold → 3 OUT OF IKIGAI SCOPE (PAV desativated per attribution §3: Q1/Q3/Q5) + 2 OUT OF BACKEND SCOPE (IKIGAI prompt-template: Q2/Q4) per [[algorithm-scope-reframed-2026-08-30]]; A02 permanently closed (PAV domain); 6 ADR questions reframed as prompt-template concerns (B8+), not backend code (§5.7)
+- **Attribution filter 2026-08-30** → user directive: "algumas dessas perguntas nem sequer deveria entrar nas atribuicoes do nosso sistema ikigai @docs/architecture/2026-08-29-attribution-report.md"; Q1/Q3/Q5 are PAV's arithmetic/hysteresis per §3 (Q_HE / regime FSM / kill thresholds) → permanently removed from IKIGAI's open-questions table; reopen when PAV revives, not before
 - B7.5 attribution §7 → DELETE both `agentic_writer.py` + `test_agentic_writer.py` (§5.5)
 - F11 timing → REFACTOR NOW within B7.3, 5-step extraction (§5.3.1)
 - **Scope reframe 2026-08-30** (post-approval) → IKIGAI = planner with stochastic PAE feedback, NOT scoring engine; vectors/regimes/weights/QHE/kill thresholds live as prompt-chain policy in workflow templates, NOT as Python constants. See [[algorithm-scope-reframed-2026-08-30]]. This unblocks B7 execution: no algorithm code needed for backend to ship.
