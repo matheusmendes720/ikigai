@@ -362,7 +362,6 @@ def run_sync(
 def reverse_sync(
     state_path: Path,
     adapter: Any,
-    review_queue_dir: Path | None = None,
     source_fork: str = "taskdog",
 ) -> ReverseSyncResult:
     """Enumerate adapter (taskdog) state, diff vs snapshot, emit TaskChange events.
@@ -371,8 +370,13 @@ def reverse_sync(
       1. Load reverse snapshot
       2. list_all() from adapter
       3. For each row, classify (NEW/CHANGED/CHANGED_TO_DONE/UNCHANGED)
-      4. Emit TaskChange to data/review_queue/<event_id>.json for non-UNCHANGED
+      4. Emit TaskChange via src.mesh.queue.enqueue() (uses module-level
+         QUEUE_DIR) for non-UNCHANGED rows
       5. Update snapshot atomically per task (or at end)
+
+    Note: the queue directory is taken from `src.mesh.queue.QUEUE_DIR`
+    (module-level). Tests override this with monkeypatch.setattr. There
+    is no `review_queue_dir` parameter — keep that invariant.
 
     Orphan handling (v1): NEW UEIDs not in snapshot are SKIPPED (vault_path
     unknown). v1.3 will add vault lookup.

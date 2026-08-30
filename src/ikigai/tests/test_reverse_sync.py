@@ -77,7 +77,7 @@ def test_reverse_sync_emits_done_for_moved_to_done(tmp_path: Path, tmp_queue: Pa
             }
         ]
     )
-    result = reverse_sync(state_path=state_path, adapter=adapter, review_queue_dir=tmp_queue)
+    result = reverse_sync(state_path=state_path, adapter=adapter)
     assert result.scanned == 1
     assert result.emitted == 1
     events = _read_queue_events(tmp_queue)
@@ -105,7 +105,7 @@ def test_reverse_sync_emits_update_for_status_change(tmp_path: Path, tmp_queue: 
     adapter = FakeAdapter(
         rows=[{"ueid": "task:b2c3:bcdef01:23456789", "name": "B", "status": "in_progress", "priority": 2}]
     )
-    reverse_sync(state_path=state_path, adapter=adapter, review_queue_dir=tmp_queue)
+    reverse_sync(state_path=state_path, adapter=adapter)
     events = _read_queue_events(tmp_queue)
     assert len(events) == 1
     assert events[0]["action"] == "update"
@@ -130,7 +130,7 @@ def test_reverse_sync_skips_unchanged(tmp_path: Path, tmp_queue: Path) -> None:
     adapter = FakeAdapter(
         rows=[{"ueid": "task:c3d4:cdef0123:3456789a", "name": "C", "status": "planned", "priority": 3}]
     )
-    result = reverse_sync(state_path=state_path, adapter=adapter, review_queue_dir=tmp_queue)
+    result = reverse_sync(state_path=state_path, adapter=adapter)
     assert result.scanned == 1
     assert result.emitted == 0
     assert _read_queue_events(tmp_queue) == []
@@ -151,7 +151,7 @@ def test_reverse_sync_emits_update_for_new_ueid_with_vault_match(
     adapter = FakeAdapter(
         rows=[{"ueid": "task:new5678:def01234:456789ab", "name": "New", "status": "planned", "priority": 2}]
     )
-    result = reverse_sync(state_path=state_path, adapter=adapter, review_queue_dir=tmp_queue)
+    result = reverse_sync(state_path=state_path, adapter=adapter)
     assert result.scanned == 1
     assert result.emitted == 0  # orphan — skipped
 
@@ -175,10 +175,10 @@ def test_reverse_sync_is_idempotent(tmp_path: Path, tmp_queue: Path) -> None:
         rows=[{"ueid": "task:d4e5:ef012345:56789abc", "name": "D", "status": "done", "priority": 1}]
     )
     # First run already in sync — no events
-    result1 = reverse_sync(state_path=state_path, adapter=adapter, review_queue_dir=tmp_queue)
+    result1 = reverse_sync(state_path=state_path, adapter=adapter)
     assert result1.emitted == 0
     # Second run also in sync — no events
-    result2 = reverse_sync(state_path=state_path, adapter=adapter, review_queue_dir=tmp_queue)
+    result2 = reverse_sync(state_path=state_path, adapter=adapter)
     assert result2.emitted == 0
 
 
@@ -203,7 +203,7 @@ def test_reverse_sync_updates_snapshot(tmp_path: Path, tmp_queue: Path) -> None:
     adapter = FakeAdapter(
         rows=[{"ueid": "task:e5f6:f0123456:6789abcd", "name": "E (renamed)", "status": "in_progress", "priority": 2}]
     )
-    reverse_sync(state_path=state_path, adapter=adapter, review_queue_dir=tmp_queue)
+    reverse_sync(state_path=state_path, adapter=adapter)
     state = load_reverse_state(state_path)
     entry = state.tasks["task:e5f6:f0123456:6789abcd"]
     assert entry.last_seen_status == "in_progress"
@@ -252,7 +252,7 @@ def test_reverse_sync_per_task_isolation(tmp_path: Path, tmp_queue: Path) -> Non
     qmod.enqueue = selective_enqueue  # type: ignore[assignment]
     try:
         adapter = PartialFailAdapter()
-        result = reverse_sync(state_path=state_path, adapter=adapter, review_queue_dir=tmp_queue)
+        result = reverse_sync(state_path=state_path, adapter=adapter)
     finally:
         qmod.enqueue = monkeypatch_orig  # type: ignore[assignment]
 
@@ -283,7 +283,6 @@ def test_reverse_sync_source_fork_override(tmp_path: Path, tmp_queue: Path) -> N
     reverse_sync(
         state_path=state_path,
         adapter=adapter,
-        review_queue_dir=tmp_queue,
         source_fork="cli",  # override for testing
     )
     events = _read_queue_events(tmp_queue)
