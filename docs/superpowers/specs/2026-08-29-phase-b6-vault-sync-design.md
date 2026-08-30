@@ -437,6 +437,10 @@ Per [[algorithm-gate-system-readiness-not-sonho-2026-08-29]] + YAGNI:
 - [[algorithm-gate-system-readiness-not-sonho-2026-08-29]] — no math edits
 - [[verify-agent-fabricated-failures]] — main-session test verification
 - [[phase-b5-b-agent-wiring-shipped-2026-08-29]] — closest precedent for test patterns + per-adapter isolation
+
+---
+
+**SUPERSEDED 2026-08-30 (B7.5):** `src/ikigai/src/ikigai/vault/agentic_writer.py` and its test DELETED. Zero production callers; uses non-atomic `frontmatter.dump()` (regression vs `vault_write`). `IKIGAiRecord` survives via 3 other consumers (`sqlite_bridge`, `checkpoint_adapter`, `dict_to_frontmatter`). See Phase B7 spec §5.5.
 - `docs/superpowers/specs/2026-08-29-phase-b5-b-agent-wiring-design.md` — format precedent for this spec
 - `src/ikigai/tools/vault_taskdog_sync.py:312` — existing partial impl that B6 supersedes
 - `vibe-ops/src/middleware/sync_engine.py` — unrelated (vault↔SQLite mirror)

@@ -303,3 +303,7 @@ controls `source_fork` in emitted events.
 ---
 
 *Phase B6 Combo A Spec — Bidirectional Vault Sync — 2026-08-29*
+
+---
+
+**SUPERSEDED 2026-08-30 (B7.5):** `src/ikigai/src/ikigai/vault/agentic_writer.py` and its test DELETED. Zero production callers; uses non-atomic `frontmatter.dump()` (regression vs `vault_write`). `IKIGAiRecord` survives via 3 other consumers (`sqlite_bridge`, `checkpoint_adapter`, `dict_to_frontmatter`). See Phase B7 spec §5.5.
