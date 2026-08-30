@@ -653,6 +653,7 @@ from mcp_server.tools_mesh import (
     ikigai_mesh_show,
     ikigai_task_create,
 )
+from mcp_server.tools_vault import vault_write as _handle_vault_write
 
 
 @MCP.tool(
@@ -690,6 +691,30 @@ def _ikigai_task_create_tool(
 def _ikigai_health_tool() -> str:
     """Returns gateway health snapshot."""
     return ikigai_health()
+
+
+# ---------------------------------------------------------------------------
+# Phase B6.7 — vault_write (only vault writer per attribution §7)
+# ---------------------------------------------------------------------------
+@MCP.tool(
+    name="vault_write",
+    description=(
+        "Write markdown file to vault. ONLY vault writer per attribution report §7. "
+        "Rejects paths outside vault/, absolute paths, empty writes. "
+        "Uses VaultLock for concurrency. Atomic via frontmatter.dump()."
+    ),
+)
+def vault_write(
+    vault_path: str,
+    frontmatter: dict,
+    body: str,
+) -> str:
+    """Write markdown file to vault. ONLY vault writer per attribution §7."""
+    return traced_tool_dispatch(
+        "vault_write",
+        _handle_vault_write,
+        {"vault_path": vault_path, "frontmatter": frontmatter, "body": body},
+    )
 
 
 # ---------------------------------------------------------------------------

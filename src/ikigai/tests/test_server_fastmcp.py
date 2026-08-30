@@ -27,6 +27,8 @@ def test_all_ten_tools_registered() -> None:
         "ikigai_mesh_show",
         "ikigai_task_create",
         "ikigai_health",
+        # Phase B6.7 additions
+        "vault_write",
     }
     registered = {tool.name for tool in TOOLS}
     assert registered == expected_tools, (
