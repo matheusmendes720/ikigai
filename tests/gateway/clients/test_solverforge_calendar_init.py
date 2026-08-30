@@ -51,8 +51,8 @@ def test_solverforge_calendar_initialize_handshake(server_process_factory, skip_
         pytest.skip(f"solverforge_calendar server not functional: {e}")
 
 
-def test_solverforge_calendar_tools_list_empty(server_process_factory, skip_if_no_module):
-    """At A1, no tools registered yet — verify tools/list returns empty array."""
+def test_solverforge_calendar_tools_list_nonempty(server_process_factory, skip_if_no_module):
+    """At A3, sf_availability + sf_schedule are registered — tools/list returns them."""
     import pytest
     try:
         with server_process_factory("solverforge_calendar.server") as (proc, stdin, stdout):
@@ -60,6 +60,8 @@ def test_solverforge_calendar_tools_list_empty(server_process_factory, skip_if_n
                 "jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {},
             })
             response = _read_response(stdout)
-            assert response["result"]["tools"] == []
+            tool_names = {t["name"] for t in response["result"]["tools"]}
+            assert "sf_availability" in tool_names
+            assert "sf_schedule" in tool_names
     except (ImportError, ModuleNotFoundError, EOFError, OSError, TimeoutError) as e:
         pytest.skip(f"solverforge_calendar server not functional: {e}")

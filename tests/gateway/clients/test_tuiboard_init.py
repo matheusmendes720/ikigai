@@ -26,14 +26,17 @@ def test_tuiboard_initialize_handshake(server_process_factory, skip_if_no_module
         pytest.skip(f"tuiboard server not functional: {e}")
 
 
-def test_tuiboard_tools_list_empty(server_process_factory, skip_if_no_module):
-    """At A1, no tools registered yet — verify tools/list returns empty array."""
+def test_tuiboard_tools_list_nonempty(server_process_factory, skip_if_no_module):
+    """At A3, tuiboard_diff + tuiboard_snapshot + tuiboard_render are registered."""
     try:
         with server_process_factory("tuiboard.server") as (proc, stdin, stdout):
             _send_request(stdin, {
                 "jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {},
             })
             response = _read_response(stdout)
-            assert response["result"]["tools"] == []
+            tool_names = {t["name"] for t in response["result"]["tools"]}
+            assert "tuiboard_diff" in tool_names
+            assert "tuiboard_snapshot" in tool_names
+            assert "tuiboard_render" in tool_names
     except (ImportError, ModuleNotFoundError, EOFError, OSError, TimeoutError) as e:
         pytest.skip(f"tuiboard server not functional: {e}")
