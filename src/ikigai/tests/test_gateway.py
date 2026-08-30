@@ -21,6 +21,7 @@ from typing import Any
 import pytest
 
 from ikigai.gateway.client_adapter import MCPClientAdapter
+from ikigai.gateway.event_log import EventLog
 from ikigai.gateway.gateway import GatewayConfig, UnifiedMCPGateway
 
 
@@ -446,3 +447,83 @@ def test_post_call_does_not_emit_on_adapter_error() -> None:
         gateway.unsubscribe_events(sub_q)
         _stop_gateway(server)
 
+
+# ──────── EventLog integration (Task 15) ────────
+
+
+def test_gateway_publish_event_writes_to_event_log(tmp_path) -> None:
+    """publish_event() must append to the event_log when one is configured."""
+    log_path = tmp_path / "events.jsonl"
+    log = EventLog(log_path)
+    cfg = GatewayConfig()
+    gateway = UnifiedMCPGateway(cfg, event_log=log)
+
+    gateway.publish_event("task.created", {"ueid": "ikigai:task:abc:1:2"})
+    gateway.publish_event("taskdog.add", {"ueid": "ikigai:task:def:3:4"})
+
+    records = log.tail(2)
+    assert [r["event"] for r in records] == ["task.created", "taskdog.add"]
+    assert records[1]["data"]["ueid"] == "ikigai:task:def:3:4"
+
+
+def test_gateway_publish_event_works_without_event_log() -> None:
+    """Backward compatibility: gateway without event_log must not crash."""
+    cfg = GatewayConfig()
+    gateway = UnifiedMCPGateway(cfg)  # no event_log
+
+    # Multiple events with no subscribers and no log — must be silent
+    gateway.publish_event("a", {})
+    gateway.publish_event("b", {"k": 1})
+
+
+def test_post_call_writes_to_event_log(tmp_path) -> None:
+    """E2E: POST /call must persist adapter call events to the log on disk."""
+    log_path = tmp_path / "events.jsonl"
+    log = EventLog(log_path)
+    cfg = GatewayConfig()
+    gateway = UnifiedMCPGateway(cfg, event_log=log)
+    fake = FakeAdapter(
+        "taskdog",
+        responses={"taskdog_add": {"id": "td-1", "status": "queued"}},
+    )
+    gateway.register(fake)
+    url, server = _start_gateway(gateway)
+    try:
+        resp = _post(url, {
+            "namespace": "taskdog",
+            "tool": "taskdog_add",
+            "arguments": {"title": "smoke task"},
+        })
+        assert resp == {"result": {"id": "td-1", "status": "queued"}}
+    finally:
+        _stop_gateway(server)
+
+    records = log.tail(1)
+    assert len(records) == 1
+    assert records[0]["event"] == "taskdog.add"
+    assert records[0]["data"]["namespace"] == "taskdog"
+    assert records[0]["data"]["tool"] == "taskdog_add"
+    assert records[0]["data"]["arguments"] == {"title": "smoke task"}
+
+
+def test_event_log_failure_does_not_break_publish(tmp_path) -> None:
+    """A failing event_log.append() must NOT break publish_event()."""
+    cfg = GatewayConfig()
+    log = EventLog(tmp_path / "events.jsonl")
+    gateway = UnifiedMCPGateway(cfg, event_log=log)
+    sub_q = gateway.subscribe_events()
+
+    # Patch the log to raise on every append
+    def boom(_event, _data):
+        raise RuntimeError("disk full")
+
+    log.append = boom  # type: ignore[assignment]
+    try:
+        # Must not raise — log failure is logged and swallowed
+        gateway.publish_event("safe", {"k": 1})
+        # Subscribers still receive the event (log is best-effort)
+        event, data = sub_q.get(timeout=1.0)
+        assert event == "safe"
+        assert data == {"k": 1}
+    finally:
+        gateway.unsubscribe_events(sub_q)

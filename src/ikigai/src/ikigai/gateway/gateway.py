@@ -35,6 +35,7 @@ from http.server import BaseHTTPRequestHandler
 from typing import Any
 
 from ikigai.gateway.client_adapter import MCPClientAdapter
+from ikigai.gateway.event_log import EventLog
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,11 @@ class GatewayConfig:
 
 
 class UnifiedMCPGateway:
-    def __init__(self, config: GatewayConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: GatewayConfig | None = None,
+        event_log: EventLog | None = None,
+    ) -> None:
         self.config = config or GatewayConfig()
         self._adapters: dict[str, MCPClientAdapter] = {}
         # Event bus for /events subscribers (SSE clients). Each subscriber
@@ -57,6 +62,11 @@ class UnifiedMCPGateway:
         # event for that subscriber (slow consumer protection).
         self._event_subscribers: list[queue.Queue[tuple[str, dict[str, Any]]]] = []
         self._lock = threading.Lock()
+        # Optional append-only log for replay/debug/audit. When set, every
+        # publish_event() appends a JSONL record to disk. Independent of
+        # the in-process subscriber fan-out — the log captures all events
+        # even when no SSE clients are connected.
+        self.event_log = event_log
 
     # ──────── Adapter registry ────────
 
@@ -100,6 +110,10 @@ class UnifiedMCPGateway:
 
         Slow consumers (full queue) silently drop the event for that
         subscriber. Other subscribers still receive it.
+
+        If `event_log` is configured, the event is also appended to disk
+        for replay/debug/audit. The append happens AFTER the in-process
+        fan-out so a slow log write never blocks subscribers.
         """
         with self._lock:
             subs = list(self._event_subscribers)
@@ -111,6 +125,11 @@ class UnifiedMCPGateway:
                     "SSE subscriber queue full; dropping event '%s' for slow consumer",
                     event,
                 )
+        if self.event_log is not None:
+            try:
+                self.event_log.append(event, data)
+            except Exception as e:
+                logger.warning("event log append failed for '%s': %s", event, e)
 
     def emit_adapter_call(
         self,
