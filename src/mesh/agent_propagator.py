@@ -1,10 +1,15 @@
 """Deep Agent propagator: emits approved events to all relevant forks + vault."""
 from dataclasses import dataclass
+import logging
+from pathlib import Path
 
 from src.contracts.task_change import TaskChange, PropagationEvent
 from src.mesh import queue as _queue
 from src.mesh.agent_consumer import ValidationResult
 from src.mesh.adapters.base import ForkAdapter
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -49,6 +54,46 @@ def propagate(
                     error=str(e),
                 )
             )
+
+    # Vault write is best-effort and never crashes propagation.
+    # Convention per spec Q1=B: source_fork=="vault" signals vault-bound events.
+    if event.source_fork == "vault":
+        try:
+            # Lazy import — agent_propagator lives in src/mesh/ not src/ikigai/.
+            # The cross-tree import is intentional: src/ikigai/ is the system
+            # of record; src/mesh/ consumes it.
+            from src.ikigai.src.ikigai.vault.vault_write import (
+                vault_write as _vault_write_impl,
+            )
+
+            vault_root = Path(__file__).resolve().parents[2] / "vault"
+            # Fallback for tests/CI: env var or cwd
+            if not vault_root.exists():
+                vault_root = Path.cwd() / "vault"
+
+            # Prefer vault_path from event.fields if present, otherwise derive from UEID
+            vault_path = event.fields.get("vault_path")
+            if not vault_path:
+                vault_path = f"{event.ueid.split(':')[-1]}.md"
+                if vault_path == ".md":
+                    vault_path = "tasks.md"
+
+            result = _vault_write_impl(
+                vault_root=vault_root,
+                vault_path=vault_path,
+                frontmatter_fields={
+                    "ueid": str(event.ueid),
+                    "status": event.fields.get("status", "planned"),
+                    "title": event.fields.get("title", ""),
+                },
+                body=f"# {event.fields.get('title', '')}\n\nStatus: `{event.fields.get('status', 'planned')}`\n",
+            )
+            logger.info(
+                "vault write ok: %s (sha256=%s)", result["vault_path"], result["sha256"]
+            )
+        except Exception as exc:
+            # Best-effort: vault write failures must not crash propagation
+            logger.error("vault write failed for %s: %s", event.ueid, exc)
 
     if results and any(not r.success for r in results):
         _queue.ack(event.event_id, "partial_propagation")
