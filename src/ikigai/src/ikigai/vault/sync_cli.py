@@ -36,6 +36,9 @@ from typing import Any
 
 from ikigai.vault.sync import (
     SyncResult,
+    load_reverse_state,
+    load_state,
+    reverse_sync,
     run_sync,
 )
 
@@ -226,21 +229,73 @@ def cmd_sync(args: argparse.Namespace) -> int:
 
 
 def cmd_reverse(args: argparse.Namespace) -> int:
-    """Stub — Task 2 implements the real reverse-sync CLI."""
-    sys.stderr.write("reverse subcommand not yet implemented (Task 2)\n")
-    sys.stderr.flush()
-    parser_err = argparse.ArgumentParser()
-    parser_err.error("not implemented")
-    return 2  # unreachable
+    """Run taskdog → vault reverse sync."""
+    _apply_rev_state_override(args.sync_state)
+    _apply_taskdog_override(args.taskdog_db)
+
+    adapter = _build_adapter()
+    result = reverse_sync(REVERSE_SYNC_STATE, adapter)
+
+    if _wants_human(args):
+        _render_reverse_result(result)
+        if result.errors:
+            print("", flush=True)
+            print("errors:", flush=True)
+            for err in result.errors:
+                print(f"  - {err}", flush=True)
+    else:
+        payload = {
+            "scanned": result.scanned,
+            "emitted": result.emitted,
+            "skipped": result.skipped,
+            "errors": result.errors,
+            "duration_s": round(result.duration_s, 3),
+        }
+        print(json.dumps(payload, default=str, indent=2), flush=True)
+
+    return 0
 
 
 def cmd_status(args: argparse.Namespace) -> int:
-    """Stub — Task 2 implements the real status subcommand."""
-    sys.stderr.write("status subcommand not yet implemented (Task 2)\n")
-    sys.stderr.flush()
-    parser_err = argparse.ArgumentParser()
-    parser_err.error("not implemented")
-    return 2  # unreachable
+    """Print sync-state.json + sync-state-reverse.json counts."""
+    _apply_state_override(args.sync_state)
+    _apply_rev_state_override(args.reverse_state)
+
+    # Load both states (load_* returns empty state if file is absent)
+    forward = load_state(SYNC_STATE)
+    reverse = load_reverse_state(REVERSE_SYNC_STATE)
+
+    payload = {
+        "sync_state": str(SYNC_STATE),
+        "reverse_state": str(REVERSE_SYNC_STATE),
+        "forward_tasks": len(forward.tasks),
+        "forward_last_sync_at": forward.last_sync_at,
+        "reverse_tasks": len(reverse.tasks),
+        "reverse_last_sync_at": reverse.last_sync_at,
+    }
+
+    if _wants_human(args):
+        print(f"sync_state:    {payload['sync_state']}", flush=True)
+        print(f"reverse_state: {payload['reverse_state']}", flush=True)
+        _render_table(
+            ["counter", "value"],
+            [
+                ["forward_tasks", str(payload["forward_tasks"])],
+                ["reverse_tasks", str(payload["reverse_tasks"])],
+                [
+                    "forward_last_sync_at",
+                    str(payload["forward_last_sync_at"] or "<never>"),
+                ],
+                [
+                    "reverse_last_sync_at",
+                    str(payload["reverse_last_sync_at"] or "<never>"),
+                ],
+            ],
+        )
+    else:
+        print(json.dumps(payload, indent=2), flush=True)
+
+    return 0
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -283,13 +283,186 @@ def test_main_without_command_exits_nonzero() -> None:
         main([])
 
 
-def test_reverse_subcommand_stub_not_implemented(cli_env: dict) -> None:
-    """Task 2 implements reverse — for now it must exit non-zero cleanly."""
-    with pytest.raises(SystemExit):
-        main(["reverse"])
+# ──────────────────── reverse subcommand ────────────────────
 
 
-def test_status_subcommand_stub_not_implemented(cli_env: dict) -> None:
-    """Task 2 implements status — for now it must exit non-zero cleanly."""
-    with pytest.raises(SystemExit):
-        main(["status"])
+def _seed_reverse_state(
+    state_path: Path,
+    entries: dict[str, dict],
+) -> None:
+    """Pre-populate sync-state-reverse.json so reverse_sync() can match orphans.
+
+    reverse_sync() v1 ORPHAN HANDLING: NEW UEIDs not in the snapshot are
+    SKIPPED. To exercise `emitted`, the snapshot must already contain the
+    UEID. To exercise `skipped` on new rows, just call reverse_sync()
+    with a taskdog row whose UEID is not in the snapshot.
+    """
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(
+        json.dumps({"version": 1, "last_sync_at": None, "tasks": entries}),
+        encoding="utf-8",
+    )
+
+
+def test_reverse_with_no_state_returns_zero(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """First-ever reverse_sync() with no snapshot → no orphans, all skipped."""
+    # No state file, taskdog DB has no rows → scanned: 0
+    rc = main(["reverse", "--human"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert _read_counter(out, "scanned") == "0"
+
+
+def test_reverse_emits_for_known_ueid(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """UEID in snapshot + taskdog row with changed status → emits TaskChange."""
+    ueid = "tsk:known:44444444-4444-4444-4444-444444444444:4444444444444444"
+    _seed_reverse_state(
+        cli_env["rev_state"],
+        {
+            ueid: {
+                "last_seen_status": "planned",
+                "last_seen_title": "Known",
+                "taskdog_id": 1,
+                "vault_path": "plans/q3/known.md",
+            }
+        },
+    )
+    # Seed taskdog DB with same UEID but status=done (changed)
+    cli_env["adapter"].call_tool(
+        "taskdog_add",
+        {
+            "ueid": ueid,
+            "title": "Known",
+            "priority": 1,
+            "due": "2026-09-15",
+        },
+    )
+    # Promote to done via direct SQL (taskdog_done would need MCP plumbing)
+    conn = sqlite3.connect(cli_env["taskdog_db"])
+    try:
+        conn.execute("UPDATE tasks SET status = 'done' WHERE ueid = ?", (ueid,))
+        conn.commit()
+    finally:
+        conn.close()
+
+    rc = main(["reverse", "--human"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert _read_counter(out, "scanned") == "1"
+    assert _read_counter(out, "emitted") == "1"
+    # The review queue file should now exist
+    from src.mesh.queue import QUEUE_DIR
+
+    queue_files = list(QUEUE_DIR.glob("*.json"))
+    assert len(queue_files) >= 1
+
+
+def test_reverse_skips_unknown_ueids(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """UEID in taskdog but NOT in snapshot → orphan, skipped (v1 behavior)."""
+    cli_env["adapter"].call_tool(
+        "taskdog_add",
+        {
+            "ueid": "tsk:orphan:55555555-5555-5555-5555-555555555555:5555555555555555",
+            "title": "Orphan",
+            "priority": 2,
+            "due": "2026-10-01",
+        },
+    )
+    rc = main(["reverse", "--human"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert _read_counter(out, "scanned") == "1"
+    assert _read_counter(out, "emitted") == "0"
+    assert _read_counter(out, "skipped") == "1"
+
+
+def test_reverse_json_flag_emits_object(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """`reverse --json` prints a JSON object."""
+    rc = main(["reverse", "--json"])
+    assert rc == 0
+    parsed = json.loads(capsys.readouterr().out.strip())
+    assert "scanned" in parsed
+    assert "emitted" in parsed
+    assert "skipped" in parsed
+
+
+# ──────────────────── status subcommand ────────────────────
+
+
+def test_status_with_no_state_files_returns_zero(
+    cli_env: dict, capsys: pytest.CaptureFixture
+) -> None:
+    """Both state files missing → status prints zeros, exits 0."""
+    rc = main(["status", "--human"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "sync_state" in out
+    assert "forward_tasks" in out
+    assert "reverse_tasks" in out
+    assert _read_counter(out, "forward_tasks") == "0"
+    assert _read_counter(out, "reverse_tasks") == "0"
+
+
+def test_status_counts_state_entries(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """Pre-populated state files → counts match."""
+    # Forward state
+    cli_env["state"].parent.mkdir(parents=True, exist_ok=True)
+    cli_env["state"].write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "last_sync_at": "2026-08-30T00:00:00+00:00",
+                "tasks": {
+                    "tsk:a:11111111-1111-1111-1111-111111111111:1111111111111111": {
+                        "last_synced_at": "2026-08-30T00:00:00+00:00",
+                        "last_status": "planned",
+                        "taskdog_id": "1",
+                        "vault_path": "plans/q3/a.md",
+                    },
+                    "tsk:b:22222222-2222-2222-2222-222222222222:2222222222222222": {
+                        "last_synced_at": "2026-08-30T00:00:00+00:00",
+                        "last_status": "done",
+                        "taskdog_id": "2",
+                        "vault_path": "plans/q3/b.md",
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    # Reverse state
+    cli_env["rev_state"].parent.mkdir(parents=True, exist_ok=True)
+    cli_env["rev_state"].write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "last_sync_at": "2026-08-30T00:00:00+00:00",
+                "tasks": {
+                    "tsk:x:33333333-3333-3333-3333-333333333333:3333333333333333": {
+                        "last_seen_status": "planned",
+                        "last_seen_title": "X",
+                        "taskdog_id": 5,
+                        "vault_path": "plans/q3/x.md",
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    rc = main(["status", "--human"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert _read_counter(out, "forward_tasks") == "2"
+    assert _read_counter(out, "reverse_tasks") == "1"
+
+
+def test_status_json_flag_emits_object(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """`status --json` prints a JSON object with both state paths + counts."""
+    rc = main(["status", "--json"])
+    assert rc == 0
+    parsed = json.loads(capsys.readouterr().out.strip())
+    assert parsed["forward_tasks"] == 0
+    assert parsed["reverse_tasks"] == 0
+    assert "sync_state" in parsed
+    assert "reverse_state" in parsed
