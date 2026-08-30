@@ -21,7 +21,7 @@ def vault_write(
 
     Rejects paths outside vault/, absolute paths, empty writes.
     Uses VaultLock for cross-platform concurrency safety.
-    Atomic via frontmatter.dump() (Windows-safe).
+    Atomic via tmp-file + os.replace() (B6.4 Windows-safe pattern).
     """
     try:
         # Vault root resolution: walk up from this file to find vault/.

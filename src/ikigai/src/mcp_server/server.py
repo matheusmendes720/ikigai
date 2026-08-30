@@ -701,7 +701,7 @@ def _ikigai_health_tool() -> str:
     description=(
         "Write markdown file to vault. ONLY vault writer per attribution report §7. "
         "Rejects paths outside vault/, absolute paths, empty writes. "
-        "Uses VaultLock for concurrency. Atomic via frontmatter.dump()."
+        "Uses VaultLock for concurrency. Atomic via tmp-file + os.replace()."
     ),
 )
 def vault_write(
