@@ -466,3 +466,191 @@ def test_status_json_flag_emits_object(cli_env: dict, capsys: pytest.CaptureFixt
     assert parsed["reverse_tasks"] == 0
     assert "sync_state" in parsed
     assert "reverse_state" in parsed
+
+
+# ──────────────────── list subcommand ────────────────────
+
+
+def test_list_default_direction_is_forward(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """`list` (no flag) reads sync-state.json and prints entries."""
+    cli_env["state"].parent.mkdir(parents=True, exist_ok=True)
+    cli_env["state"].write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "last_sync_at": "2026-08-30T00:00:00+00:00",
+                "tasks": {
+                    "tsk:a:11111111-1111-1111-1111-111111111111:1111111111111111": {
+                        "last_synced_at": "2026-08-30T00:00:00+00:00",
+                        "last_status": "planned",
+                        "taskdog_id": "1",
+                        "vault_path": "plans/q3/a.md",
+                    },
+                    "tsk:b:22222222-2222-2222-2222-222222222222:2222222222222222": {
+                        "last_synced_at": "2026-08-30T00:00:00+00:00",
+                        "last_status": "done",
+                        "taskdog_id": "2",
+                        "vault_path": "plans/q3/b.md",
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    rc = main(["list"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    # Human mode default in tests = pipe → JSON-per-line
+    lines = [ln for ln in out.strip().splitlines() if ln.strip()]
+    assert len(lines) == 2
+    parsed = [json.loads(ln) for ln in lines]
+    ueids = {p["ueid"] for p in parsed}
+    assert "tsk:a:11111111-1111-1111-1111-111111111111:1111111111111111" in ueids
+    assert "tsk:b:22222222-2222-2222-2222-222222222222:2222222222222222" in ueids
+
+
+def test_list_direction_reverse(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """`list --direction reverse` reads sync-state-reverse.json."""
+    cli_env["rev_state"].parent.mkdir(parents=True, exist_ok=True)
+    cli_env["rev_state"].write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "last_sync_at": "2026-08-30T00:00:00+00:00",
+                "tasks": {
+                    "tsk:x:33333333-3333-3333-3333-333333333333:3333333333333333": {
+                        "last_seen_status": "planned",
+                        "last_seen_title": "X",
+                        "taskdog_id": 5,
+                        "vault_path": "plans/q3/x.md",
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    rc = main(["list", "--direction", "reverse"])
+    assert rc == 0
+    parsed = [json.loads(ln) for ln in capsys.readouterr().out.strip().splitlines() if ln.strip()]
+    assert len(parsed) == 1
+    assert parsed[0]["ueid"].startswith("tsk:x:")
+
+
+def test_list_with_empty_state_prints_nothing(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """No state file → empty output, exit 0."""
+    rc = main(["list"])
+    assert rc == 0
+    assert capsys.readouterr().out == ""
+
+
+def test_list_human_flag_renders_table(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """`list --human` prints an aligned table."""
+    cli_env["state"].parent.mkdir(parents=True, exist_ok=True)
+    cli_env["state"].write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "last_sync_at": None,
+                "tasks": {
+                    "tsk:a:11111111-1111-1111-1111-111111111111:1111111111111111": {
+                        "last_synced_at": "2026-08-30T00:00:00+00:00",
+                        "last_status": "planned",
+                        "taskdog_id": None,
+                        "vault_path": "plans/a.md",
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    rc = main(["list", "--human"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "UEID" in out
+    assert "VAULT_PATH" in out
+    assert "LAST_STATUS" in out
+
+
+# ──────────────────── validate subcommand ────────────────────
+
+
+def test_validate_with_no_state_returns_zero(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """No state file → nothing to validate, exit 0."""
+    rc = main(["validate", "--human"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert _read_counter(out, "checked") == "0"
+    assert _read_counter(out, "missing_vault_files") == "0"
+
+
+def test_validate_flags_missing_vault_files(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """State entry whose vault_path does NOT exist on disk → flagged."""
+    cli_env["state"].parent.mkdir(parents=True, exist_ok=True)
+    cli_env["state"].write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "last_sync_at": "2026-08-30T00:00:00+00:00",
+                "tasks": {
+                    "tsk:gone:11111111-1111-1111-1111-111111111111:1111111111111111": {
+                        "last_synced_at": "2026-08-30T00:00:00+00:00",
+                        "last_status": "planned",
+                        "taskdog_id": "1",
+                        "vault_path": "plans/q3/gone.md",  # does NOT exist
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    rc = main(["validate", "--human"])
+    assert rc == 1  # non-zero: drift detected
+    out = capsys.readouterr().out
+    assert _read_counter(out, "checked") == "1"
+    assert _read_counter(out, "missing_vault_files") == "1"
+
+
+def test_validate_with_existing_files_returns_zero(
+    cli_env: dict, capsys: pytest.CaptureFixture
+) -> None:
+    """State entry whose vault_path exists → no drift, exit 0."""
+    _write_task_md(
+        cli_env["vault"],
+        "plans/q3/alive.md",
+        "tsk:alive:22222222-2222-2222-2222-222222222222:2222222222222222",
+        "Alive",
+    )
+    cli_env["state"].parent.mkdir(parents=True, exist_ok=True)
+    cli_env["state"].write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "last_sync_at": "2026-08-30T00:00:00+00:00",
+                "tasks": {
+                    "tsk:alive:22222222-2222-2222-2222-222222222222:2222222222222222": {
+                        "last_synced_at": "2026-08-30T00:00:00+00:00",
+                        "last_status": "planned",
+                        "taskdog_id": "1",
+                        "vault_path": str(cli_env["vault"] / "plans" / "q3" / "alive.md"),
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    rc = main(["validate", "--human"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert _read_counter(out, "checked") == "1"
+    assert _read_counter(out, "missing_vault_files") == "0"
+
+
+def test_validate_json_flag_emits_object(cli_env: dict, capsys: pytest.CaptureFixture) -> None:
+    """`validate --json` prints a JSON object."""
+    rc = main(["validate", "--json"])
+    assert rc == 0
+    parsed = json.loads(capsys.readouterr().out.strip())
+    assert "checked" in parsed
+    assert "missing_vault_files" in parsed
+    assert "missing" in parsed
+    assert parsed["missing"] == []
