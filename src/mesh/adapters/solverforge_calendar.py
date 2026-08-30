@@ -100,5 +100,31 @@ class SolverforgeCalendarAdapter:
         finally:
             conn.close()
 
+    def list_all(self) -> list[dict[str, Any]]:
+        """Enumerate all rows from solverforge UPI. Returns [] if DB missing."""
+        if not UPI_DB.exists():
+            return []
+        conn = sqlite3.connect(UPI_DB)
+        try:
+            rows = conn.execute(
+                "SELECT id, ueid, status, start_at, end_at, blocked_by, tags, ikigai "
+                "FROM unified_planning_items"
+            ).fetchall()
+            return [
+                {
+                    "id": r[0],
+                    "ueid": r[1],
+                    "status": r[2],
+                    "start_at": r[3],
+                    "end_at": r[4],
+                    "blocked_by": json.loads(r[5]) if r[5] else [],
+                    "tags": json.loads(r[6]) if r[6] else [],
+                    "ikigai": json.loads(r[7]) if r[7] else {},
+                }
+                for r in rows
+            ]
+        finally:
+            conn.close()
+
     def supports_field(self, field_name: str) -> bool:
         return field_name in SUPPORTED_FIELDS
