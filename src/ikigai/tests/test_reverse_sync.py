@@ -259,7 +259,7 @@ def test_reverse_sync_per_task_isolation(tmp_path: Path, tmp_queue: Path) -> Non
     assert result.scanned == 2
     assert result.emitted == 1
     assert len(result.errors) == 1
-    assert result.errors[0]["ueid"] == "task:bad2:89abcdef:abcdef01"
+    assert result.errors[0].ueid == "task:bad2:89abcdef:abcdef01"
 
 
 def test_reverse_sync_source_fork_override(tmp_path: Path, tmp_queue: Path) -> None:
