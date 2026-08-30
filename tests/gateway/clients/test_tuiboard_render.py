@@ -135,7 +135,7 @@ def test_tuiboard_render_calendar(
 def test_tuiboard_render_tree(
     server_process_factory, tmp_path: Path, skip_if_no_module
 ):
-    """Tree: section = vector; 3 sections (skill, market, untagged)."""
+    """Tree: section = vector; 2 sections (skill, market)."""
     try:
         env = _setup_env(tmp_path)
         with server_process_factory("tuiboard.server", env=env) as (
