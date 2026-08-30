@@ -41,8 +41,10 @@ from typing import Any
 
 from ikigai.vault.sync import (
     SyncResult,
+    diff,
     load_reverse_state,
     load_state,
+    parse_vault_tasks,
     reverse_sync,
     run_sync,
 )
@@ -207,6 +209,43 @@ def cmd_sync(args: argparse.Namespace) -> int:
     _apply_state_override(args.sync_state)
     _apply_taskdog_override(args.taskdog_db)
 
+    if args.dry_run:
+        # Parse + diff against current state, but DO NOT push or save state.
+        state = load_state(SYNC_STATE)
+        try:
+            tasks = parse_vault_tasks(VAULT_ROOT)
+        except Exception as exc:
+            payload = {
+                "dry_run": True,
+                "scanned": 0,
+                "planned_actions": [],
+                "errors": [{"error": f"vault_parse_failed: {exc}"}],
+            }
+            print(json.dumps(payload, default=str, indent=2), flush=True)
+            return 0
+
+        actions = diff(tasks, state)
+        planned: list[dict[str, Any]] = []
+        for action in actions:
+            planned.append(
+                {
+                    "kind": action.kind.value,
+                    "ueid": action.record.ueid,
+                    "title": action.record.title,
+                    "status": action.record.status,
+                    "taskdog_id": action.taskdog_id,
+                }
+            )
+
+        payload = {
+            "dry_run": True,
+            "scanned": len(tasks),
+            "planned_actions": planned,
+            "errors": [],
+        }
+        print(json.dumps(payload, default=str, indent=2), flush=True)
+        return 0
+
     adapter = _build_adapter()
     result = run_sync(VAULT_ROOT, SYNC_STATE, adapter)
 
@@ -237,6 +276,57 @@ def cmd_reverse(args: argparse.Namespace) -> int:
     """Run taskdog → vault reverse sync."""
     _apply_rev_state_override(args.sync_state)
     _apply_taskdog_override(args.taskdog_db)
+
+    if args.dry_run:
+        # list_all + diff vs snapshot, but DO NOT enqueue or save state.
+        state = load_reverse_state(REVERSE_SYNC_STATE)
+        # Build adapter WITHOUT calling call_tool — list_all() is read-only.
+        adapter = _build_adapter()
+        try:
+            rows = adapter.list_all()
+        except Exception as exc:
+            payload = {
+                "dry_run": True,
+                "scanned": 0,
+                "planned_emits": [],
+                "errors": [{"error": f"adapter_list_failed: {exc}"}],
+            }
+            print(json.dumps(payload, default=str, indent=2), flush=True)
+            return 0
+
+        planned: list[dict[str, Any]] = []
+        for row in rows:
+            ueid = row.get("ueid")
+            if not ueid:
+                continue
+            status = row.get("status", "planned")
+            title = row.get("name", "")
+            entry = state.tasks.get(ueid)
+            if entry is None:
+                # Orphan — v1 skips
+                continue
+            if entry.last_seen_status == status and entry.last_seen_title == title:
+                continue
+            action_kind = (
+                "done" if status == "done" and entry.last_seen_status != "done" else "update"
+            )
+            planned.append(
+                {
+                    "ueid": ueid,
+                    "action": action_kind,
+                    "status": status,
+                    "title": title,
+                }
+            )
+
+        payload = {
+            "dry_run": True,
+            "scanned": len(rows),
+            "planned_emits": planned,
+            "errors": [],
+        }
+        print(json.dumps(payload, default=str, indent=2), flush=True)
+        return 0
 
     adapter = _build_adapter()
     result = reverse_sync(REVERSE_SYNC_STATE, adapter)
@@ -411,6 +501,11 @@ def main(argv: list[str] | None = None) -> int:
         default=str(TASKDOG_DB),
         help=f"path to taskdog SQLite DB (default: {TASKDOG_DB})",
     )
+    sync_p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="parse + diff against current state but DO NOT push to taskdog or save state",
+    )
     _add_output_flags(sync_p)
 
     rev_p = sub.add_parser("reverse", help="run taskdog → vault reverse sync (stub in Task 1)")
@@ -425,6 +520,11 @@ def main(argv: list[str] | None = None) -> int:
         type=str,
         default=str(TASKDOG_DB),
         help=f"path to taskdog SQLite DB (default: {TASKDOG_DB})",
+    )
+    rev_p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="list taskdog + diff vs snapshot but DO NOT enqueue TaskChange or save state",
     )
     _add_output_flags(rev_p)
 
