@@ -3,10 +3,8 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -15,7 +13,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from src.ikigai.src.ikigai.vault.sync import (
+from ikigai.vault.sync import (
     ReverseSyncState,
     ReverseSyncTaskEntry,
     reverse_sync,
@@ -64,7 +62,7 @@ def test_reverse_sync_emits_done_for_moved_to_done(tmp_path: Path, tmp_queue: Pa
     )
     initial_state_path = state_path
     # Write initial state
-    from src.ikigai.src.ikigai.vault.sync import save_reverse_state
+    from ikigai.vault.sync import save_reverse_state
     save_reverse_state(initial_state_path, initial)
 
     adapter = FakeAdapter(
@@ -90,7 +88,7 @@ def test_reverse_sync_emits_done_for_moved_to_done(tmp_path: Path, tmp_queue: Pa
 def test_reverse_sync_emits_update_for_status_change(tmp_path: Path, tmp_queue: Path) -> None:
     """Status changed (not to done) -> emit UPDATE event."""
     state_path = tmp_path / "state.json"
-    from src.ikigai.src.ikigai.vault.sync import save_reverse_state
+    from ikigai.vault.sync import save_reverse_state
     save_reverse_state(
         state_path,
         ReverseSyncState(
@@ -115,7 +113,7 @@ def test_reverse_sync_emits_update_for_status_change(tmp_path: Path, tmp_queue: 
 def test_reverse_sync_skips_unchanged(tmp_path: Path, tmp_queue: Path) -> None:
     """Same status as before -> no event."""
     state_path = tmp_path / "state.json"
-    from src.ikigai.src.ikigai.vault.sync import save_reverse_state
+    from ikigai.vault.sync import save_reverse_state
     save_reverse_state(
         state_path,
         ReverseSyncState(
@@ -145,7 +143,7 @@ def test_reverse_sync_emits_update_for_new_ueid_with_vault_match(
     (orphan, vault_path unknown). v1.3 will do vault lookup.
     """
     state_path = tmp_path / "state.json"
-    from src.ikigai.src.ikigai.vault.sync import save_reverse_state
+    from ikigai.vault.sync import save_reverse_state
     save_reverse_state(state_path, ReverseSyncState(version=1))
 
     adapter = FakeAdapter(
@@ -159,7 +157,7 @@ def test_reverse_sync_emits_update_for_new_ueid_with_vault_match(
 def test_reverse_sync_is_idempotent(tmp_path: Path, tmp_queue: Path) -> None:
     """Re-run with same input -> 0 events emitted the second time."""
     state_path = tmp_path / "state.json"
-    from src.ikigai.src.ikigai.vault.sync import save_reverse_state
+    from ikigai.vault.sync import save_reverse_state
     save_reverse_state(
         state_path,
         ReverseSyncState(
@@ -185,7 +183,7 @@ def test_reverse_sync_is_idempotent(tmp_path: Path, tmp_queue: Path) -> None:
 def test_reverse_sync_updates_snapshot(tmp_path: Path, tmp_queue: Path) -> None:
     """After reverse_sync, snapshot reflects current taskdog state."""
     state_path = tmp_path / "state.json"
-    from src.ikigai.src.ikigai.vault.sync import (
+    from ikigai.vault.sync import (
         load_reverse_state,
         save_reverse_state,
     )
@@ -214,7 +212,7 @@ def test_reverse_sync_updates_snapshot(tmp_path: Path, tmp_queue: Path) -> None:
 def test_reverse_sync_per_task_isolation(tmp_path: Path, tmp_queue: Path) -> None:
     """One task throwing doesn't crash the loop — error recorded, others processed."""
     state_path = tmp_path / "state.json"
-    from src.ikigai.src.ikigai.vault.sync import save_reverse_state
+    from ikigai.vault.sync import save_reverse_state
     save_reverse_state(
         state_path,
         ReverseSyncState(
@@ -265,7 +263,7 @@ def test_reverse_sync_per_task_isolation(tmp_path: Path, tmp_queue: Path) -> Non
 def test_reverse_sync_source_fork_override(tmp_path: Path, tmp_queue: Path) -> None:
     """source_fork kwarg populates emitted events' source_fork field."""
     state_path = tmp_path / "state.json"
-    from src.ikigai.src.ikigai.vault.sync import save_reverse_state
+    from ikigai.vault.sync import save_reverse_state
     save_reverse_state(
         state_path,
         ReverseSyncState(
