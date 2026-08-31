@@ -16,8 +16,6 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ikigai.core.scoring.qhe import compute_qhe
-
 from .common import RegimeState, UEID
 
 
@@ -134,8 +132,14 @@ class QHEScore(BaseModel):
     This is the PRIMARY policy input. Computed from habit completion data
     in operational/entities/habit.py (QHEMetrics).
 
-    Formula:
-        Q_HE = habit_avg * energy_ratio * (1 + eta * streak_bonus)
+    Formula (inlined from ikigai.core.scoring.qhe.compute_qhe — archived
+    per attribution §3, weights sum to 1.0):
+        Q_HE = 0.35·H_sono + 0.20·H_med + 0.25·H_workout + 0.10·H_lunch
+             + 0.10·S_streak
+
+    QHEScore collapses the 4 habit dimensions to the single scalar
+    ``habit_avg``, so the inlined form is:
+        Q_HE = habit_avg · 0.90 + streak_bonus · 0.10
 
     Policy mapping:
         Q_HE >= 0.85 → PUSH
@@ -170,15 +174,11 @@ class QHEScore(BaseModel):
     def qhe(self) -> float:
         """Quality-Habit-Effectiveness value.
 
-        Delegates to ikigai.core.scoring.qhe.compute_qhe.
+        Inlined from ``ikigai.core.scoring.qhe.compute_qhe`` per
+        attribution §3 (algo math archived-in-place, contracts layer
+        is schema-only). See class docstring for the canonical formula.
         """
-        return compute_qhe(
-            h_sono=self.habit_avg,
-            h_med=self.habit_avg,
-            h_workout=self.habit_avg,
-            h_lunch=self.habit_avg,
-            s_streak=self.streak_bonus,
-        )
+        return self.habit_avg * 0.90 + self.streak_bonus * 0.10
 
     @property
     def regime_predicted(self) -> RegimeState:
