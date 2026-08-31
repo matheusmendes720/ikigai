@@ -6,6 +6,8 @@ import json
 import threading
 from pathlib import Path
 
+import pytest
+
 from ikigai.gateway.event_log import (
     DEFAULT_MAX_BYTES,
     DEFAULT_MAX_ROTATIONS,
@@ -47,8 +49,21 @@ def test_event_log_tail_n_zero_returns_empty(tmp_path: Path) -> None:
     assert log.tail(0) == []
 
 
-def test_event_log_since_filters_by_timestamp(tmp_path: Path) -> None:
-    """since(ts) returns events with ts >= ts (strict lower bound)."""
+def test_event_log_since_filters_by_timestamp(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """since(ts) returns events with ts >= ts (strict lower bound).
+
+    Patches `time.time()` to return incrementing values so each append gets
+    a unique timestamp. Without this, rapid appends can collapse to a single
+    ts on systems with coarse clock resolution (Windows `time.time()` often
+    resolves only to ~1ms), causing since() to return all events.
+    """
+    import ikigai.gateway.event_log as event_log_mod
+
+    ts_iter = iter([100.0 + i * 0.001 for i in range(3)])
+    monkeypatch.setattr(event_log_mod.time, "time", lambda: next(ts_iter))
+
     log = EventLog(tmp_path / "events.jsonl")
     log.append("a", {"v": 1})
     log.append("b", {"v": 2})

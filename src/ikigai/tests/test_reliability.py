@@ -211,7 +211,7 @@ class TestCacheInvalidation:
 class TestStackTraceCapture:
     """Tests for stack trace capture in OTel spans."""
 
-    def test_stack_trace_captured_in_span(self):
+    def test_stack_trace_captured_in_span(self, monkeypatch: pytest.MonkeyPatch):
         """Test that stack trace is captured in span attributes."""
         import traceback as tb
 
@@ -219,6 +219,18 @@ class TestStackTraceCapture:
         from opentelemetry import trace
         from opentelemetry.sdk.trace import TracerProvider, SpanProcessor
         from opentelemetry.sdk.resources import Resource, SERVICE_NAME
+
+        # OpenTelemetry's tracer-provider state is process-global and one-shot:
+        # the first call to set_tracer_provider() (or first get_tracer()) seeds
+        # a ProxyTracerProvider, and subsequent set_tracer_provider() calls are
+        # silent no-ops with a WARNING. Earlier tests in the full suite touch
+        # the proxy, so we reset it here to allow this test's provider to take
+        # effect. monkeypatch auto-restores after the test.
+        from opentelemetry.trace import ProxyTracerProvider
+        monkeypatch.setattr(trace, "_TRACER_PROVIDER", None, raising=False)
+        monkeypatch.setattr(
+            trace._TRACER_PROVIDER_SET_ONCE, "_done", False, raising=False
+        )
 
         # Custom processor to capture spans
         captured_spans = []
