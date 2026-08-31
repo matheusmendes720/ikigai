@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 
 from ikigai.entities.base import PlanEntity
 from ikigai.enums import EntityType, StatusType
@@ -21,7 +21,7 @@ class ProjectEntity(PlanEntity):
     horizon_days: Literal[30, 60, 90, 120, 150, 180]  # type: ignore[valid-type]
 
     # Project-specific fields (forward-compat)
-    tech_stack: list[str] = []
+    tech_stack: list[str] = Field(default_factory=list)
     repo_url: str | None = None
     target_revenue_brl: float | None = None
     actual_revenue_brl: float = 0.0

@@ -6,7 +6,7 @@ from ikigai.entities.plan.task import TaskEntity
 
 
 def compute_rice_score(reach: float, impact: float, confidence: float, effort: float) -> float:
-    """RICE = (R × I × C) / E.
+    """RICE = (R x I x C) / E.
 
     Args:
         reach: 1-10.
@@ -56,7 +56,7 @@ def compute_task_priority(
     w_ikigai: float = 1.0,
     days_to_deadline: int | None = None,
 ) -> float:
-    """Compute final task priority = RICE × w_ikigai × w_deadline.
+    """Compute final task priority = RICE x w_ikigai x w_deadline.
 
     Args:
         task: TaskEntity.

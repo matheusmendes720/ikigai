@@ -111,8 +111,8 @@ class PlanEntity(BaseModel):
                 root = item.split(".", 1)[0]
                 try:
                     out.append(VectorType(root))
-                except ValueError:
-                    raise ValueError(f"Unknown vector root: {root!r} (from {item!r})")
+                except ValueError as err:
+                    raise ValueError(f"Unknown vector root: {root!r} (from {item!r})") from err
             else:
                 raise ValueError(f"Invalid vector type: {item!r}")
         return out
@@ -130,8 +130,8 @@ class PlanEntity(BaseModel):
             elif isinstance(k, str):
                 try:
                     out[VectorType(k)] = val
-                except ValueError:
-                    raise ValueError(f"Unknown vector key: {k!r}")
+                except ValueError as err:
+                    raise ValueError(f"Unknown vector key: {k!r}") from err
             else:
                 raise ValueError(f"Invalid weight key: {k!r}")
         return out

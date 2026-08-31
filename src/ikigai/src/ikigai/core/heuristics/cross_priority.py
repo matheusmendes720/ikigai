@@ -15,7 +15,7 @@ def compute_weighted_priority(
     w_ikigai_by_vector: dict[str, float] | None = None,
     days_to_deadline: int | None = None,
 ) -> float:
-    """Compute final task priority = RICE × w_ikigai × w_deadline.
+    """Compute final task priority = RICE x w_ikigai x w_deadline.
 
     Args:
         task: TaskEntity with ikigai_vectors in primary_score or vector_weights_snapshot.

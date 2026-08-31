@@ -23,9 +23,9 @@ from pathlib import Path
 import pytest
 
 from ikigai.gateway.downstream import (
-    SolverforgeCalendarAdapter,
-    TaskdogAdapter,
-    TuiboardAdapter,
+    solverforge_calendar_adapter,
+    taskdog_adapter,
+    tuiboard_adapter,
 )
 from ikigai.gateway.stdio_adapter import (
     StdioAdapter,
@@ -237,21 +237,21 @@ def test_stderr_ring_buffer_is_drained() -> None:
 
 
 def test_tuiboard_factory_returns_named_adapter() -> None:
-    a = TuiboardAdapter(binary="tuiboard-mcp")
+    a = tuiboard_adapter(binary="tuiboard-mcp")
     assert a.name == "tuiboard"
     assert "tuiboard-mcp" in a.command
     a.close()
 
 
 def test_taskdog_factory_returns_named_adapter() -> None:
-    a = TaskdogAdapter(python=PYTHON, module="taskdog_mcp.server")
+    a = taskdog_adapter(python=PYTHON, module="taskdog_mcp.server")
     assert a.name == "taskdog"
     assert a.command == [PYTHON, "-m", "taskdog_mcp.server"]
     a.close()
 
 
 def test_solverforge_factory_returns_named_adapter() -> None:
-    a = SolverforgeCalendarAdapter(python=PYTHON, module="solverforge_calendar.server")
+    a = solverforge_calendar_adapter(python=PYTHON, module="solverforge_calendar.server")
     assert a.name == "solverforge-calendar"
     assert a.command == [PYTHON, "-m", "solverforge_calendar.server"]
     a.close()
@@ -260,9 +260,9 @@ def test_solverforge_factory_returns_named_adapter() -> None:
 def test_all_three_adapters_register_under_distinct_names() -> None:
     from ikigai.gateway.gateway import UnifiedMCPGateway
     g = UnifiedMCPGateway()
-    a1 = TuiboardAdapter(binary="x1")
-    a2 = TaskdogAdapter(python=PYTHON, module="m1")
-    a3 = SolverforgeCalendarAdapter(python=PYTHON, module="m2")
+    a1 = tuiboard_adapter(binary="x1")
+    a2 = taskdog_adapter(python=PYTHON, module="m1")
+    a3 = solverforge_calendar_adapter(python=PYTHON, module="m2")
     g.register(a1)
     g.register(a2)
     g.register(a3)

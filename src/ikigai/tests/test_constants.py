@@ -1,15 +1,15 @@
-"""Tests for ikigai.constants — PAV_NS / NSM dataclass."""
+"""Tests for ikigai.constants — PavNs / NSM dataclass."""
 
 from __future__ import annotations
 
 from ikigai.constants import NSM
 
 
-class TestPAV_NS:
+class TestPavNs:
     """NSM must be a frozen dataclass with canonical values."""
 
     def test_is_frozen(self) -> None:
-        """PAV_NS must be frozen (immutable)."""
+        """PavNs must be frozen (immutable)."""
         import dataclasses
         assert dataclasses.is_dataclass(NSM)
 

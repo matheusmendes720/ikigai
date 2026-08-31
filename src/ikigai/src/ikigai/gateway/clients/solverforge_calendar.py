@@ -1,4 +1,4 @@
-"""SolverforgeCalendarAdapter factory — Task 14."""
+"""solverforge_calendar_adapter factory — Task 14."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import os
 from ikigai.gateway.stdio_adapter import StdioAdapter, StdioAdapterConfig
 
 
-def SolverforgeCalendarAdapter(
+def solverforge_calendar_adapter(
     *,
     python: str | None = None,
     module: str | None = None,

@@ -27,7 +27,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-import pytest
+import pytest  # noqa: E402
 
 # Date-portable cycle id: the tool writes today's date into the frontmatter
 # (see tools.py:ikigai_sync_vault — `_dt.date.today().isoformat()`), so the
@@ -193,7 +193,7 @@ def test_sync_vault_rejects_path_traversal(monkeypatch: pytest.MonkeyPatch) -> N
     # a path that escapes the vault root.
     from ikigai.vault.vault_write import vault_write
 
-    with pytest.raises(ValueError, match="traversal|outside|escape|root"):
+    with pytest.raises(ValueError, match=r"traversal|outside|escape|root"):
         vault_write(
             vault_root=vault_root,
             vault_path="../../escape.md",

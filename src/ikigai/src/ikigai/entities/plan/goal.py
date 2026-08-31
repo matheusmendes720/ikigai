@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 
 from ikigai.entities.base import PlanEntity
 from ikigai.enums import EntityType, StatusType
@@ -17,7 +17,7 @@ class GoalEntity(PlanEntity):
     horizon_days: Literal[365, 547, 730, 913, 1095]  # type: ignore[valid-type]
 
     # Goal-specific fields
-    success_metrics: list[str] = []
+    success_metrics: list[str] = Field(default_factory=list)
     review_frequency_days: int = 90  # quarterly review
 
     @model_validator(mode="after")

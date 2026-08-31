@@ -146,7 +146,7 @@ def apply_hysteresis(
     # RECOVER exit: 3 days with Q_HE >= 0.65 (simplified: 3 consecutive non-RECOVER)
     if current_regime == RegimeType.RECOVER and proposed_regime != RegimeType.RECOVER:
         consecutive_non_recover = 0
-        for ts, reg in reversed(regime_history):
+        for _ts, reg in reversed(regime_history):
             if reg != RegimeType.RECOVER:
                 consecutive_non_recover += 1
             else:
@@ -173,7 +173,7 @@ def apply_hysteresis(
 
     # Count consecutive same-regime proposals in history
     consecutive = 0
-    for ts, reg in reversed(regime_history):
+    for _ts, reg in reversed(regime_history):
         if reg == proposed_regime:
             consecutive += 1
         else:

@@ -5,13 +5,14 @@ import sys
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 # Ensure repo root on sys.path for imports
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from ikigai.vault.sync import (
+from ikigai.vault.sync import (  # noqa: E402
     ReverseSyncState,
     ReverseSyncTaskEntry,
     load_reverse_state,
@@ -75,5 +76,5 @@ def test_reverse_sync_task_entry_frozen() -> None:
     entry = ReverseSyncTaskEntry(
         last_seen_status="planned", last_seen_title="T", taskdog_id=1, vault_path="x.md"
     )
-    with pytest.raises(Exception):  # ValidationError or AttributeError
+    with pytest.raises(ValidationError):  # Pydantic frozen model raises ValidationError on setattr
         entry.last_seen_status = "done"  # type: ignore[misc]

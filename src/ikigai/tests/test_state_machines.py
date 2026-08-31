@@ -15,6 +15,7 @@ from ikigai.state_machines import (
     routine_state_machine,
     task_state_machine,
 )
+from ikigai.state_machines._sm_base import TransitionError
 
 
 class TestStateMachineBasics:
@@ -27,7 +28,7 @@ class TestStateMachineBasics:
 
     def test_invalid_initial_state_raises(self) -> None:
         """initial_state not in declared states must raise ValueError."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="ghost"):
             StateMachine(initial_state="ghost", states=["idle", "active"])
 
     def test_add_transition_and_transition(self) -> None:
@@ -40,7 +41,7 @@ class TestStateMachineBasics:
     def test_transition_to_invalid_state_raises(self) -> None:
         """Invalid state name must raise ValueError."""
         sm = StateMachine(initial_state="idle")
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="ghost"):
             sm.transition_to("ghost")
 
     def test_guard_blocks_transition(self) -> None:
@@ -48,7 +49,7 @@ class TestStateMachineBasics:
         sm = StateMachine(initial_state="idle")
         sm.add_transition("idle", "done", "finish", guard=lambda ctx: ctx.get("allowed", False))
         sm.context["allowed"] = False
-        with pytest.raises(Exception):
+        with pytest.raises(TransitionError):
             sm.transition_to("done")
         assert sm.current_state == "idle"
 

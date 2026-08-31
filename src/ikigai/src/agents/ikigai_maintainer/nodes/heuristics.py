@@ -11,14 +11,14 @@ from ..state import CorrectionSignal, IKIGAiStateDict
 
 
 def heuristics_node(state: IKIGAiStateDict) -> dict[str, Any]:
-    """Apply H1–H6 deterministic heuristics.
+    """Apply H1-H6 deterministic heuristics.
 
-    H1: Energy required = R × (1 − H(t))            [habit_engine]
+    H1: Energy required = R x (1 - H(t))            [habit_engine]
     H2: Q_HE composite = f(H, E, streak)            [habit_engine]
     H3: Regime FSM — PUSH→MAINTAIN→REDUCE→RECOVER   [policy_engine]
-    H4: Market fit score (skill × opportunity)      [score_vectors]
-    H5: Skill velocity (learning × demand)          [score_vectors]
-    H6: Severity = infractions × hours_dev × consistency  [policy_engine]
+    H4: Market fit score (skill x opportunity)      [score_vectors]
+    H5: Skill velocity (learning x demand)          [score_vectors]
+    H6: Severity = infractions x hours_dev x consistency  [policy_engine]
 
     Returns corrections list (appended to existing).
     """
@@ -43,7 +43,7 @@ def heuristics_node(state: IKIGAiStateDict) -> dict[str, Any]:
 
 
 def _h1_energy_required(state: IKIGAiStateDict) -> list[CorrectionSignal]:
-    """H1: Energy required = R × (1 − H(t)).
+    """H1: Energy required = R x (1 - H(t)).
 
     If consistency is low, more energy will be needed to maintain output.
     """
@@ -128,7 +128,7 @@ def _h3_regime_fsm(state: IKIGAiStateDict) -> list[CorrectionSignal]:
 
 
 def _h6_severity(state: IKIGAiStateDict) -> list[CorrectionSignal]:
-    """H6: Severity = infractions × hours_deviation × consistency."""
+    """H6: Severity = infractions x hours_deviation x consistency."""
     corrections: list[CorrectionSignal] = []
     q_he = state.get("q_he_score", 0.65)
     workload = state.get("workload_estimate", 2.0)

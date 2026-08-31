@@ -80,7 +80,7 @@ LAYER 2 — IKIGAI STRATEGIC
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 5 VECTORS (passion, skill, market, revenue, course)
-  Each vector is scored 0.0–1.0. Until 5+ SONHO logs are captured, all vectors
+  Each vector is scored 0.0-1.0. Until 5+ SONHO logs are captured, all vectors
   are weighted equally (0.20 each). The meta-vector is a hybrid geometric/harmonic
   mean (60/40 blend).
 
@@ -100,8 +100,8 @@ LAYER 2 — IKIGAI STRATEGIC
 
 4 REGIMES (with asymmetric hysteresis)
   PUSH      Q_HE ≥ 0.85  | 8h hard work · 10 pomodoros · 7h sleep
-  MAINTAIN  0.70–0.85   | 6h hard work · 8 pomodoros · 8h sleep
-  REDUCE    0.60–0.70   | 4h hard work · 5 pomodoros · 8h sleep
+  MAINTAIN  0.70-0.85   | 6h hard work · 8 pomodoros · 8h sleep
+  REDUCE    0.60-0.70   | 4h hard work · 5 pomodoros · 8h sleep
   RECOVER   < 0.60       | 2h hard work · 2 pomodoros · 9h sleep
 
   Hysteresis rules (asymmetric — down is faster than up):
@@ -120,17 +120,17 @@ TIME HORIZONS
   WEEKLY   =   7 days  (operational horizon)
 
 Q_HE FORMULA (quality of life execution)
-  H(t) = 1 − e^(−λ · streak)         [habit consolidation, 0 ≤ H < 1]
-  E = R · (1 − H(t))                  [energy required, 0–10]
+  H(t) = 1 - e^(-λ · streak)         [habit consolidation, 0 ≤ H < 1]
+  E = R · (1 - H(t))                  [energy required, 0-10]
   Q_HE = H_avg · (E(t)/E_max) · (1 + η · S_bonus)
   Where:
     H_avg = weighted average habit level across all active habits
     E(t)/E_max = energy ratio (high=1.0, medium=0.6, low=0.3)
-    S_bonus = min(current_streak / max_streak, 1.0)  [streak bonus, 0–1]
+    S_bonus = min(current_streak / max_streak, 1.0)  [streak bonus, 0-1]
     η = 0.5 (streak bonus multiplier, configurable)
-  Typical Q_HE operational range: 0.0–1.0. Theoretical max: 2.0.
+  Typical Q_HE operational range: 0.0-1.0. Theoretical max: 2.0.
 
-H1–H6 HEURISTIC SIGNALS
+H1-H6 HEURISTIC SIGNALS
   H1: Regime consistency (deviation from expected Q_HE for current regime)
   H2: Phase convergence (are vector weights converging toward phase targets?)
   H3: Passion decay (is passion vector drifting from its baseline?)
@@ -155,7 +155,7 @@ What IKIGAI reads from PAV:
   q_he_score      — QHE composite from most recent QHEMetrics
   regime_state    — PUSH | MAINTAIN | REDUCE | RECOVER from PolicyDecision
   days_in_regime  — consecutive days in current regime
-  corrections      — H1–H6 heuristic signals (ikigai_corrections tool)
+  corrections      — H1-H6 heuristic signals (ikigai_corrections tool)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 VAULT HIERARCHY
@@ -183,7 +183,7 @@ IKIGAi core (8 tools):
   ikigai_score        — 5-vector scores + meta-vector + Q_HE
   ikigai_regime       — regime + Q_HE + days_in_regime + hysteresis status
   ikigai_phase        — phase + iteration + weight distribution
-  ikigai_corrections  — H1–H6 heuristic signals
+  ikigai_corrections  — H1-H6 heuristic signals
   ikigai_decompose    — full UEID hierarchy (dream → deliverable)
   ikigai_plan_cycle   — run full 8-node planning cycle
   ikigai_sync_vault   — write checkpoint to vault markdown

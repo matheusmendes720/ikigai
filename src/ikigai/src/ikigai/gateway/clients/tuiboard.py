@@ -1,4 +1,4 @@
-"""TuiboardAdapter factory — Task 14."""
+"""tuiboard_adapter factory — Task 14."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import os
 from ikigai.gateway.stdio_adapter import StdioAdapter, StdioAdapterConfig
 
 
-def TuiboardAdapter(
+def tuiboard_adapter(
     *,
     binary: str | None = None,
     data_dir: str | None = None,

@@ -10,7 +10,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from ikigai.vault.vault_write import vault_write
+from ikigai.vault.vault_write import vault_write  # noqa: E402
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ def test_vault_write_creates_markdown_file(vault_root: Path) -> None:
 
 def test_vault_write_rejects_path_traversal(vault_root: Path) -> None:
     """vault_path with .. that resolves outside vault/ → rejection."""
-    with pytest.raises(ValueError, match="path.*outside vault"):
+    with pytest.raises(ValueError, match=r"path.*outside vault"):
         vault_write(
             vault_root=vault_root,
             vault_path="../../../etc/passwd.md",

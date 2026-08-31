@@ -28,8 +28,6 @@ def score_vectors_node(state: IKIGAiStateDict) -> dict[str, Any]:
     Returns vector_scores dict and meta_vector_score.
     """
     regime = state.get("regime_state", "MAINTAIN")
-    days = state.get("days_in_regime", 1)
-    q_he = state.get("q_he_score", 0.65)
 
     # H4/H5 weights modulated by regime
     if regime == "PUSH":

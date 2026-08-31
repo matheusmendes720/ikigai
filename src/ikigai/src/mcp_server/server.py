@@ -161,7 +161,7 @@ def _read_plan_entity(cycle_id: str) -> dict[str, Any]:
         row = cur.fetchone()
         cols = [d[0] for d in cur.description] if cur.description else []
         conn.close()
-        return dict(zip(cols, row)) if row else {}
+        return dict(zip(cols, row, strict=False)) if row else {}
     except Exception:
         return {}
 
@@ -179,7 +179,7 @@ def _read_entity(table: str) -> dict[str, Any]:
         if not row:
             return {}
         cols = [d[0] for d in cur.description or []]
-        return dict(zip(cols, row))
+        return dict(zip(cols, row, strict=False))
     except Exception:
         return {}
 
@@ -344,9 +344,9 @@ def _handle_ikigai_corrections(arguments: dict[str, Any]) -> str:
 def _handle_ikigai_plan_cycle(arguments: dict[str, Any]) -> str:
     try:
         import sys
-        from pathlib import Path as P
+        from pathlib import Path
 
-        _src = P(__file__).parent.parent  # .../ikigai/src/
+        _src = Path(__file__).parent.parent  # .../ikigai/src/
         if str(_src) not in sys.path:
             sys.path.insert(0, str(_src))
         from agents.ikigai_maintainer import make_ikigai_graph
@@ -722,13 +722,13 @@ def ikigai_read_tasks(
 # ---------------------------------------------------------------------------
 # Phase B3.2 — 3 new mesh tools (delegate to tools_mesh.py)
 # ---------------------------------------------------------------------------
-from mcp_server.tools_mesh import (
+from mcp_server.tools_mesh import (  # noqa: E402
     ikigai_health,
     ikigai_mesh_show,
     ikigai_task_create,
 )
-from mcp_server.tools_vault import vault_read as _handle_vault_read
-from mcp_server.tools_vault import vault_write as _handle_vault_write
+from mcp_server.tools_vault import vault_read as _handle_vault_read  # noqa: E402
+from mcp_server.tools_vault import vault_write as _handle_vault_write  # noqa: E402
 
 
 @MCP.tool(
@@ -814,7 +814,7 @@ def vault_read(vault_path: str) -> str:
 # ---------------------------------------------------------------------------
 # Phase B3.3 — 6 MCP resources (delegate to resources.py)
 # ---------------------------------------------------------------------------
-from mcp_server.resources import (
+from mcp_server.resources import (  # noqa: E402
     health_resource,
     plans_cycle_resource,
     plans_cycles_resource,

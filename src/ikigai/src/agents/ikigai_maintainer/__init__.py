@@ -22,7 +22,7 @@ from .state import (
     compute_meta_vector,
 )
 
-__all__ = [
+__all__ = [  # noqa: RUF022  (grouped by category, not alphabetical)
     # State
     "IKIGAiStateDict",
     "CorrectionSignal",

@@ -52,6 +52,13 @@ class CircuitBreakerConfig:
     reset_timeout_s: float = 30.0  # half-open after this many seconds
 
 
+# Module-level singletons used as default values in decorator signatures.
+# Constructed once at import time so the call site (`RetryConfig()`,
+# `CircuitBreakerConfig()`) does not run per-decorator-application.
+_DEFAULT_RETRY_CONFIG = RetryConfig()
+_DEFAULT_CB_CONFIG = CircuitBreakerConfig()
+
+
 def retry_with_backoff(
     *,
     name: str,
@@ -60,7 +67,7 @@ def retry_with_backoff(
         TimeoutError,
         OSError,
     ),
-    config: RetryConfig = RetryConfig(),
+    config: RetryConfig = _DEFAULT_RETRY_CONFIG,
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Decorator: retry a function with exponential backoff + jitter.
 
@@ -157,7 +164,7 @@ class _CircuitBreaker:
 
 
 def circuit_breaker(
-    name: str, config: CircuitBreakerConfig = CircuitBreakerConfig()
+    name: str, config: CircuitBreakerConfig = _DEFAULT_CB_CONFIG
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Decorator: fail fast if circuit is open; auto-recover after reset_timeout_s.
 

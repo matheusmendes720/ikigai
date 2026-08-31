@@ -42,10 +42,10 @@ def score_skill(
     learning_momentum: float = 0.0,
     project_completion: float = 0.0,
 ) -> ScoreValue:
-    """Skill vector = weighted sum of (level_score × demand) + momentum + completion.
+    """Skill vector = weighted sum of (level_score x demand) + momentum + completion.
 
     Formula (per ikigai_4_vectors.md §1.2):
-        skill_score = Σ(level × demand) × 0.5 + momentum × 0.3 + completion × 0.2
+        skill_score = Σ(level x demand) x 0.5 + momentum x 0.3 + completion x 0.2
 
     All inputs in [0, 100].
     """
@@ -75,7 +75,7 @@ def score_market(
     skills_demand_avg: float,
     opportunities_pipeline: float,
 ) -> ScoreValue:
-    """Market vector = fit × 0.4 + demand × 0.4 + pipeline × 0.2.
+    """Market vector = fit x 0.4 + demand x 0.4 + pipeline x 0.2.
 
     All inputs in [0, 100].
     """
@@ -93,7 +93,7 @@ def score_market(
 def score_revenue(
     revenue_actual: float, revenue_target: float, pipeline_health: float = 0.0
 ) -> ScoreValue:
-    """Revenue vector = (actual / target) × 70 + pipeline × 30.
+    """Revenue vector = (actual / target) x 70 + pipeline x 30.
 
     Args:
         revenue_actual: actual revenue in BRL.
@@ -119,7 +119,7 @@ def score_course(
     assignments_on_time: float,
     exam_avg: float,
 ) -> ScoreValue:
-    """Course vector = attendance × 0.5 + assignments × 0.3 + exams × 0.2.
+    """Course vector = attendance x 0.5 + assignments x 0.3 + exams x 0.2.
 
     All inputs in [0, 100].
     """

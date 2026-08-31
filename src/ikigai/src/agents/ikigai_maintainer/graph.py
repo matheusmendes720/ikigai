@@ -338,7 +338,7 @@ def make_ikigai_graph(checkpoint_db: str | None = None) -> StateGraph:
 # ---------------------------------------------------------------------------
 # Module-level singleton for langgraph dev / langgraph.json
 # ---------------------------------------------------------------------------
-import os
+import os  # noqa: E402
 
 _graph_instance = None
 
@@ -376,6 +376,6 @@ def close_graph() -> None:
 
 
 # Register atexit hook so the connection is released on normal process exit.
-import atexit
+import atexit  # noqa: E402
 
 atexit.register(close_graph)

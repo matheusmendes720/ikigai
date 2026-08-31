@@ -290,9 +290,9 @@ def ikigai_plan_cycle(thread_id: str = "default") -> str:
     """
     import datetime as _dt
     import sys
-    from pathlib import Path as _P
+    from pathlib import Path
 
-    sys.path.insert(0, str(_P(__file__).parent.parent.parent / "src"))
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
     from agents.ikigai_maintainer import make_ikigai_graph
 
     today = _dt.date.today()
@@ -675,8 +675,8 @@ def _tuiboard_rpc(method: str, params: dict[str, Any] | None = None) -> dict[str
     # Parse JSON-RPC response
     try:
         response = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        raise ConnectionError(f"tuiboard invalid response: {result.stdout}")
+    except json.JSONDecodeError as exc:
+        raise ConnectionError(f"tuiboard invalid response: {result.stdout}") from exc
 
     if "error" in response:
         raise ConnectionError(f"tuiboard RPC error: {response['error']}")
@@ -719,7 +719,7 @@ def tuiboard_list_boards() -> str:
     retryable_exceptions=(subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError),
     config=_tuiboard_retry_config,
 )
-def tuiboard_get_tasks(board_path: str, column: int | None = None, filter: str = "all") -> str:
+def tuiboard_get_tasks(board_path: str, column: int | None = None, filter_: str = "all") -> str:
     """Get tasks from a tuiboard kanban board.
 
     Args:
@@ -815,6 +815,7 @@ def tuiboard_update_task(
         if tags is not None:
             params["tags"] = tags
         result = _tuiboard_rpc("update_task", params)
+        _ = result  # result discarded; status surfaces via RPC error handling
         return f"✅ Task updated: {task_id}"
     except (subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError):
         invalidate_session_cache("tuiboard")

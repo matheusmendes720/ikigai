@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 
 from ikigai.entities.base import PlanEntity
 from ikigai.enums import EntityType, StatusType
@@ -17,7 +17,7 @@ class ObjectiveEntity(PlanEntity):
     horizon_days: Literal[90, 120, 150, 180, 240, 365]  # type: ignore[valid-type]
 
     # Objective-specific fields (OKR-style)
-    key_results: list[str] = []
+    key_results: list[str] = Field(default_factory=list)
     progress_pct: float = 0.0  # 0-100
 
     @model_validator(mode="after")

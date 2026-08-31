@@ -149,7 +149,7 @@ def plans_cycle_resource(cycle_id: str) -> str:
         conn.close()
         if not row:
             return json.dumps({"error": f"cycle {cycle_id!r} not found"})
-        return json.dumps(dict(zip(cols, row)), indent=2, default=str)
+        return json.dumps(dict(zip(cols, row, strict=False)), indent=2, default=str)
     except Exception as e:
         return json.dumps({"error": f"read failed: {e}"})
 

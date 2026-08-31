@@ -27,17 +27,17 @@ _REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from src.contracts.task_change import TaskAction, TaskChange
-from src.mesh.agent_consumer import Decision, ValidationResult
-from src.mesh.agent_propagator import propagate
+from src.contracts.task_change import TaskAction, TaskChange  # noqa: E402
+from src.mesh.agent_consumer import Decision, ValidationResult  # noqa: E402
+from src.mesh.agent_propagator import propagate  # noqa: E402
 
-from ikigai.vault.sync import (
+from ikigai.vault.sync import (  # noqa: E402
     ReverseSyncState,
     ReverseSyncTaskEntry,
     reverse_sync,
     save_reverse_state,
 )
-from ikigai.vault.vault_write import vault_write
+from ikigai.vault.vault_write import vault_write  # noqa: E402
 
 
 @pytest.fixture

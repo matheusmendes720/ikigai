@@ -1,4 +1,4 @@
-"""TaskdogAdapter factory — Task 14."""
+"""taskdog_adapter factory — Task 14."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import os
 from ikigai.gateway.stdio_adapter import StdioAdapter, StdioAdapterConfig
 
 
-def TaskdogAdapter(
+def taskdog_adapter(
     *,
     python: str | None = None,
     module: str | None = None,

@@ -47,7 +47,7 @@ class TaskEntity(PlanEntity):
 
     @property
     def rice_score(self) -> float:
-        """RICE score = (R × I × C) / E."""
+        """RICE score = (R x I x C) / E."""
         return (self.rice_reach * self.rice_impact * self.rice_confidence) / max(
             self.rice_effort_h, 0.5
         )

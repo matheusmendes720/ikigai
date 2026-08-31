@@ -70,7 +70,7 @@ class TestTracedToolDispatch:
 
         # First call with ordered dict
         traced_tool_dispatch("test_tool", mock_handler, {"a": 1, "b": 2})
-        first_span = mock_tracer.start_as_current_span.return_value.__enter__.return_value
+        _first_span = mock_tracer.start_as_current_span.return_value.__enter__.return_value
 
         # Reset mock for second call
         mock_tracer.reset_mock()
