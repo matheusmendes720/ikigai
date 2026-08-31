@@ -14,6 +14,7 @@ the canonical writer. These tests verify the migration:
 """
 from __future__ import annotations
 
+import datetime as _dt
 import json
 import sys
 import tempfile
@@ -27,6 +28,12 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 import pytest
+
+# Date-portable cycle id: the tool writes today's date into the frontmatter
+# (see tools.py:ikigai_sync_vault — `_dt.date.today().isoformat()`), so the
+# test must derive the cycle id from today's date too. Frozen at module load.
+_TODAY = _dt.date.today().isoformat()
+_SMOKE_CYCLE_ID = f"{_TODAY}-smoke"
 
 
 @pytest.fixture
@@ -51,7 +58,7 @@ def fresh_vault(monkeypatch: pytest.MonkeyPatch):
         _tools_mod,
         "_read_checkpoint_data",
         lambda thread_id="default": {
-            "cycle_id": "2026-08-30-smoke",
+            "cycle_id": _SMOKE_CYCLE_ID,
             "vector_scores": {
                 "passion": 70.0,
                 "skill": 60.0,
@@ -91,7 +98,7 @@ def test_sync_vault_writes_file_via_vault_write(fresh_vault: Path) -> None:
 
     result = _tools_mod.ikigai_sync_vault.invoke({})
 
-    expected = fresh_vault / "cycle-2026-08-30-smoke.md"
+    expected = fresh_vault / f"cycle-{_SMOKE_CYCLE_ID}.md"
     assert expected.exists(), f"missing vault file {expected}"
     assert "✅ Synced to vault" in result
     assert "sha256=" in result, "return message must include sha256 from vault_write"
@@ -104,10 +111,10 @@ def test_sync_vault_writes_all_frontmatter_fields(fresh_vault: Path) -> None:
 
     _tools_mod.ikigai_sync_vault.invoke({})
 
-    fields, _ = _read_frontmatter_and_body(fresh_vault / "cycle-2026-08-30-smoke.md")
-    assert fields["ueid"] == "ikigai:cycle:2026-08-30-smoke"
-    assert fields["cycle_id"] == "2026-08-30-smoke"
-    assert fields["date"] == "2026-08-30"
+    fields, _ = _read_frontmatter_and_body(fresh_vault / f"cycle-{_SMOKE_CYCLE_ID}.md")
+    assert fields["ueid"] == f"ikigai:cycle:{_SMOKE_CYCLE_ID}"
+    assert fields["cycle_id"] == _SMOKE_CYCLE_ID
+    assert fields["date"] == _TODAY
     assert fields["regime"] == "PUSH"
     assert fields["q_he"] == 0.7321
     assert fields["meta_vector"] == 0.6812
@@ -125,8 +132,8 @@ def test_sync_vault_body_contains_vector_table_and_corrections(fresh_vault: Path
 
     _tools_mod.ikigai_sync_vault.invoke({})
 
-    _, body = _read_frontmatter_and_body(fresh_vault / "cycle-2026-08-30-smoke.md")
-    assert "# IKIGAi Cycle — 2026-08-30-smoke" in body
+    _, body = _read_frontmatter_and_body(fresh_vault / f"cycle-{_SMOKE_CYCLE_ID}.md")
+    assert f"# IKIGAi Cycle — {_SMOKE_CYCLE_ID}" in body
     assert "Regime: PUSH" in body
     assert "Q_HE: 0.7321" in body
     assert "| Passion | 70.0 |" in body

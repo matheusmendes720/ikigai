@@ -124,7 +124,21 @@ def test_e2e_trace_artifact_is_generated(
     tmp_path: Path,
 ) -> None:
     """Trace fixture writes a .md report after E2E run."""
-    from src.ikigai.tests.e2e.conftest import write_b7_4_report
+    import importlib.util
+
+    # Load the conftest helper directly: conftest.py is a pytest-managed file,
+    # not a regular importable module, so we cannot `from conftest import …`.
+    # importlib bypasses pytest's conftest machinery and pulls the helper in
+    # by file path. (Same broken-prefix style as the Cohort A fix in 2984847,
+    # but the second segment is `tests` instead of `src`.)
+    _conftest_path = Path(__file__).resolve().parent / "conftest.py"
+    _spec = importlib.util.spec_from_file_location(
+        "_e2e_conftest_for_trace_test", _conftest_path
+    )
+    _mod = importlib.util.module_from_spec(_spec)
+    assert _spec.loader is not None
+    _spec.loader.exec_module(_mod)
+    write_b7_4_report = _mod.write_b7_4_report
 
     report_path = write_b7_4_report(
         test_results=[{"name": "test_e2e", "outcome": "passed"}],
