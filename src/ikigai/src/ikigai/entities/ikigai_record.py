@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Any, Literal, Optional
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
@@ -21,7 +21,6 @@ from ikigai.entities.fractal_regime import FractalRegime
 from ikigai.entities.override import OverrideRecord
 from ikigai.entities.score_value import ScoreUnit, ScoreValue
 from ikigai.entities.ueid import UEID
-
 
 # ──────── Primitive value types ────────
 
@@ -91,16 +90,16 @@ class IKIGAiRecord(BaseModel):
     ueid: UEID
     entity_type: EntityType
     slug: str = Field(min_length=1, max_length=128)  # I6: immutable post-creation
-    parent_ueid: Optional[UEID] = None
+    parent_ueid: UEID | None = None
     related_ueids: list[UEID] = Field(default_factory=list)
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     status: StatusType = StatusType.DRAFT
 
     # ── §3.2 at-creation snapshots (NOT current)
-    phase_at_creation: Optional[str] = None
-    regime_at_creation: Optional[str] = None
-    primary_score: Optional[ScoreValue] = None
+    phase_at_creation: str | None = None
+    regime_at_creation: str | None = None
+    primary_score: ScoreValue | None = None
 
     # ── Vector scoring (D2, D3, I3)
     ikigai_vectors: list[VectorKey] = Field(default_factory=list)
@@ -109,20 +108,20 @@ class IKIGAiRecord(BaseModel):
     vector_metadata: dict[VectorKey, dict[str, Any]] = Field(default_factory=dict)
 
     # ── Current meta-vector + Q_HE
-    meta_vector_score: Optional[ScoreValue] = None
-    q_he_score: Optional[ScoreValue] = None  # I4: unit MUST be 'ratio'
+    meta_vector_score: ScoreValue | None = None
+    q_he_score: ScoreValue | None = None  # I4: unit MUST be 'ratio'
 
     # ── Fractal regime (D13) — replaces single regime_state field
-    regime: Optional[FractalRegime] = None
+    regime: FractalRegime | None = None
 
     # ── Phase state (D11, I11, §3.2)
-    phase: Optional[str] = None
-    phase_iteration: Optional[int] = Field(default=None, ge=0, le=5)
-    phase_converged: Optional[bool] = None
+    phase: str | None = None
+    phase_iteration: int | None = Field(default=None, ge=0, le=5)
+    phase_converged: bool | None = None
     # NOTE: phase_weights REMOVED — lives on separate PhaseSnapshot (I7)
 
     # ── Decomposition chain (§3.2)
-    active_dream_ueid: Optional[UEID] = None
+    active_dream_ueid: UEID | None = None
     active_goal_ueids: list[UEID] = Field(default_factory=list)
     active_objective_ueids: list[UEID] = Field(default_factory=list)
     active_project_ueids: list[UEID] = Field(default_factory=list)
@@ -130,9 +129,9 @@ class IKIGAiRecord(BaseModel):
     active_deliverable_ueids: list[UEID] = Field(default_factory=list)
 
     # ── Balancer / workload (IKIGAiStateDict-shaped)
-    workload_estimate: Optional[float] = None
-    capacity_estimate: Optional[float] = None
-    balancer_verdict: Optional[str] = None  # OK | OVERLOAD | UNDERLOAD | RECOVER
+    workload_estimate: float | None = None
+    capacity_estimate: float | None = None
+    balancer_verdict: str | None = None  # OK | OVERLOAD | UNDERLOAD | RECOVER
 
     # ── Buffers + corrections (D12, typed)
     prospective_buffer: list[str] = Field(default_factory=list)
@@ -141,46 +140,39 @@ class IKIGAiRecord(BaseModel):
 
     # ── Override + audit (D12)
     manual_override: bool = False
-    recommendation_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    recommendation_score: float | None = Field(default=None, ge=0.0, le=1.0)
     audit_trail: list[OverrideRecord] = Field(default_factory=list)
 
     # ── Forward-compat placeholder (D7)
     is_placeholder: bool = False
-    placeholder_owner: Optional[str] = None
+    placeholder_owner: str | None = None
 
     # ── Drift detection (§8.2, D14, D8/I9)
     drift_state: DriftState = DriftState.IN_SYNC
-    sqlite_mirror_at: Optional[datetime] = None
-    last_triaged_at: Optional[datetime] = None
+    sqlite_mirror_at: datetime | None = None
+    last_triaged_at: datetime | None = None
 
     # ── Audit timestamps (NOT lifecycle; lifecycle lives on StatusType)
     created_at: datetime
     updated_at: datetime
-    last_reviewed_at: Optional[datetime] = None
+    last_reviewed_at: datetime | None = None
 
     # ── Canonical source (D8/I9: REQUIRED — markdown wins on drift)
     source_md_path: Path
 
     # ── Cross-cluster routing (§3.2 forward-compat)
-    target_subsystem: Optional[
-        Literal[
-            "CLUSTER_PLAN",
-            "life_tatics",
-            "vibe_ops",
-            "taskwarrior",
-        ]
-    ] = None
+    target_subsystem: Literal["CLUSTER_PLAN", "life_tatics", "vibe_ops", "taskwarrior"] | None = None
 
     # ── Typed forward-compat (entity-specific fields live here)
     custom: dict[str, Any] = Field(default_factory=dict)
 
 
 __all__ = [
+    "UEID",
     "EntityType",
     "IKIGAiRecord",
     "ScoreUnit",
     "ScoreValue",
     "StatusType",
-    "UEID",
     "VectorKey",
 ]

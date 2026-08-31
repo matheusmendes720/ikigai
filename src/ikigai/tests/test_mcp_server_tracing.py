@@ -1,12 +1,11 @@
 """Tests for MCP server tracing functionality."""
 from __future__ import annotations
 
-import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mcp_server.tracing import traced_tool_dispatch, init_mcp_tracing
+from mcp_server.tracing import init_mcp_tracing, traced_tool_dispatch
 
 
 class TestInitMcpTracing:

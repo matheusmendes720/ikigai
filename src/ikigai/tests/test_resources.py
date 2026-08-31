@@ -14,9 +14,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from src.contracts.common import UEID
-
 
 VALID_UEID = UEID("tsk:foo:11111111-1111-1111-1111-111111111111:1111111111111111")
 

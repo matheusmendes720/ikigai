@@ -8,7 +8,7 @@ from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field
 
 from ikigai.enums import VectorType
-from ikigai.types import ScoreValue, UEID
+from ikigai.types import UEID, ScoreValue
 
 
 class OpportunityStatus(str, Enum):

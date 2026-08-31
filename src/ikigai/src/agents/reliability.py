@@ -14,8 +14,9 @@ import logging
 import random
 import time
 import traceback
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode

@@ -5,17 +5,13 @@ Implements H4 (market fit) and H5 (skill velocity) from the IKIGAi SPEC.
 
 from __future__ import annotations
 
-import math
 from pathlib import Path
 from typing import Any
 
 from ..state import (
     IKIGAiStateDict,
-    VECTOR_TYPES,
     compute_meta_vector,
-    HYSTERESIS_UPGRADE_DAYS,
 )
-
 
 # Learning rate for habit consistency
 LAMBDA = 0.093

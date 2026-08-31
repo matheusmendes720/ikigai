@@ -5,17 +5,15 @@ Run with: python run_mcp_server.py
 
 from __future__ import annotations
 
-import asyncio
 import datetime as dt
 import json
 import sqlite3
 from pathlib import Path
-from typing import Any, Annotated
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
 from mcp_server.tracing import init_mcp_tracing, traced_tool_dispatch
-
 
 # ---------------------------------------------------------------------------
 # FastMCP instance
@@ -39,8 +37,8 @@ def _decompose_ueid(ueid: str) -> dict[str, Any]:
     Vault root: {repo}/data/matheus/
     Structure: dreams/ → objectives/ → projects/ → tasks/
     """
+
     import frontmatter
-    import re
 
     repo_root = Path(__file__).parent.parent.parent  # .../src/ikigai/src/mcp_server/ → src/ikigai/
     vault_root = repo_root / "data" / "matheus"
@@ -729,8 +727,8 @@ from mcp_server.tools_mesh import (
     ikigai_mesh_show,
     ikigai_task_create,
 )
-from mcp_server.tools_vault import vault_write as _handle_vault_write
 from mcp_server.tools_vault import vault_read as _handle_vault_read
+from mcp_server.tools_vault import vault_write as _handle_vault_write
 
 
 @MCP.tool(

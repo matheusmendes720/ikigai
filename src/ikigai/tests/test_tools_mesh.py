@@ -4,10 +4,7 @@ from __future__ import annotations
 import json
 from unittest.mock import patch
 
-import pytest
-
 from src.contracts.common import UEID
-
 
 VALID_UEID = UEID("tsk:foo:11111111-1111-1111-1111-111111111111:1111111111111111")
 
@@ -15,10 +12,11 @@ VALID_UEID = UEID("tsk:foo:11111111-1111-1111-1111-111111111111:1111111111111111
 # === ikigai_mesh_show ===
 
 def test_mesh_show_joins_across_adapters() -> None:
-    from mcp_server.tools_mesh import ikigai_mesh_show
     from src.mesh.adapters.cli import CliAdapter
-    from src.mesh.adapters.taskdog import TaskdogAdapter
     from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
+    from src.mesh.adapters.taskdog import TaskdogAdapter
+
+    from mcp_server.tools_mesh import ikigai_mesh_show
     adapters = [CliAdapter(), TaskdogAdapter(), SolverforgeCalendarAdapter()]
     with patch("mcp_server.tools_mesh._load_adapters", return_value=adapters):
         result = json.loads(ikigai_mesh_show(ueid=str(VALID_UEID)))
@@ -40,6 +38,7 @@ def test_mesh_show_rejects_invalid_ueid() -> None:
 def test_task_create_emits_to_review_queue(monkeypatch) -> None:
     import tempfile
     from pathlib import Path
+
     from mcp_server.tools_mesh import ikigai_task_create
 
     # Use explicit temp directory to avoid Windows permission issues with pytest tmp_path

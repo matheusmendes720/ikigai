@@ -27,7 +27,7 @@ class ProjectEntity(PlanEntity):
     actual_revenue_brl: float = 0.0
 
     @model_validator(mode="after")
-    def _validate_project_status(self) -> "ProjectEntity":
+    def _validate_project_status(self) -> ProjectEntity:
         allowed = {
             StatusType.DRAFT,
             StatusType.PLANNED,

@@ -5,23 +5,22 @@ from __future__ import annotations
 import json
 import sqlite3
 import tempfile
-from pathlib import Path
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
+from ikigai.entities import GoalEntity
+from ikigai.enums import EntityType
 from ikigai.propagation.frontmatter import (
-    frontmatter_to_dict,
     dict_to_frontmatter,
-    serialize_to_markdown,
+    frontmatter_to_dict,
     parse_from_markdown,
+    serialize_to_markdown,
 )
 from ikigai.propagation.markdown_db import MarkdownDB
 from ikigai.propagation.sqlite_adapter import SQLiteAdapter
-from ikigai.propagation.triagem import Triagem, DriftEntry
-from ikigai.entities import GoalEntity
-from ikigai.enums import EntityType, StatusType, VectorType
-from ikigai.types import UEID
+from ikigai.propagation.triagem import DriftEntry, Triagem
 
 
 class TestFrontmatterSerialization:
@@ -215,7 +214,7 @@ class TestSQLiteAdapter:
         adapter.insert(goal)
         restored = adapter.get_by_ueid(str(goal.ueid))
         assert restored is not None
-        assert restored.slug == goal.slug
+        assert restored["slug"] == goal.slug
 
     def test_archive_marks_row_archived(self) -> None:
         """archive must set archived_at timestamp."""

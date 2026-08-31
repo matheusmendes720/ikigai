@@ -14,9 +14,8 @@ from pathlib import Path
 from typing import Any
 
 from ikigai.entities.fractal_regime import FractalRegime, FractalRegimeState
-from ikigai.entities.ikigai_record import IKIGAiRecord, EntityType, StatusType
+from ikigai.entities.ikigai_record import EntityType, IKIGAiRecord, StatusType
 from ikigai.entities.score_value import ScoreUnit, ScoreValue
-
 
 # Default phase weights when state does not supply them (I7: phase weights
 # live on IKIGAiRecord, NOT PhaseSnapshot).

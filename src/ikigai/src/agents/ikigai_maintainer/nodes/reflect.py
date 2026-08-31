@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import datetime as dt
 from typing import Any
 
 from ..state import IKIGAiStateDict
@@ -14,8 +13,8 @@ def reflect_node(state: IKIGAiStateDict) -> dict[str, Any]:
     Reads UPI history from solverforge-calendar-mcp to count completions.
     Populates `retrospective_log` with summary strings.
     """
-    import subprocess
     import json
+    import subprocess
 
     log: list[str] = []
 

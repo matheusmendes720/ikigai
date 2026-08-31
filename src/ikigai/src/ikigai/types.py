@@ -13,13 +13,11 @@ from __future__ import annotations
 import hashlib
 import re
 import uuid
-from datetime import datetime
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field, GetCoreSchemaHandler
+from pydantic import BaseModel, GetCoreSchemaHandler
 from pydantic_core import core_schema
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # UEID — Tri-key Universal Entity Identifier
@@ -46,7 +44,7 @@ class UEID(str):
         r"(?P<content_hash_short>[a-f0-9]{6,8})$"
     )
 
-    def __new__(cls, value: str) -> "UEID":
+    def __new__(cls, value: str) -> UEID:
         if not cls._PATTERN.match(value):
             raise ValueError(
                 f"Invalid UEID format: {value!r}. "
@@ -81,7 +79,7 @@ class UEID(str):
         entity_type: str | Any,
         slug: str,
         canonical_content: str = "",
-    ) -> "UEID":
+    ) -> UEID:
         """Generate a new UEID.
 
         Args:
@@ -113,7 +111,7 @@ class UEID(str):
         ueid_str = f"{namespace}:{entity_type_str}:{slug}:{uuid_short}:{content_hash}"
         return cls(ueid_str)
 
-    def with_new_content_hash(self, new_content: str = "") -> "UEID":
+    def with_new_content_hash(self, new_content: str = "") -> UEID:
         """Return a new UEID with updated content_hash (slug + uuid unchanged).
 
         If `new_content` is empty, a fresh 8-char hex string is generated so
@@ -176,24 +174,24 @@ class ScoreValue(BaseModel):
         return {"value": self.value, "unit": self.unit}
 
     @classmethod
-    def percent(cls, value: float) -> "ScoreValue":
+    def percent(cls, value: float) -> ScoreValue:
         if not 0 <= value <= 100:
             raise ValueError(f"percent must be in [0, 100], got {value}")
         return cls(value=value, unit="percent")
 
     @classmethod
-    def ratio(cls, value: float) -> "ScoreValue":
+    def ratio(cls, value: float) -> ScoreValue:
         if not 0 <= value <= 1:
             raise ValueError(f"ratio must be in [0, 1], got {value}")
         return cls(value=value, unit="ratio")
 
     @classmethod
-    def raw(cls, value: float, max_value: float = 10.0) -> "ScoreValue":
+    def raw(cls, value: float, max_value: float = 10.0) -> ScoreValue:
         if not 0 <= value <= max_value:
             raise ValueError(f"raw must be in [0, {max_value}], got {value}")
         return cls(value=value, unit="raw")
 
-    def to_percent(self) -> "ScoreValue":
+    def to_percent(self) -> ScoreValue:
         """Convert to percent unit."""
         if self.unit == "percent":
             return self
@@ -203,7 +201,7 @@ class ScoreValue(BaseModel):
             return ScoreValue(value=self.value * 100, unit="percent")
         raise ValueError(f"Cannot convert {self.unit} to percent")
 
-    def to_ratio(self) -> "ScoreValue":
+    def to_ratio(self) -> ScoreValue:
         """Convert to ratio unit."""
         if self.unit == "ratio":
             return self
@@ -220,22 +218,22 @@ class ScoreValue(BaseModel):
             return self.value == other
         return NotImplemented
 
-    def __lt__(self, other: "ScoreValue | float") -> bool:
+    def __lt__(self, other: ScoreValue | float) -> bool:
         if isinstance(other, ScoreValue):
             return self.value < other.value
         return self.value < other
 
-    def __le__(self, other: "ScoreValue | float") -> bool:
+    def __le__(self, other: ScoreValue | float) -> bool:
         if isinstance(other, ScoreValue):
             return self.value <= other.value
         return self.value <= other
 
-    def __gt__(self, other: "ScoreValue | float") -> bool:
+    def __gt__(self, other: ScoreValue | float) -> bool:
         if isinstance(other, ScoreValue):
             return self.value > other.value
         return self.value > other
 
-    def __ge__(self, other: "ScoreValue | float") -> bool:
+    def __ge__(self, other: ScoreValue | float) -> bool:
         if isinstance(other, ScoreValue):
             return self.value >= other.value
         return self.value >= other

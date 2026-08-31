@@ -21,13 +21,13 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from ikigai.entities.base import PlanEntity
 from ikigai.enums import EntityType
 from ikigai.exceptions import MarkdownParseError, MarkdownWriteError
 from ikigai.propagation.frontmatter import (
-    dict_to_frontmatter,
+    coerce_typed_values,
     parse_from_markdown,
     serialize_to_markdown,
 )
@@ -93,7 +93,7 @@ class MarkdownDB:
         entity.updated_at = datetime.now(timezone.utc)
 
         frontmatter = entity.to_frontmatter_dict()
-        md_content = serialize_to_markdown(frontmatter, body)
+        md_content = serialize_to_markdown(frontmatter, title="", body=body)
 
         tmp_path = path.with_suffix(path.suffix + ".tmp")
         try:
@@ -124,16 +124,16 @@ class MarkdownDB:
                 context={"path": str(path)},
             )
 
-        data = dict_to_frontmatter(data)
+        data = coerce_typed_values(data)
         data["source_md_path"] = path
 
         # Discriminate by entity_type
+        from ikigai.entities.plan.deliverable import DeliverableEntity
         from ikigai.entities.plan.dream import DreamEntity
         from ikigai.entities.plan.goal import GoalEntity
         from ikigai.entities.plan.objective import ObjectiveEntity
         from ikigai.entities.plan.project import ProjectEntity
         from ikigai.entities.plan.task import TaskEntity
-        from ikigai.entities.plan.deliverable import DeliverableEntity
 
         entity_type = data.get("entity_type")
         model_map = {
@@ -147,9 +147,17 @@ class MarkdownDB:
         model_cls = model_map.get(entity_type, PlanEntity)
         return model_cls.model_validate(data)
 
-    def delete(self, entity: PlanEntity) -> bool:
-        """Delete the entity's markdown file. Returns True if deleted."""
-        path = self.path_for(entity)
+    def delete(self, entity_or_path: PlanEntity | Path) -> bool:
+        """Delete an entity's markdown file.
+
+        Accepts either a PlanEntity (resolved via path_for) or a Path directly.
+        Returns True if a file was deleted.
+        """
+        path = (
+            entity_or_path
+            if isinstance(entity_or_path, Path)
+            else self.path_for(entity_or_path)
+        )
         if path.exists():
             path.unlink()
             return True

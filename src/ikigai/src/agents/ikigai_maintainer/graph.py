@@ -10,35 +10,34 @@ is reached via a conditional edge from `commit` when those fields are set.
 
 from __future__ import annotations
 
-import traceback
-from typing import Any, Literal
-
-from langgraph.checkpoint.sqlite import SqliteSaver
-from langgraph.graph import StateGraph, END
-
-from .state import IKIGAiStateDict
-from .nodes.observe import observe_node
-from .nodes.score_vectors import score_vectors_node
-from .nodes.heuristics import heuristics_node
-from .nodes.balance import balance_node
-from .nodes.decompose import decompose_node
-from .nodes.plan import plan_node
-from .nodes.reflect import reflect_node
-from .nodes.commit import commit_node
-from .nodes.error import error_node
-
 # ---------------------------------------------------------------------------
 # Observability — init at module load; manual span on the graph factory.
 # ---------------------------------------------------------------------------
 import logging
 import os
+import traceback
+from typing import Any, Literal
 
-from observability import init_tracing, get_tracer
+from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.graph import END, StateGraph
+
+from observability import get_tracer, init_tracing
+
+from .nodes.balance import balance_node
+from .nodes.commit import commit_node
+from .nodes.decompose import decompose_node
+from .nodes.error import error_node
+from .nodes.heuristics import heuristics_node
+from .nodes.observe import observe_node
+from .nodes.plan import plan_node
+from .nodes.reflect import reflect_node
+from .nodes.score_vectors import score_vectors_node
+from .state import IKIGAiStateDict
 
 _init_tracing_ok = True
 try:
     init_tracing()
-except Exception as exc:  # noqa: BLE001 — tracing must never crash the graph
+except Exception as exc:
     _init_tracing_ok = False
     # Defer the warning until we have a logger; graph.py may be imported
     # before logging.basicConfig has been called by the host application.
@@ -232,7 +231,6 @@ def make_ikigai_graph(checkpoint_db: str | None = None) -> StateGraph:
     Returns:
         Compiled StateGraph ready for .invoke()
     """
-    import os
     from pathlib import Path
 
     if checkpoint_db is None:
@@ -331,8 +329,8 @@ def make_ikigai_graph(checkpoint_db: str | None = None) -> StateGraph:
         compiled = builder.compile(checkpointer=checkpointer)
         # Stash the connection on the compiled graph so close_graph() can find it.
         # Per audit B5.0-F4: SqliteSaver connection was leaking on singleton use.
-        setattr(compiled, "_ikigai_checkpoint_conn", conn)
-        setattr(compiled, "_ikigai_checkpoint_db", checkpoint_db)
+        compiled._ikigai_checkpoint_conn = conn
+        compiled._ikigai_checkpoint_db = checkpoint_db
         span.set_attribute("nodes", len(NODES))
         return compiled
 

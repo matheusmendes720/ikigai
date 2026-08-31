@@ -1,22 +1,22 @@
 """Propagation: markdown DB (canonical), SQLite adapter, triagem, frontmatter."""
 
-from ikigai.propagation.markdown_db import MarkdownDB
 from ikigai.propagation.frontmatter import (
-    frontmatter_to_dict,
     dict_to_frontmatter,
-    serialize_to_markdown,
+    frontmatter_to_dict,
     parse_from_markdown,
+    serialize_to_markdown,
 )
-from ikigai.propagation.triagem import Triagem, DriftEntry
+from ikigai.propagation.markdown_db import MarkdownDB
 from ikigai.propagation.sqlite_adapter import SQLiteAdapter
+from ikigai.propagation.triagem import DriftEntry, Triagem
 
 __all__ = [
-    "MarkdownDB",
-    "frontmatter_to_dict",
-    "dict_to_frontmatter",
-    "serialize_to_markdown",
-    "parse_from_markdown",
-    "Triagem",
     "DriftEntry",
+    "MarkdownDB",
     "SQLiteAdapter",
+    "Triagem",
+    "dict_to_frontmatter",
+    "frontmatter_to_dict",
+    "parse_from_markdown",
+    "serialize_to_markdown",
 ]

@@ -67,4 +67,4 @@ def recalibrate_all_weights(
     return new_weights
 
 
-__all__ = ["recalibrate_weight_ucb", "recalibrate_all_weights"]
+__all__ = ["recalibrate_all_weights", "recalibrate_weight_ucb"]

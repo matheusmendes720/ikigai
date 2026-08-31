@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from ikigai.enums import VectorType
 
@@ -69,4 +69,4 @@ def classify_opportunity(fit_score: float) -> str:
     return "LOST"
 
 
-__all__ = ["compute_opportunity_fit", "classify_opportunity"]
+__all__ = ["classify_opportunity", "compute_opportunity_fit"]

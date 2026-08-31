@@ -16,15 +16,13 @@ Findings come in 4 DriftState variants:
 
 from __future__ import annotations
 
-import hashlib
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable
 
 from ikigai.entities.drift_state import DriftState
 from ikigai.propagation.sqlite_adapter import SQLiteAdapter
-
 
 _TRIAGEM_HEADER = """# Triagem — Drift Detector
 

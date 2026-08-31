@@ -19,7 +19,7 @@ class ScoreValue(BaseModel):
     unit: ScoreUnit
 
     @model_validator(mode="after")
-    def _validate_range(self) -> "ScoreValue":
+    def _validate_range(self) -> ScoreValue:
         if self.unit == ScoreUnit.PERCENT and not (0.0 <= self.value <= 100.0):
             raise ValueError(f"PERCENT score must be in [0, 100]; got {self.value}")
         if self.unit == ScoreUnit.RATIO and not (0.0 <= self.value <= 1.0):

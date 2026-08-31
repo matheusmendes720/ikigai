@@ -29,7 +29,7 @@ def plan_node(state: IKIGAiStateDict) -> dict[str, Any]:
         buffer.append(f"[MAINTAIN] Sustain — current Q_HE {q_he:.0%}")
         buffer.append("Review weekly progress and adjust if needed")
     elif regime == "REDUCE":
-        buffer.append(f"[REDUCE] Wind down — focus on completion over new work")
+        buffer.append("[REDUCE] Wind down — focus on completion over new work")
         buffer.append("Mark ONDA deliverables as done")
     elif regime == "RECOVER":
         buffer.append("[RECOVER] Health priority — reduce cognitive load")

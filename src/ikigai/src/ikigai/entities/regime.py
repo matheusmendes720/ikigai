@@ -42,7 +42,7 @@ class RegimeOverride(BaseModel):
     acknowledged_risks: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def _warn_strong_recommendation(self) -> "RegimeOverride":
+    def _warn_strong_recommendation(self) -> RegimeOverride:
         """Tag strong recommendations against."""
         if self.recommendation_score < 0.3:
             self.acknowledged_risks.append("STRONG_RECOMMENDATION_AGAINST")
@@ -76,7 +76,7 @@ class RegimeGraph(BaseModel):
     last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @model_validator(mode="after")
-    def _coherence_check(self) -> "RegimeGraph":
+    def _coherence_check(self) -> RegimeGraph:
         """Sub-vectors cannot be in PUSH if parent vector is RECOVER (warn only)."""
         for sub_key, sub_regime in self.subvector_regimes.items():
             # Parse sub_key: "skill.python" → root=skill, sub=python

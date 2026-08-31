@@ -2,19 +2,18 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import patch
 
 import pytest
 
 from src.agents.reliability import (
-    RetryConfig,
     CircuitBreakerConfig,
-    retry_with_backoff,
+    CircuitOpenError,
+    RetryConfig,
+    _circuit_state,
+    _set_cache_ref,
     circuit_breaker,
     invalidate_session_cache,
-    CircuitOpenError,
-    _set_cache_ref,
-    _circuit_state,
+    retry_with_backoff,
 )
 
 
@@ -213,12 +212,11 @@ class TestStackTraceCapture:
 
     def test_stack_trace_captured_in_span(self, monkeypatch: pytest.MonkeyPatch):
         """Test that stack trace is captured in span attributes."""
-        import traceback as tb
 
         # Set up a real tracer for this test
         from opentelemetry import trace
-        from opentelemetry.sdk.trace import TracerProvider, SpanProcessor
-        from opentelemetry.sdk.resources import Resource, SERVICE_NAME
+        from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+        from opentelemetry.sdk.trace import SpanProcessor, TracerProvider
 
         # OpenTelemetry's tracer-provider state is process-global and one-shot:
         # the first call to set_tracer_provider() (or first get_tracer()) seeds
@@ -226,7 +224,6 @@ class TestStackTraceCapture:
         # silent no-ops with a WARNING. Earlier tests in the full suite touch
         # the proxy, so we reset it here to allow this test's provider to take
         # effect. monkeypatch auto-restores after the test.
-        from opentelemetry.trace import ProxyTracerProvider
         monkeypatch.setattr(trace, "_TRACER_PROVIDER", None, raising=False)
         monkeypatch.setattr(
             trace._TRACER_PROVIDER_SET_ONCE, "_done", False, raising=False

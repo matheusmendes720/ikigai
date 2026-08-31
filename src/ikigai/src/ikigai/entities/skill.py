@@ -7,7 +7,7 @@ from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ikigai.types import ScoreValue, UEID
+from ikigai.types import UEID, ScoreValue
 
 
 class SkillLevel(str, Enum):
@@ -71,4 +71,4 @@ class SkillNode(BaseModel):
         self.last_updated = datetime.now(timezone.utc)
 
 
-__all__ = ["SkillNode", "SkillLevel", "SkillCategory"]
+__all__ = ["SkillCategory", "SkillLevel", "SkillNode"]

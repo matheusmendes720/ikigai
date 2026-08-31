@@ -15,7 +15,11 @@ from pydantic import ValidationError
 from ikigai.entities.correction_signal import CorrectionSignal
 from ikigai.entities.fractal_regime import FractalRegime, FractalRegimeState
 from ikigai.entities.ikigai_record import (
-    EntityType, IKIGAiRecord, ScoreUnit, ScoreValue, StatusType,
+    EntityType,
+    IKIGAiRecord,
+    ScoreUnit,
+    ScoreValue,
+    StatusType,
 )
 
 

@@ -16,7 +16,6 @@ Run with:
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -24,8 +23,7 @@ from pathlib import Path
 # init_tracing() is idempotent and best-effort: missing OTel libs or empty
 # env vars mean no exporters are added, but the host code still runs.
 # ---------------------------------------------------------------------------
-from observability import init_tracing, get_tracer, shutdown_tracing
-from opentelemetry import trace as _otel_trace
+from observability import get_tracer, init_tracing, shutdown_tracing
 
 init_tracing()
 _tracer = get_tracer("ikigai.harness")
@@ -279,8 +277,8 @@ def _make_agent(
     """
     from deepagents import create_deep_agent
     from deepagents.backends import FilesystemBackend
-    from langgraph.checkpoint.sqlite import SqliteSaver
     from langchain_anthropic import ChatAnthropic
+    from langgraph.checkpoint.sqlite import SqliteSaver
 
     # Ensure checkpoint dir
     Path(checkpoint_db).parent.mkdir(parents=True, exist_ok=True)

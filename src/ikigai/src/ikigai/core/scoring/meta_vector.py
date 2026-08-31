@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import Mapping
+from collections.abc import Mapping
 
 from ikigai.constants import NSM
 from ikigai.enums import AlignmentLabel, VectorType
@@ -62,7 +62,7 @@ def meta_vector(
     if total_weight <= 0:
         # No weights provided: uniform
         n = len(active)
-        w_norm = {k: 1.0 / n for k in active}
+        w_norm = dict.fromkeys(active, 1.0 / n)
     else:
         w_norm = {k: weights.get(k, 0.0) / total_weight for k in active}
 
@@ -95,4 +95,4 @@ def compute_alignment_label(score: float | ScoreValue) -> AlignmentLabel:
     return AlignmentLabel.from_score(score)
 
 
-__all__ = ["meta_vector", "compute_alignment_label"]
+__all__ = ["compute_alignment_label", "meta_vector"]

@@ -8,7 +8,6 @@ Imports Q_HE and policy constants from the operational core.
 
 from __future__ import annotations
 
-import datetime as dt
 import math
 import operator
 from enum import Enum
@@ -214,7 +213,7 @@ def compute_meta_vector(
         return 0.0
 
     # Normalize weights
-    _weights = weights or {k: 1.0 for k in active}
+    _weights = weights or dict.fromkeys(active, 1.0)
     # Guard against string values leaking in (langgraph state merge quirk)
     _weights = {k: float(v) if isinstance(v, (int, str)) else v for k, v in _weights.items()}
     total_w = sum(_weights.values())

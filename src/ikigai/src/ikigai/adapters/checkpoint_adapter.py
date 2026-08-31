@@ -41,7 +41,8 @@ class CheckpointAdapter:
         type_string, blob = self.serde.dumps_typed(payload)
         # Store as JSON-safe: type header + base64-encoded blob. NOT raw
         # pickle — both ends of this adapter are pure JSON.
-        import base64, json
+        import base64
+        import json
 
         envelope = json.dumps(
             {
@@ -63,7 +64,8 @@ class CheckpointAdapter:
             ).fetchone()
         if row is None:
             return None
-        import base64, json
+        import base64
+        import json
 
         envelope = json.loads(row[0])
         type_string = envelope["type"]

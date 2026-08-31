@@ -10,7 +10,6 @@ from typing import Any
 
 from ..state import IKIGAiStateDict
 
-
 UEID_PREFIXES = {
     "dream": "dream",
     "goal": "goal",
@@ -27,8 +26,8 @@ def decompose_node(state: IKIGAiStateDict) -> dict[str, Any]:
     Reads the markdown vault (via solverforge-calendar-mcp upi_search) for
     tagged items. Returns proposed decomposition into tasks.
     """
-    import subprocess
     import json
+    import subprocess
 
     active_dream = state.get("active_dream_ueid")
     decomposition: list[str] = []

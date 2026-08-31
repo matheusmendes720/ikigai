@@ -1,39 +1,39 @@
 """Core package: scoring + heuristics + state machines."""
 
-from ikigai.core.scoring.vector_scores import (
-    score_passion,
-    score_skill,
-    score_market,
-    score_revenue,
-    score_course,
-    compute_vector_scores,
-)
 from ikigai.core.scoring.meta_vector import (
-    meta_vector,
     compute_alignment_label,
+    meta_vector,
 )
 from ikigai.core.scoring.qhe import (
+    QHEComponent,
     compute_qhe,
     compute_qhe_components,
-    QHEComponent,
 )
 from ikigai.core.scoring.rice import (
     compute_rice_score,
     compute_task_priority,
 )
+from ikigai.core.scoring.vector_scores import (
+    compute_vector_scores,
+    score_course,
+    score_market,
+    score_passion,
+    score_revenue,
+    score_skill,
+)
 
 __all__ = [
-    "score_passion",
-    "score_skill",
-    "score_market",
-    "score_revenue",
-    "score_course",
-    "compute_vector_scores",
-    "meta_vector",
+    "QHEComponent",
     "compute_alignment_label",
     "compute_qhe",
     "compute_qhe_components",
-    "QHEComponent",
     "compute_rice_score",
     "compute_task_priority",
+    "compute_vector_scores",
+    "meta_vector",
+    "score_course",
+    "score_market",
+    "score_passion",
+    "score_revenue",
+    "score_skill",
 ]

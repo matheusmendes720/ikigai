@@ -21,7 +21,7 @@ class GoalEntity(PlanEntity):
     review_frequency_days: int = 90  # quarterly review
 
     @model_validator(mode="after")
-    def _validate_goal_status(self) -> "GoalEntity":
+    def _validate_goal_status(self) -> GoalEntity:
         allowed = {
             StatusType.DRAFT,
             StatusType.ACTIVE,

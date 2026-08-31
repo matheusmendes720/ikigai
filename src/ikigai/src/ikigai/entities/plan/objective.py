@@ -21,7 +21,7 @@ class ObjectiveEntity(PlanEntity):
     progress_pct: float = 0.0  # 0-100
 
     @model_validator(mode="after")
-    def _validate_objective_status(self) -> "ObjectiveEntity":
+    def _validate_objective_status(self) -> ObjectiveEntity:
         allowed = {
             StatusType.DRAFT,
             StatusType.PLANNED,

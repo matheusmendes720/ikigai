@@ -2,25 +2,24 @@
 
 from __future__ import annotations
 
-import pytest
 from ikigai.exceptions import (
-    IKIGAiError,
-    InvalidUEIDError,
-    UEIDCollisionError,
-    SlugImmutableError,
-    ScoreRangeError,
-    ScoreUnitMismatchError,
-    RegimeHysteresisViolationError,
-    PhaseConvergenceError,
-    InvalidStateTransitionError,
-    GuardConditionFailedError,
-    SyncError,
     DriftDetectedError,
-    OverrideRejectedError,
+    GuardConditionFailedError,
+    IKIGAiError,
+    InvalidStateTransitionError,
+    InvalidUEIDError,
     MarkdownParseError,
     MarkdownWriteError,
-    ValidationError,
     MigrationError,
+    OverrideRejectedError,
+    PhaseConvergenceError,
+    RegimeHysteresisViolationError,
+    ScoreRangeError,
+    ScoreUnitMismatchError,
+    SlugImmutableError,
+    SyncError,
+    UEIDCollisionError,
+    ValidationError,
 )
 
 
@@ -34,7 +33,7 @@ class TestIKIGAiError:
     def test_message_and_code(self) -> None:
         """Must accept message and code."""
         err = IKIGAiError("test message", code="ERR_TEST")
-        assert str("test message") in str(err) or "ERR_TEST" in str(err)
+        assert "test message" in str(err) or "ERR_TEST" in str(err)
         assert err.code == "ERR_TEST"
 
     def test_context_stored(self) -> None:

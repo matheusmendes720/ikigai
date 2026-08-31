@@ -13,12 +13,12 @@ Configures two OTLP exporters from env vars (see ``.env.example``):
 - Langfuse — secondary stack-trace capture (cloud.langfuse.com).
 """
 
-from .otel_init import init_tracing, get_tracer, shutdown_tracing
 from .error_capture import observed_tool
+from .otel_init import get_tracer, init_tracing, shutdown_tracing
 
 __all__ = [
-    "init_tracing",
     "get_tracer",
-    "shutdown_tracing",
+    "init_tracing",
     "observed_tool",
+    "shutdown_tracing",
 ]

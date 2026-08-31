@@ -6,18 +6,17 @@ from the solverforge-calendar-mcp via subprocess.
 
 from __future__ import annotations
 
-import subprocess
 import json
-from pathlib import Path
+import subprocess
 from typing import Any
 
 from ..state import (
-    IKIGAiStateDict,
     DEFAULT_CAPACITY_HOURS_PER_DAY,
-    DEFAULT_WORKLOAD_OVERLOAD_FACTOR,
-    DEFAULT_WORKLOAD_UNDERLOAD_FACTOR,
     DEFAULT_QHE_PUSH,
     DEFAULT_QHE_RECOVER,
+    DEFAULT_WORKLOAD_OVERLOAD_FACTOR,
+    DEFAULT_WORKLOAD_UNDERLOAD_FACTOR,
+    IKIGAiStateDict,
 )
 
 
@@ -101,7 +100,7 @@ def _build_agent_response(state: IKIGAiStateDict) -> str:
         for c in corrections[-3:]:
             lines.append(f"   [{c.get('heuristic')}] {c.get('description', '')}")
     else:
-        lines.append(f"\n✅ No corrections — system balanced")
+        lines.append("\n✅ No corrections — system balanced")
     prospective = state.get("prospective_buffer", [])
     if prospective:
         lines.append(f"\n📋 Prospective buffer ({len(prospective)}):")

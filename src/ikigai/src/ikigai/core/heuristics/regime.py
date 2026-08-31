@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from ikigai.constants import NSM
 from ikigai.enums import RegimeType
@@ -189,4 +189,4 @@ def apply_hysteresis(
     return (proposed_regime, False, None)
 
 
-__all__ = ["RegimeDecision", "compute_regime", "apply_hysteresis"]
+__all__ = ["RegimeDecision", "apply_hysteresis", "compute_regime"]

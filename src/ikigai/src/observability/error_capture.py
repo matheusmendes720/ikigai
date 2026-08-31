@@ -24,9 +24,9 @@ from __future__ import annotations
 
 import functools
 import inspect
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
-from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
 from .otel_init import get_tracer
@@ -55,7 +55,7 @@ def observed_tool(tool_name: str) -> Callable:
                 bound = sig.bind_partial(*args, **kwargs)
                 bound.apply_defaults()
                 attrs = {f"tool.arg.{k}": repr(v)[:200] for k, v in bound.arguments.items()}
-            except Exception:  # noqa: BLE001 — bind failures shouldn't kill the tool
+            except Exception:
                 attrs = {}
 
             with _tracer.start_as_current_span(f"tool.{tool_name}") as span:
@@ -83,7 +83,7 @@ def observed_tool(tool_name: str) -> Callable:
                     span.record_exception(e)
                     span.set_attribute("error.class", "FileNotFoundError")
                     raise
-                except Exception as e:  # noqa: BLE001 — catch-all for unknown errors
+                except Exception as e:
                     span.set_status(Status(StatusCode.ERROR, str(e)))
                     span.record_exception(e)
                     raise

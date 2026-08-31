@@ -226,7 +226,7 @@ def vector_meta(
     course: float = typer.Option(50.0),
 ) -> None:
     """Compute meta-vetor (hybrid: geo + harmonic)."""
-    from ikigai.core.scoring.meta_vector import meta_vector, compute_alignment_label
+    from ikigai.core.scoring.meta_vector import compute_alignment_label, meta_vector
     from ikigai.enums import VectorType
 
     scores = {
@@ -475,7 +475,7 @@ def sync_run(
         )
     else:  # merge
         # Generate triagem.md
-        from ikigai.propagation.triagem import Triagem, DriftEntry
+        from ikigai.propagation.triagem import DriftEntry, Triagem
 
         triagem = Triagem(vault_root=db.vault_root)
         for path in db.list_all():
@@ -584,8 +584,9 @@ def sync_vault_from_taskdog(
 
     Run this to push fork-side changes back into the agent review path.
     """
-    from ikigai.vault.sync import reverse_sync
     from src.mesh.adapters.taskdog import TaskdogAdapter
+
+    from ikigai.vault.sync import reverse_sync
 
     adapter = TaskdogAdapter()
 

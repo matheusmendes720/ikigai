@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..state import IKIGAiStateDict, CorrectionSignal
+from ..state import CorrectionSignal, IKIGAiStateDict
 
 
 def heuristics_node(state: IKIGAiStateDict) -> dict[str, Any]:

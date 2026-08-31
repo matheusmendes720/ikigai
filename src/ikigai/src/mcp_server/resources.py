@@ -21,6 +21,7 @@ from typing import Any
 from src.contracts.common import UEID
 from src.mesh import queue as _queue
 from src.mesh.adapters import CliAdapter, SolverforgeCalendarAdapter, TaskdogAdapter
+
 from mcp_server.tools_mesh import ikigai_health
 
 
@@ -154,10 +155,10 @@ def plans_cycle_resource(cycle_id: str) -> str:
 
 
 __all__ = [
-    "ueid_resource",
-    "queue_pending_resource",
-    "queue_event_resource",
     "health_resource",
-    "plans_cycles_resource",
     "plans_cycle_resource",
+    "plans_cycles_resource",
+    "queue_event_resource",
+    "queue_pending_resource",
+    "ueid_resource",
 ]

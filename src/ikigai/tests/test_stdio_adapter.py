@@ -13,7 +13,6 @@ module-level scratch dir + manual cleanup is the only reliable path.
 """
 from __future__ import annotations
 
-import os
 import shutil
 import sys
 import textwrap
@@ -23,17 +22,16 @@ from pathlib import Path
 
 import pytest
 
+from ikigai.gateway.downstream import (
+    SolverforgeCalendarAdapter,
+    TaskdogAdapter,
+    TuiboardAdapter,
+)
 from ikigai.gateway.stdio_adapter import (
     StdioAdapter,
     StdioAdapterConfig,
     StdioAdapterError,
 )
-from ikigai.gateway.downstream import (
-    TuiboardAdapter,
-    TaskdogAdapter,
-    SolverforgeCalendarAdapter,
-)
-
 
 PYTHON = sys.executable
 SCRATCH = Path(__file__).resolve().parent.parent / ".tmp" / "stdio_adapter"
