@@ -13,9 +13,8 @@ from ikigai.enums import EntityType, StatusType
 class ObjectiveEntity(PlanEntity):
     """Short-term objective (3-12 months / 90-365 days)."""
 
-    entity_type: Literal[EntityType.OBJECTIVE] = EntityType.OBJECTIVE  # type: ignore[assignment]
-    horizon_days: Literal[90, 120, 150, 180, 240, 365]  # type: ignore[valid-type]
-
+    entity_type: Literal[EntityType.OBJECTIVE] = EntityType.OBJECTIVE
+    horizon_days: Literal[90, 120, 150, 180, 240, 365]
     # Objective-specific fields (OKR-style)
     key_results: list[str] = Field(default_factory=list)
     progress_pct: float = 0.0  # 0-100

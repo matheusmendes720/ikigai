@@ -57,15 +57,17 @@ def load_strategics(vault_root: Path) -> StrategicsContext:
 
     for md_path in sorted(strategics_dir.glob("*.md")):
         post = frontmatter.loads(md_path.read_text(encoding="utf-8"))
-        tags = post.metadata.get("tags", [])
+        tags_raw = post.metadata.get("tags", [])
+        tags_iterable: list[object] = tags_raw if isinstance(tags_raw, list) else []
+        tags_list: list[str] = [str(t) for t in tags_iterable]
 
         # Filter: must have at least one tag containing "strategic"
-        if not any("strategic" in str(t) for t in tags):
+        if not any("strategic" in t for t in tags_list):
             continue
 
         sha256 = hashlib.sha256(md_path.read_bytes()).hexdigest()
-        title = post.metadata.get("title", md_path.stem)
-        tags_list = [str(t) for t in tags]
+        title_raw = post.metadata.get("title", md_path.stem)
+        title = str(title_raw) if title_raw is not None else md_path.stem
 
         doc = StrategicDoc(
             path=md_path,

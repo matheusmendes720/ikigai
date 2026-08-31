@@ -6,6 +6,8 @@ Categories: ID (identity), SCORE, REGIME, PHASE, STATE, SYNC, DRIFT, OVERRIDE, I
 
 from __future__ import annotations
 
+from typing import Any
+
 
 class IKIGAiError(Exception):
     """Base exception for all IKIGAi errors."""
@@ -13,7 +15,7 @@ class IKIGAiError(Exception):
     code: str = "ERR_IKIGAI_000"
 
     def __init__(
-        self, message: str, *, code: str | None = None, context: dict | None = None
+        self, message: str, *, code: str | None = None, context: dict[str, Any] | None = None
     ) -> None:
         super().__init__(message)
         if code is not None:

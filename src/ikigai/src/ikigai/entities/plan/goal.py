@@ -13,9 +13,8 @@ from ikigai.enums import EntityType, StatusType
 class GoalEntity(PlanEntity):
     """Mid-term goal (1-3 years / 365-1095 days)."""
 
-    entity_type: Literal[EntityType.GOAL] = EntityType.GOAL  # type: ignore[assignment]
-    horizon_days: Literal[365, 547, 730, 913, 1095]  # type: ignore[valid-type]
-
+    entity_type: Literal[EntityType.GOAL] = EntityType.GOAL
+    horizon_days: Literal[365, 547, 730, 913, 1095]
     # Goal-specific fields
     success_metrics: list[str] = Field(default_factory=list)
     review_frequency_days: int = 90  # quarterly review

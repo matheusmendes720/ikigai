@@ -8,7 +8,7 @@ All enums are designed for **fractal extension**:
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import Enum, StrEnum
 
 
 class EntityType(str, Enum):
@@ -220,7 +220,7 @@ class AlignmentLabel(str, Enum):
         return cls.CRITICAL
 
 
-class StatusType(str, Enum):
+class StatusType(StrEnum):
     """Generic status type (per-entity state machines are more specific).
 
     This is the **base** status set. Entity-specific state machines (Dream,

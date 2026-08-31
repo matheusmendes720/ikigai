@@ -24,7 +24,7 @@ class CliAdapter:
         for line in TASKS_JSONL.read_text().splitlines():
             if not line.strip():
                 continue
-            task = json.loads(line)
+            task: dict[str, Any] = json.loads(line)
             if task.get("ueid") == ueid:
                 return task
         return None
