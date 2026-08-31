@@ -11,6 +11,7 @@ autouse `event_loop` fixture walks `AppData\\Local\\Temp\\pytest-of-mathe`
 which is locked on this Windows host by a sibling pytest run. A plain
 module-level scratch dir + manual cleanup is the only reliable path.
 """
+
 from __future__ import annotations
 
 import shutil
@@ -259,6 +260,7 @@ def test_solverforge_factory_returns_named_adapter() -> None:
 
 def test_all_three_adapters_register_under_distinct_names() -> None:
     from ikigai.gateway.gateway import UnifiedMCPGateway
+
     g = UnifiedMCPGateway()
     a1 = tuiboard_adapter(binary="x1")
     a2 = taskdog_adapter(python=PYTHON, module="m1")

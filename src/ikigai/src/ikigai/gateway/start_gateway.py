@@ -9,6 +9,7 @@ Per spec §10 (decisions):
 Boot:
     python -m ikigai.gateway.start_gateway
 """
+
 from __future__ import annotations
 
 import http.server
@@ -44,9 +45,7 @@ def main() -> None:
     # Plan called gateway.serve_forever(), but the shipped UnifiedMCPGateway
     # class only exposes make_handler(); the HTTP server boot is owned here
     # so the A1.7 brief's "NO files outside 2 listed paths" constraint holds.
-    server = http.server.ThreadingHTTPServer(
-        (cfg.host, cfg.port), gateway.make_handler()
-    )
+    server = http.server.ThreadingHTTPServer((cfg.host, cfg.port), gateway.make_handler())
     try:
         server.serve_forever()
     except KeyboardInterrupt:

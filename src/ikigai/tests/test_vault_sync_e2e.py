@@ -58,7 +58,7 @@ def e2e_vault(tmp_path: Path) -> Path:
         "---\n"
         "ueid: ikigai:task:new:001\n"
         "title: Brand new task\n"
-        'tags: [task]\n'
+        "tags: [task]\n"
         "status: planned\n"
         "---\n",
         encoding="utf-8",
@@ -69,7 +69,7 @@ def e2e_vault(tmp_path: Path) -> Path:
         "---\n"
         "ueid: ikigai:task:changed:002\n"
         "title: Status changed task\n"
-        'tags: [task]\n'
+        "tags: [task]\n"
         "status: in_progress\n"
         "---\n",
         encoding="utf-8",
@@ -77,12 +77,7 @@ def e2e_vault(tmp_path: Path) -> Path:
 
     # File 3: DONE task (status done → done, unchanged in vault)
     (vault / "done-task.md").write_text(
-        "---\n"
-        "ueid: ikigai:task:done:003\n"
-        "title: Task now done\n"
-        'tags: [task]\n'
-        "status: done\n"
-        "---\n",
+        "---\nueid: ikigai:task:done:003\ntitle: Task now done\ntags: [task]\nstatus: done\n---\n",
         encoding="utf-8",
     )
 
@@ -151,10 +146,10 @@ def test_vault_sync_e2e_calls_taskdog_with_correct_actions(
     # - changed-task.md (status: in_progress) in state as planned → CHANGED → taskdog_add (not done)
     # - done-task.md (status: done) in state as done → UNCHANGED
     assert result.scanned == 3
-    assert result.added == 1    # new-task: NEW
-    assert result.updated == 1   # changed-task: CHANGED (planned→in_progress)
+    assert result.added == 1  # new-task: NEW
+    assert result.updated == 1  # changed-task: CHANGED (planned→in_progress)
     assert result.completed == 0  # done-task: UNCHANGED (done→done)
-    assert result.skipped == 1    # done-task
+    assert result.skipped == 1  # done-task
     assert result.errors == []
 
     # Adapter call assertions

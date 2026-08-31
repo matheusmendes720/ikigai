@@ -2,6 +2,7 @@
 
 Task 12 of data-model-unification.
 """
+
 from __future__ import annotations
 
 import shutil
@@ -46,16 +47,19 @@ def test_detector_reports_in_sync(vault_and_db: Path) -> None:
     adapter = SQLiteAdapter(db_path=db)
     from ikigai.adapters.sqlite_bridge import IKIGAiRecordBridge
     from ikigai.entities.ikigai_record import IKIGAiRecord
-    rec = IKIGAiRecord.model_validate({
-        "ueid": "ikigai:dream:2026-q3:00000001:00000001",
-        "entity_type": "dream",
-        "slug": "2026-q3",
-        "title": "x",
-        "status": "active",
-        "created_at": datetime(2026, 7, 1, tzinfo=timezone.utc),
-        "updated_at": datetime(2026, 7, 1, tzinfo=timezone.utc),
-        "source_md_path": md,
-    })
+
+    rec = IKIGAiRecord.model_validate(
+        {
+            "ueid": "ikigai:dream:2026-q3:00000001:00000001",
+            "entity_type": "dream",
+            "slug": "2026-q3",
+            "title": "x",
+            "status": "active",
+            "created_at": datetime(2026, 7, 1, tzinfo=timezone.utc),
+            "updated_at": datetime(2026, 7, 1, tzinfo=timezone.utc),
+            "source_md_path": md,
+        }
+    )
     IKIGAiRecordBridge(adapter).upsert_ikigai_record(rec)
 
     detector = DriftDetector(adapter)
@@ -79,21 +83,25 @@ def test_detector_reports_markdown_newer(vault_and_db: Path) -> None:
     # Future the .md timestamp so it is strictly newer than any row.
     fut = datetime.now(timezone.utc) + timedelta(seconds=60)
     import os
+
     os.utime(md, (fut.timestamp(), fut.timestamp()))
 
     adapter = SQLiteAdapter(db_path=db)
     from ikigai.adapters.sqlite_bridge import IKIGAiRecordBridge
     from ikigai.entities.ikigai_record import IKIGAiRecord
-    rec = IKIGAiRecord.model_validate({
-        "ueid": "ikigai:dream:2026-q3:00000001:00000001",
-        "entity_type": "dream",
-        "slug": "2026-q3",
-        "title": "x",
-        "status": "active",
-        "created_at": datetime(2026, 7, 1, tzinfo=timezone.utc),
-        "updated_at": datetime(2026, 7, 1, tzinfo=timezone.utc),
-        "source_md_path": md,
-    })
+
+    rec = IKIGAiRecord.model_validate(
+        {
+            "ueid": "ikigai:dream:2026-q3:00000001:00000001",
+            "entity_type": "dream",
+            "slug": "2026-q3",
+            "title": "x",
+            "status": "active",
+            "created_at": datetime(2026, 7, 1, tzinfo=timezone.utc),
+            "updated_at": datetime(2026, 7, 1, tzinfo=timezone.utc),
+            "source_md_path": md,
+        }
+    )
     IKIGAiRecordBridge(adapter).upsert_ikigai_record(rec)
 
     detector = DriftDetector(adapter)

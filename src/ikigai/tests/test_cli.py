@@ -65,7 +65,11 @@ class TestCLI:
             ["regime", "status", "--qhe", "0.75"],
         )
         assert result.exit_code == 0
-        assert "regime" in result.stdout.lower() or "PUSH" in result.stdout or "REDUCE" in result.stdout
+        assert (
+            "regime" in result.stdout.lower()
+            or "PUSH" in result.stdout
+            or "REDUCE" in result.stdout
+        )
 
     def test_regime_status_json(self) -> None:
         """regime status --json must return valid JSON."""

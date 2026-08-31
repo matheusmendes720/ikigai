@@ -3,6 +3,7 @@
 Covers the load-bearing invariants from §3.6 (PD/FR/SA/OV/PH) that touch
 the root itself rather than its child entities.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -28,11 +29,18 @@ def _sample_ueid() -> str:
 
 
 def _regime() -> FractalRegime:
-    return FractalRegime(levels=[
-        FractalRegimeState(level=level, regime="push", days_in_regime=10,
-                           is_hysteresis_active=False, hysteresis_days=14)
-        for level in ("global", "cluster", "vector", "sub_vector")
-    ])
+    return FractalRegime(
+        levels=[
+            FractalRegimeState(
+                level=level,
+                regime="push",
+                days_in_regime=10,
+                is_hysteresis_active=False,
+                hysteresis_days=14,
+            )
+            for level in ("global", "cluster", "vector", "sub_vector")
+        ]
+    )
 
 
 def _q_he() -> ScoreValue:
@@ -73,9 +81,15 @@ class TestIKIGAiRecordDiscriminator:
 
     def test_each_entity_type_loads(self) -> None:
         for et in (
-            EntityType.DREAM, EntityType.GOAL, EntityType.OBJECTIVE,
-            EntityType.PROJECT, EntityType.TASK, EntityType.DELIVERABLE,
-            EntityType.ROUTINE, EntityType.HABIT, EntityType.VECTOR,
+            EntityType.DREAM,
+            EntityType.GOAL,
+            EntityType.OBJECTIVE,
+            EntityType.PROJECT,
+            EntityType.TASK,
+            EntityType.DELIVERABLE,
+            EntityType.ROUTINE,
+            EntityType.HABIT,
+            EntityType.VECTOR,
             EntityType.CYCLE,
         ):
             r = _minimal_record(entity_type=et)
@@ -126,14 +140,19 @@ class TestIKIGAiRecordInvariants:
 
 class TestIKIGAiRecordAggregates:
     def test_corrections_typed_list(self) -> None:
-        r = _minimal_record(corrections=[
-            CorrectionSignal(
-                heuristic="qhe_trend", signal_type="drift",
-                description="Q_HE down 3d", target_ueid=None,
-                urgency="high", metadata={},
-                created_at=datetime(2026, 8, 26, tzinfo=timezone.utc),
-            ),
-        ])
+        r = _minimal_record(
+            corrections=[
+                CorrectionSignal(
+                    heuristic="qhe_trend",
+                    signal_type="drift",
+                    description="Q_HE down 3d",
+                    target_ueid=None,
+                    urgency="high",
+                    metadata={},
+                    created_at=datetime(2026, 8, 26, tzinfo=timezone.utc),
+                ),
+            ]
+        )
         assert len(r.corrections) == 1
         assert r.corrections[0].signal_type == "drift"
 
@@ -143,10 +162,12 @@ class TestIKIGAiRecordAggregates:
         assert len(r.regime.levels) == 4
 
     def test_vector_scores_with_fractal_keys(self) -> None:
-        r = _minimal_record(vector_scores={
-            "skill": ScoreValue(value=70, unit=ScoreUnit.PERCENT),
-            "skill.python": ScoreValue(value=85, unit=ScoreUnit.PERCENT),
-        })
+        r = _minimal_record(
+            vector_scores={
+                "skill": ScoreValue(value=70, unit=ScoreUnit.PERCENT),
+                "skill.python": ScoreValue(value=85, unit=ScoreUnit.PERCENT),
+            }
+        )
         assert "skill.python" in r.vector_scores  # SPEC D3 — fractal keys
 
     def test_active_ueid_lists_round_trip(self) -> None:

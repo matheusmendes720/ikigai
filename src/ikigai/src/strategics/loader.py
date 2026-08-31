@@ -6,6 +6,7 @@ into a Pydantic v2 frozen model for downstream tools.
 
 Append-only invariant: this loader NEVER writes.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -17,6 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class StrategicDoc(BaseModel):
     """Single strategic document."""
+
     model_config = ConfigDict(frozen=True, extra="forbid")
     path: Path
     title: str
@@ -27,6 +29,7 @@ class StrategicDoc(BaseModel):
 
 class StrategicsContext(BaseModel):
     """Loaded strategic context, ready for prompt injection."""
+
     model_config = ConfigDict(frozen=True, extra="forbid")
     documents: list[StrategicDoc]
     by_tag: dict[str, list[StrategicDoc]]

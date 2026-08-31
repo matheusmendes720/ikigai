@@ -207,8 +207,6 @@ class TestUpsertSchema:
     def test_schema_has_history_table(self, adapter: SQLiteAdapter) -> None:
         """Verify history table exists."""
         with adapter._connect() as conn:
-            tables = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            ).fetchall()
+            tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
             table_names = [t[0] for t in tables]
             assert "plan_entities_history" in table_names

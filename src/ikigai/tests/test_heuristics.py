@@ -30,8 +30,8 @@ from ikigai.types import UEID
 # Regime
 # -------------------------------------------------------------------------- #
 
-class TestComputeRegime:
 
+class TestComputeRegime:
     def test_qhe_high_triggers_push(self):
         """Q_HE >= 0.85 + c_comp >= 0.90 + 0 infractions → PUSH."""
         result = compute_regime(
@@ -97,7 +97,6 @@ class TestComputeRegime:
 
 
 class TestApplyHysteresis:
-
     def test_recover_immediate_downgrade(self):
         """RECOVER entry is immediate — no hysteresis."""
         result = apply_hysteresis(
@@ -111,10 +110,7 @@ class TestApplyHysteresis:
         """3+ consecutive MAINTAIN proposals from history → upgrade from REDUCE."""
         now = datetime(2025, 1, 10)
         # History ends with 3 consecutive MAINTAIN proposals
-        history = [
-            (now - timedelta(days=i), RegimeType.MAINTAIN)
-            for i in range(3, 0, -1)
-        ]
+        history = [(now - timedelta(days=i), RegimeType.MAINTAIN) for i in range(3, 0, -1)]
         result = apply_hysteresis(
             current_regime=RegimeType.REDUCE,
             proposed_regime=RegimeType.MAINTAIN,
@@ -143,8 +139,8 @@ class TestApplyHysteresis:
 # Phase
 # -------------------------------------------------------------------------- #
 
-class TestComputePhase:
 
+class TestComputePhase:
     def test_ikigai_high_returns_momentum(self):
         """ikigai_score > 60 + no debt → not OVERCLOCKING."""
         result = compute_phase(
@@ -184,8 +180,8 @@ class TestComputePhase:
 # UCB
 # -------------------------------------------------------------------------- #
 
-class TestRecalibrateWeightUCB:
 
+class TestRecalibrateWeightUCB:
     def test_raises_on_invalid_input(self):
         with pytest.raises(ValueError, match=r"w_i must be in"):
             recalibrate_weight_ucb(-0.5, 0.0, 0.1, 1, {})  # w_i < 0
@@ -226,8 +222,8 @@ class TestRecalibrateWeightUCB:
 # Opportunity
 # -------------------------------------------------------------------------- #
 
-class TestComputeOpportunityFit:
 
+class TestComputeOpportunityFit:
     def test_all_zero_fit(self):
         result = compute_opportunity_fit(
             required_skills=["rust"],
@@ -272,7 +268,6 @@ class TestComputeOpportunityFit:
 
 
 class TestClassifyOpportunity:
-
     def test_high_fit_strong_buy(self):
         assert classify_opportunity(0.75) == "PURSUING"
         assert classify_opportunity(1.0) == "PURSUING"
@@ -290,8 +285,8 @@ class TestClassifyOpportunity:
 # Skill
 # -------------------------------------------------------------------------- #
 
-class TestSkillVelocity:
 
+class TestSkillVelocity:
     def test_should_promote_all_conditions_met(self):
         result = should_promote_skill(
             current_level=SkillLevel.BEGINNER,
@@ -352,8 +347,8 @@ class TestSkillVelocity:
 # Priority
 # -------------------------------------------------------------------------- #
 
-class TestComputeWeightedPriority:
 
+class TestComputeWeightedPriority:
     def _task(self, uid_suffix="base"):
         return TaskEntity(
             ueid=UEID.generate("work", "task", f"task-{uid_suffix}"),
@@ -397,7 +392,6 @@ class TestComputeWeightedPriority:
 
 
 class TestRankTasks:
-
     def test_sorted_by_priority(self):
         tasks = [
             TaskEntity(

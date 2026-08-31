@@ -24,7 +24,6 @@ def _ueid(suffix):
 
 
 class TestPlanEntityBasics:
-
     def test_extra_allowed_by_default(self):
         """extra="allow" means arbitrary fields become model attributes directly."""
         data = {
@@ -96,7 +95,6 @@ class TestPlanEntityBasics:
 
 
 class TestDreamEntity:
-
     def test_horizon_days_1825(self):
         d = DreamEntity(
             ueid=UEID.generate("study", "dream", "short-dream"),
@@ -159,7 +157,6 @@ class TestDreamEntity:
 
 
 class TestGoalEntity:
-
     def test_horizon_days_valid_365(self):
         g = GoalEntity(
             ueid=UEID.generate("study", "goal", "valid-goal"),
@@ -207,7 +204,6 @@ class TestGoalEntity:
 
 
 class TestObjectiveEntity:
-
     def test_horizon_days_range(self):
         o = ObjectiveEntity(
             ueid=UEID.generate("study", "objective", "valid-obj"),
@@ -246,7 +242,6 @@ class TestObjectiveEntity:
 
 
 class TestProjectEntity:
-
     def test_tech_stack_empty_by_default(self):
         p = ProjectEntity(
             ueid=UEID.generate("work", "project", "proj"),
@@ -269,7 +264,6 @@ class TestProjectEntity:
 
 
 class TestTaskEntity:
-
     def test_rice_fields_default(self):
         t = TaskEntity(
             ueid=UEID.generate("work", "task", "task"),
@@ -345,7 +339,6 @@ class TestTaskEntity:
 
 
 class TestDeliverableEntity:
-
     def test_artifact_path_optional(self):
         d = DeliverableEntity(
             ueid=UEID.generate("work", "deliverable", "del"),
@@ -358,7 +351,6 @@ class TestDeliverableEntity:
 
 
 class TestEntityFrontmatterRoundtrip:
-
     def _roundtrip(self, entity):
         d = entity.to_frontmatter_dict()
         return type(entity).from_frontmatter_dict(d)

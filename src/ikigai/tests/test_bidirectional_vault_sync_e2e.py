@@ -12,6 +12,7 @@ vault_write is sync (per corrections — no asyncio).
 UEIDs are 4-part hex (e.g. task:t:a1b2:c3d4).
 Uses the double-ikigai src/ layout consistent with existing ikigai tests.
 """
+
 from __future__ import annotations
 
 import json
@@ -117,12 +118,9 @@ def test_roundtrip_done_status_propagates_back_to_vault(fresh_env, monkeypatch):
         def list_all(self):
             conn = sqlite3.connect(self.db)
             try:
-                rows = conn.execute(
-                    "SELECT ueid, name, status, priority FROM tasks"
-                ).fetchall()
+                rows = conn.execute("SELECT ueid, name, status, priority FROM tasks").fetchall()
                 return [
-                    {"ueid": r[0], "name": r[1], "status": r[2], "priority": r[3]}
-                    for r in rows
+                    {"ueid": r[0], "name": r[1], "status": r[2], "priority": r[3]} for r in rows
                 ]
             finally:
                 conn.close()

@@ -1,4 +1,5 @@
 """Tests for CorrectionSignal — typed IKIGAi cycle output."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -25,7 +26,11 @@ class TestCorrectionSignal:
     def test_invalid_signal_type_rejected(self) -> None:
         with pytest.raises(ValidationError):
             CorrectionSignal(
-                heuristic="x", signal_type="bogus",  # type: ignore[arg-type]
-                description="d", target_ueid=None, urgency="low",
-                metadata={}, created_at=datetime(2026, 8, 26, tzinfo=timezone.utc),
+                heuristic="x",
+                signal_type="bogus",  # type: ignore[arg-type]
+                description="d",
+                target_ueid=None,
+                urgency="low",
+                metadata={},
+                created_at=datetime(2026, 8, 26, tzinfo=timezone.utc),
             )

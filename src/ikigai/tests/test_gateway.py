@@ -7,6 +7,7 @@ beyond stdlib (no starlette/fastapi). It's exercised against a fake
 downstream client (MCPClientAdapter protocol) so tests don't need a
 real socket — see Task 14 for the real downstream adapters.
 """
+
 from __future__ import annotations
 
 import json
@@ -67,6 +68,7 @@ def _stop_gateway(server: HTTPServer) -> None:
 
 def _post(url: str, payload: dict) -> dict:
     import urllib.request
+
     body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
         url + "/call",
@@ -80,6 +82,7 @@ def _post(url: str, payload: dict) -> dict:
 
 def _get(url: str) -> dict:
     import urllib.request
+
     with urllib.request.urlopen(url + "/health", timeout=5) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
@@ -98,20 +101,26 @@ def test_gateway_health_endpoint() -> None:
 def test_gateway_routes_call_to_named_adapter() -> None:
     cfg = GatewayConfig()
     gateway = UnifiedMCPGateway(cfg)
-    fake_tuiboard = FakeAdapter("tuiboard", responses={
-        "tuiboard_render": {"status": "rendered", "rows": 4},
-    })
+    fake_tuiboard = FakeAdapter(
+        "tuiboard",
+        responses={
+            "tuiboard_render": {"status": "rendered", "rows": 4},
+        },
+    )
     fake_taskdog = FakeAdapter("taskdog")
     gateway.register(fake_tuiboard)
     gateway.register(fake_taskdog)
 
     url, server = _start_gateway(gateway)
     try:
-        resp = _post(url, {
-            "namespace": "tuiboard",
-            "tool": "tuiboard_render",
-            "arguments": {"dashboard_id": "home"},
-        })
+        resp = _post(
+            url,
+            {
+                "namespace": "tuiboard",
+                "tool": "tuiboard_render",
+                "arguments": {"dashboard_id": "home"},
+            },
+        )
         assert resp == {"result": {"status": "rendered", "rows": 4}}
         assert len(fake_tuiboard.calls) == 1
         assert len(fake_taskdog.calls) == 0
@@ -127,6 +136,7 @@ def test_gateway_rejects_unknown_namespace() -> None:
     url, server = _start_gateway(gateway)
     try:
         import urllib.error
+
         with pytest.raises(urllib.error.HTTPError) as exc:
             _post(url, {"namespace": "unknown", "tool": "x", "arguments": {}})
         assert exc.value.code == 404
@@ -138,6 +148,7 @@ def test_gateway_propagates_adapter_error() -> None:
     class BoomAdapter(MCPClientAdapter):
         def __init__(self) -> None:
             super().__init__(name="boom", command=["fake"])
+
         def call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
             raise RuntimeError("downstream exploded")
 
@@ -148,6 +159,7 @@ def test_gateway_propagates_adapter_error() -> None:
     url, server = _start_gateway(gateway)
     try:
         import urllib.error
+
         with pytest.raises(urllib.error.HTTPError) as exc:
             _post(url, {"namespace": "boom", "tool": "x", "arguments": {}})
         assert exc.value.code == 502
@@ -241,7 +253,9 @@ def test_gateway_config_defaults() -> None:
     assert cfg.sse_subscriber_queue_size == 100
 
 
-def _sse_handshake(host: str, port: int, timeout: float = 2.0) -> tuple[socket.socket, bytes, bytes]:
+def _sse_handshake(
+    host: str, port: int, timeout: float = 2.0
+) -> tuple[socket.socket, bytes, bytes]:
     """Open a raw SSE connection; return (sock, status_line, body_so_far).
 
     Caller MUST close the sock when done.
@@ -347,7 +361,7 @@ def _expected_tool_short(namespace: str, tool: str) -> str:
         "solverforge-calendar": "sf_",
     }
     prefix = prefix_map.get(namespace)
-    return tool[len(prefix):] if prefix and tool.startswith(prefix) else tool
+    return tool[len(prefix) :] if prefix and tool.startswith(prefix) else tool
 
 
 @pytest.mark.parametrize(
@@ -368,9 +382,7 @@ def test_emit_adapter_call_publishes_namespaced_event(
     gateway = UnifiedMCPGateway(cfg)
     sub_q = gateway.subscribe_events()
     try:
-        gateway.emit_adapter_call(
-            namespace, tool, {"ueid": "ikigai:task:abc:1:2"}
-        )
+        gateway.emit_adapter_call(namespace, tool, {"ueid": "ikigai:task:abc:1:2"})
         event, payload = sub_q.get(timeout=1.0)
         assert event == expected_event
         assert payload["namespace"] == namespace
@@ -403,11 +415,14 @@ def test_post_call_emits_sse_event_for_subscribers() -> None:
     sub_q = gateway.subscribe_events()
     url, server = _start_gateway(gateway)
     try:
-        resp = _post(url, {
-            "namespace": "taskdog",
-            "tool": "taskdog_add",
-            "arguments": {"title": "smoke task"},
-        })
+        resp = _post(
+            url,
+            {
+                "namespace": "taskdog",
+                "tool": "taskdog_add",
+                "arguments": {"title": "smoke task"},
+            },
+        )
         assert resp == {"result": {"id": "td-1", "status": "queued"}}
         event, payload = sub_q.get(timeout=1.0)
         assert event == "taskdog.add"
@@ -438,6 +453,7 @@ def test_post_call_does_not_emit_on_adapter_error() -> None:
     url, server = _start_gateway(gateway)
     try:
         import urllib.error
+
         with pytest.raises(urllib.error.HTTPError) as exc:
             _post(url, {"namespace": "boom", "tool": "x", "arguments": {}})
         assert exc.value.code == 502
@@ -489,11 +505,14 @@ def test_post_call_writes_to_event_log(tmp_path) -> None:
     gateway.register(fake)
     url, server = _start_gateway(gateway)
     try:
-        resp = _post(url, {
-            "namespace": "taskdog",
-            "tool": "taskdog_add",
-            "arguments": {"title": "smoke task"},
-        })
+        resp = _post(
+            url,
+            {
+                "namespace": "taskdog",
+                "tool": "taskdog_add",
+                "arguments": {"title": "smoke task"},
+            },
+        )
         assert resp == {"result": {"id": "td-1", "status": "queued"}}
     finally:
         _stop_gateway(server)

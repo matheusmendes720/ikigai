@@ -370,8 +370,7 @@ def _format_corrections(corrections: list[dict[str, Any]]) -> str:
     if not corrections:
         return "_None_"
     lines = [
-        f"- [{c.get('heuristic', '?')}] {c.get('description', '')}\n"
-        for c in corrections[-5:]
+        f"- [{c.get('heuristic', '?')}] {c.get('description', '')}\n" for c in corrections[-5:]
     ]
     return "".join(lines)
 
@@ -1010,7 +1009,9 @@ IKIGAI_TOOLS = [
 from .ikigai_read_strategics import ikigai_read_strategics  # noqa: E402
 from .ikigai_read_vault import ikigai_read_vault  # noqa: E402
 
-IKIGAI_TOOLS.extend([
-    ikigai_read_strategics,
-    ikigai_read_vault,
-])
+IKIGAI_TOOLS.extend(
+    [
+        ikigai_read_strategics,
+        ikigai_read_vault,
+    ]
+)

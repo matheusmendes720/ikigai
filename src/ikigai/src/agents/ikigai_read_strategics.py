@@ -6,6 +6,7 @@ the loaded StrategicsContext.index as a string the LLM can read.
 
 Append-only invariant: this tool NEVER writes.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

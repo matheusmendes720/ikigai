@@ -1,4 +1,5 @@
 """Tests for OverrideRecord — SPEC D12 typed audit trail."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -26,6 +27,10 @@ class TestOverrideRecord:
         with pytest.raises(ValidationError):
             OverrideRecord(
                 at=datetime(2026, 8, 26, tzinfo=timezone.utc),
-                by="agent", field_path="x", previous_value=1, new_value=2,
-                reason="r", extra_field="forbidden",
+                by="agent",
+                field_path="x",
+                previous_value=1,
+                new_value=2,
+                reason="r",
+                extra_field="forbidden",
             )

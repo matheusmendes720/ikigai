@@ -1,4 +1,5 @@
 """Tests for frontmatter_to_dict — frontmatter file → IKIGAiRecord-ready dict."""
+
 from __future__ import annotations
 
 import shutil
@@ -57,6 +58,7 @@ def test_round_trip_preserves_null(dream_md: Path) -> None:
 def test_round_trip_preserves_datetime(dream_md: Path) -> None:
     """RT-04: re-parsed datetime carries tzinfo (parsed back to datetime object)."""
     from datetime import datetime, timezone
+
     d = frontmatter_to_dict(dream_md)
     assert isinstance(d["created_at"], datetime)
     assert d["created_at"].tzinfo is not None

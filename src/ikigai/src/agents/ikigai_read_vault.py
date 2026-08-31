@@ -6,6 +6,7 @@ parsing by the LLM.
 
 Append-only invariant: this tool NEVER writes.
 """
+
 from __future__ import annotations
 
 import json

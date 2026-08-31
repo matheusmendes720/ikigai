@@ -132,9 +132,7 @@ def test_e2e_trace_artifact_is_generated(
     # by file path. (Same broken-prefix style as the Cohort A fix in 2984847,
     # but the second segment is `tests` instead of `src`.)
     _conftest_path = Path(__file__).resolve().parent / "conftest.py"
-    _spec = importlib.util.spec_from_file_location(
-        "_e2e_conftest_for_trace_test", _conftest_path
-    )
+    _spec = importlib.util.spec_from_file_location("_e2e_conftest_for_trace_test", _conftest_path)
     _mod = importlib.util.module_from_spec(_spec)
     assert _spec.loader is not None
     _spec.loader.exec_module(_mod)

@@ -1,4 +1,5 @@
 """Unit tests for strategics loader — loads PT-BR strategic docs into agent context."""
+
 from __future__ import annotations
 
 import textwrap
@@ -11,7 +12,8 @@ def test_load_strategics_returns_documents(tmp_path: Path) -> None:
 
     strat = tmp_path / "strategics"
     strat.mkdir()
-    (strat / "planejamento.md").write_text(textwrap.dedent("""\
+    (strat / "planejamento.md").write_text(
+        textwrap.dedent("""\
         ---
         tags: [strategic, planning]
         title: Planejamento
@@ -19,8 +21,11 @@ def test_load_strategics_returns_documents(tmp_path: Path) -> None:
         # Planejamento
 
         Estratégia de planejamento.
-    """), encoding="utf-8")
-    (strat / "modelagem.md").write_text(textwrap.dedent("""\
+    """),
+        encoding="utf-8",
+    )
+    (strat / "modelagem.md").write_text(
+        textwrap.dedent("""\
         ---
         tags: [strategic, modeling]
         title: Modelagem Operacional
@@ -28,7 +33,9 @@ def test_load_strategics_returns_documents(tmp_path: Path) -> None:
         # Modelagem Operacional
 
         Framework de modelagem.
-    """), encoding="utf-8")
+    """),
+        encoding="utf-8",
+    )
 
     ctx = load_strategics(tmp_path)
     titles = sorted(d.title for d in ctx.documents)
@@ -136,9 +143,7 @@ def test_load_strategics_preserves_sha256(tmp_path: Path) -> None:
 
     strat = tmp_path / "strategics"
     strat.mkdir()
-    (strat / "x.md").write_text(
-        "---\ntags: [strategic]\ntitle: X\n---\n# X\n", encoding="utf-8"
-    )
+    (strat / "x.md").write_text("---\ntags: [strategic]\ntitle: X\n---\n# X\n", encoding="utf-8")
 
     ctx = load_strategics(tmp_path)
     assert len(ctx.documents[0].sha256) == 64  # sha256 hex length

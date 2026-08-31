@@ -12,6 +12,7 @@ the canonical writer. These tests verify the migration:
   - VaultLock concurrency lock is acquired (no concurrent write races)
   - Path-traversal protection rejects relative paths escaping vault root
 """
+
 from __future__ import annotations
 
 import datetime as _dt

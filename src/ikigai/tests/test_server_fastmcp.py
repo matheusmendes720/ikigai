@@ -1,4 +1,5 @@
 """Tests for FastMCP refactor of server.py."""
+
 from __future__ import annotations
 
 import pytest
@@ -34,8 +35,7 @@ def test_all_ten_tools_registered() -> None:
     }
     registered = {tool.name for tool in TOOLS}
     assert registered == expected_tools, (
-        f"Missing: {expected_tools - registered}; "
-        f"Extra: {registered - expected_tools}"
+        f"Missing: {expected_tools - registered}; Extra: {registered - expected_tools}"
     )
 
 
@@ -43,4 +43,5 @@ def test_all_ten_tools_registered() -> None:
 async def test_main_entrypoint_callable() -> None:
     """main() must remain an async coroutine for stdio transport."""
     import inspect
+
     assert inspect.iscoroutinefunction(main)

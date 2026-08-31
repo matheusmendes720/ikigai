@@ -1,4 +1,5 @@
 """ReverseSyncState — taskdog-side snapshot store."""
+
 from __future__ import annotations
 
 import sys

@@ -1,4 +1,5 @@
 """TaskdogAdapter.list_all() — enumerate all taskdog rows."""
+
 import sqlite3
 from pathlib import Path
 
@@ -49,13 +50,17 @@ def test_list_all_returns_three_tasks(taskdog_db: Path, monkeypatch: pytest.Monk
     assert all("status" in r for r in rows)
 
 
-def test_list_all_returns_empty_when_db_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_list_all_returns_empty_when_db_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """list_all() on missing DB returns [] (not None, not exception)."""
     monkeypatch.setattr("src.mesh.adapters.taskdog.TASKDOG_DB", tmp_path / "nope.db")
     assert TaskdogAdapter().list_all() == []
 
 
-def test_list_all_includes_ueid_status_title(taskdog_db: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_list_all_includes_ueid_status_title(
+    taskdog_db: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Each row must include ueid, status, name (title), priority."""
     monkeypatch.setattr("src.mesh.adapters.taskdog.TASKDOG_DB", taskdog_db)
     rows = TaskdogAdapter().list_all()

@@ -1,4 +1,5 @@
 """Tests for MCP server tracing functionality."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -40,10 +41,13 @@ class TestTracedToolDispatch:
 
         # Verify span attributes were set
         mock_span = mock_tracer.start_as_current_span.return_value.__enter__.return_value
-        assert mock_span.set_attribute.call_count >= 3  # tool.name, tool.arguments_hash, tool.duration_ms
+        assert (
+            mock_span.set_attribute.call_count >= 3
+        )  # tool.name, tool.arguments_hash, tool.duration_ms
 
     def test_tool_error_captures_traceback(self, mock_tracer):
         """Handler raises, assert span has error.class + traceback attrs."""
+
         def failing_handler(key: str) -> dict:
             raise ValueError("test error message")
 

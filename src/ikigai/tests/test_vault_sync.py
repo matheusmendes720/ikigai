@@ -42,7 +42,7 @@ def tmp_vault(tmp_path: Path) -> Path:
         "---\n"
         "ueid: ikigai:task:foo:a1b2:c3d4\n"
         "title: Test task\n"
-        'tags: [task]\n'
+        "tags: [task]\n"
         "status: planned\n"
         "priority: high\n"
         "due: 2026-09-15\n"
@@ -57,7 +57,7 @@ def tmp_vault(tmp_path: Path) -> Path:
         "---\n"
         "ueid: ikigai:note:bar:e5f6\n"
         "title: Just a note\n"
-        'tags: [note]\n'
+        "tags: [note]\n"
         "status: active\n"
         "---\n"
         "# Note\n",
@@ -77,10 +77,7 @@ def tmp_vault(tmp_path: Path) -> Path:
 
     # Task with no ueid — should be skipped
     (vault / "no-ueid.md").write_text(
-        "---\n"
-        "title: No UEID\n"
-        'tags: [task]\n'
-        "---\n",
+        "---\ntitle: No UEID\ntags: [task]\n---\n",
         encoding="utf-8",
     )
 

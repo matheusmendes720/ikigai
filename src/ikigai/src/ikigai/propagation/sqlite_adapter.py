@@ -207,9 +207,7 @@ class SQLiteAdapter:
         recreated — mirroring the upsert() pattern.
         """
         ueid_str = (
-            str(entity_or_ueid.ueid)
-            if isinstance(entity_or_ueid, PlanEntity)
-            else entity_or_ueid
+            str(entity_or_ueid.ueid) if isinstance(entity_or_ueid, PlanEntity) else entity_or_ueid
         )
         archived_at = archived_at or datetime.now(timezone.utc)
         with self._connect() as conn:

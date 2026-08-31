@@ -1,4 +1,5 @@
 """Tests for ScoreValue — SPEC I3 (vector scores ∈ [0,100]), I4 (Q_HE ∈ [0,1])."""
+
 from __future__ import annotations
 
 import pytest

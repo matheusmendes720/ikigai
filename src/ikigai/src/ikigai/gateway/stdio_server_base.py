@@ -4,6 +4,7 @@ Per spec §10 (decisions): hand-rolled JSON-RPC 2.0 over Content-Length-framed
 stdio, stdlib only. Each fork server inherits from this base and registers
 its own tools via register_tool().
 """
+
 from __future__ import annotations
 
 import logging
@@ -52,10 +53,12 @@ class StdioServerBase:
                     "capabilities": {"tools": {}},
                 }
             elif method == "tools/list":
-                result = {"tools": [
-                    {"name": name, "inputSchema": schema}
-                    for name, (_, schema) in self._tools.items()
-                ]}
+                result = {
+                    "tools": [
+                        {"name": name, "inputSchema": schema}
+                        for name, (_, schema) in self._tools.items()
+                    ]
+                }
             elif method == "tools/call":
                 tool_name = params.get("name")
                 arguments = params.get("arguments", {})
@@ -113,11 +116,13 @@ class StdioServerBase:
 
 def _to_json(obj: Any) -> str:
     import json
+
     return json.dumps(obj)
 
 
 def _from_json_bytes(data: bytes) -> dict:
     import json
+
     return json.loads(data.decode("utf-8"))
 
 
