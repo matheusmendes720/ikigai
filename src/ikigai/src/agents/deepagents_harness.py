@@ -416,6 +416,20 @@ def main() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _msg_role(msg: Any) -> str | None:
+    """Extract role from a message — handles Pydantic AIMessage AND dict."""
+    if isinstance(msg, dict):
+        return msg.get("role") or msg.get("type")
+    return getattr(msg, "type", None) or getattr(msg, "role", None)
+
+
+def _msg_content(msg: Any) -> Any:
+    """Extract content from a message — handles Pydantic AIMessage AND dict."""
+    if isinstance(msg, dict):
+        return msg.get("content", "")
+    return getattr(msg, "content", "")
+
+
 def _extract_assistant_text(result: dict[str, Any]) -> str:
     """Pull the last AI message content from a deepagents invoke result.
 
@@ -425,8 +439,9 @@ def _extract_assistant_text(result: dict[str, Any]) -> str:
     """
     messages = result.get("messages", [])
     for msg in reversed(messages):
-        if msg.get("role") == "assistant":
-            content = msg.get("content", "")
+        role = _msg_role(msg)
+        if role in ("assistant", "ai"):
+            content = _msg_content(msg)
             return content if isinstance(content, str) else str(content)
     return ""
 
