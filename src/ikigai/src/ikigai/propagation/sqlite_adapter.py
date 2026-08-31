@@ -106,8 +106,14 @@ class SQLiteAdapter:
             return conn
 
     def _init_schema(self) -> None:
-        conn = self._connect()
-        conn.executescript(SCHEMA_SQL)
+        # Use `with` so the WAL-mode connection is closed at scope exit.
+        # Without this, test fixtures leave test.db/test.db-wal/test.db-shm
+        # locked for the process lifetime, breaking tempfile cleanup on Windows
+        # (WinError 32 at fixture teardown). All other CRUD methods already
+        # use the `with self._connect() as conn:` pattern — this was the sole
+        # offender.
+        with self._connect() as conn:
+            conn.executescript(SCHEMA_SQL)
 
     # ─────────────────────────────────────────────────────────────────────────
     # CRUD (append-only)
