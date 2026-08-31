@@ -7,14 +7,18 @@ Existing custom graphs (preserved, not modified):
   - vibe-ops/src/agents/pae_maintainer/graph.py: PAE-Maintainer main graph
   - .claude/skills/quarterly-planner/workflows/*.yml: 4 swarm workflow YAMLs
 
+Note: ikigai_maintainer graph wrapper was removed 2026-08-31 per
+attribution §3 (algo math archived-in-place — not imported, not executed).
+The 8-node IKIGAi-Maintainer graph (agents/ikigai_maintainer/) remains on
+disk as a reference; only the langgraph entry-point wrapper was removed.
+
 Strategy: thin adapter layer - no business logic in here, just glue between
 the existing custom graph runtime and the langgraph SDK.
 """
 from __future__ import annotations
 
-import json
 from pathlib import Path
-from typing import Annotated, Any, Literal, TypedDict
+from typing import Any, TypedDict
 
 import yaml
 from langgraph.graph import END, START, StateGraph
@@ -37,14 +41,10 @@ sys.path.insert(0, str(IKIGAI_SRC))
 
 from pae_maintainer.graph import (
     run_pae_cycle,
-    should_commit,
-    should_terminate,
 )
 from pae_maintainer.state import (
     BalancerState,
     PAEState,
-    PlanTier,
-    PlanVerdict,
 )
 
 
@@ -208,24 +208,8 @@ def make_falsification_graph(config: RunnableConfig | None = None) -> StateGraph
     return _make_workflow_dispatcher_graph("dream-falsification")
 
 
-# ---------------------------------------------------------------------------
-# Graph 6: IKIGAi-Maintainer (imported from ikigai package)
-# ---------------------------------------------------------------------------
-
-
-def make_ikigai_graph(config: RunnableConfig | None = None) -> StateGraph:
-    """Build the IKIGAi-Maintainer LangGraph.
-
-    Delegates to the ikigai_maintainer graph factory, which provides:
-    - observe → score_vectors → heuristics → balance → decompose
-      → plan → reflect → commit (8-node pipeline) + error_node terminal (B5.1-F3)
-    - SqliteSaver checkpointing (project-local; no ~/.ikigai/ lock risk)
-    - Dual-channel (prospective + retrospective)
-    - H1–H6 deterministic heuristics
-
-    B5.1-F1: import from `agents.ikigai_maintainer.graph` (post-reorg path)
-    instead of the stale `ikigai_maintainer.graph` import.
-    """
-    from agents.ikigai_maintainer.graph import make_ikigai_graph as _make
-
-    return _make()
+# Graph 6 (IKIGAi-Maintainer) wrapper removed 2026-08-31 per attribution §3
+# (algo math archived-in-place — kept on disk for reference, NOT imported,
+# NOT executed). The 8-node pipeline is reachable only via the ikigai
+# package directly (src/ikigai/src/agents/ikigai_maintainer/), never via
+# langgraph dev.
