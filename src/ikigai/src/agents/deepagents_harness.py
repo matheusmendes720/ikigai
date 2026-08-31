@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any, cast
 
 # ---------------------------------------------------------------------------
 # Observability — initialize tracing once at module load.
@@ -266,7 +267,7 @@ def _make_agent(
     thread_id: str = _THREAD_ID,
     checkpoint_db: str = _CHECKPOINT_DB,
     human_in_the_loop: bool = False,
-):
+) -> Any:
     """Build a deep-agent-wrapped IKIGAi agent.
 
     Uses deepagents' create_deep_agent with:
@@ -274,6 +275,9 @@ def _make_agent(
     - SqliteSaver checkpointer
     - interrupt_on={"write_file": True} for HITL before writes
     - thread_id as configurable thread
+
+    Return type is Any because create_deep_agent's signature is dynamic
+    (LangGraph Runnable that does not expose a precise return type stub).
     """
     from deepagents import create_deep_agent
     from deepagents.backends import FilesystemBackend
@@ -341,7 +345,7 @@ def _make_agent(
 # ---------------------------------------------------------------------------
 
 
-def main():
+def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="IKIGAi Deep Agent (deepagents-powered)")
@@ -408,7 +412,7 @@ def main():
 # ---------------------------------------------------------------------------
 
 
-def _extract_assistant_text(result: dict) -> str:
+def _extract_assistant_text(result: dict[str, Any]) -> str:
     """Pull the last AI message content from a deepagents invoke result.
 
     Returns the content of the last assistant-role message as a string.
@@ -423,7 +427,7 @@ def _extract_assistant_text(result: dict) -> str:
     return ""
 
 
-def _register_builtin_commands() -> dict:
+def _register_builtin_commands() -> dict[str, Any]:
     """Return a dict mapping command name → callable(thread_id).
 
     Each callable invokes the corresponding LangChain @tool with a thread_id
@@ -441,8 +445,8 @@ def _register_builtin_commands() -> dict:
         ikigai_sync_vault,
     )
 
-    def _call(tool, thread_id: str):
-        return tool.invoke({"thread_id": thread_id})
+    def _call(tool: Any, thread_id: str) -> str:
+        return cast(str, tool.invoke({"thread_id": thread_id}))
 
     return {
         "score": lambda tid: _call(ikigai_score, tid),
@@ -456,7 +460,7 @@ def _register_builtin_commands() -> dict:
     }
 
 
-def _route_command(user_input: str, thread_id: str, registry: dict) -> str | None:
+def _route_command(user_input: str, thread_id: str, registry: dict[str, Any]) -> str | None:
     """Dispatch a built-in command if user_input matches; else None.
 
     Normalizes input (lowercase + strip) before registry lookup.
@@ -465,10 +469,15 @@ def _route_command(user_input: str, thread_id: str, registry: dict) -> str | Non
     handler = registry.get(key)
     if handler is None:
         return None
-    return handler(thread_id)
+    return cast(str | None, handler(thread_id))
 
 
-def _invoke_agent_or_fallback(agent, messages: list, config: dict, thread_id: str) -> dict | None:
+def _invoke_agent_or_fallback(
+    agent: Any,
+    messages: list[dict[str, Any]],
+    config: dict[str, Any],
+    thread_id: str,
+) -> dict[str, Any] | None:
     """Invoke the deep agent; return result or None on failure (graceful fallback).
 
     Narrows the catch to expected invoke-failure modes so control-flow
@@ -477,7 +486,7 @@ def _invoke_agent_or_fallback(agent, messages: list, config: dict, thread_id: st
     """
     _ = thread_id  # reserved for future per-thread overrides
     try:
-        return agent.invoke({"messages": messages}, config=config)
+        return cast(dict[str, Any], agent.invoke({"messages": messages}, config=config))
     except (RuntimeError, ValueError, KeyError, TypeError, AttributeError, OSError) as exc:
         # Re-raise control-flow exceptions — these are NOT graceful-fallback candidates.
         if isinstance(exc, (KeyboardInterrupt, SystemExit, GeneratorExit)):
@@ -485,7 +494,7 @@ def _invoke_agent_or_fallback(agent, messages: list, config: dict, thread_id: st
         return None
 
 
-def run_chat(agent, thread_id: str):
+def run_chat(agent: Any, thread_id: str) -> None:
     """Orchestrator: loop read → dispatch → invoke → render. ≤ 60 LOC."""
     from .tools import ikigai_plan_cycle
 
@@ -497,8 +506,8 @@ def run_chat(agent, thread_id: str):
     init_result = ikigai_plan_cycle.invoke({"thread_id": thread_id})
     print(f"  {init_result}\n")
 
-    config = {"configurable": {"thread_id": thread_id}}
-    messages: list[dict] = []
+    config: dict[str, Any] = {"configurable": {"thread_id": thread_id}}
+    messages: list[dict[str, Any]] = []
     registry = _register_builtin_commands()
 
     while True:

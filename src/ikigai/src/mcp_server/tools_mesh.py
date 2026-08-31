@@ -28,12 +28,12 @@ _GATEWAY_STARTED_AT: float = _time.time()
 _GATEWAY_VERSION = "1.0.0"
 
 
-def _load_adapters() -> list:
+def _load_adapters() -> list[Any]:
     """Load the 3 fork adapters."""
     return [CliAdapter(), TaskdogAdapter(), SolverforgeCalendarAdapter()]
 
 
-def _adapter_status(adapter) -> dict[str, Any]:
+def _adapter_status(adapter: Any) -> dict[str, Any]:
     """Probe one adapter."""
     info: dict[str, Any] = {
         "name": adapter.name,
@@ -99,7 +99,7 @@ def ikigai_mesh_show(ueid: Annotated[str, "UEID to look up across forks"]) -> st
 # ---------------------------------------------------------------------------
 def ikigai_task_create(
     ueid: Annotated[str, "UEID for the new task"],
-    fields: Annotated[dict, "Task fields (title required, priority/due/etc. optional)"],
+    fields: Annotated[dict[str, Any], "Task fields (title required, priority/due/etc. optional)"],
     source_fork: Annotated[str, "Originating fork name (e.g. 'interfaces/cli')"],
     action: Annotated[str, "Task action: create only in v1"] = "create",
 ) -> str:

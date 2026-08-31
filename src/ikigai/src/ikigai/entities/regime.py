@@ -100,9 +100,9 @@ class RegimeGraph(BaseModel):
         if scope == "global":
             return self.global_regime
         if scope in self.cluster_regimes:
-            return self.cluster_regimes[ClusterType(scope)]  # type: ignore[arg-type]
+            return self.cluster_regimes[ClusterType(scope)]
         if scope in self.vector_regimes:
-            return self.vector_regimes[VectorType(scope)]  # type: ignore[arg-type]
+            return self.vector_regimes[VectorType(scope)]
         if scope in self.subvector_regimes:
             return self.subvector_regimes[scope]
         return self.global_regime

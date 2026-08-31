@@ -35,7 +35,7 @@ def ueid_resource(ueid: str) -> str:
     except ValueError as e:
         return json.dumps({"error": f"Invalid UEID: {e}"})
 
-    adapters = [CliAdapter(), TaskdogAdapter(), SolverforgeCalendarAdapter()]
+    adapters: list[Any] = [CliAdapter(), TaskdogAdapter(), SolverforgeCalendarAdapter()]
     view: dict[str, Any] = {}
     for adapter in adapters:
         try:

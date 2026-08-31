@@ -11,7 +11,7 @@ from __future__ import annotations
 import math
 import operator
 from enum import Enum
-from typing import Annotated, Literal, NotRequired, TypedDict
+from typing import Annotated, Any, Literal, NotRequired, TypedDict
 
 # ---------------------------------------------------------------------------
 # IKIGAi vector types
@@ -96,7 +96,7 @@ class CorrectionSignal(TypedDict):
     description: str
     target_ueid: str | None  # None = system-level
     urgency: Literal["low", "medium", "high", "critical"]
-    metadata: dict
+    metadata: dict[str, Any]
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +185,7 @@ class IKIGAiStateDict(TypedDict):
 
     # Chat mode — message history accumulated across turns
     messages: NotRequired[
-        Annotated[list[dict], operator.add]
+        Annotated[list[dict[str, Any]], operator.add]
     ]  # [{"role": "user"|"agent", "content": str}]
     user_input: NotRequired[str | None]  # scratchpad for current turn input
 

@@ -11,7 +11,7 @@ import os
 import sqlite3
 import subprocess
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from langchain_core.tools import tool
 
@@ -81,9 +81,12 @@ def _read_checkpoint_data(thread_id: str = "default") -> dict[str, Any]:
     conn.close()
     if row and row[0]:
         try:
-            data = msgpack.unpackb(row[0])
+            data = cast(dict[str, Any], msgpack.unpackb(row[0]))
             # langgraph wraps state in channel_values
-            return data.get("channel_values", data)
+            channel_values = data.get("channel_values")
+            if isinstance(channel_values, dict):
+                return channel_values
+            return data
         except Exception:
             return {}
     return {}
@@ -654,7 +657,7 @@ _tuiboard_cb_config = CircuitBreakerConfig(
 )
 
 
-def _tuiboard_rpc(method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+def _tuiboard_rpc(method: str, params: dict[str, Any] | None = None) -> Any:
     """Execute a JSON-RPC call to tuiboard MCP over stdio."""
     import json
 
@@ -806,7 +809,7 @@ def tuiboard_update_task(
         Confirmation message or error.
     """
     try:
-        params = {"board_path": board_path, "task_id": task_id}
+        params: dict[str, Any] = {"board_path": board_path, "task_id": task_id}
         if done is not None:
             params["done"] = done
         if priority is not None:

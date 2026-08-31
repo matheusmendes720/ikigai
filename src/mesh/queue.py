@@ -6,7 +6,7 @@ to handle transient filesystem errors (EBUSY on Windows, NFS stale handles, etc.
 import os
 import time
 from pathlib import Path
-from typing import Iterator
+from typing import Any, Callable, Iterator, TypeVar
 
 from src.contracts.task_change import TaskChange, TaskStatus
 
@@ -22,16 +22,18 @@ _INITIAL_BACKOFF_S = 0.1
 _MAX_BACKOFF_S = 2.0
 _RETRYABLE_EXCEPTIONS = (OSError, PermissionError)
 
+_F = TypeVar("_F", bound=Callable[..., Any])
 
-def _retry_atomic_write(write_fn):
+
+def _retry_atomic_write(write_fn: _F) -> _F:
     """Decorator: retry an atomic file operation on transient OSError.
 
     The wrapped function should perform the entire temp+rename sequence and
     raise on failure. Backoff is exponential with jitter.
     """
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         backoff = _INITIAL_BACKOFF_S
-        last_exc = None
+        last_exc: BaseException | None = None
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             try:
                 return write_fn(*args, **kwargs)
@@ -44,8 +46,10 @@ def _retry_atomic_write(write_fn):
                 time.sleep(min(sleep_for, _MAX_BACKOFF_S))
                 backoff = min(backoff * 2.0, _MAX_BACKOFF_S)
         # Unreachable, but mypy wants it
-        raise last_exc  # type: ignore[misc]
-    return wrapper
+        if last_exc is not None:
+            raise last_exc
+        raise RuntimeError("_retry_atomic_write exhausted without exception")
+    return wrapper  # type: ignore[return-value]
 
 
 def _ensure_queue_dir() -> Path:

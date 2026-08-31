@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 import os
 import traceback
+from collections.abc import Callable
 from typing import Any, Literal
 
 from langgraph.checkpoint.sqlite import SqliteSaver
@@ -86,12 +87,17 @@ NODES = (
 # partial state instead of crashing. The terminal `error_node` consumes this
 # state to produce a failed commit_summary.
 # ---------------------------------------------------------------------------
-def _safe_node(name: str, fn):
+def _safe_node(name: str, fn: Callable[[IKIGAiStateDict], dict[str, Any]]) -> Any:
     """Wrap a node function so exceptions populate error-channel state.
 
     Returns a wrapper with the same signature; when fn() raises, the wrapper
     returns a dict with originating_node/error_type/error_message/traceback_str
     fields. Routing after `commit` checks these fields to decide END vs error.
+
+    Return type is `Any` to bypass LangGraph's strict add_node overload
+    (TypedDictLikeV2 / DataclassLike / BaseModel union). At runtime the
+    wrapper IS callable with (IKIGAiStateDict) -> dict[str, Any], which is
+    what LangGraph expects.
     """
 
     def wrapper(state: IKIGAiStateDict) -> dict[str, Any]:
@@ -205,7 +211,7 @@ def _route_after_reflect(
     return "commit"
 
 
-def _route_after_commit(state: IKIGAiStateDict) -> Literal["error", END]:
+def _route_after_commit(state: IKIGAiStateDict) -> str:
     """After commit: end on success, route to error_node if any node raised.
 
     The safe_node wrapper populates `error_type` whenever an exception occurs
@@ -220,7 +226,7 @@ def _route_after_commit(state: IKIGAiStateDict) -> Literal["error", END]:
 # ---------------------------------------------------------------------------
 # Graph factory
 # ---------------------------------------------------------------------------
-def make_ikigai_graph(checkpoint_db: str | None = None) -> StateGraph:
+def make_ikigai_graph(checkpoint_db: str | None = None) -> Any:
     """Build the IKIGAi Maintainer StateGraph.
 
     Args:
@@ -245,7 +251,9 @@ def make_ikigai_graph(checkpoint_db: str | None = None) -> StateGraph:
     # Build graph (wrapped in a span so each compile call is observable)
     with _graph_tracer.start_as_current_span("ikigai.graph.compile") as span:
         span.set_attribute("checkpoint_db", checkpoint_db)
-        builder = StateGraph(IKIGAiStateDict)
+        builder: StateGraph[IKIGAiStateDict, None, IKIGAiStateDict, IKIGAiStateDict] = StateGraph(
+            IKIGAiStateDict
+        )
 
         # Add nodes — wrapped in safe_node so exceptions populate error state
         # instead of crashing the whole graph (B5.1-F3).
@@ -329,10 +337,13 @@ def make_ikigai_graph(checkpoint_db: str | None = None) -> StateGraph:
         compiled = builder.compile(checkpointer=checkpointer)
         # Stash the connection on the compiled graph so close_graph() can find it.
         # Per audit B5.0-F4: SqliteSaver connection was leaking on singleton use.
-        compiled._ikigai_checkpoint_conn = conn
-        compiled._ikigai_checkpoint_db = checkpoint_db
+        # Cast through Any: LangGraph's CompiledStateGraph doesn't declare these
+        # attributes, but they're our own runtime bookkeeping, not part of the type.
+        compiled_any: Any = compiled
+        compiled_any._ikigai_checkpoint_conn = conn
+        compiled_any._ikigai_checkpoint_db = checkpoint_db
         span.set_attribute("nodes", len(NODES))
-        return compiled
+        return compiled_any
 
 
 # ---------------------------------------------------------------------------
@@ -343,7 +354,7 @@ import os  # noqa: E402
 _graph_instance = None
 
 
-def graph():
+def graph() -> Any:
     """Return a singleton compiled graph instance for langgraph dev."""
     global _graph_instance
     if _graph_instance is None:

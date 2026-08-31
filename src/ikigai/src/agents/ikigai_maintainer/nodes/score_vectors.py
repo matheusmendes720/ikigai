@@ -6,9 +6,10 @@ Implements H4 (market fit) and H5 (skill velocity) from the IKIGAi SPEC.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from ..state import (
+    VECTOR_TYPES,
     IKIGAiStateDict,
     compute_meta_vector,
 )
@@ -75,7 +76,13 @@ def score_vectors_node(state: IKIGAiStateDict) -> dict[str, Any]:
             "course": 0.15,
         },
     )
-    meta_vector = compute_meta_vector(vector_scores, phase_weights)
+    # Cast dict[str, float] to the stricter VECTOR_TYPES-keyed dict expected by
+    # compute_meta_vector. The vector_scores keys are always 5 canonical vectors
+    # by construction (line 59), so the cast is safe.
+    meta_vector = compute_meta_vector(
+        cast(dict[VECTOR_TYPES, float], vector_scores),
+        cast(dict[VECTOR_TYPES, float] | None, phase_weights) if phase_weights else None,
+    )
 
     return {
         "vector_scores": vector_scores,
@@ -174,8 +181,13 @@ def _compute_revenue_score(state: IKIGAiStateDict) -> float:
                 continue
             try:
                 post = _fm.loads(md.read_text(encoding="utf-8"))
-                tags = set(post.metadata.get("tags", []))
-                title = post.metadata.get("title", "").lower()
+                tags_raw = post.metadata.get("tags", [])
+                tags_iterable: list[object] = tags_raw if isinstance(tags_raw, list) else []
+                tags_list: list[str] = [str(t) for t in tags_iterable]
+                tags = set(tags_list)
+                title_raw = post.metadata.get("title", "")
+                title_str: str = str(title_raw) if title_raw is not None else ""
+                title = title_str.lower()
                 status = post.metadata.get("status", "")
                 if status in ("CANCELLED", "cancelled", "ARCHIVED"):
                     continue
@@ -198,8 +210,8 @@ def _compute_course_score(state: IKIGAiStateDict) -> float:
         senai_path = Path.home() / ".ikigai" / "senai_attendance.json"
         if senai_path.exists():
             data = _json.loads(senai_path.read_text())
-            attendance = data.get("attendance_rate", 0.8)
-            assignments = data.get("assignments_on_time", 0.8)
+            attendance = float(data.get("attendance_rate", 0.8))
+            assignments = float(data.get("assignments_on_time", 0.8))
             return (attendance * 0.5 + assignments * 0.3 + 0.7 * 0.2) * 100.0
     except Exception:
         pass

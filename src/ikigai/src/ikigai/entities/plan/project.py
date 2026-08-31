@@ -17,9 +17,8 @@ class ProjectEntity(PlanEntity):
     Until then, this entity is fully usable as a planning unit.
     """
 
-    entity_type: Literal[EntityType.PROJECT] = EntityType.PROJECT  # type: ignore[assignment]
-    horizon_days: Literal[30, 60, 90, 120, 150, 180]  # type: ignore[valid-type]
-
+    entity_type: Literal[EntityType.PROJECT] = EntityType.PROJECT
+    horizon_days: Literal[30, 60, 90, 120, 150, 180]
     # Project-specific fields (forward-compat)
     tech_stack: list[str] = Field(default_factory=list)
     repo_url: str | None = None

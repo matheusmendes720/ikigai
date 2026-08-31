@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import model_validator
@@ -11,7 +11,7 @@ from ikigai.entities.base import PlanEntity
 from ikigai.enums import EntityType, StatusType
 
 
-class TaskPriority(str, Enum):
+class TaskPriority(StrEnum):
     """RICE+IKIGAi priority levels."""
 
     URGENT = "urgent"  # < 7 days
@@ -20,7 +20,7 @@ class TaskPriority(str, Enum):
     LOW = "low"  # >= 90 days
 
 
-class TaskStatus(str, Enum):
+class TaskStatus(StrEnum):
     """Task-specific status (extends StatusType)."""
 
     TODO = "todo"
@@ -33,9 +33,8 @@ class TaskStatus(str, Enum):
 class TaskEntity(PlanEntity):
     """Task (1-7 days). Forward-compat placeholder for Taskwarrior integration."""
 
-    entity_type: Literal[EntityType.TASK] = EntityType.TASK  # type: ignore[assignment]
-    horizon_days: Literal[1, 2, 3, 4, 5, 6, 7]  # type: ignore[valid-type]
-
+    entity_type: Literal[EntityType.TASK] = EntityType.TASK
+    horizon_days: Literal[1, 2, 3, 4, 5, 6, 7]
     # Task-specific fields
     priority: TaskPriority = TaskPriority.MEDIUM
     rice_reach: float = 1.0  # RICE: 1-10

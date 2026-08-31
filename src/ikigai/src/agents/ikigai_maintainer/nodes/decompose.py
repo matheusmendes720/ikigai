@@ -57,7 +57,7 @@ def decompose_node(state: IKIGAiStateDict) -> dict[str, Any]:
         if result.returncode == 0:
             items = json.loads(result.stdout) if result.stdout else []
             # Group by UEID tier
-            by_tier: dict[str, list[dict]] = {}
+            by_tier: dict[str, list[dict[str, Any]]] = {}
             for item in items:
                 ueid = item.get("ueid", "")
                 tier = _tier_from_ueid(ueid)

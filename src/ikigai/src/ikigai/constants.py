@@ -19,7 +19,7 @@ class PavNs:
     HORARIO_DORMIR_MAX: int = 21  # 21h
     HORARIO_ULTIMA_REFEICAO_MIN: int = 15  # 15h
     HORARIO_ULTIMA_REFEICAO_MAX: int = 18  # 18h
-    SONO_OPCOES_HORAS: tuple = (9, 8, 7, 4)
+    SONO_OPCOES_HORAS: tuple[int, ...] = (9, 8, 7, 4)
     LUZ_AZUL_CORTE: int = 18  # 18h
     TRANSITION_RITUAL_MAX_MIN: int = 5
 

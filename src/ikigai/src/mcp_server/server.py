@@ -9,7 +9,7 @@ import datetime as dt
 import json
 import sqlite3
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from mcp.server.fastmcp import FastMCP
 
@@ -51,7 +51,7 @@ def _decompose_ueid(ueid: str) -> dict[str, Any]:
     def _read_entity(dir_name: str, slug: str) -> list[dict[str, Any]]:
         """Read all frontmatter records from a vault subdirectory."""
         entity_dir = vault_root / dir_name
-        results = []
+        results: list[dict[str, Any]] = []
         if not entity_dir.is_dir():
             return results
         for md_file in entity_dir.iterdir():
@@ -195,7 +195,7 @@ def _tasks_path() -> Path:
     return repo_root / "data" / "tasks.jsonl"
 
 
-def _write_tasks_to_data(tasks: list[dict]) -> str:
+def _write_tasks_to_data(tasks: list[dict[str, Any]]) -> str:
     """Append structured tasks (from Deep Agent) to data/tasks.jsonl.
 
     Each line is a JSON object with a uuid, timestamp, and the task fields.
@@ -353,7 +353,7 @@ def _handle_ikigai_plan_cycle(arguments: dict[str, Any]) -> str:
 
         today = dt.date.today()
         graph = make_ikigai_graph()
-        initial = {
+        initial: dict[str, Any] = {
             "cycle_id": today.isoformat(),
             "cycle_start": arguments.get("cycle_start") or today.isoformat(),
             "cycle_end": arguments.get("cycle_end") or (today + dt.timedelta(days=45)).isoformat(),
@@ -602,7 +602,7 @@ _No corrections emitted in this cycle._
 )
 def ikigai_score() -> str:
     """5-vector IKIGAi scores (passion/skill/market/revenue/course) + meta-vector."""
-    return traced_tool_dispatch("ikigai_score", _handle_ikigai_score, {})
+    return cast(str, traced_tool_dispatch("ikigai_score", _handle_ikigai_score, {}))
 
 
 @MCP.tool(
@@ -611,7 +611,7 @@ def ikigai_score() -> str:
 )
 def ikigai_regime() -> str:
     """Current IKIGAi regime and days-in-regime."""
-    return traced_tool_dispatch("ikigai_regime", _handle_ikigai_regime, {})
+    return cast(str, traced_tool_dispatch("ikigai_regime", _handle_ikigai_regime, {}))
 
 
 @MCP.tool(
@@ -620,7 +620,7 @@ def ikigai_regime() -> str:
 )
 def ikigai_phase() -> str:
     """Current IKIGAi phase and phase iteration."""
-    return traced_tool_dispatch("ikigai_phase", _handle_ikigai_phase, {})
+    return cast(str, traced_tool_dispatch("ikigai_phase", _handle_ikigai_phase, {}))
 
 
 @MCP.tool(
@@ -629,8 +629,11 @@ def ikigai_phase() -> str:
 )
 def ikigai_decompose(dream_ueid: str) -> str:
     """Decompose a Dream UEID into its full UEID hierarchy."""
-    return traced_tool_dispatch(
-        "ikigai_decompose", _handle_ikigai_decompose, {"dream_ueid": dream_ueid}
+    return cast(
+        str,
+        traced_tool_dispatch(
+            "ikigai_decompose", _handle_ikigai_decompose, {"dream_ueid": dream_ueid}
+        ),
     )
 
 
@@ -640,7 +643,10 @@ def ikigai_decompose(dream_ueid: str) -> str:
 )
 def ikigai_corrections(limit: int = 20) -> str:
     """List recent correction signals from H1-H6 heuristics."""
-    return traced_tool_dispatch("ikigai_corrections", _handle_ikigai_corrections, {"limit": limit})
+    return cast(
+        str,
+        traced_tool_dispatch("ikigai_corrections", _handle_ikigai_corrections, {"limit": limit}),
+    )
 
 
 @MCP.tool(
@@ -653,14 +659,17 @@ def ikigai_plan_cycle(
     cycle_end: str | None = None,
 ) -> str:
     """Trigger an IKIGAi plan cycle — runs the full LangGraph agent."""
-    return traced_tool_dispatch(
-        "ikigai_plan_cycle",
-        _handle_ikigai_plan_cycle,
-        {
-            "active_dream_ueid": active_dream_ueid,
-            "cycle_start": cycle_start,
-            "cycle_end": cycle_end,
-        },
+    return cast(
+        str,
+        traced_tool_dispatch(
+            "ikigai_plan_cycle",
+            _handle_ikigai_plan_cycle,
+            {
+                "active_dream_ueid": active_dream_ueid,
+                "cycle_start": cycle_start,
+                "cycle_end": cycle_end,
+            },
+        ),
     )
 
 
@@ -671,17 +680,20 @@ def ikigai_plan_cycle(
 def ikigai_checkpoint(
     action: str = "get",
     thread_id: str | None = None,
-    state_snapshot: dict | None = None,
+    state_snapshot: dict[str, Any] | None = None,
 ) -> str:
     """Get or set a named checkpoint in the IKIGAi checkpoint DB."""
-    return traced_tool_dispatch(
-        "ikigai_checkpoint",
-        _handle_ikigai_checkpoint,
-        {
-            "action": action,
-            "thread_id": thread_id,
-            "state_snapshot": state_snapshot,
-        },
+    return cast(
+        str,
+        traced_tool_dispatch(
+            "ikigai_checkpoint",
+            _handle_ikigai_checkpoint,
+            {
+                "action": action,
+                "thread_id": thread_id,
+                "state_snapshot": state_snapshot,
+            },
+        ),
     )
 
 
@@ -691,8 +703,11 @@ def ikigai_checkpoint(
 )
 def ikigai_sync_vault(cycle_id: str) -> str:
     """Sync IKIGAi cycle data to the markdown vault."""
-    return traced_tool_dispatch(
-        "ikigai_sync_vault", _handle_ikigai_sync_vault, {"cycle_id": cycle_id}
+    return cast(
+        str,
+        traced_tool_dispatch(
+            "ikigai_sync_vault", _handle_ikigai_sync_vault, {"cycle_id": cycle_id}
+        ),
     )
 
 
@@ -700,7 +715,7 @@ def ikigai_sync_vault(cycle_id: str) -> str:
     name="ikigai_write_tasks",
     description="Write structured tasks to data/tasks.jsonl — Deep Agent output for interfaces",
 )
-def ikigai_write_tasks(tasks: list[dict]) -> str:
+def ikigai_write_tasks(tasks: list[dict[str, Any]]) -> str:
     """Write structured tasks to data/tasks.jsonl — Deep Agent output for interfaces."""
     return _write_tasks_to_data(tasks)
 
@@ -746,7 +761,7 @@ def _ikigai_mesh_show_tool(ueid: str) -> str:
 )
 def _ikigai_task_create_tool(
     ueid: str,
-    fields: dict,
+    fields: dict[str, Any],
     source_fork: str,
     action: str = "create",
 ) -> str:
@@ -781,14 +796,17 @@ def _ikigai_health_tool() -> str:
 )
 def vault_write(
     vault_path: str,
-    frontmatter: dict,
+    frontmatter: dict[str, Any],
     body: str,
 ) -> str:
     """Write markdown file to vault. ONLY vault writer per attribution §7."""
-    return traced_tool_dispatch(
-        "vault_write",
-        _handle_vault_write,
-        {"vault_path": vault_path, "frontmatter": frontmatter, "body": body},
+    return cast(
+        str,
+        traced_tool_dispatch(
+            "vault_write",
+            _handle_vault_write,
+            {"vault_path": vault_path, "frontmatter": frontmatter, "body": body},
+        ),
     )
 
 
@@ -804,10 +822,13 @@ def vault_write(
 )
 def vault_read(vault_path: str) -> str:
     """Read markdown file from vault. Read-side mirror of vault_write (B7.1)."""
-    return traced_tool_dispatch(
-        "vault_read",
-        _handle_vault_read,
-        {"vault_path": vault_path},
+    return cast(
+        str,
+        traced_tool_dispatch(
+            "vault_read",
+            _handle_vault_read,
+            {"vault_path": vault_path},
+        ),
     )
 
 

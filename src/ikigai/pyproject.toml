@@ -45,6 +45,11 @@ ruff = "^0.3"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[dependency-groups]
+dev = [
+    "types-pyyaml>=6.0.12.20260815",
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
@@ -54,10 +59,35 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "PT", "RUF"]
 ignore = ["E501"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 strict = true
 warn_unused_ignores = true
 warn_return_any = true
+# Poetry src-layout: cwd is `src/ikigai/`. The actual code root is
+# `src/ikigai/src/` (poetry's "from = src"). The ikigai package lives at
+# `src/ikigai/src/ikigai/__init__.py`.
+#
+# `mypy_path = "src"` adds `src/ikigai/src/` to sys.path so `from ikigai.X`
+# resolves. We MUST NOT include `src/ikigai` in [files] because that would
+# create a duplicate-source conflict (input scan vs mypy_path both resolve
+# to src/ikigai/src/ikigai/__init__.py). Instead, mypy discovers the ikigai
+# package via follow_imports from the other listed modules.
+mypy_path = ["src", "..", "../.."]
+explicit_package_bases = true
+namespace_packages = true
+ignore_missing_imports = false
+# Enumerate packages to check. Do NOT include "src/ikigai" (see above).
+files = [
+    "src/agents",
+    "src/mcp_server",
+    "src/observability",
+    "src/strategics",
+    "src/ikigai_wrapper.py",
+]
+
+[[tool.mypy.overrides]]
+module = ["deepagents", "deepagents.backends", "langchain_anthropic", "msgpack", "yaml"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

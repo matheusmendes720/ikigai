@@ -35,7 +35,7 @@ from .otel_init import get_tracer
 _tracer = get_tracer("ikigai.tools")
 
 
-def observed_tool(tool_name: str) -> Callable:
+def observed_tool(tool_name: str) -> Callable[..., Any]:
     """Wrap a tool function with span + exception capture.
 
     Args:
@@ -44,7 +44,7 @@ def observed_tool(tool_name: str) -> Callable:
             that survives renames — it's how you'll filter in Langfuse.
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         sig = inspect.signature(func)
 
         @functools.wraps(func)

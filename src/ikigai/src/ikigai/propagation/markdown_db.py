@@ -136,7 +136,7 @@ class MarkdownDB:
         from ikigai.entities.plan.task import TaskEntity
 
         entity_type = data.get("entity_type")
-        model_map = {
+        model_map: dict[EntityType, type[PlanEntity]] = {
             EntityType.DREAM: DreamEntity,
             EntityType.GOAL: GoalEntity,
             EntityType.OBJECTIVE: ObjectiveEntity,
@@ -144,7 +144,10 @@ class MarkdownDB:
             EntityType.TASK: TaskEntity,
             EntityType.DELIVERABLE: DeliverableEntity,
         }
-        model_cls = model_map.get(entity_type, PlanEntity)
+        if isinstance(entity_type, EntityType):
+            model_cls = model_map.get(entity_type, PlanEntity)
+        else:
+            model_cls = PlanEntity
         return model_cls.model_validate(data)
 
     def delete(self, entity_or_path: PlanEntity | Path) -> bool:

@@ -16,10 +16,9 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .common import RegimeState, UEID
+from ikigai.core.scoring.qhe import compute_qhe
 
-# Note: ikigai import deferred - requires ikigai package to be installed
-# from ikigai.core.scoring.qhe import compute_qhe
+from .common import RegimeState, UEID
 
 
 # ---------------------------------------------------------------------------

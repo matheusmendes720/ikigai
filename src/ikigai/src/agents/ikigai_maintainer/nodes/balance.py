@@ -52,7 +52,7 @@ def balance_node(state: IKIGAiStateDict) -> dict[str, Any]:
         is_hysteresis_active = True
 
     # Emit corrections
-    corrections = []
+    corrections: list[dict[str, Any]] = []
     if verdict == "RECOVER":
         corrections.append(
             {

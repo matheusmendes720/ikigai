@@ -14,9 +14,8 @@ from ikigai.enums import EntityType, StatusType
 class DeliverableEntity(PlanEntity):
     """Concrete deliverable (artifact, document, code, etc.)."""
 
-    entity_type: Literal[EntityType.DELIVERABLE] = EntityType.DELIVERABLE  # type: ignore[assignment]
-    horizon_days: Literal[1, 2, 3, 4, 5, 6, 7, 14, 30]  # type: ignore[valid-type]
-
+    entity_type: Literal[EntityType.DELIVERABLE] = EntityType.DELIVERABLE
+    horizon_days: Literal[1, 2, 3, 4, 5, 6, 7, 14, 30]
     artifact_path: Path | None = None
     artifact_type: str = "document"  # document | code | data | media | other
     is_public: bool = False

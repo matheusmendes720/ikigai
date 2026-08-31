@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import datetime as dt
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from ..state import IKIGAiStateDict
 
@@ -35,28 +35,37 @@ def commit_node(state: IKIGAiStateDict) -> dict[str, Any]:
     cycle_id = state.get("cycle_id", dt.date.today().isoformat())
     regime = state.get("regime_state", "MAINTAIN")
     q_he = state.get("q_he_score", 0.65)
-    vector_scores = state.get("vector_scores", {})
+    # vector_scores is dict[Literal[...], float] from TypedDict; cast to dict[str, float]
+    # because every key IS a str (canonical vector names).
+    vector_scores = cast(dict[str, float], state.get("vector_scores", {}))
     meta_vector = state.get("meta_vector_score", 0.0)
-    corrections = state.get("corrections", [])
+    # corrections is list[CorrectionSignal] (TypedDict shape) — serialised as dict[str, Any]
+    # when passed to JSONL/SQLite, hence the cast.
+    corrections_raw: list[dict[str, Any]] = cast(list[dict[str, Any]], state.get("corrections", []))
 
     summary_lines: list[str] = []
 
     # 1. Write to SQLite via operational persistence layer
-    committed = _write_to_sqlite(cycle_id, regime, q_he, vector_scores, meta_vector, corrections)
+    committed = _write_to_sqlite(
+        cycle_id, regime, q_he, vector_scores, meta_vector, corrections_raw
+    )
     summary_lines.append(f"SQLite: {committed}")
 
     # 2. Append to markdown vault cycle log
     vault_path = _get_vault_path()
     if vault_path:
         appended = _append_to_vault(
-            vault_path, cycle_id, regime, q_he, vector_scores, meta_vector, corrections
+            vault_path, cycle_id, regime, q_he, vector_scores, meta_vector, corrections_raw
         )
         summary_lines.append(f"Vault: {appended}")
     else:
         summary_lines.append("Vault: not configured")
 
     # 3. Write structured tasks to data/tasks.jsonl for interfaces
-    structured_tasks = state.get("structured_tasks", [])
+    structured_tasks_raw = state.get("structured_tasks", [])
+    structured_tasks: list[dict[Any, Any]] = (
+        cast(list[dict[Any, Any]], structured_tasks_raw) if structured_tasks_raw else []
+    )
     if structured_tasks:
         written = _write_tasks_to_data(structured_tasks)
         summary_lines.append(f"Tasks: {written}")
@@ -76,7 +85,7 @@ def _write_to_sqlite(
     q_he: float,
     vector_scores: dict[str, float],
     meta_vector: float,
-    corrections: list[dict],
+    corrections: list[dict[str, Any]],
 ) -> str:
     """Write cycle record to plan_entities SQLite table via SQLiteAdapter."""
     try:
@@ -114,7 +123,7 @@ def _append_to_vault(
     q_he: float,
     vector_scores: dict[str, float],
     meta_vector: float,
-    corrections: list[dict],
+    corrections: list[dict[str, Any]],
 ) -> str:
     """Append cycle summary to markdown vault log."""
     try:

@@ -146,4 +146,4 @@ def shutdown_tracing() -> None:
     """
     provider = trace.get_tracer_provider()
     if hasattr(provider, "shutdown"):
-        provider.shutdown()  # type: ignore[attr-defined]
+        provider.shutdown()

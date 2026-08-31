@@ -214,16 +214,14 @@ class PlanEntity(BaseModel):
         if "entity_type" in d:
             d["entity_type"] = self.entity_type.value
         if d.get("phase_at_creation"):
+            phase = self.phase_at_creation
             d["phase_at_creation"] = (
-                self.phase_at_creation.value
-                if hasattr(self.phase_at_creation, "value")
-                else self.phase_at_creation
+                phase.value if phase is not None and hasattr(phase, "value") else phase
             )
         if d.get("regime_at_creation"):
+            regime = self.regime_at_creation
             d["regime_at_creation"] = (
-                self.regime_at_creation.value
-                if hasattr(self.regime_at_creation, "value")
-                else self.regime_at_creation
+                regime.value if regime is not None and hasattr(regime, "value") else regime
             )
         if d.get("source_md_path"):
             d["source_md_path"] = str(self.source_md_path)
