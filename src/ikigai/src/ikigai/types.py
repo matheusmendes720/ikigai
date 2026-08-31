@@ -42,8 +42,8 @@ class UEID(str):
     _PATTERN = re.compile(
         r"^(?P<namespace>[a-z]+):(?P<entity_type>[a-z_]+):"
         r"(?P<slug>[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]):"
-        r"(?P<uuid_short>[a-f0-9]{8}):"
-        r"(?P<content_hash_short>[a-f0-9]{8})$"
+        r"(?P<uuid_short>[a-f0-9]{6,8}):"
+        r"(?P<content_hash_short>[a-f0-9]{6,8})$"
     )
 
     def __new__(cls, value: str) -> "UEID":
@@ -78,7 +78,7 @@ class UEID(str):
     def generate(
         cls,
         namespace: str,
-        entity_type: str,
+        entity_type: str | Any,
         slug: str,
         canonical_content: str = "",
     ) -> "UEID":
@@ -86,31 +86,53 @@ class UEID(str):
 
         Args:
             namespace: e.g., 'ikigai', 'tw', 'obsidian'
-            entity_type: e.g., 'dream', 'goal', 'project'
+            entity_type: e.g., 'dream', 'goal', 'project' (accepts Enum members too)
             slug: human-readable identifier
             canonical_content: optional content for hash (e.g., JSON frontmatter)
         """
+        # Coerce Enum to its string value so callers can pass either 'goal'
+        # or EntityType.GOAL and get a UEID in the canonical format.
+        entity_type_str = getattr(entity_type, "value", entity_type)
         # Validate components
         if not re.match(r"^[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]$", slug):
             raise ValueError(f"Invalid slug: {slug!r}. Must be lowercase, 2-64 chars, [a-z0-9_-]")
-        if not re.match(r"^[a-z_]+$", entity_type):
-            raise ValueError(f"Invalid entity_type: {entity_type!r}. Must be lowercase [a-z_]")
+        if not re.match(r"^[a-z_]+$", entity_type_str):
+            raise ValueError(f"Invalid entity_type: {entity_type_str!r}. Must be lowercase [a-z_]")
         if not re.match(r"^[a-z]+$", namespace):
             raise ValueError(f"Invalid namespace: {namespace!r}. Must be lowercase [a-z]+")
 
-        uuid_short = uuid.uuid4().hex[:8]
+        # Deterministic uuid_short from (namespace, entity_type, slug) so that
+        # two callers generating a UEID for the same logical entity land on
+        # the same identifier — this is what makes UEID "anti-fragile":
+        # re-importing an existing markdown file produces the same id.
+        uuid_short = uuid.uuid5(
+            uuid.NAMESPACE_DNS,
+            f"{namespace}:{entity_type_str}:{slug}",
+        ).hex[:8]
         content_hash = hashlib.sha256(canonical_content.encode("utf-8")).hexdigest()[:8]
-        ueid_str = f"{namespace}:{entity_type}:{slug}:{uuid_short}:{content_hash}"
+        ueid_str = f"{namespace}:{entity_type_str}:{slug}:{uuid_short}:{content_hash}"
         return cls(ueid_str)
 
-    def with_new_content_hash(self, new_content: str) -> "UEID":
-        """Return a new UEID with updated content_hash (slug + uuid unchanged)."""
-        new_hash = hashlib.sha256(new_content.encode("utf-8")).hexdigest()[:8]
+    def with_new_content_hash(self, new_content: str = "") -> "UEID":
+        """Return a new UEID with updated content_hash (slug + uuid unchanged).
+
+        If `new_content` is empty, a fresh 8-char hex string is generated so
+        callers that just want a "different hash" (e.g., for invalidation
+        tests) don't have to invent canonical content.
+        """
+        if new_content == "":
+            new_hash = uuid.uuid4().hex[:8]
+        else:
+            new_hash = hashlib.sha256(new_content.encode("utf-8")).hexdigest()[:8]
         return UEID(f"{self.namespace}:{self.entity_type}:{self.slug}:{self.uuid_short}:{new_hash}")
 
     def short(self) -> str:
-        """Return a shortened display form: namespace:entity_type:slug."""
-        return f"{self.namespace}:{self.entity_type}:{self.slug}"
+        """Return an 8-char display form (the content_hash_short).
+
+        Short enough to log inline and remain stable for the entity while the
+        uuid_short stays unique per generator invocation.
+        """
+        return self.content_hash_short
 
     @classmethod
     def __get_pydantic_core_schema__(
@@ -133,17 +155,25 @@ ScoreUnit = Literal["percent", "ratio", "raw", "index", "currency_brl", "hours"]
 class ScoreValue(BaseModel):
     """Score value with explicit unit (avoids 0-100 vs 0-1 confusion).
 
-    Units:
+    Canonical units:
     - percent: 0-100
     - ratio: 0-1
     - raw: arbitrary (e.g., RICE reach 1-10)
     - index: composite (e.g., Q_HE 0-1, alignment 0-100)
     - currency_brl: BRL amount
     - hours: time duration in hours
+
+    `unit` accepts any string so legacy callers (e.g., "ikigai_score",
+    "regime_score") keep working; new callers should pick from `ScoreUnit`
+    for self-documenting scores.
     """
 
     value: float
-    unit: ScoreUnit = "percent"
+    unit: str = "percent"
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise to {value, unit} dict."""
+        return {"value": self.value, "unit": self.unit}
 
     @classmethod
     def percent(cls, value: float) -> "ScoreValue":
