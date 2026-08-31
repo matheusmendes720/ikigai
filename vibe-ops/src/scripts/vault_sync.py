@@ -61,7 +61,6 @@ def cmd_vault(args: argparse.Namespace) -> int:
 
 def cmd_code(args: argparse.Namespace) -> int:
     from middleware.bidirectional_sync import BidirectionalSync
-    from pipeline.hypothesis_evaluator import HypothesisEvaluator
     vault = Path(args.vault)
     db = Path(args.db)
     if not vault.exists():
@@ -71,21 +70,12 @@ def cmd_code(args: argparse.Namespace) -> int:
     sync = BidirectionalSync(vault, db)
     sync_stats = sync.sync_code_to_vault()
 
-    import sqlite3
-    conn = sqlite3.connect(str(db))
-    try:
-        evaluator = HypothesisEvaluator(conn, vault_path=vault)
-        evals = evaluator.evaluate_all()
-        evaluation_summary = [
-            {
-                "hypothesis_id": e.hypothesis_id,
-                "verdict": e.verdict,
-                "score": e.score,
-            }
-            for e in evals
-        ]
-    finally:
-        conn.close()
+    # Per attribution §3, HypothesisEvaluator.evaluate_all() is algorithm
+    # math (verdict + score composition) and was removed from this
+    # orchestrator layer. The vault-sync command now reports sync_stats
+    # only; hypothesis evaluation lives at
+    # ``pipeline.hypothesis_evaluator.HypothesisEvaluator``.
+    evaluation_summary: list[dict[str, Any]] = []
 
     return _emit(
         {

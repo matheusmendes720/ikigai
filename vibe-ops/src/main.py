@@ -82,9 +82,11 @@ def main():
             sys.exit(1)
             
     elif args.command == "status":
-        from pipeline.ikigai_scorer import IkigaiScorer
-        from pipeline.policy_engine import PolicyEngine
-        
+        # Per attribution §3, IkigaiScorer + PolicyEngine imports were removed
+        # (algo math is not the orchestrator layer's responsibility). The
+        # status command below calls archived entry points that now raise
+        # NotImplementedError; see CyberneticDailyLoop._get_previous_decision
+        # for the DB-only path that remains.
         logger.info("Recuperando status cibernético...")
         try:
             loop = CyberneticDailyLoop(db_path=args.db, tw_path="", vault_path="")

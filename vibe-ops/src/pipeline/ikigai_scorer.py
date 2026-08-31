@@ -1,8 +1,14 @@
-"""IkigaiScorer — thin wrapper around canonical IKIGAI vector scoring.
+"""IkigaiScorer — DB readers preserved; compute_score() archived per attribution §3.
 
-Canonical modules (PRD-07 / ADR-002):
+Canonical modules (PRD-07 / ADR-002) — NOT IMPORTED here anymore:
   - ikigai.core.scoring.vector_scores: compute_vector_scores(passion, skill, market, revenue, course)
   - ikigai.core.scoring.qhe: compute_qhe(h_sono, h_med, h_workout, h_lunch, s_streak)
+
+Per attribution §3, IKIGAI agent / CLI / orchestrator layers must NOT execute
+algo math. The ``compute_score`` method is archived-in-place — DB reader
+helpers remain callable (pure I/O, no algo math) but the algo entry point
+raises NotImplementedError. Callers that need the canonical implementation
+should import directly from ``ikigai.core.scoring.vector_scores``.
 
 Vibe-ops DB schema (read-only):
   study_sessions(date, duration_minutes, subject, notes)
@@ -15,7 +21,6 @@ import sqlite3
 from datetime import date, timedelta
 from typing import Any
 
-from ikigai.core.scoring.vector_scores import compute_vector_scores
 from ikigai.enums import VectorType
 
 
@@ -121,50 +126,23 @@ class IkigaiScorer:
         self.db_path = db_path
 
     def compute_score(self) -> dict[str, Any]:
-        """Main entry point — returns full score breakdown.
+        """Main entry point — ARCHIVED per attribution §3.
 
-        Returns dict with:
-          passion, skill, market, revenue, course (0-100 float)
-          global: geometric mean of the 5 vectors (0-100 float)
-          legacy: {study, dev, health, alignment, global} at 0-1 scale
+        Vector-score math (geometric mean across 5 vectors, legacy 0-1 scaling)
+        is the algorithm layer's responsibility, not the orchestrator /
+        agent layer's. DB reader helpers below are pure I/O and remain
+        callable; only the algo composition path raises.
+
+        Callers that need the canonical implementation should import
+        directly from ``ikigai.core.scoring.vector_scores``:
+            compute_vector_scores(passion_streak_days=..., skill_inputs=..., ...)
         """
-        streak = _read_streak(self.db_path)
-        skill_levels, demand_weights, momentum, completion = _read_skill_inputs(self.db_path)
-        fit_avg, demand_avg, pipeline = _read_market_inputs(self.db_path)
-        rev_actual, rev_target, rev_health = _read_revenue_inputs(self.db_path)
-        attendance, assignments, exams = _read_course_inputs(self.db_path)
-
-        scores = compute_vector_scores(
-            passion_streak_days=streak,
-            skill_inputs=(skill_levels, demand_weights, momentum, completion),
-            market_inputs=(fit_avg, demand_avg, pipeline),
-            revenue_inputs=(rev_actual, rev_target, rev_health),
-            course_inputs=(attendance, assignments, exams),
+        raise NotImplementedError(
+            "IkigaiScorer.compute_score math archived per attribution §3 — "
+            "see ikigai.core.scoring.vector_scores for the canonical "
+            "compute_vector_scores implementation. DB reader helpers "
+            "(_read_streak, _read_skill_inputs, etc.) remain available."
         )
-
-        # Convert ScoreValue to plain float, enum key → string key
-        result: dict[str, Any] = {}
-        for vec_enum in VectorType:
-            sv = scores.get(vec_enum)
-            result[vec_enum.value] = float(sv.value) if sv is not None else 50.0
-
-        # Global = geometric mean of the 5 vectors
-        product = 1.0
-        for key in _VECTORS_IKIGAI:
-            product *= result[key]
-        result["global"] = round(product ** (1.0 / 5.0), 2)
-
-        # Legacy keys at 0-1 scale (for backward compat with daily_loop)
-        study_sessions = _count_study_sessions(self.db_path)
-        result["legacy"] = {
-            "study": min(study_sessions / 14.0, 1.0),
-            "dev": 0.5,  # no dev data in vibe-ops
-            "health": self._read_qhe_avg(),
-            "alignment": result["global"] / 100.0,
-            "global": result["global"] / 100.0,
-        }
-
-        return result
 
     def _read_qhe_avg(self) -> float:
         """Read Q_HE average from metrics table (0-1 scale)."""
