@@ -358,6 +358,24 @@ def ikigai_plan_cycle(thread_id: str = "default") -> str:
 # ---------------------------------------------------------------------------
 
 
+def _format_corrections(corrections: list[dict[str, Any]]) -> str:
+    """Render the last 5 corrections as a markdown bullet list.
+
+    Extracted from the sync_vault body so the f-string composing the vault
+    markdown does not contain a backslash escape (the inner "\\n" inside an
+    f-string triggers ruff's invalid-syntax on Python 3.10). The project
+    requires-python >=3.12 so the runtime is fine; ruff is being defensive
+    and we comply by moving the join out of the f-string.
+    """
+    if not corrections:
+        return "_None_"
+    lines = [
+        f"- [{c.get('heuristic', '?')}] {c.get('description', '')}\n"
+        for c in corrections[-5:]
+    ]
+    return "".join(lines)
+
+
 @tool
 def ikigai_sync_vault(thread_id: str = "default") -> str:
     """Sync the latest checkpoint to a vault markdown file.
@@ -424,7 +442,7 @@ def ikigai_sync_vault(thread_id: str = "default") -> str:
 ## Phase: {phase}
 
 ## Corrections: {len(corrections)}
-{"".join(f"- [{c.get('heuristic', '?')}] {c.get('description', '')}\n" for c in corrections[-5:]) if corrections else "_None_"}
+{_format_corrections(corrections)}
 """
 
     result = _vault_write_impl(
