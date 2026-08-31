@@ -45,60 +45,55 @@ class TestCLI:
         assert "passion" in result.stdout.lower() or "PASSION" in result.stdout
 
     def test_vector_score(self) -> None:
-        """vector score must compute and exit 0."""
+        """vector score is archived per attribution §3 — must raise NotImplementedError."""
         result = runner.invoke(app, ["vector", "score", "--passion-streak", "30"])
-        assert result.exit_code == 0
+        assert isinstance(result.exception, NotImplementedError)
+        assert "archived per attribution" in str(result.exception)
 
     def test_vector_meta(self) -> None:
-        """vector meta must compute meta-vetor and exit 0."""
+        """vector meta is archived per attribution §3 — must raise NotImplementedError."""
         result = runner.invoke(
             app,
             ["vector", "meta", "--passion", "70", "--skill", "80"],
         )
-        assert result.exit_code == 0
-        assert "meta_vector" in result.stdout or "alignment" in result.stdout.lower()
+        assert isinstance(result.exception, NotImplementedError)
+        assert "archived per attribution" in str(result.exception)
 
     def test_regime_status(self) -> None:
-        """regime status must accept qhe and return a regime."""
+        """regime status is archived per attribution §3 — must raise NotImplementedError."""
         result = runner.invoke(
             app,
             ["regime", "status", "--qhe", "0.75"],
         )
-        assert result.exit_code == 0
-        assert (
-            "regime" in result.stdout.lower()
-            or "PUSH" in result.stdout
-            or "REDUCE" in result.stdout
-        )
+        assert isinstance(result.exception, NotImplementedError)
+        assert "archived per attribution" in str(result.exception)
 
     def test_regime_status_json(self) -> None:
-        """regime status --json must return valid JSON."""
+        """regime status --json is archived per attribution §3 — must raise NotImplementedError."""
         result = runner.invoke(
             app,
             ["--json", "regime", "status", "--qhe", "0.70"],
         )
-        assert result.exit_code == 0
-        data = json.loads(result.stdout)
-        assert "regime" in data["data"]
+        assert isinstance(result.exception, NotImplementedError)
+        assert "archived per attribution" in str(result.exception)
 
     def test_phase_status(self) -> None:
-        """phase status must return a phase."""
+        """phase status is archived per attribution §3 — must raise NotImplementedError."""
         result = runner.invoke(
             app,
             ["phase", "status", "--ikigai-score", "65.0"],
         )
-        assert result.exit_code == 0
-        assert "phase" in result.stdout.lower()
+        assert isinstance(result.exception, NotImplementedError)
+        assert "archived per attribution" in str(result.exception)
 
     def test_phase_status_json(self) -> None:
-        """phase status --json must return valid JSON."""
+        """phase status --json is archived per attribution §3 — must raise NotImplementedError."""
         result = runner.invoke(
             app,
             ["--json", "phase", "status", "--ikigai-score", "60.0"],
         )
-        assert result.exit_code == 0
-        data = json.loads(result.stdout)
-        assert "phase" in data["data"]
+        assert isinstance(result.exception, NotImplementedError)
+        assert "archived per attribution" in str(result.exception)
 
     def test_plan_list_empty_vault(self) -> None:
         """plan list on empty vault → exit 0, empty list."""
