@@ -34,8 +34,8 @@ import json
 import sys
 from pathlib import Path
 
-from src.mesh.adapters import cli as cli_mod
-from src.mesh.adapters.cli import CliAdapter
+from mesh.adapters import cli as cli_mod
+from mesh.adapters.cli import CliAdapter
 
 # Priority values seen on the CLI fork's task records. Kept as a closed
 # list for argparse's --priority choices. New values can be added as

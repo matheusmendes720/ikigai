@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from src.contracts.common import UEID
+from contracts.common import UEID
 
 
 class TaskAction(str, Enum):

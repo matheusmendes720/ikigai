@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Iterator, TypeVar
 
-from src.contracts.task_change import TaskChange, TaskStatus
+from contracts.task_change import TaskChange, TaskStatus
 
 # Project root is 2 levels up from src/mesh/
 PROJECT_ROOT = Path(__file__).parent.parent.parent

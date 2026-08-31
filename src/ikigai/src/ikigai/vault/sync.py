@@ -21,7 +21,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-import src.mesh.queue
+import mesh.queue
 from pydantic import BaseModel, Field
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -407,7 +407,7 @@ def reverse_sync(
     """
     import uuid
 
-    from src.contracts.task_change import TaskAction, TaskChange
+    from contracts.task_change import TaskAction, TaskChange
 
     t0 = time.monotonic()
     result = ReverseSyncResult()
@@ -471,7 +471,7 @@ def reverse_sync(
                 timestamp=datetime.now(timezone.utc),
             )
             # Use dynamic import to allow test patching
-            src.mesh.queue.enqueue(event)
+            mesh.queue.enqueue(event)
             result.emitted += 1
         except Exception as exc:
             result.errors.append(SyncPerTaskError(ueid=ueid, error=str(exc)))

@@ -22,7 +22,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.contracts.common import UEID
+from contracts.common import UEID
 
 
 # === Literal type aliases (used by both spec and tests) ===
