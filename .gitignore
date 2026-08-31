@@ -50,10 +50,57 @@
 /frontmatter.dumps()
 /str\`
 
-# Root-level test DB created by vibe-ops/scripts/test_mvl_ingestion.py
-# whose cleanup line is commented out. Different schema (5 tables, ORM)
-# from canonical data/vibe_ops.db (19 tables). No production refs.
-/vibe_ops_test.db
+# ─── Phase 0 audit-closure artifacts (2026-08-31) ──────────────
+# Scratch files accumulated by ad-hoc CLI / debugging sessions.
+# Listed individually because gitignore alternation is not portable.
+# Tmp scratch dirs (pytest runs that escape --basetmp)
+/tmp_pytest*/
+/verify_mesh*.py
+# src/ikigai/ zero-byte / shell-quote-garbage files (mirrors root patterns
+# but at src/ikigai/ depth — gitignore patterns anchored to root don't
+# match subdirs without explicit prefix)
+src/ikigai/0
+src/ikigai/0.1
+src/ikigai/1.1
+src/ikigai/15
+src/ikigai/3.12
+src/ikigai/Any
+src/ikigai/bool
+src/ikigai/bytes
+src/ikigai/None
+src/ikigai/Path
+src/ikigai/str
+src/ikigai/from
+src/ikigai/skip
+src/ikigai/ts
+src/ikigai/taskdog_adapter
+src/ikigai/IKIGAiRecord
+# (removed `src/ikigai/\[{'signature'` 2026-08-31: ruff globset chokes on `{'`
+#  as alternate-group opener; pattern no longer needed since source file deleted)
+# Type-annotation fragments (matching root patterns but at src/ikigai/ depth)
+src/ikigai/dict\[*
+src/ikigai/list\[dict\[*
+src/ikigai/Iterator\[dict\[*
+src/ikigai/Callable\[\[Callable\[*
+src/ikigai/Callable\[\[IKIGAiStateDict\]*
+# Root-level ts file (malformed bash redirect, escaped)
+/ts
+# src/ikigai/ stale logs + scratch artifacts (cleaned 2026-08-31)
+src/ikigai/agent_socket_noise.log
+src/ikigai/chat_*.txt
+src/ikigai/crud_*.txt
+src/ikigai/crud_*.py
+src/ikigai/gw_status*.txt
+src/ikigai/ikigai.ps1
+src/ikigai/ikigai_help.txt
+src/ikigai/list_out.txt
+src/ikigai/mypy_output.txt
+# src/ikigai/scripts/ scratch scripts (cleaned 2026-08-31)
+src/ikigai/scripts/parse_mypy.py
+src/ikigai/scripts/strip_unused_ignores.py
+src/ikigai/scripts/test_regex.py
+# Misplaced runtime DBs (canonical location is data/ at repo root)
+src/ikigai/data/
 
 # vibe-ops/ test artifacts (left behind by ad-hoc scripts whose cleanup
 # is commented out). Pre-existing tracked files were untracked in B5.5

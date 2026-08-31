@@ -121,7 +121,7 @@ life/
 ├── .claude/                    Claude Code config
 ├── .github/                    CI workflows
 ├── Makefile                    LangGraph dev server
-├── langgraph.json              6 registered LangGraph graphs
+├── langgraph.json              5 registered LangGraph graphs (Phase 3 will reduce to 1; see "Phase 3 — LangGraph stub cleanup" in active plan)
 └── CLAUDE.md
 ```
 
@@ -232,6 +232,7 @@ Cross-fork task view + bidirectional sync via Deep Agent gateway. **v1 scope = `
 ### Vibe-ops: Target-Sensor-Adjuster Loop
 
 `src/cybernetics/daily_loop.py`: TARGET → SENSOR → ADJUSTER → PERSIST → SYNC → INDEX
+(composition paths raise `NotImplementedError` per attribution §3; IKIGAI agent does NOT execute this loop — it observes feedback only)
 `SyncEngine` (src/middleware/sync_engine.py): Obsidian ↔ SQLite ↔ Taskwarrior.
 UEID format: `<CLUSTER>:<ENTITY>:<ID>`.
 
@@ -289,11 +290,12 @@ Para subir um graph específico: `make dev-graph NAME=ikigai_maintainer`.
 ## What Is Broken / TODO
 
 - **interfaces/tui/ is empty** — Phase 4-6 of reorg (CLI shipped in Phase 3 v1)
-- **MCP Gateway described in docs but not wired as code**
+- **MCP Gateway ✅ wired as code** — 15 tools advertised; `vault_write` sole vault writer (Phase A)
 - **Deep Agent harness exists but doesn't fill interfaces yet**
-- **vibe_ops.db moved to data/** — some code paths may still reference old locations
+- **`vibe_ops.db` moved to `data/`**; `vibe_ops_test.db` moved to `data/test-fixtures/` (Phase 0 audit-closure 2026-08-31) — some code paths may still reference old locations
 - **Phase 3 v1 ships `create` only** — `update`/`delete`/`done` deferred to v1.2-v1.4 (gated on data-first methodology: 5+ SONHO logs)
 - **Phase 3 minor findings (logged, non-blocking)**: UPI `id` churn on UPSERT conflict; `propagate()` doesn't auto-ack `partial_propagation` status
+- **Path 3 taskdog MCP gateway DEFERRED** — `taskdog_mcp.server` module not built; canonical path is Path 1 (harness @tool → subprocess → taskdog.exe). See `docs/design-system/24-taskdog-paths-architecture.md`.
 
 ---
 
@@ -328,3 +330,11 @@ If touching vault/, vibe-ops/, or strategics/: stop → propose Action Plan → 
 ---
 
 *Algorithmic Life OS — CLAUDE.md — 2026-08-28*
+
+<!-- OPENWIKI:START -->
+
+## OpenWiki
+
+See [AGENTS.md](AGENTS.md) for OpenWiki agent instructions.
+
+<!-- OPENWIKI:END -->
