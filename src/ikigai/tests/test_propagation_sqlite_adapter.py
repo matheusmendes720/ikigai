@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 import json
 import sqlite3
 import tempfile
@@ -20,7 +21,17 @@ class TestUpsert:
         """Create a file-based SQLiteAdapter with temp directory."""
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "test.db"
-            yield SQLiteAdapter(db_path=db_path)
+            adapter = SQLiteAdapter(db_path=db_path)
+            yield adapter
+            # Force GC so the SQLite connection __del__ finalizers run before
+            # tempfile tries to delete the WAL-mode database. Without this,
+            # test.db-wal / test.db-shm stay locked and Windows raises
+            # PermissionError [WinError 32] at fixture teardown. The adapter
+            # itself does not retain a connection in file mode (each CRUD
+            # method opens a fresh one via `_connect()`), but Python's GC
+            # finalizes those short-lived connections lazily.
+            del adapter
+            gc.collect()
 
     def test_upsert_insert(self, adapter: SQLiteAdapter) -> None:
         """upsert() should insert a new entity."""
@@ -180,7 +191,13 @@ class TestUpsertSchema:
         """Create a file-based SQLiteAdapter with temp directory."""
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "schema_test.db"
-            yield SQLiteAdapter(db_path=db_path)
+            adapter = SQLiteAdapter(db_path=db_path)
+            yield adapter
+            # Force GC so SQLite connection __del__ finalizers run before
+            # tempfile tries to delete the WAL-mode database. See the same
+            # comment in TestUpsert.adapter for details.
+            del adapter
+            gc.collect()
 
     def test_schema_has_26_columns(self, adapter: SQLiteAdapter) -> None:
         """Verify the canonical schema has exactly 26 columns (ueid through mtime)."""
