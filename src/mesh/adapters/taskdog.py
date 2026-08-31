@@ -4,8 +4,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from src.contracts.common import UEID
-from src.contracts.task_change import PropagationEvent
+from contracts.common import UEID
+from contracts.task_change import PropagationEvent
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 TASKDOG_DB = PROJECT_ROOT / "data" / "taskdog" / "tasks.db"

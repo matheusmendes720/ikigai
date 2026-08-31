@@ -29,6 +29,15 @@ opentelemetry-instrumentation-logging = "^0.48b0"
 # HTTP client used by verify_traces.py
 requests = "^2.31"
 
+# Deep Agents harness runtime (B7.x). The MCP server itself does not depend
+# on deepagents, but `--chat` mode in agents.deepagents_harness needs it.
+# Mypy already silences the import (ignore_missing_imports) since this is
+# an external dependency we don't type-check.
+deepagents = ">=0.7"
+
+# LangChain Anthropic provider — used by the deep agent chat path.
+langchain-anthropic = ">=0.3"
+
 [tool.poetry.scripts]
 ikigai-maintainer-mcp = "run_mcp_server:main"
 ikigai-deep-agent = "agents.deepagents_harness:main"
@@ -91,5 +100,5 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "../.."]
 addopts = "-v --tb=short"

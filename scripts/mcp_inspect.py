@@ -59,21 +59,21 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 def build_pythonpath(repo_root: Path) -> str:
     """Build PYTHONPATH string for gateway subprocess.
 
-    Gateway requires two paths:
-      - repo root (for `from src.contracts.common import UEID`)
-      - src/ikigai/src (for `from mcp_server.server import main`)
+    Gateway requires two paths (post 2026-08-30 import-path refactor — no `src.` prefix):
+      - src/ikigai/src — for `mcp_server`, `ikigai`, `agents` (poetry src-layout)
+      - src            — for `contracts`, `mesh` (sibling packages at life/src/)
 
     Cross-platform separator:
       - POSIX (Linux, macOS, Git Bash): ':'
       - Native Windows: ';'
     """
-    repo_root_str = str(repo_root)
+    src_dir = str(repo_root / "src")
     mcp_src = str(repo_root / "src" / "ikigai" / "src")
     sep = ";" if platform.system() == "Windows" else ":"
     existing = os.environ.get("PYTHONPATH", "")
     if existing:
-        return f"{existing}{sep}{repo_root_str}{sep}{mcp_src}"
-    return f"{repo_root_str}{sep}{mcp_src}"
+        return f"{existing}{sep}{src_dir}{sep}{mcp_src}"
+    return f"{src_dir}{sep}{mcp_src}"
 
 
 async def run_inspect(min_tools: int, min_resources: int) -> int:

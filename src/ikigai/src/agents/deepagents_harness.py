@@ -372,13 +372,10 @@ def main() -> None:
         help="Start interactive REPL chat mode",
     )
     args = parser.parse_args()
+    thread_id = args.thread
 
-    agent, thread_id = _make_agent(
-        thread_id=args.thread,
-        checkpoint_db=args.checkpoint_db,
-        human_in_the_loop=args.human_in_the_loop,
-    )
-
+    # Fast path: --list-checkpoints doesn't need the deepagents-backed agent.
+    # Avoids requiring `deepagents` to be installed for read-only introspection.
     if args.list_checkpoints:
         from .tools import ikigai_checkpoint
 
@@ -386,6 +383,7 @@ def main() -> None:
         print(result)
         return
 
+    # Fast path: --run-cycle invokes the plan-cycle tool directly (no agent).
     if args.run_cycle:
         from .tools import ikigai_plan_cycle
 
@@ -393,17 +391,23 @@ def main() -> None:
         print(result)
         return
 
-    if args.chat:
-        run_chat(agent, thread_id)
+    # Default (no --chat): run one cycle, no agent needed either.
+    if not args.chat:
+        from .tools import ikigai_plan_cycle
+
+        print(f"\nIKIGAi Deep Agent — thread: {thread_id}")
+        print(f"Checkpoint DB: {args.checkpoint_db}")
+        result = ikigai_plan_cycle.invoke({"thread_id": thread_id})
+        print(result)
         return
 
-    # Default: run one cycle
-    print(f"\nIKIGAi Deep Agent — thread: {thread_id}")
-    print(f"Checkpoint DB: {args.checkpoint_db}")
-    from .tools import ikigai_plan_cycle
-
-    result = ikigai_plan_cycle.invoke({"thread_id": thread_id})
-    print(result)
+    # Only --chat needs the full deepagents-backed LangGraph agent.
+    agent, agent_thread_id = _make_agent(
+        thread_id=args.thread,
+        checkpoint_db=args.checkpoint_db,
+        human_in_the_loop=args.human_in_the_loop,
+    )
+    run_chat(agent, agent_thread_id)
 
 
 # ---------------------------------------------------------------------------
