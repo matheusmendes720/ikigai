@@ -47,21 +47,46 @@ class StateMachine:
     ) -> None:
         self.name = name
         self.current_state = initial_state
-        self.states = states or [initial_state]
+        self.states = list(states) if states is not None else [initial_state]
+        # Validate initial_state is in the explicit states list, if provided.
+        # When `states` is None we derive it from initial_state (and auto-extend
+        # in add_transition below), so there is nothing to validate against.
+        if states is not None and initial_state not in self.states:
+            raise ValueError(
+                f"initial_state {initial_state!r} not in declared states {self.states!r}"
+            )
         self._transitions: dict[tuple[str, str], Transition] = {}
         self.audit_log: list[TransitionRecord] = []
         self.context: dict[str, Any] = {}
 
     def add_transition(
         self,
-        from_state: str,
-        to_state: str,
-        trigger: str,
+        from_state: str | Transition = "",
+        to_state: str = "",
+        trigger: str = "",
         guard: Callable[[dict[str, Any]], bool] | None = None,
         audit_message: str = "",
     ) -> None:
-        t = Transition(from_state, to_state, trigger, guard, audit_message)
-        self._transitions[(from_state, to_state)] = t
+        # Two call forms supported:
+        #   add_transition(Transition(...))              — single object (factories)
+        #   add_transition("idle", "active", "begin")    — positional (tests)
+        if isinstance(from_state, Transition):
+            t = from_state
+        else:
+            t = Transition(
+                from_state=from_state,
+                to_state=to_state,
+                trigger=trigger,
+                guard=guard,
+                audit_message=audit_message,
+            )
+        self._transitions[(t.from_state, t.to_state)] = t
+        # Auto-extend states from transitions so callers don't have to
+        # pre-declare every reachable state up front.
+        if t.from_state not in self.states:
+            self.states.append(t.from_state)
+        if t.to_state not in self.states:
+            self.states.append(t.to_state)
 
     def transition_to(self, target_state: str, trigger: str = "") -> None:
         if target_state not in self.states:
@@ -87,7 +112,7 @@ class StateMachine:
         )
         self.current_state = target_state
 
-    @property
     def can_transition_to(self, target_state: str) -> bool:
+        """True iff a transition is registered from the current state to target_state."""
         key = (self.current_state, target_state)
         return key in self._transitions

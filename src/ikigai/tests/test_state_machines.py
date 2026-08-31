@@ -26,9 +26,9 @@ class TestStateMachineBasics:
         assert sm.current_state == "idle"
 
     def test_invalid_initial_state_raises(self) -> None:
-        """Invalid initial state name must raise ValueError."""
+        """initial_state not in declared states must raise ValueError."""
         with pytest.raises(ValueError):
-            StateMachine(initial_state="ghost")
+            StateMachine(initial_state="ghost", states=["idle", "active"])
 
     def test_add_transition_and_transition(self) -> None:
         """add_transition + transition_to must work."""
