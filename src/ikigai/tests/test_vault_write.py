@@ -10,7 +10,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from src.ikigai.src.ikigai.vault.vault_write import vault_write
+from ikigai.vault.vault_write import vault_write
 
 
 @pytest.fixture
@@ -129,7 +129,7 @@ def test_vault_write_uses_os_replace_for_atomicity(
     replaced frontmatter.dump() with explicit tmp-write + os.replace().
     This test verifies the fix by spying on os.replace.
     """
-    import src.ikigai.src.ikigai.vault.vault_write as vw
+    import ikigai.vault.vault_write as vw
 
     calls: list[tuple[str, str]] = []
     real_replace = vw.os.replace
@@ -173,7 +173,7 @@ def test_vault_write_atomic_no_partial_on_rename_failure(
     This test forces os.replace to raise and verifies the target file
     is never partially visible.
     """
-    import src.ikigai.src.ikigai.vault.vault_write as vw
+    import ikigai.vault.vault_write as vw
 
     def failing_replace(src, dst):
         raise OSError("simulated rename failure")
@@ -211,7 +211,7 @@ def test_vault_write_atomic_writer_observation_during_write(
     import threading
     import time
 
-    import src.ikigai.src.ikigai.vault.vault_write as vw
+    import ikigai.vault.vault_write as vw
 
     body = "x" * 200_000  # 200KB — slow enough to observe
     target_abs = vault_root / "atomic-during.md"

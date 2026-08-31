@@ -27,17 +27,17 @@ _REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from src.ikigai.src.ikigai.vault.sync import (
+from src.contracts.task_change import TaskAction, TaskChange
+from src.mesh.agent_consumer import Decision, ValidationResult
+from src.mesh.agent_propagator import propagate
+
+from ikigai.vault.sync import (
     ReverseSyncState,
     ReverseSyncTaskEntry,
     reverse_sync,
     save_reverse_state,
 )
-from src.ikigai.src.ikigai.vault.vault_write import vault_write
-from src.mesh.agent_consumer import Decision, ValidationResult
-from src.mesh import queue as _queue
-from src.mesh.agent_propagator import propagate
-from src.contracts.task_change import TaskAction, TaskChange
+from ikigai.vault.vault_write import vault_write
 
 
 @pytest.fixture
@@ -161,8 +161,7 @@ def test_roundtrip_done_status_propagates_back_to_vault(fresh_env, monkeypatch):
     #    propagate() resolves vault_root from agent_propagator.py paths;
     #    we intercept _vault_write_impl and point it at our tmp vault so the
     #    file lands where we can verify it.
-    import src.mesh.agent_propagator as _prop
-    import src.ikigai.src.ikigai.vault.vault_write as _vw
+    import ikigai.vault.vault_write as _vw
 
     writes: list[dict] = []
 
