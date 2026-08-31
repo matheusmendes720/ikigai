@@ -172,9 +172,7 @@ class PlanEntity(BaseModel):
         vectors_str = ",".join(
             sorted(v.value if hasattr(v, "value") else str(v) for v in self.ikigai_vectors)
         )
-        canonical = (
-            f"{self.title}|{self.description or ''}|{self.status.value}|{vectors_str}"
-        )
+        canonical = f"{self.title}|{self.description or ''}|{self.status.value}|{vectors_str}"
         self.ueid = UEID.generate(
             namespace="ikigai",
             entity_type=self.entity_type.value,

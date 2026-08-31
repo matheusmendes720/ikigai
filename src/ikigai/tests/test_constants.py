@@ -11,6 +11,7 @@ class TestPavNs:
     def test_is_frozen(self) -> None:
         """PavNs must be frozen (immutable)."""
         import dataclasses
+
         assert dataclasses.is_dataclass(NSM)
 
     def test_lambda_positive(self) -> None:

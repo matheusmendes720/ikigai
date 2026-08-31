@@ -1,4 +1,5 @@
 """reverse_sync() — enumerate taskdog, diff vs snapshot, emit TaskChange."""
+
 from __future__ import annotations
 
 import json
@@ -63,6 +64,7 @@ def test_reverse_sync_emits_done_for_moved_to_done(tmp_path: Path, tmp_queue: Pa
     initial_state_path = state_path
     # Write initial state
     from ikigai.vault.sync import save_reverse_state
+
     save_reverse_state(initial_state_path, initial)
 
     adapter = FakeAdapter(
@@ -89,6 +91,7 @@ def test_reverse_sync_emits_update_for_status_change(tmp_path: Path, tmp_queue: 
     """Status changed (not to done) -> emit UPDATE event."""
     state_path = tmp_path / "state.json"
     from ikigai.vault.sync import save_reverse_state
+
     save_reverse_state(
         state_path,
         ReverseSyncState(
@@ -101,7 +104,14 @@ def test_reverse_sync_emits_update_for_status_change(tmp_path: Path, tmp_queue: 
         ),
     )
     adapter = FakeAdapter(
-        rows=[{"ueid": "task:b2c3:bcdef01:23456789", "name": "B", "status": "in_progress", "priority": 2}]
+        rows=[
+            {
+                "ueid": "task:b2c3:bcdef01:23456789",
+                "name": "B",
+                "status": "in_progress",
+                "priority": 2,
+            }
+        ]
     )
     reverse_sync(state_path=state_path, adapter=adapter)
     events = _read_queue_events(tmp_queue)
@@ -114,6 +124,7 @@ def test_reverse_sync_skips_unchanged(tmp_path: Path, tmp_queue: Path) -> None:
     """Same status as before -> no event."""
     state_path = tmp_path / "state.json"
     from ikigai.vault.sync import save_reverse_state
+
     save_reverse_state(
         state_path,
         ReverseSyncState(
@@ -126,7 +137,9 @@ def test_reverse_sync_skips_unchanged(tmp_path: Path, tmp_queue: Path) -> None:
         ),
     )
     adapter = FakeAdapter(
-        rows=[{"ueid": "task:c3d4:cdef0123:3456789a", "name": "C", "status": "planned", "priority": 3}]
+        rows=[
+            {"ueid": "task:c3d4:cdef0123:3456789a", "name": "C", "status": "planned", "priority": 3}
+        ]
     )
     result = reverse_sync(state_path=state_path, adapter=adapter)
     assert result.scanned == 1
@@ -144,10 +157,18 @@ def test_reverse_sync_emits_update_for_new_ueid_with_vault_match(
     """
     state_path = tmp_path / "state.json"
     from ikigai.vault.sync import save_reverse_state
+
     save_reverse_state(state_path, ReverseSyncState(version=1))
 
     adapter = FakeAdapter(
-        rows=[{"ueid": "task:new5678:def01234:456789ab", "name": "New", "status": "planned", "priority": 2}]
+        rows=[
+            {
+                "ueid": "task:new5678:def01234:456789ab",
+                "name": "New",
+                "status": "planned",
+                "priority": 2,
+            }
+        ]
     )
     result = reverse_sync(state_path=state_path, adapter=adapter)
     assert result.scanned == 1
@@ -158,6 +179,7 @@ def test_reverse_sync_is_idempotent(tmp_path: Path, tmp_queue: Path) -> None:
     """Re-run with same input -> 0 events emitted the second time."""
     state_path = tmp_path / "state.json"
     from ikigai.vault.sync import save_reverse_state
+
     save_reverse_state(
         state_path,
         ReverseSyncState(
@@ -187,6 +209,7 @@ def test_reverse_sync_updates_snapshot(tmp_path: Path, tmp_queue: Path) -> None:
         load_reverse_state,
         save_reverse_state,
     )
+
     save_reverse_state(
         state_path,
         ReverseSyncState(
@@ -199,7 +222,14 @@ def test_reverse_sync_updates_snapshot(tmp_path: Path, tmp_queue: Path) -> None:
         ),
     )
     adapter = FakeAdapter(
-        rows=[{"ueid": "task:e5f6:f0123456:6789abcd", "name": "E (renamed)", "status": "in_progress", "priority": 2}]
+        rows=[
+            {
+                "ueid": "task:e5f6:f0123456:6789abcd",
+                "name": "E (renamed)",
+                "status": "in_progress",
+                "priority": 2,
+            }
+        ]
     )
     reverse_sync(state_path=state_path, adapter=adapter)
     state = load_reverse_state(state_path)
@@ -213,6 +243,7 @@ def test_reverse_sync_per_task_isolation(tmp_path: Path, tmp_queue: Path) -> Non
     """One task throwing doesn't crash the loop — error recorded, others processed."""
     state_path = tmp_path / "state.json"
     from ikigai.vault.sync import save_reverse_state
+
     save_reverse_state(
         state_path,
         ReverseSyncState(
@@ -231,8 +262,18 @@ def test_reverse_sync_per_task_isolation(tmp_path: Path, tmp_queue: Path) -> Non
     class PartialFailAdapter:
         def list_all(self) -> list[dict[str, Any]]:
             return [
-                {"ueid": "task:good1:01234567:89abcdef0", "name": "Good", "status": "done", "priority": 1},
-                {"ueid": "task:bad2:89abcdef:abcdef01", "name": "Bad", "status": "done", "priority": 1},
+                {
+                    "ueid": "task:good1:01234567:89abcdef0",
+                    "name": "Good",
+                    "status": "done",
+                    "priority": 1,
+                },
+                {
+                    "ueid": "task:bad2:89abcdef:abcdef01",
+                    "name": "Bad",
+                    "status": "done",
+                    "priority": 1,
+                },
             ]
 
     # Patch queue.enqueue to throw on the second event
@@ -246,6 +287,7 @@ def test_reverse_sync_per_task_isolation(tmp_path: Path, tmp_queue: Path) -> Non
         return real_enqueue(event)
 
     import src.mesh.queue as qmod
+
     monkeypatch_orig = qmod.enqueue
     qmod.enqueue = selective_enqueue  # type: ignore[assignment]
     try:
@@ -264,6 +306,7 @@ def test_reverse_sync_source_fork_override(tmp_path: Path, tmp_queue: Path) -> N
     """source_fork kwarg populates emitted events' source_fork field."""
     state_path = tmp_path / "state.json"
     from ikigai.vault.sync import save_reverse_state
+
     save_reverse_state(
         state_path,
         ReverseSyncState(

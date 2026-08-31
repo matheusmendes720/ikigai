@@ -43,12 +43,11 @@ class _StubHTTPServer(ThreadingMixIn):
 
     def __init__(self, script: bytes) -> None:
         from http.server import HTTPServer
+
         self._script = script
         self._Handler.script = script
         self._server = HTTPServer(("127.0.0.1", 0), self._Handler)
-        self._thread = threading.Thread(
-            target=self._server.serve_forever, daemon=True
-        )
+        self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
         self._thread.start()
 
     @property
@@ -123,7 +122,7 @@ def test_parse_sse_frame_data_only() -> None:
 
 
 def test_parse_sse_frame_multiline_data() -> None:
-    frame = 'event: multi\ndata: line1\ndata: line2'
+    frame = "event: multi\ndata: line1\ndata: line2"
     name, data = _parse_sse_frame(frame)
     assert name == "multi"
     assert data == "line1\nline2"
@@ -135,10 +134,7 @@ def test_parse_sse_frame_multiline_data() -> None:
 def test_watch_streams_events_as_json_lines() -> None:
     """parse_sse_stream must yield one parsed event per SSE frame."""
     payload = json.dumps({"ueid": "ikigai:task:abc:1:2", "title": "smoke"}).encode()
-    wire = (
-        _chunk(b"event: task.created\ndata: " + payload + b"\n\n")
-        + b"0\r\n\r\n"
-    )
+    wire = _chunk(b"event: task.created\ndata: " + payload + b"\n\n") + b"0\r\n\r\n"
     sock = _FakeSock(wire)
     events = list(parse_sse_stream(sock))
     assert len(events) == 1
@@ -178,10 +174,7 @@ def test_watch_connection_refused_returns_1(capsys: pytest.CaptureFixture) -> No
 
 
 def test_watch_swallows_comment_heartbeats() -> None:
-    script = (
-        _chunk(b": heartbeat 12345\n\n")
-        + _chunk(b"event: ping\ndata: ok\n\n")
-    )
+    script = _chunk(b": heartbeat 12345\n\n") + _chunk(b"event: ping\ndata: ok\n\n")
     server = _StubHTTPServer(script)
     try:
         rc = watch(host="127.0.0.1", port=server.port, duration_s=0.5)
@@ -216,16 +209,23 @@ def test_main_watch_parses_args(capsys: pytest.CaptureFixture) -> None:
         return 0
 
     import ikigai.gateway.client_cli as cli_mod
+
     original = cli_mod.watch
     cli_mod.watch = fake_watch  # type: ignore[assignment]
     try:
-        rc = main([
-            "watch",
-            "--host", "10.0.0.1",
-            "--port", "9999",
-            "--filter", "taskdog.",
-            "--duration", "5.0",
-        ])
+        rc = main(
+            [
+                "watch",
+                "--host",
+                "10.0.0.1",
+                "--port",
+                "9999",
+                "--filter",
+                "taskdog.",
+                "--duration",
+                "5.0",
+            ]
+        )
     finally:
         cli_mod.watch = original  # type: ignore[assignment]
     assert rc == 0
@@ -287,7 +287,11 @@ def test_format_event_human_shape() -> None:
 def test_watch_human_emits_compact_lines_not_json() -> None:
     """`watch(human=True)` renders one compact line per event, not JSON."""
     script = (
-        _chunk(b"event: task.created\ndata: " + json.dumps({"title": "Build wiremesh"}).encode() + b"\n\n")
+        _chunk(
+            b"event: task.created\ndata: "
+            + json.dumps({"title": "Build wiremesh"}).encode()
+            + b"\n\n"
+        )
         + _chunk(b"event: gateway.heartbeat\ndata: {}\n\n")
         + b"0\r\n\r\n"
     )
@@ -302,6 +306,7 @@ def test_watch_human_emits_compact_lines_not_json() -> None:
 def test_main_json_flag_forces_json_mode(capsys: pytest.CaptureFixture) -> None:
     """`--json` forces JSON-per-line output (default behavior, but explicit)."""
     import ikigai.gateway.client_cli as cli_mod
+
     captured: dict = {}
 
     def fake_watch(
@@ -327,6 +332,7 @@ def test_main_json_flag_forces_json_mode(capsys: pytest.CaptureFixture) -> None:
 def test_main_human_flag_forces_human_mode(capsys: pytest.CaptureFixture) -> None:
     """`--human` forces compact rendered lines."""
     import ikigai.gateway.client_cli as cli_mod
+
     captured: dict = {}
 
     def fake_watch(

@@ -1,4 +1,5 @@
 """Tests for VaultLock — file-level mutex for vault writes."""
+
 from __future__ import annotations
 
 import shutil

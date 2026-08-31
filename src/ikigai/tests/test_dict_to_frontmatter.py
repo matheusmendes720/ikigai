@@ -1,4 +1,5 @@
 """Tests for dict_to_frontmatter — IKIGAiRecord → frontmatter dict (RT-01..06)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -9,20 +10,28 @@ from ikigai.vault.dict_to_frontmatter import dict_to_frontmatter
 
 
 def _record() -> IKIGAiRecord:
-    return IKIGAiRecord.model_validate({
-        "ueid": "ikigai:dream:vaga-remota-2026:4f6a202a:2cb24609",
-        "entity_type": "dream",
-        "slug": "vaga-remota-2026",
-        "title": "Primeira vaga remota em Data/AI ate 2026-12-31",
-        "description": None,
-        "status": "active",
-        "ikigai_vectors": ["passion", "skill", "market", "revenue", "course"],
-        "vector_weights_snapshot": {"passion": 0.20, "skill": 0.20, "market": 0.20, "revenue": 0.20, "course": 0.20},
-        "created_at": datetime(2026, 7, 3, 0, 0, 0, tzinfo=timezone.utc),
-        "updated_at": datetime(2026, 7, 3, 0, 0, 0, tzinfo=timezone.utc),
-        "source_md_path": Path("data/matheus/dreams/vaga-remota-2026.md"),
-        "custom": {"verticals": ["data-analytics", "ai-llm-tooling"]},
-    })
+    return IKIGAiRecord.model_validate(
+        {
+            "ueid": "ikigai:dream:vaga-remota-2026:4f6a202a:2cb24609",
+            "entity_type": "dream",
+            "slug": "vaga-remota-2026",
+            "title": "Primeira vaga remota em Data/AI ate 2026-12-31",
+            "description": None,
+            "status": "active",
+            "ikigai_vectors": ["passion", "skill", "market", "revenue", "course"],
+            "vector_weights_snapshot": {
+                "passion": 0.20,
+                "skill": 0.20,
+                "market": 0.20,
+                "revenue": 0.20,
+                "course": 0.20,
+            },
+            "created_at": datetime(2026, 7, 3, 0, 0, 0, tzinfo=timezone.utc),
+            "updated_at": datetime(2026, 7, 3, 0, 0, 0, tzinfo=timezone.utc),
+            "source_md_path": Path("data/matheus/dreams/vaga-remota-2026.md"),
+            "custom": {"verticals": ["data-analytics", "ai-llm-tooling"]},
+        }
+    )
 
 
 def test_null_fields_preserved() -> None:

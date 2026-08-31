@@ -135,7 +135,7 @@ def test_event_log_corrupt_line_is_skipped(tmp_path: Path) -> None:
     p.write_text(
         json.dumps({"ts": 1.0, "event": "a", "data": {}}) + "\n"
         "{corrupt\n"  # line that does not parse
-        + json.dumps({"ts": 2.0, "event": "b", "data": {}}) + "\n",
+         + json.dumps({"ts": 2.0, "event": "b", "data": {}}) + "\n",
         encoding="utf-8",
     )
     log = EventLog(p)

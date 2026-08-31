@@ -32,9 +32,15 @@ def test_format_record_includes_iso_timestamp() -> None:
 def test_tail_subcommand_prints_last_n(
     log_with_events: EventLog, tmp_path: Path, capsys: pytest.CaptureFixture
 ) -> None:
-    rc = main([
-        "tail", "--path", str(tmp_path / "events.jsonl"), "--n", "3",
-    ])
+    rc = main(
+        [
+            "tail",
+            "--path",
+            str(tmp_path / "events.jsonl"),
+            "--n",
+            "3",
+        ]
+    )
     assert rc == 0
     lines = [ln for ln in capsys.readouterr().out.strip().splitlines() if ln.strip()]
     assert len(lines) == 3
@@ -46,9 +52,15 @@ def test_since_subcommand_with_relative_seconds(
     log_with_events: EventLog, tmp_path: Path, capsys: pytest.CaptureFixture
 ) -> None:
     """since --seconds-ago 60 must yield all events appended in the test."""
-    rc = main([
-        "since", "--path", str(tmp_path / "events.jsonl"), "--seconds-ago", "60",
-    ])
+    rc = main(
+        [
+            "since",
+            "--path",
+            str(tmp_path / "events.jsonl"),
+            "--seconds-ago",
+            "60",
+        ]
+    )
     assert rc == 0
     lines = [ln for ln in capsys.readouterr().out.strip().splitlines() if ln.strip()]
     assert len(lines) == 5
@@ -63,9 +75,15 @@ def test_since_subcommand_with_absolute_timestamp(
     time.sleep(0.01)
     log_with_events.append("late", {"i": 99})
 
-    rc = main([
-        "since", "--path", str(tmp_path / "events.jsonl"), "--timestamp", str(cutoff),
-    ])
+    rc = main(
+        [
+            "since",
+            "--path",
+            str(tmp_path / "events.jsonl"),
+            "--timestamp",
+            str(cutoff),
+        ]
+    )
     assert rc == 0
     parsed = [json.loads(ln) for ln in capsys.readouterr().out.strip().splitlines() if ln.strip()]
     assert all(p["ts"] >= cutoff for p in parsed)
@@ -75,9 +93,13 @@ def test_since_subcommand_with_absolute_timestamp(
 def test_status_subcommand_shows_metadata(
     log_with_events: EventLog, tmp_path: Path, capsys: pytest.CaptureFixture
 ) -> None:
-    rc = main([
-        "status", "--path", str(tmp_path / "events.jsonl"),
-    ])
+    rc = main(
+        [
+            "status",
+            "--path",
+            str(tmp_path / "events.jsonl"),
+        ]
+    )
     assert rc == 0
     out = capsys.readouterr().out
     assert "path:" in out
@@ -90,9 +112,15 @@ def test_status_subcommand_shows_metadata(
 def test_missing_log_file_returns_empty_for_tail(
     tmp_path: Path, capsys: pytest.CaptureFixture
 ) -> None:
-    rc = main([
-        "tail", "--path", str(tmp_path / "never_written.jsonl"), "--n", "5",
-    ])
+    rc = main(
+        [
+            "tail",
+            "--path",
+            str(tmp_path / "never_written.jsonl"),
+            "--n",
+            "5",
+        ]
+    )
     assert rc == 0
     assert capsys.readouterr().out == ""
 
@@ -100,9 +128,15 @@ def test_missing_log_file_returns_empty_for_tail(
 def test_missing_log_file_returns_empty_for_since(
     tmp_path: Path, capsys: pytest.CaptureFixture
 ) -> None:
-    rc = main([
-        "since", "--path", str(tmp_path / "never_written.jsonl"), "--seconds-ago", "60",
-    ])
+    rc = main(
+        [
+            "since",
+            "--path",
+            str(tmp_path / "never_written.jsonl"),
+            "--seconds-ago",
+            "60",
+        ]
+    )
     assert rc == 0
     assert capsys.readouterr().out == ""
 
@@ -110,9 +144,13 @@ def test_missing_log_file_returns_empty_for_since(
 def test_missing_log_file_returns_zero_records_for_status(
     tmp_path: Path, capsys: pytest.CaptureFixture
 ) -> None:
-    rc = main([
-        "status", "--path", str(tmp_path / "never_written.jsonl"),
-    ])
+    rc = main(
+        [
+            "status",
+            "--path",
+            str(tmp_path / "never_written.jsonl"),
+        ]
+    )
     assert rc == 0
     out = capsys.readouterr().out
     assert "total_records: 0" in out
@@ -131,9 +169,16 @@ def test_human_flag_prints_table_not_json(
     log_with_events: EventLog, tmp_path: Path, capsys: pytest.CaptureFixture
 ) -> None:
     """`--human` forces aligned table with column headers, even when capsys (not a TTY)."""
-    rc = main([
-        "tail", "--path", str(tmp_path / "events.jsonl"), "--n", "3", "--human",
-    ])
+    rc = main(
+        [
+            "tail",
+            "--path",
+            str(tmp_path / "events.jsonl"),
+            "--n",
+            "3",
+            "--human",
+        ]
+    )
     assert rc == 0
     out = capsys.readouterr().out
     # JSON mode test would parse each line as JSON — here the first line is the header.
@@ -152,9 +197,16 @@ def test_json_flag_in_pipe_friendly_format(
     log_with_events: EventLog, tmp_path: Path, capsys: pytest.CaptureFixture
 ) -> None:
     """`--json` forces JSON lines even when stdout would be detected as TTY."""
-    rc = main([
-        "tail", "--path", str(tmp_path / "events.jsonl"), "--n", "2", "--json",
-    ])
+    rc = main(
+        [
+            "tail",
+            "--path",
+            str(tmp_path / "events.jsonl"),
+            "--n",
+            "2",
+            "--json",
+        ]
+    )
     assert rc == 0
     lines = [ln for ln in capsys.readouterr().out.strip().splitlines() if ln.strip()]
     assert len(lines) == 2
@@ -173,9 +225,15 @@ def test_default_mode_with_capsys_is_json(
     Confirms the TTY auto-detect path: piped automation gets JSON, the operator's
     terminal gets tables.
     """
-    rc = main([
-        "tail", "--path", str(tmp_path / "events.jsonl"), "--n", "2",
-    ])
+    rc = main(
+        [
+            "tail",
+            "--path",
+            str(tmp_path / "events.jsonl"),
+            "--n",
+            "2",
+        ]
+    )
     assert rc == 0
     lines = [ln for ln in capsys.readouterr().out.strip().splitlines() if ln.strip()]
     parsed = [json.loads(ln) for ln in lines]
@@ -186,9 +244,14 @@ def test_human_status_shows_aligned_columns(
     log_with_events: EventLog, tmp_path: Path, capsys: pytest.CaptureFixture
 ) -> None:
     """`status --human` renders the candidate-file rows as an aligned table."""
-    rc = main([
-        "status", "--path", str(tmp_path / "events.jsonl"), "--human",
-    ])
+    rc = main(
+        [
+            "status",
+            "--path",
+            str(tmp_path / "events.jsonl"),
+            "--human",
+        ]
+    )
     assert rc == 0
     out = capsys.readouterr().out
     assert "LABEL" in out
@@ -201,6 +264,7 @@ def test_human_status_shows_aligned_columns(
 def test_summarize_data_tool_call() -> None:
     """Tool-shaped data summaries are kept short for table readability."""
     from ikigai.gateway.event_log_cli import _summarize_data
+
     summary = _summarize_data({"tool": "taskdog.add", "arguments": {"title": "x"}})
     assert "taskdog.add" in summary
     assert "title" in summary
@@ -209,6 +273,7 @@ def test_summarize_data_tool_call() -> None:
 def test_summarize_data_long_payload_is_truncated() -> None:
     """Payloads >80 chars get truncated so the table stays readable."""
     from ikigai.gateway.event_log_cli import _summarize_data
+
     huge = {"k": "x" * 200}
     summary = _summarize_data(huge)
     assert len(summary) <= 80

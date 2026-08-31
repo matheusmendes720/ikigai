@@ -250,7 +250,9 @@ class TestSQLiteAdapter:
             horizon_days=365,
         )
         adapter.insert(goal)
-        with pytest.raises(sqlite3.IntegrityError, match=r"UNIQUE constraint"):  # duplicate UEID → UNIQUE violation
+        with pytest.raises(
+            sqlite3.IntegrityError, match=r"UNIQUE constraint"
+        ):  # duplicate UEID → UNIQUE violation
             adapter.insert(goal)
 
     def test_delete_raises(self) -> None:
@@ -284,7 +286,9 @@ class TestSQLiteAdapter:
         conn = sqlite3.connect(str(db_path))
         try:
             with pytest.raises(sqlite3.IntegrityError, match="append-only"):
-                conn.execute("UPDATE plan_entities SET title = 'hacked' WHERE ueid = ?", ("test:ueid:001",))
+                conn.execute(
+                    "UPDATE plan_entities SET title = 'hacked' WHERE ueid = ?", ("test:ueid:001",)
+                )
         finally:
             conn.close()
 

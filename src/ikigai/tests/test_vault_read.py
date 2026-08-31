@@ -1,4 +1,5 @@
 """Unit tests for vault_read — read-side mirror of vault_write."""
+
 from __future__ import annotations
 
 import textwrap
@@ -11,7 +12,8 @@ def test_vault_read_parses_frontmatter_and_body(tmp_path: Path) -> None:
 
     vault = tmp_path / "vault"
     vault.mkdir()
-    (vault / "test.md").write_text(textwrap.dedent("""\
+    (vault / "test.md").write_text(
+        textwrap.dedent("""\
         ---
         ueid: ikigai:test:read:001
         title: Test
@@ -19,7 +21,8 @@ def test_vault_read_parses_frontmatter_and_body(tmp_path: Path) -> None:
         # Body section
 
         Some markdown body.
-    """))
+    """)
+    )
 
     result = vault_read(vault, "test.md")
     assert result["frontmatter"]["ueid"] == "ikigai:test:read:001"
@@ -36,6 +39,7 @@ def test_vault_read_missing_file_raises(tmp_path: Path) -> None:
     vault = tmp_path / "vault"
     vault.mkdir()
     import pytest
+
     with pytest.raises(FileNotFoundError):
         vault_read(vault, "missing.md")
 

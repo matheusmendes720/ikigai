@@ -3,6 +3,7 @@
 Task 10 of data-model-unification: collapses the in-memory LangGraph
 state into the canonical IKIGAiRecord polymorphic root.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -31,7 +32,11 @@ def state_dict() -> dict:
         "phase_converged": False,
         "phase_weights": {"passion": 0.30, "skill": 0.25, "market": 0.20},
         "vector_scores": {
-            "passion": 0.9, "skill": 0.8, "market": 0.7, "revenue": 0.6, "course": 0.5,
+            "passion": 0.9,
+            "skill": 0.8,
+            "market": 0.7,
+            "revenue": 0.6,
+            "course": 0.5,
         },
         "meta_vector_score": 0.71,
         "active_dream_ueid": "ikigai:dream:2026-q3:00000000:00000001",
@@ -52,7 +57,9 @@ def state_dict() -> dict:
 
 
 def test_reduce_emits_cycle_entity(state_dict: dict) -> None:
-    rec = StateReducer.reduce(state_dict, source_md_path=Path("data/matheus/ikigai_state/cycle-2026-08-26.md"))
+    rec = StateReducer.reduce(
+        state_dict, source_md_path=Path("data/matheus/ikigai_state/cycle-2026-08-26.md")
+    )
     assert isinstance(rec, IKIGAiRecord)
     assert rec.entity_type == EntityType.CYCLE
     # CYCLE is a derived log entry per SPEC D7
@@ -60,14 +67,18 @@ def test_reduce_emits_cycle_entity(state_dict: dict) -> None:
 
 
 def test_reduce_maps_regime_into_fractal_regime(state_dict: dict) -> None:
-    rec = StateReducer.reduce(state_dict, source_md_path=Path("data/matheus/ikigai_state/cycle-2026-08-26.md"))
+    rec = StateReducer.reduce(
+        state_dict, source_md_path=Path("data/matheus/ikigai_state/cycle-2026-08-26.md")
+    )
     assert rec.regime is not None
     levels = [lvl.level for lvl in rec.regime.levels]
     assert levels == ["global", "cluster", "vector", "sub_vector"]
 
 
 def test_reduce_maps_vector_scores(state_dict: dict) -> None:
-    rec = StateReducer.reduce(state_dict, source_md_path=Path("data/matheus/ikigai_state/cycle-2026-08-26.md"))
+    rec = StateReducer.reduce(
+        state_dict, source_md_path=Path("data/matheus/ikigai_state/cycle-2026-08-26.md")
+    )
     assert rec.vector_scores is not None
     # each vector score became a ScoreValue with unit="percent"
     for _key, sv in rec.vector_scores.items():
@@ -76,14 +87,18 @@ def test_reduce_maps_vector_scores(state_dict: dict) -> None:
 
 
 def test_reduce_preserves_corrections_buffer_and_retrospective(state_dict: dict) -> None:
-    rec = StateReducer.reduce(state_dict, source_md_path=Path("data/matheus/ikigai_state/cycle-2026-08-26.md"))
+    rec = StateReducer.reduce(
+        state_dict, source_md_path=Path("data/matheus/ikigai_state/cycle-2026-08-26.md")
+    )
     assert rec.corrections == []
     assert rec.prospective_buffer == ["observe q_he trend"]
     assert rec.retrospective_log == ["regime stayed PUSH"]
 
 
 def test_reduce_sets_ueid_from_cycle_id(state_dict: dict) -> None:
-    rec = StateReducer.reduce(state_dict, source_md_path=Path("data/matheus/ikigai_state/cycle-2026-08-26.md"))
+    rec = StateReducer.reduce(
+        state_dict, source_md_path=Path("data/matheus/ikigai_state/cycle-2026-08-26.md")
+    )
     # ueid is preserved as-is from the cycle_id in state_dict
     assert rec.ueid == state_dict["cycle_id"]
 
@@ -95,14 +110,18 @@ def test_reduce_sets_source_md_path(state_dict: dict) -> None:
 
 
 def test_reduce_initialises_timestamps(state_dict: dict) -> None:
-    rec = StateReducer.reduce(state_dict, source_md_path=Path("data/matheus/ikigai_state/cycle-2026-08-26.md"))
+    rec = StateReducer.reduce(
+        state_dict, source_md_path=Path("data/matheus/ikigai_state/cycle-2026-08-26.md")
+    )
     assert isinstance(rec.created_at, datetime)
     assert isinstance(rec.updated_at, datetime)
     assert rec.created_at.tzinfo is not None
 
 
 def test_reduce_maps_balancer_verdict(state_dict: dict) -> None:
-    rec = StateReducer.reduce(state_dict, source_md_path=Path("data/matheus/ikigai_state/cycle-2026-08-26.md"))
+    rec = StateReducer.reduce(
+        state_dict, source_md_path=Path("data/matheus/ikigai_state/cycle-2026-08-26.md")
+    )
     assert rec.balancer_verdict is not None
     # balancer_verdict is a Literal on IKIGAiRecord; pass-through string
     assert rec.balancer_verdict == "OK"

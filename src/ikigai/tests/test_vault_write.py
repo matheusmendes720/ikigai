@@ -1,4 +1,5 @@
 """vault_write lower-level function — the only vault writer per attribution §7."""
+
 import hashlib
 import sys
 from pathlib import Path

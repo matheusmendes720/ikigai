@@ -153,11 +153,7 @@ class MarkdownDB:
         Accepts either a PlanEntity (resolved via path_for) or a Path directly.
         Returns True if a file was deleted.
         """
-        path = (
-            entity_or_path
-            if isinstance(entity_or_path, Path)
-            else self.path_for(entity_or_path)
-        )
+        path = entity_or_path if isinstance(entity_or_path, Path) else self.path_for(entity_or_path)
         if path.exists():
             path.unlink()
             return True

@@ -1,4 +1,5 @@
 """Tests for reliability layer — retry, circuit breaker, cache invalidation."""
+
 from __future__ import annotations
 
 import time
@@ -152,7 +153,9 @@ class TestCircuitBreaker:
 
         call_count = 0
 
-        @circuit_breaker("test_cb_success", CircuitBreakerConfig(failure_threshold=3, reset_timeout_s=30.0))
+        @circuit_breaker(
+            "test_cb_success", CircuitBreakerConfig(failure_threshold=3, reset_timeout_s=30.0)
+        )
         def sometimes_failing():
             nonlocal call_count
             call_count += 1
@@ -225,9 +228,7 @@ class TestStackTraceCapture:
         # the proxy, so we reset it here to allow this test's provider to take
         # effect. monkeypatch auto-restores after the test.
         monkeypatch.setattr(trace, "_TRACER_PROVIDER", None, raising=False)
-        monkeypatch.setattr(
-            trace._TRACER_PROVIDER_SET_ONCE, "_done", False, raising=False
-        )
+        monkeypatch.setattr(trace._TRACER_PROVIDER_SET_ONCE, "_done", False, raising=False)
 
         # Custom processor to capture spans
         captured_spans = []
@@ -237,9 +238,7 @@ class TestStackTraceCapture:
                 captured_spans.append(span)
 
         # Create a minimal tracer provider
-        provider = TracerProvider(
-            resource=Resource.create({SERVICE_NAME: "ikigai-test"})
-        )
+        provider = TracerProvider(resource=Resource.create({SERVICE_NAME: "ikigai-test"}))
         provider.add_span_processor(CaptureProcessor())
         trace.set_tracer_provider(provider)
 

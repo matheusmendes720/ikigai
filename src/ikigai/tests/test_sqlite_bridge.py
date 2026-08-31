@@ -9,6 +9,7 @@ ScoreValue), regime fractal levels, and source path. Existing rows
 created by PlanEntity.insert() remain untouched — the bridge only
 upgrades the *write* path for IKIGAiRecord.
 """
+
 from __future__ import annotations
 
 import shutil
@@ -35,25 +36,27 @@ def tmp_db() -> Path:
 
 @pytest.fixture
 def record() -> IKIGAiRecord:
-    return IKIGAiRecord.model_validate({
-        "ueid": "ikigai:dream:2026-q3:00000001:00000001",
-        "entity_type": "dream",
-        "slug": "2026-q3",
-        "title": "Close first remote role by Q3 2026",
-        "description": "Land a remote BI/data role paying ≥R$12k/mo",
-        "status": "active",
-        "created_at": datetime(2026, 7, 1, tzinfo=timezone.utc),
-        "updated_at": datetime(2026, 7, 15, tzinfo=timezone.utc),
-        "source_md_path": Path("data/matheus/dreams/2026-q3.md"),
-        "ikigai_vectors": ["passion", "skill", "market", "revenue"],
-        "vector_scores": {
-            "passion": ScoreValue(value=85.0, unit=ScoreUnit.PERCENT),
-            "skill":   ScoreValue(value=70.0, unit=ScoreUnit.PERCENT),
-            "market":  ScoreValue(value=55.0, unit=ScoreUnit.PERCENT),
-            "revenue": ScoreValue(value=40.0, unit=ScoreUnit.PERCENT),
-        },
-        "is_placeholder": False,
-    })
+    return IKIGAiRecord.model_validate(
+        {
+            "ueid": "ikigai:dream:2026-q3:00000001:00000001",
+            "entity_type": "dream",
+            "slug": "2026-q3",
+            "title": "Close first remote role by Q3 2026",
+            "description": "Land a remote BI/data role paying ≥R$12k/mo",
+            "status": "active",
+            "created_at": datetime(2026, 7, 1, tzinfo=timezone.utc),
+            "updated_at": datetime(2026, 7, 15, tzinfo=timezone.utc),
+            "source_md_path": Path("data/matheus/dreams/2026-q3.md"),
+            "ikigai_vectors": ["passion", "skill", "market", "revenue"],
+            "vector_scores": {
+                "passion": ScoreValue(value=85.0, unit=ScoreUnit.PERCENT),
+                "skill": ScoreValue(value=70.0, unit=ScoreUnit.PERCENT),
+                "market": ScoreValue(value=55.0, unit=ScoreUnit.PERCENT),
+                "revenue": ScoreValue(value=40.0, unit=ScoreUnit.PERCENT),
+            },
+            "is_placeholder": False,
+        }
+    )
 
 
 def test_bridge_inserts_row(tmp_db: Path, record: IKIGAiRecord) -> None:
@@ -76,6 +79,7 @@ def test_bridge_maps_vector_scores_to_json_dict(tmp_db: Path, record: IKIGAiReco
     bridge.upsert_ikigai_record(record)
 
     import json
+
     row = adapter.get_by_ueid(record.ueid)
     assert row is not None
     vectors = json.loads(row["ikigai_vectors"])
@@ -110,17 +114,19 @@ def test_bridge_maps_source_md_path(tmp_db: Path, record: IKIGAiRecord) -> None:
 def test_bridge_accepts_polymorphic_entity_type(tmp_db: Path) -> None:
     """Exercise entity_type='cycle' (CYCLE per SPEC D7) — should land in
     the mirror with entity_type column = 'cycle'."""
-    rec = IKIGAiRecord.model_validate({
-        "ueid": "ikigai:cycle:2026-08-26:00000001:00000002",
-        "entity_type": "cycle",
-        "slug": "2026-08-26",
-        "title": "Cycle 2026-08-26",
-        "status": "active",
-        "is_placeholder": True,
-        "created_at": datetime(2026, 8, 26, tzinfo=timezone.utc),
-        "updated_at": datetime(2026, 8, 26, tzinfo=timezone.utc),
-        "source_md_path": Path("data/matheus/ikigai_state/cycle-2026-08-26.md"),
-    })
+    rec = IKIGAiRecord.model_validate(
+        {
+            "ueid": "ikigai:cycle:2026-08-26:00000001:00000002",
+            "entity_type": "cycle",
+            "slug": "2026-08-26",
+            "title": "Cycle 2026-08-26",
+            "status": "active",
+            "is_placeholder": True,
+            "created_at": datetime(2026, 8, 26, tzinfo=timezone.utc),
+            "updated_at": datetime(2026, 8, 26, tzinfo=timezone.utc),
+            "source_md_path": Path("data/matheus/ikigai_state/cycle-2026-08-26.md"),
+        }
+    )
     adapter = SQLiteAdapter(db_path=tmp_db)
     bridge = IKIGAiRecordBridge(adapter)
     bridge.upsert_ikigai_record(rec)

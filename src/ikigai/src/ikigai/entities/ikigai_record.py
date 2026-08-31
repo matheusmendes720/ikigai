@@ -161,7 +161,9 @@ class IKIGAiRecord(BaseModel):
     source_md_path: Path
 
     # ── Cross-cluster routing (§3.2 forward-compat)
-    target_subsystem: Literal["CLUSTER_PLAN", "life_tatics", "vibe_ops", "taskwarrior"] | None = None
+    target_subsystem: Literal["CLUSTER_PLAN", "life_tatics", "vibe_ops", "taskwarrior"] | None = (
+        None
+    )
 
     # ── Typed forward-compat (entity-specific fields live here)
     custom: dict[str, Any] = Field(default_factory=dict)

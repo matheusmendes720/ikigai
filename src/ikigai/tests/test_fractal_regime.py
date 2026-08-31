@@ -1,4 +1,5 @@
 """Tests for FractalRegime — SPEC D13 4-level fractal regime."""
+
 from __future__ import annotations
 
 import pytest
@@ -26,15 +27,20 @@ class TestFractalRegime:
         with pytest.raises(ValidationError):
             FractalRegimeState(
                 level="planetary",  # type: ignore[arg-type]
-                regime="push", days_in_regime=10,
-                is_hysteresis_active=False, hysteresis_days=14,
+                regime="push",
+                days_in_regime=10,
+                is_hysteresis_active=False,
+                hysteresis_days=14,
             )
 
     def test_negative_days_in_regime_rejected(self) -> None:
         with pytest.raises(ValidationError):
             FractalRegimeState(
-                level="global", regime="push", days_in_regime=-1,
-                is_hysteresis_active=False, hysteresis_days=14,
+                level="global",
+                regime="push",
+                days_in_regime=-1,
+                is_hysteresis_active=False,
+                hysteresis_days=14,
             )
 
     def test_per_level_hysteresis_independent(self) -> None:

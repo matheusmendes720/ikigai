@@ -1,4 +1,5 @@
 """Tests for UEID primitive type — 5-part format per SPEC D10 + §3.1."""
+
 from __future__ import annotations
 
 import pytest
