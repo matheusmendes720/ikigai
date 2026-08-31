@@ -6,7 +6,6 @@ These are the 8 operations the conversational agent can call.
 
 from __future__ import annotations
 
-import datetime as dt
 import json
 import os
 import sqlite3
@@ -17,13 +16,12 @@ from typing import Any, Literal
 from langchain_core.tools import tool
 
 from .reliability import (
-    RetryConfig,
     CircuitBreakerConfig,
-    retry_with_backoff,
+    RetryConfig,
+    _set_cache_ref,
     circuit_breaker,
     invalidate_session_cache,
-    CircuitOpenError,
-    _set_cache_ref,
+    retry_with_backoff,
 )
 
 # ---------------------------------------------------------------------------
@@ -380,7 +378,7 @@ def ikigai_sync_vault(thread_id: str = "default") -> str:
     """
     import datetime as _dt
 
-    from src.ikigai.src.ikigai.vault.vault_write import (  # type: ignore[import-not-found]
+    from ikigai.vault.vault_write import (
         vault_write as _vault_write_impl,
     )
 
@@ -510,7 +508,6 @@ def ikigai_checkpoint(
             ]
             return "\n".join(summary)
         # state — return JSON
-        import copy
 
         serializable = {}
         for k, v in data.items():

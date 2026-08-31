@@ -11,7 +11,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from langchain_core.tools import tool
-from src.ikigai.src.strategics.loader import load_strategics
+
+from strategics.loader import load_strategics
 
 
 def _get_vault_dir() -> Path:

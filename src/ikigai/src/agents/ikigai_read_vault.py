@@ -12,7 +12,8 @@ import json
 from pathlib import Path
 
 from langchain_core.tools import tool
-from src.ikigai.src.ikigai.vault.vault_read import vault_read
+
+from ikigai.vault.vault_read import vault_read
 
 
 def _get_vault_dir() -> Path:

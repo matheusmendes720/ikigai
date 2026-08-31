@@ -11,7 +11,6 @@ from typing import Any
 
 from ..state import IKIGAiStateDict
 
-
 # Kill switch — set to True to block all writes
 _KILL_SWITCH = False
 
@@ -25,7 +24,7 @@ def commit_node(state: IKIGAiStateDict) -> dict[str, Any]:
     # B5.B.1: lazy import as fallback if eager fails at graph compile time
     # (the ikigai.mcp_server.* package does not exist under src/ikigai/src/ikigai/;
     # the real _write_tasks_to_data is at src/ikigai/src/mcp_server/server.py:188)
-    from src.ikigai.src.mcp_server.server import _write_tasks_to_data
+    from mcp_server.server import _write_tasks_to_data
 
     if _KILL_SWITCH:
         return {
