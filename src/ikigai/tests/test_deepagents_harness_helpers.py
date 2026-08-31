@@ -1,4 +1,24 @@
-"""Unit tests for F11-extracted helpers in deepagents_harness.run_chat."""
+"""Unit tests for F11-extracted helpers in deepagents_harness.run_chat.
+
+Stripped 2026-08-31: `_route_command` and `_register_builtin_commands` were the
+CLI dispatch helpers for the algo-execution paths (--list-checkpoints,
+--run-cycle, one-shot `python -m agents.deepagents_harness` mode). Per user
+scope ("o ikigai agent nao cuida de algoritmos matematicos"), those paths are
+removed; the agent is a planning assistant only. The deep agent invokes tools
+through deepagents' own tool-calling surface, not a bespoke `route_command`
+registry.
+
+Tests removed:
+- test_route_command_dispatches_score
+- test_route_command_returns_none_for_unknown_command
+- test_route_command_normalizes_case
+- test_register_builtin_commands_returns_expected_keys
+
+Tests preserved (these target surviving helpers in run_chat / _make_agent):
+- _extract_assistant_text (3 tests)
+- _invoke_agent_or_fallback (2 tests)
+- run_chat is orchestrator only (LOC budget assertion)
+"""
 
 from __future__ import annotations
 
@@ -32,48 +52,6 @@ def test_extract_assistant_text_returns_empty_when_no_messages() -> None:
     from agents.deepagents_harness import _extract_assistant_text
 
     assert _extract_assistant_text({"messages": []}) == ""
-
-
-def test_route_command_dispatches_score() -> None:
-    """_route_command maps 'score' to ikigai_score tool."""
-    from agents.deepagents_harness import _route_command
-
-    mock_result = "score output"
-    registry = {
-        "score": MagicMock(return_value=mock_result),
-        "regime": MagicMock(),
-    }
-    result = _route_command("score", thread_id="t1", registry=registry)
-    assert result == mock_result
-    registry["score"].assert_called_once()
-
-
-def test_route_command_returns_none_for_unknown_command() -> None:
-    """_route_command returns None when no command matches."""
-    from agents.deepagents_harness import _route_command
-
-    registry = {"score": MagicMock()}
-    assert _route_command("xyz_unknown", thread_id="t1", registry=registry) is None
-
-
-def test_route_command_normalizes_case() -> None:
-    """_route_command lowercases input for matching."""
-    from agents.deepagents_harness import _route_command
-
-    mock_result = "score output"
-    registry = {"score": MagicMock(return_value=mock_result)}
-    result = _route_command("SCORE", thread_id="t1", registry=registry)
-    assert result == mock_result
-
-
-def test_register_builtin_commands_returns_expected_keys() -> None:
-    """_register_builtin_commands returns dict with all known commands."""
-    from agents.deepagents_harness import _register_builtin_commands
-
-    registry = _register_builtin_commands()
-    # Spot-check the IKIGAi shortcuts that existed pre-refactor
-    expected = {"score", "regime", "phase", "corrections", "plan", "sync", "checkpoint"}
-    assert expected.issubset(registry.keys())
 
 
 def test_invoke_agent_or_fallback_returns_agent_result() -> None:

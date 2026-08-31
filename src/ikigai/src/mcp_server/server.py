@@ -342,113 +342,34 @@ def _handle_ikigai_corrections(arguments: dict[str, Any]) -> str:
 
 
 def _handle_ikigai_plan_cycle(arguments: dict[str, Any]) -> str:
-    try:
-        import sys
-        from pathlib import Path
+    """ARCHIVED 2026-08-31 per attribution §3 + algorithm-scope-reframed.
 
-        _src = Path(__file__).parent.parent  # .../ikigai/src/
-        if str(_src) not in sys.path:
-            sys.path.insert(0, str(_src))
-        from agents.ikigai_maintainer import make_ikigai_graph
+    The 8-node LangGraph algorithm execution (`agents.ikigai_maintainer`) is
+    archived-in-place: kept on disk for reference but NOT imported and NOT
+    executed. Per user scope, the agent layer is a planning assistant only;
+    algorithm math lives behind strategics/ (PT-BR SOT) as soft-preferences.
 
-        today = dt.date.today()
-        graph = make_ikigai_graph()
-        initial: dict[str, Any] = {
-            "cycle_id": today.isoformat(),
-            "cycle_start": arguments.get("cycle_start") or today.isoformat(),
-            "cycle_end": arguments.get("cycle_end") or (today + dt.timedelta(days=45)).isoformat(),
-            "iteration": 0,
-            "last_step": "",
-            "regime_state": "MAINTAIN",
-            "q_he_score": 0.65,
-            "days_in_regime": 1,
-            "is_hysteresis_active": False,
-            "phase": "BUSCA",
-            "phase_iteration": 0,
-            "phase_converged": False,
-            "phase_weights": {
-                "passion": 0.15,
-                "skill": 0.25,
-                "market": 0.25,
-                "revenue": 0.20,
-                "course": 0.15,
-            },
-            "vector_scores": {},
-            "meta_vector_score": 0.0,
-            "active_dream_ueid": arguments.get("active_dream_ueid"),
-            "active_goal_ueids": [],
-            "active_objective_ueids": [],
-            "active_project_ueids": [],
-            "active_task_ueids": [],
-            "workload_estimate": 2.0,
-            "capacity_estimate": 8.0,
-            "balancer_verdict": "OK",
-            "prospective_buffer": [],
-            "retrospective_log": [],
-            "corrections": [],
-            "kill_switch_triggered": False,
-            "terminated": False,
-        }
-        config = {"configurable": {"thread_id": f"cycle_{today.isoformat()}"}}
-        final = graph.invoke(initial, config)
+    This handler returns a structured ARCHIVED response so callers can detect
+    that the tool exists in the MCP surface but does not run computation.
+    Vector-weight configurations, regime thresholds, and cycle mechanics are
+    archived as soft preferences in ./strategics/ (PT-BR SOT).
 
-        # Persist final state to plan_entities.db for ikigai_sync_vault
-        try:
-            plan_db = Path.home() / ".ikigai" / "plan_entities.db"
-            plan_db.parent.mkdir(parents=True, exist_ok=True)
-            conn = sqlite3.connect(str(plan_db))
-            cur = conn.cursor()
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS plan_entities (
-                    cycle_id TEXT PRIMARY KEY,
-                    regime TEXT,
-                    q_he REAL,
-                    passion REAL, skill REAL, market REAL, revenue REAL, course REAL,
-                    meta_vector REAL,
-                    corrections TEXT,
-                    created_at TEXT
-                )
-            """)
-            vs = final.get("vector_scores", {})
-            cur.execute(
-                """
-                INSERT OR REPLACE INTO plan_entities
-                (cycle_id, regime, q_he, passion, skill, market, revenue, course, meta_vector, corrections, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    final.get("cycle_id"),
-                    final.get("regime_state"),
-                    final.get("q_he_score"),
-                    vs.get("passion"),
-                    vs.get("skill"),
-                    vs.get("market"),
-                    vs.get("revenue"),
-                    vs.get("course"),
-                    final.get("meta_vector_score"),
-                    json.dumps(final.get("corrections", [])),
-                    dt.datetime.now().isoformat(),
-                ),
-            )
-            conn.commit()
-            conn.close()
-        except Exception:
-            pass  # non-fatal
+    Args:
+        arguments: Original tool arguments (ignored — archived).
 
-        return json.dumps(
-            {
-                "cycle_id": final.get("cycle_id"),
-                "regime": final.get("regime_state"),
-                "q_he": final.get("q_he_score"),
-                "meta_vector": final.get("meta_vector_score"),
-                "corrections_count": len(final.get("corrections", [])),
-                "prospective_buffer_size": len(final.get("prospective_buffer", [])),
-                "retrospective_log_size": len(final.get("retrospective_log", [])),
-            },
-            indent=2,
-        )
-    except Exception as e:
-        return json.dumps({"error": str(e)})
+    Returns:
+        JSON-encoded ARCHIVED status with the user-visible message.
+    """
+    _ = arguments  # intentionally unused — handler is archived
+    return json.dumps(
+        {
+            "status": "ARCHIVED",
+            "tool": "ikigai_plan_cycle",
+            "reason": "8-node LangGraph algorithm execution archived per attribution §3 + algorithm-scope-reframed (2026-08-30). Vector weights, regime FSM, phase FSM, H1-H6 heuristics live as soft preferences in ./strategics/ (PT-BR).",
+            "alternative": "For planning assistance, use ikigai_score/ikigai_regime/ikigai_phase/ikigai_corrections read tools. For action, prompt the agent to compose tasks via the vault_read/taskdog_/tuiboard_/solverforge_ tools.",
+        },
+        indent=2,
+    )
 
 
 def _handle_ikigai_checkpoint(arguments: dict[str, Any]) -> str:

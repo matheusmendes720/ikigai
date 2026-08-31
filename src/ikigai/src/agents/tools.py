@@ -1,17 +1,19 @@
 """IKIGAi tools — wrapped as LangChain @tool for deepagents.
 
-Each tool is a clean function with docstring + TypedDict return type.
-These are the 8 operations the conversational agent can call.
+Per user scope (2026-08-31): the agent layer is a PLANNING ASSISTANT ONLY.
+It binds 12 tools (10 external data + 2 vault reads). It does NOT bind
+math/policy/business-rule tools (ikigai_score, ikigai_regime, ikigai_phase,
+ikigai_corrections, ikigai_decompose, ikigai_plan_cycle, ikigai_sync_vault,
+ikigai_checkpoint) — those live behind the MCP interface
+(`src/mcp_server/server.py`) per attribution §3.
 """
 
 from __future__ import annotations
 
 import json
 import os
-import sqlite3
 import subprocess
-from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any
 
 from langchain_core.tools import tool
 
@@ -45,501 +47,50 @@ _TASKDOG_CLI = os.environ.get("TASKDOG_CLI", "taskdog.exe")
 # Helpers
 # ---------------------------------------------------------------------------
 
-# Project-local defaults (avoid ~/.ikigai/ — Windows-lock risk per audit B5.0-F10).
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
-_CHECKPOINT_DB = str(_PROJECT_ROOT / "data" / "ikigai_checkpoints.db")
-_VAULT_DIR = _PROJECT_ROOT / "vault"
+# Algorithm helpers — STRIPPED 2026-08-31 (see note below).
+# What was removed: _PROJECT_ROOT, _CHECKPOINT_DB, _VAULT_DIR module vars,
+# _get_checkpoint_path(), _read_checkpoint_data(). These existed solely to
+# serve the 8 algorithm @tool decorators that have been removed from this
+# module (the agent layer must NOT bind math/policy/business-rule tools).
 
-
-def _get_checkpoint_path() -> Path:
-    p = Path(_CHECKPOINT_DB)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    return p
-
-
-def _read_checkpoint_data(thread_id: str = "default") -> dict[str, Any]:
-    """Read latest checkpoint for a thread.
-
-    langgraph stores state in checkpoint['channel_values'].
-    """
-    p = _get_checkpoint_path()
-    if not p.exists():
-        return {}
-    import msgpack
-
-    conn = sqlite3.connect(str(p))
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT checkpoint FROM checkpoints
-        WHERE thread_id = ?
-        ORDER BY checkpoint_id DESC LIMIT 1
-        """,
-        (thread_id,),
-    )
-    row = cur.fetchone()
-    conn.close()
-    if row and row[0]:
-        try:
-            data = cast(dict[str, Any], msgpack.unpackb(row[0]))
-            # langgraph wraps state in channel_values
-            channel_values = data.get("channel_values")
-            if isinstance(channel_values, dict):
-                return channel_values
-            return data
-        except Exception:
-            return {}
-    return {}
 
 
 # ---------------------------------------------------------------------------
-# Tool 1: score — 5-vector scores + meta-vector
+# Algorithm @tool decorators — STRIPPED 2026-08-31 (see note below).
+# What was removed: 8 @tool functions that bound IKIGAi math/policy/
+# business-rule execution to the conversational agent (ikigai_score,
+# ikigai_regime, ikigai_phase, ikigai_corrections, ikigai_decompose,
+# ikigai_plan_cycle, ikigai_sync_vault, ikigai_checkpoint). Per user
+# scope, the agent is a PLANNING ASSISTANT ONLY — algorithms live behind
+# the MCP interface (`src/mcp_server/server.py`).
 # ---------------------------------------------------------------------------
 
 
-@tool
-def ikigai_score(thread_id: str = "default") -> str:
-    """Get current IKIGAi 5-vector scores (passion, skill, market, revenue, course)
-    and the meta-vector composite score.
-
-    Args:
-        thread_id: Checkpoint thread to read from. Defaults to "default".
-
-    Returns:
-        Formatted table of vector scores with ASCII bar charts.
-    """
-    d = _read_checkpoint_data(thread_id)
-    vs = d.get("vector_scores", {})
-    mv = d.get("meta_vector_score", 0.0)
-    qhe = d.get("q_he_score", 0.0)
-
-    if not vs:
-        return "⚠️ No vector scores found in checkpoint. Run `plan` first."
-
-    lines = [f"**IKIGAi Scores**  (meta: {mv:.4f}  Q_HE: {qhe:.4f})", ""]
-    for vec in ("passion", "skill", "market", "revenue", "course"):
-        v = vs.get(vec, 0.0)
-        bar = "█" * int(v / 10) + "░" * (10 - int(v / 10))
-        lines.append(f"  {vec.capitalize():12s} [{bar}] {v:.1f}")
-    return "\n".join(lines)
-
 
 # ---------------------------------------------------------------------------
-# Tool 2: regime — regime state, Q_HE, days in regime
+# Tools 2-5: regime, phase, corrections, decompose — STRIPPED (see note above).
 # ---------------------------------------------------------------------------
 
 
-@tool
-def ikigai_regime(thread_id: str = "default") -> str:
-    """Get current IKIGAi regime state (PUSH / MAINTAIN / REDUCE / RECOVER),
-    Q_HE score, and days-in-regime counter.
-
-    Args:
-        thread_id: Checkpoint thread to read from. Defaults to "default".
-
-    Returns:
-        One-line regime status with emoji indicator.
-    """
-    d = _read_checkpoint_data(thread_id)
-    regime = d.get("regime_state", "MAINTAIN")
-    days = d.get("days_in_regime", 0)
-    qhe = d.get("q_he_score", 0.65)
-
-    emoji = {
-        "PUSH": "🔴",
-        "MAINTAIN": "🟡",
-        "REDUCE": "🟠",
-        "RECOVER": "🟢",
-    }.get(regime, "⚪")
-
-    return f"{emoji} **Regime: {regime}**  |  Q_HE: {qhe:.4f}  |  Days: {days}"
-
 
 # ---------------------------------------------------------------------------
-# Tool 3: phase — current phase and weight distribution
+# Tool 6: plan_cycle — STRIPPED (see note above). This tool previously imported
+# `make_ikigai_graph` from `agents.ikigai_maintainer` and invoked it with the
+# full algo state — the bridge between MCP interface-style calls and the
+# LangGraph algorithm execution graph. Algorithm execution does NOT happen
+# in the agent layer; the agent only plans via prompt chains.
 # ---------------------------------------------------------------------------
 
 
-@tool
-def ikigai_phase(thread_id: str = "default") -> str:
-    """Get current IKIGAi phase (FUNDAÇÃO / BUSCA / HACKATHON / RECUPERACAO / OVERCLOCK)
-    and the 5-vector weight distribution.
-
-    Args:
-        thread_id: Checkpoint thread to read from. Defaults to "default".
-
-    Returns:
-        Phase name with iteration count and weight table.
-    """
-    d = _read_checkpoint_data(thread_id)
-    phase = d.get("phase", "BUSCA")
-    pi = d.get("phase_iteration", 0)
-    converged = d.get("phase_converged", False)
-    pw = d.get("phase_weights", {})
-
-    emoji = {
-        "FUNDAÇÃO": "🏗️",
-        "BUSCA": "🔍",
-        "HACKATHON": "⚡",
-        "RECUPERACAO": "🔧",
-        "OVERCLOCK": "🔥",
-    }.get(phase, "❓")
-
-    lines = [
-        f"{emoji} **Phase: {phase}**  iter={pi}  converged={converged}",
-        "",
-        "Weights:",
-    ]
-    for k, v in pw.items():
-        lines.append(f"  {k.capitalize():12s}: {v:.2f}")
-    return "\n".join(lines)
-
 
 # ---------------------------------------------------------------------------
-# Tool 4: corrections — H1-H6 heuristic signals
+# Tools 7-8: sync_vault, checkpoint — STRIPPED (see note above).
+# The `_format_corrections()` helper and these two @tool decorators both
+# assumed the persistence-layer checkpoint DB. The agent layer does not
+# own checkpoint state; vault writes go through `vault_write` (B6.4) and
+# checkpoint introspection belongs behind the MCP interface.
 # ---------------------------------------------------------------------------
 
-
-@tool
-def ikigai_corrections(thread_id: str = "default") -> str:
-    """Get active IKIGAi correction signals from H1-H6 heuristics.
-
-    Returns the most recent correction signals emitted by the regime FSM,
-    phase FSM, and balance heuristics.
-
-    Args:
-        thread_id: Checkpoint thread to read from. Defaults to "default".
-
-    Returns:
-        List of correction signals with heuristic tags and descriptions.
-    """
-    d = _read_checkpoint_data(thread_id)
-    corrs = d.get("corrections", [])
-
-    if not corrs:
-        return "✅ No corrections — system is balanced."
-
-    lines = [f"**Corrections ({len(corrs)})**", ""]
-    for c in corrs[-5:]:
-        lines.append(f"  [{c.get('heuristic', '?')}] {c.get('description', '')}")
-    return "\n".join(lines)
-
-
-# ---------------------------------------------------------------------------
-# Tool 5: decompose — UEID hierarchy (dream → goal → objective → project)
-# ---------------------------------------------------------------------------
-
-
-@tool
-def ikigai_decompose(ueid: str, thread_id: str = "default") -> str:
-    """Decompose a UEID into its full hierarchy:
-    Dream → Objectives → Projects → Tasks.
-
-    Args:
-        ueid: Full UEID to decompose (e.g. "ikigai:dream:vaga-remota-2026").
-        thread_id: Checkpoint thread to read from. Defaults to "default".
-
-    Returns:
-        Formatted hierarchy tree with status for each level.
-    """
-    if not ueid:
-        return "⚠️ Provide a UEID, e.g. `ikigai_decompose(ueid='ikigai:dream:vaga-remota-2026')`"
-
-    # Try to decompose via the existing mcp_server helper
-    try:
-        from mcp_server.server import _decompose_ueid
-
-        result = _decompose_ueid(ueid)
-        dream = result.get("dream", {})
-        objectives = result.get("objectives", [])
-        projects = result.get("projects", [])
-
-        lines = [
-            f"**Dream:** {dream.get('title', dream.get('slug', ueid))}  [{dream.get('status', '?')}]",
-            "",
-        ]
-        if objectives:
-            lines.append(f"  Objectives ({len(objectives)}):")
-            for o in objectives:
-                lines.append(f"    • {o.get('title', '?')}  [{o.get('status', '?')}]")
-        if projects:
-            lines.append(f"  Projects ({len(projects)}):")
-            for p in projects:
-                lines.append(f"    • {p.get('title', '?')}  [{p.get('status', '?')}]")
-        return "\n".join(lines)
-    except Exception as e:
-        return f"⚠️ Could not decompose UEID: {e}"
-
-
-# ---------------------------------------------------------------------------
-# Tool 6: plan_cycle — run full IKIGAi agent cycle
-# ---------------------------------------------------------------------------
-
-
-@tool
-def ikigai_plan_cycle(thread_id: str = "default") -> str:
-    """Run one full IKIGAi strategic planning cycle.
-
-    Executes the 8-node LangGraph: observe → score_vectors → heuristics
-    → balance → decompose → plan → reflect → commit.
-
-    Uses SqliteSaver checkpointing. Results are persisted and resumable.
-
-    Args:
-        thread_id: Thread ID for checkpointing. Defaults to "default".
-
-    Returns:
-        Summary of the completed cycle: regime, Q_HE, corrections, buffers.
-    """
-    import datetime as _dt
-    import sys
-    from pathlib import Path
-
-    sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
-    from agents.ikigai_maintainer import make_ikigai_graph
-
-    today = _dt.date.today()
-    graph = make_ikigai_graph(checkpoint_db=_CHECKPOINT_DB)
-    config = {"configurable": {"thread_id": thread_id}}
-
-    initial = {
-        "cycle_id": today.isoformat(),
-        "cycle_start": today.isoformat(),
-        "cycle_end": (today + _dt.timedelta(days=45)).isoformat(),
-        "iteration": 0,
-        "last_step": "",
-        "regime_state": "MAINTAIN",
-        "q_he_score": 0.65,
-        "days_in_regime": 1,
-        "is_hysteresis_active": False,
-        "phase": "BUSCA",
-        "phase_iteration": 0,
-        "phase_converged": False,
-        "phase_weights": {
-            "passion": 0.15,
-            "skill": 0.25,
-            "market": 0.25,
-            "revenue": 0.20,
-            "course": 0.15,
-        },
-        "vector_scores": {},
-        "meta_vector_score": 0.0,
-        "active_dream_ueid": None,
-        "active_goal_ueids": [],
-        "active_objective_ueids": [],
-        "active_project_ueids": [],
-        "active_task_ueids": [],
-        "workload_estimate": 2.0,
-        "capacity_estimate": 8.0,
-        "balancer_verdict": "OK",
-        "prospective_buffer": [],
-        "retrospective_log": [],
-        "corrections": [],
-        "kill_switch_triggered": False,
-        "terminated": False,
-    }
-
-    final = graph.invoke(initial, config)
-    vs = final.get("vector_scores", {})
-    mv = final.get("meta_vector_score", 0.0)
-    regime = final.get("regime_state", "?")
-    qhe = final.get("q_he_score", 0.0)
-    corrections = final.get("corrections", [])
-    prospective = final.get("prospective_buffer", [])
-    retrospective = final.get("retrospective_log", [])
-
-    return (
-        f"✅ Plan cycle complete\n"
-        f"   Regime: {regime}  |  Q_HE: {qhe:.4f}  |  Meta: {mv:.4f}\n"
-        f"   Vectors: {len(vs)} scored\n"
-        f"   Corrections: {len(corrections)}  |  Prospective: {len(prospective)}  |  Retrospective: {len(retrospective)}"
-    )
-
-
-# ---------------------------------------------------------------------------
-# Tool 7: sync_vault — write cycle checkpoint to vault markdown
-# ---------------------------------------------------------------------------
-
-
-def _format_corrections(corrections: list[dict[str, Any]]) -> str:
-    """Render the last 5 corrections as a markdown bullet list.
-
-    Extracted from the sync_vault body so the f-string composing the vault
-    markdown does not contain a backslash escape (the inner "\\n" inside an
-    f-string triggers ruff's invalid-syntax on Python 3.10). The project
-    requires-python >=3.12 so the runtime is fine; ruff is being defensive
-    and we comply by moving the join out of the f-string.
-    """
-    if not corrections:
-        return "_None_"
-    lines = [
-        f"- [{c.get('heuristic', '?')}] {c.get('description', '')}\n" for c in corrections[-5:]
-    ]
-    return "".join(lines)
-
-
-@tool
-def ikigai_sync_vault(thread_id: str = "default") -> str:
-    """Sync the latest checkpoint to a vault markdown file.
-
-    Writes a cycle log to vault/cycle-YYYY-MM-DD.md with current vector
-    scores, regime, phase, and corrections.
-
-    Per attribution §7 (combo-a-whole-branch-review-backlog-2026-08-29
-    Important #3): all vault writes go through `vault_write` for atomicity
-    + VaultLock concurrency + path-traversal protection. This tool no
-    longer calls `Path.write_text` directly.
-
-    Args:
-        thread_id: Checkpoint thread to read from. Defaults to "default".
-
-    Returns:
-        Path to the written vault file.
-    """
-    import datetime as _dt
-
-    from ikigai.vault.vault_write import (
-        vault_write as _vault_write_impl,
-    )
-
-    d = _read_checkpoint_data(thread_id)
-    cycle_id = d.get("cycle_id", _dt.date.today().isoformat())
-    vs = d.get("vector_scores", {})
-    regime = d.get("regime_state", "UNKNOWN")
-    qhe = d.get("q_he_score", 0.0)
-    mv = d.get("meta_vector_score", 0.0)
-    phase = d.get("phase", "BUSCA")
-    corrections = d.get("corrections", [])
-
-    vault_root = _VAULT_DIR
-    vault_root.mkdir(parents=True, exist_ok=True)
-    relative_path = f"cycle-{cycle_id}.md"
-
-    # Build frontmatter_fields and body separately — vault_write composes
-    # them with frontmatter.dumps() + atomic os.replace() (B6.4 pattern).
-    frontmatter_fields: dict[str, Any] = {
-        "ueid": f"ikigai:cycle:{cycle_id}",
-        "cycle_id": cycle_id,
-        "date": _dt.date.today().isoformat(),
-        "regime": regime,
-        "q_he": qhe,
-        "meta_vector": mv,
-        "phase": phase,
-        "corrections_count": len(corrections),
-        "vector_scores": json.dumps(vs),
-    }
-    body = f"""# IKIGAi Cycle — {cycle_id}
-
-## Regime: {regime}  |  Q_HE: {qhe:.4f}  |  Meta: {mv:.4f}
-
-## Vector Scores
-| Vector | Score |
-|--------|-------|
-| Passion | {vs.get("passion", 0.0)} |
-| Skill | {vs.get("skill", 0.0)} |
-| Market | {vs.get("market", 0.0)} |
-| Revenue | {vs.get("revenue", 0.0)} |
-| Course | {vs.get("course", 0.0)} |
-
-## Phase: {phase}
-
-## Corrections: {len(corrections)}
-{_format_corrections(corrections)}
-"""
-
-    result = _vault_write_impl(
-        vault_root=vault_root,
-        vault_path=relative_path,
-        frontmatter_fields=frontmatter_fields,
-        body=body,
-    )
-    return f"✅ Synced to vault: {vault_root / relative_path} (sha256={result['sha256'][:8]}...)"
-
-
-# ---------------------------------------------------------------------------
-# Tool 8: checkpoint — list / get / set checkpoint state
-# ---------------------------------------------------------------------------
-
-
-@tool
-def ikigai_checkpoint(
-    action: Literal["list", "get", "state"] = "list",
-    thread_id: str = "default",
-) -> str:
-    """Manage IKIGAi checkpoint state.
-
-    - list: Show all recent checkpoint threads
-    - get: Show current state for a thread
-    - state: Return full state dict as JSON string
-
-    Args:
-        action: One of "list", "get", or "state". Defaults to "list".
-        thread_id: Thread to operate on. Defaults to "default".
-
-    Returns:
-        Checkpoint info in requested format.
-    """
-    p = _get_checkpoint_path()
-    if not p.exists():
-        return "⚠️ No checkpoint DB found. Run `plan_cycle` first."
-
-    conn = sqlite3.connect(str(p))
-    cur = conn.cursor()
-
-    if action == "list":
-        cur.execute(
-            "SELECT thread_id, checkpoint_ns, checkpoint_id FROM checkpoints "
-            "ORDER BY checkpoint_id DESC LIMIT 20"
-        )
-        rows = cur.fetchall()
-        conn.close()
-        if not rows:
-            return "No checkpoints found."
-        lines = [f"**Checkpoints ({len(rows)}):**", ""]
-        for r in rows:
-            lines.append(f"  • {r[0]}  [{r[1]}]  {r[2]}")
-        return "\n".join(lines)
-
-    if action in ("get", "state"):
-        cur.execute(
-            "SELECT checkpoint FROM checkpoints "
-            "WHERE thread_id = ? ORDER BY checkpoint_id DESC LIMIT 1",
-            (thread_id,),
-        )
-        row = cur.fetchone()
-        conn.close()
-        if not row or not row[0]:
-            return f"No checkpoint found for thread '{thread_id}'."
-        try:
-            import msgpack
-
-            data = msgpack.unpackb(row[0])
-            data = data.get("channel_values", data)
-        except Exception:
-            data = {}
-        if action == "get":
-            summary = [
-                f"cycle_id:    {data.get('cycle_id', '?')}",
-                f"regime:      {data.get('regime_state', '?')}  Q_HE={data.get('q_he_score', 0):.4f}",
-                f"phase:       {data.get('phase', '?')}  iter={data.get('phase_iteration', 0)}",
-                f"verdict:     {data.get('balancer_verdict', '?')}",
-                f"meta-vector: {data.get('meta_vector_score', 0):.4f}",
-                f"corrections: {len(data.get('corrections', []))}",
-            ]
-            return "\n".join(summary)
-        # state — return JSON
-
-        serializable = {}
-        for k, v in data.items():
-            try:
-                json.dumps(v)
-                serializable[k] = v
-            except (TypeError, ValueError):
-                serializable[k] = str(v)
-        return json.dumps(serializable, indent=2)
-
-    conn.close()
-    return f"Unknown action: {action}"
 
 
 # ---------------------------------------------------------------------------
@@ -587,7 +138,10 @@ def solverforge_list_events(days: int = 7) -> str:
         if result.returncode != 0:
             raise ConnectionError(f"solverforge error: {result.stderr}")
         return result.stdout
-    except (subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError):
+    except FileNotFoundError as e:
+        # Binary missing — return friendly message instead of crashing agent.invoke().
+        return f"⚠️ solverforge unavailable (binary not found): {e}"
+    except (subprocess.TimeoutExpired, ConnectionError, OSError):
         invalidate_session_cache("solverforge")
         raise
     except Exception as e:
@@ -632,7 +186,10 @@ def solverforge_create_event(title: str, date: str, time: str = "09:00") -> str:
         if result.returncode != 0:
             raise ConnectionError(f"solverforge error: {result.stderr}")
         return result.stdout
-    except (subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError):
+    except FileNotFoundError as e:
+        # Binary missing — return friendly message instead of crashing agent.invoke().
+        return f"⚠️ solverforge unavailable (binary not found): {e}"
+    except (subprocess.TimeoutExpired, ConnectionError, OSError):
         invalidate_session_cache("solverforge")
         raise
     except Exception as e:
@@ -659,7 +216,15 @@ _tuiboard_cb_config = CircuitBreakerConfig(
 
 def _tuiboard_rpc(method: str, params: dict[str, Any] | None = None) -> Any:
     """Execute a JSON-RPC call to tuiboard MCP over stdio."""
-    import json
+    import shutil
+
+    # Short-circuit if tuiboard binary is not installed (e.g. `bun` missing on PATH).
+    # Without this guard, subprocess.run raises FileNotFoundError which trips the
+    # reliability retry decorator and the tool_node, crashing the agent.invoke().
+    if not shutil.which(_TUIBOARD_CLI):
+        raise FileNotFoundError(
+            f"tuiboard CLI '{_TUIBOARD_CLI}' not found on PATH — tuiboard fork is not wired up; use taskdog_* tools instead."
+        )
 
     request = {"jsonrpc": "2.0", "id": 1, "method": method, "params": params or {}}
     request_str = json.dumps(request)
@@ -707,7 +272,11 @@ def tuiboard_list_boards() -> str:
         for board in result:
             lines.append(f"  • {board.get('name', 'unnamed')} ({board.get('path', '')})")
         return "\n".join(lines)
-    except (subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError):
+    except FileNotFoundError as e:
+        # Binary missing — return friendly message instead of crashing agent.invoke().
+        # This fork is not wired up (tuiboard requires `bun` runtime which isn't installed).
+        return f"⚠️ tuiboard unavailable (binary not found): {e}"
+    except (subprocess.TimeoutExpired, ConnectionError, OSError):
         invalidate_session_cache("tuiboard")
         raise
     except Exception as e:
@@ -745,7 +314,11 @@ def tuiboard_get_tasks(board_path: str, column: int | None = None, filter_: str 
                 f"  {status} {task.get('title', 'untitled')} [{task.get('priority', '?')}]"
             )
         return "\n".join(lines)
-    except (subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError):
+    except FileNotFoundError as e:
+        # Binary missing — return friendly message instead of crashing agent.invoke().
+        # This fork is not wired up (tuiboard requires `bun` runtime which isn't installed).
+        return f"⚠️ tuiboard unavailable (binary not found): {e}"
+    except (subprocess.TimeoutExpired, ConnectionError, OSError):
         invalidate_session_cache("tuiboard")
         raise
     except Exception as e:
@@ -775,7 +348,11 @@ def tuiboard_create_task(board_path: str, title: str, column: int = 0) -> str:
             "create_task", {"board_path": board_path, "title": title, "column": column}
         )
         return f"✅ Task created: {result.get('id', 'unknown')}"
-    except (subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError):
+    except FileNotFoundError as e:
+        # Binary missing — return friendly message instead of crashing agent.invoke().
+        # This fork is not wired up (tuiboard requires `bun` runtime which isn't installed).
+        return f"⚠️ tuiboard unavailable (binary not found): {e}"
+    except (subprocess.TimeoutExpired, ConnectionError, OSError):
         invalidate_session_cache("tuiboard")
         raise
     except Exception as e:
@@ -819,7 +396,11 @@ def tuiboard_update_task(
         result = _tuiboard_rpc("update_task", params)
         _ = result  # result discarded; status surfaces via RPC error handling
         return f"✅ Task updated: {task_id}"
-    except (subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError):
+    except FileNotFoundError as e:
+        # Binary missing — return friendly message instead of crashing agent.invoke().
+        # This fork is not wired up (tuiboard requires `bun` runtime which isn't installed).
+        return f"⚠️ tuiboard unavailable (binary not found): {e}"
+    except (subprocess.TimeoutExpired, ConnectionError, OSError):
         invalidate_session_cache("tuiboard")
         raise
     except Exception as e:
@@ -866,12 +447,15 @@ def taskdog_list_tasks(status: str | None = None, include_archived: bool = False
         if status:
             args.extend(["--status", status])
         if include_archived:
-            args.append("--include-archived")
+            args.append("--all")
         result = subprocess.run(args, capture_output=True, text=True, timeout=30)
         if result.returncode != 0:
             raise ConnectionError(f"taskdog error: {result.stderr}")
         return result.stdout
-    except (subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError):
+    except FileNotFoundError as e:
+        # Binary missing — return friendly message instead of crashing agent.invoke().
+        return f"⚠️ taskdog unavailable (binary not found): {e}"
+    except (subprocess.TimeoutExpired, ConnectionError, OSError):
         invalidate_session_cache("taskdog")
         raise
     except Exception as e:
@@ -896,7 +480,7 @@ def taskdog_create_task(name: str) -> str:
     """
     try:
         result = subprocess.run(
-            [_TASKDOG_CLI, "create", "--name", name],
+            [_TASKDOG_CLI, "add", name],
             capture_output=True,
             text=True,
             timeout=30,
@@ -904,7 +488,10 @@ def taskdog_create_task(name: str) -> str:
         if result.returncode != 0:
             raise ConnectionError(f"taskdog error: {result.stderr}")
         return result.stdout
-    except (subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError):
+    except FileNotFoundError as e:
+        # Binary missing — return friendly message instead of crashing agent.invoke().
+        return f"⚠️ taskdog unavailable (binary not found): {e}"
+    except (subprocess.TimeoutExpired, ConnectionError, OSError):
         invalidate_session_cache("taskdog")
         raise
     except Exception as e:
@@ -929,7 +516,7 @@ def taskdog_complete_task(task_id: int) -> str:
     """
     try:
         result = subprocess.run(
-            [_TASKDOG_CLI, "complete", str(task_id)],
+            [_TASKDOG_CLI, "done", str(task_id)],
             capture_output=True,
             text=True,
             timeout=30,
@@ -937,7 +524,10 @@ def taskdog_complete_task(task_id: int) -> str:
         if result.returncode != 0:
             raise ConnectionError(f"taskdog error: {result.stderr}")
         return result.stdout
-    except (subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError):
+    except FileNotFoundError as e:
+        # Binary missing — return friendly message instead of crashing agent.invoke().
+        return f"⚠️ taskdog unavailable (binary not found): {e}"
+    except (subprocess.TimeoutExpired, ConnectionError, OSError):
         invalidate_session_cache("taskdog")
         raise
     except Exception as e:
@@ -962,15 +552,21 @@ def taskdog_get_task(task_id: int) -> str:
     """
     try:
         result = subprocess.run(
-            [_TASKDOG_CLI, "get", str(task_id)],
+            [_TASKDOG_CLI, "show", str(task_id)],
             capture_output=True,
             text=True,
             timeout=30,
         )
+        # Note: taskdog 0.23.0 'show' has a known bug ('TaskdogApiClient has no attribute get_task_detail').
+        # The error surfaces in stdout with non-zero returncode. Surface it as a string instead of
+        # raising ConnectionError, which would trip the retry decorator + invoke-fallback path.
         if result.returncode != 0:
-            raise ConnectionError(f"taskdog error: {result.stderr}")
+            return f"⚠️ taskdog show {task_id} unavailable: {(result.stderr or result.stdout).strip()}"
         return result.stdout
-    except (subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError):
+    except FileNotFoundError as e:
+        # Binary missing — return friendly message instead of crashing agent.invoke().
+        return f"⚠️ taskdog unavailable (binary not found): {e}"
+    except (subprocess.TimeoutExpired, ConnectionError, OSError):
         invalidate_session_cache("taskdog")
         raise
     except Exception as e:
@@ -981,15 +577,6 @@ def taskdog_get_task(task_id: int) -> str:
 # All tools as list (for create_deep_agent)
 # ---------------------------------------------------------------------------
 IKIGAI_TOOLS = [
-    # IKIGAi internal tools
-    ikigai_score,
-    ikigai_regime,
-    ikigai_phase,
-    ikigai_corrections,
-    ikigai_decompose,
-    ikigai_plan_cycle,
-    ikigai_sync_vault,
-    ikigai_checkpoint,
     # Solverforge Calendar
     solverforge_list_events,
     solverforge_create_event,
