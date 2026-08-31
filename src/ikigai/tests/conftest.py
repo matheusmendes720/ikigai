@@ -27,16 +27,22 @@ from pathlib import Path
 # Without the second entry, `from src.mesh import queue` raises
 # `ModuleNotFoundError: No module named 'src.mesh'` on Windows pytest.
 _THIS = Path(__file__).resolve()
-# Two distinct IKIGAI paths are needed because tests use TWO import styles:
+# Three distinct paths are needed because tests use THREE import styles:
 #   1. `from src.ikigai.src.ikigai.vault.vault_read import vault_read`
 #      → requires <repo-root>/src/ikigai/ on sys.path (one 'src/ikigai/' is
 #        the namespace package prefix the test uses).
 #   2. `from src.mesh import queue`
 #      → requires <repo-root>/ on sys.path (so 'src.mesh' resolves as a
 #        dotted path under the repo-root src/ tree).
+#   3. `from contracts.task_change import TaskChange`  (no 'src.' prefix,
+#      used by mesh/queue.py and mcp_server/tools_mesh.py)
+#      → requires <repo-root>/src/ on sys.path so the bare 'contracts'
+#        package resolves. Without this, 17 ikigai_maintainer_node tests +
+#        test_server_fastmcp.py collection fail with ModuleNotFoundError.
 _IKIGAI_PKG_ROOT = _THIS.parent.parent  # <repo-root>/src/ikigai/
+_SRC_ROOT = _THIS.parent.parent.parent  # <repo-root>/src/  (contracts/, mesh/)
 _REPO_ROOT = _THIS.parent.parent.parent.parent  # <repo-root>
-for _p in (_IKIGAI_PKG_ROOT, _REPO_ROOT):
+for _p in (_IKIGAI_PKG_ROOT, _SRC_ROOT, _REPO_ROOT):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
