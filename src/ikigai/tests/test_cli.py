@@ -21,7 +21,7 @@ class TestCLI:
 
     def test_version_json(self) -> None:
         """version --json must return valid JSON."""
-        result = runner.invoke(app, ["version", "--json"])
+        result = runner.invoke(app, ["--json", "version"])
         assert result.exit_code == 0
         data = json.loads(result.stdout)
         assert "version" in data["data"]
@@ -33,7 +33,7 @@ class TestCLI:
 
     def test_health_json(self) -> None:
         """health --json must return valid JSON with vault_exists."""
-        result = runner.invoke(app, ["health", "--json"])
+        result = runner.invoke(app, ["--json", "health"])
         assert result.exit_code == 0
         data = json.loads(result.stdout)
         assert data["data"]["vault_exists"] is not None
@@ -71,7 +71,7 @@ class TestCLI:
         """regime status --json must return valid JSON."""
         result = runner.invoke(
             app,
-            ["regime", "status", "--qhe", "0.70", "--json"],
+            ["--json", "regime", "status", "--qhe", "0.70"],
         )
         assert result.exit_code == 0
         data = json.loads(result.stdout)
@@ -90,7 +90,7 @@ class TestCLI:
         """phase status --json must return valid JSON."""
         result = runner.invoke(
             app,
-            ["phase", "status", "--ikigai-score", "60.0", "--json"],
+            ["--json", "phase", "status", "--ikigai-score", "60.0"],
         )
         assert result.exit_code == 0
         data = json.loads(result.stdout)
@@ -109,7 +109,7 @@ class TestCLI:
 
     def test_sync_run_markdown(self) -> None:
         """sync run --prefer markdown must exit 0."""
-        result = runner.invoke(app, ["sync", "run", "--prefer", "markdown"])
+        result = runner.invoke(app, ["--json", "sync", "run", "--prefer", "markdown"])
         assert result.exit_code == 0
         data = json.loads(result.stdout)
         assert data["data"]["action"] == "markdown→sqlite"
