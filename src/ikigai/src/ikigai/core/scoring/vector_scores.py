@@ -28,6 +28,11 @@ def score_passion(streak_days: float, lambda_rate: float = NSM.LAMBDA) -> ScoreV
     if lambda_rate < 0:
         raise ValueError(f"lambda_rate must be >= 0, got {lambda_rate}")
     h = 1.0 - math.exp(-lambda_rate * streak_days)
+    # Numerical safety: H(t) → 1 asymptotically, never reaches 1 in exact math.
+    # In float, exp(-large) underflows to 0.0, making h = 1.0 exactly — clamp
+    # before rounding so round(..., 2) stays strictly less than 100.
+    if h >= 1.0:
+        h = 0.9999
     return ScoreValue(value=round(h * 100, 2), unit="percent")
 
 

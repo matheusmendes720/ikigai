@@ -163,11 +163,11 @@ class TestMetaVector:
         defaults = {"passion": 60.0, "skill": 70.0, "market": 55.0, "revenue": 50.0, "course": 65.0}
         defaults.update(kwargs)
         return {
-            VectorType.PASSION: ScoreValue(defaults["passion"], "percent"),
-            VectorType.SKILL: ScoreValue(defaults["skill"], "percent"),
-            VectorType.MARKET: ScoreValue(defaults["market"], "percent"),
-            VectorType.REVENUE: ScoreValue(defaults["revenue"], "percent"),
-            VectorType.COURSE: ScoreValue(defaults["course"], "percent"),
+            VectorType.PASSION: ScoreValue(value=defaults["passion"], unit="percent"),
+            VectorType.SKILL: ScoreValue(value=defaults["skill"], unit="percent"),
+            VectorType.MARKET: ScoreValue(value=defaults["market"], unit="percent"),
+            VectorType.REVENUE: ScoreValue(value=defaults["revenue"], unit="percent"),
+            VectorType.COURSE: ScoreValue(value=defaults["course"], unit="percent"),
         }
 
     def _weights(self) -> dict[VectorType, float]:
@@ -180,12 +180,12 @@ class TestMetaVector:
         }
 
     def test_all_zero_scores(self) -> None:
-        scores = {v: ScoreValue(0.0, "percent") for v in VectorType}
+        scores = {v: ScoreValue(value=0.0, unit="percent") for v in VectorType}
         result = meta_vector(scores, self._weights())
         assert result.value == 0.0
 
     def test_all_100_scores(self) -> None:
-        scores = {v: ScoreValue(100.0, "percent") for v in VectorType}
+        scores = {v: ScoreValue(value=100.0, unit="percent") for v in VectorType}
         result = meta_vector(scores, self._weights())
         assert result.value == 100.0
 
@@ -226,7 +226,7 @@ class TestComputeAlignmentLabel:
         assert label == AlignmentLabel.CRITICAL
 
     def test_score_value_input(self) -> None:
-        label = compute_alignment_label(ScoreValue(80.0, "percent"))
+        label = compute_alignment_label(ScoreValue(value=80.0, unit="percent"))
         assert label == AlignmentLabel.ALIGNED
 
 
