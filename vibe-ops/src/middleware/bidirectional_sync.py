@@ -219,10 +219,16 @@ class BidirectionalSync:
             out["policy_severity"] = self._infer_severity(latest_pd)
         # RICE components must be present to compute a meaningful score.
         if all(k in payload for k in ("reach", "impact", "confidence", "effort_h")):
-            from pipeline.rice_exporter import compute_rice_score
-            out["rice_score"] = compute_rice_score(
-                payload["reach"], payload["impact"],
-                payload["confidence"], payload["effort_h"],
+            # Per attribution §3, RICE scoring math is the algorithm layer's
+            # responsibility, not the orchestrator/sync layer's. The
+            # invocation below is archived-in-place — callers needing the
+            # canonical score should import directly from
+            # ``pipeline.rice_exporter.compute_rice_score``.
+            raise NotImplementedError(
+                "RICE scoring math archived per attribution §3 — "
+                "see pipeline.rice_exporter.compute_rice_score for the "
+                "canonical implementation. The sync layer only writes "
+                "field presence; it does not compute scores."
             )
         return out
 

@@ -2,8 +2,12 @@
 
 Consumes:
   - Vault planning state (vault/ikigai/closing-2026/)
-  - IkigaiScorer vector scores (for priority/vector assignment)
   - Optional: explicit cycle state from data/cycle_state.json
+
+Note: per attribution §3, the IkigaiScorer vector-score import was removed
+(algo math is not this layer's responsibility). The consolidator only
+handles task synthesis from vault frontmatter — vector assignment is left
+to downstream consumers.
 
 Produces:
   - data/tasks.jsonl  (one JSON per line, matching _write_tasks_to_data schema)
@@ -17,11 +21,9 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any
-
-from pipeline.ikigai_scorer import IkigaiScorer
 
 
 # ---------------------------------------------------------------------------
