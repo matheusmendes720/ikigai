@@ -21,7 +21,7 @@ from pathlib import Path
 
 # conftest.py already puts src/ikigai/src/ on sys.path so `agents` resolves.
 # Also add the repo root so absolute cross-module imports like
-# `src.ikigai.src.ikigai.vault.vault_write` work (matches E2E test pattern).
+# `ikigai.vault.vault_write` work (matches E2E test pattern).
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
@@ -184,7 +184,7 @@ def test_sync_vault_rejects_path_traversal(monkeypatch: pytest.MonkeyPatch) -> N
     # The sync_vault tool composes vault_path as `cycle-{cycle_id}.md`,
     # so to test the traversal rejection we have to call vault_write with
     # a path that escapes the vault root.
-    from src.ikigai.src.ikigai.vault.vault_write import vault_write
+    from ikigai.vault.vault_write import vault_write
 
     with pytest.raises(ValueError, match="traversal|outside|escape|root"):
         vault_write(

@@ -7,7 +7,7 @@ from pathlib import Path
 
 def test_vault_read_parses_frontmatter_and_body(tmp_path: Path) -> None:
     """Frontmatter dict + body returned separately."""
-    from src.ikigai.src.ikigai.vault.vault_read import vault_read
+    from ikigai.vault.vault_read import vault_read
 
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -31,7 +31,7 @@ def test_vault_read_parses_frontmatter_and_body(tmp_path: Path) -> None:
 
 def test_vault_read_missing_file_raises(tmp_path: Path) -> None:
     """Missing file raises FileNotFoundError."""
-    from src.ikigai.src.ikigai.vault.vault_read import vault_read
+    from ikigai.vault.vault_read import vault_read
 
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -42,7 +42,7 @@ def test_vault_read_missing_file_raises(tmp_path: Path) -> None:
 
 def test_vault_read_no_frontmatter_returns_empty_dict(tmp_path: Path) -> None:
     """Plain markdown (no frontmatter) returns empty frontmatter dict."""
-    from src.ikigai.src.ikigai.vault.vault_read import vault_read
+    from ikigai.vault.vault_read import vault_read
 
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -54,7 +54,7 @@ def test_vault_read_no_frontmatter_returns_empty_dict(tmp_path: Path) -> None:
 
 def test_vault_read_empty_file_returns_empty_body(tmp_path: Path) -> None:
     """Empty file returns empty body + empty frontmatter."""
-    from src.ikigai.src.ikigai.vault.vault_read import vault_read
+    from ikigai.vault.vault_read import vault_read
 
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -66,7 +66,7 @@ def test_vault_read_empty_file_returns_empty_body(tmp_path: Path) -> None:
 
 def test_vault_read_handles_unicode(tmp_path: Path) -> None:
     """UTF-8 (Portuguese accents) round-trips correctly."""
-    from src.ikigai.src.ikigai.vault.vault_read import vault_read
+    from ikigai.vault.vault_read import vault_read
 
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -84,7 +84,7 @@ def test_vault_read_concurrent_readers_do_not_block(tmp_path: Path) -> None:
     """Two concurrent readers can both hold VaultLock (shared lock)."""
     import threading
 
-    from src.ikigai.src.ikigai.vault.vault_read import vault_read
+    from ikigai.vault.vault_read import vault_read
 
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -113,7 +113,7 @@ def test_vault_read_returns_sha256_matches_file_content(tmp_path: Path) -> None:
     """SHA256 hash matches actual file bytes on disk."""
     import hashlib
 
-    from src.ikigai.src.ikigai.vault.vault_read import vault_read
+    from ikigai.vault.vault_read import vault_read
 
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -131,7 +131,7 @@ def test_vault_read_returns_sha256_matches_file_content(tmp_path: Path) -> None:
 
 def test_vault_read_mtime_matches_file(tmp_path: Path) -> None:
     """mtime is the file's actual mtime."""
-    from src.ikigai.src.ikigai.vault.vault_read import vault_read
+    from ikigai.vault.vault_read import vault_read
 
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -145,7 +145,7 @@ def test_vault_read_mtime_matches_file(tmp_path: Path) -> None:
 
 def test_vault_read_nested_path(tmp_path: Path) -> None:
     """Read works for nested paths inside vault_root."""
-    from src.ikigai.src.ikigai.vault.vault_read import vault_read
+    from ikigai.vault.vault_read import vault_read
 
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -163,7 +163,7 @@ def test_vault_read_nested_path(tmp_path: Path) -> None:
 
 def test_vault_read_does_not_mutate_target_file(tmp_path: Path) -> None:
     """Read-only contract — file content unchanged after vault_read."""
-    from src.ikigai.src.ikigai.vault.vault_read import vault_read
+    from ikigai.vault.vault_read import vault_read
 
     vault = tmp_path / "vault"
     vault.mkdir()
