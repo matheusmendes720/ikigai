@@ -41,7 +41,12 @@ class PlanEntity(BaseModel):
     )
 
     # ── Identity (anti-fragile tri-key) ──
-    ueid: UEID
+    # ueid is auto-derived from (entity_type, slug, content) when omitted, so
+    # callers can construct entities with just `slug=...` + `title=...` and let
+    # the anti-fragile tri-key fall into place. Tests and ad-hoc scripts rely
+    # on this; explicit ueids remain fully supported for callers that want
+    # idempotent identity (e.g., re-importing an existing markdown file).
+    ueid: UEID | None = None
     entity_type: EntityType
     slug: str = Field(min_length=2, max_length=64, pattern=r"^[a-z0-9][a-z0-9_-]*[a-z0-9]$")
 
@@ -146,6 +151,36 @@ class PlanEntity(BaseModel):
             raise ValueError("is_placeholder=True requires placeholder_owner")
         if self.claimed_by and not self.is_placeholder:
             raise ValueError("claimed_by requires is_placeholder=True")
+        return self
+
+    @model_validator(mode="after")
+    def _auto_ueid(self) -> "PlanEntity":
+        """Auto-derive ueid from (entity_type, slug, content) when caller omitted it.
+
+        The tri-key is anchored on slug + uuid_short (random) + content_hash. The
+        hash is computed over a canonical form of the entity's text content
+        (title + description + ikigai_vectors + status) so that two callers
+        creating the same logical entity get matching ueids only if the content
+        matches; otherwise the random uuid_short ensures uniqueness within a
+        single process while the content_hash still surfaces drift on reload.
+        """
+        if self.ueid is not None:
+            return self
+        # Canonical content for hashing: stable, JSON-shaped string of the
+        # text fields. Vector keys are flattened via .value to match the
+        # serialised frontmatter shape.
+        vectors_str = ",".join(
+            sorted(v.value if hasattr(v, "value") else str(v) for v in self.ikigai_vectors)
+        )
+        canonical = (
+            f"{self.title}|{self.description or ''}|{self.status.value}|{vectors_str}"
+        )
+        self.ueid = UEID.generate(
+            namespace="ikigai",
+            entity_type=self.entity_type.value,
+            slug=self.slug,
+            canonical_content=canonical,
+        )
         return self
 
     # ─────────────────────────────────────────────────────────────────────────
