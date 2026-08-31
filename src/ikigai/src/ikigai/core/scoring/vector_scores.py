@@ -6,7 +6,7 @@ All functions return ScoreValue (percent, 0-100).
 from __future__ import annotations
 
 import math
-from typing import Iterable
+from collections.abc import Iterable
 
 from ikigai.constants import NSM
 from ikigai.enums import VectorType
@@ -177,10 +177,10 @@ def compute_vector_scores(
 
 
 __all__ = [
-    "score_passion",
-    "score_skill",
-    "score_market",
-    "score_revenue",
-    "score_course",
     "compute_vector_scores",
+    "score_course",
+    "score_market",
+    "score_passion",
+    "score_revenue",
+    "score_skill",
 ]

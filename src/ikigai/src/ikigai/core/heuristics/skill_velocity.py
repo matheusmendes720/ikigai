@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from ikigai.entities.skill import SkillLevel
 
-
 LEVEL_ORDER = {
     SkillLevel.BEGINNER: 0,
     SkillLevel.INTERMEDIATE: 1,
@@ -61,4 +60,4 @@ def detect_stagnation(
     return levels_promoted_last_180d < stagnation_threshold
 
 
-__all__ = ["should_promote_skill", "detect_stagnation", "LEVEL_ORDER"]
+__all__ = ["LEVEL_ORDER", "detect_stagnation", "should_promote_skill"]

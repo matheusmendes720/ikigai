@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-from ikigai.types import ScoreValue, UEID
+from ikigai.types import UEID, ScoreValue
 
 
 class TestUEID:

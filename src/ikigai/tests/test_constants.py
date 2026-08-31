@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-from ikigai.constants import NSM, PAV_NS
+from ikigai.constants import NSM
 
 
 class TestPAV_NS:

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import shutil
 import tempfile
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -33,7 +33,7 @@ def _write(path: Path, content: str = "# x\n") -> None:
 def _scan_findings(detector: DriftDetector, vault: Path) -> list[DriftFinding]:
     """Helper: scan() returns triagem path; iterate internal _collect
     directly for the findings list."""
-    return list(detector._collect(vault))  # noqa: SLF001 — internal API for tests
+    return list(detector._collect(vault))
 
 
 def test_detector_reports_in_sync(vault_and_db: Path) -> None:

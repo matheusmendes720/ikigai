@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, ConfigDict, Field
 
 from ikigai.enums import AlignmentLabel, VectorType
-from ikigai.types import ScoreValue, UEID
+from ikigai.types import UEID, ScoreValue
 
 
 class ProfileSnapshot(BaseModel):
@@ -71,4 +71,4 @@ class IKIGAiProfile(BaseModel):
         self.snapshots.append(snapshot)
 
 
-__all__ = ["ProfileSnapshot", "IKIGAiProfile"]
+__all__ = ["IKIGAiProfile", "ProfileSnapshot"]

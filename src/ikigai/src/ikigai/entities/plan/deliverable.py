@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Literal
-
 from pathlib import Path
+from typing import Literal
 
 from pydantic import model_validator
 
@@ -23,7 +22,7 @@ class DeliverableEntity(PlanEntity):
     is_public: bool = False
 
     @model_validator(mode="after")
-    def _validate_deliverable_status(self) -> "DeliverableEntity":
+    def _validate_deliverable_status(self) -> DeliverableEntity:
         allowed = {
             StatusType.DRAFT,
             StatusType.PLANNED,

@@ -7,6 +7,7 @@ Namespaces: ikigai | tw | obsidian | external
 from __future__ import annotations
 
 from typing import Annotated
+
 from pydantic import StringConstraints
 
 UEID = Annotated[

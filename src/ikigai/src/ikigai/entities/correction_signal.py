@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -25,7 +25,7 @@ class CorrectionSignal(BaseModel):
         "falsify",
     ]
     description: str
-    target_ueid: Optional[UEID] = None
+    target_ueid: UEID | None = None
     urgency: Literal["low", "medium", "high", "critical"]
     metadata: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime

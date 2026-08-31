@@ -2,29 +2,29 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 import pytest
-from datetime import datetime, timedelta, date
 
 from ikigai.core.heuristics import (
-    compute_regime,
     apply_hysteresis,
-    compute_phase,
-    recalibrate_weight_ucb,
-    recalibrate_all_weights,
-    compute_opportunity_fit,
     classify_opportunity,
-    should_promote_skill,
-    detect_stagnation,
+    compute_opportunity_fit,
+    compute_phase,
+    compute_regime,
     compute_weighted_priority,
+    detect_stagnation,
     rank_tasks,
+    recalibrate_all_weights,
+    recalibrate_weight_ucb,
+    should_promote_skill,
 )
-from ikigai.core.heuristics.regime import RegimeDecision
 from ikigai.core.heuristics.phase_pivot import PhaseDecision
-from ikigai.enums import RegimeType, Phase, VectorType, StatusType
-from ikigai.entities.plan.task import TaskEntity, TaskPriority
+from ikigai.core.heuristics.regime import RegimeDecision
+from ikigai.entities.plan.task import TaskEntity
 from ikigai.entities.skill import SkillLevel
+from ikigai.enums import Phase, RegimeType, StatusType, VectorType
 from ikigai.types import UEID
-
 
 # -------------------------------------------------------------------------- #
 # Regime
@@ -214,10 +214,10 @@ class TestRecalibrateWeightUCB:
 
     def test_recalibrate_all_weights_sums_near_one(self):
         """All recalibrated weights stay within [0, 1.5]."""
-        current = {v: 1.0 for v in VectorType}
-        deltas = {v: 5.0 for v in VectorType}
-        sigmas = {v: 1.0 for v in VectorType}
-        counts = {v: 50 for v in VectorType}
+        current = dict.fromkeys(VectorType, 1.0)
+        deltas = dict.fromkeys(VectorType, 5.0)
+        sigmas = dict.fromkeys(VectorType, 1.0)
+        counts = dict.fromkeys(VectorType, 50)
         result = recalibrate_all_weights(current, deltas, sigmas, counts)
         assert all(0.0 <= w <= 1.5 for w in result.values())
 

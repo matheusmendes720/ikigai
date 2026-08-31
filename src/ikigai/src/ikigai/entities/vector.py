@@ -8,7 +8,7 @@ from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field
 
 from ikigai.enums import VectorType
-from ikigai.types import ScoreValue, UEID
+from ikigai.types import UEID, ScoreValue
 
 
 class VectorTrend(str, Enum):
@@ -80,4 +80,4 @@ class IKIGAiVectorEntity(BaseModel):
         return self.target_score.value - self.current_score.value
 
 
-__all__ = ["VectorTrend", "VectorScorePoint", "IKIGAiVectorEntity"]
+__all__ = ["IKIGAiVectorEntity", "VectorScorePoint", "VectorTrend"]

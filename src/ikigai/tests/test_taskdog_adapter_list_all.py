@@ -3,7 +3,6 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-
 from src.mesh.adapters.taskdog import TaskdogAdapter
 
 

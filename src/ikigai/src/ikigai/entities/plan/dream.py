@@ -22,7 +22,7 @@ class DreamEntity(PlanEntity):
     core_values: list[str] = []
 
     @model_validator(mode="after")
-    def _validate_dream_status(self) -> "DreamEntity":
+    def _validate_dream_status(self) -> DreamEntity:
         """Dream-specific allowed statuses."""
         allowed = {
             StatusType.SEED,

@@ -5,13 +5,13 @@ state into the canonical IKIGAiRecord polymorphic root.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 import pytest
 
 from ikigai.adapters.state_reducer import StateReducer
-from ikigai.entities.ikigai_record import IKIGAiRecord, EntityType
+from ikigai.entities.ikigai_record import EntityType, IKIGAiRecord
 
 
 @pytest.fixture

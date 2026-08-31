@@ -58,7 +58,7 @@ os.environ["TMP"] = str(_TMP_BASE)
 import pytest  # noqa: E402 — must come AFTER sys.path and env setup above
 
 
-def pytest_configure(config):  # noqa: ANN001 — pytest hook signature
+def pytest_configure(config):
     """Disable pytest-asyncio async collection. None of our tests are
     async, and the plugin's autouse fixture walks a temp dir that on
     Windows raises PermissionError on stale locks (handled above by

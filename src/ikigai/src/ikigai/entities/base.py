@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -20,7 +20,7 @@ from ikigai.enums import (
     StatusType,
     VectorType,
 )
-from ikigai.types import ScoreValue, UEID
+from ikigai.types import UEID, ScoreValue
 
 
 def _utc_now() -> datetime:
@@ -137,7 +137,7 @@ class PlanEntity(BaseModel):
         return out
 
     @model_validator(mode="after")
-    def _validate_weights_range(self) -> "PlanEntity":
+    def _validate_weights_range(self) -> PlanEntity:
         """Vector weights must be in [0, 1.5]."""
         for vec, w in self.vector_weights_snapshot.items():
             if not 0.0 <= w <= 1.5:
@@ -145,7 +145,7 @@ class PlanEntity(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def _validate_placeholder_consistency(self) -> "PlanEntity":
+    def _validate_placeholder_consistency(self) -> PlanEntity:
         """If is_placeholder, must have placeholder_owner."""
         if self.is_placeholder and not self.placeholder_owner:
             raise ValueError("is_placeholder=True requires placeholder_owner")
@@ -154,7 +154,7 @@ class PlanEntity(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def _auto_ueid(self) -> "PlanEntity":
+    def _auto_ueid(self) -> PlanEntity:
         """Auto-derive ueid from (entity_type, slug, content) when caller omitted it.
 
         The tri-key is anchored on slug + uuid_short (random) + content_hash. The
@@ -215,13 +215,13 @@ class PlanEntity(BaseModel):
             d["status"] = self.status.value
         if "entity_type" in d:
             d["entity_type"] = self.entity_type.value
-        if "phase_at_creation" in d and d["phase_at_creation"]:
+        if d.get("phase_at_creation"):
             d["phase_at_creation"] = (
                 self.phase_at_creation.value
                 if hasattr(self.phase_at_creation, "value")
                 else self.phase_at_creation
             )
-        if "regime_at_creation" in d and d["regime_at_creation"]:
+        if d.get("regime_at_creation"):
             d["regime_at_creation"] = (
                 self.regime_at_creation.value
                 if hasattr(self.regime_at_creation, "value")
@@ -233,7 +233,7 @@ class PlanEntity(BaseModel):
         return d
 
     @classmethod
-    def from_frontmatter_dict(cls, data: dict[str, Any]) -> "PlanEntity":
+    def from_frontmatter_dict(cls, data: dict[str, Any]) -> PlanEntity:
         """Deserialize from YAML frontmatter dict."""
         data = dict(data)
         custom = data.pop("custom", {})
@@ -241,7 +241,7 @@ class PlanEntity(BaseModel):
         if "ueid" in data and isinstance(data["ueid"], str):
             data["ueid"] = UEID(data["ueid"])
         # Coerce source_md_path
-        if "source_md_path" in data and data["source_md_path"]:
+        if data.get("source_md_path"):
             data["source_md_path"] = Path(data["source_md_path"])
         instance = cls(**data)
         if custom:

@@ -37,7 +37,7 @@ yaml.add_representer(str, _str_representer)
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def frontmatter_to_dict(data: dict[str, Any]) -> dict[str, Any]:
+def _normalize_for_yaml(data: dict[str, Any]) -> dict[str, Any]:
     """Normalize a frontmatter dict for YAML serialization."""
     out: dict[str, Any] = {}
     for k, v in data.items():
@@ -60,8 +60,12 @@ def frontmatter_to_dict(data: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def dict_to_frontmatter(data: dict[str, Any]) -> dict[str, Any]:
-    """Deserialize a frontmatter dict into typed values where possible."""
+def coerce_typed_values(data: dict[str, Any]) -> dict[str, Any]:
+    """Deserialize a frontmatter dict into typed values where possible.
+
+    Strings → UEID / EntityType / StatusType / Phase / RegimeType / VectorType
+    where parseable; otherwise left as strings for Pydantic to validate.
+    """
     out: dict[str, Any] = dict(data)
     if "ueid" in out and isinstance(out["ueid"], str):
         try:
@@ -78,12 +82,12 @@ def dict_to_frontmatter(data: dict[str, Any]) -> dict[str, Any]:
             out["status"] = StatusType(out["status"])
         except ValueError:
             pass
-    if "phase_at_creation" in out and out["phase_at_creation"]:
+    if out.get("phase_at_creation"):
         try:
             out["phase_at_creation"] = Phase(out["phase_at_creation"])
         except (ValueError, KeyError):
             pass
-    if "regime_at_creation" in out and out["regime_at_creation"]:
+    if out.get("regime_at_creation"):
         try:
             out["regime_at_creation"] = RegimeType(out["regime_at_creation"])
         except (ValueError, KeyError):
@@ -95,9 +99,31 @@ def dict_to_frontmatter(data: dict[str, Any]) -> dict[str, Any]:
             else (VectorType(v) if isinstance(v, str) else v)
             for v in out["ikigai_vectors"]
         ]
-    if "source_md_path" in out and out["source_md_path"]:
+    if out.get("source_md_path"):
         out["source_md_path"] = Path(out["source_md_path"])
     return out
+
+
+def frontmatter_to_dict(data: str | dict[str, Any]) -> dict[str, Any]:
+    """Parse markdown OR normalize a dict → dict.
+
+    Overloaded for ergonomics:
+      - str input: parse markdown and return the frontmatter dict (body dropped).
+      - dict input: normalize values for YAML serialization.
+    """
+    if isinstance(data, str):
+        fm, _ = parse_from_markdown(data)
+        return fm
+    return _normalize_for_yaml(data)
+
+
+def dict_to_frontmatter(data: dict[str, Any], body: str = "") -> str:
+    """Serialize a dict + body → markdown string with frontmatter delimiters.
+
+    Thin wrapper over `serialize_to_markdown` for callers that don't need a
+    title heading.
+    """
+    return serialize_to_markdown(data, title="", body=body)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -108,9 +134,19 @@ def dict_to_frontmatter(data: dict[str, Any]) -> dict[str, Any]:
 _FRONTMATTER_DELIMITER = "---"
 
 
-def serialize_to_markdown(frontmatter: dict[str, Any], body: str = "") -> str:
-    """Serialize frontmatter + body to a markdown string."""
-    normalized = frontmatter_to_dict(frontmatter)
+def serialize_to_markdown(
+    frontmatter: dict[str, Any],
+    title: str = "",
+    body: str | None = "",
+) -> str:
+    """Serialize frontmatter + optional title heading + body to markdown.
+
+    Args:
+        frontmatter: dict to serialize as YAML between `---` delimiters.
+        title: optional H1 heading inserted after the frontmatter block.
+        body: optional markdown body. Pass `None` for no body.
+    """
+    normalized = _normalize_for_yaml(frontmatter)
     yaml_str = yaml.safe_dump(
         normalized,
         default_flow_style=False,
@@ -119,9 +155,12 @@ def serialize_to_markdown(frontmatter: dict[str, Any], body: str = "") -> str:
         width=100,
     )
     parts = [_FRONTMATTER_DELIMITER, yaml_str.rstrip("\n"), _FRONTMATTER_DELIMITER, ""]
+    if title:
+        parts.append(f"# {title}")
+        parts.append("")
     if body:
         parts.append(body)
-    return "\n".join(parts) + "\n"
+    return "\n".join(parts).rstrip("\n") + "\n"
 
 
 def parse_from_markdown(content: str) -> tuple[dict[str, Any], str]:
@@ -177,8 +216,9 @@ def parse_from_markdown(content: str) -> tuple[dict[str, Any], str]:
 from enum import Enum  # noqa: E402
 
 __all__ = [
-    "frontmatter_to_dict",
+    "coerce_typed_values",
     "dict_to_frontmatter",
-    "serialize_to_markdown",
+    "frontmatter_to_dict",
     "parse_from_markdown",
+    "serialize_to_markdown",
 ]

@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import gc
 import json
-import sqlite3
 import tempfile
 from pathlib import Path
 
 import pytest
 
-from ikigai.propagation.sqlite_adapter import SQLiteAdapter, SCHEMA_SQL
+from ikigai.propagation.sqlite_adapter import SQLiteAdapter
 
 
 class TestUpsert:

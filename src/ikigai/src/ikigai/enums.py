@@ -210,7 +210,7 @@ class AlignmentLabel(str, Enum):
     CRITICAL = "critical"  # < 25
 
     @classmethod
-    def from_score(cls, score: float) -> "AlignmentLabel":
+    def from_score(cls, score: float) -> AlignmentLabel:
         if score >= 75:
             return cls.ALIGNED
         if score >= 50:
@@ -256,12 +256,12 @@ class SourceType(str, Enum):
 
 
 __all__ = [
-    "EntityType",
-    "VectorType",
-    "RegimeType",
-    "Phase",
-    "ClusterType",
     "AlignmentLabel",
-    "StatusType",
+    "ClusterType",
+    "EntityType",
+    "Phase",
+    "RegimeType",
     "SourceType",
+    "StatusType",
+    "VectorType",
 ]

@@ -29,7 +29,7 @@ class VaultLock:
         self._fd: int | None = None
         self._owns_file = False
 
-    def __enter__(self) -> "VaultLock":
+    def __enter__(self) -> VaultLock:
         # Create the lock file if missing (parents must already exist)
         self._owns_file = not self.path.exists()
         self._fd = os.open(str(self.path), os.O_RDWR | os.O_CREAT, 0o644)

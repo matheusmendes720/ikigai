@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 
 from ikigai.adapters.sqlite_bridge import IKIGAiRecordBridge
-from ikigai.entities.ikigai_record import IKIGAiRecord, EntityType, StatusType
+from ikigai.entities.ikigai_record import IKIGAiRecord
 from ikigai.entities.score_value import ScoreUnit, ScoreValue
 from ikigai.propagation.sqlite_adapter import SQLiteAdapter
 

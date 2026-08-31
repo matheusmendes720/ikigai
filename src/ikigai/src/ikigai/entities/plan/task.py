@@ -53,7 +53,7 @@ class TaskEntity(PlanEntity):
         )
 
     @model_validator(mode="after")
-    def _validate_task_status(self) -> "TaskEntity":
+    def _validate_task_status(self) -> TaskEntity:
         allowed = {
             StatusType.DRAFT,
             TaskStatus.TODO,

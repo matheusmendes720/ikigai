@@ -9,11 +9,9 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from ikigai.entities.base import PlanEntity
-from ikigai.exceptions import IKIGAiError
-
 
 SCHEMA_SQL = """
 -- Append-only plan_entities (mirror of markdown vault)
@@ -193,26 +191,59 @@ class SQLiteAdapter:
                 ),
             )
 
-    def archive(self, entity: PlanEntity, archived_at: datetime | None = None) -> None:
+    def archive(
+        self,
+        entity_or_ueid: PlanEntity | str,
+        archived_at: datetime | None = None,
+    ) -> None:
         """Archive an entity (soft-delete via archived_at).
 
+        Accepts either a PlanEntity or its UEID string.
         Note: This is the ONLY update allowed (archival). For other changes,
         create a new entity (UEID ensures uniqueness).
+
+        Archival is the lone exception to the append-only invariant: triggers
+        are temporarily dropped, the row is updated, then the triggers are
+        recreated — mirroring the upsert() pattern.
         """
+        ueid_str = (
+            str(entity_or_ueid.ueid)
+            if isinstance(entity_or_ueid, PlanEntity)
+            else entity_or_ueid
+        )
         archived_at = archived_at or datetime.now(timezone.utc)
         with self._connect() as conn:
-            conn.execute(
-                "UPDATE plan_entities SET archived_at = ?, updated_at = ? WHERE ueid = ?",
-                (
-                    archived_at.isoformat(),
-                    archived_at.isoformat(),
-                    str(entity.ueid),
-                ),
-            )
+            # Drop append-only triggers for this exception
+            conn.execute("DROP TRIGGER IF EXISTS plan_entities_no_delete")
+            conn.execute("DROP TRIGGER IF EXISTS plan_entities_no_update")
+            try:
+                conn.execute(
+                    "UPDATE plan_entities SET archived_at = ?, updated_at = ? WHERE ueid = ?",
+                    (
+                        archived_at.isoformat(),
+                        archived_at.isoformat(),
+                        ueid_str,
+                    ),
+                )
+            finally:
+                # Recreate triggers
+                conn.executescript("""
+                    CREATE TRIGGER IF NOT EXISTS plan_entities_no_delete
+                    BEFORE DELETE ON plan_entities
+                    BEGIN
+                        SELECT RAISE(ABORT, 'plan_entities is append-only; deletes not allowed. Use archived_at instead.');
+                    END;
+
+                    CREATE TRIGGER IF NOT EXISTS plan_entities_no_update
+                    BEFORE UPDATE ON plan_entities
+                    BEGIN
+                        SELECT RAISE(ABORT, 'plan_entities is append-only; updates not allowed');
+                    END;
+                """)
             conn.execute(
                 "INSERT INTO plan_entities_history (ueid, change_kind, snapshot) VALUES (?, ?, ?)",
                 (
-                    str(entity.ueid),
+                    ueid_str,
                     "archived",
                     json.dumps({"archived_at": archived_at.isoformat()}),
                 ),
@@ -485,4 +516,4 @@ class SQLiteAdapter:
         )
 
 
-__all__ = ["SQLiteAdapter", "SCHEMA_SQL"]
+__all__ = ["SCHEMA_SQL", "SQLiteAdapter"]

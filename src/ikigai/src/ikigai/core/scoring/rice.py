@@ -71,4 +71,4 @@ def compute_task_priority(
     return rice * w_ikigai * w_deadline
 
 
-__all__ = ["compute_rice_score", "compute_task_priority", "W_IKIGAI_BY_VECTOR"]
+__all__ = ["W_IKIGAI_BY_VECTOR", "compute_rice_score", "compute_task_priority"]
