@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import json
-import pytest
-from typer.testing import CliRunner
-from ikigai.cli.app import app
 
+from typer.testing import CliRunner
+
+from ikigai.cli.app import app
 
 runner = CliRunner()
 

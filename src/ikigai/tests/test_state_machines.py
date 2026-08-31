@@ -3,18 +3,18 @@
 from __future__ import annotations
 
 import pytest
-from ikigai.state_machines import StateMachine, Transition
+
 from ikigai.state_machines import (
+    StateMachine,
+    deliverable_state_machine,
     dream_state_machine,
     goal_state_machine,
+    habit_state_machine,
     objective_state_machine,
     project_state_machine,
-    task_state_machine,
-    deliverable_state_machine,
     routine_state_machine,
-    habit_state_machine,
+    task_state_machine,
 )
-from ikigai.enums import RegimeType
 
 
 class TestStateMachineBasics:
