@@ -198,22 +198,17 @@ def vector_score(
     course_assignments: float = typer.Option(80.0, help="Assignments on-time (0-100)."),
     course_exams: float = typer.Option(75.0, help="Exam average (0-100)."),
 ) -> None:
-    """Compute all 5 vector scores."""
-    from ikigai.core.scoring.vector_scores import compute_vector_scores
+    """Compute all 5 vector scores.
 
-    skills = [float(x) for x in skill_levels.split(",") if x.strip()] or [50.0]
-    demands = [float(x) for x in skill_demands.split(",") if x.strip()] or [50.0]
-
-    scores = compute_vector_scores(
-        passion_streak_days=passion_streak,
-        skill_inputs=(skills, demands, skill_momentum, skill_completion),
-        market_inputs=(market_fit, market_demand, market_pipeline),
-        revenue_inputs=(revenue_actual, revenue_target, revenue_health),
-        course_inputs=(course_attendance, course_assignments, course_exams),
+    ARCHIVED per attribution §3 — vector score math is the algorithm
+    layer's responsibility, not the CLI/agent layer's. Function and
+    options retained for documentation; raises when invoked so callers
+    know to use a different surface (algorithm package directly).
+    """
+    raise NotImplementedError(
+        "vector score math archived per attribution §3 — "
+        "see ikigai.core.scoring.vector_scores for the canonical implementation"
     )
-
-    data = {v.value: {"value": s.value, "unit": s.unit} for v, s in scores.items()}
-    _output(data, ctx.obj.get("json_out", False))
 
 
 @vector_app.command("meta")
@@ -225,43 +220,16 @@ def vector_meta(
     revenue: float = typer.Option(50.0),
     course: float = typer.Option(50.0),
 ) -> None:
-    """Compute meta-vetor (hybrid: geo + harmonic)."""
-    from ikigai.core.scoring.meta_vector import compute_alignment_label, meta_vector
-    from ikigai.enums import VectorType
+    """Compute meta-vetor (hybrid: geo + harmonic).
 
-    scores = {
-        VectorType.PASSION: __import__("ikigai.types", fromlist=["ScoreValue"]).ScoreValue(
-            value=passion, unit="percent"
-        ),
-        VectorType.SKILL: __import__("ikigai.types", fromlist=["ScoreValue"]).ScoreValue(
-            value=skill, unit="percent"
-        ),
-        VectorType.MARKET: __import__("ikigai.types", fromlist=["ScoreValue"]).ScoreValue(
-            value=market, unit="percent"
-        ),
-        VectorType.REVENUE: __import__("ikigai.types", fromlist=["ScoreValue"]).ScoreValue(
-            value=revenue, unit="percent"
-        ),
-        VectorType.COURSE: __import__("ikigai.types", fromlist=["ScoreValue"]).ScoreValue(
-            value=course, unit="percent"
-        ),
-    }
-    weights = {
-        VectorType.PASSION: 0.15,
-        VectorType.SKILL: 0.40,
-        VectorType.MARKET: 0.15,
-        VectorType.REVENUE: 0.10,
-        VectorType.COURSE: 0.20,
-    }
-
-    meta = meta_vector(scores, weights)
-    label = compute_alignment_label(meta)
-
-    data = {
-        "meta_vector": {"value": meta.value, "unit": meta.unit},
-        "alignment_label": label.value,
-    }
-    _output(data, ctx.obj.get("json_out", False))
+    ARCHIVED per attribution §3 — meta-vetor math is the algorithm
+    layer's responsibility, not the CLI/agent layer's. Function and
+    options retained for documentation; raises when invoked.
+    """
+    raise NotImplementedError(
+        "meta-vector math archived per attribution §3 — "
+        "see ikigai.core.scoring.meta_vector for the canonical implementation"
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -368,32 +336,16 @@ def regime_status(
     infractions: int = typer.Option(0, help="Infractions in 24h."),
     sleep_debt: float = typer.Option(0.0, help="Sleep debt in hours."),
 ) -> None:
-    """Show current regime decision from Q_HE + completion."""
-    from ikigai.core.heuristics.regime import compute_regime
+    """Show current regime decision from Q_HE + completion.
 
-    decision = compute_regime(
-        qhe_7d_avg=qhe,
-        c_comp_24h=c_comp,
-        infractions_24h=infractions,
-        sleep_debt_h=sleep_debt,
+    ARCHIVED per attribution §3 — regime heuristics (PUSH/MAINTAIN/REDUCE/RECOVER
+    with hysteresis) are the algorithm layer's responsibility, not the CLI/agent
+    layer's. Function and options retained for documentation; raises when invoked.
+    """
+    raise NotImplementedError(
+        "regime heuristics archived per attribution §3 — "
+        "see ikigai.core.heuristics.regime for the canonical implementation"
     )
-    data = {
-        "regime": decision.regime.value,
-        "rationale": decision.rationale,
-        "qhe_score": decision.qhe_score,
-        "c_comp_score": decision.c_comp_score,
-        "infractions": decision.infractions,
-        "sleep_debt_h": decision.sleep_debt_h,
-        "raw_score": decision.raw_score,
-        "setpoints": {
-            "hardwork_budget_h": decision.regime.hardwork_budget_h,
-            "pause_min": decision.regime.pause_min,
-            "sleep_target_h": decision.regime.sleep_target_h,
-            "qhe_target": decision.regime.qhe_target,
-            "c_comp_target": decision.regime.c_comp_target,
-        },
-    }
-    _output(data, ctx.obj.get("json_out", False))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -410,26 +362,17 @@ def phase_status(
     opportunities: int = typer.Option(0, help="Opportunities pursuing."),
     cognitive_debt: float = typer.Option(0.0, help="Cognitive debt (0-10+)."),
 ) -> None:
-    """Show phase decision from IKIGAi score + revenue + momentum."""
-    from ikigai.core.heuristics.phase_pivot import compute_phase
+    """Show phase decision from IKIGAi score + revenue + momentum.
 
-    decision = compute_phase(
-        ikigai_score=ikigai_score,
-        revenue_actual_30d=revenue_actual,
-        revenue_target=revenue_target,
-        opportunities_pursuing=opportunities,
-        cognitive_debt=cognitive_debt,
+    ARCHIVED per attribution §3 — phase-pivot heuristics (warmup → compounding
+    → meta → mastery) are the algorithm layer's responsibility, not the
+    CLI/agent layer's. Function and options retained for documentation;
+    raises when invoked.
+    """
+    raise NotImplementedError(
+        "phase-pivot heuristics archived per attribution §3 — "
+        "see ikigai.core.heuristics.phase_pivot for the canonical implementation"
     )
-    data = {
-        "phase": decision.phase.value,
-        "ikigai_score": decision.ikigai_score,
-        "momentum": decision.momentum,
-        "iterations": decision.iterations,
-        "converged": decision.converged,
-        "weights": {k.value: v for k, v in decision.weights.items()},
-        "rationale": decision.rationale,
-    }
-    _output(data, ctx.obj.get("json_out", False))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
