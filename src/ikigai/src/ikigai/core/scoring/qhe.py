@@ -3,12 +3,12 @@
 Formula (per Points_of_premisses-task-habits.md §3):
     Q_HE = w_sono · H_sono + w_med · H_med + w_workout · H_workout + w_lunch · H_lunch + η · S_streak
 
-Default weights:
+Default weights (sum to 1.0 so Q_HE ∈ [0, 1]):
     H_sono:     0.35
     H_med:      0.20
     H_workout:  0.25
     H_lunch:    0.10
-    S_streak:   0.15 (η)
+    S_streak:   0.10 (η)
 
 All H_i ∈ [0, 1]; Q_HE ∈ [0, 1].
 """
@@ -53,7 +53,7 @@ def compute_qhe_components(
         QHEComponent(name="med", weight=0.20, score=h_med),
         QHEComponent(name="workout", weight=0.25, score=h_workout),
         QHEComponent(name="lunch", weight=0.10, score=h_lunch),
-        QHEComponent(name="streak", weight=0.15, score=s_streak),
+        QHEComponent(name="streak", weight=0.10, score=s_streak),
     ]
 
 
@@ -86,10 +86,18 @@ def compute_qhe(
 
 
 def h_from_streak(streak_days: float, lambda_rate: float = NSM.LAMBDA) -> float:
-    """Habit consistency H(t) = 1 - e^(-λ · t), in [0, 1]."""
+    """Habit consistency H(t) = 1 - e^(-λ · t), in [0, 1].
+
+    Mathematically approaches 1 as t→∞ but never reaches it; for very large
+    t the float underflow of exp(-λ·t) would yield exactly 1.0, so we clamp
+    just below 1 to preserve the asymptotic contract.
+    """
     if streak_days < 0:
         raise ValueError(f"streak_days must be >= 0, got {streak_days}")
-    return 1.0 - math.exp(-lambda_rate * streak_days)
+    h = 1.0 - math.exp(-lambda_rate * streak_days)
+    if h >= 1.0:
+        h = 1.0 - 1e-15
+    return h
 
 
-__all__ = ["QHEComponent", "compute_qhe_components", "compute_qhe", "h_from_streak"]
+__all__ = ["QHEComponent", "compute_qhe", "compute_qhe_components", "h_from_streak"]
