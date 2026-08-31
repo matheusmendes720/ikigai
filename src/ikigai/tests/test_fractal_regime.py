@@ -18,7 +18,7 @@ class TestFractalRegime:
         )
 
     def test_four_levels_required(self) -> None:
-        levels = [self._state(l) for l in ("global", "cluster", "vector", "sub_vector")]
+        levels = [self._state(level) for level in ("global", "cluster", "vector", "sub_vector")]
         r = FractalRegime(levels=levels)
         assert len(r.levels) == 4
 

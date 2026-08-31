@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 
 from ikigai.entities.base import PlanEntity
 from ikigai.enums import EntityType, StatusType
@@ -19,7 +19,7 @@ class DreamEntity(PlanEntity):
     # Dream-specific fields
     motivation: str | None = None
     success_metric: str | None = None
-    core_values: list[str] = []
+    core_values: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _validate_dream_status(self) -> DreamEntity:

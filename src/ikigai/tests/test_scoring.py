@@ -36,7 +36,7 @@ class TestScorePassion:
 
 
 class TestScoreSkill:
-    """skill_score = weighted sum of (level×demand)/N * 0.5 + momentum*0.3 + completion*0.2."""
+    """skill_score = weighted sum of (levelxdemand)/N * 0.5 + momentum*0.3 + completion*0.2."""
 
     def test_empty_skills(self) -> None:
         result = score_skill([], [], 0.0, 0.0)
@@ -145,7 +145,7 @@ class TestComputeQHE:
 
 
 class TestComputeRiceScore:
-    """RICE = (R × I × C) / E. Returns raw float."""
+    """RICE = (R x I x C) / E. Returns raw float."""
 
     def test_zero_effort_guard(self) -> None:
         result = compute_rice_score(5.0, 1.0, 0.8, 0.0)
@@ -235,7 +235,7 @@ class TestComputeAlignmentLabel:
         assert label == AlignmentLabel.ALIGNED
 
 
-class TestW_IKIGAI_BY_VECTOR:
+class TestWIkigaiByVector:
     """W_IKIGAI_BY_VECTOR has string keys (not VectorType)."""
 
     def test_has_string_keys(self) -> None:

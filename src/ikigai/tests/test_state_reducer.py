@@ -70,7 +70,7 @@ def test_reduce_maps_vector_scores(state_dict: dict) -> None:
     rec = StateReducer.reduce(state_dict, source_md_path=Path("data/matheus/ikigai_state/cycle-2026-08-26.md"))
     assert rec.vector_scores is not None
     # each vector score became a ScoreValue with unit="percent"
-    for key, sv in rec.vector_scores.items():
+    for _key, sv in rec.vector_scores.items():
         assert sv.unit == "percent"
         assert 0.0 <= sv.value <= 100.0
 

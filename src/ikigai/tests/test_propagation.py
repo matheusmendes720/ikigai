@@ -128,12 +128,12 @@ class TestMarkdownDB:
     def test_init_creates_vault_dirs(self) -> None:
         """MarkdownDB.__init__ must create cluster dirs if missing."""
         vault_root = Path(tempfile.mkdtemp()) / "new-vault"
-        db = MarkdownDB(vault_root)
+        MarkdownDB(vault_root)  # side effect: create cluster dirs
         assert vault_root.exists()
 
     def test_write_and_read_goal(self) -> None:
         """write + read must roundtrip a GoalEntity."""
-        db, vault_root = self._temp_vault()
+        db, _vault_root = self._temp_vault()
         goal = GoalEntity(
             slug="db-test-goal",
             title="DB Test Goal",
@@ -148,7 +148,7 @@ class TestMarkdownDB:
 
     def test_write_uses_tmp_rename(self) -> None:
         """write must atomically rename .tmp → target."""
-        db, vault_root = self._temp_vault()
+        db, _vault_root = self._temp_vault()
         goal = GoalEntity(
             slug="atomic-goal",
             title="Atomic Goal",
@@ -161,7 +161,7 @@ class TestMarkdownDB:
 
     def test_delete_removes_file(self) -> None:
         """delete must remove the file."""
-        db, vault_root = self._temp_vault()
+        db, _vault_root = self._temp_vault()
         goal = GoalEntity(
             slug="delete-goal",
             title="Delete Goal",
@@ -175,7 +175,7 @@ class TestMarkdownDB:
 
     def test_query_by_type(self) -> None:
         """query(entity_type=...) must filter by type."""
-        db, vault_root = self._temp_vault()
+        db, _vault_root = self._temp_vault()
         g1 = GoalEntity(slug="goal-1", title="Goal 1", cluster="study", horizon_days=365)
         g2 = GoalEntity(slug="goal-2", title="Goal 2", cluster="study", horizon_days=365)
         db.write(g1)
@@ -185,7 +185,7 @@ class TestMarkdownDB:
 
     def test_query_no_results(self) -> None:
         """query with no matches → empty list."""
-        db, vault_root = self._temp_vault()
+        db, _vault_root = self._temp_vault()
         results = db.query(entity_type=EntityType.GOAL)
         assert results == []
 
@@ -199,7 +199,7 @@ class TestSQLiteAdapter:
 
     def test_init_creates_schema(self) -> None:
         """__init__ must create schema if db doesn't exist."""
-        adapter, db_path = self._temp_sqlite()
+        _adapter, db_path = self._temp_sqlite()
         assert db_path.exists()
 
     def test_insert_and_get(self) -> None:
@@ -250,8 +250,8 @@ class TestSQLiteAdapter:
             horizon_days=365,
         )
         adapter.insert(goal)
-        with pytest.raises(Exception):  # constraint error from trigger
-            adapter.insert(goal)  # duplicate UEID → should fail
+        with pytest.raises(sqlite3.IntegrityError, match=r"UNIQUE constraint"):  # duplicate UEID → UNIQUE violation
+            adapter.insert(goal)
 
     def test_delete_raises(self) -> None:
         """DELETE must be blocked by trigger (ABORT)."""
@@ -263,7 +263,7 @@ class TestSQLiteAdapter:
             horizon_days=365,
         )
         adapter.insert(goal)
-        with pytest.raises(Exception):  # constraint error from trigger
+        with pytest.raises(Exception):  # noqa: B017, PT011  AttributeError: SQLiteAdapter has no `delete` (trigger enforces append-only via schema)
             adapter.delete(str(goal.ueid))
 
     def test_upsert_enforces_trigger_no_update(self) -> None:
@@ -282,10 +282,11 @@ class TestSQLiteAdapter:
         )
         # Try direct UPDATE via raw connection - should be blocked by trigger
         conn = sqlite3.connect(str(db_path))
-        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
-            conn.execute("UPDATE plan_entities SET title = 'hacked' WHERE ueid = ?", ("test:ueid:001",))
-            conn.commit()
-        conn.close()
+        try:
+            with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+                conn.execute("UPDATE plan_entities SET title = 'hacked' WHERE ueid = ?", ("test:ueid:001",))
+        finally:
+            conn.close()
 
     def test_upsert_enforces_trigger_no_delete(self) -> None:
         """Direct DELETE on plan_entities must raise sqlite3.IntegrityError (trigger)."""
@@ -303,10 +304,11 @@ class TestSQLiteAdapter:
         )
         # Try direct DELETE via raw connection - should be blocked by trigger
         conn = sqlite3.connect(str(db_path))
-        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
-            conn.execute("DELETE FROM plan_entities WHERE ueid = ?", ("test:ueid:002",))
-            conn.commit()
-        conn.close()
+        try:
+            with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+                conn.execute("DELETE FROM plan_entities WHERE ueid = ?", ("test:ueid:002",))
+        finally:
+            conn.close()
 
     def test_upsert_then_query_history(self) -> None:
         """Append-only via upsert() must record every change in plan_entities_history."""

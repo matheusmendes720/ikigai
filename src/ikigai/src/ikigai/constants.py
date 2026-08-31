@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class PAV_NS:
+class PavNs:
     """PAV North Star Metrics (22 constants, frozen)."""
 
     # Janelas temporais canônicas (1-9)
@@ -57,7 +57,7 @@ class PAV_NS:
 
 
 # Singleton instance
-NSM = PAV_NS()
+NSM = PavNs()
 
 
-__all__ = ["NSM", "PAV_NS"]
+__all__ = ["NSM", "PavNs"]

@@ -13,15 +13,15 @@ from pathlib import Path
 _ikigai_src = Path(__file__).parent.parent
 if str(_ikigai_src) not in sys.path:
     sys.path.insert(0, str(_ikigai_src))
-from typing import Any
+from typing import Any  # noqa: E402
 
-import typer
-from rich.console import Console
+import typer  # noqa: E402
+from rich.console import Console  # noqa: E402
 
-from ikigai.__init__ import __version__
-from ikigai.constants import NSM
-from ikigai.propagation.markdown_db import MarkdownDB
-from ikigai.propagation.sqlite_adapter import SQLiteAdapter
+from ikigai.__init__ import __version__  # noqa: E402
+from ikigai.constants import NSM  # noqa: E402
+from ikigai.propagation.markdown_db import MarkdownDB  # noqa: E402
+from ikigai.propagation.sqlite_adapter import SQLiteAdapter  # noqa: E402
 
 app = typer.Typer(
     name="ikigai",
@@ -100,7 +100,7 @@ def _get_sqlite(ctx: typer.Context, db: MarkdownDB) -> SQLiteAdapter:
 @app.callback()
 def main(
     ctx: typer.Context,
-    vault: Path | None = typer.Option(
+    vault: Path | None = typer.Option(  # noqa: B008  Typer convention: Option in default
         None,
         "--vault",
         "-V",
@@ -537,12 +537,12 @@ def sync_index(
 @sync_app.command("vault-to-taskdog")
 def sync_vault_to_taskdog(
     ctx: typer.Context,
-    vault_root: Path = typer.Option(
+    vault_root: Path = typer.Option(  # noqa: B008  Typer convention: Option in default
         Path("vault"),
         "--vault",
         help="Path to vault root directory.",
     ),
-    state_path: Path = typer.Option(
+    state_path: Path = typer.Option(  # noqa: B008  Typer convention: Option in default
         Path("data/sync-state.json"),
         "--state",
         help="Path to sync state file.",
@@ -554,10 +554,10 @@ def sync_vault_to_taskdog(
     ``tags: [task]`` or ``type: task``. Skips drafts, MOCs, evidence,
     strategics. Run ``ikigai sync vault-to-taskdog --help`` for options.
     """
-    from ikigai.gateway.clients.taskdog import TaskdogAdapter
+    from ikigai.gateway.clients.taskdog import taskdog_adapter
     from ikigai.vault.sync import run_sync
 
-    adapter = TaskdogAdapter()
+    adapter = taskdog_adapter()
     result = run_sync(
         vault_root=vault_root,
         state_path=state_path,
@@ -574,7 +574,7 @@ def sync_vault_from_taskdog(
         "--dry-run",
         help="Show diff, don't emit events",
     ),
-    state_file: Path = typer.Option(
+    state_file: Path = typer.Option(  # noqa: B008  Typer convention: Option in default
         Path("data/sync-state-reverse.json"),
         "--state-file",
         help="Reverse sync snapshot path",

@@ -29,9 +29,9 @@ def _sample_ueid() -> str:
 
 def _regime() -> FractalRegime:
     return FractalRegime(levels=[
-        FractalRegimeState(level=l, regime="push", days_in_regime=10,
+        FractalRegimeState(level=level, regime="push", days_in_regime=10,
                            is_hysteresis_active=False, hysteresis_days=14)
-        for l in ("global", "cluster", "vector", "sub_vector")
+        for level in ("global", "cluster", "vector", "sub_vector")
     ])
 
 
@@ -40,17 +40,17 @@ def _q_he() -> ScoreValue:
 
 
 def _minimal_record(**overrides: Any) -> IKIGAiRecord:
-    kwargs = dict(
-        ueid=_sample_ueid(),
-        entity_type=EntityType.DREAM,
-        slug="vaga-remota-2026",
-        title="Vaga remota 2026",
-        created_at=datetime(2026, 8, 26, tzinfo=timezone.utc),
-        updated_at=datetime(2026, 8, 26, tzinfo=timezone.utc),
-        source_md_path=Path("data/matheus/dreams/vaga-remota-2026.md"),
-        regime=_regime(),
-        q_he_score=_q_he(),
-    )
+    kwargs = {
+        "ueid": _sample_ueid(),
+        "entity_type": EntityType.DREAM,
+        "slug": "vaga-remota-2026",
+        "title": "Vaga remota 2026",
+        "created_at": datetime(2026, 8, 26, tzinfo=timezone.utc),
+        "updated_at": datetime(2026, 8, 26, tzinfo=timezone.utc),
+        "source_md_path": Path("data/matheus/dreams/vaga-remota-2026.md"),
+        "regime": _regime(),
+        "q_he_score": _q_he(),
+    }
     kwargs.update(overrides)
     return IKIGAiRecord(**kwargs)
 

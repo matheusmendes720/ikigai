@@ -18,7 +18,7 @@ def recalibrate_weight_ucb(
     c: float = 0.05,
     max_weight: float = 1.5,
 ) -> float:
-    """UCB weight recalibration: w_i(t+1) = w_i(t) + α·(Δ/max) - β·σ + c·sqrt(ln(N)/n_i).
+    """UCB weight recalibration: w_i(t+1) = w_i(t) + a·(Δ/max) - β·o + c·sqrt(ln(N)/n_i).
 
     Args:
         w_i: current weight.
@@ -40,8 +40,8 @@ def recalibrate_weight_ucb(
     if n_i < 0:
         raise ValueError(f"n_i must be >= 0, got {n_i}")
 
-    N = sum(all_n.values())
-    ucb_bonus = c * math.sqrt(math.log(N + 1) / max(n_i, 1))
+    n_total = sum(all_n.values())
+    ucb_bonus = c * math.sqrt(math.log(n_total + 1) / max(n_i, 1))
 
     delta_weight = alpha * (delta_score_i / 100.0) - beta * sigma_i + ucb_bonus
     new_weight = max(0.0, min(max_weight, w_i + delta_weight))

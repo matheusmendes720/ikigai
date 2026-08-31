@@ -117,12 +117,12 @@ class TestCircuitBreaker:
             raise ConnectionError("connection failed")
 
         # First 5 failures should raise ConnectionError
-        for i in range(5):
+        for _i in range(5):
             with pytest.raises(ConnectionError):
                 failing_function()
 
         # 6th call should raise CircuitOpenError
-        with pytest.raises(CircuitOpenError, match="circuit_breaker.test_cb is OPEN"):
+        with pytest.raises(CircuitOpenError, match=r"circuit_breaker\.test_cb is OPEN"):
             failing_function()
 
     def test_circuit_breaker_half_opens_after_timeout(self):
@@ -135,7 +135,7 @@ class TestCircuitBreaker:
             raise ConnectionError("connection failed")
 
         # Open the circuit
-        for i in range(3):
+        for _i in range(3):
             with pytest.raises(ConnectionError):
                 failing_function()
 
@@ -251,7 +251,7 @@ class TestStackTraceCapture:
         def failing_function():
             raise ValueError("test error")
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="test error"):
             failing_function()
 
         # Verify span was captured
@@ -271,7 +271,7 @@ class TestStackTraceCapture:
 
 
 def test_circuit_breaker_counts_logical_calls_not_attempts():
-    """Verify CB-then-retry stacking: 5 logical calls × 3 attempts each = 5 failures, then open."""
+    """Verify CB-then-retry stacking: 5 logical calls x 3 attempts each = 5 failures, then open."""
     call_count = 0
 
     @circuit_breaker("test_logical", CircuitBreakerConfig(failure_threshold=5, reset_timeout_s=999))
@@ -286,11 +286,11 @@ def test_circuit_breaker_counts_logical_calls_not_attempts():
         raise ValueError("boom")
 
     # Each logical call exhausts 3 retries. After 5 logical calls, CB should open.
-    for i in range(5):
-        with pytest.raises(ValueError):
+    for _i in range(5):
+        with pytest.raises(ValueError, match="boom"):
             always_fails()
     # The 6th logical call should fail-fast with CircuitOpenError.
     with pytest.raises(CircuitOpenError):
         always_fails()
-    # Verify f was called 5 × 3 = 15 times (5 logical × 3 attempts each).
-    assert call_count == 15, f"expected 15 calls (5 logical × 3 attempts), got {call_count}"
+    # Verify f was called 5 x 3 = 15 times (5 logical x 3 attempts each).
+    assert call_count == 15, f"expected 15 calls (5 logical x 3 attempts), got {call_count}"

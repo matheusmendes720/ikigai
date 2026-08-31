@@ -120,7 +120,7 @@ class TestApplyHysteresis:
             proposed_regime=RegimeType.MAINTAIN,
             regime_history=history,
         )
-        final_regime, applied, reason = result
+        final_regime, applied, _reason = result
         assert final_regime == RegimeType.MAINTAIN
         assert applied is False
 
@@ -187,7 +187,7 @@ class TestComputePhase:
 class TestRecalibrateWeightUCB:
 
     def test_raises_on_invalid_input(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=r"w_i must be in"):
             recalibrate_weight_ucb(-0.5, 0.0, 0.1, 1, {})  # w_i < 0
 
     def test_confidence_bonus_increases_with_uncertainty(self):

@@ -13,7 +13,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from ikigai.vault.sync import (
+from ikigai.vault.sync import (  # noqa: E402
     ReverseSyncState,
     ReverseSyncTaskEntry,
     reverse_sync,

@@ -19,7 +19,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from ikigai.vault.sync import load_state, run_sync
+from ikigai.vault.sync import load_state, run_sync  # noqa: E402
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Mock StdioAdapter (mirrors StubAdapter from test_review_queue_worker_e2e.py)
@@ -160,7 +160,6 @@ def test_vault_sync_e2e_calls_taskdog_with_correct_actions(
     # Adapter call assertions
     call_tools = [c["tool"] for c in adapter.calls]
     add_ueids = {c["args"]["ueid"] for c in adapter.calls if c["tool"] == "taskdog_add"}
-    done_ueids = {c["args"]["ueid"] for c in adapter.calls if c["tool"] == "taskdog_done"}
 
     assert call_tools.count("taskdog_add") == 2, f"expected 2 taskdog_add calls, got {call_tools}"
     assert call_tools.count("taskdog_done") == 0, f"expected 0 taskdog_done calls, got {call_tools}"

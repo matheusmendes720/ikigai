@@ -100,13 +100,15 @@ class StdioAdapter(MCPClientAdapter):
     # ──────── Transport ────────
 
     def _write_frame(self, payload: bytes) -> None:
-        assert self._proc is not None and self._proc.stdin is not None
+        assert self._proc is not None
+        assert self._proc.stdin is not None
         header = f"Content-Length: {len(payload)}\r\n\r\n".encode("ascii")
         self._proc.stdin.write(header + payload)
         self._proc.stdin.flush()
 
     def _read_frame(self, timeout_s: float) -> bytes:
-        assert self._proc is not None and self._proc.stdout is not None
+        assert self._proc is not None
+        assert self._proc.stdout is not None
         deadline = time.monotonic() + timeout_s
         # Read header lines until blank line
         header_lines: list[bytes] = []
@@ -147,7 +149,8 @@ class StdioAdapter(MCPClientAdapter):
 
     def _drain_stderr(self) -> None:
         """Best-effort non-blocking drain of subprocess stderr."""
-        assert self._proc is not None and self._proc.stderr is not None
+        assert self._proc is not None
+        assert self._proc.stderr is not None
         # `read(N)` blocks until N bytes arrive OR the pipe closes —
         # on Windows with empty stderr this hangs forever. `read1(N)`
         # returns whatever is currently buffered without blocking.
@@ -165,7 +168,7 @@ class StdioAdapter(MCPClientAdapter):
 
     def call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
         with self._lock:
-            proc = self._ensure_proc()
+            self._ensure_proc()
             req_id = self._next_id
             self._next_id += 1
             request = {

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
 
 from ikigai.entities import (
     DeliverableEntity,
@@ -117,7 +118,7 @@ class TestDreamEntity:
         assert d.horizon_days == 3650
 
     def test_horizon_days_too_short_fails(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             DreamEntity(
                 ueid=UEID.generate("study", "dream", "fail-dream"),
                 slug="fail-dream",
@@ -127,7 +128,7 @@ class TestDreamEntity:
             )
 
     def test_horizon_days_too_long_fails(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             DreamEntity(
                 ueid=UEID.generate("study", "dream", "fail-dream2"),
                 slug="fail-dream2",
@@ -178,7 +179,7 @@ class TestGoalEntity:
         assert g.horizon_days == 730
 
     def test_horizon_days_invalid_fails(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             GoalEntity(
                 ueid=UEID.generate("study", "goal", "fail-goal"),
                 slug="fail-goal",
@@ -217,7 +218,7 @@ class TestObjectiveEntity:
         assert o.horizon_days == 90
 
     def test_horizon_days_too_short_fails(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             ObjectiveEntity(
                 ueid=UEID.generate("study", "objective", "fail-obj"),
                 slug="fail-obj",

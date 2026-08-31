@@ -22,13 +22,13 @@ def test_round_trip() -> None:
 
 
 def test_iteration_bounds() -> None:
-    common = dict(
-        ueid="ikigai:phase_snapshot:2026-08-26:00000000:abcdef12",
-        cycle_ueid="ikigai:cycle:2026-08-26:00000000:abcdef12",
-        phase="p",
-        weights={"a": 1.0},
-        created_at="2026-08-26T00:00:00Z",
-    )
+    common = {
+        "ueid": "ikigai:phase_snapshot:2026-08-26:00000000:abcdef12",
+        "cycle_ueid": "ikigai:cycle:2026-08-26:00000000:abcdef12",
+        "phase": "p",
+        "weights": {"a": 1.0},
+        "created_at": "2026-08-26T00:00:00Z",
+    }
     with pytest.raises(ValidationError):
         PhaseSnapshot(iteration=6, **common)  # type: ignore[arg-type]
     with pytest.raises(ValidationError):
