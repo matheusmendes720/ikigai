@@ -3,7 +3,7 @@
 > **Categoria:** INDEX navegável (Layer 0 — entrypoint)
 > **Público:** Eu mesmo + agentes futuros
 > **Localização:** `docs/design-system/`
-> **Total:** 40 documentos em 9 camadas (38/38 ✅ antes do Batch 8; +4 novos em Batch 8 → 40/40 ✅)
+> **Total:** 41 documentos em 9 camadas (38/38 ✅ antes do Batch 8; +4 novos em Batch 8 → 40/40 ✅; +1 doc 24 taskdog paths em 2026-08-31 → 41/41 ✅)
 
 ---
 
@@ -60,13 +60,13 @@ Layer 8 — Critical analysis + unified model (análise segunda ordem + modelo a
 | 1     | 01-03  | Topology & narrative            | 3      | 01-master-branch-carro-chefe · 02-interfaces-dual-layer · 03-design-system-roadmap                        | ✅ Batch 1     |
 | 2     | 04-08  | Architecture canvases           | 5      | 04-canvas-mesh · 05-canvas-contracts · 06-canvas-agents · 07-canvas-sync · 08-canvas-cybernetic-loop        | ✅ Batch 2     |
 | 3     | 10-19  | Patterns catalog                | 10     | 10-pattern-ueid-tri-key · 11-pattern-frozen-pydantic-strict · 12-pattern-append-only-queue · 13-pattern-fork-adapter-protocol · 14-pattern-idempotency-upstream-id · 15-pattern-hysteresis-fsm · 16-pattern-hybrid-meta-vector · 17-pattern-reliability-decorators · 18-pattern-system-prompt-layers · 19-pattern-5-stage-scaffold | ✅ Batches 3-4 |
-| 4     | 20-23  | Forks catalog                   | 4      | 20-fork-tuiboard · 21-fork-taskdog · 22-fork-solverforge-calendar · 23-fork-status-enum-mapping             | ✅ Batch 5     |
+| 4     | 20-24  | Forks catalog                   | 5      | 20-fork-tuiboard · 21-fork-taskdog · 22-fork-solverforge-calendar · 23-fork-status-enum-mapping · 24-taskdog-paths-architecture | ✅ Batch 5+   |
 | 5     | 30-34  | Tokens & components             | 5      | 30-tokens-deep-agent-era · 31-ueid-visual-representation · 32-component-naming-conventions · 33-status-matrix-unified · 34-superseded-pav-era-tokens | ✅ Batch 6     |
 | 6     | 40-45  | User journeys & screens         | 6      | 40-index-user-journeys · 41-journey-morning-startup · 42-journey-task-create · 43-journey-policy-decision · 44-journey-weekly-review · 45-journey-dataset-switch | ✅ Batch 7     |
 | 7     | 50-53  | Validation & heuristics         | 4      | 50-nielsen-heuristics-coverage · 51-usability-checklist · 52-known-risks-mitigations · 53-adr-007-data-first-gate | ✅ Batch 8     |
 | 8     | 09-10  | Critical analysis + unified model | 2    | 09-analise-critica-segunda-ordem-arquitetura · 10-modelo-unificado-auto-feedback-estocastico              | ✅ Batch-A     |
 
-**Total:** 1+3+5+10+4+5+6+4+2 = **40 docs ✅**
+**Total:** 1+3+5+10+5+5+6+4+2 = **41 docs ✅**
 
 **Notas sobre numeração ambígua:**
 - Doc `docs/design-system/10-pattern-ueid-tri-key.md` (Layer 3) e doc `10-modelo-unificado-auto-feedback-estocastico.md` (Layer 8) compartilham prefixo `10-` mas têm propósitos distintos — patterns catalog vs critical analysis + unified model. A faixa numérica é **independente por camada**; cross-references usam path completo (`docs/design-system/10-pattern-ueid-tri-key.md`) para evitar ambiguidade.
