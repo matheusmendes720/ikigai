@@ -209,7 +209,6 @@ def make_falsification_graph(config: RunnableConfig | None = None) -> StateGraph
 
 
 # Graph 6 (IKIGAi-Maintainer) wrapper removed 2026-08-31 per attribution §3
-# (algo math archived-in-place — kept on disk for reference, NOT imported,
-# NOT executed). The 8-node pipeline is reachable only via the ikigai
-# package directly (src/ikigai/src/agents/ikigai_maintainer/), never via
-# langgraph dev.
+# (commit 240ae08 — math kernel stripped from agent/MCP/gateway layer).
+# The 8-node pipeline was DELETED from disk entirely; it is not reachable
+# via any package or via langgraph dev.

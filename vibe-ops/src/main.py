@@ -68,13 +68,28 @@ def main():
                 tw_path=tw_path,
                 vault_path=vault_path
             )
-            
+
+            # ARCHIVED per attribution §3 — execute_daily_cycle() raises
+            # NotImplementedError (math/policy execution is not the orchestrator
+            # layer's responsibility). Surface a clear archival notice instead
+            # of a stack trace.
             decision = loop.execute_daily_cycle(target_date)
-            
+
             msg = f"Ciclo completo para {target_date}. Nova Policy: {decision.policy.value} (Severidade: {decision.infrações_24h} infrações)"
             logger.info(msg)
             update_implementation_log(base_path, msg)
-            
+
+        except NotImplementedError as e:
+            archived_msg = (
+                f"run-daily ARCHIVED per attribution §3: {e}. "
+                f"The cybernetic loop composition paths are not the orchestrator "
+                f"layer's responsibility — IKIGAI agent observes feedback only."
+            )
+            logger.warning(archived_msg)
+            print(archived_msg)
+            update_implementation_log(base_path, archived_msg)
+            sys.exit(0)  # graceful — not a failure, just an archival signal
+
         except Exception as e:
             err_msg = f"FALHA no ciclo cibernético: {str(e)}"
             logger.error(err_msg, exc_info=True)
@@ -84,15 +99,13 @@ def main():
     elif args.command == "status":
         # Per attribution §3, IkigaiScorer + PolicyEngine imports were removed
         # (algo math is not the orchestrator layer's responsibility). The
-        # status command below calls archived entry points that now raise
-        # NotImplementedError; see CyberneticDailyLoop._get_previous_decision
-        # for the DB-only path that remains.
+        # status command below uses the DB-only path; the IKIGAI VECTORS
+        # block was removed (loop.ikigai is None — compute_score is archived).
         logger.info("Recuperando status cibernético...")
         try:
             loop = CyberneticDailyLoop(db_path=args.db, tw_path="", vault_path="")
             decision = loop._get_previous_decision(date.today())
-            ikigai_data = loop.ikigai.compute_score()
-            
+
             print("\n" + "="*40)
             print(" VIBE-OPS CYBERNETIC STATUS ".center(40, "="))
             print("="*40)
@@ -103,15 +116,8 @@ def main():
                 print(f"Duração:    {decision.days_in_current_policy} dias")
             else:
                 print("Nenhuma decisão de política encontrada.")
-            
-            print("-" * 40)
-            print(" IKIGAI VECTORS ".center(40, "-"))
-            print(f"Global:     {ikigai_data.get('global', 0):.2f}")
-            print(f"Estudo:     {ikigai_data.get('study', 0):.2f}")
-            print(f"Dev:        {ikigai_data.get('dev', 0):.2f}")
-            print(f"Saúde:      {ikigai_data.get('health', 0):.2f}")
             print("="*40 + "\n")
-            
+
         except Exception as e:
             logger.error(f"Erro ao recuperar status: {e}")
             sys.exit(1)
