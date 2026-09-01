@@ -10,9 +10,9 @@ NOT bind math/policy/business-rule tools. Those live behind the MCP
 interface (`src/mcp_server/server.py`).
 
 Tools:
-- 3 solverforge (calendar events)
+- 2 solverforge (calendar events)
 - 4 tuiboard (kanban read/write)
-- 3 taskdog (task management)
+- 4 taskdog (task management)
 - 2 vault reads (ikigai_read_vault, ikigai_read_strategics)
 
 Run with:
