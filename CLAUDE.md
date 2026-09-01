@@ -143,15 +143,24 @@ life/
 
 ## Build / Run / Test
 
-### PAV kernel (src/operational/)
+### PAV kernel — ARCHIVED 2026-08-31
 
+The Produtividade Algorítmica Visual (PAV) kernel — pure-arithmetic business
+logic (Q_HE, regime FSM, habit engine) — has been archived to
+`archive/legacy-pav/src-operational/`. See
+[`archive/legacy-pav/SUPERSEDED.md`](archive/legacy-pav/SUPERSEDED.md) for the
+canonical reasoning and [ADR-013](../code-docs/adr/ADR-013-canonical-scope-discipline.md)
+for scope discipline.
+
+To revive (re-attach math/policy execution if needed):
 ```bash
-cd src/operational
-uv sync
-uv run pytest
-uv run ruff check src/
-uv run mypy src/
+cd archive/legacy-pav/src-operational/
+uv sync && uv run pytest
 ```
+
+The IKIGAI agent layer (`src/ikigai/`) is **planner-only** —
+math/policy/scoring tools are not in `IKIGAI_TOOLS` (12 tools, see
+`src/ikigai/tests/test_canonical_scope.py` for the drift detector).
 
 ### IKIGAi Deep Agent (src/ikigai/)
 
