@@ -1,11 +1,12 @@
 """IKIGAi tools — wrapped as LangChain @tool for deepagents.
 
-Per user scope (2026-08-31): the agent layer is a PLANNING ASSISTANT ONLY.
-It binds 12 tools (10 external data + 2 vault reads). It does NOT bind
-math/policy/business-rule tools (ikigai_score, ikigai_regime, ikigai_phase,
-ikigai_corrections, ikigai_decompose, ikigai_plan_cycle, ikigai_sync_vault,
-ikigai_checkpoint) — those live behind the MCP interface
-(`src/mcp_server/server.py`) per attribution §3.
+Per user scope (ADR-013, 2026-08-31): the agent layer is a PLANNING
+ASSISTANT ONLY. It binds 12 tools (10 external data + 2 vault reads).
+It does NOT bind math/policy/business-rule tools — that surface was
+DELETED along with ``src/ikigai/core/scoring/``,
+``src/ikigai/core/heuristics/``, and ``src/agents/ikigai_maintainer/``.
+
+Drift detectors in ``tests/test_canonical_scope.py`` enforce this invariant.
 """
 
 from __future__ import annotations
@@ -46,52 +47,6 @@ _TASKDOG_CLI = os.environ.get("TASKDOG_CLI", "taskdog.exe")
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-# Algorithm helpers — STRIPPED 2026-08-31 (see note below).
-# What was removed: _PROJECT_ROOT, _CHECKPOINT_DB, _VAULT_DIR module vars,
-# _get_checkpoint_path(), _read_checkpoint_data(). These existed solely to
-# serve the 8 algorithm @tool decorators that have been removed from this
-# module (the agent layer must NOT bind math/policy/business-rule tools).
-
-
-
-# ---------------------------------------------------------------------------
-# Algorithm @tool decorators — STRIPPED 2026-08-31 (see note below).
-# What was removed: 8 @tool functions that bound IKIGAi math/policy/
-# business-rule execution to the conversational agent (ikigai_score,
-# ikigai_regime, ikigai_phase, ikigai_corrections, ikigai_decompose,
-# ikigai_plan_cycle, ikigai_sync_vault, ikigai_checkpoint). Per user
-# scope, the agent is a PLANNING ASSISTANT ONLY — algorithms live behind
-# the MCP interface (`src/mcp_server/server.py`).
-# ---------------------------------------------------------------------------
-
-
-
-# ---------------------------------------------------------------------------
-# Tools 2-5: regime, phase, corrections, decompose — STRIPPED (see note above).
-# ---------------------------------------------------------------------------
-
-
-
-# ---------------------------------------------------------------------------
-# Tool 6: plan_cycle — STRIPPED (see note above). This tool previously imported
-# `make_ikigai_graph` from `agents.ikigai_maintainer` and invoked it with the
-# full algo state — the bridge between MCP interface-style calls and the
-# LangGraph algorithm execution graph. Algorithm execution does NOT happen
-# in the agent layer; the agent only plans via prompt chains.
-# ---------------------------------------------------------------------------
-
-
-
-# ---------------------------------------------------------------------------
-# Tools 7-8: sync_vault, checkpoint — STRIPPED (see note above).
-# The `_format_corrections()` helper and these two @tool decorators both
-# assumed the persistence-layer checkpoint DB. The agent layer does not
-# own checkpoint state; vault writes go through `vault_write` (B6.4) and
-# checkpoint introspection belongs behind the MCP interface.
-# ---------------------------------------------------------------------------
-
-
 
 # ---------------------------------------------------------------------------
 # External Tool: Solverforge Calendar (Rust CLI)

@@ -1,4 +1,11 @@
-"""IKIGAi-Maintainer MCP server — 8 tools via stdio transport.
+"""IKIGAi MCP server — stdio transport.
+
+The math/algorithm MCP tools (ikigai_score, ikigai_regime, ikigai_phase,
+ikigai_corrections, ikigai_checkpoint, ikigai_sync_vault, ikigai_plan_cycle)
+were DELETED 2026-08-31 per ADR-013. The remaining surface exposes only
+data-plane tools: ikigai_decompose (UEID hierarchy traversal), task CRUD
+(write_tasks/read_tasks), the Phase B3.2 mesh tools (mesh_show/task_create/
+health), and the canonical vault writer (vault_write).
 
 Run with: python run_mcp_server.py
 """
@@ -342,31 +349,20 @@ def _handle_ikigai_corrections(arguments: dict[str, Any]) -> str:
 
 
 def _handle_ikigai_plan_cycle(arguments: dict[str, Any]) -> str:
-    """ARCHIVED 2026-08-31 per attribution §3 + algorithm-scope-reframed.
-
-    The 8-node LangGraph algorithm execution (`agents.ikigai_maintainer`) is
-    archived-in-place: kept on disk for reference but NOT imported and NOT
-    executed. Per user scope, the agent layer is a planning assistant only;
-    algorithm math lives behind strategics/ (PT-BR SOT) as soft-preferences.
-
-    This handler returns a structured ARCHIVED response so callers can detect
-    that the tool exists in the MCP surface but does not run computation.
-    Vector-weight configurations, regime thresholds, and cycle mechanics are
-    archived as soft preferences in ./strategics/ (PT-BR SOT).
-
-    Args:
-        arguments: Original tool arguments (ignored — archived).
+    """ARCHIVED per ADR-013 (2026-08-31) — math kernel deleted.
 
     Returns:
-        JSON-encoded ARCHIVED status with the user-visible message.
+        ARCHIVED status. The agent layer is a PLANNING ASSISTANT ONLY;
+        QHE math, regime FSM, phase FSM, H1-H6 heuristics, and the
+        ``src/agents/ikigai_maintainer/`` LangGraph were deleted 2026-08-31.
     """
-    _ = arguments  # intentionally unused — handler is archived
+    _ = arguments
     return json.dumps(
         {
             "status": "ARCHIVED",
             "tool": "ikigai_plan_cycle",
-            "reason": "8-node LangGraph algorithm execution archived per attribution §3 + algorithm-scope-reframed (2026-08-30). Vector weights, regime FSM, phase FSM, H1-H6 heuristics live as soft preferences in ./strategics/ (PT-BR).",
-            "alternative": "For planning assistance, use ikigai_score/ikigai_regime/ikigai_phase/ikigai_corrections read tools. For action, prompt the agent to compose tasks via the vault_read/taskdog_/tuiboard_/solverforge_ tools.",
+            "reason": "math kernel deleted 2026-08-31 per ADR-013. QHE/regime/phase/heuristics are out of scope.",
+            "alternative": "Read soft-preferences from ./strategics/ (PT-BR). Plan via vault_read + taskdog_/tuiboard_/solverforge_ tools.",
         },
         indent=2,
     )
@@ -517,31 +513,10 @@ _No corrections emitted in this cycle._
 # ---------------------------------------------------------------------------
 
 
-@MCP.tool(
-    name="ikigai_score",
-    description="Returns current IKIGAi 5-vector scores and meta-vector score",
-)
-def ikigai_score() -> str:
-    """5-vector IKIGAi scores (passion/skill/market/revenue/course) + meta-vector."""
-    return cast(str, traced_tool_dispatch("ikigai_score", _handle_ikigai_score, {}))
-
-
-@MCP.tool(
-    name="ikigai_regime",
-    description="Returns current regime (PUSH/MAINTAIN/REDUCE/RECOVER) and days in regime",
-)
-def ikigai_regime() -> str:
-    """Current IKIGAi regime and days-in-regime."""
-    return cast(str, traced_tool_dispatch("ikigai_regime", _handle_ikigai_regime, {}))
-
-
-@MCP.tool(
-    name="ikigai_phase",
-    description="Returns current phase (FUNDAÇÃO/BUSCA/HACKATHON/RECUPERACAO/OVERCLOCK)",
-)
-def ikigai_phase() -> str:
-    """Current IKIGAi phase and phase iteration."""
-    return cast(str, traced_tool_dispatch("ikigai_phase", _handle_ikigai_phase, {}))
+# Math MCP tools DELETED 2026-08-31 per ADR-013: ikigai_score, ikigai_regime,
+# ikigai_phase, ikigai_corrections, ikigai_checkpoint, ikigai_sync_vault.
+# Their handlers remain as orphan dead code (no @MCP.tool decorator); drift
+# detector enforces no production code calls them.
 
 
 @MCP.tool(
@@ -554,80 +529,6 @@ def ikigai_decompose(dream_ueid: str) -> str:
         str,
         traced_tool_dispatch(
             "ikigai_decompose", _handle_ikigai_decompose, {"dream_ueid": dream_ueid}
-        ),
-    )
-
-
-@MCP.tool(
-    name="ikigai_corrections",
-    description="List recent correction signals from H1-H6 heuristics",
-)
-def ikigai_corrections(limit: int = 20) -> str:
-    """List recent correction signals from H1-H6 heuristics."""
-    return cast(
-        str,
-        traced_tool_dispatch("ikigai_corrections", _handle_ikigai_corrections, {"limit": limit}),
-    )
-
-
-@MCP.tool(
-    name="ikigai_plan_cycle",
-    description="Trigger an IKIGAi plan cycle — runs the full LangGraph agent",
-)
-def ikigai_plan_cycle(
-    active_dream_ueid: str | None = None,
-    cycle_start: str | None = None,
-    cycle_end: str | None = None,
-) -> str:
-    """Trigger an IKIGAi plan cycle — runs the full LangGraph agent."""
-    return cast(
-        str,
-        traced_tool_dispatch(
-            "ikigai_plan_cycle",
-            _handle_ikigai_plan_cycle,
-            {
-                "active_dream_ueid": active_dream_ueid,
-                "cycle_start": cycle_start,
-                "cycle_end": cycle_end,
-            },
-        ),
-    )
-
-
-@MCP.tool(
-    name="ikigai_checkpoint",
-    description="Get or set a named checkpoint in the IKIGAi checkpoint DB",
-)
-def ikigai_checkpoint(
-    action: str = "get",
-    thread_id: str | None = None,
-    state_snapshot: dict[str, Any] | None = None,
-) -> str:
-    """Get or set a named checkpoint in the IKIGAi checkpoint DB."""
-    return cast(
-        str,
-        traced_tool_dispatch(
-            "ikigai_checkpoint",
-            _handle_ikigai_checkpoint,
-            {
-                "action": action,
-                "thread_id": thread_id,
-                "state_snapshot": state_snapshot,
-            },
-        ),
-    )
-
-
-@MCP.tool(
-    name="ikigai_sync_vault",
-    description="Sync IKIGAi cycle data to the markdown vault",
-)
-def ikigai_sync_vault(cycle_id: str) -> str:
-    """Sync IKIGAi cycle data to the markdown vault."""
-    return cast(
-        str,
-        traced_tool_dispatch(
-            "ikigai_sync_vault", _handle_ikigai_sync_vault, {"cycle_id": cycle_id}
         ),
     )
 

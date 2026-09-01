@@ -11,7 +11,7 @@ Source:
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -127,25 +127,19 @@ class ExecutionRate(BaseModel):
 
 
 class QHEScore(BaseModel):
-    """Quality-Habit-Effectiveness score for a single day.
+    """Quality-Habit-Effectiveness feedback shape for a single day.
 
-    This is the PRIMARY policy input. Computed from habit completion data
-    in operational/entities/habit.py (QHEMetrics).
+    Schema-only contract — the fields are observed signals emitted by
+    the canonical PAV math kernel (``src/operational/``) and consumed
+    by the Deep Agent for planning updates. The QHE formula and the
+    policy mapping (PUSH/MAINTAIN/REDUCE/RECOVER) are out of scope for
+    the agent layer per ADR-013; the corresponding computation lives in
+    the PAV math kernel, NOT here.
 
-    Formula (inlined from ikigai.core.scoring.qhe.compute_qhe — archived
-    per attribution §3, weights sum to 1.0):
-        Q_HE = 0.35·H_sono + 0.20·H_med + 0.25·H_workout + 0.10·H_lunch
-             + 0.10·S_streak
-
-    QHEScore collapses the 4 habit dimensions to the single scalar
-    ``habit_avg``, so the inlined form is:
-        Q_HE = habit_avg · 0.90 + streak_bonus · 0.10
-
-    Policy mapping:
-        Q_HE >= 0.85 → PUSH
-        Q_HE >= 0.65 → MAINTAIN
-        Q_HE >= 0.45 → REDUCE
-        Q_HE <  0.45 → RECOVER
+    The scalar ``.qhe`` and the regime-mapping ``.regime_predicted``
+    intentionally raise ``NotImplementedError`` — they are part of the
+    algorithmic surface that was deleted 2026-08-31. Drift detectors in
+    ``tests/test_canonical_scope.py`` enforce this invariant.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -169,31 +163,34 @@ class QHEScore(BaseModel):
     """Streak bonus multiplier."""
 
     regime_input: RegimeState = RegimeState.MAINTAIN
+    """Last regime decision emitted by the PAV math kernel."""
 
     @property
     def qhe(self) -> float:
-        """Quality-Habit-Effectiveness value.
+        """OUT OF SCOPE per ADR-013 — algo math lives in PAV kernel.
 
-        Inlined from ``ikigai.core.scoring.qhe.compute_qhe`` per
-        attribution §3 (algo math archived-in-place, contracts layer
-        is schema-only). See class docstring for the canonical formula.
+        Raises:
+            NotImplementedError: Always. The QHE scalar formula was
+                deleted 2026-08-31 along with ``src/ikigai/core/scoring/``.
+                Compute QHE via the PAV math kernel if you need a value.
         """
-        return self.habit_avg * 0.90 + self.streak_bonus * 0.10
+        raise NotImplementedError(
+            "QHEScore.qhe is out of scope for the contracts layer per ADR-013. "
+            "The QHE formula was deleted along with src/ikigai/core/scoring/ "
+            "(2026-08-31). Read it from the PAV math kernel instead."
+        )
 
     @property
     def regime_predicted(self) -> RegimeState:
-        """Predict operational regime from Q_HE value.
+        """OUT OF SCOPE per ADR-013 — regime FSM lives in PAV kernel.
 
-        PUSH: Q_HE >= 0.85
-        MAINTAIN: 0.65 <= Q_HE < 0.85
-        REDUCE: 0.45 <= Q_HE < 0.65
-        RECOVER: Q_HE < 0.45
+        Raises:
+            NotImplementedError: Always. The regime mapping
+                (PUSH/MAINTAIN/REDUCE/RECOVER) was deleted 2026-08-31
+                along with ``src/ikigai/core/heuristics/``.
         """
-        q = self.qhe
-        if q >= 0.85:
-            return RegimeState.PUSH
-        if q >= 0.65:
-            return RegimeState.MAINTAIN
-        if q >= 0.45:
-            return RegimeState.REDUCE
-        return RegimeState.RECOVER
+        raise NotImplementedError(
+            "QHEScore.regime_predicted is out of scope for the contracts layer "
+            "per ADR-013. The regime FSM was deleted along with "
+            "src/ikigai/core/heuristics/ (2026-08-31)."
+        )
