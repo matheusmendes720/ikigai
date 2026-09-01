@@ -1,0 +1,40 @@
+commit 56cf9d7ae0ad68d15e21521bdf64a5f5402e716f
+Author: Matheus Mendes <matheusmendes720@proton.me>
+Date:   Mon Aug 31 17:31:45 2026 -0300
+
+    refactor(langgraph): strip ikigai_maintainer wrapper per attribution §3
+    
+    Remove make_ikigai_graph factory from vibe-ops/src/langgraph_entry.py
+    and the ikigai_maintainer entry from langgraph.json.
+    
+    The 8-node IKIGAi-Maintainer graph remains on disk at
+    src/ikigai/src/agents/ikigai_maintainer/ as archived-in-place reference
+    (per algorithm-attribution-decisions §3: kept on disk for reference,
+    NOT imported, NOT executed).
+    
+    Remaining langgraph graphs (5): pae_maintainer, quarterly_replan,
+    test_de_fogo_rollup, correction_protocol, dream_falsification.
+    
+    Also drops 7 now-unused F401 imports: json, Annotated, Literal,
+    should_commit, should_terminate, PlanTier, PlanVerdict (all were
+    only referenced inside the removed make_ikigai_graph).
+    
+    Verification:
+    - ruff check vibe-ops/src/langgraph_entry.py: 9 → 2 errors
+      (the 2 remaining are pre-existing E402 module-import-not-at-top-of-file,
+       caused by sys.path.insert between import blocks — out of scope)
+
+diff --git a/langgraph.json b/langgraph.json
+index 808b73f..7fd788b 100644
+--- a/langgraph.json
++++ b/langgraph.json
+@@ -8,8 +8,7 @@
+     "quarterly_replan": "./vibe-ops/src/langgraph_entry.py:make_replan_graph",
+     "test_de_fogo_rollup": "./vibe-ops/src/langgraph_entry.py:make_rollup_graph",
+     "correction_protocol": "./vibe-ops/src/langgraph_entry.py:make_correction_graph",
+-    "dream_falsification": "./vibe-ops/src/langgraph_entry.py:make_falsification_graph",
+-    "ikigai_maintainer": "./vibe-ops/src/langgraph_entry.py:make_ikigai_graph"
++    "dream_falsification": "./vibe-ops/src/langgraph_entry.py:make_falsification_graph"
+   },
+   "env": ".env",
+   "python_version": "3.11"
