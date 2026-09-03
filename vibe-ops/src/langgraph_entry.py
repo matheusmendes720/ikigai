@@ -1,16 +1,16 @@
 """langgraph dev entry point for agentic-markdown-system.
 
-Wraps the existing custom Python graphs (PAE-Maintainer + 4 swarm workflows)
-as LangGraph StateGraph factories so they can be served via `langgraph dev`.
+Wraps the existing custom PAE-Maintainer graph as a LangGraph StateGraph
+factory so it can be served via `langgraph dev`. The IKIGAI v2 graph is
+also registered (see langgraph.json) for prompt-chain orchestration.
 
 Existing custom graphs (preserved, not modified):
   - vibe-ops/src/agents/pae_maintainer/graph.py: PAE-Maintainer main graph
-  - .claude/skills/quarterly-planner/workflows/*.yml: 4 swarm workflow YAMLs
+  - src/ikigai/src/agents/v2/graph.py: IKIGAI 9-node prompt-chain graph
 
-Note: ikigai_maintainer graph wrapper was removed 2026-08-31 per
-attribution §3 (algo math archived-in-place — not imported, not executed).
-The 8-node IKIGAi-Maintainer graph (agents/ikigai_maintainer/) remains on
-disk as a reference; only the langgraph entry-point wrapper was removed.
+Note: 4 stub swarm graphs (quarterly_replan / test_de_fogo_rollup /
+correction_protocol / dream_falsification) were removed 2026-09-03 per
+zazzy-plotting-flask.md §5 Phase 3 — YAGNI; never invoked via langgraph dev.
 
 Strategy: thin adapter layer - no business logic in here, just glue between
 the existing custom graph runtime and the langgraph SDK.
@@ -18,9 +18,8 @@ the existing custom graph runtime and the langgraph SDK.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import TypedDict
 
-import yaml
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, RunnableConfig
 
@@ -155,60 +154,7 @@ def make_pae_graph(config: RunnableConfig | None = None) -> StateGraph:
     return g
 
 
-# ---------------------------------------------------------------------------
-# Graphs 2-5: Swarm workflows (4 YAML files from .claude/skills/...)
-# ---------------------------------------------------------------------------
-
-
-def _load_workflow_yaml(name: str) -> dict[str, Any]:
-    """Load a workflow YAML file from the quarterly-planner skill."""
-    path = (
-        Path(__file__).parent
-        / ".claude"
-        / "skills"
-        / "quarterly-planner"
-        / "workflows"
-        / f"{name}.yml"
-    )
-    with open(path, encoding="utf-8") as f:
-        return yaml.safe_load(f)
-
-
-def _make_workflow_dispatcher_graph(workflow_name: str) -> StateGraph:
-    """Build a generic StateGraph that runs a single workflow YAML.
-
-    Each node in the YAML becomes a stub step that reads the YAML and
-    records its execution. In production, real node implementations would
-    dispatch to specialist agents (e.g., mesh-coordinator, hierarchical-coord).
-    """
-    g: StateGraph[dict] = StateGraph(dict)
-    g.add_node("load_yaml", lambda _: {"workflow": workflow_name, "step": "loaded"})
-    g.add_node("execute_steps", lambda _: {"step": "executed"})
-    g.add_node("record_result", lambda _: {"step": "recorded"})
-    g.add_edge(START, "load_yaml")
-    g.add_edge("load_yaml", "execute_steps")
-    g.add_edge("execute_steps", "record_result")
-    g.add_edge("record_result", END)
-    return g
-
-
-def make_replan_graph(config: RunnableConfig | None = None) -> StateGraph:
-    return _make_workflow_dispatcher_graph("quarterly-replan")
-
-
-def make_rollup_graph(config: RunnableConfig | None = None) -> StateGraph:
-    return _make_workflow_dispatcher_graph("test-de-fogo-rollup")
-
-
-def make_correction_graph(config: RunnableConfig | None = None) -> StateGraph:
-    return _make_workflow_dispatcher_graph("correction-protocol")
-
-
-def make_falsification_graph(config: RunnableConfig | None = None) -> StateGraph:
-    return _make_workflow_dispatcher_graph("dream-falsification")
-
-
-# Graph 6 (IKIGAi-Maintainer) wrapper removed 2026-08-31 per attribution §3
-# (commit 240ae08 — math kernel stripped from agent/MCP/gateway layer).
-# The 8-node pipeline was DELETED from disk entirely; it is not reachable
-# via any package or via langgraph dev.
+# IKIGAI v2 graph registered separately in langgraph.json via
+# src/ikigai/src/agents/v2/graph.py:make_v2_graph. The 4 stub swarm graphs
+# (quarterly_replan / test_de_fogo_rollup / correction_protocol /
+# dream_falsification) were removed 2026-09-03 per Phase 3 plan.
