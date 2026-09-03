@@ -95,7 +95,7 @@ files = [
 ]
 
 [[tool.mypy.overrides]]
-module = ["deepagents", "deepagents.backends", "langchain_anthropic", "msgpack", "yaml"]
+module = ["deepagents", "deepagents.backends", "langchain_anthropic", "msgpack", "yaml", "pytest"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
