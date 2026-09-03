@@ -55,7 +55,9 @@ async def run_probe() -> int:
     async with stdio_client(server_params) as (read, write):
         async with ClientSession(read, write) as session:
             init = await session.initialize()
-            print(f"[1] initialize -> server={init.serverInfo.name} v{init.serverInfo.version}")
+            print(
+                f"[1] initialize -> server={init.serverInfo.name} v{init.serverInfo.version}"
+            )
 
             tools_result = await session.list_tools()
             tool_names = [t.name for t in tools_result.tools]
@@ -74,16 +76,67 @@ async def run_probe() -> int:
             print(f"[5] ikigai_regime -> {r.content[0].text[:300]}")
 
             # 6. vault_read (allowlisted path; reads vault markdown)
-            r = await session.call_tool("vault_read", {"path": "plans/ikigai-agent-spec.md"})
+            r = await session.call_tool(
+                "vault_read", {"vault_path": "plans/ikigai-agent-spec.md"}
+            )
             body = r.content[0].text
             first_line = body.splitlines()[0] if body else "(empty)"
-            print(f"[6] vault_read(plans/ikigai-agent-spec.md) -> first line: {first_line}")
+            print(
+                f"[6] vault_read(plans/ikigai-agent-spec.md) -> first line: {first_line}"
+            )
 
             # 7. resource read: health://gateway
             rr = await session.read_resource("health://gateway")
             print(f"[7] health://gateway -> {rr.contents[0].text[:200]}")
 
-            print("\n[OK] MCP stdio interface probe complete - all 7 calls succeeded.")
+            # 8. ikigai_decompose (real UEID traversal)
+            r = await session.call_tool(
+                "ikigai_decompose",
+                {"dream_ueid": "ikigai:dream:vaga-remota-2026:4f6a202a:2cb24609"},
+            )
+            print(f"[8] ikigai_decompose -> {r.content[0].text[:200]}")
+
+            # 9. ikigai_read_tasks (read structured tasks from data/tasks.jsonl)
+            r = await session.call_tool("ikigai_read_tasks", {"limit": 3})
+            print(f"[9] ikigai_read_tasks -> {r.content[0].text[:200]}")
+
+            # 10. ikigai_mesh_show (cross-fork view)
+            r = await session.call_tool(
+                "ikigai_mesh_show", {"ueid": "ikigai:dream:test-2026:00000000:00000000"}
+            )
+            print(f"[10] ikigai_mesh_show -> {r.content[0].text[:200]}")
+
+            # 11. ikigai_phase (no args; reads PAV phase state)
+            r = await session.call_tool("ikigai_phase", {})
+            print(f"[11] ikigai_phase -> {r.content[0].text[:200]}")
+
+            # 12. ikigai_corrections
+            r = await session.call_tool(
+                "ikigai_corrections", {"date": "2026-09-03", "limit": 3}
+            )
+            print(f"[12] ikigai_corrections -> {r.content[0].text[:200]}")
+
+            # 13. ikigai_plan_cycle (ARCHIVED — should return ARCHIVED status)
+            r = await session.call_tool("ikigai_plan_cycle", {})
+            print(f"[13] ikigai_plan_cycle -> {r.content[0].text[:200]}")
+
+            # 14. ikigai_checkpoint (read latest LangGraph checkpoint)
+            r = await session.call_tool(
+                "ikigai_checkpoint", {"action": "get", "thread_id": ""}
+            )
+            print(f"[14] ikigai_checkpoint -> {r.content[0].text[:200]}")
+
+            # 15. ikigai_sync_vault (read sync log)
+            r = await session.call_tool("ikigai_sync_vault", {"date": "2026-09-03"})
+            print(f"[15] ikigai_sync_vault -> {r.content[0].text[:200]}")
+
+            # 16. resources: queue://pending + plans://cycles
+            rr = await session.read_resource("queue://pending")
+            print(f"[16] queue://pending -> {rr.contents[0].text[:200]}")
+            rr = await session.read_resource("plans://cycles")
+            print(f"[17] plans://cycles -> {rr.contents[0].text[:200]}")
+
+            print("\n[OK] MCP stdio interface probe complete - 17 calls succeeded.")
             return 0
 
 
