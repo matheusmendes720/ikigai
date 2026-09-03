@@ -18,8 +18,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
                                │ MCP / stdio
 ┌──────────────────────────────▼──────────────────────────────┐
 │  AGENT LAYER  —  Deep Agent (carro-chefe)                 │
-│  Reads vault/ → applies strategics + PAE → writes tasks   │
-│  to data/ → observes planned vs actual → updates vault    │
+│  Reads vault/ → applies strategics + planning → writes     │
+│  tasks to data/ → observes planned vs actual → updates    │
+│  vault (PAE math stripped per ADR-013 — planner-only)     │
 └──────────────────────────────┬──────────────────────────────┘
                                │ contracts (Pydantic)
 ┌──────────────────────────────▼──────────────────────────────┐
@@ -33,7 +34,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Canonical flow:**
 ```
 vault (NL planning)
-  → Deep Agent (interpreta, aplica PAE, gera tasks)
+  → Deep Agent (interpreta, aplica strategics + planning, gera tasks)
     → MCP Gateway (sincroniza vault ↔ interfaces)
       → Interfaces preenchem com tasks ricas pro usuário marcar
         → Input manual (burndown, execution rate)
@@ -67,7 +68,6 @@ life/
 │   │       ├── cli.py         CliAdapter (data/tasks.jsonl)
 │   │       ├── taskdog.py     TaskdogAdapter (SQLite UPSERT on ueid)
 │   │       └── solverforge_calendar.py SolverforgeCalendarAdapter (UPI ueid column)
-│   ├── operational/            ← was life-ops/operational/ (PAV kernel)
 │   ├── ikigai/                ← was life-ops/ikigai/ (Deep Agent + MCP)
 │   ├── life_tatics/            ← was life-ops/life_tatics/
 │   └── planner/                ← was life-ops/planner/
@@ -121,7 +121,7 @@ life/
 ├── .claude/                    Claude Code config
 ├── .github/                    CI workflows
 ├── Makefile                    LangGraph dev server
-├── langgraph.json              5 registered LangGraph graphs (Phase 3 will reduce to 1; see "Phase 3 — LangGraph stub cleanup" in active plan)
+├── langgraph.json              5 registered LangGraph graphs (see "LangGraph Graphs" section below)
 └── CLAUDE.md
 ```
 
@@ -167,7 +167,10 @@ math/policy/scoring tools are not in `IKIGAI_TOOLS` (12 tools, see
 ```bash
 cd src/ikigai
 uv sync                 # uv-managed (NOT poetry — see q3-q4-resolved memory)
-ikigai.bat mcp          # start MCP server (8 tools)
+# IKIGAI_TOOLS = 12 planning tools (see src/ikigai/tests/test_canonical_scope.py)
+# Phase A SHIPPED 7 fork MCP tools (sf_* + tuiboard_*)
+# Total gateway surface = 19 tools (12 IKIGAI + 7 fork)
+ikigai.bat mcp          # start MCP server (19 tools total: 12 IKIGAI + 7 fork per Phase A)
 ikigai.bat agent <thread>
 ikigai.bat chat <thread>
 ```
@@ -206,7 +209,10 @@ make test
 
 ### Deep Agent Harness (src/ikigai/src/agents/)
 
-The **carro-chefe**. Reads vault markdown → applies strategics + PAE → writes structured tasks to data/ → interfaces consume from data/ → observes planned vs actual → updates vault.
+The **carro-chefe**. Reads vault markdown → applies strategics + planning
+(planner-only per ADR-013; PAE math stripped from agent layer) → writes
+structured tasks to data/ → interfaces consume from data/ → observes planned
+vs actual → updates vault.
 
 ### MCP Gateway (src/ikigai/MCP_GATEWAY.md)
 
@@ -232,31 +238,38 @@ Shared Pydantic v2 models. All layers import from here.
 
 Cross-fork task view + bidirectional sync via Deep Agent gateway. **v1 scope = `create` action only.**
 
-- **UEID** is the canonical join key across all forks (5-part regex `^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$`)
+- **UEID** is the canonical join key across all forks (5-part regex `^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+:[a-f0-9-]+$` per `ueid-5part-canonical-decision-2026-08-31.md`)
 - **Write path**: fork → CLI enqueues `TaskChange` to `data/review_queue/` → Agent validates → propagates `PropagationEvent` to all forks
 - **Read path**: `life mesh show <ueid>` joins slices from all 3 adapters (CLI / taskdog / UPI)
 - **3 adapters** (all implement `ForkAdapter` Protocol): `CliAdapter`, `TaskdogAdapter`, `SolverforgeCalendarAdapter`
-- **v1.2+ (out of scope)**: `update`, `delete`, `done` actions; tuiboard adapter; LLM-driven validation
+- **Phase A SHIPPED (2026-08-30)**: 4 tuiboard fork MCP tools (`tuiboard_create_task` etc.) — tuiboard adapter is live as MCP fork, no longer "out of scope"
+- **v1.2+ (still out of scope)**: `update`, `delete`, `done` actions; LLM-driven validation
 
 ### Vibe-ops: Target-Sensor-Adjuster Loop
 
-`src/cybernetics/daily_loop.py`: TARGET → SENSOR → ADJUSTER → PERSIST → SYNC → INDEX
+`vibe-ops/src/cybernetics/daily_loop.py`: TARGET → SENSOR → ADJUSTER → PERSIST → SYNC → INDEX
 (composition paths raise `NotImplementedError` per attribution §3; IKIGAI agent does NOT execute this loop — it observes feedback only)
-`SyncEngine` (src/middleware/sync_engine.py): Obsidian ↔ SQLite ↔ Taskwarrior.
-UEID format: `<CLUSTER>:<ENTITY>:<ID>`.
+`SyncEngine` (`vibe-ops/src/middleware/sync_engine.py`): Obsidian ↔ SQLite ↔ Taskwarrior.
+UEID format: `<CLUSTER>:<ENTITY>:<ID>` (5-part canonical; 4-part is deprecated alias).
 
 PolicyEngine states (PUSH / MAINTAIN / REDUCE / RECOVER) with hysteresis.
 
 ---
 
-## Current Mode (2026-08-28)
+## Current Mode (2026-09-03)
 
-**Data-first methodology** — IKIGAi está pausado. Não escrever novo código
-até 5+ SONHO logs manuais
+**Data-first methodology** — IKIGAi está pausado para *novas decisões de
+algoritmo* (M01/N01/A02/A06, IKIGAI vector weights). Não escrever código de
+algoritmo novo até 5+ SONHO logs manuais
 (`vault/ikigai/closing-2026/01-q3-2026/04-relatórios-diários/`). Decisões de
-algoritmo (M01/N01/A02/A06, IKIGAI vector weights) deferidas até evidência
-empírica. Estado vivo em
-`~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/MEMORY.md`.
+algoritmo deferidas até evidência empírica.
+
+> **Phase 8 SHIPPED (2026-09-03, commits `fb41578` → `3b7b8f6`)** actively
+> restored agent code (`src/ikigai/src/agents/v2/`) + MCP wrappers + gateway
+> E2E + v2 interfaces + 9th v2 node surfacing PAV intentions. The "pausado /
+> não escrever novo código" directive is applicable to **algorithm decisions
+> only**, not to agent/harness plumbing. Estado vivo em
+> `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/MEMORY.md`.
 
 ## Root Layout (não-`src/`)
 
@@ -280,29 +293,34 @@ ao `.gitignore` antes do próximo commit.
 
 ## LangGraph Graphs (vibe-ops, não src/)
 
-Todos os 6 graphs registrados em `langgraph.json` montam em
-`./vibe-ops/src/langgraph_entry.py`:
+Os 5 graphs registrados em `langgraph.json` montam em
+`./vibe-ops/src/langgraph_entry.py` (`ikigai_maintainer` foi removido no
+attribution §3 — `make_ikigai_graph` factory no longer exists):
 
 | Graph | Entry factory |
 |-------|---------------|
 | `pae_maintainer` | `make_pae_graph` |
-| `ikigai_maintainer` | `make_ikigai_graph` |
 | `quarterly_replan` | `make_replan_graph` |
 | `correction_protocol` | `make_correction_graph` |
 | `dream_falsification` | `make_falsification_graph` |
 | `test_de_fogo_rollup` | `make_rollup_graph` |
 
-Para subir um graph específico: `make dev-graph NAME=ikigai_maintainer`.
+Para subir um graph específico: `make dev-graph NAME=pae_maintainer`.
+
+> **Phase 8.1 (commit `fb41578`)** restaurou recovered IKIGAI architecture as
+> `src/ikigai/src/agents/v2/` (parallel branch — `graph.py` + 9 nodes) but did
+> **not** add a new graph entry to `langgraph.json`. The v2 graph code exists
+> but is not registered as a LangGraph runtime graph.
 
 ---
 
 ## What Is Broken / TODO
 
 - **interfaces/tui/ is empty** — Phase 4-6 of reorg (CLI shipped in Phase 3 v1)
-- **MCP Gateway ✅ wired as code** — 15 tools advertised; `vault_write` sole vault writer (Phase A)
+- **MCP Gateway ✅ wired as code** — 19 tools advertised (12 IKIGAI_TOOLS + 7 fork tools: `sf_*` + `tuiboard_*` per Phase A); `vault_write` sole vault writer (ADR-012)
 - **Deep Agent harness exists but doesn't fill interfaces yet**
 - **`vibe_ops.db` moved to `data/`**; `vibe_ops_test.db` moved to `data/test-fixtures/` (Phase 0 audit-closure 2026-08-31) — some code paths may still reference old locations
-- **Phase 3 v1 ships `create` only** — `update`/`delete`/`done` deferred to v1.2-v1.4 (gated on data-first methodology: 5+ SONHO logs)
+- **Phase 3 v1 ships `create` only** for the data mesh; `update`/`delete`/`done` deferred to v1.2-v1.4 (gated on data-first methodology: 5+ SONHO logs). Phase A SHIPPED extended fork side via MCP tools; Phase 8 SHIPPED restored agent v2 plumbing.
 - **Phase 3 minor findings (logged, non-blocking)**: UPI `id` churn on UPSERT conflict; `propagate()` doesn't auto-ack `partial_propagation` status
 - **Path 3 taskdog MCP gateway DEFERRED** — `taskdog_mcp.server` module not built; canonical path is Path 1 (harness @tool → subprocess → taskdog.exe). See `docs/design-system/24-taskdog-paths-architecture.md`.
 
@@ -338,7 +356,7 @@ If touching vault/, vibe-ops/, or strategics/: stop → propose Action Plan → 
 
 ---
 
-*Algorithmic Life OS — CLAUDE.md — 2026-08-28*
+*Algorithmic Life OS — CLAUDE.md — 2026-09-03 (audit cleanup)*
 
 <!-- OPENWIKI:START -->
 

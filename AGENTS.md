@@ -10,7 +10,7 @@ Guidance for coding agents (Codex, Claude Code, Hermes, GitNexus) working in thi
 |------|---------|------|
 | `cli/`, `centrals/`, `handlers/`, `plugins/`, `__init__.py` (root) | Python | Root `life` CLI hub (Typer). Imports `from life import __version__` — repo root must be on `PYTHONPATH`. |
 | `src/operational/` | uv workspace | PAV productivity kernel — `pyproject.toml` declares `members = ["packages/core"]` only; `apps/cli` + `apps/tui` were deleted in `604d6af` (CLI scripts still broken) |
-| `src/ikigai/` | Poetry | IKIGAi meta-brain — MCP server, deep-agent harness, LangGraph `ikigai_maintainer` graph, OpenTelemetry wiring |
+| `src/ikigai/` | Poetry | IKIGAi meta-brain — MCP server, deep-agent harness, OpenTelemetry wiring. `ikigai_maintainer` graph was stripped from `langgraph.json` per attribution §3; v2 graph code lives at `src/ikigai/src/agents/v2/` but is not registered. |
 | `src/life_tatics/` | none (no `pyproject.toml`) | Standalone `life-tatics` time-block planner — runs as a module: `python -m life_tatics.cli` |
 | `src/mesh/` | uv (root) | Phase 3 v1 data mesh — `ForkAdapter` Protocol, `CliAdapter` / `TaskdogAdapter` / `SolverforgeCalendarAdapter`, append-only review queue, Deep Agent consumer + propagator. **v1 scope: `create` action only.** |
 | `src/contracts/` | uv (root) | Canonical Pydantic v2 contracts shared across layers (`UEID`, `Task`, `TaskChange`, `PlanningCycle`, etc.) — frozen + `extra="forbid"` |
@@ -61,7 +61,7 @@ Guidance for coding agents (Codex, Claude Code, Hermes, GitNexus) working in thi
 - **`ea97ea9` / `b3f9977`** — docs(ikigai): SPEC.md §14 constitutional references; cycle bootstrap analysis.
 - **`604d6af`** — **chore: delete PAV UI** — `apps/cli`, `apps/tui`, `home_v2`, `dataset_selector`, TUI widgets, theme tokens removed. Console scripts `operational` / `pav` / `pav-os` and `python -m operational` are still **broken** (editable-install `.pth` still points at deleted `apps/cli/src`).
 - **`8077bda`** — test suite: **49 pytest files** under `src/operational/tests/{core,e2e,integration,unit,property/,tui/,ui/}` (the last three dirs are empty scaffolding post-`d4d28f5`).
-- **`b484795` / `ac4177f` / `66aa517`** — IKIGAi deep-agent harness + `ikigai-maintainer-mcp` (8 tools, stdio) + LangGraph `ikigai_maintainer` graph with `SqliteSaver` checkpointing.
+- **`b484795` / `ac4177f` / `66aa517`** — IKIGAi deep-agent harness + `ikigai-maintainer-mcp` (8 tools pre-Phase A, now 12 IKIGAI tools + 7 fork tools = 19 total) + LangGraph `ikigai_maintainer` graph with `SqliteSaver` checkpointing. **Note:** `ikigai_maintainer` LangGraph graph was later stripped per attribution §3 / commit `56cf9d7`; `make_ikigai_graph` factory removed from `vibe-ops/src/langgraph_entry.py`. Phase 8.1 (`fb41578`) recovered IKIGAI architecture under `src/ikigai/src/agents/v2/` (parallel, not registered).
 
 **Observability sprint — 4 repos in worktrees (status post-reorg):**
 - `src/ikigai` (IKIGAI) — `feat/mcp-observability` branch, 8 commits, awaiting merge to `gitbutler/workspace` (see spec `src/ikigai/docs/observability/03-merge-plan.md`).
@@ -167,7 +167,7 @@ cd vibeops-tui && cargo run                                    # Rust TUI (polli
 
 ### LangGraph dev workflow (root `Makefile`)
 
-`langgraph.json` registers 6 graphs under `vibe-ops/src/langgraph_entry.py`: `pae_maintainer`, `quarterly_replan`, `test_de_fogo_rollup`, `correction_protocol`, `dream_falsification`, `ikigai_maintainer`. Python 3.11; loads `.env`.
+`langgraph.json` registers **5 graphs** under `vibe-ops/src/langgraph_entry.py`: `pae_maintainer`, `quarterly_replan`, `test_de_fogo_rollup`, `correction_protocol`, `dream_falsification`. (`ikigai_maintainer` was stripped per attribution §3 / commit `56cf9d7`; recovered v2 graph code lives at `src/ikigai/src/agents/v2/` but is NOT registered as a LangGraph runtime graph.) Python 3.11; loads `.env`.
 
 ```bash
 make help           # list targets
@@ -331,3 +331,16 @@ If asked to refactor anything in `vibe-ops/`, `strategics/`, `vault/`, or a clus
 This project is indexed by GitNexus as **life**. Use GitNexus tools (`impact`, `query`, `context`) for symbol-level questions and standard Grep/Glob/Read for text and configs. GitNexus resources: `gitnexus://repo/life/{context,clusters,processes,process/<name>}`. Same blast-radius + `detect_changes()` discipline applies — see the GitNexus skills table above for tool/skill routing.
 
 <!-- gitnexus:end -->
+
+<!-- OPENWIKI:START -->
+
+## OpenWiki
+
+This repository has a generated `openwiki/` evidence index. It is optional just-in-time context, not required startup reading.
+
+- Treat source code and tests as authoritative. A brief's unknowns and review items are verification gaps, not automatic requirements.
+- Prefer the narrowest quiet validation that proves the changed behavior. Preserve complete failure output.
+
+The scheduled OpenWiki GitHub Actions workflow refreshes the repository wiki. Do not hand-edit generated OpenWiki pages unless explicitly asked; prefer updating source code/docs and letting OpenWiki regenerate.
+
+<!-- OPENWIKI:END -->
