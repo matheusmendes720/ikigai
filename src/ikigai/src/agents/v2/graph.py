@@ -201,17 +201,30 @@ def _route_after_commit(state: IKIGAiStateDict) -> str:
 # ---------------------------------------------------------------------------
 # Graph factory
 # ---------------------------------------------------------------------------
-def make_v2_graph(checkpoint_db: str | None = None) -> Any:
+def make_v2_graph(
+    checkpoint_db: str | None = None,
+    entry_point: str = "observe",
+) -> Any:
     """Build the IKIGAi Maintainer StateGraph v2.
 
     Args:
         checkpoint_db: Path to SQLite file for SqliteSaver checkpointing.
                        If None, uses <project_root>/data/ikigai_checkpoints.db
+        entry_point: Name of the node where the graph starts execution.
+                     Must be one of NODES. Default: "observe" (full pipeline).
+                     Skills (daily/weekly/monthly/quarterly) enter at specific
+                     nodes to invoke partial pipelines.
 
     Returns:
         Compiled StateGraph ready for .invoke()
+
+    Raises:
+        ValueError: If entry_point is not one of the valid NODES.
     """
     from pathlib import Path
+
+    if entry_point not in NODES:
+        raise ValueError(f"Invalid entry_point {entry_point!r}. Must be one of: {', '.join(NODES)}")
 
     if checkpoint_db is None:
         _project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
@@ -222,6 +235,7 @@ def make_v2_graph(checkpoint_db: str | None = None) -> Any:
 
     with _graph_tracer.start_as_current_span("ikigai.graph.compile") as span:
         span.set_attribute("checkpoint_db", checkpoint_db)
+        span.set_attribute("entry_point", entry_point)
         builder: StateGraph[IKIGAiStateDict, None, IKIGAiStateDict, IKIGAiStateDict] = StateGraph(
             IKIGAiStateDict
         )
@@ -293,7 +307,7 @@ def make_v2_graph(checkpoint_db: str | None = None) -> Any:
 
         builder.add_edge("surface_intentions", END)
         builder.add_edge("error", END)
-        builder.set_entry_point("observe")
+        builder.set_entry_point(entry_point)
 
         # Compile with checkpointer
         import sqlite3
@@ -305,6 +319,7 @@ def make_v2_graph(checkpoint_db: str | None = None) -> Any:
         compiled_any: Any = compiled
         compiled_any._ikigai_checkpoint_conn = conn
         compiled_any._ikigai_checkpoint_db = checkpoint_db
+        compiled_any._ikigai_entry_point = entry_point
         span.set_attribute("nodes", len(NODES))
         return compiled_any
 
