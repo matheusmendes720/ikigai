@@ -5,7 +5,8 @@
   ],
   "graphs": {
     "pae_maintainer": "./vibe-ops/src/langgraph_entry.py:make_pae_graph",
-    "ikigai_maintainer_v2": "./src/ikigai/src/agents/v2/graph.py:make_v2_graph"
+    "ikigai_maintainer_v2": "./src/ikigai/src/agents/v2/graph.py:make_v2_graph",
+    "ikigai_fork_smoke": "./src/ikigai/src/agents/v2/fork_smoke_graph.py:make_fork_smoke_graph"
   },
   "env": ".env",
   "python_version": "3.11"

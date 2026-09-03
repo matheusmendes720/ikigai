@@ -1,0 +1,1 @@
+C:/Users/mathe/code_space/life-oss/life/src/ikigai/src/agents/v2/skills/weekly.md
