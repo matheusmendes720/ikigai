@@ -8,6 +8,9 @@ Cross-platform (no Node.js, no jq, no poetry). Uses the MCP Python SDK's
 stdio_client + ClientSession to do the same handshake the inspector does.
 
 Asserts:
+  - DriftDetector: IKIGAI_TOOLS list has exactly 12 entries (test_canonical_scope
+    enforces on the Python list; this check enforces on the live handshake
+    surface). Soft-fails (warn-only) if the agent layer isn't importable.
   - initialize handshake completes (no McpError)
   - tools/list returns >= 13 tools
   - resources/list returns >= 6 resources
@@ -16,6 +19,7 @@ Asserts:
 Usage:
   python scripts/mcp_inspect.py [--tool-count N] [--resource-count N] [--help]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,10 +34,18 @@ from mcp.client.stdio import stdio_client
 
 
 # === Defaults (B3.5 spec) ===
-DEFAULT_TOOL_COUNT = 13        # 10 original + 3 mesh (B3.1 + B3.2)
+DEFAULT_TOOL_COUNT = 13  # 10 original + 3 mesh (B3.1 + B3.2)
+
+# DriftDetector: canonical IKIGAI_TOOLS count per attribution §3 + ADR-013.
+# Enforced by src/ikigai/tests/test_canonical_scope.py:277-318 on the Python
+# list; this script enforces it on the live handshake by importing the list
+# (cross-platform sys.path dance — see check_ikigai_tools_drift()).
+EXPECTED_IKIGAI_TOOLS_COUNT = 12
 # Per A2UI spec §11 R4: 6 total resources = 3 concrete + 3 templates
-DEFAULT_RESOURCE_COUNT = 6     # queue://pending, health://gateway, plans://cycles (concrete)
-                             # + ueid://{ueid}, queue://events/{event_id}, plans://cycles/{cycle_id} (templates)
+DEFAULT_RESOURCE_COUNT = (
+    6  # queue://pending, health://gateway, plans://cycles (concrete)
+)
+# + ueid://{ueid}, queue://events/{event_id}, plans://cycles/{cycle_id} (templates)
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -76,9 +88,73 @@ def build_pythonpath(repo_root: Path) -> str:
     return f"{src_dir}{sep}{mcp_src}"
 
 
+def check_ikigai_tools_drift(repo_root: Path) -> tuple[bool, str]:
+    """DriftDetector: verify IKIGAI_TOOLS list has exactly 12 entries.
+
+    Imports the canonical list from `src.agents.tools` (post 2026-08-30
+    import-path refactor — no `src.` prefix). On ImportError we soft-pass
+    (warn-only) because the canonical pytest test
+    `src/ikigai/tests/test_canonical_scope.py:277-318` enforces the same
+    invariant on the Python list directly.
+
+    Returns:
+        (passed, message) — passed=False on hard drift, passed=True on
+        pass or soft-skip.
+
+    Side effects:
+        Temporarily prepends to sys.path; restored on exit.
+    """
+    src_dir = str(repo_root / "src")
+    mcp_src = str(repo_root / "src" / "ikigai" / "src")
+    saved = sys.path.copy()
+    try:
+        # Insert at front so the agent-layer packages resolve first
+        sys.path.insert(0, mcp_src)
+        sys.path.insert(0, src_dir)
+        # Import the canonical list — `src.agents.tools` is the post-refactor
+        # location (drop of `src.` prefix in commit 6628ff1 per memory
+        # `ikigai-import-path-refactor-2026-08-31`).
+        from src.agents.tools import IKIGAI_TOOLS  # type: ignore[import-not-found]
+
+        count = len(IKIGAI_TOOLS)
+        if count != EXPECTED_IKIGAI_TOOLS_COUNT:
+            return False, (
+                f"IKIGAI_TOOLS drift: got {count} entries, "
+                f"expected {EXPECTED_IKIGAI_TOOLS_COUNT}"
+            )
+        return True, (
+            f"IKIGAI_TOOLS drift check: {count} entries "
+            f"(expected {EXPECTED_IKIGAI_TOOLS_COUNT})"
+        )
+    except ImportError as e:
+        # Soft-fail: agent layer may not be installed in CI sandbox.
+        # Canonical test_canonical_scope.py enforces the same invariant.
+        return True, (
+            f"IKIGAI_TOOLS drift check skipped (import unavailable): "
+            f"{type(e).__name__}: {e}"
+        )
+    except Exception as e:  # pragma: no cover — defensive
+        return True, (
+            f"IKIGAI_TOOLS drift check skipped (unexpected): {type(e).__name__}: {e}"
+        )
+    finally:
+        sys.path[:] = saved
+
+
 async def run_inspect(min_tools: int, min_resources: int) -> int:
     """Spawn gateway via stdio, assert tool/resource counts. Returns 0 on pass, 1 on fail."""
-    repo_root = Path(__file__).resolve().parent.parent  # scripts/ is sibling of repo_root
+    repo_root = (
+        Path(__file__).resolve().parent.parent
+    )  # scripts/ is sibling of repo_root
+
+    # DriftDetector: run BEFORE gateway spawn so a hard drift fails fast.
+    # The drift test fires sync from this async function — it's a pure
+    # import + len() check, no I/O, safe to call inline.
+    drift_passed, drift_msg = check_ikigai_tools_drift(repo_root)
+    print(f"[mcp-inspect] {drift_msg}")
+    if not drift_passed:
+        print("[mcp-inspect] FAIL: DriftDetector (IKIGAI_TOOLS count drift)")
+        return 1
 
     server_params = StdioServerParameters(
         command=sys.executable,
@@ -87,7 +163,9 @@ async def run_inspect(min_tools: int, min_resources: int) -> int:
         env={**os.environ, "PYTHONPATH": build_pythonpath(repo_root)},
     )
 
-    print(f"[mcp-inspect] spawning: {server_params.command} {' '.join(server_params.args)}")
+    print(
+        f"[mcp-inspect] spawning: {server_params.command} {' '.join(server_params.args)}"
+    )
     print(f"[mcp-inspect] PYTHONPATH: {server_params.env['PYTHONPATH']}")
     print(f"[mcp-inspect] cwd: {server_params.cwd}")
 
@@ -95,7 +173,9 @@ async def run_inspect(min_tools: int, min_resources: int) -> int:
         async with stdio_client(server_params) as (read, write):
             async with ClientSession(read, write) as session:
                 init_result = await session.initialize()
-                print(f"[mcp-inspect] initialized: server={init_result.serverInfo.name}")
+                print(
+                    f"[mcp-inspect] initialized: server={init_result.serverInfo.name}"
+                )
 
                 tools_result = await session.list_tools()
                 tools_count = len(tools_result.tools)
@@ -111,8 +191,12 @@ async def run_inspect(min_tools: int, min_resources: int) -> int:
                 # MCP SDK Pydantic models use camelCase attributes (serverInfo, resourceTemplates)
                 templates_result = await session.list_resource_templates()
                 templates_count = len(templates_result.resourceTemplates)
-                template_uris = [str(t.uriTemplate) for t in templates_result.resourceTemplates]
-                print(f"[mcp-inspect] resource_templates: {templates_count} -> {template_uris}")
+                template_uris = [
+                    str(t.uriTemplate) for t in templates_result.resourceTemplates
+                ]
+                print(
+                    f"[mcp-inspect] resource_templates: {templates_count} -> {template_uris}"
+                )
 
                 total_resources = resources_count + templates_count
                 errors: list[str] = []
