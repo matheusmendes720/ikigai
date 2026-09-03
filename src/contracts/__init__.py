@@ -32,6 +32,8 @@ __all__ = [
     "Period",
     "Priority",
     "EntityType",
+    "RegimeState",
+    "TimestampMixin",
     # task
     "Task",
     "Subtask",

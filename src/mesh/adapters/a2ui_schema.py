@@ -16,6 +16,7 @@ Schemas:
 
 Pydantic v2 strict: frozen=True, extra="forbid". Aligns with src/contracts/ invariant.
 """
+
 from __future__ import annotations
 
 from typing import Literal
@@ -35,6 +36,7 @@ A2UIProtocolVersion = Literal["2.0"]
 
 # === JSON-RPC 2.0 envelopes ===
 
+
 class A2UIError(BaseModel):
     """JSON-RPC 2.0 error object.
 
@@ -45,6 +47,7 @@ class A2UIError(BaseModel):
       -32602 Invalid params
       -32603 Internal error
     """
+
     model_config = ConfigDict(frozen=True, extra="forbid")
     code: int = Field(ge=-32799, le=-32000)  # JSON-RPC reserved range
     message: str = Field(min_length=1, max_length=512)
@@ -53,6 +56,7 @@ class A2UIError(BaseModel):
 
 class A2UIRequest(BaseModel):
     """JSON-RPC 2.0 request envelope (client → server)."""
+
     model_config = ConfigDict(frozen=True, extra="forbid")
     jsonrpc: A2UIProtocolVersion = "2.0"
     id: str = Field(min_length=1, max_length=64)
@@ -65,6 +69,7 @@ class A2UIResponse(BaseModel):
 
     Exactly one of `result` or `error` must be set.
     """
+
     model_config = ConfigDict(frozen=True, extra="forbid")
     jsonrpc: A2UIProtocolVersion = "2.0"
     id: str = Field(min_length=1, max_length=64)
@@ -74,6 +79,7 @@ class A2UIResponse(BaseModel):
 
 class A2UINotification(BaseModel):
     """JSON-RPC 2.0 server-pushed notification (no id, no response expected)."""
+
     model_config = ConfigDict(frozen=True, extra="forbid")
     jsonrpc: A2UIProtocolVersion = "2.0"
     method: A2UINotificationMethod = "mesh.event"
@@ -82,8 +88,10 @@ class A2UINotification(BaseModel):
 
 # === Typed params for the 3 top-level methods ===
 
+
 class MeshReadParams(BaseModel):
     """Params for `mesh.read`: cross-fork view for one UEID."""
+
     model_config = ConfigDict(frozen=True, extra="forbid")
     ueid: UEID
 
@@ -94,6 +102,7 @@ class TaskWriteParams(BaseModel):
     v1: only `action="create"` is fully implemented. Other actions return
     -32601 Method not found (deferred to v1.2-v1.4).
     """
+
     model_config = ConfigDict(frozen=True, extra="forbid")
     action: A2UIAction
     ueid: UEID
@@ -103,6 +112,7 @@ class TaskWriteParams(BaseModel):
 
 class MeshSubscribeParams(BaseModel):
     """Params for `mesh.subscribe`: open push stream of new events."""
+
     model_config = ConfigDict(frozen=True, extra="forbid")
     filters: dict = Field(default_factory=dict)
 
