@@ -49,6 +49,17 @@
 /no
 /frontmatter.dumps()
 /str\`
+# Examples seen 2026-09-03: short English conjunctions / short common words
+# from bash redirects like `> but`, `> and`, `> or`, `> not`, `> if`.
+# UTF-8 mojibake filenames (e.g. `n??o` where `?` is U+FFFD replacement char)
+# are NOT matched by these literal entries — those need cleanup at the
+# source by ensuring bash redirection uses `cmd 2>/dev/null > file.txt`
+# rather than bare `> word`. See memory `windows-orphan-dir-delete.md`
+# and `bash-heredoc-at-leak.md` for the broader heredoc-redirect problem.
+/but
+/and
+/or
+/not
 
 # ─── Phase 0 audit-closure artifacts (2026-08-31) ──────────────
 # Scratch files accumulated by ad-hoc CLI / debugging sessions.
