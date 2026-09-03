@@ -529,6 +529,26 @@ def taskdog_get_task(task_id: int) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Native CLI fallback (NOT in IKIGAI_TOOLS — drift-detector-safe, 12 tools)
+# ---------------------------------------------------------------------------
+
+
+@tool
+def cli_native_fallback(operation: str = "", **kwargs: Any) -> str:
+    """Fallback for native CLI when subprocess is unavailable.
+
+    NOT registered in IKIGAI_TOOLS (12-tools invariant). Passive fallback only.
+    """
+    import sys as _sys
+
+    suggested = f"python -m ikigai.cli {operation}"
+    return (
+        f"⚠️ native CLI unavailable: invoke `{suggested}` manually. "
+        f"Working directory: {_sys.path[0]!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
 # All tools as list (for create_deep_agent)
 # ---------------------------------------------------------------------------
 IKIGAI_TOOLS = [
