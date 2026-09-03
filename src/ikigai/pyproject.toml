@@ -102,3 +102,16 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 pythonpath = ["src", "../.."]
 addopts = "-v --tb=short"
+# Phase 2 (zazzy-plotting-flask.md §4.1.A.8): DeprecationWarnings for
+# `ikigai.entities.plan.task.TaskEntity` and `ikigai.vault.sync.TaskRecord`
+# fire on construction (PAV-internal models with no production callers
+# post 2026-08-31 archive). Tests that legitimately exercise these models
+# suppress the warning so the suite stays green; new production code
+# should not import them (use `contracts.Task` instead).
+#
+# Note: built-in `DeprecationWarning` has `__module__ == "_py_warnings"`
+# (Python default), so we filter on the message regex instead of module.
+filterwarnings = [
+    "ignore:TaskEntity is a PAV/PAE-internal model:DeprecationWarning",
+    "ignore:TaskRecord \\(ikigai.vault.sync\\) is the vault-extraction shape:DeprecationWarning",
+]
