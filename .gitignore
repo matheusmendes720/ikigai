@@ -102,6 +102,26 @@ src/ikigai/scripts/test_regex.py
 # Misplaced runtime DBs (canonical location is data/ at repo root)
 src/ikigai/data/
 
+# ─── Bash heredoc-leak follow-up (2026-09-03) ─────────────────────
+# Catch dotted numeric / dotted module paths and other stray tokens
+# that bash heredoc bugs leaked on 2026-09-03 cleanup. Files deleted:
+#   root: 1,  1.0  3  None  bool  dict[str  exit  queue.Queue[tuple[str  str
+#   src/ikigai/: 0.5  1.0  3  None  Taskwarrior  dict[str  list[Path]  refatoracao  str
+# Listed individually — gitignore does not support `(a|b|c)` alternation
+# in match patterns.
+# Root-level: digit+comma, digit-dot-digit, exit, dotted module.path[...]
+/[0-9],
+/[0-9].[0-9]
+/exit
+/queue.*\[*
+# src/ikigai/ depth: broaden `list[dict[...` to all `list[...]`, plus
+# Taskwarrior and refatoracao (PT-BR lowercase; bash > refatoracao leak)
+src/ikigai/[0-9].[0-9]
+src/ikigai/[0-9]
+src/ikigai/Taskwarrior
+src/ikigai/list\[*
+src/ikigai/refatoracao
+
 # vibe-ops/ test artifacts (left behind by ad-hoc scripts whose cleanup
 # is commented out). Pre-existing tracked files were untracked in B5.5
 # (`git rm --cached`); this pattern prevents future re-tracking.
