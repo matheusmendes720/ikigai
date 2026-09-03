@@ -3,7 +3,18 @@ name = "life-interface-cli"
 version = "0.1.0"
 description = "Interface CLI — reads structured tasks from data/tasks.jsonl"
 requires-python = ">=3.11"
-dependencies = ["typer>=0.15", "rich>=13.7"]
+dependencies = [
+    "typer>=0.15",
+    "rich>=13.7",
+    "textual>=0.85",
+    "pydantic>=2.13.5",
+]
 
 [project.scripts]
 life = "interfaces.cli.read_tasks:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
