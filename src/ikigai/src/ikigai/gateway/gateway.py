@@ -84,6 +84,12 @@ class UnifiedMCPGateway:
         with self._lock:
             return sorted(self._adapters.keys())
 
+    def health_check(self) -> dict[str, Any]:
+        """Return health status dict for the /health HTTP endpoint."""
+        with self._lock:
+            adapter_names = sorted(self._adapters.keys())
+        return {"status": "ok", "adapters": adapter_names}
+
     # ──────── Event bus (SSE Task 14) ────────
 
     def subscribe_events(self) -> queue.Queue[tuple[str, dict[str, Any]]]:
@@ -180,13 +186,7 @@ class UnifiedMCPGateway:
 
             def do_GET(self) -> None:
                 if self.path == "/health":
-                    self._json(
-                        200,
-                        {
-                            "status": "ok",
-                            "adapters": sorted(adapters_ref.keys()),
-                        },
-                    )
+                    self._json(200, gateway_ref.health_check())
                 elif self.path == "/events":
                     self._sse_stream(list(adapters_ref.keys()))
                 else:

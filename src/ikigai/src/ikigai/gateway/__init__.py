@@ -2,6 +2,7 @@
 
 from .client_adapter import MCPClientAdapter
 from .downstream import (
+    cli_adapter,
     register_default_adapters,
     solverforge_calendar_adapter,
     taskdog_adapter,
@@ -17,6 +18,7 @@ __all__ = [
     "StdioAdapterConfig",
     "StdioAdapterError",
     "UnifiedMCPGateway",
+    "cli_adapter",
     "register_default_adapters",
     "solverforge_calendar_adapter",
     "taskdog_adapter",
