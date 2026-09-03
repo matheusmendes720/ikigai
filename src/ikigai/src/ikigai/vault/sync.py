@@ -9,6 +9,18 @@ D2: on-demand CLI trigger (no daemon/cron).
 D3: taskdog is MVP fork (not tuiboard/solverforge-calendar).
 D4: frontmatter-tagged tasks as sync unit (tags:[task] OR type:task).
 D5: data/sync-state.json incremental diff.
+
+Note on `TaskRecord`:
+    `TaskRecord` is the vault-extraction shape (ueid/title/status/priority/
+    due/vault_path). It is distinct from the canonical `contracts.Task`
+    (the plan-output model that fills interfaces). It exists only to
+    carry the diff payload between vault parsing and taskdog push, and
+    is constructed only by `parse_vault_tasks()` and the test suite.
+
+    Deprecation warnings fire on construction so any new caller (other
+    than `parse_vault_tasks` + tests) is forced to consider whether the
+    canonical `contracts.Task` would be a better fit. Suppressed in the
+    test suite via `pyproject.toml::filterwarnings`.
 """
 
 from __future__ import annotations
@@ -16,6 +28,7 @@ from __future__ import annotations
 import json
 import os
 import time
+import warnings
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
@@ -23,6 +36,13 @@ from typing import Any
 
 import mesh.queue
 from pydantic import BaseModel, Field
+
+_TASK_RECORD_DEPRECATION_MSG = (
+    "TaskRecord (ikigai.vault.sync) is the vault-extraction shape used "
+    "internally by parse_vault_tasks() and tests. New code that needs a "
+    "plan-output model should use contracts.Task (src/contracts/task.py). "
+    "See zazzy-plotting-flask.md §4.1.A.8."
+)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Domain models
@@ -68,7 +88,14 @@ SyncError = SyncPerTaskError | SyncAdapterError
 
 
 class TaskRecord(BaseModel):
-    """One task extracted from a vault markdown frontmatter."""
+    """One task extracted from a vault markdown frontmatter.
+
+    .. deprecated::
+        Use `contracts.Task` (`src/contracts/task.py`) for new plan-output
+        code. `TaskRecord` exists for the vault-extraction → taskdog push
+        pipeline and is constructed only by `parse_vault_tasks()` + tests.
+        See module docstring.
+    """
 
     model_config = {"frozen": True, "extra": "forbid"}
 
@@ -78,6 +105,11 @@ class TaskRecord(BaseModel):
     priority: str | None = None
     due: str | None = None
     vault_path: str
+
+    def model_post_init(self, __context: Any) -> None:
+        """Fire DeprecationWarning exactly once per construction (Pydantic v2 hook)."""
+        super().model_post_init(__context)
+        warnings.warn(_TASK_RECORD_DEPRECATION_MSG, DeprecationWarning, stacklevel=2)
 
 
 class SyncAction(BaseModel):
