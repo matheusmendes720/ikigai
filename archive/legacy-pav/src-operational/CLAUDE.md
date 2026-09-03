@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+> **SUPERSEDED 2026-08-31** — `src/operational/` archived to `archive/legacy-pav/src-operational/` per `pav-kernel-archived-2026-08-31`. IKIGAI agent layer is **planner-only** per ADR-013; math/policy/scoring is not in `IKIGAI_TOOLS` (12 tools, drift-detector enforced). This file preserved for historical reference; do not extend. Revival path documented in `archive/legacy-pav/SUPERSEDED.md`.
+
 This file provides guidance to Claude Code (claude.ai/code) when working in this Repository.
 
 ## Project Overview

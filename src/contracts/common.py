@@ -34,7 +34,15 @@ from pydantic import GetCoreSchemaHandler
 from pydantic_core import CoreSchema, core_schema
 
 _UEID_PATTERN = re.compile(r"^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$")
-"""Canonical UEID regex: 5-part format type:slug:uuid:hash."""
+"""UEID regex: 4-part format type:slug:uuid:hash.
+
+Canonical 5-part format (`<namespace>:<entity_type>:<slug>:<uuid_short>:
+<content_hash_short>`) lives at `src/ikigai/src/ikigai/types.py:UEID` per
+`ueid-5part-canonical-decision-2026-08-31`. This 4-part regex is the
+legacy alias — accepted for vault reads only, never written. Phase 1 of
+zazzy-plotting-flask.md unifies the canonical; until that ships, this
+regex remains the contract surface for legacy adapters.
+"""
 
 
 class UEID(str):
