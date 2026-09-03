@@ -1,13 +1,15 @@
 """balance node — hysteresis-aware workload/capacity balancer.
 
-All logic preserved (pure arithmetic, no FORBIDDEN_FUNCTION names).
-Phase 8.2 wires real capacity/workload signals via MCP tools.
+PHASE 8.2: calls meta + QHE observation prompt templates for context.
+Pure arithmetic, no FORBIDDEN_FUNCTION names.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from ..prompts.observe_qhe_observation import render_observe_qhe_observation
+from ..prompts.score_meta_vector_observation import render_score_meta_vector_observation
 from ..state import (
     DEFAULT_QHE_RECOVER,
     DEFAULT_WORKLOAD_OVERLOAD_FACTOR,
@@ -21,8 +23,18 @@ from ..state import (
 def balance_node(state: IKIGAiStateDict) -> dict[str, Any]:
     """Evaluate workload vs capacity and enforce regime hysteresis.
 
+    PHASE 8.2: calls meta + QHE observation prompt templates for context.
     Returns updated balancer_verdict and is_hysteresis_active.
     """
+    vault_root = str(state.get("vault_root", ""))
+    prompt_state = {"vault_root": vault_root}
+
+    # Observe meta and QHE via prompt templates
+    meta_obs = render_score_meta_vector_observation(prompt_state)
+    qhe_obs = render_observe_qhe_observation(prompt_state)
+    _ = meta_obs  # context only; arithmetic below is preserved
+    _ = qhe_obs  # context only; state values used below
+
     q_he = state.get("q_he_score", 0.65)
     workload = state.get("workload_estimate", 2.0)
     capacity = state.get("capacity_estimate", 8.0)

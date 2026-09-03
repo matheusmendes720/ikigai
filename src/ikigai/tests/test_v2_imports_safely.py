@@ -71,6 +71,17 @@ FORBIDDEN_FUNCTIONS = frozenset(
     }
 )
 
+FORBIDDEN_CLASSES = frozenset(
+    {
+        "IkigaiScorer",
+        "QHEScorer",
+        "PassionScorer",
+        "RegimeClassifier",
+        "PhaseDetector",
+        "VectorScorer",
+    }
+)
+
 
 def _called_name(func: ast.AST) -> str | None:
     if isinstance(func, ast.Name):
@@ -203,3 +214,42 @@ def test_v2_legacy_reference_files_not_imported_by_live_code() -> None:
             f"Live agents/tools.py must not reference '{name}' — "
             f"use of legacy reference file would pull forbidden code into runtime"
         )
+
+
+def test_v2_no_forbidden_function_defs() -> None:
+    """No file under agents/v2/ defines any of the 16 forbidden function names."""
+    violations: list[str] = []
+    for py_file in _iter_python_files(V2_DIR):
+        try:
+            tree = ast.parse(py_file.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if node.name in FORBIDDEN_FUNCTIONS:
+                    violations.append(
+                        f"{py_file.relative_to(IKIGAI_SRC.parent.parent)}:{node.lineno}  "
+                        f"forbidden def: {node.name}"
+                    )
+    assert not violations, (
+        "Forbidden function defs detected in agents/v2/:\n" + "\n".join(violations)
+    )
+
+
+def test_v2_no_forbidden_class_defs() -> None:
+    """No file under agents/v2/ defines any of the 6 forbidden class names."""
+    violations: list[str] = []
+    for py_file in _iter_python_files(V2_DIR):
+        try:
+            tree = ast.parse(py_file.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name in FORBIDDEN_CLASSES:
+                violations.append(
+                    f"{py_file.relative_to(IKIGAI_SRC.parent.parent)}:{node.lineno}  "
+                    f"forbidden class: {node.name}"
+                )
+    assert not violations, (
+        "Forbidden class defs detected in agents/v2/:\n" + "\n".join(violations)
+    )

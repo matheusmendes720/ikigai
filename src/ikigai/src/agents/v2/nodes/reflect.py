@@ -1,23 +1,30 @@
 """reflect node — retrospective channel: aggregate completed work.
 
-PHASE 8.2: replace subprocess call with MCP tool wrapper.
+PHASE 8.2: calls regime observation prompt template for context.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from ..prompts.heuristics_regime_observation import render_heuristics_regime_observation
 from ..state import IKIGAiStateDict
 
 
 def reflect_node(state: IKIGAiStateDict) -> dict[str, Any]:
     """Retrospective channel: aggregate completed work since last cycle.
 
-    Reads UPI history from solverforge-calendar-mcp to count completions.
+    PHASE 8.2: calls regime observation prompt template for context.
     Populates `retrospective_log` with summary strings.
     """
     import json
     import subprocess
+
+    # Observe regime via prompt template
+    vault_root = str(state.get("vault_root", ""))
+    prompt_state = {"vault_root": vault_root}
+    regime_obs = render_heuristics_regime_observation(prompt_state)
+    _ = regime_obs  # context only
 
     log: list[str] = []
 

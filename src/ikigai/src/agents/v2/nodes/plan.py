@@ -1,20 +1,34 @@
-"""plan node — prospective channel: draft next actions for current tier."""
+"""plan node — prospective channel: draft next actions for current tier.
+
+PHASE 8.2: calls regime + meta observation prompt templates for context.
+"""
 
 from __future__ import annotations
 
 import datetime as dt
 from typing import Any
 
+from ..prompts.heuristics_regime_observation import render_heuristics_regime_observation
+from ..prompts.score_meta_vector_observation import render_score_meta_vector_observation
 from ..state import IKIGAiStateDict, PlanTier
 
 
 def plan_node(state: IKIGAiStateDict) -> dict[str, Any]:
     """Prospective channel: draft next actions based on current tier and regime.
 
+    PHASE 8.2: calls regime + meta observation prompt templates.
     Populates `prospective_buffer` with proposed action strings.
     """
     today = dt.date.today()
     tier = _infer_tier(today, state.get("cycle_start"), state.get("cycle_end"))
+
+    # Observe regime and meta via prompt templates
+    vault_root = str(state.get("vault_root", ""))
+    prompt_state = {"vault_root": vault_root}
+    regime_obs = render_heuristics_regime_observation(prompt_state)
+    meta_obs = render_score_meta_vector_observation(prompt_state)
+    _ = regime_obs  # context only; state values used below
+    _ = meta_obs  # context only
 
     regime = state.get("regime_state", "MAINTAIN")
     q_he = state.get("q_he_score", 0.65)

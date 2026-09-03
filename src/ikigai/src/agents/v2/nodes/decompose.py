@@ -1,12 +1,13 @@
 """decompose node — UEID hierarchy traversal (Dream→Task).
 
-PHASE 8.2: replace subprocess call with MCP tool wrapper.
+PHASE 8.2: calls decompose_rice_observation prompt template.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from ..prompts.decompose_rice_observation import render_decompose_rice_observation
 from ..state import IKIGAiStateDict
 
 UEID_PREFIXES = {
@@ -22,8 +23,7 @@ UEID_PREFIXES = {
 def decompose_node(state: IKIGAiStateDict) -> dict[str, Any]:
     """Traverse UEID hierarchy for active dream and propose decomposition.
 
-    Reads the markdown vault (via solverforge-calendar-mcp upi_search) for
-    tagged items. Returns proposed decomposition into tasks.
+    PHASE 8.2: calls render_decompose_rice_observation prompt template.
     """
     import json
     import subprocess
@@ -33,6 +33,12 @@ def decompose_node(state: IKIGAiStateDict) -> dict[str, Any]:
 
     if not active_dream:
         return {"decomposition": [], "last_step": "decompose"}
+
+    # Call RICE observation via prompt template
+    vault_root = str(state.get("vault_root", ""))
+    rice_obs = render_decompose_rice_observation({"vault_root": vault_root})
+    rice_score = rice_obs.get("rice_score", 0.5)
+    decomposition.append(f"[RICE] Score estimate: {rice_score:.2f}")
 
     # Extract dream ID from UEID
     dream_id = active_dream.split(":")[-1] if ":" in active_dream else active_dream

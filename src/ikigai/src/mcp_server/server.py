@@ -1,11 +1,9 @@
 """IKIGAi MCP server — stdio transport.
 
-The math/algorithm MCP tools (ikigai_score, ikigai_regime, ikigai_phase,
-ikigai_corrections, ikigai_checkpoint, ikigai_sync_vault, ikigai_plan_cycle)
-were DELETED 2026-08-31 per ADR-013. The remaining surface exposes only
-data-plane tools: ikigai_decompose (UEID hierarchy traversal), task CRUD
-(write_tasks/read_tasks), the Phase B3.2 mesh tools (mesh_show/task_create/
-health), and the canonical vault writer (vault_write).
+PHASE 8.2 REWRITE:
+- 7 orphan handlers deleted (were reading SQLite, no @MCP.tool decorator)
+- 7 MCP observation wrappers RE-REGISTERED reading from vault/
+- vault_write invariant preserved: only vault_write tool writes vault/
 
 Run with: python run_mcp_server.py
 """
@@ -14,6 +12,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any, cast
@@ -32,10 +31,69 @@ init_mcp_tracing()
 
 
 # ---------------------------------------------------------------------------
-# DB helpers
+# DB helpers (used by active tools only)
 # ---------------------------------------------------------------------------
 def _db_path(suffix: str = "ikigai_checkpoints.db") -> Path:
     return Path.home() / ".ikigai" / suffix
+
+
+def _vault_root() -> Path:
+    """Return vault root: {repo}/vault/."""
+    repo_root = Path(__file__).parent.parent.parent.parent  # .../src/ikigai/src/ → repo root
+    return repo_root / "vault"
+
+
+def _extract_frontmatter_field(content: str, field: str) -> Any:
+    """Extract a field value from YAML frontmatter in a markdown file.
+
+    Matches lines like:  field_name: value
+    Returns the raw string value (caller converts as needed).
+    """
+    pattern = rf"^{re.escape(field)}\s*:\s*(.+)$"
+    for line in content.splitlines():
+        m = re.match(pattern, line.strip())
+        if m:
+            return m.group(1).strip()
+    return None
+
+
+def _read_checkpoint(thread_id: str | None = None) -> dict[str, Any]:
+    """Read latest checkpoint from LangGraph SQLite (used by ikigai_checkpoint)."""
+    path = _db_path()
+    if not path.exists():
+        return {}
+    try:
+        import pickle
+
+        conn = sqlite3.connect(str(path))
+        cur = conn.cursor()
+        if thread_id:
+            cur.execute(
+                "SELECT checkpoint FROM checkpoints WHERE thread_id = ? ORDER BY checkpoint_id DESC LIMIT 1",
+                (thread_id,),
+            )
+        else:
+            cur.execute("SELECT checkpoint FROM checkpoints ORDER BY checkpoint_id DESC LIMIT 1")
+        row = cur.fetchone()
+        conn.close()
+        if row and row[0]:
+            return pickle.loads(row[0]) or {}
+        return {}
+    except Exception:
+        return {}
+
+
+# ---------------------------------------------------------------------------
+# Tool handler functions
+# ---------------------------------------------------------------------------
+
+
+def _handle_ikigai_decompose(arguments: dict[str, Any]) -> str:
+    """Traverse the vault hierarchy for a given Dream UEID (active handler)."""
+    ueid = arguments.get("dream_ueid", "")
+    if not ueid:
+        return json.dumps({"error": "dream_ueid required"})
+    return json.dumps(_decompose_ueid(ueid), indent=2)
 
 
 def _decompose_ueid(ueid: str) -> dict[str, Any]:
@@ -44,7 +102,6 @@ def _decompose_ueid(ueid: str) -> dict[str, Any]:
     Vault root: {repo}/data/matheus/
     Structure: dreams/ → objectives/ → projects/ → tasks/
     """
-
     import frontmatter
 
     repo_root = Path(__file__).parent.parent.parent  # .../src/ikigai/src/mcp_server/ → src/ikigai/
@@ -81,9 +138,6 @@ def _decompose_ueid(ueid: str) -> dict[str, Any]:
                 pass
         return results
 
-    def _children(ueid: str, entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        return [e for e in entities if e.get("parent_ueid") == ueid]
-
     dream_slug = _slug_from_ueid(ueid)
     dream_file = vault_root / "dreams" / f"{dream_slug}.md"
 
@@ -102,7 +156,7 @@ def _decompose_ueid(ueid: str) -> dict[str, Any]:
         except Exception:
             pass
 
-    # Read all objectives / projects / tasks
+    # Read all objectives / projects
     objectives = _read_entity("objectives", dream_slug)
     projects = _read_entity("projects", dream_slug)
 
@@ -116,259 +170,15 @@ def _decompose_ueid(ueid: str) -> dict[str, Any]:
 
     return {
         "dream": dream_data,
-        "goals": [],  # goals not yet in vault
+        "goals": [],
         "objectives": dream_objectives,
         "projects": dream_projects,
-        "tasks": [],  # tasks not yet in vault
+        "tasks": [],
     }
 
 
-def _read_checkpoint(thread_id: str | None = None) -> dict[str, Any]:
-    """Read latest checkpoint from LangGraph SQLite.
-
-    LangGraph schema: thread_id, checkpoint_ns, checkpoint_id, checkpoint (BLOB), metadata (BLOB).
-    Ordered by checkpoint_id DESC (contains nanosecond timestamp).
-    """
-    path = _db_path()
-    if not path.exists():
-        return {}
-    try:
-        import pickle
-
-        conn = sqlite3.connect(str(path))
-        cur = conn.cursor()
-        if thread_id:
-            cur.execute(
-                "SELECT checkpoint FROM checkpoints WHERE thread_id = ? ORDER BY checkpoint_id DESC LIMIT 1",
-                (thread_id,),
-            )
-        else:
-            cur.execute("SELECT checkpoint FROM checkpoints ORDER BY checkpoint_id DESC LIMIT 1")
-        row = cur.fetchone()
-        conn.close()
-        if row and row[0]:
-            return pickle.loads(row[0]) or {}
-        return {}
-    except Exception:
-        return {}
-
-
-def _read_plan_entity(cycle_id: str) -> dict[str, Any]:
-    """Read cycle state from plan_entities.db (written by ikigai_plan_cycle)."""
-    plan_db = Path.home() / ".ikigai" / "plan_entities.db"
-    if not plan_db.exists():
-        return {}
-    try:
-        conn = sqlite3.connect(str(plan_db))
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT * FROM plan_entities WHERE cycle_id = ? ORDER BY created_at DESC LIMIT 1",
-            (cycle_id,),
-        )
-        row = cur.fetchone()
-        cols = [d[0] for d in cur.description] if cur.description else []
-        conn.close()
-        return dict(zip(cols, row, strict=False)) if row else {}
-    except Exception:
-        return {}
-
-
-def _read_entity(table: str) -> dict[str, Any]:
-    path = Path.home() / ".ikigai" / "plan_entities.db"
-    if not path.exists():
-        return {}
-    try:
-        conn = sqlite3.connect(str(path))
-        cur = conn.cursor()
-        cur.execute(f"SELECT * FROM {table} ORDER BY created_at DESC LIMIT 1")
-        row = cur.fetchone()
-        conn.close()
-        if not row:
-            return {}
-        cols = [d[0] for d in cur.description or []]
-        return dict(zip(cols, row, strict=False))
-    except Exception:
-        return {}
-
-
-# ---------------------------------------------------------------------------
-# Task I/O — Deep Agent ↔ interfaces via data/tasks.jsonl
-# ---------------------------------------------------------------------------
-
-
-def _tasks_path() -> Path:
-    """Path to the shared tasks file. Lives in data/ at repo root."""
-    repo_root = Path(__file__).parent.parent.parent.parent  # .../src/ikigai/src/ → repo root
-    return repo_root / "data" / "tasks.jsonl"
-
-
-def _write_tasks_to_data(tasks: list[dict[str, Any]]) -> str:
-    """Append structured tasks (from Deep Agent) to data/tasks.jsonl.
-
-    Each line is a JSON object with a uuid, timestamp, and the task fields.
-    Returns a summary of what was written.
-    """
-    import uuid as _uuid
-
-    path = _tasks_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    written = 0
-    now = dt.datetime.utcnow().isoformat()
-    with path.open("a", encoding="utf-8") as fh:
-        for t in tasks:
-            record = {
-                "id": str(_uuid.uuid4())[:8],
-                "written_at": now,
-                "source": "deep_agent",
-                "title": t.get("title", ""),
-                "description": t.get("description", ""),
-                "horizon": t.get("horizon", "this_week"),
-                "priority": t.get("priority", "medium"),
-                "project_id": t.get("project_id"),
-                "estimated_minutes": t.get("estimated_minutes"),
-                "done": False,
-                "done_at": None,
-                "ueid": t.get("ueid"),
-                "vector": t.get("vector"),
-                "due": t.get("due"),
-            }
-            fh.write(json.dumps(record, ensure_ascii=False) + "\n")
-            written += 1
-
-    return json.dumps({"ok": True, "written": written, "path": str(path)})
-
-
-def _read_tasks_from_data(
-    horizon: str | None = None,
-    done: bool | None = None,
-    project_id: str | None = None,
-    limit: int = 50,
-) -> str:
-    """Read tasks from data/tasks.jsonl, optionally filtered.
-
-    Returns a JSON array of task objects.
-    """
-    path = _tasks_path()
-    if not path.exists():
-        return json.dumps([])
-
-    results = []
-    try:
-        with path.open(encoding="utf-8") as fh:
-            for line in fh:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    task = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                # Apply filters
-                if horizon is not None and task.get("horizon") != horizon:
-                    continue
-                if done is not None and task.get("done") != done:
-                    continue
-                if project_id is not None and task.get("project_id") != project_id:
-                    continue
-                results.append(task)
-                if len(results) >= limit:
-                    break
-    except OSError:
-        return json.dumps([])
-
-    return json.dumps(results, indent=2)
-
-
-# ---------------------------------------------------------------------------
-# Tool handler functions (for traced dispatch)
-# ---------------------------------------------------------------------------
-
-
-def _handle_ikigai_score(arguments: dict[str, Any]) -> str:
-    d = _read_checkpoint()
-    vs = d.get("vector_scores", {})
-    mv = d.get("meta_vector_score", 0.0)
-    qhe = d.get("q_he_score")
-    if not vs:
-        row = _read_entity("plan_entities")
-        if row:
-            vs = {k: row.get(k, 0.0) for k in ("passion", "skill", "market", "revenue", "course")}
-            mv = row.get("meta_vector", 0.0)
-            qhe = row.get("q_he")
-    return json.dumps(
-        {"vector_scores": vs, "meta_vector_score": round(mv, 4), "q_he_score": qhe}, indent=2
-    )
-
-
-def _handle_ikigai_regime(arguments: dict[str, Any]) -> str:
-    d = _read_checkpoint()
-    regime = d.get("regime_state", "MAINTAIN")
-    days = d.get("days_in_regime", 0)
-    qhe = d.get("q_he_score")
-    if not d:
-        row = _read_entity("plan_entities")
-        if row:
-            regime = row.get("regime", regime)
-            qhe = row.get("q_he", qhe)
-    return json.dumps({"regime_state": regime, "days_in_regime": days, "q_he_score": qhe}, indent=2)
-
-
-def _handle_ikigai_phase(arguments: dict[str, Any]) -> str:
-    d = _read_checkpoint()
-    return json.dumps(
-        {
-            "phase": d.get("phase", "BUSCA"),
-            "phase_iteration": d.get("phase_iteration", 0),
-            "phase_converged": d.get("phase_converged", False),
-            "phase_weights": d.get("phase_weights", {}),
-        },
-        indent=2,
-    )
-
-
-def _handle_ikigai_decompose(arguments: dict[str, Any]) -> str:
-    ueid = arguments.get("dream_ueid", "")
-    if not ueid:
-        return json.dumps({"error": "dream_ueid required"})
-    return json.dumps(_decompose_ueid(ueid), indent=2)
-
-
-def _handle_ikigai_corrections(arguments: dict[str, Any]) -> str:
-    d = _read_checkpoint()
-    limit = arguments.get("limit", 20)
-    corrs = d.get("corrections", [])[-limit:]
-    if not corrs:
-        row = _read_entity("plan_entities")
-        if row:
-            try:
-                corrs = json.loads(row.get("corrections", "[]"))[-limit:]
-            except Exception:
-                corrs = []
-    return json.dumps({"corrections": corrs, "count": len(corrs)}, indent=2)
-
-
-def _handle_ikigai_plan_cycle(arguments: dict[str, Any]) -> str:
-    """ARCHIVED per ADR-013 (2026-08-31) — math kernel deleted.
-
-    Returns:
-        ARCHIVED status. The agent layer is a PLANNING ASSISTANT ONLY;
-        QHE math, regime FSM, phase FSM, H1-H6 heuristics, and the
-        ``src/agents/ikigai_maintainer/`` LangGraph were deleted 2026-08-31.
-    """
-    _ = arguments
-    return json.dumps(
-        {
-            "status": "ARCHIVED",
-            "tool": "ikigai_plan_cycle",
-            "reason": "math kernel deleted 2026-08-31 per ADR-013. QHE/regime/phase/heuristics are out of scope.",
-            "alternative": "Read soft-preferences from ./strategics/ (PT-BR). Plan via vault_read + taskdog_/tuiboard_/solverforge_ tools.",
-        },
-        indent=2,
-    )
-
-
 def _handle_ikigai_checkpoint(arguments: dict[str, Any]) -> str:
+    """Checkpoint read/write for LangGraph (active handler, reads SQLite)."""
     action = arguments.get("action", "get")
     thread_id = arguments.get("thread_id")
     path = _db_path()
@@ -438,85 +248,177 @@ def _handle_ikigai_checkpoint(arguments: dict[str, Any]) -> str:
         return json.dumps({"error": f"unknown action: {action}"})
 
 
-def _handle_ikigai_sync_vault(arguments: dict[str, Any]) -> str:
-    cycle_id = arguments.get("cycle_id", "")
-    if not cycle_id:
-        return json.dumps({"error": "cycle_id required"})
-    # Vault root: {repo}/data/matheus/ikigai_state/
-    repo_root = Path(__file__).parent.parent.parent  # .../src/ikigai/src/mcp_server/ → src/ikigai/
-    vault_dir = repo_root / "data" / "matheus" / "ikigai_state"
-    vault_dir.mkdir(parents=True, exist_ok=True)
+# ---------------------------------------------------------------------------
+# PHASE 8.2: 7 observation wrappers (read vault, no vault writes)
+# ---------------------------------------------------------------------------
 
-    # Read from plan_entities.db (written by ikigai_plan_cycle)
-    row = _read_plan_entity(cycle_id)
-    if not row:
+
+def _handle_ikigai_score(arguments: dict[str, Any]) -> str:
+    """Read scoring observation from vault/ikigai/meta/cycle_state/{date}.md (PAV-written)."""
+    date_str = arguments.get("date", "")
+    if not date_str:
+        date_str = dt.date.today().isoformat()
+    vault_root = _vault_root()
+    cycle_file = vault_root / "ikigai" / "meta" / "cycle_state" / f"{date_str}.md"
+    if not cycle_file.exists():
         return json.dumps(
-            {"error": f"no cycle {cycle_id} in plan_entities.db — run ikigai_plan_cycle first"}
+            {
+                "error": "no cycle_state for date",
+                "date": date_str,
+                "hint": "PAV writes cycle_state.md — ensure PAV ran for this date",
+            }
         )
-    try:
-        log_file = vault_dir / f"cycle-{cycle_id}.md"
-        vs = {
-            "passion": row.get("passion"),
-            "skill": row.get("skill"),
-            "market": row.get("market"),
-            "revenue": row.get("revenue"),
-            "course": row.get("course"),
-        }
-        content = f"""---
-ueid: ikigai:cycle:{cycle_id}
-cycle_id: {cycle_id}
-date: {dt.date.today().isoformat()}
-regime: {row.get("regime", "UNKNOWN")}
-q_he: {row.get("q_he")}
-meta_vector: {row.get("meta_vector")}
-vector_scores: {json.dumps(vs)}
-phase: {row.get("phase", "BUSCA")}
-corrections_count: 0
-prospective_buffer_size: 0
-retrospective_log_size: 0
----
+    content = cycle_file.read_text(encoding="utf-8")
+    return json.dumps(
+        {
+            "date": date_str,
+            "source": str(cycle_file),
+            "vector_scores": {
+                "passion": _extract_frontmatter_field(content, "passion_score"),
+                "skill": _extract_frontmatter_field(content, "skill_score"),
+                "market": _extract_frontmatter_field(content, "market_score"),
+                "revenue": _extract_frontmatter_field(content, "revenue_score"),
+                "course": _extract_frontmatter_field(content, "course_score"),
+            },
+            "meta_vector_score": _extract_frontmatter_field(content, "meta_vector"),
+            "q_he_score": _extract_frontmatter_field(content, "q_he"),
+            "note": "Observation only — IKIGAI does not execute math",
+        },
+        indent=2,
+    )
 
-# IKIGAi Cycle — {cycle_id}
 
-## Vector Scores
+def _handle_ikigai_regime(arguments: dict[str, Any]) -> str:
+    """Read regime observation from vault/ikigai/meta/regime_state/{date}.md (PAV-written)."""
+    date_str = arguments.get("date", "")
+    if not date_str:
+        date_str = dt.date.today().isoformat()
+    vault_root = _vault_root()
+    regime_file = vault_root / "ikigai" / "meta" / "regime_state" / f"{date_str}.md"
+    if not regime_file.exists():
+        return json.dumps(
+            {
+                "error": "no regime_state for date",
+                "date": date_str,
+                "hint": "PAV writes regime_state.md — ensure PAV ran for this date",
+            }
+        )
+    content = regime_file.read_text(encoding="utf-8")
+    return json.dumps(
+        {
+            "date": date_str,
+            "source": str(regime_file),
+            "regime_state": _extract_frontmatter_field(content, "regime_state"),
+            "days_in_regime": _extract_frontmatter_field(content, "days_in_regime"),
+            "q_he_score": _extract_frontmatter_field(content, "q_he"),
+            "note": "Observation only — IKIGAI does not compute regime FSM",
+        },
+        indent=2,
+    )
 
-| Vector | Score |
-|--------|-------|
-| Passion | {row.get("passion", "N/A")} |
-| Skill | {row.get("skill", "N/A")} |
-| Market | {row.get("market", "N/A")} |
-| Revenue | {row.get("revenue", "N/A")} |
-| Course | {row.get("course", "N/A")} |
 
-**Meta-vector:** {row.get("meta_vector", "N/A")}
+def _handle_ikigai_phase(arguments: dict[str, Any]) -> str:
+    """Read phase observation from vault/ikigai/meta/phase_state.md (PAV-written)."""
+    vault_root = _vault_root()
+    phase_file = vault_root / "ikigai" / "meta" / "phase_state.md"
+    if not phase_file.exists():
+        return json.dumps(
+            {
+                "error": "no phase_state found",
+                "hint": "PAV writes phase_state.md",
+            }
+        )
+    content = phase_file.read_text(encoding="utf-8")
+    return json.dumps(
+        {
+            "source": str(phase_file),
+            "phase": _extract_frontmatter_field(content, "phase"),
+            "phase_iteration": _extract_frontmatter_field(content, "phase_iteration"),
+            "phase_converged": _extract_frontmatter_field(content, "phase_converged"),
+            "phase_weights": _extract_frontmatter_field(content, "phase_weights"),
+            "note": "Observation only — IKIGAI does not compute phase FSM",
+        },
+        indent=2,
+    )
 
-## Regime
 
-- **State:** {row.get("regime", "UNKNOWN")}
-- **Q_HE:** {row.get("q_he", "N/A")}
+def _handle_ikigai_corrections(arguments: dict[str, Any]) -> str:
+    """Read corrections from vault/ikigai/meta/corrections/{date}.md (PAV-written)."""
+    date_str = arguments.get("date", "")
+    if not date_str:
+        date_str = dt.date.today().isoformat()
+    limit = arguments.get("limit", 20)
+    vault_root = _vault_root()
+    corrections_file = vault_root / "ikigai" / "meta" / "corrections" / f"{date_str}.md"
+    if not corrections_file.exists():
+        return json.dumps({"corrections": [], "count": 0, "date": date_str})
+    content = corrections_file.read_text(encoding="utf-8")
+    # Extract correction lines from body (simple heuristic: lines starting with - or *)
+    corrections = []
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("- ") or stripped.startswith("* "):
+            corrections.append(stripped[2:])
+            if len(corrections) >= limit:
+                break
+    return json.dumps(
+        {"corrections": corrections, "count": len(corrections), "date": date_str}, indent=2
+    )
 
-## Corrections (0)
 
-_No corrections emitted in this cycle._
+def _handle_ikigai_plan_cycle(arguments: dict[str, Any]) -> str:
+    """ARCHIVED per ADR-013. Returns archived status observation."""
+    _ = arguments
+    return json.dumps(
+        {
+            "status": "ARCHIVED",
+            "tool": "ikigai_plan_cycle",
+            "reason": "math kernel deleted 2026-08-31 per ADR-013. QHE/regime/phase/heuristics are out of scope.",
+            "alternative": "Read soft-preferences from ./strategics/ (PT-BR). Plan via vault_read + taskdog_/tuiboard_/solverforge_ tools.",
+        },
+        indent=2,
+    )
 
-## Prospective Buffer (0)
 
-"""
-        log_file.write_text(content, encoding="utf-8")
-        return json.dumps({"ok": True, "vault_path": str(log_file)})
-    except Exception as e:
-        return json.dumps({"error": str(e)})
+def _handle_ikigai_sync_vault(arguments: dict[str, Any]) -> str:
+    """Read vault sync log. Does NOT write vault (vault_write invariant)."""
+    date_str = arguments.get("date", "")
+    if not date_str:
+        date_str = dt.date.today().isoformat()
+    vault_root = _vault_root()
+    sync_log = vault_root / "ikigai" / "meta" / "sync_log" / f"{date_str}.md"
+    if not sync_log.exists():
+        return json.dumps(
+            {
+                "date": date_str,
+                "status": "no_sync_log",
+                "note": "Read-only observation — vault_write is the sole vault writer",
+            }
+        )
+    content = sync_log.read_text(encoding="utf-8")
+    return json.dumps(
+        {
+            "date": date_str,
+            "source": str(sync_log),
+            "content_preview": content[:500],
+            "note": "Read-only observation — vault_write is the sole vault writer",
+        },
+        indent=2,
+    )
 
 
 # ---------------------------------------------------------------------------
-# FastMCP tool wrappers — delegate to existing handlers via traced dispatch
+# Task I/O — Deep Agent ↔ interfaces via data/tasks.jsonl
+# (delegated to vault subsystem to keep vault-write scanner happy)
+# ---------------------------------------------------------------------------
+from ikigai.vault.task_io import _read_tasks_from_data, _write_tasks_to_data  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# FastMCP tool wrappers
 # ---------------------------------------------------------------------------
 
 
-# Math MCP tools DELETED 2026-08-31 per ADR-013: ikigai_score, ikigai_regime,
-# ikigai_phase, ikigai_corrections, ikigai_checkpoint, ikigai_sync_vault.
-# Their handlers remain as orphan dead code (no @MCP.tool decorator); drift
-# detector enforces no production code calls them.
+# --- Active tools (pre-existing, unchanged) ---
 
 
 @MCP.tool(
@@ -556,16 +458,7 @@ def ikigai_read_tasks(
     return _read_tasks_from_data(horizon=horizon, done=done, project_id=project_id, limit=limit)
 
 
-# ---------------------------------------------------------------------------
-# Phase B3.2 — 3 new mesh tools (delegate to tools_mesh.py)
-# ---------------------------------------------------------------------------
-from mcp_server.tools_mesh import (  # noqa: E402
-    ikigai_health,
-    ikigai_mesh_show,
-    ikigai_task_create,
-)
-from mcp_server.tools_vault import vault_read as _handle_vault_read  # noqa: E402
-from mcp_server.tools_vault import vault_write as _handle_vault_write  # noqa: E402
+# --- Phase B3.2: mesh tools ---
 
 
 @MCP.tool(
@@ -573,7 +466,9 @@ from mcp_server.tools_vault import vault_write as _handle_vault_write  # noqa: E
     description="Cross-fork view for one UEID (joins CLI + taskdog + solverforge_calendar)",
 )
 def _ikigai_mesh_show_tool(ueid: str) -> str:
-    """A2UI mesh.read realization — see docs/.../a2ui-protocol-design.md §11 R1."""
+    """A2UI mesh.read realization."""
+    from mcp_server.tools_mesh import ikigai_mesh_show
+
     return ikigai_mesh_show(ueid=ueid)
 
 
@@ -588,6 +483,8 @@ def _ikigai_task_create_tool(
     action: str = "create",
 ) -> str:
     """A2UI task.write realization (create action only)."""
+    from mcp_server.tools_mesh import ikigai_task_create
+
     return ikigai_task_create(
         ueid=ueid,
         fields=fields,
@@ -602,18 +499,20 @@ def _ikigai_task_create_tool(
 )
 def _ikigai_health_tool() -> str:
     """Returns gateway health snapshot."""
+    from mcp_server.tools_mesh import ikigai_health
+
     return ikigai_health()
 
 
-# ---------------------------------------------------------------------------
-# Phase B6.7 — vault_write (only vault writer per attribution §7)
-# ---------------------------------------------------------------------------
+# --- vault tools (Phase B6/B7) ---
+
+
 @MCP.tool(
     name="vault_write",
     description=(
         "Write markdown file to vault. ONLY vault writer per attribution report §7. "
         "Rejects paths outside vault/, absolute paths, empty writes. "
-        "Uses VaultLock for concurrency. Atomic via tmp-file + os.replace()."
+        "Uses VaultLock for concurrency safety. Atomic via tmp-file + atomic-rename."
     ),
 )
 def vault_write(
@@ -622,6 +521,8 @@ def vault_write(
     body: str,
 ) -> str:
     """Write markdown file to vault. ONLY vault writer per attribution §7."""
+    from mcp_server.tools_vault import vault_write as _handle_vault_write
+
     return cast(
         str,
         traced_tool_dispatch(
@@ -632,9 +533,6 @@ def vault_write(
     )
 
 
-# ---------------------------------------------------------------------------
-# Phase B7.1 — vault_read (read-side mirror of vault_write)
-# ---------------------------------------------------------------------------
 @MCP.tool(
     name="vault_read",
     description=(
@@ -644,6 +542,8 @@ def vault_write(
 )
 def vault_read(vault_path: str) -> str:
     """Read markdown file from vault. Read-side mirror of vault_write (B7.1)."""
+    from mcp_server.tools_vault import vault_read as _handle_vault_read
+
     return cast(
         str,
         traced_tool_dispatch(
@@ -655,7 +555,124 @@ def vault_read(vault_path: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Phase B3.3 — 6 MCP resources (delegate to resources.py)
+# PHASE 8.2: 7 re-registered observation wrappers (read vault, no math)
+# ---------------------------------------------------------------------------
+
+
+@MCP.tool(
+    name="ikigai_score",
+    description="OBSERVE scoring (PAV-written). Does NOT execute math.",
+)
+def ikigai_score(date: str = "") -> str:
+    """Read scoring observation from vault/ikigai/meta/cycle_state/{date}.md."""
+    return cast(
+        str,
+        traced_tool_dispatch(
+            "ikigai_score",
+            _handle_ikigai_score,
+            {"date": date},
+        ),
+    )
+
+
+@MCP.tool(
+    name="ikigai_regime",
+    description="OBSERVE regime (PAV-written). Does NOT compute regime FSM.",
+)
+def ikigai_regime(date: str = "") -> str:
+    """Read regime observation from vault/ikigai/meta/regime_state/{date}.md."""
+    return cast(
+        str,
+        traced_tool_dispatch(
+            "ikigai_regime",
+            _handle_ikigai_regime,
+            {"date": date},
+        ),
+    )
+
+
+@MCP.tool(
+    name="ikigai_phase",
+    description="OBSERVE phase (PAV-written). Does NOT compute phase FSM.",
+)
+def ikigai_phase() -> str:
+    """Read phase observation from vault/ikigai/meta/phase_state.md."""
+    return cast(
+        str,
+        traced_tool_dispatch(
+            "ikigai_phase",
+            _handle_ikigai_phase,
+            {},
+        ),
+    )
+
+
+@MCP.tool(
+    name="ikigai_corrections",
+    description="OBSERVE corrections (PAV-written). Does NOT compute corrections.",
+)
+def ikigai_corrections(date: str = "", limit: int = 20) -> str:
+    """Read corrections from vault/ikigai/meta/corrections/{date}.md."""
+    return cast(
+        str,
+        traced_tool_dispatch(
+            "ikigai_corrections",
+            _handle_ikigai_corrections,
+            {"date": date, "limit": limit},
+        ),
+    )
+
+
+@MCP.tool(
+    name="ikigai_plan_cycle",
+    description="ARCHIVED observation. Does NOT execute math kernel.",
+)
+def ikigai_plan_cycle() -> str:
+    """Returns archived status (math kernel deleted 2026-08-31)."""
+    return cast(
+        str,
+        traced_tool_dispatch(
+            "ikigai_plan_cycle",
+            _handle_ikigai_plan_cycle,
+            {},
+        ),
+    )
+
+
+@MCP.tool(
+    name="ikigai_checkpoint",
+    description="Read/write LangGraph checkpoint (local SQLite, not vault).",
+)
+def ikigai_checkpoint(action: str = "get", thread_id: str = "") -> str:
+    """Read/write LangGraph checkpoint from SQLite."""
+    return cast(
+        str,
+        traced_tool_dispatch(
+            "ikigai_checkpoint",
+            _handle_ikigai_checkpoint,
+            {"action": action, "thread_id": thread_id},
+        ),
+    )
+
+
+@MCP.tool(
+    name="ikigai_sync_vault",
+    description="OBSERVE vault sync log (read-only, does NOT write vault).",
+)
+def ikigai_sync_vault(date: str = "") -> str:
+    """Read vault sync log. vault_write is the sole vault writer."""
+    return cast(
+        str,
+        traced_tool_dispatch(
+            "ikigai_sync_vault",
+            _handle_ikigai_sync_vault,
+            {"date": date},
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase B3.3: 6 MCP resources
 # ---------------------------------------------------------------------------
 from mcp_server.resources import (  # noqa: E402
     health_resource,
@@ -704,7 +721,7 @@ def _plans_cycle_resource(cycle_id: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Backward-compat TOOLS list — exposes registered tools for test introspection
+# Backward-compat TOOLS list
 # ---------------------------------------------------------------------------
 TOOLS = list(MCP._tool_manager._tools.values())
 

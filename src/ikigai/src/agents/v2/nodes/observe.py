@@ -1,14 +1,16 @@
 """observe node — read sensors and populate initial state.
 
-PHASE 8.2: replace subprocess calls with MCP tool wrappers.
+PHASE 8.2: calls observe_qhe_observation prompt template (FAKE_LLM mode for tests).
 """
 
 from __future__ import annotations
 
 import json
 import subprocess
+from pathlib import Path
 from typing import Any
 
+from ..prompts.observe_qhe_observation import render_observe_qhe_observation
 from ..state import (
     DEFAULT_CAPACITY_HOURS_PER_DAY,
     DEFAULT_QHE_PUSH,
@@ -19,12 +21,14 @@ from ..state import (
 )
 
 
+def _default_vault_root() -> Path:
+    return Path(__file__).resolve().parent.parent.parent.parent.parent / "vault"
+
+
 def observe_node(state: IKIGAiStateDict) -> dict[str, Any]:
     """Read sensors: Q_HE score, workload estimate, capacity estimate.
 
-    CHAT MODE: if user_input is present, accumulate into messages and
-    emit agent response as the new message.
-
+    PHASE 8.2: calls render_observe_qhe_observation prompt template.
     Returns dict to merge into state.
     """
     updates: dict[str, Any] = {
@@ -39,8 +43,12 @@ def observe_node(state: IKIGAiStateDict) -> dict[str, Any]:
         updates["agent_response"] = agent_response
         updates["user_input"] = None
 
-    # Read Q_HE from operational policy_engine (import when available)
-    q_he_score = _read_qhe_from_operational()
+    # Read Q_HE via prompt template
+    vault_root = str(_default_vault_root())
+    prompt_state = {"vault_root": vault_root, "date": state.get("cycle_start", "")}
+    qhe_obs = render_observe_qhe_observation(prompt_state)
+    q_he_score = qhe_obs.get("q_he", 0.65)
+
     workload_estimate = _read_workload_from_upi()
     capacity_estimate = DEFAULT_CAPACITY_HOURS_PER_DAY
 
@@ -101,14 +109,6 @@ def _build_agent_response(state: IKIGAiStateDict) -> str:
         for p in prospective[-3:]:
             lines.append(f"   - {p}")
     return "\n".join(lines)
-
-
-def _read_qhe_from_operational() -> float:
-    """Read current Q_HE score.
-
-    TODO(Phase 8.2): wire to real metrics source (vibe-ops DB or vault feedback).
-    """
-    return 0.65
 
 
 def _read_workload_from_upi() -> float:

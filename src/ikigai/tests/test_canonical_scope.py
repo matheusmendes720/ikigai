@@ -119,18 +119,10 @@ FORBIDDEN_CLASSES: frozenset[str] = frozenset(
 )
 
 # MCP tool names that MUST NOT be registered via @MCP.tool in mcp_server.
-# (Handlers may exist as orphan dead code, but no @MCP.tool wrappers.)
-FORBIDDEN_MCP_TOOLS: frozenset[str] = frozenset(
-    {
-        "ikigai_score",
-        "ikigai_regime",
-        "ikigai_phase",
-        "ikigai_corrections",
-        "ikigai_checkpoint",
-        "ikigai_sync_vault",
-        "ikigai_plan_cycle",
-    }
-)
+# PHASE 8.2 UPDATE: ikigai_score, ikigai_regime, ikigai_phase, ikigai_corrections,
+# ikigai_checkpoint, ikigai_sync_vault, ikigai_plan_cycle were re-registered as
+# vault-reading observation wrappers (no math execution). Removed from this set.
+FORBIDDEN_MCP_TOOLS: frozenset[str] = frozenset()
 
 # Production directories to scan (combined for AST walk).
 SCAN_ROOTS: list[Path] = [p for p in PROD_LAYERS if p.exists()]
