@@ -120,6 +120,8 @@ class BackendRow:
     running: bool
     pid: int | None
     description: str
+    started_at: float | None  # mtime of pidfile when running, else None
+    pidfile_path: str | None  # stringified Path, or None when not piddable
 
 
 @dataclass(frozen=True)
@@ -132,6 +134,7 @@ class QueueRow:
     source_fork: str
     timestamp: str
     status: str
+    payload: dict[str, Any]  # raw JSON (drilldown source)
 
 
 # === Load helpers ===
@@ -223,16 +226,22 @@ def load_adapter_rows() -> list[AdapterRow]:
 def load_backend_rows() -> list[BackendRow]:
     """Return all backend processes as render-ready rows."""
     snapshot = backend_status()
-    return [
-        BackendRow(
-            name=row["name"],
-            phase=row["phase"],
-            running=row["running"],
-            pid=row.get("pid"),
-            description=row["description"],
+    rows: list[BackendRow] = []
+    for row in snapshot:
+        meta = BACKEND_PROCESSES.get(row["name"], {})
+        pidfile = meta.get("pidfile_path")
+        rows.append(
+            BackendRow(
+                name=row["name"],
+                phase=row["phase"],
+                running=row["running"],
+                pid=row.get("pid"),
+                description=row["description"],
+                started_at=row.get("started_at"),
+                pidfile_path=str(pidfile) if pidfile is not None else None,
+            )
         )
-        for row in snapshot
-    ]
+    return rows
 
 
 def load_queue_rows(limit: int = 100) -> list[QueueRow]:
@@ -243,7 +252,10 @@ def load_queue_rows(limit: int = 100) -> list[QueueRow]:
     rows: list[QueueRow] = []
     for f in sorted(REVIEW_QUEUE_DIR.glob("*.json"))[:limit]:
         try:
-            payload: dict[str, Any] = json.loads(f.read_text(encoding="utf-8"))
+            payload = json.loads(f.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                # skip malformed non-dict payloads (preserve list/str/scalar)
+                continue
         except (OSError, json.JSONDecodeError):
             continue
         rows.append(
@@ -254,9 +266,33 @@ def load_queue_rows(limit: int = 100) -> list[QueueRow]:
                 source_fork=str(payload.get("source_fork", "—")),
                 timestamp=str(payload.get("timestamp", "—")),
                 status=str(payload.get("status", "pending")),
+                payload=payload,
             )
         )
     return rows
+
+
+def format_uptime(started_at: float | None, now: float | None = None) -> str:
+    """Format a duration in human-readable short form.
+
+    Returns "—" when started_at is None. Caller may pass `now` for testability.
+    """
+    if started_at is None:
+        return "—"
+    import time as _time
+
+    current = now if now is not None else _time.time()
+    seconds = max(0, int(current - started_at))
+    if seconds < 60:
+        return f"{seconds}s"
+    minutes, sec = divmod(seconds, 60)
+    if minutes < 60:
+        return f"{minutes}m {sec}s"
+    hours, mins = divmod(minutes, 60)
+    if hours < 24:
+        return f"{hours}h {mins}m"
+    days, hrs = divmod(hours, 24)
+    return f"{days}d {hrs}h"
 
 
 def adapter_summary() -> dict[str, Any]:
