@@ -516,7 +516,9 @@ def taskdog_get_task(task_id: int) -> str:
         # The error surfaces in stdout with non-zero returncode. Surface it as a string instead of
         # raising ConnectionError, which would trip the retry decorator + invoke-fallback path.
         if result.returncode != 0:
-            return f"⚠️ taskdog show {task_id} unavailable: {(result.stderr or result.stdout).strip()}"
+            return (
+                f"⚠️ taskdog show {task_id} unavailable: {(result.stderr or result.stdout).strip()}"
+            )
         return result.stdout
     except FileNotFoundError as e:
         # Binary missing — return friendly message instead of crashing agent.invoke().
