@@ -1,0 +1,79 @@
+/* Operator TUI — Textual stylesheet */
+
+Screen {
+    layout: vertical;
+    background: $surface;
+}
+
+#header {
+    dock: top;
+    height: 3;
+    background: $primary;
+    color: $text;
+    padding: 1;
+    text-style: bold;
+}
+
+#footer {
+    dock: bottom;
+    height: 1;
+    background: $boost;
+    color: $text-muted;
+    padding: 0 1;
+}
+
+#tab-row {
+    dock: top;
+    height: 1;
+}
+
+.tab-button {
+    width: 1fr;
+    background: $boost;
+    color: $text-muted;
+    border: none;
+}
+
+.tab-button.active {
+    background: $primary;
+    color: $text;
+    text-style: bold;
+}
+
+#content {
+    padding: 1 2;
+}
+
+DataTable {
+    height: 1fr;
+    margin: 1 0;
+}
+
+.summary-panel {
+    height: auto;
+    padding: 1;
+    border: round $primary;
+    margin: 1 0;
+}
+
+.summary-row {
+    height: 1;
+    color: $text;
+}
+
+.ok {
+    color: $success;
+}
+
+.missing {
+    color: $error;
+}
+
+.pending {
+    color: $warning;
+}
+
+.subtitle {
+    color: $text-muted;
+    text-style: italic;
+}
