@@ -60,7 +60,7 @@ VAULT_WRITER_ALLOWLIST: frozenset[str] = frozenset(
         # Sole canonical vault writer
         "src/ikigai/src/mcp_server/tools_vault.py",
         # Lower-level vault helpers (call into tools_vault.py)
-        "src/ikigai/src/ikigai/vault/write.py",
+        "src/ikigai/src/ikigai/vault/vault_write.py",
         "src/ikigai/src/ikigai/vault/__init__.py",
     }
 )
