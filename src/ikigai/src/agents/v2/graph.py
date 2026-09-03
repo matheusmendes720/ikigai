@@ -59,6 +59,7 @@ from .nodes.observe import observe_node  # noqa: E402
 from .nodes.plan import plan_node  # noqa: E402
 from .nodes.reflect import reflect_node  # noqa: E402
 from .nodes.score_vectors import score_vectors_node  # noqa: E402
+from .nodes.surface_intentions import surface_intentions_node  # noqa: E402
 from .state import IKIGAiStateDict  # noqa: E402
 
 _init_tracing_ok = True
@@ -87,6 +88,7 @@ NODES = (
     "plan",
     "reflect",
     "commit",
+    "surface_intentions",
 )
 
 
@@ -190,10 +192,10 @@ def _route_after_reflect(
 
 
 def _route_after_commit(state: IKIGAiStateDict) -> str:
-    """After commit: end on success, route to error_node if any node raised."""
+    """After commit: surface intentions on success, route to error_node if any node raised."""
     if state.get("error_type"):
         return "error"
-    return END
+    return "surface_intentions"
 
 
 # ---------------------------------------------------------------------------
@@ -233,6 +235,9 @@ def make_v2_graph(checkpoint_db: str | None = None) -> Any:
         builder.add_node("plan", _safe_node("plan", plan_node))
         builder.add_node("reflect", _safe_node("reflect", reflect_node))
         builder.add_node("commit", _safe_node("commit", commit_node))
+        builder.add_node(
+            "surface_intentions", _safe_node("surface_intentions", surface_intentions_node)
+        )
         builder.add_node("error", error_node)
 
         # Sequential edges
@@ -282,10 +287,11 @@ def make_v2_graph(checkpoint_db: str | None = None) -> Any:
             _route_after_commit,
             {
                 "error": "error",
-                END: END,
+                "surface_intentions": "surface_intentions",
             },
         )
 
+        builder.add_edge("surface_intentions", END)
         builder.add_edge("error", END)
         builder.set_entry_point("observe")
 
