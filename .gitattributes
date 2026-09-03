@@ -1,0 +1,11 @@
+# ─── Line ending policy ──────────────────────────────────────────
+# Windows batch files require CRLF; cmd.exe misparses `if () (...)`
+# multi-line constructs when the file has only LF.
+#
+# Without this attribute, `core.autocrlf=true` (set globally on many
+# Windows dev boxes) silently converts CRLF→LF on commit, undoing
+# any local fix. Force CRLF storage for batch files so the fix
+# survives `git clone`, `git checkout`, and `git pull`.
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
