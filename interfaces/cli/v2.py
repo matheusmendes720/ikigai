@@ -59,7 +59,7 @@ def v2_suggest(
     if str(v2_src) not in sys.path:
         sys.path.insert(0, str(v2_src))
 
-    from ikigai.src.agents.v2.prompts.surface_pav_intentions import (
+    from agents.v2.prompts.surface_pav_intentions import (
         render_surface_pav_intentions,
     )
 
@@ -126,7 +126,7 @@ def v2_cycle(
             typer.echo(f"  commit_summary: {commit}")
     except Exception as exc:
         typer.echo(f"FAIL Cycle failed: {type(exc).__name__}: {exc}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
 
 @v2_app.command("score")
@@ -169,7 +169,7 @@ def v2_score(
                 typer.echo(f"  rationale: {result['rationale']}")
     except Exception as exc:
         typer.echo(f"FAIL Score failed: {type(exc).__name__}: {exc}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
 
 @v2_app.command("regime")
@@ -209,4 +209,4 @@ def v2_regime(
                 typer.echo(f"  {key}: {val}")
     except Exception as exc:
         typer.echo(f"FAIL Regime failed: {type(exc).__name__}: {exc}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
