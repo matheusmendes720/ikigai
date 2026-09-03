@@ -5,6 +5,9 @@ Verifies:
 - Data loaders return valid rows
 - DataTable renders without exception (pilot mode)
 - Append-only invariant: no write paths in operator TUI
+- Tier 2: backend Started/Uptime fields present
+- Tier 2: queue payload present + drilldown binding registered
+- Tier 2: format_uptime helper produces expected short forms
 
 Per fork-boilerplate: minimal test coverage (smoke + invariant).
 Full Textual snapshot tests deferred to v1.2.
@@ -19,11 +22,16 @@ from pathlib import Path
 import pytest
 from textual.widgets import DataTable
 
-from interfaces.tui.operator.app import OperatorApp, SummaryPanel
+from interfaces.tui.operator.app import (
+    OperatorApp,
+    QueueDetailScreen,
+    SummaryPanel,
+)
 from interfaces.tui.operator.data import (
     AdapterRow,
     BackendRow,
     QueueRow,
+    format_uptime,
     load_adapter_rows,
     load_backend_rows,
     load_queue_rows,
@@ -34,10 +42,11 @@ def test_app_imports() -> None:
     """OperatorApp must import without error."""
     assert OperatorApp is not None
     assert SummaryPanel is not None
+    assert QueueDetailScreen is not None
 
 
 def test_app_has_three_tabs() -> None:
-    """Three tab actions must be defined (1/2/3 keys)."""
+    """Three tab actions must be defined (1/2/3 keys) + drilldown/refresh/quit."""
     app = OperatorApp()
     bindings = {b.key for b in app.BINDINGS}
     assert "1" in bindings
@@ -45,6 +54,7 @@ def test_app_has_three_tabs() -> None:
     assert "3" in bindings
     assert "r" in bindings  # refresh
     assert "q" in bindings  # quit
+    assert "d" in bindings  # tier 2: drilldown
 
 
 def test_adapter_rows_load() -> None:
@@ -142,3 +152,57 @@ async def test_app_runs_in_pilot_mode() -> None:
         await pilot.pause()
         tables = app.query(DataTable)
         assert len(tables) >= 1
+
+
+# === Tier 2 additions ===
+
+
+def test_backend_rows_include_started_at_and_pidfile() -> None:
+    """Tier 2: BackendRow exposes started_at + pidfile_path for detail view."""
+    rows = load_backend_rows()
+    assert rows, "BACKEND_PROCESSES must register at least one process"
+    for row in rows:
+        assert hasattr(row, "started_at")
+        assert hasattr(row, "pidfile_path")
+        # piddable processes (mcp_gateway, review_queue_worker) MUST have a
+        # pidfile_path; non-piddable agents are None.
+        if row.name in {"mcp_gateway", "review_queue_worker"}:
+            assert row.pidfile_path is not None
+        # started_at is set iff the process is running
+        if row.running:
+            assert row.started_at is not None
+
+
+def test_queue_rows_include_payload() -> None:
+    """Tier 2: QueueRow carries the raw JSON payload for drilldown."""
+    rows = load_queue_rows()
+    assert isinstance(rows, list)
+    for row in rows:
+        assert hasattr(row, "payload")
+        assert isinstance(row.payload, dict)
+
+
+def test_format_uptime_short_forms() -> None:
+    """Tier 2: format_uptime produces expected short human-readable forms."""
+    # None → em-dash placeholder
+    assert format_uptime(None) == "—"
+    # 30s → "30s"
+    assert format_uptime(0.0, now=30.0) == "30s"
+    # 5m 12s
+    assert format_uptime(0.0, now=5 * 60 + 12) == "5m 12s"
+    # 2h 7m
+    assert format_uptime(0.0, now=2 * 3600 + 7 * 60) == "2h 7m"
+    # 3d 4h
+    assert format_uptime(0.0, now=3 * 86400 + 4 * 3600) == "3d 4h"
+
+
+def test_queue_detail_screen_read_only() -> None:
+    """Tier 2: QueueDetailScreen is a ModalScreen with dismiss bindings."""
+    payload = {"event_id": "e1", "ueid": "tsk:x:y:z", "action": "create"}
+    screen = QueueDetailScreen(event_id="e1", payload=payload)
+    keys = {b.key for b in screen.BINDINGS}
+    assert "escape" in keys
+    assert "q" in keys
+    # No write bindings — must be read-only
+    assert "w" not in keys
+    assert "d" not in keys
