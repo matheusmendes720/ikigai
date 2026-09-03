@@ -57,10 +57,39 @@ jobs:
             path: src/ikigai
             python: "3.11"
             manager: poetry
+            ruff_target: src/
           - package: vibe-ops
             path: vibe-ops
             python: "3.11"
             manager: uv
+            ruff_target: src/
+          # Phase 5 (zazzy-plotting-flask.md §5): extend matrix to cover
+          # the flat-layout packages that imports-flow through `life mesh show`
+          # and the operator TUI. Flat packages use `ruff_target: .` so ruff
+          # walks the package root instead of a `src/` subdir.
+          #
+          # `src-contracts` and `src-mesh` use the `ruff-only` manager:
+          #   - src-contracts is pure Pydantic data models (no business
+          #     logic); mypy adds no value over ruff for this surface.
+          #   - src-mesh has no pyproject.toml (imported as `src.mesh.*`
+          #     via PYTHONPATH=src), so it can't install via `uv sync`.
+          # Tests for both are exercised transitively by `interfaces-cli`
+          # matrix entry which imports from `src.mesh` + `src.contracts`.
+          - package: interfaces-cli
+            path: interfaces/cli
+            python: "3.11"
+            manager: uv
+            ruff_target: .
+          - package: src-contracts
+            path: src/contracts
+            python: "3.11"
+            manager: ruff-only
+            ruff_target: .
+          - package: src-mesh
+            path: src/mesh
+            python: "3.11"
+            manager: ruff-only
+            ruff_target: .
           # NOTE: PAV kernel (src/operational/) ARCHIVED 2026-08-31 — see
           # archive/legacy-pav/SUPERSEDED.md and ADR-013. The archived
           # package remains self-contained (`uv sync && uv run pytest`
@@ -77,7 +106,7 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
-        if: matrix.manager == 'uv'
+        if: matrix.manager == 'uv' || matrix.manager == 'ruff-only'
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
@@ -90,14 +119,32 @@ jobs:
           path: ~/.cache/uv
           key: uv-${{ runner.os }}-${{ matrix.package }}-${{ hashFiles('**/uv.lock', '**/pyproject.toml') }}
 
+      - name: Install ruff (ruff-only manager)
+        if: matrix.manager == 'ruff-only'
+        working-directory: ${{ matrix.path }}
+        run: |
+          pip install --quiet ruff
+
+      - name: Run quality gates — ruff-only (${{ matrix.package }})
+        if: matrix.manager == 'ruff-only'
+        working-directory: ${{ matrix.path }}
+        run: |
+          ruff check ${{ matrix.ruff_target }}
+          ruff format --check ${{ matrix.ruff_target }}
+
       - name: Run quality gates — uv (${{ matrix.package }})
         if: matrix.manager == 'uv'
         working-directory: ${{ matrix.path }}
+        env:
+          # interfaces-cli imports src.contracts + src.mesh; expose the
+          # repo-root src/ directory to mypy and pytest discovery.
+          MYPYPATH: ../..
+          PYTHONPATH: ../..
         run: |
           uv sync --all-packages
-          uv run ruff check src/
-          uv run ruff format --check src/
-          uv run mypy src/
+          uv run ruff check ${{ matrix.ruff_target }}
+          uv run ruff format --check ${{ matrix.ruff_target }}
+          uv run mypy ${{ matrix.ruff_target }}
           uv run pytest -m "not e2e"
 
       - name: Run quality gates — poetry (${{ matrix.package }})
@@ -105,9 +152,9 @@ jobs:
         working-directory: ${{ matrix.path }}
         run: |
           poetry install
-          poetry run ruff check src/
-          poetry run ruff format --check src/
-          poetry run mypy src/
+          poetry run ruff check ${{ matrix.ruff_target }}
+          poetry run ruff format --check ${{ matrix.ruff_target }}
+          poetry run mypy ${{ matrix.ruff_target }}
           poetry run pytest -m "not e2e"
 
   mcp-gateway-contract:

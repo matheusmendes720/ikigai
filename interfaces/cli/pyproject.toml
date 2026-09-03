@@ -18,3 +18,16 @@ dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
 ]
+
+[tool.ruff.lint]
+# read_tasks.py imports src.contracts + src.mesh adapters after the Typer
+# app definition (intentional deferred import pattern for subcommand wiring).
+# tests/* use deferred imports for fixtures (after conftest setup) and may
+# intentionally capture return values for side-effect propagation runs.
+
+[tool.ruff.lint.per-file-ignores]
+"read_tasks.py" = ["E402"]
+"tests/*.py" = ["E402", "F841"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["interfaces"]
