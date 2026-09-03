@@ -7,11 +7,10 @@ no domain-specific logic — they are the vocabulary of identity and time.
 from __future__ import annotations
 
 import re
-from datetime import date, datetime
+from datetime import datetime
 from enum import StrEnum as StrEnum
-from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, PlainValidator
+from pydantic import BaseModel, Field
 
 __all__ = [
     "UEID",
@@ -27,9 +26,7 @@ __all__ = [
 # UEID — Universal Entity Identifier
 # ---------------------------------------------------------------------------
 
-import uuid
 
-import pydantic_core
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import CoreSchema, core_schema
 
@@ -87,12 +84,58 @@ class UEID(str):
         return super().__new__(cls, value)
 
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: type, handler: GetCoreSchemaHandler) -> CoreSchema:
+    def from_legacy(cls, value: str) -> "UEID":
+        """Parse either a canonical 4-part UEID or a legacy 2-part underscore ID.
+
+        Canonical 4-part format (e.g. ``tsk:foo:00000000-...:0000000000...``) is
+        passed directly to the constructor.
+
+        Legacy 2-part underscore format (e.g. ``tsk_morning_water``) is converted
+        to canonical 4-part by mapping the prefix to ``type`` and the suffix to
+        ``slug`` (underscores in the suffix become dashes). UUID and hash are
+        zero-filled placeholders.
+
+        Raises:
+            ValueError: if the value matches neither format.
+
+        Examples:
+            >>> UEID.from_legacy("tsk:foo:00000000-0000-0000-0000-000000000000:0000000000000000")
+            UEID('tsk:foo:00000000-0000-0000-0000-000000000000:0000000000000000')
+            >>> UEID.from_legacy("tsk_morning_water")
+            UEID('tsk:morning-water:00000000-0000-0000-0000-000000000000:0000000000000000')
+        """
+        # Fast path: canonical 4-part colon format
+        if _UEID_PATTERN.match(value):
+            return cls(value)
+
+        # Legacy 2-part underscore format: type_slug
+        LEGACY_PATTERN = re.compile(r"^[a-z]{2,5}_[a-z0-9][a-z0-9_-]*$")
+        if LEGACY_PATTERN.match(value):
+            type_part, slug_part = value.split("_", 1)
+            canonical = (
+                f"{type_part}:"
+                f"{slug_part.replace('_', '-')}:"
+                f"00000000-0000-0000-0000-000000000000:"
+                f"0000000000000000"
+            )
+            return cls(canonical)
+
+        raise ValueError(
+            f"Invalid UEID '{value}'. Must match either:\n"
+            f"  Canonical (4-part): {_UEID_PATTERN.pattern!r}\n"
+            f"  Legacy (2-part underscore): ^[a-z]{{2,5}}_[a-z0-9][a-z0-9_-]*$"
+        )
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: type, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
         """Tell Pydantic how to handle UEID in model fields."""
         return core_schema.no_info_after_validator_function(
             cls,
             core_schema.str_schema(),
         )
+
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -182,6 +225,7 @@ class RegimeState(StrEnum):
 def _utc_now() -> datetime:
     """Return current UTC datetime (naive, for SQLite/JSON compatibility)."""
     from datetime import UTC
+
     return datetime.now(UTC).replace(tzinfo=None)
 
 
