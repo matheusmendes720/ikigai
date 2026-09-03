@@ -23,7 +23,9 @@ Invariants:
 
 from interfaces.cli.read_tasks import app
 from interfaces.cli.server import server_app
+from interfaces.cli.v2 import v2_app
 
 app.add_typer(server_app, name="server")
+app.add_typer(v2_app, name="v2")
 
 __all__ = ["app"]
