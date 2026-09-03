@@ -237,3 +237,14 @@ class TimestampMixin(BaseModel):
 
     created_at: datetime = Field(default_factory=_utc_now)
     updated_at: datetime | None = None
+
+
+# ---------------------------------------------------------------------------
+# Planning Contract Literals (Plan A - Task 1)
+# ---------------------------------------------------------------------------
+
+from typing import Literal
+
+PaeCyclePhase = Literal["plan", "adjust", "evaluate"]
+PlanTier = Literal["SONHO", "QUARTERLY", "ONDA", "WEEKLY", "DAILY"]
+VectorKey = Literal["passion", "skill", "market", "revenue", "course"]
