@@ -257,4 +257,25 @@ ls -la data/taskdog/tasks.db
 
 ---
 
-*3 paths to taskdog — Path 1 canonical, Path 2 alternative, Path 3 deferred — 2026-08-31*
+## §9 — Path 3 archived 2026-09-03
+
+**Decision:** Path 3 MCP server (`src/ikigai/src/mcp_server/taskdog_mcp/`) archived 2026-09-03.
+Path 1 stays canonical. Source + tests moved to `archive/legacy-paths/taskdog-mcp-path3/`.
+
+**Why archive:** Path 3 was redundant with Path 1 — it delegated to the same `@tool` functions that
+Path 1 already exposes. No concrete consumer required Path 3 over Path 1. YAGNI.
+
+**What was archived:**
+- `src/ikigai/src/mcp_server/taskdog_mcp/server.py` (FastMCP server, 4 tools)
+- `src/ikigai/src/mcp_server/taskdog_mcp/__init__.py`
+- `src/ikigai/tests/test_taskdog_mcp_server.py`
+
+**What survives:** Path 1 (4 `@tool` wrappers in `src/ikigai/src/agents/tools.py`) — 7/7 E2E PASS.
+
+**Recovery:** If a future use case requires taskdog via MCP stdio (distinct from Path 1 harness),
+revive from `archive/legacy-paths/taskdog-mcp-path3/` and wire as a separate FastMCP server
+entry point. See §4.3 recipe.
+
+---
+
+*3 paths to taskdog — Path 1 canonical, Path 2 alternative, Path 3 archived 2026-09-03*
