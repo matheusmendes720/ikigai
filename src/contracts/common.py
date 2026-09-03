@@ -8,15 +8,15 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from enum import StrEnum as StrEnum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 __all__ = [
     "UEID",
+    "EntityType",
     "Period",
     "Priority",
-    "EntityType",
     "RegimeState",
     "StrEnum",
     "TimestampMixin",
@@ -29,6 +29,7 @@ __all__ = [
 
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import CoreSchema, core_schema
+from typing_extensions import Self
 
 _UEID_PATTERN = re.compile(r"^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$")
 """UEID regex: 4-part format type:slug:uuid:hash.
@@ -75,7 +76,7 @@ class UEID(str):
         ===============  =========================================
     """
 
-    def __new__(cls, value: str) -> "UEID":
+    def __new__(cls, value: str) -> Self:
         if not _UEID_PATTERN.match(value):
             raise ValueError(
                 f"Invalid UEID '{value}'. Must match {_UEID_PATTERN.pattern!r}. "
@@ -84,7 +85,7 @@ class UEID(str):
         return super().__new__(cls, value)
 
     @classmethod
-    def from_legacy(cls, value: str) -> "UEID":
+    def from_legacy(cls, value: str) -> UEID:
         """Parse either a canonical 4-part UEID or a legacy 2-part underscore ID.
 
         Canonical 4-part format (e.g. ``tsk:foo:00000000-...:0000000000...``) is
