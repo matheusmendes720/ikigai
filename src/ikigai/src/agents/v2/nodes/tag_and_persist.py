@@ -13,8 +13,9 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from src.ikigai.src.agents.v2.state import IKIGAiStateDict
-from src.ikigai.src.mcp_server.tools_vault import vault_write
+from mcp_server.tools_vault import vault_write
+
+from ..state import IKIGAiStateDict
 
 
 def tag_and_persist_node(state: IKIGAiStateDict) -> dict[str, Any]:

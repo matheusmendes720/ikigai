@@ -18,8 +18,9 @@ import datetime as dt
 import json
 from typing import Any, cast
 
-from src.ikigai.src.agents.v2.state import IKIGAiStateDict
-from src.ikigai.src.mcp_server.tools_vault import vault_write
+from mcp_server.tools_vault import vault_write
+
+from ..state import IKIGAiStateDict
 
 # Kill switch — set to True to block all writes (safety guard)
 _KILL_SWITCH = False
