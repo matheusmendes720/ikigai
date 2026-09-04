@@ -1,11 +1,13 @@
 # ADR-029 — Kill Switch + Review Queue Wiring
 
-> **Status:** DRAFT (2026-09-04)
+> **Status:** ACCEPTED (2026-09-04) — promoted from DRAFT after W5.1.1 implementation REVIEWER APPROVED (`1f3cd66`)
 > **Deciders:** matheus (project owner)
 > **Load-bearing:** YES — gates Wave 5 Scenario C kickoff + W4.7 (drift invariant e) retroactive ship + W5.2 (ADR-030 empirical algorithm tuning feedback loop) + Plan C investigation_queue re-dispatch (W5.5)
 > **Supersedes:** none (new decision)
 > **Renumbered from:** PLAN §3 "ADR-018 (kill switch + review queue)" — user decision 2026-09-04 ("Renumber to 026+") overrides PLAN numbering; this ADR ships as **ADR-029**
 > **Wave:** dcode-harness roadmap Wave 5 (W5.1)
+> **Implementation shipped:** W5.1.1 at commit `1f3cd66` — kill_switch.py + vault_write_wrapper.py + 5 algorithm_constants.json keys + test_kill_switch.py (13 PASS) + test_drift_invariants.py (7 PASS, invariant e retroactive). 68/68 PASS, ruff clean, no Co-Authored-By.
+> **Reviewer verdict:** APPROVED at `.git/sdd/w51-adr-029-kill-switch-review.md` + `.git/sdd/w511-adr-029-impl-review.md`. Two findings (brief spec error: 4 vs 5 JSON keys; KILL_SWITCH_HALT_TIMEOUT_S not yet wired to code path) — both non-blocking.
 > **Wave 4 context:** SHIP-COMPLETE at `f77988f` (2026-09-04); 9 commits shipped (3 ADRs 026/027/028 + 3 impls W4.4/W4.5/W4.6 + 1 smoke W4.8 + 2 final fixes — ADR-028 R1 amendment + type:ignore cleanup); 140/140 PASS; final review APPROVED_FOR_WAVE_5
 > **Related code:** `src/ikigai/src/ikigai/security/transition_validator.py:16-45` (the existing actor enforcement pattern this ADR wraps), `src/ikigai/src/ikigai/vault/vault_write.py:41-67` (`vault_write(actor=...)` signature), `data/review_queue/` (append-only TaskChange queue), `src/contracts/task_change.py:31-46` (TaskChange schema this ADR's KillSwitchEvent extends)
 > **Related tests (planned, W4.7 retroactive ship + W5.1.1):** `src/ikigai/tests/test_canonical_scope.py` (drift invariants k, l extension), `src/ikigai/tests/test_drift_invariants.py` (new invariant e test)
