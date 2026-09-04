@@ -1,6 +1,8 @@
 ---
 name: ikigai-daily
 description: Run IKIGAI v2 daily reflection cycle — surfaces PAV-written state, emits pt-BR suggestions
+entry_point: surface_intentions
+actor: user
 triggers:
   - cron: "57 8 * * *"     # 08:57 local — before workday starts
   - slash: "/ikigai-daily"
@@ -8,9 +10,7 @@ inputs:
   - vault: closing-2026/01-q3-2026/04-relatorios-diarios/{yesterday}.md
   - vault: meta/cycle_state/{date}.md
   - tool: taskdog_list_tasks(status="done", since=24h)
-outputs:
-  - vault_write: closing-2026/01-q3-2026/04-relatorios-diarios/{date}.md
-  - taskdog_create_task: top-3 priorities
+outputs: []
 ---
 
 # ikigai-daily
@@ -21,7 +21,7 @@ Daily reflection cycle — reads PAV-written state, surfaces intentions as pt-BR
 
 ```bash
 # Via CLI
-python -m interfaces.cli.v2 suggest --date $(date +%Y-%m-%d)
+python -m interfaces.cli.v2 daily --date $(date +%Y-%m-%d)
 
 # Via slash command in IKIGAI chat
 /ikigai-daily
@@ -31,9 +31,7 @@ python -m interfaces.cli.v2 suggest --date $(date +%Y-%m-%d)
 
 1. Read `vault/ikigai/meta/cycle_state/{date}.md` (PAV-written)
 2. Read yesterday's daily report from `closing-2026/.../04-relatorios-diarios/`
-3. Run prompt chain `surface_pav_intentions` → emit 3-5 pt-BR suggestions
-4. Write today's daily report via `vault_write` MCP tool (sole vault writer)
-5. Create top-3 priority tasks via `taskdog_create_task` (if suggestions reference tasks)
+3. Run prompt chain `surface_pav_intentions` → emit 3-5 pt-BR suggestions to CLI stdout (NOT to vault, NOT to taskdog)
 
 ## Example output
 
@@ -47,7 +45,6 @@ Sugestoes PAV (4):
 
 ## Constraints
 
-- **vault_write is the SOLE vault writer** — no direct vault writes from skill code
+- **Surface-only** — does not write vault; does not invoke taskdog
 - **IKIGAI does NOT execute math** — observes PAV-written state only
-- All writes go through `vault_write` MCP tool or `taskdog_*` tools
-- Reads from `vault/` only — never writes to vault directly
+- Downstream `v2 commit` (W3.6 territory) writes via `vault_write`

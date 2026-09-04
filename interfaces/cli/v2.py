@@ -16,12 +16,15 @@ Provenance: src/ikigai/src/agents/v2/graph.py  +  mcp_server/server.py
 from __future__ import annotations
 
 import json
+import logging
 import os
+import re
 import sys
 from datetime import date
 from pathlib import Path
 
 import typer
+import yaml
 from rich.console import Console
 
 # Ensure repo root is on sys.path so `from src.ikigai.src...` resolves.
@@ -114,6 +117,81 @@ def _load_graph_factory():
     from agents.v2.graph import make_v2_graph
 
     return make_v2_graph
+
+
+log = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Skill loader (ADR-025 R5)
+# ---------------------------------------------------------------------------
+
+_SKILLS_DIR = _REPO_ROOT / "src" / "ikigai" / "src" / "agents" / "v2" / "skills"
+
+
+def load_skill_manifest(skill_name: str) -> dict:
+    """Parse YAML frontmatter from <skills_dir>/<skill_name>.md.
+
+    Per ADR-025 §"Loader rule": frontmatter is the canonical skill binding.
+    skill_name is the full name (e.g. "ikigai-daily") but the file is
+    named "daily.md" — this function strips the "ikigai-" prefix to find
+    the actual file.
+    Raises FileNotFoundError if the skill file is missing.
+    """
+    # Strip "ikigai-" prefix — file is named daily.md not ikigai-daily.md
+    file_name = skill_name
+    if skill_name.startswith("ikigai-"):
+        file_name = skill_name[len("ikigai-") :]
+    skill_file = _SKILLS_DIR / f"{file_name}.md"
+    content = skill_file.read_text(encoding="utf-8")
+
+    # Extract YAML block between first `---` markers
+    m = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+    if not m:
+        raise ValueError(f"Skill {skill_name!r}: no YAML frontmatter found")
+    manifest = yaml.safe_load(m.group(1))
+    if not isinstance(manifest, dict):
+        raise ValueError(f"Skill {skill_name!r}: frontmatter is not a YAML dict")
+    return manifest
+
+
+def invoke_skill(
+    skill_name: str,
+    entry_point_override: str | None = None,
+) -> dict:
+    """Load skill manifest and invoke make_v2_graph(entry_point=entry_point).
+
+    Per ADR-025 §"Loader rule": reads skill .md frontmatter for entry_point
+    and actor, then calls make_v2_graph().invoke(initial_state).
+
+    entry_point_override is used for testing/edge cases; if it differs from
+    the manifest's entry_point, a warning is logged (per ADR-025 R5).
+    """
+    manifest = load_skill_manifest(skill_name)
+    entry_point = manifest.get("entry_point")
+    if entry_point_override is None:
+        pass  # use manifest value
+    elif entry_point_override != entry_point:
+        log.warning(
+            f"Skill {skill_name!r} entry_point override: "
+            f"manifest={entry_point!r}, caller={entry_point_override!r}"
+        )
+        entry_point = entry_point_override
+    else:
+        entry_point = entry_point_override
+
+    from agents.v2.graph import NODES
+
+    if entry_point not in NODES:
+        raise ValueError(f"Invalid entry_point {entry_point!r}; must be in {NODES}")
+
+    make_v2_graph = _load_graph_factory()
+    graph = make_v2_graph(entry_point=entry_point)
+    config = {"configurable": {"thread_id": f"skill-{skill_name}"}}
+    initial_state = {
+        "vault_root": str(_resolve_vault_root()),
+        "last_step": "invoke_skill",
+    }
+    return graph.invoke(initial_state, config)
 
 
 def _resolve_vault_root() -> Path:
@@ -221,24 +299,23 @@ def _run_suggest(date_str: str) -> dict:
 
 
 def _run_daily(date_str: str) -> dict:
-    """Run ikigai-daily skill — surface PAV intentions (3-5 pt-BR suggestions).
+    """Run ikigai-daily skill via invoke_skill().
 
-    Composition per src/ikigai/src/agents/v2/skills/daily.md:
-        1. Read cycle_state/{date}.md (PAV-written)
-        2. Read yesterday's daily report
-        3. Run surface_pav_intentions prompt chain
-        4. (vault_write of today's daily report — handled by v2 graph in cycle,
-            NOT here; per-skill commands are read-only orchestrators)
-        5. (taskdog_create_task for top-3 priorities — NOT here; this is a
-            planner-only surface, writes handled by separate orchestration)
+    Per W3.5 + ADR-025: wires `daily` command to
+    make_v2_graph(entry_point="surface_intentions") via the invoke_skill()
+    helper. daily.md is surface-only (no vault_write, no taskdog).
 
-    Returns the merged skill result for CLI display.
+    Transforms graph result to the format expected by the Typer command:
+    graph result -> {"skill": "...", "date": "...", "surface": {"suggestions": [...], ...}}
     """
-    suggest_result = _run_suggest(date_str)
+    graph_result = invoke_skill("ikigai-daily")
     return {
         "skill": "ikigai-daily",
         "date": date_str,
-        "surface": suggest_result,
+        "surface": {
+            "suggestions": graph_result.get("user_suggestions", []),
+            "language": graph_result.get("suggestions_language", "pt-BR"),
+        },
     }
 
 

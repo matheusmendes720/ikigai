@@ -189,6 +189,13 @@ class IKIGAiStateDict(TypedDict):
     actor: NotRequired[Literal["user", "agent", "system"]]
     persisted: NotRequired[bool]
 
+    # ---- surface_intentions output (W3.5) ------------------------------
+    # Fields populated by surface_intentions_node after commit completes.
+    # user_suggestions is the primary output (3-5 pt-BR suggestion strings).
+    user_suggestions: NotRequired[list[str]]
+    suggestions_count: NotRequired[int]
+    suggestions_language: NotRequired[Literal["pt-BR", "en"]]
+
 
 # ---------------------------------------------------------------------------
 # compute_meta_vector — REMOVED from v2 (FORBIDDEN_FUNCTION per ADR-013).
