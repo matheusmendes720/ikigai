@@ -444,6 +444,194 @@ def test_review_queue_append_only() -> None:
 
 
 # ---------------------------------------------------------------------------
+# W3.5 — ADR-025 skill-binding invariant (R4)
+# ---------------------------------------------------------------------------
+
+_SKILLS_DIR = IKIGAI_SRC / "agents" / "v2" / "skills"
+
+
+@pytest.mark.parametrize(
+    "skill_name",
+    [
+        pytest.param("ikigai-daily", id="ikigai-daily"),
+        pytest.param("ikigai-weekly", id="ikigai-weekly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("ikigai-monthly", id="ikigai-monthly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("ikigai-quarterly", id="ikigai-quarterly", marks=pytest.mark.skip(reason="W3.6 territory")),
+    ],
+)
+def test_skill_manifest_has_entry_point(skill_name) -> None:
+    """All skill .md files MUST have entry_point in YAML frontmatter (ADR-025 R4)."""
+    import re
+
+    skill_file = _SKILLS_DIR / f"{skill_name}.md"
+    if not skill_file.exists():
+        pytest.skip(f"{skill_file} not present")
+
+    content = skill_file.read_text(encoding="utf-8")
+    m = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+    assert m, f"{skill_name}.md missing YAML frontmatter"
+    import yaml
+
+    frontmatter = yaml.safe_load(m.group(1))
+    assert "entry_point" in frontmatter, (
+        f"{skill_name}.md missing entry_point field in frontmatter (ADR-025 R4)"
+    )
+
+
+@pytest.mark.parametrize(
+    "skill_name",
+    [
+        pytest.param("ikigai-daily", id="ikigai-daily"),
+        pytest.param("ikigai-weekly", id="ikigai-weekly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("ikigai-monthly", id="ikigai-monthly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("ikigai-quarterly", id="ikigai-quarterly", marks=pytest.mark.skip(reason="W3.6 territory")),
+    ],
+)
+def test_skill_entry_point_is_valid_node(skill_name) -> None:
+    """All skill entry_point values MUST be members of NODES (ADR-025 R4)."""
+    import re
+
+    skill_file = _SKILLS_DIR / f"{skill_name}.md"
+    if not skill_file.exists():
+        pytest.skip(f"{skill_file} not present")
+
+    content = skill_file.read_text(encoding="utf-8")
+    m = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+    assert m, f"{skill_name}.md missing YAML frontmatter"
+    import yaml
+
+    frontmatter = yaml.safe_load(m.group(1))
+    entry_point = frontmatter.get("entry_point")
+    if entry_point is None:
+        pytest.skip(f"{skill_name}.md has no entry_point (skip-for-W3.6)")
+
+    # Import NODES at runtime to avoid the legacy-state import conflict
+    v2_graph_path = IKIGAI_SRC / "agents" / "v2" / "graph.py"
+    if not v2_graph_path.exists():
+        pytest.skip("graph.py not present")
+    graph_source = v2_graph_path.read_text(encoding="utf-8")
+    nodes_match = re.search(r"^NODES\s*=\s*\((.*?)\)", graph_source, re.DOTALL)
+    assert nodes_match, "Could not find NODES tuple in graph.py"
+    nodes_list = [n.strip().strip(",'\"") for n in nodes_match.group(1).split() if n.strip()]
+    assert entry_point in nodes_list, (
+        f"{skill_name}.md entry_point {entry_point!r} not in NODES; "
+        f"must be one of {nodes_list}"
+    )
+
+
+@pytest.mark.parametrize(
+    "skill_name",
+    [
+        pytest.param("ikigai-daily", id="ikigai-daily"),
+        pytest.param("ikigai-weekly", id="ikigai-weekly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("ikigai-monthly", id="ikigai-monthly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("ikigai-quarterly", id="ikigai-quarterly", marks=pytest.mark.skip(reason="W3.6 territory")),
+    ],
+)
+def test_skill_manifest_has_actor_field(skill_name) -> None:
+    """All skill .md files MUST have actor in {'user', 'agent'} (ADR-025 R4)."""
+    import re
+
+    skill_file = _SKILLS_DIR / f"{skill_name}.md"
+    if not skill_file.exists():
+        pytest.skip(f"{skill_file} not present")
+
+    content = skill_file.read_text(encoding="utf-8")
+    m = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+    assert m, f"{skill_name}.md missing YAML frontmatter"
+    import yaml
+
+    frontmatter = yaml.safe_load(m.group(1))
+    assert "actor" in frontmatter, (
+        f"{skill_name}.md missing actor field in frontmatter (ADR-025 R4)"
+    )
+    assert frontmatter["actor"] in {"user", "agent"}, (
+        f"{skill_name}.md actor must be 'user' or 'agent', "
+        f"got {frontmatter['actor']!r}"
+    )
+
+
+def test_no_make_v2_graph_call_outside_invoke_skill() -> None:
+    """Any make_v2_graph(entry_point=...) call outside invoke_skill() is flagged.
+
+    Per ADR-025 R4: invoke_skill() is the only permitted call site for
+    make_v2_graph(entry_point=...) in interfaces/cli/v2.py.
+    Uses AST scan to detect all call sites, then checks each one is
+    inside the invoke_skill function body.
+    """
+    v2_cli_path = REPO_ROOT / "interfaces" / "cli" / "v2.py"
+    if not v2_cli_path.exists():
+        pytest.skip(f"{v2_cli_path} not present")
+
+    source = v2_cli_path.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+
+    # Find the invoke_skill function's AST node
+    invoke_skill_node: ast.FunctionDef | None = None
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "invoke_skill":
+            invoke_skill_node = node
+            break
+
+    # Find all make_v2_graph(entry_point=...) call sites in the module
+    violations: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        # Check if it's make_v2_graph(...)
+        func_name = _called_name(node.func)
+        if func_name != "make_v2_graph":
+            continue
+        # Check if it has entry_point=... keyword argument
+        has_entry_point = any(
+            kw.arg == "entry_point" for kw in node.keywords
+        )
+        if not has_entry_point:
+            continue
+        # Check if this call is inside invoke_skill function body
+        if invoke_skill_node is not None and _is_node_inside(node, invoke_skill_node):
+            continue  # allowed — inside invoke_skill
+        # Check if this call is inside a function whose name starts with "_load_graph_factory"
+        # (lazy import wrapper — allowed to call make_v2_graph)
+        parent_func = _find_parent_function(node, tree)
+        if parent_func is not None and parent_func.name == "_load_graph_factory":
+            continue  # allowed — lazy factory wrapper
+        violations.append(f"make_v2_graph(entry_point=...) at line {node.lineno}")
+
+    assert not violations, (
+        "make_v2_graph(entry_point=...) may only be called inside invoke_skill() "
+        "(per ADR-025 R4). Violations:\n  " + "\n  ".join(violations)
+    )
+
+
+def _is_node_inside(node: ast.AST, parent: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """Return True if node is syntactically inside parent FunctionDef body."""
+    for child in ast.walk(parent):
+        if child is node:
+            return True
+    return False
+
+
+def _find_parent_function(node: ast.AST, tree: ast.AST) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
+    """Find the FunctionDef/AsyncFunctionDef that contains node (direct parent only)."""
+    for parent in ast.walk(tree):
+        if not isinstance(parent, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for child in parent.body:
+            if _contains_node(child, node):
+                return parent
+    return None
+
+
+def _contains_node(parent: ast.AST, target: ast.AST) -> bool:
+    """Return True if target is inside parent (direct containment check)."""
+    for child in ast.walk(parent):
+        if child is target:
+            return True
+    return False
+
+
+# ---------------------------------------------------------------------------
 # W3.2 — ADR-019 prompt-template-only invariant
 # ---------------------------------------------------------------------------
 
