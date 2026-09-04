@@ -111,4 +111,11 @@ def _defensive_default() -> dict[str, Any]:
         # Mirror values from prompts/algorithm_constants.json exactly.
         "CHECKPOINT_RETENTION_COUNT": 1000,
         "MAX_CHECKPOINT_AGE_DAYS": 90,
+        # W4.6 — Memory retention tuning (ADR-028 R8).
+        # Mirror values from prompts/algorithm_constants.json exactly.
+        # Quarterly is "forever" by default per R8 (null in JSON).
+        "MEMORY_RETENTION_DAILY_DAYS": 30,
+        "MEMORY_RETENTION_WEEKLY_DAYS": 90,
+        "MEMORY_RETENTION_MONTHLY_DAYS": 365,
+        "MEMORY_RETENTION_QUARTERLY_DAYS": None,
     }

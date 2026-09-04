@@ -1100,6 +1100,196 @@ def test_subgraph_uses_build_subagent_thread_id_from_checkpoint() -> None:
 
 
 # ---------------------------------------------------------------------------
+# W4.6 — ADR-028 memory layer drift invariants
+# ---------------------------------------------------------------------------
+
+
+def test_memory_schema_version_constant_is_one() -> None:
+    """memory_schema.py MUST export MEMORY_SCHEMA_VERSION = 1 (ADR-028 R11).
+
+    Closes the W4.6 implementation deliverable. Removing the constant or
+    changing its value silently breaks the schema-versioning contract
+    (monotonic, lazy migration on read). Drift detector prevents
+    accidental removal.
+    """
+    memory_schema_path = IKIGAI_SRC / "agents" / "v2" / "memory_schema.py"
+    if not memory_schema_path.exists():
+        pytest.skip(f"{memory_schema_path} not present")
+    source = memory_schema_path.read_text(encoding="utf-8")
+    # Module-level assignment — match either `MEMORY_SCHEMA_VERSION = 1` or
+    # `MEMORY_SCHEMA_VERSION: int = 1` (annotation form). Strip annotations
+    # to make the regex tolerant.
+    m = re.search(
+        r"^MEMORY_SCHEMA_VERSION\s*[:=]?\s*(?::\s*\w+\s*)?=\s*1\b",
+        source,
+        re.MULTILINE,
+    )
+    assert m, (
+        f"MEMORY_SCHEMA_VERSION = 1 not found in {memory_schema_path}. "
+        "ADR-028 R11 mandates schema_version=1 as the canonical initial version."
+    )
+
+
+def test_memory_retention_keys_present_in_json() -> None:
+    """algorithm_constants.json MUST define all 4 MEMORY_RETENTION_* keys (ADR-028 R8).
+
+    Per ADR-019 R6 + ADR-028 R8: the 4 retention tuning values live ONLY
+    in the JSON canonical source. Mirror values in load_constants._defensive_default()
+    for the JSON-absent fallback (per W4.6 brief §"Critical content" item 5).
+    """
+    import json
+
+    json_path = IKIGAI_SRC / "agents" / "v2" / "prompts" / "algorithm_constants.json"
+    if not json_path.exists():
+        pytest.skip(f"{json_path} not present")
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    required = (
+        "MEMORY_RETENTION_DAILY_DAYS",
+        "MEMORY_RETENTION_WEEKLY_DAYS",
+        "MEMORY_RETENTION_MONTHLY_DAYS",
+        "MEMORY_RETENTION_QUARTERLY_DAYS",
+    )
+    missing = [k for k in required if k not in data]
+    assert not missing, (
+        f"algorithm_constants.json missing MEMORY_RETENTION_* keys "
+        f"(ADR-028 R8): {missing}. Found keys: "
+        f"{sorted(k for k in data if not k.startswith('_'))}"
+    )
+
+
+def test_memory_retention_keys_mirrored_in_defensive_default() -> None:
+    """load_constants._defensive_default() MUST mirror all 4 MEMORY_RETENTION_* values.
+
+    The defensive default is the JSON-absent fallback (per W4.6 brief
+    §"Critical content" item 5). Mirror values to keep tests that mock
+    the file path deterministic. Drift between JSON and defensive
+    default breaks the SOT invariant.
+    """
+    import json
+
+    json_path = IKIGAI_SRC / "agents" / "v2" / "prompts" / "algorithm_constants.json"
+    load_path = IKIGAI_SRC / "agents" / "v2" / "prompts" / "load_constants.py"
+    if not json_path.exists() or not load_path.exists():
+        pytest.skip(f"{json_path} or {load_path} not present")
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    load_source = load_path.read_text(encoding="utf-8")
+
+    required = (
+        "MEMORY_RETENTION_DAILY_DAYS",
+        "MEMORY_RETENTION_WEEKLY_DAYS",
+        "MEMORY_RETENTION_MONTHLY_DAYS",
+        "MEMORY_RETENTION_QUARTERLY_DAYS",
+    )
+    missing = [k for k in required if f'"{k}"' not in load_source]
+    assert not missing, (
+        f"load_constants._defensive_default() missing MEMORY_RETENTION_* "
+        f"mirrors (ADR-028 R8 + ADR-019 R6): {missing}"
+    )
+
+    # Value sanity — each retention value in JSON must appear in the
+    # defensive default. We compare by string representation (None for
+    # quarterly, int for the rest).
+    for key in required:
+        json_value = data[key]
+        # Look for the key in load_constants and verify the value matches.
+        m = re.search(
+            rf'"{re.escape(key)}"\s*:\s*([^,\n]+),?\s*$',
+            load_source,
+            re.MULTILINE,
+        )
+        assert m, f"{key} not parsed in load_constants.py"
+        defensive_value_str = m.group(1).strip().rstrip(",")
+        # Normalize None
+        if json_value is None:
+            assert defensive_value_str == "None", (
+                f"{key}: JSON value is None but defensive default is {defensive_value_str!r}"
+            )
+        else:
+            # Must be an integer literal equal to JSON value
+            assert defensive_value_str == str(int(json_value)), (
+                f"{key}: JSON value is {json_value} but defensive default "
+                f"is {defensive_value_str!r}"
+            )
+
+
+def test_no_memory_retention_constants_in_agent_code() -> None:
+    """MEMORY_RETENTION_* tuning values MUST live in JSON only (ADR-019 R6 + ADR-028 R8).
+
+    Drift detector extension of the W3.2 invariant l to cover the 4 new
+    W4.6 retention keys. The only file allowed to DEFINE these constants
+    is prompts/load_constants.py (the loader's _defensive_default
+    fallback). All other .py files in agents/v2/ MUST reference retention
+    via load_constants.get(key) — NEVER hardcode DEFAULT_MEMORY_* or
+    inline MEMORY_RETENTION_* values.
+    """
+    v2_root = IKIGAI_SRC / "agents" / "v2"
+    if not v2_root.exists():
+        pytest.skip(f"{v2_root} not present")
+
+    allowed_definers = {v2_root / "prompts" / "load_constants.py"}
+    forbidden_pattern = re.compile(r"^(DEFAULT_MEMORY_|MEMORY_RETENTION_).*")
+
+    violations: list[str] = []
+    for py_file in _iter_python_files(v2_root):
+        if py_file.resolve() in {p.resolve() for p in allowed_definers}:
+            continue
+        try:
+            tree = ast.parse(py_file.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        # Check module-level assignments only.
+        for node in tree.body:
+            if not isinstance(node, ast.Assign):
+                continue
+            for target in node.targets:
+                name = target.id if isinstance(target, ast.Name) else None
+                if name is None:
+                    continue
+                if forbidden_pattern.match(name):
+                    violations.append(
+                        _format_violation(
+                            py_file,
+                            node.lineno,
+                            "MEMORY-CONST",
+                            f"forbidden memory constant: {name} (must live in algorithm_constants.json)",
+                        )
+                    )
+
+    assert not violations, (
+        "ADR-019 / ADR-028 R8 violation — MEMORY_RETENTION_* / DEFAULT_MEMORY_* "
+        "constants MUST live in prompts/algorithm_constants.json, NOT in "
+        "src/ikigai/src/agents/v2/*.py. Use load_constants.get(key) instead. "
+        "Violations:\n" + "\n".join(sorted(violations))
+    )
+
+
+def test_memory_schema_module_defines_default_db_filename() -> None:
+    """memory_schema.py MUST export MEMORY_DEFAULT_DB_FILENAME = 'ikigai_memory.db' (ADR-028 R1).
+
+    Closes the W4.6 brief §"Critical content" item 1: the canonical DB
+    filename is load-bearing — it's distinct from the LangGraph
+    checkpoint DB (per ADR-027 R13.5: ikigai_checkpoints.db). The
+    canonical on-disk location is
+    ``<repo>/data/ikigai_memory.db``.
+    """
+    memory_schema_path = IKIGAI_SRC / "agents" / "v2" / "memory_schema.py"
+    if not memory_schema_path.exists():
+        pytest.skip(f"{memory_schema_path} not present")
+    source = memory_schema_path.read_text(encoding="utf-8")
+    # Match either annotation form or plain assignment.
+    m = re.search(
+        r'^MEMORY_DEFAULT_DB_FILENAME\s*[:=]?\s*(?::\s*\w+\s*)?=\s*["\']ikigai_memory\.db["\']',
+        source,
+        re.MULTILINE,
+    )
+    assert m, (
+        f"MEMORY_DEFAULT_DB_FILENAME = 'ikigai_memory.db' not found in "
+        f"{memory_schema_path}. ADR-028 R1 mandates this constant as the "
+        f"canonical memory DB filename (separate from ikigai_checkpoints.db per ADR-027 R13.5)."
+    )
+
+
+# ---------------------------------------------------------------------------
 # AST helpers (used above)
 # ---------------------------------------------------------------------------
 
