@@ -1,6 +1,6 @@
 # ADR-025 — Skill Binding Mechanism (Hybrid) — ACCEPTED
 
-> **Status:** Accepted (2026-09-04 — user accepted all 4 review questions: Hybrid binding ✓, literal mapping ✓, all-actors=user ✓, R6 minimal refactor ✓)
+> **Status:** Accepted (2026-09-04 — user accepted all 4 review questions: Hybrid binding ✓, literal mapping ✓, all-actors=user ✓, R6 minimal refactor ✓); R2 amended 2026-09-04 to reflect shipped mapping (3 of 4 skills = actor: agent)
 > **Deciders:** matheus (project owner)
 > **Supersedes:** W3.4 task brief which incorrectly named this ADR-014 (ADR-014 is UEID canonical format, accepted 2026-09-04)
 > **Load-bearing:** YES — W3.5 (wire daily entry point) and W5.4 (extend to monthly/quarterly) both depend on this contract
@@ -74,17 +74,36 @@ def invoke_skill(skill_name: str, entry_point: str | None = None) -> Any:
     return make_v2_graph(entry_point=entry_point).invoke(initial_state)
 ```
 
-### Skill to Entry Point Mapping
+### Skill to Entry Point Mapping (R2 — reflects SHIPPED values 2026-09-04)
 
 | Skill | entry_point | Actor | Rationale |
 |-------|-------------|-------|-----------|
 | `ikigai-daily` | `surface_intentions` | user | Surface-only — no full cycle; emit PAV suggestions |
-| `ikigai-weekly` | `score_vectors` | user | Score vectors + heuristics + balance (regime check); no commit |
-| `ikigai-monthly` | `decompose` | user | Plan-level work breakdown; no commit |
-| `ikigai-quarterly` | `observe` | user | Full pipeline (strategic realignment) |
+| `ikigai-weekly` | `observe` | agent | Full pipeline (score vectors → heuristics → balance → commit); runs through invoke_skill + W3.6 post-processor |
+| `ikigai-monthly` | `observe` | agent | Full pipeline start; downstream routing per W3.6 post-processor |
+| `ikigai-quarterly` | `observe` | agent | Full pipeline (strategic realignment); tested in W3.8 E2E smoke |
 
-All 4 actors are **user** — skills fire via cron or slash command (per existing
-frontmatter triggers), never invoked autonomously by the agent layer.
+**Shipment note (2026-09-04):** The W3.6 housekeeping batch shipped all three
+of weekly/monthly/quarterly as `entry_point: observe` + `actor: agent`. This
+deviation from the originally-proposed distinct-entry-points mapping was
+discovered by the Wave 3 final whole-branch reviewer (subagent
+`a26645b5a6ca3ad10`). Per user decision 2026-09-04 ("Update ADR-025 R2 to
+match shipped"), ADR-025 is amended to describe reality, and the R2 mapping
+is now uniform across weekly/monthly/quarterly. Per-adapter behavior
+divergence now lives in the manifest's `outputs:` field (consulted by
+W3.6 post-processor `interfaces/cli/_skill_outputs.py`).
+
+The `daily` skill remains the only `actor: user` binding because it surfaces
+intentions only — no full cycle, no vault/taskdog writes. Skills with
+`actor: agent` may write to vault + invoke taskdog.
+
+Per skill-binding enforcement:
+- `interfaces/cli/v2.py:invoke_skill()` validates `entry_point ∈ NODES` at load
+  time and raises `ValueError` if invalid.
+- The drift detector (drift invariant k in `test_canonical_scope.py`) checks
+  each manifest's `entry_point ∈ NODES` + `actor ∈ {user, agent}`. It does
+  NOT enforce this R2 table per-skill; tightening this is deferred to a
+  future ADR (see follow-up list).
 
 ---
 
@@ -106,7 +125,8 @@ frontmatter triggers), never invoked autonomously by the agent layer.
 
 4. **Actor consistency (ADR-012).** `vault_write` is the sole vault writer.
    Passing `actor=manifest["actor"]` to every `vault_write` call ensures writes
-   are attributed to the correct actor. All 4 skills declare `actor: user`.
+   are attributed to the correct actor. `daily` declares `actor: user`; weekly,
+   monthly, quarterly declare `actor: agent` (per shipped R2).
 
 5. **Unwired entry points become accessible.** W2.3 shipped 4 nodes without CLI
    surface: `surface_intentions`, `score_vectors`, `decompose`, `observe`. The
@@ -136,10 +156,10 @@ New invariant in
   `make_v2_graph(entry_point=...)` call outside `invoke_skill()` is flagged
 
 **R5 — Add `entry_point` + `actor` to all 4 skill `.md` files.** `daily.md`,
-`weekly.md`, `monthly.md`, `quarterly.md` each gain:
+`weekly.md`, `monthly.md`, `quarterly.md` each gain (values per shipped R2):
 ```yaml
 entry_point: <node>
-actor: user
+actor: user | agent  # per R2 table
 ```
 
 **R6 — Refactor `v2.py` per-skill commands.** Replace the current
