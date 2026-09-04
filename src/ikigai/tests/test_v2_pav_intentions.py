@@ -26,12 +26,12 @@ def test_node_imports():
     assert surface_intentions_node is not None
 
 
-def test_graph_has_9_nodes():
-    """v2 graph now has 9 nodes (was 8)."""
+def test_graph_has_10_nodes():
+    """v2 graph now has 10 nodes (was 8 pre-Phase 8.4; +1 for surface_intentions)."""
     # graph.py lives in agents/v2/ so it resolves via the sys.path entry
     from agents.v2.graph import NODES, make_v2_graph
 
-    assert len(NODES) == 9
+    assert len(NODES) == 10
     assert "surface_intentions" in NODES
 
 
