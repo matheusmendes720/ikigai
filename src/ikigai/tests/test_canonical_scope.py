@@ -30,6 +30,7 @@ Run::
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 
 import pytest
@@ -177,9 +178,8 @@ def test_no_forbidden_imports() -> None:
                             py_file, node.lineno, "IMPORT", f"forbidden module: {target}"
                         )
                     )
-    assert not violations, (
-        "ADR-013 violation — forbidden imports detected:\n"
-        + "\n".join(sorted(violations))
+    assert not violations, "ADR-013 violation — forbidden imports detected:\n" + "\n".join(
+        sorted(violations)
     )
 
 
@@ -208,9 +208,8 @@ def test_no_forbidden_function_calls_or_defs() -> None:
                                 py_file, node.lineno, "DEF", f"forbidden function: {node.name}"
                             )
                         )
-    assert not violations, (
-        "ADR-013 violation — forbidden functions detected:\n"
-        + "\n".join(sorted(violations))
+    assert not violations, "ADR-013 violation — forbidden functions detected:\n" + "\n".join(
+        sorted(violations)
     )
 
 
@@ -236,9 +235,8 @@ def test_no_forbidden_class_references() -> None:
                             py_file, node.lineno, "CLASS-REF", f"forbidden class: {node.id}"
                         )
                     )
-    assert not violations, (
-        "ADR-013 violation — forbidden class references detected:\n"
-        + "\n".join(sorted(violations))
+    assert not violations, "ADR-013 violation — forbidden class references detected:\n" + "\n".join(
+        sorted(violations)
     )
 
 
@@ -262,7 +260,9 @@ def test_no_forbidden_mcp_tool_wrappers() -> None:
                 if tool_name and tool_name in FORBIDDEN_MCP_TOOLS:
                     violations.append(
                         _format_violation(
-                            py_file, node.lineno, "MCP-TOOL",
+                            py_file,
+                            node.lineno,
+                            "MCP-TOOL",
                             f"forbidden tool wrapper: {tool_name} (function {node.name})",
                         )
                     )
@@ -409,9 +409,9 @@ def test_review_queue_append_only() -> None:
     # Allowlist: queue.py (writer) and review_queue_worker.py (ack consumer).
     allowlist = {"queue.py", "review_queue_worker.py"}
     write_patterns = {
-        'open(',
-        '.write_text(',
-        '.write_bytes(',
+        "open(",
+        ".write_text(",
+        ".write_bytes(",
     }
 
     review_queue_violations: list[str] = []
@@ -428,9 +428,7 @@ def test_review_queue_append_only() -> None:
             continue
         for pattern in write_patterns:
             if pattern in source:
-                review_queue_violations.append(
-                    f"{py_file.relative_to(REPO_ROOT)}:{pattern}"
-                )
+                review_queue_violations.append(f"{py_file.relative_to(REPO_ROOT)}:{pattern}")
                 break
 
     assert not review_queue_violations, (
@@ -442,6 +440,136 @@ def test_review_queue_append_only() -> None:
     # Sanity check: queue.py MUST contain the enqueue function.
     assert "def enqueue" in queue_source, (
         "mesh/queue.py must define enqueue() as the canonical review_queue writer"
+    )
+
+
+# ---------------------------------------------------------------------------
+# W3.2 — ADR-019 prompt-template-only invariant
+# ---------------------------------------------------------------------------
+
+# Module-level constants for algorithm tuning are forbidden in
+# src/ikigai/src/agents/v2/*.py EXCEPT in prompts/load_constants.py (the
+# loader itself). Algorithm tuning happens ONLY by editing
+# prompts/algorithm_constants.json — see dcode-harness-TASKS.md W3.2 + W5.2.
+#
+# The regex matches the EXACT names of constants that lived in state.py
+# pre-W3.2, plus a generic pattern for any future DEFAULT_QHE / DEFAULT_WORKLOAD
+# / DEFAULT_CAPACITY / HYSTERESIS_* / HEURISTICS_H<N>_* / REGIME_TARGETS additions.
+_FORBIDDEN_ALGO_CONST_NAMES: tuple[str, ...] = (
+    "DEFAULT_QHE_PUSH",
+    "DEFAULT_QHE_RECOVER",
+    "DEFAULT_WORKLOAD_OVERLOAD_FACTOR",
+    "DEFAULT_WORKLOAD_UNDERLOAD_FACTOR",
+    "DEFAULT_CAPACITY_HOURS_PER_DAY",
+    "HYSTERESIS_UPGRADE_DAYS",
+    "HYSTERESIS_DOWNGRADE_DAYS",
+    "REGIME_TARGETS",
+)
+# Generic pattern catches future additions matching the same prefix.
+_FORBIDDEN_ALGO_CONST_PATTERN = re.compile(
+    r"^(DEFAULT_QHE|DEFAULT_WORKLOAD|DEFAULT_CAPACITY|HYSTERESIS_|HEURISTICS_H\d_|REGIME_TARGETS)"
+)
+
+
+def test_no_algorithm_constants_in_agent_code() -> None:
+    """agents/v2/*.py MUST NOT define algorithm-tuning constants (ADR-019).
+
+    Algorithm tuning values (Q_HE thresholds, workload factors, hysteresis
+    days, regime targets, heuristic deviation thresholds) are stored in
+    prompts/algorithm_constants.json and accessed via prompts/load_constants.
+    The only file allowed to DEFINE these constants is
+    prompts/load_constants.py (the loader's _defensive_default fallback).
+
+    Violations include:
+      - Re-introducing DEFAULT_QHE_PUSH = 0.85 in state.py
+      - Hardcoding {"PUSH": 0.85, ...} in heuristics.py
+      - Adding DEFAULT_CAPACITY_HOURS_PER_DAY = 8.0 anywhere
+
+    To TUNE the algorithm: edit prompts/algorithm_constants.json. To add a
+    NEW tuning knob: add it to that JSON first, then load_constants exposes
+    it via get(key). Never introduce a Python DEFAULT_* in agent code.
+    """
+    v2_root = IKIGAI_SRC / "agents" / "v2"
+    if not v2_root.exists():
+        pytest.skip(f"{v2_root} not present")
+
+    # Only load_constants.py is allowed to DEFINE these constants (it needs
+    # _defensive_default for cases where the JSON file is absent). Every
+    # other file in agents/v2/ must reference them via load_constants.get().
+    allowed_definers = {v2_root / "prompts" / "load_constants.py"}
+
+    violations: list[str] = []
+    for py_file in _iter_python_files(v2_root):
+        if py_file.resolve() in {p.resolve() for p in allowed_definers}:
+            continue
+        try:
+            tree = ast.parse(py_file.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+
+        # Only check MODULE-LEVEL assignments (top-level body, not inside a
+        # function or class). This avoids false positives on local variable
+        # names that happen to share the prefix.
+        for node in tree.body:
+            if not isinstance(node, ast.Assign):
+                continue
+            for target in node.targets:
+                name = target.id if isinstance(target, ast.Name) else None
+                if name is None:
+                    continue
+                if name in _FORBIDDEN_ALGO_CONST_NAMES or _FORBIDDEN_ALGO_CONST_PATTERN.match(name):
+                    violations.append(
+                        _format_violation(
+                            py_file,
+                            node.lineno,
+                            "ALGO-CONST",
+                            f"forbidden algorithm constant: {name}",
+                        )
+                    )
+
+    assert not violations, (
+        "ADR-019 violation — algorithm tuning constants MUST live in "
+        "prompts/algorithm_constants.json, NOT in src/ikigai/src/agents/v2/*.py. "
+        "Use load_constants.get(key) instead. Violations:\n" + "\n".join(sorted(violations))
+    )
+
+
+def test_no_state_module_imports_default_constants() -> None:
+    """agents/v2/state.py MUST NOT export DEFAULT_QHE_* / HYSTERESIS_* / etc.
+
+    These names were stripped from state.py in W3.2 (2026-09-04). The state
+    module is now pure data classes + TypedDicts. Adding them back would
+    violate ADR-019 (algorithm-tuning lives in prompt-template config only).
+    """
+    state_path = IKIGAI_SRC / "agents" / "v2" / "state.py"
+    if not state_path.exists():
+        pytest.skip(f"{state_path} not present")
+    try:
+        tree = ast.parse(state_path.read_text(encoding="utf-8"))
+    except SyntaxError:
+        pytest.skip(f"{state_path} has syntax errors")
+
+    violations: list[str] = []
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        for target in node.targets:
+            name = target.id if isinstance(target, ast.Name) else None
+            if name is None:
+                continue
+            if name in _FORBIDDEN_ALGO_CONST_NAMES or _FORBIDDEN_ALGO_CONST_PATTERN.match(name):
+                violations.append(
+                    _format_violation(
+                        state_path,
+                        node.lineno,
+                        "STATE-ALGO-CONST",
+                        f"forbidden algorithm constant in state.py: {name}",
+                    )
+                )
+    assert not violations, (
+        "ADR-019 violation — state.py MUST NOT export algorithm constants "
+        "(they live in prompts/algorithm_constants.json). Violations:\n"
+        + "\n".join(sorted(violations))
     )
 
 
