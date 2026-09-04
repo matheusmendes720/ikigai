@@ -60,6 +60,7 @@ from .nodes.plan import plan_node  # noqa: E402
 from .nodes.reflect import reflect_node  # noqa: E402
 from .nodes.score_vectors import score_vectors_node  # noqa: E402
 from .nodes.surface_intentions import surface_intentions_node  # noqa: E402
+from .nodes.tag_and_persist import tag_and_persist_node  # noqa: E402
 from .state import IKIGAiStateDict  # noqa: E402
 
 _init_tracing_ok = True
@@ -86,6 +87,7 @@ NODES = (
     "balance",
     "decompose",
     "plan",
+    "tag_and_persist",
     "reflect",
     "commit",
     "surface_intentions",
@@ -175,8 +177,17 @@ def _route_after_decompose(
 
 def _route_after_plan(
     state: IKIGAiStateDict,
+) -> Literal["tag_and_persist", "error"]:
+    """After plan: persist via tag_and_persist unless upstream error fired."""
+    if state.get("error_type"):
+        return "error"
+    return "tag_and_persist"
+
+
+def _route_after_tag_and_persist(
+    state: IKIGAiStateDict,
 ) -> Literal["reflect", "error"]:
-    """After plan: reflect unless upstream error fired."""
+    """After tag_and_persist: reflect unless upstream error fired."""
     if state.get("error_type"):
         return "error"
     return "reflect"
@@ -247,6 +258,7 @@ def make_v2_graph(
         builder.add_node("balance", _safe_node("balance", balance_node))
         builder.add_node("decompose", _safe_node("decompose", decompose_node))
         builder.add_node("plan", _safe_node("plan", plan_node))
+        builder.add_node("tag_and_persist", _safe_node("tag_and_persist", tag_and_persist_node))
         builder.add_node("reflect", _safe_node("reflect", reflect_node))
         builder.add_node("commit", _safe_node("commit", commit_node))
         builder.add_node(
@@ -288,6 +300,11 @@ def make_v2_graph(
         builder.add_conditional_edges(
             "plan",
             _route_after_plan,
+            {"tag_and_persist": "tag_and_persist", "error": "error"},
+        )
+        builder.add_conditional_edges(
+            "tag_and_persist",
+            _route_after_tag_and_persist,
             {"reflect": "reflect", "error": "error"},
         )
         builder.add_conditional_edges(
