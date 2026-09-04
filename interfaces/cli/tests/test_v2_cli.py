@@ -4,11 +4,12 @@ Uses click.testing.CliRunner to test the Typer app directly, bypassing
 the interfaces.cli.__init__ import chain (which requires full PYTHONPATH
 setup involving src/contracts and src/mesh).
 
-Four tests:
-  test_v2_cycle_invokes_graph    — cycle command calls make_v2_graph
-  test_v2_score_calls_mcp       — score command calls _handle_ikigai_score
-  test_v2_regime_calls_mcp      — regime command calls _handle_ikigai_regime
-  test_v2_cli_help_renders       — v2 --help prints all 3 commands without error
+Per W2.1 (Wave 2): v2 commands route to prompt-chain renderers (FAKE-LLM
+stubs in test mode) with legacy MCP handlers as last-resort fallback when
+the renderer returns llm_call_failed. The 5-tuple from _load_handlers is:
+    (score_handler, regime_handler, render_score_passion,
+     render_heuristics_regime, render_surface_pav)
+The graph factory is loaded separately via _load_graph_factory().
 """
 
 from __future__ import annotations
@@ -49,7 +50,8 @@ def test_v2_cycle_invokes_graph(monkeypatch) -> None:
     }
 
     mock_make = MagicMock(return_value=mock_compiled)
-    monkeypatch.setattr(v2, "_load_handlers", lambda: (None, None, mock_make))
+    # W2.1: graph factory loaded via _load_graph_factory (separate from handlers)
+    monkeypatch.setattr(v2, "_load_graph_factory", lambda: mock_make)
 
     # Use CliRunner to invoke the command
     from typer.testing import CliRunner
@@ -69,7 +71,7 @@ def test_v2_cycle_json_output(monkeypatch) -> None:
     mock_compiled.invoke.return_value = {"error_type": None, "nodes": ["observe"]}
 
     mock_make = MagicMock(return_value=mock_compiled)
-    monkeypatch.setattr(v2, "_load_handlers", lambda: (None, None, mock_make))
+    monkeypatch.setattr(v2, "_load_graph_factory", lambda: mock_make)
 
     from typer.testing import CliRunner
 
@@ -82,16 +84,21 @@ def test_v2_cycle_json_output(monkeypatch) -> None:
 
 
 # ---------------------------------------------------------------------------
-# score command
+# score command — routes to render_score_passion_observation prompt chain
 # ---------------------------------------------------------------------------
 
 
 def test_v2_score_calls_mcp(monkeypatch) -> None:
-    """score command should call _handle_ikigai_score with the date string."""
-    mock_handler = MagicMock(
-        return_value='{"date": "2026-09-03", "vector_scores": {"passion": "0.8"}}'
+    """score command should call render_score_passion_observation with the date."""
+    mock_renderer = MagicMock(
+        return_value={"passion_score": 80, "rationale": "[mock for test]"}
     )
-    monkeypatch.setattr(v2, "_load_handlers", lambda: (mock_handler, MagicMock(), None))
+    # W2.1: 5-tuple (score_handler, regime_handler, render_score_passion, ...)
+    monkeypatch.setattr(
+        v2,
+        "_load_handlers",
+        lambda: (None, None, mock_renderer, MagicMock(), MagicMock()),
+    )
 
     from typer.testing import CliRunner
 
@@ -99,7 +106,9 @@ def test_v2_score_calls_mcp(monkeypatch) -> None:
     result = runner.invoke(v2.app, ["score", "2026-09-03"])
 
     assert result.exit_code == 0, f"score exited with {result.exit_code}: {result.output}"
-    mock_handler.assert_called_once_with({"date": "2026-09-03"})
+    mock_renderer.assert_called_once()
+    call_state = mock_renderer.call_args[0][0]
+    assert call_state["date"] == "2026-09-03"
 
 
 def test_v2_score_no_date_uses_today(monkeypatch) -> None:
@@ -107,8 +116,12 @@ def test_v2_score_no_date_uses_today(monkeypatch) -> None:
     from datetime import date as _date
 
     today = _date.today().isoformat()
-    mock_handler = MagicMock(return_value=f'{{"date": "{today}", "vector_scores": {{}}}}')
-    monkeypatch.setattr(v2, "_load_handlers", lambda: (mock_handler, MagicMock(), None))
+    mock_renderer = MagicMock(return_value={"passion_score": 80})
+    monkeypatch.setattr(
+        v2,
+        "_load_handlers",
+        lambda: (None, None, mock_renderer, MagicMock(), MagicMock()),
+    )
 
     from typer.testing import CliRunner
 
@@ -116,39 +129,53 @@ def test_v2_score_no_date_uses_today(monkeypatch) -> None:
     result = runner.invoke(v2.app, ["score"])
 
     assert result.exit_code == 0
-    call_args = mock_handler.call_args[0][0]
-    assert "date" in call_args
-    assert call_args["date"] == today
+    call_state = mock_renderer.call_args[0][0]
+    assert "date" in call_state
+    assert call_state["date"] == today
 
 
 def test_v2_score_error_when_no_cycle_state(monkeypatch) -> None:
-    """When cycle_state is missing, score should print a hint instead of crashing."""
+    """When renderer returns an error, score should fall back to MCP handler."""
+    mock_renderer = MagicMock(
+        return_value={"error": "llm_call_failed", "exception": "no API key"}
+    )
+    # When the renderer returns llm_call_failed, score falls back to MCP handler.
+    # The MCP handler is mocked to return a JSON-string error response.
     mock_handler = MagicMock(
         return_value='{"error": "no cycle_state", "hint": "PAV writes cycle_state.md"}'
     )
-    monkeypatch.setattr(v2, "_load_handlers", lambda: (mock_handler, MagicMock(), None))
+    monkeypatch.setattr(
+        v2,
+        "_load_handlers",
+        lambda: (mock_handler, None, mock_renderer, MagicMock(), MagicMock()),
+    )
 
     from typer.testing import CliRunner
 
     runner = CliRunner()
     result = runner.invoke(v2.app, ["score", "2026-01-01"])
 
-    # Should not raise — exits 0 and shows hint
+    # Should not raise — exits 0 and shows hint from fallback handler
     assert result.exit_code == 0
     assert "cycle_state" in result.output.lower() or "pav" in result.output.lower()
 
 
 # ---------------------------------------------------------------------------
-# regime command
+# regime command — routes to render_heuristics_regime_observation prompt chain
 # ---------------------------------------------------------------------------
 
 
 def test_v2_regime_calls_mcp(monkeypatch) -> None:
-    """regime command should call _handle_ikigai_regime with the date string."""
-    mock_handler = MagicMock(
-        return_value='{"date": "2026-09-03", "regime_state": "PUSH", "days_in_regime": 3}'
+    """regime command should call render_heuristics_regime_observation with the date."""
+    mock_renderer = MagicMock(
+        return_value={"regime": "PUSH", "rationale": "[mock for test]"}
     )
-    monkeypatch.setattr(v2, "_load_handlers", lambda: (MagicMock(), mock_handler, None))
+    # W2.1: 5-tuple position 3 is render_heuristics_regime
+    monkeypatch.setattr(
+        v2,
+        "_load_handlers",
+        lambda: (None, None, MagicMock(), mock_renderer, MagicMock()),
+    )
 
     from typer.testing import CliRunner
 
@@ -156,15 +183,24 @@ def test_v2_regime_calls_mcp(monkeypatch) -> None:
     result = runner.invoke(v2.app, ["regime", "2026-09-03"])
 
     assert result.exit_code == 0, f"regime exited with {result.exit_code}: {result.output}"
-    mock_handler.assert_called_once_with({"date": "2026-09-03"})
+    mock_renderer.assert_called_once()
+    call_state = mock_renderer.call_args[0][0]
+    assert call_state["date"] == "2026-09-03"
 
 
 def test_v2_regime_error_when_no_regime_state(monkeypatch) -> None:
-    """When regime_state is missing, regime should print a hint instead of crashing."""
+    """When renderer returns llm_call_failed, regime falls back to MCP handler."""
+    mock_renderer = MagicMock(
+        return_value={"error": "llm_call_failed", "exception": "no API key"}
+    )
     mock_handler = MagicMock(
         return_value='{"error": "no regime_state", "hint": "PAV writes regime_state.md"}'
     )
-    monkeypatch.setattr(v2, "_load_handlers", lambda: (MagicMock(), mock_handler, None))
+    monkeypatch.setattr(
+        v2,
+        "_load_handlers",
+        lambda: (None, mock_handler, MagicMock(), mock_renderer, MagicMock()),
+    )
 
     from typer.testing import CliRunner
 
@@ -181,7 +217,7 @@ def test_v2_regime_error_when_no_regime_state(monkeypatch) -> None:
 
 
 def test_v2_cli_help_renders() -> None:
-    """v2 --help must render all 3 commands without raising."""
+    """v2 --help must render all 4 commands (cycle/score/regime/suggest) without error."""
     from typer.testing import CliRunner
 
     runner = CliRunner()
@@ -191,6 +227,162 @@ def test_v2_cli_help_renders() -> None:
     assert "cycle" in result.output
     assert "score" in result.output
     assert "regime" in result.output
+    assert "suggest" in result.output  # W2.1 — new command
+
+
+# ---------------------------------------------------------------------------
+# W2.3 — per-skill commands (daily/weekly/monthly/quarterly)
+# ---------------------------------------------------------------------------
+
+
+def test_v2_cli_help_renders_all_eight_commands() -> None:
+    """W2.3: v2 --help must render all 8 commands including 4 per-skill."""
+    from typer.testing import CliRunner
+
+    runner = CliRunner()
+    result = runner.invoke(v2.app, ["--help"])
+
+    assert result.exit_code == 0
+    # Original 4
+    assert "cycle" in result.output
+    assert "score" in result.output
+    assert "regime" in result.output
+    assert "suggest" in result.output
+    # W2.3 — 4 per-skill
+    assert "daily" in result.output
+    assert "weekly" in result.output
+    assert "monthly" in result.output
+    assert "quarterly" in result.output
+
+
+def test_v2_daily_routes_to_suggest(monkeypatch) -> None:
+    """daily command orchestrates render_surface_pav_intentions (suggest primitive)."""
+    import os
+
+    os.environ.setdefault("IKIGAI_FAKE_LLM", "1")
+
+    # Capture _run_suggest invocation via mock
+    mock_suggest_result = {
+        "suggestions": ["[mock] test suggestion 1", "[mock] test suggestion 2"],
+        "language": "pt-BR",
+        "source": "test",
+        "graph": "ikigai_surface_intentions",
+        "date": "2026-09-04",
+        "vault_root": "vault",
+    }
+    monkeypatch.setattr(v2, "_run_suggest", lambda date_str: mock_suggest_result)
+
+    from typer.testing import CliRunner
+
+    runner = CliRunner()
+    result = runner.invoke(v2.app, ["daily", "2026-09-04", "--json"])
+
+    assert result.exit_code == 0, f"daily exited {result.exit_code}: {result.output}"
+    output_data = json.loads(result.output)
+    assert output_data["skill"] == "ikigai-daily"
+    assert output_data["date"] == "2026-09-04"
+    assert "surface" in output_data
+    assert output_data["surface"]["suggestions"] == mock_suggest_result["suggestions"]
+
+
+def test_v2_weekly_routes_to_score_and_regime(monkeypatch) -> None:
+    """weekly command orchestrates score + regime primitives (NOT cycle)."""
+    mock_score = {"passion_score": 80, "graph": "ikigai_score_passion_observation", "date": "2026-09-04"}
+    mock_regime = {"regime": "PUSH", "graph": "ikigai_heuristics_regime_observation", "date": "2026-09-04"}
+
+    monkeypatch.setattr(v2, "_run_score", lambda date_str: mock_score)
+    monkeypatch.setattr(v2, "_run_regime", lambda date_str: mock_regime)
+    # IMPORTANT: weekly should NOT call _run_cycle (per skill behavior contract)
+    cycle_called = []
+    monkeypatch.setattr(v2, "_run_cycle", lambda dry_run=False: cycle_called.append(dry_run) or {"graph": "should_not_run"})
+
+    from typer.testing import CliRunner
+
+    runner = CliRunner()
+    result = runner.invoke(v2.app, ["weekly", "2026-09-04", "--json"])
+
+    assert result.exit_code == 0, f"weekly exited {result.exit_code}: {result.output}"
+    output_data = json.loads(result.output)
+    assert output_data["skill"] == "ikigai-weekly"
+    assert output_data["score"] == mock_score
+    assert output_data["regime"] == mock_regime
+    assert cycle_called == [], "weekly MUST NOT invoke _run_cycle (per weekly.md behavior)"
+
+
+def test_v2_monthly_routes_to_cycle_dry_run_score_regime(monkeypatch) -> None:
+    """monthly command orchestrates cycle (dry-run) + score + regime."""
+    mock_cycle = {"graph": "ikigai_maintainer_v2", "entry_point": "observe", "dry_run": True, "compiled": True}
+    mock_score = {"passion_score": 75, "graph": "ikigai_score_passion_observation"}
+    mock_regime = {"regime": "MAINTAIN", "graph": "ikigai_heuristics_regime_observation"}
+
+    cycle_args = []
+    def fake_cycle(dry_run: bool = False):
+        cycle_args.append(dry_run)
+        return mock_cycle
+    monkeypatch.setattr(v2, "_run_cycle", fake_cycle)
+    monkeypatch.setattr(v2, "_run_score", lambda date_str: mock_score)
+    monkeypatch.setattr(v2, "_run_regime", lambda date_str: mock_regime)
+
+    from typer.testing import CliRunner
+
+    runner = CliRunner()
+    result = runner.invoke(v2.app, ["monthly", "2026-09-04", "--json"])
+
+    assert result.exit_code == 0, f"monthly exited {result.exit_code}: {result.output}"
+    output_data = json.loads(result.output)
+    assert output_data["skill"] == "ikigai-monthly"
+    assert output_data["cycle"] == mock_cycle
+    assert output_data["score"] == mock_score
+    assert output_data["regime"] == mock_regime
+    assert cycle_args == [True], f"monthly MUST invoke _run_cycle(dry_run=True); got {cycle_args}"
+
+
+def test_v2_quarterly_routes_to_cycle_dry_run_score_regime(monkeypatch) -> None:
+    """quarterly command orchestrates cycle (dry-run) + score + regime."""
+    mock_cycle = {"graph": "ikigai_maintainer_v2", "entry_point": "observe", "dry_run": True, "compiled": True}
+    mock_score = {"passion_score": 70, "graph": "ikigai_score_passion_observation"}
+    mock_regime = {"regime": "RECOVER", "graph": "ikigai_heuristics_regime_observation"}
+
+    cycle_args = []
+    def fake_cycle(dry_run: bool = False):
+        cycle_args.append(dry_run)
+        return mock_cycle
+    monkeypatch.setattr(v2, "_run_cycle", fake_cycle)
+    monkeypatch.setattr(v2, "_run_score", lambda date_str: mock_score)
+    monkeypatch.setattr(v2, "_run_regime", lambda date_str: mock_regime)
+
+    from typer.testing import CliRunner
+
+    runner = CliRunner()
+    result = runner.invoke(v2.app, ["quarterly", "2026-09-04", "--json"])
+
+    assert result.exit_code == 0, f"quarterly exited {result.exit_code}: {result.output}"
+    output_data = json.loads(result.output)
+    assert output_data["skill"] == "ikigai-quarterly"
+    assert output_data["cycle"] == mock_cycle
+    assert output_data["score"] == mock_score
+    assert output_data["regime"] == mock_regime
+    assert cycle_args == [True], f"quarterly MUST invoke _run_cycle(dry_run=True); got {cycle_args}"
+
+
+def test_v2_daily_default_date_is_today(monkeypatch) -> None:
+    """When no date given, daily defaults to today."""
+    from datetime import date as _date
+
+    today = _date.today().isoformat()
+    captured_date = []
+    def fake_suggest(date_str):
+        captured_date.append(date_str)
+        return {"suggestions": [], "language": "pt-BR", "graph": "ikigai_surface_intentions"}
+    monkeypatch.setattr(v2, "_run_suggest", fake_suggest)
+
+    from typer.testing import CliRunner
+
+    runner = CliRunner()
+    result = runner.invoke(v2.app, ["daily"])
+
+    assert result.exit_code == 0
+    assert captured_date == [today], f"daily should default to today ({today}); got {captured_date}"
 
 
 def test_v2_app_imports_cleanly() -> None:
