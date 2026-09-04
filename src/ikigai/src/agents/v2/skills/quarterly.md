@@ -1,6 +1,8 @@
 ---
 name: ikigai-quarterly
 description: Run IKIGAI v2 quarterly review — strategic realignment, wave planning, Q_HE trend
+entry_point: observe
+actor: agent
 triggers:
   - cron: "0 11 1 1,4,7,10 *"   # 1st of Jan/Apr/Jul/Oct at 11:00 local
   - slash: "/ikigai-quarterly"

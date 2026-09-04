@@ -1,6 +1,8 @@
 ---
 name: ikigai-monthly
 description: Run IKIGAI v2 monthly review — aggregate weekly reviews, Q_HE trend analysis
+entry_point: observe
+actor: agent
 triggers:
   - cron: "0 10 1 * *"   # 1st of month 10:00 local
   - slash: "/ikigai-monthly"

@@ -1,6 +1,8 @@
 ---
 name: ikigai-weekly
 description: Run IKIGAI v2 weekly review — score vectors, heuristics, regime check
+entry_point: observe
+actor: agent
 triggers:
   - cron: "0 9 * * 1"   # Monday 09:00 local
   - slash: "/ikigai-weekly"

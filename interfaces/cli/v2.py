@@ -32,7 +32,9 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-app = typer.Typer(help="IKIGAI v2 commands — cycle, score, regime, suggest, daily, weekly, monthly, quarterly")
+app = typer.Typer(
+    help="IKIGAI v2 commands — cycle, score, regime, suggest, daily, weekly, monthly, quarterly"
+)
 console = Console()
 
 
@@ -88,6 +90,7 @@ def _load_handlers():
             _handle_ikigai_score as _score_handler,
             _handle_ikigai_regime as _regime_handler,
         )
+
         score_handler = _score_handler
         regime_handler = _regime_handler
     except ImportError:
@@ -165,6 +168,16 @@ def invoke_skill(
 
     entry_point_override is used for testing/edge cases; if it differs from
     the manifest's entry_point, a warning is logged (per ADR-025 R5).
+
+    W3.6 post-processor: AFTER the graph returns, the manifest's `outputs`
+    list is consulted by ``post_process_skill_outputs`` (see
+    ``_skill_outputs.py``). Skills declaring ``taskdog_create_task`` trigger
+    the existing ``taskdog_create_task`` @tool (Path-1 canonical harness,
+    src/ikigai/src/agents/tools.py:423). On success the graph result is
+    extended with ``taskdog_result``; on failure a TaskChange is enqueued to
+    ``data/review_queue/`` and ``taskdog_pending_review_queue: True`` is
+    added. Per ADR-013 the graph itself stays pure — orchestration lives in
+    the CLI.
     """
     manifest = load_skill_manifest(skill_name)
     entry_point = manifest.get("entry_point")
@@ -191,7 +204,15 @@ def invoke_skill(
         "vault_root": str(_resolve_vault_root()),
         "last_step": "invoke_skill",
     }
-    return graph.invoke(initial_state, config)
+    graph_result = graph.invoke(initial_state, config)
+
+    # W3.6 — post-processor: fire taskdog_create_task if manifest declares it.
+    # The manifest's `outputs` list is the single source of truth for which
+    # side-effect tools a skill invokes. Surface-only skills (daily) have
+    # outputs=[] and short-circuit here.
+    from ._skill_outputs import post_process_skill_outputs
+
+    return post_process_skill_outputs(skill_name, manifest, graph_result)
 
 
 def _resolve_vault_root() -> Path:
@@ -222,7 +243,9 @@ def _run_cycle(dry_run: bool = False) -> dict:
     return {
         "graph": "ikigai_maintainer_v2",
         "entry_point": compiled._ikigai_entry_point,
-        "nodes_visited": list(result.keys()) if isinstance(result, dict) else str(result),
+        "nodes_visited": list(result.keys())
+        if isinstance(result, dict)
+        else str(result),
         "error_type": result.get("error_type") if isinstance(result, dict) else None,
     }
 
@@ -425,14 +448,18 @@ def cycle(
         console.print_json(json.dumps(result, default=str))
     else:
         if result.get("error_type"):
-            console.print(f"[yellow]Graph finished with error:[/yellow] {result['error_type']}")
+            console.print(
+                f"[yellow]Graph finished with error:[/yellow] {result['error_type']}"
+            )
         else:
             if dry_run:
                 console.print(
                     "[green]Graph ikigai_maintainer_v2 compiled (dry-run, not invoked).[/green]"
                 )
             else:
-                console.print("[green]Graph ikigai_maintainer_v2 invoked successfully.[/green]")
+                console.print(
+                    "[green]Graph ikigai_maintainer_v2 invoked successfully.[/green]"
+                )
         console.print(f"[dim]Nodes visited:[/dim] {result.get('nodes_visited', [])}")
 
 
@@ -567,9 +594,7 @@ def daily(
         surface = result.get("surface", {})
         suggestions = surface.get("suggestions", [])
         lang = surface.get("language", "pt-BR")
-        console.print(
-            f"[green]ikigai-daily for {date_str} [{lang}]:[/green]"
-        )
+        console.print(f"[green]ikigai-daily for {date_str} [{lang}]:[/green]")
         if not suggestions:
             console.print("  [dim](no suggestions surfaced)[/dim]")
         for i, s in enumerate(suggestions, 1):
@@ -602,14 +627,14 @@ def weekly(
     else:
         score = result.get("score", {})
         regime = result.get("regime", {})
-        console.print(
-            f"[green]ikigai-weekly for {date_str}:[/green]"
-        )
+        console.print(f"[green]ikigai-weekly for {date_str}:[/green]")
         # Score line
         if "error" in score:
             console.print(f"  [yellow]Score: error — {score.get('error')}[/yellow]")
         else:
-            ps = score.get("passion_score", score.get("vector_scores", {}).get("passion", "?"))
+            ps = score.get(
+                "passion_score", score.get("vector_scores", {}).get("passion", "?")
+            )
             console.print(f"  passion_score: {ps}")
         # Regime line
         if "error" in regime:
@@ -646,9 +671,7 @@ def monthly(
         cycle = result.get("cycle", {})
         score = result.get("score", {})
         regime = result.get("regime", {})
-        console.print(
-            f"[green]ikigai-monthly for {date_str}:[/green]"
-        )
+        console.print(f"[green]ikigai-monthly for {date_str}:[/green]")
         # Cycle line
         if "error_type" in cycle and cycle["error_type"]:
             console.print(f"  [yellow]Cycle: error — {cycle['error_type']}[/yellow]")
@@ -662,7 +685,9 @@ def monthly(
         if "error" in score:
             console.print(f"  [yellow]Score: error — {score.get('error')}[/yellow]")
         else:
-            ps = score.get("passion_score", score.get("vector_scores", {}).get("passion", "?"))
+            ps = score.get(
+                "passion_score", score.get("vector_scores", {}).get("passion", "?")
+            )
             console.print(f"  passion_score: {ps}")
         # Regime line
         if "error" in regime:
@@ -699,9 +724,7 @@ def quarterly(
         cycle = result.get("cycle", {})
         score = result.get("score", {})
         regime = result.get("regime", {})
-        console.print(
-            f"[green]ikigai-quarterly for {date_str}:[/green]"
-        )
+        console.print(f"[green]ikigai-quarterly for {date_str}:[/green]")
         if "error_type" in cycle and cycle["error_type"]:
             console.print(f"  [yellow]Cycle: error — {cycle['error_type']}[/yellow]")
         else:
@@ -713,7 +736,9 @@ def quarterly(
         if "error" in score:
             console.print(f"  [yellow]Score: error — {score.get('error')}[/yellow]")
         else:
-            ps = score.get("passion_score", score.get("vector_scores", {}).get("passion", "?"))
+            ps = score.get(
+                "passion_score", score.get("vector_scores", {}).get("passion", "?")
+            )
             console.print(f"  passion_score: {ps}")
         if "error" in regime:
             console.print(f"  [yellow]Regime: error — {regime.get('error')}[/yellow]")
