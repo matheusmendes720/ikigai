@@ -968,6 +968,138 @@ def test_subagent_constants_present_in_json() -> None:
 
 
 # ---------------------------------------------------------------------------
+# W4.5 — ADR-027 checkpoint consumer drift invariants
+# ---------------------------------------------------------------------------
+
+
+def test_ikigai_checkpointer_class_exists() -> None:
+    """IkigaiCheckpointer MUST exist at agents/v2/checkpoint.py (ADR-027 R13.1).
+
+    Closes the W4.5 implementation deliverable. The checkpointer wraps
+    LangGraph's SqliteSaver with WAL PRAGMAs (R8) + 2 schema-control
+    tables (R1) + retention (R10). Removing the class without an ADR
+    amendment violates ADR-027 R13.1.
+    """
+    checkpoint_path = IKIGAI_SRC / "agents" / "v2" / "checkpoint.py"
+    if not checkpoint_path.exists():
+        pytest.skip(f"{checkpoint_path} not present")
+    source = checkpoint_path.read_text(encoding="utf-8")
+    assert "class IkigaiCheckpointer" in source, (
+        f"IkigaiCheckpointer class missing from {checkpoint_path}. "
+        f"ADR-027 R13.1 mandates this class at the canonical path."
+    )
+    # Required public surface per W4.5 brief §"Critical content" item 1.
+    for required_symbol in (
+        "def __init__",
+        "def get_saver",
+        "def record_subgraph_link",
+        "def get_subgraph_links",
+        "def apply_retention",
+        "def close",
+    ):
+        assert required_symbol in source, (
+            f"IkigaiCheckpointer missing required method: {required_symbol}"
+        )
+
+
+def test_default_db_filename_matches_adrr027_r135() -> None:
+    """_DEFAULT_DB_FILENAME MUST equal 'ikigai_checkpoints.db' (ADR-027 R13.5).
+
+    The DB filename is load-bearing: graph.py:make_v2_graph() resolves
+    ``<project_root>/data/{_DEFAULT_DB_FILENAME}`` when no explicit
+    checkpoint_db is provided. Renaming it silently breaks the
+    default location.
+    """
+    checkpoint_path = IKIGAI_SRC / "agents" / "v2" / "checkpoint.py"
+    if not checkpoint_path.exists():
+        pytest.skip(f"{checkpoint_path} not present")
+    source = checkpoint_path.read_text(encoding="utf-8")
+    assert "_DEFAULT_DB_FILENAME" in source
+    # Match the assignment — accept any quote style
+    import re
+
+    m = re.search(r'_DEFAULT_DB_FILENAME\s*[:=]\s*["\']ikigai_checkpoints\.db["\']', source)
+    assert m, (
+        f"_DEFAULT_DB_FILENAME must be exactly 'ikigai_checkpoints.db' "
+        f"per ADR-027 R13.5. Source: {source[:500]}"
+    )
+
+
+def test_checkpoint_and_subagent_constants_in_json() -> None:
+    """algorithm_constants.json MUST define ALL 6 tuning keys (4 SUBAGENT + 2 CHECKPOINT).
+
+    Per ADR-019 R7 + ADR-027 R10 + ADR-026 R6: algorithm/checkpoint tuning
+    values are JSON-only. W4.4 added the 4 SUBAGENT_* keys; W4.5 adds
+    CHECKPOINT_RETENTION_COUNT + MAX_CHECKPOINT_AGE_DAYS. All 6 MUST be
+    present in the JSON (canonical source) and absent from Python modules.
+    """
+    import json
+
+    json_path = IKIGAI_SRC / "agents" / "v2" / "prompts" / "algorithm_constants.json"
+    if not json_path.exists():
+        pytest.skip(f"{json_path} not present")
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    required = (
+        # W4.4 — Sub-agent dispatch tuning
+        "SUBAGENT_PARENT_TIMEOUT_S",
+        "SUBAGENT_MAX_FAN_OUT",
+        "SUBAGENT_MAX_DISPATCH_DEPTH",
+        "SUBAGENT_CHECKPOINT_KEEP_AFTER_REPLAY",
+        # W4.5 — Checkpoint retention tuning (ADR-027 R10)
+        "CHECKPOINT_RETENTION_COUNT",
+        "MAX_CHECKPOINT_AGE_DAYS",
+    )
+    missing = [k for k in required if k not in data]
+    assert not missing, (
+        f"algorithm_constants.json missing tuning keys "
+        f"(ADR-027 R10 + ADR-026 R6): {missing}. "
+        f"Found keys: {sorted(k for k in data if not k.startswith('_'))}"
+    )
+
+
+def test_subgraph_uses_build_subagent_thread_id_from_checkpoint() -> None:
+    """subgraph.py MUST import + use build_subagent_thread_id from checkpoint.py.
+
+    Closes the W4.4 reviewer's minor observation: ``_invoke_subagent``
+    used ``f"subagent-{sub_agent_id}"`` (legacy format) instead of the
+    canonical 4-segment hierarchical thread_id per ADR-027 R3. W4.5
+    introduces ``build_subagent_thread_id`` in checkpoint.py and
+    subgraph.py MUST consume it.
+
+    The module docstring of subgraph.py still references the legacy
+    format in historical context, so we strip docstrings + comments
+    before doing the substring check.
+    """
+    import re as _re
+
+    subgraph_path = IKIGAI_SRC / "agents" / "v2" / "subgraph.py"
+    checkpoint_path = IKIGAI_SRC / "agents" / "v2" / "checkpoint.py"
+    if not subgraph_path.exists() or not checkpoint_path.exists():
+        pytest.skip("subgraph.py or checkpoint.py not present")
+    subgraph_source = subgraph_path.read_text(encoding="utf-8")
+    checkpoint_source = checkpoint_path.read_text(encoding="utf-8")
+    # checkpoint.py MUST export build_subagent_thread_id
+    assert "def build_subagent_thread_id" in checkpoint_source, (
+        "checkpoint.py must define build_subagent_thread_id (ADR-027 R3)"
+    )
+    # subgraph.py MUST import it
+    assert "from .checkpoint import build_subagent_thread_id" in subgraph_source, (
+        "subgraph.py must import build_subagent_thread_id from checkpoint.py "
+        "(W4.5 closes W4.4 reviewer minor observation)"
+    )
+    # Strip triple-quoted strings (docstrings) and single-line comments
+    # so legacy references in historical context don't trip the check.
+    code_only = _re.sub(r'"""[\s\S]*?"""', "", subgraph_source)
+    code_only = _re.sub(r"'''[\s\S]*?'''", "", code_only)
+    code_only = _re.sub(r"#.*", "", code_only)
+    assert 'f"subagent-{sub_agent_id}"' not in code_only, (
+        'Legacy `f"subagent-{sub_agent_id}"` thread_id format found in '
+        "subgraph.py CODE — must be replaced with build_subagent_thread_id "
+        "(ADR-027 R3, W4.4 reviewer minor observation)"
+    )
+
+
+# ---------------------------------------------------------------------------
 # AST helpers (used above)
 # ---------------------------------------------------------------------------
 
