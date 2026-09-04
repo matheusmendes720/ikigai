@@ -1,6 +1,6 @@
-# ADR-025 — Skill Binding Mechanism (Hybrid)
+# ADR-025 — Skill Binding Mechanism (Hybrid) — ACCEPTED
 
-> **Status:** DRAFT (proposed 2026-09-04 — pending user acceptance)
+> **Status:** Accepted (2026-09-04 — user accepted all 4 review questions: Hybrid binding ✓, literal mapping ✓, all-actors=user ✓, R6 minimal refactor ✓)
 > **Deciders:** matheus (project owner)
 > **Supersedes:** W3.4 task brief which incorrectly named this ADR-014 (ADR-014 is UEID canonical format, accepted 2026-09-04)
 > **Load-bearing:** YES — W3.5 (wire daily entry point) and W5.4 (extend to monthly/quarterly) both depend on this contract
