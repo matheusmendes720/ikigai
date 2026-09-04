@@ -137,6 +137,17 @@ class QueueRow:
     payload: dict[str, Any]  # raw JSON (drilldown source)
 
 
+@dataclass(frozen=True)
+class TaskRow:
+    """Render-ready row for the tasks table (Deep Agent output)."""
+
+    ueid: str
+    title: str
+    due: str | None
+    priority: str
+    source_fork: str
+
+
 # === Load helpers ===
 
 def list_adapters() -> list[AdapterInfo]:
@@ -272,6 +283,40 @@ def load_queue_rows(limit: int = 100) -> list[QueueRow]:
     return rows
 
 
+def load_task_rows() -> list[TaskRow]:
+    """Read task records from data/tasks.jsonl (Deep Agent output).
+
+    Returns an empty list if the file does not exist or is empty.
+    Malformed lines are skipped silently.
+    """
+    if not TASKS_JSONL.exists():
+        return []
+
+    rows: list[TaskRow] = []
+    try:
+        text = TASKS_JSONL.read_text(encoding="utf-8")
+    except OSError:
+        return []
+
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec: dict[str, object] = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        rows.append(
+            TaskRow(
+                ueid=str(rec.get("ueid", "—")),
+                title=str(rec.get("title", "—")),
+                due=str(rec.get("due")) if rec.get("due") is not None else None,
+                priority=str(rec.get("priority", "medium")),
+                source_fork=str(rec.get("source_fork", "—")),
+            )
+        )
+    return rows
+
+
 def format_uptime(started_at: float | None, now: float | None = None) -> str:
     """Format a duration in human-readable short form.
 
@@ -310,9 +355,12 @@ __all__ = [
     "AdapterRow",
     "BackendRow",
     "QueueRow",
+    "TaskRow",
+    "TASKS_JSONL",
     "load_adapter_rows",
     "load_backend_rows",
     "load_queue_rows",
+    "load_task_rows",
     "adapter_summary",
     "ADAPTER_REGISTRY",
     "BACKEND_PROCESSES",

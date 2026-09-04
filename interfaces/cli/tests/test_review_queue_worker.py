@@ -3,12 +3,10 @@
 These tests use the tmp_data_dir fixture which monkeypaths all mesh adapter
 paths to a temp directory. Stub adapters are used to avoid real fork stores.
 """
+
 from __future__ import annotations
 
-import os
-import tempfile
 import threading
-import time
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -82,7 +80,9 @@ def test_run_once_empty_queue(tmp_data_dir: Path) -> None:
     adapters = [StubAdapter("test")]
     result = run_once(adapters)
 
-    assert result == RunResult(consumed=0, approved=0, rejected=0, clarified=0, partial=0)
+    assert result == RunResult(
+        consumed=0, approved=0, rejected=0, clarified=0, partial=0
+    )
 
 
 def test_run_once_approved_event(tmp_data_dir: Path) -> None:
@@ -207,6 +207,7 @@ def test_start_worker_writes_pidfile(tmp_data_dir: Path) -> None:
     run_completed = threading.Event()
 
     import src.mesh.review_queue_worker as worker_module
+
     original_run_once = worker_module.run_once
 
     def patched_run_once(adapter_list):

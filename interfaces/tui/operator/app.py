@@ -1,20 +1,24 @@
 """Operator TUI — Textual App.
 
-Three-tab dashboard:
-  [1] Adapters     — fork adapter registry + storage path liveness
-  [2] Backend      — backend process status (mcp_gateway, review_queue_worker)
-  [3] Queue        — pending TaskChange events in data/review_queue/
+Four-tab dashboard:
+  [1] Tasks        — live view of data/tasks.jsonl (Deep Agent output)
+  [2] Adapters     — fork adapter registry + storage path liveness
+  [3] Backend      — backend process status (mcp_gateway, review_queue_worker)
+  [4] Queue        — pending TaskChange events in data/review_queue/
 
 Tier 2 additions:
   - Backend tab: Started + Uptime columns (from pidfile mtime)
   - Queue tab:  press `d` to drill down on a row (shows full JSON payload)
 
-Auto-refresh every 5s. Press `r` to refresh, `q` to quit.
+Tasks tab auto-refreshes every 2s via filesystem poll on data/tasks.jsonl.
+Press `r` to refresh, `q` to quit.
 """
 
 from __future__ import annotations
 
 import json as _json
+import os
+from textwrap import shorten
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -24,10 +28,12 @@ from textual.screen import ModalScreen
 from textual.widgets import DataTable, Footer, Header, Static
 
 from interfaces.tui.operator.data import (
+    TASKS_JSONL,
     format_uptime,
     load_adapter_rows,
     load_backend_rows,
     load_queue_rows,
+    load_task_rows,
 )
 
 
@@ -76,15 +82,18 @@ class OperatorApp(App):
     SUB_TITLE = "Backend control plane"
 
     BINDINGS = [
-        Binding("1", "show_adapters", "Adapters"),
-        Binding("2", "show_backend", "Backend"),
-        Binding("3", "show_queue", "Queue"),
+        Binding("1", "show_tasks", "Tasks"),
+        Binding("2", "show_adapters", "Adapters"),
+        Binding("3", "show_backend", "Backend"),
+        Binding("4", "show_queue", "Queue"),
         Binding("d", "drilldown_queue", "Detail"),
         Binding("r", "refresh", "Refresh"),
         Binding("q", "quit", "Quit"),
     ]
 
-    active_tab: reactive[str] = reactive("adapters")
+    active_tab: reactive[str] = reactive("tasks")
+    _watcher_mtime: reactive[float | None] = reactive(None)
+    _tasks_watcher_mtime: float | None = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -93,11 +102,17 @@ class OperatorApp(App):
 
     def on_mount(self) -> None:
         """Initial render."""
-        self.action_show_adapters()
-        # Auto-refresh every 5s
-        self.set_interval(5.0, self.action_refresh)
+        self.action_show_tasks()
+        # Auto-refresh every 5s for non-task tabs
+        self.set_interval(5.0, self._non_task_refresh)
+        # Live filesystem watcher on data/tasks.jsonl (2s poll)
+        self._start_tasks_watcher()
 
     # ---- Tab actions ----
+
+    def action_show_tasks(self) -> None:
+        self.active_tab = "tasks"
+        self._render_tasks()
 
     def action_show_adapters(self) -> None:
         self.active_tab = "adapters"
@@ -111,7 +126,8 @@ class OperatorApp(App):
         self.active_tab = "queue"
         self._render_queue()
 
-    def action_refresh(self) -> None:
+    def _non_task_refresh(self) -> None:
+        """Refresh non-task tabs (called every 5s)."""
         if self.active_tab == "adapters":
             self._render_adapters()
         elif self.active_tab == "backend":
@@ -148,7 +164,88 @@ class OperatorApp(App):
             QueueDetailScreen(event_id=row.event_id, payload=row.payload)
         )
 
+    # ---- Live filesystem watcher ----
+
+    def _start_tasks_watcher(self) -> None:
+        """Poll data/tasks.jsonl every 2s; reload Tasks tab on mtime change."""
+        self.set_interval(2.0, self._poll_tasks_file)
+
+    def _poll_tasks_file(self) -> None:
+        """Called on the worker thread every 2s. Bumps _watcher_mtime on change."""
+        if not TASKS_JSONL.exists():
+            mtime: float | None = None
+        else:
+            try:
+                mtime = os.path.getmtime(str(TASKS_JSONL))
+            except OSError:
+                mtime = None
+        # Update reactive on main thread
+        self.call_from_thread(self._set_watcher_mtime, mtime)
+
+    def _set_watcher_mtime(self, mtime: float | None) -> None:
+        """Set mtime and trigger Tasks tab reload when file changes."""
+        if mtime != self._tasks_watcher_mtime:
+            self._tasks_watcher_mtime = mtime
+            self._watcher_mtime = mtime
+            if self.active_tab == "tasks":
+                self._render_tasks()
+            self._update_watcher_status()
+
+    def _update_watcher_status(self) -> None:
+        """Refresh the status bar line. Safe to call before first render."""
+        try:
+            status_widget = self.query_one("#status-line", Static)
+        except Exception:
+            return  # widget not yet mounted
+        if self._tasks_watcher_mtime is None:
+            label = "(no tasks yet)"
+        else:
+            import datetime as _dt
+            label = _dt.datetime.fromtimestamp(self._tasks_watcher_mtime).strftime("%H:%M:%S")
+        status_widget.update(f"Live: watching data/tasks.jsonl (mtime: {label})")
+
     # ---- Render helpers ----
+
+    def _render_tasks(self) -> None:
+        content = self.query_one("#content", Container)
+        content.remove_children()
+
+        rows = load_task_rows()
+
+        summary = SummaryPanel()
+        content.mount(summary)
+        if not rows:
+            summary.update(
+                "[bold]Tasks[/bold]  ·  "
+                "[dim]No tasks in data/tasks.jsonl[/dim]"
+            )
+        else:
+            summary.update(
+                f"[bold]Tasks[/bold]  ·  "
+                f"[green]{len(rows)} task(s)[/green]"
+            )
+
+        status_line = Static(
+            f"Live: watching data/tasks.jsonl (mtime: {self._tasks_watcher_mtime})",
+            id="status-line",
+        )
+        content.mount(status_line)
+
+        if not rows:
+            return
+
+        table = DataTable(zebra_stripes=True, cursor_type="row")
+        table.add_columns("UEID", "Title", "Due", "Priority", "Source Fork")
+        for row in rows:
+            title_cell = shorten(row.title, width=40, placeholder="...")
+            table.add_row(
+                row.ueid,
+                title_cell,
+                row.due or "—",
+                row.priority,
+                row.source_fork,
+            )
+        content.mount(table)
 
     def _render_adapters(self) -> None:
         content = self.query_one("#content", Container)

@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from contracts.common import UEID
+from .common import UEID
 
 
 class TaskAction(str, Enum):
@@ -23,7 +23,9 @@ class TaskAction(str, Enum):
     DONE = "done"
 
 
-TaskStatus = Literal["pending", "approved", "rejected", "propagated", "partial_propagation", "clarified"]
+TaskStatus = Literal[
+    "pending", "approved", "rejected", "propagated", "partial_propagation", "clarified"
+]
 
 
 class TaskChange(BaseModel):

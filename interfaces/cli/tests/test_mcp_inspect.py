@@ -5,6 +5,7 @@ Validates:
   - --help exits 0 and prints usage
   - module file compiles (no SyntaxError)
 """
+
 from __future__ import annotations
 
 import os

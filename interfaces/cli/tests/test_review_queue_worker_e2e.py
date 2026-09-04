@@ -11,6 +11,7 @@ Uses the real `data/review_queue/` dir for the queue (test fixtures write
 into and clean out of this dir under stable event_ids) and a temp
 TASKS_JSONL for the CliAdapter write so production data is not polluted.
 """
+
 from __future__ import annotations
 
 import json
@@ -21,19 +22,25 @@ from typing import Any
 
 import pytest
 import sqlite3
-import uuid
 
 from src.contracts.common import UEID
-from src.contracts.task_change import PropagationEvent, TaskAction, TaskChange, TaskStatus
+from src.contracts.task_change import (
+    PropagationEvent,
+    TaskAction,
+    TaskChange,
+    TaskStatus,
+)
 from src.mesh import queue as queue_mod
 from src.mesh import review_queue_worker as worker_mod
 
 
 # === Stub adapter (Protocol-conformant) ===
 
+
 @dataclass
 class StubAdapter:
     """Captures PropagationEvents for assertion. Raises on demand."""
+
     name: str = "stub"
     raise_on_apply: bool = False
     captured: list[PropagationEvent] = field(default_factory=list)
@@ -51,6 +58,7 @@ class StubAdapter:
 
 
 # === Helpers ===
+
 
 def _make_event(
     event_id: str = "test-evt-001",
@@ -90,6 +98,7 @@ def _cleanup(event_id: str) -> None:
 
 
 # === Tests ===
+
 
 def test_end_to_end_approved_propagates_to_adapter() -> None:
     """Happy path: enqueue valid event → adapter receives PropagationEvent → status='propagated'."""
@@ -350,7 +359,6 @@ def test_end_to_end_with_solverforge_calendar_adapter_writes_real_upi(
 # === Vault-propagation tests ===
 
 from types import SimpleNamespace
-from src.contracts.task_change import TaskChange, TaskAction
 
 
 def _make_fake_validation() -> Any:
@@ -362,7 +370,8 @@ def _make_fake_validation() -> Any:
 
 
 def test_propagator_vault_target_invokes_vault_write(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """When event.source_fork=='vault', propagate() calls vault_write."""
     from src.mesh import agent_propagator
@@ -374,12 +383,14 @@ def test_propagator_vault_target_invokes_vault_write(
     captured: list[dict] = []
 
     def _stub(vault_root, vault_path, frontmatter_fields, body):
-        captured.append({
-            "vault_root": str(vault_root),
-            "vault_path": vault_path,
-            "frontmatter": frontmatter_fields,
-            "body": body,
-        })
+        captured.append(
+            {
+                "vault_root": str(vault_root),
+                "vault_path": vault_path,
+                "frontmatter": frontmatter_fields,
+                "body": body,
+            }
+        )
         return {"written": True, "vault_path": vault_path, "sha256": "deadbeef"}
 
     monkeypatch.setattr(vw_direct, "vault_write", _stub)
@@ -411,7 +422,8 @@ def test_propagator_vault_target_invokes_vault_write(
 
 
 def test_propagator_non_vault_target_does_not_touch_vault(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """source_fork=='taskdog' means propagate() MUST NOT call vault_write."""
     from src.mesh import agent_propagator
@@ -443,4 +455,6 @@ def test_propagator_non_vault_target_does_not_touch_vault(
         adapters=[],
     )
 
-    assert called["n"] == 0, f"vault_write should NOT be called for taskdog, got {called['n']}"
+    assert called["n"] == 0, (
+        f"vault_write should NOT be called for taskdog, got {called['n']}"
+    )

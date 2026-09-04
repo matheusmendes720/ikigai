@@ -7,12 +7,12 @@ Verifies that:
   3. Both files are well-formed JSON
   4. Event has pending status (awaiting agent review)
 """
+
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
-from uuid import UUID
 
 import pytest
 
@@ -102,7 +102,9 @@ def test_task_add_idempotent_per_title(tmp_data_dir, clean_console) -> None:
     assert len(lines) == 2
     first = json.loads(lines[0])
     second = json.loads(lines[1])
-    assert first["ueid"] != second["ueid"], "two tasks with same title must have distinct UEIDs"
+    assert first["ueid"] != second["ueid"], (
+        "two tasks with same title must have distinct UEIDs"
+    )
 
 
 def test_task_add_preserves_existing_tasks(tmp_data_dir, clean_console) -> None:

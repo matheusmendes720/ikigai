@@ -5,15 +5,15 @@ Validates the Phase 3 v1 mesh read path:
   - Reports mismatches when status differs across forks
   - Returns None for slices whose store doesn't exist yet (no false errors)
 """
+
 from __future__ import annotations
 
-import json
 import sqlite3
 from pathlib import Path
 
 import pytest
 
-from interfaces.cli.read_tasks import show_mesh, task_add
+from interfaces.cli.read_tasks import show_mesh
 from src.contracts.common import UEID
 from src.contracts.task_change import PropagationEvent, TaskAction
 from src.mesh.adapters.cli import CliAdapter
@@ -41,7 +41,9 @@ def test_show_mesh_finds_task_in_cli_slice(tmp_data_dir) -> None:
             ueid=ueid,
             action=TaskAction.CREATE,
             fields={"title": "visible in cli slice", "due": None, "priority": "low"},
-            approved_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
+            approved_at=__import__("datetime").datetime.now(
+                __import__("datetime").timezone.utc
+            ),
             source_fork="test",
         )
     )
@@ -64,7 +66,9 @@ def test_show_mesh_finds_task_in_taskdog_slice(tmp_data_dir) -> None:
             ueid=ueid,
             action=TaskAction.CREATE,
             fields={"title": "in taskdog", "due": None, "priority": "medium"},
-            approved_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
+            approved_at=__import__("datetime").datetime.now(
+                __import__("datetime").timezone.utc
+            ),
             source_fork="test",
         )
     )
@@ -85,7 +89,9 @@ def test_show_mesh_finds_task_in_calendar_slice(tmp_data_dir) -> None:
             ueid=ueid,
             action=TaskAction.CREATE,
             fields={"title": "in calendar", "due": None, "priority": "high"},
-            approved_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
+            approved_at=__import__("datetime").datetime.now(
+                __import__("datetime").timezone.utc
+            ),
             source_fork="test",
         )
     )
@@ -114,7 +120,9 @@ def test_show_mesh_idempotent_calendar_upsert(tmp_data_dir) -> None:
                 ueid=ueid,
                 action=TaskAction.CREATE,
                 fields={"title": f"attempt {i}", "due": None, "priority": "low"},
-                approved_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
+                approved_at=__import__("datetime").datetime.now(
+                    __import__("datetime").timezone.utc
+                ),
                 source_fork="test",
             )
         )
