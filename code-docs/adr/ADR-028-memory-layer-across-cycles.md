@@ -106,94 +106,56 @@ schemas (one per memory type). All memory tuning constants live in
 
 ### R1 — Memory table schemas (SQLite)
 
+> **Note:** R1 schema was amended after W4.6 implementation shipped. The
+> shipped schema uses 7 columns + `ts REAL` Unix-epoch for performance
+> reasons; this supersedes the original 12-column + ISO8601 design.
+
 Four memory tables, one per skill, each indexed by 4-part UEID. The
 schema is **additive-only** across versions (R11).
 
 ```sql
 -- Daily intentions — written by ikigai-daily (actor=user)
 CREATE TABLE IF NOT EXISTS memory_daily_intentions (
-    daily_ueid    TEXT PRIMARY KEY,        -- 4-part UEID per ADR-014
-    cycle_id      TEXT NOT NULL,           -- parent cycle UUID
-    skill         TEXT NOT NULL,           -- always "ikigai-daily"
-    actor         TEXT NOT NULL,           -- "user" | "agent" | "system"
-    ts            TEXT NOT NULL,           -- ISO 8601 UTC (vault_write timestamp)
-    cycle_start   TEXT NOT NULL,
-    cycle_end     TEXT NOT NULL,
-    body_markdown TEXT NOT NULL,           -- frontmatter + body of daily.md
-    vault_path    TEXT NOT NULL,           -- relative to vault_root
-    sha256        TEXT NOT NULL,           -- sha256 of body_markdown
-    schema_version INTEGER NOT NULL DEFAULT 1,
-    created_at    TEXT NOT NULL            -- ISO 8601 UTC (write timestamp)
+    daily_ueid    TEXT PRIMARY KEY,
+    body_markdown TEXT NOT NULL,
+    sha256        TEXT NOT NULL,
+    vault_path    TEXT NOT NULL,
+    actor         TEXT NOT NULL CHECK(actor IN ('user', 'agent', 'system')),
+    source_ueids  TEXT NOT NULL DEFAULT '[]',
+    ts            REAL NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_memory_daily_ts
-    ON memory_daily_intentions(ts);
-CREATE INDEX IF NOT EXISTS idx_memory_daily_actor
-    ON memory_daily_intentions(actor);
 
 -- Weekly aggregations — written by ikigai-weekly (actor=agent)
 CREATE TABLE IF NOT EXISTS memory_weekly_aggregations (
-    weekly_ueid   TEXT PRIMARY KEY,        -- 4-part UEID
-    cycle_id      TEXT NOT NULL,
-    skill         TEXT NOT NULL,           -- "ikigai-weekly"
-    actor         TEXT NOT NULL,           -- "agent"
-    ts            TEXT NOT NULL,
-    cycle_start   TEXT NOT NULL,
-    cycle_end     TEXT NOT NULL,
-    source_ueids  TEXT NOT NULL,           -- JSON list of daily_ueids aggregated
+    weekly_ueid   TEXT PRIMARY KEY,
     body_markdown TEXT NOT NULL,
-    vault_path    TEXT NOT NULL,
     sha256        TEXT NOT NULL,
-    schema_version INTEGER NOT NULL DEFAULT 1,
-    created_at    TEXT NOT NULL
+    vault_path    TEXT NOT NULL,
+    actor         TEXT NOT NULL CHECK(actor IN ('user', 'agent', 'system')),
+    source_ueids  TEXT NOT NULL DEFAULT '[]',
+    ts            REAL NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_memory_weekly_ts
-    ON memory_weekly_aggregations(ts);
-CREATE INDEX IF NOT EXISTS idx_memory_weekly_source
-    ON memory_weekly_aggregations(source_ueids);  -- JSON LIKE query for join
 
 -- Monthly syntheses — written by ikigai-monthly (actor=agent)
 CREATE TABLE IF NOT EXISTS memory_monthly_syntheses (
-    monthly_ueid  TEXT PRIMARY KEY,        -- 4-part UEID
-    cycle_id      TEXT NOT NULL,
-    skill         TEXT NOT NULL,           -- "ikigai-monthly"
-    actor         TEXT NOT NULL,           -- "agent"
-    ts            TEXT NOT NULL,
-    cycle_start   TEXT NOT NULL,
-    cycle_end     TEXT NOT NULL,
-    source_ueids  TEXT NOT NULL,           -- JSON list of weekly_ueids
+    monthly_ueid  TEXT PRIMARY KEY,
     body_markdown TEXT NOT NULL,
-    vault_path    TEXT NOT NULL,
     sha256        TEXT NOT NULL,
-    schema_version INTEGER NOT NULL DEFAULT 1,
-    created_at    TEXT NOT NULL
+    vault_path    TEXT NOT NULL,
+    actor         TEXT NOT NULL CHECK(actor IN ('user', 'agent', 'system')),
+    source_ueids  TEXT NOT NULL DEFAULT '[]',
+    ts            REAL NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_memory_monthly_ts
-    ON memory_monthly_syntheses(ts);
 
 -- Quarterly strategies — written by ikigai-quarterly (actor=agent)
 CREATE TABLE IF NOT EXISTS memory_quarterly_strategies (
-    quarterly_ueid TEXT PRIMARY KEY,       -- 4-part UEID
-    cycle_id      TEXT NOT NULL,
-    skill         TEXT NOT NULL,           -- "ikigai-quarterly"
-    actor         TEXT NOT NULL,           -- "agent"
-    ts            TEXT NOT NULL,
-    cycle_start   TEXT NOT NULL,
-    cycle_end     TEXT NOT NULL,
-    source_ueids  TEXT NOT NULL,           -- JSON list of monthly_ueids
-    body_markdown TEXT NOT NULL,
-    vault_path    TEXT NOT NULL,
-    sha256        TEXT NOT NULL,
-    schema_version INTEGER NOT NULL DEFAULT 1,
-    created_at    TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_memory_quarterly_ts
-    ON memory_quarterly_strategies(ts);
-
--- Schema registry (mirrors ADR-027 R1 pattern)
-CREATE TABLE IF NOT EXISTS memory_schema_registry (
-    schema_version INTEGER PRIMARY KEY,    -- monotonic, never reused
-    description    TEXT NOT NULL,
-    applied_at     TEXT NOT NULL           -- ISO 8601 UTC
+    quarterly_ueid TEXT PRIMARY KEY,
+    body_markdown  TEXT NOT NULL,
+    sha256         TEXT NOT NULL,
+    vault_path     TEXT NOT NULL,
+    actor          TEXT NOT NULL CHECK(actor IN ('user', 'agent', 'system')),
+    source_ueids   TEXT NOT NULL DEFAULT '[]',
+    ts             REAL NOT NULL
 );
 
 -- ADR-028 R12: WAL mode + tuning constants loaded at connection
