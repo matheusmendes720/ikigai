@@ -453,10 +453,10 @@ _SKILLS_DIR = IKIGAI_SRC / "agents" / "v2" / "skills"
 @pytest.mark.parametrize(
     "skill_name",
     [
-        pytest.param("ikigai-daily", id="ikigai-daily"),
-        pytest.param("ikigai-weekly", id="ikigai-weekly", marks=pytest.mark.skip(reason="W3.6 territory")),
-        pytest.param("ikigai-monthly", id="ikigai-monthly", marks=pytest.mark.skip(reason="W3.6 territory")),
-        pytest.param("ikigai-quarterly", id="ikigai-quarterly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("daily", id="daily"),  # actual filename is daily.md, not ikigai-daily.md
+        pytest.param("weekly", id="weekly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("monthly", id="monthly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("quarterly", id="quarterly", marks=pytest.mark.skip(reason="W3.6 territory")),
     ],
 )
 def test_skill_manifest_has_entry_point(skill_name) -> None:
@@ -481,10 +481,10 @@ def test_skill_manifest_has_entry_point(skill_name) -> None:
 @pytest.mark.parametrize(
     "skill_name",
     [
-        pytest.param("ikigai-daily", id="ikigai-daily"),
-        pytest.param("ikigai-weekly", id="ikigai-weekly", marks=pytest.mark.skip(reason="W3.6 territory")),
-        pytest.param("ikigai-monthly", id="ikigai-monthly", marks=pytest.mark.skip(reason="W3.6 territory")),
-        pytest.param("ikigai-quarterly", id="ikigai-quarterly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("daily", id="daily"),  # actual filename is daily.md, not ikigai-daily.md
+        pytest.param("weekly", id="weekly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("monthly", id="monthly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("quarterly", id="quarterly", marks=pytest.mark.skip(reason="W3.6 territory")),
     ],
 )
 def test_skill_entry_point_is_valid_node(skill_name) -> None:
@@ -522,10 +522,10 @@ def test_skill_entry_point_is_valid_node(skill_name) -> None:
 @pytest.mark.parametrize(
     "skill_name",
     [
-        pytest.param("ikigai-daily", id="ikigai-daily"),
-        pytest.param("ikigai-weekly", id="ikigai-weekly", marks=pytest.mark.skip(reason="W3.6 territory")),
-        pytest.param("ikigai-monthly", id="ikigai-monthly", marks=pytest.mark.skip(reason="W3.6 territory")),
-        pytest.param("ikigai-quarterly", id="ikigai-quarterly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("daily", id="daily"),  # actual filename is daily.md, not ikigai-daily.md
+        pytest.param("weekly", id="weekly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("monthly", id="monthly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("quarterly", id="quarterly", marks=pytest.mark.skip(reason="W3.6 territory")),
     ],
 )
 def test_skill_manifest_has_actor_field(skill_name) -> None:

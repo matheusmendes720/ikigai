@@ -167,7 +167,12 @@ def test_skill_files_have_frontmatter():
 
 
 def test_skill_files_mention_vault_read_only():
-    """All skill files document vault_read-only constraint (vault_write invariant)."""
+    """All skill files document vault_read-only constraint (vault_write invariant).
+
+    All skill files must reference vault/ and vault_write (the canonical vault writer).
+    The constraint that daily.md is "surface-only" is documented in the skill's
+    description/body, not by omitting vault_write references.
+    """
     skill_dir = IKIGAI_ROOT / "src" / "agents" / "v2" / "skills"
     for name in ["daily.md", "weekly.md", "monthly.md", "quarterly.md"]:
         content = (skill_dir / name).read_text(encoding="utf-8")
