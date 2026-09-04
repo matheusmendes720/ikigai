@@ -39,12 +39,27 @@ _THIS = Path(__file__).resolve()
 #      → requires <repo-root>/src/ on sys.path so the bare 'contracts'
 #        package resolves. Without this, 17 ikigai_maintainer_node tests +
 #        test_server_fastmcp.py collection fail with ModuleNotFoundError.
-_IKIGAI_PKG_ROOT = _THIS.parent.parent  # <repo-root>/src/ikigai/
+#
+# Plan A Task 9 followup (RESOLVED): the `_IKIGAI_PKG_ROOT` (=
+# <repo-root>/src/ikigai/) entry that lives on sys.path collides with the
+# dotted `src.ikigai.src.X` import style, because `src/ikigai/` contains a
+# `src/` subdirectory. Python's namespace-package machinery sees the inner
+# `src/` and creates a spurious `src.ikigai` namespace distribution that
+# resolves `src.ikigai` to `<repo>/src/ikigai/src/ikigai/` instead of
+# `<repo>/src/ikigai/` — breaking `src.ikigai.src` lookup.
+#
+# Fix: append `<repo>/src/ikigai/src/` INSTEAD. That directory contains the
+# bare `ikigai/` package, so `from ikigai.X import …` works for code in this
+# test tree. And because it's INSIDE the dotted chain (not at a sibling
+# level), it doesn't disturb `src.ikigai.src.X` resolution.
+_IKIGAI_SRC = _THIS.parent.parent / "src"  # <repo-root>/src/ikigai/src/
 _SRC_ROOT = _THIS.parent.parent.parent  # <repo-root>/src/  (contracts/, mesh/)
 _REPO_ROOT = _THIS.parent.parent.parent.parent  # <repo-root>
-for _p in (_IKIGAI_PKG_ROOT, _SRC_ROOT, _REPO_ROOT):
+for _p in (_REPO_ROOT, _SRC_ROOT):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
+if str(_IKIGAI_SRC) not in sys.path:
+    sys.path.append(str(_IKIGAI_SRC))
 
 # ---------------------------------------------------------------------------
 # Redirect tempfile.tempdir to a project-local directory. On Windows,
