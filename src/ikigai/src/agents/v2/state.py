@@ -165,6 +165,18 @@ class IKIGAiStateDict(TypedDict):
     messages: NotRequired[Annotated[list[dict[str, Any]], operator.add]]
     user_input: NotRequired[str | None]
 
+    # ---- Plan A Task 8 — tag_and_persist -------------------------------
+    # Fields populated by upstream planning node and consumed by
+    # tag_and_persist_node (src/ikigai/src/agents/v2/nodes/tag_and_persist.py).
+    # proposed_entity is a BasePlanContract instance (Sonho/Objetivo/Meta/Projeto/
+    # Entrega/Tarefa); vault_path is the relative path under vault/ where it
+    # will be written; actor tags the write for the audit log (drift
+    # invariant g); persisted is set to True after successful vault_write.
+    proposed_entity: NotRequired[Any]  # BasePlanContract — kept Any to avoid import cycle
+    vault_path: NotRequired[str]
+    actor: NotRequired[Literal["user", "agent", "system"]]
+    persisted: NotRequired[bool]
+
 
 # ---------------------------------------------------------------------------
 # compute_meta_vector — REMOVED from v2 (FORBIDDEN_FUNCTION per ADR-013).
