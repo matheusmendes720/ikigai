@@ -58,7 +58,11 @@ def _read_events(queue_dir: Path) -> list[TaskChange]:
 
 def _summarize(event: TaskChange) -> str:
     """One-line summary for `list` output (JSON mode)."""
-    ts = event.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ") if isinstance(event.timestamp, datetime) else str(event.timestamp)
+    ts = (
+        event.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
+        if isinstance(event.timestamp, datetime)
+        else str(event.timestamp)
+    )
     return json.dumps(
         {
             "event_id": event.event_id,
@@ -167,7 +171,9 @@ def cmd_status(args: argparse.Namespace) -> int:
 
     if _wants_human(args):
         print(f"queue_dir: {queue_dir}    total: {len(events)}", flush=True)
-        _render_table(["status", "count"], [[s, str(counts[s])] for s in VALID_STATUSES])
+        _render_table(
+            ["status", "count"], [[s, str(counts[s])] for s in VALID_STATUSES]
+        )
     else:
         print(f"queue_dir: {queue_dir}", flush=True)
         print(f"total: {len(events)}", flush=True)

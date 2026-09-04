@@ -1,4 +1,5 @@
 """Adapter for solverforge-calendar unified_planning_items (UPI)."""
+
 import json
 import sqlite3
 import uuid
@@ -11,11 +12,21 @@ from contracts.task_change import PropagationEvent
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 UPI_DB = PROJECT_ROOT / "data" / "solverforge_calendar" / "unified_planning.db"
 
-SUPPORTED_FIELDS = {"title", "status", "start_at", "end_at", "rrule", "blocked_by", "tags", "ueid"}
+SUPPORTED_FIELDS = {
+    "title",
+    "status",
+    "start_at",
+    "end_at",
+    "rrule",
+    "blocked_by",
+    "tags",
+    "ueid",
+}
 
 
 class SolverforgeCalendarAdapter:
     """Read/write solverforge-calendar UPI (after v3 migration)."""
+
     name = "solverforge_calendar"
 
     def read(self, ueid: UEID) -> dict[str, Any] | None:

@@ -3,6 +3,7 @@
 Per audit B5.0-F13: queue.enqueue() and ack() are wrapped with retry decorators
 to handle transient filesystem errors (EBUSY on Windows, NFS stale handles, etc.).
 """
+
 import os
 import time
 from pathlib import Path
@@ -31,6 +32,7 @@ def _retry_atomic_write(write_fn: _F) -> _F:
     The wrapped function should perform the entire temp+rename sequence and
     raise on failure. Backoff is exponential with jitter.
     """
+
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         backoff = _INITIAL_BACKOFF_S
         last_exc: BaseException | None = None
@@ -49,6 +51,7 @@ def _retry_atomic_write(write_fn: _F) -> _F:
         if last_exc is not None:
             raise last_exc
         raise RuntimeError("_retry_atomic_write exhausted without exception")
+
     return wrapper  # type: ignore[return-value]
 
 

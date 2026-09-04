@@ -28,7 +28,7 @@ Build in-repo Python MCP servers using hand-rolled JSON-RPC 2.0 over stdio:
 
 Plus:
 - **Cross-fork storage adapter pattern:** `src/mesh/adapters/{cli,taskdog,solverforge_calendar}.py` — separate concern from MCP factory. Each adapter implements `ForkAdapter` Protocol (name/read/apply_change/supports_field). tuiboard has NO storage adapter (rendering fork only).
-- **UEID canonical join key:** 5-part regex `^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$`, UPSERT on ueid.
+- **UEID canonical join key:** `^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$` (4-part canonical per ADR-014 on 2026-09-04; the original 2026-08-30 label "5-part regex" was a typo — the regex has always been 4-part, and ADR-014 confirms that format as canonical), UPSERT on ueid.
 - **Aggregator 3-fork precedence:** taskdog > solverforge-calendar > cli (dict.update() in reverse precedence order; highest writes last, wins on collision).
 
 ## Consequences

@@ -1,7 +1,7 @@
 """Adapter for interfaces/cli tasks.jsonl file."""
+
 import json
 import os
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +16,7 @@ SUPPORTED_FIELDS = {"title", "due", "priority", "ueid", "written_at", "source_fo
 
 class CliAdapter:
     """Read/write the interfaces/cli tasks.jsonl slice."""
+
     name = "cli"
 
     def read(self, ueid: UEID) -> dict[str, Any] | None:

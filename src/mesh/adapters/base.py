@@ -1,4 +1,5 @@
 """Common adapter contract for fork adapters."""
+
 from typing import Any, Protocol, runtime_checkable
 
 from contracts.common import UEID
@@ -8,6 +9,7 @@ from contracts.task_change import PropagationEvent
 @runtime_checkable
 class ForkAdapter(Protocol):
     """Every fork adapter implements read() + apply_change() + supports_field()."""
+
     name: str
 
     def read(self, ueid: UEID) -> dict[str, Any] | None:
