@@ -834,6 +834,140 @@ def test_no_state_module_imports_default_constants() -> None:
 
 
 # ---------------------------------------------------------------------------
+# W4.4 — ADR-026 sub-agent dispatch drift invariants
+# ---------------------------------------------------------------------------
+
+
+def test_nodes_tuple_has_11_elements() -> None:
+    """NODES tuple MUST have exactly 11 elements (10 → 11 after W4.4).
+
+    Per ADR-026 R1 + W4.4 brief: the dispatcher is a dedicated node added
+    to NODES. The 11th node is ``dispatch_sub_agents``. Reducing back to
+    10 (or adding a 12th without ADR amendment) violates R1.
+    """
+    v2_graph_path = IKIGAI_SRC / "agents" / "v2" / "graph.py"
+    if not v2_graph_path.exists():
+        pytest.skip(f"{v2_graph_path} not present")
+    graph_source = v2_graph_path.read_text(encoding="utf-8")
+    nodes_match = re.search(r"^NODES\s*=\s*\((.*?)\)", graph_source, re.DOTALL | re.MULTILINE)
+    assert nodes_match, "Could not find NODES tuple in graph.py"
+    nodes_list = [n.strip().strip(",'\"") for n in nodes_match.group(1).split() if n.strip()]
+    assert len(nodes_list) == 11, (
+        f"NODES tuple must have exactly 11 elements after W4.4 (ADR-026 R1). "
+        f"Found {len(nodes_list)}: {nodes_list}"
+    )
+
+
+def test_dispatch_sub_agents_in_nodes() -> None:
+    """``dispatch_sub_agents`` MUST be a member of NODES (ADR-026 R1).
+
+    Drift detector enforces: the dedicated dispatcher is the canonical
+    sub-agent spawn surface. Adding dispatch logic inline elsewhere
+    violates R1 single-dispatch-surface invariant.
+    """
+    v2_graph_path = IKIGAI_SRC / "agents" / "v2" / "graph.py"
+    if not v2_graph_path.exists():
+        pytest.skip(f"{v2_graph_path} not present")
+    graph_source = v2_graph_path.read_text(encoding="utf-8")
+    nodes_match = re.search(r"^NODES\s*=\s*\((.*?)\)", graph_source, re.DOTALL | re.MULTILINE)
+    assert nodes_match, "Could not find NODES tuple in graph.py"
+    nodes_list = [n.strip().strip(",'\"") for n in nodes_match.group(1).split() if n.strip()]
+    assert "dispatch_sub_agents" in nodes_list, (
+        f"NODES tuple must contain 'dispatch_sub_agents' (ADR-026 R1). Current NODES: {nodes_list}"
+    )
+
+
+def test_subagent_spec_ueid_validation() -> None:
+    """SubAgentSpec.sub_agent_id MUST be validated against the canonical 4-part UEID regex.
+
+    Per ADR-014 + ADR-026 R4: sub-agent IDs are 4-part UEIDs; 5-part is
+    REJECTED. The validator lives in src/ikigai/src/agents/v2/subgraph.py.
+    This test scans the file for the regex pattern (defensive — exact
+    text may shift, but the pattern must remain canonical).
+    """
+    subgraph_path = IKIGAI_SRC / "agents" / "v2" / "subgraph.py"
+    if not subgraph_path.exists():
+        pytest.skip(f"{subgraph_path} not present")
+    source = subgraph_path.read_text(encoding="utf-8")
+    canonical_pattern = r"\^\[a-z\]\{2,5\}:\[a-z0-9-\]\+:\[a-f0-9-\]\+:\[a-f0-9-\]\+\$"
+    assert re.search(canonical_pattern, source), (
+        f"subgraph.py must validate sub_agent_id against the canonical "
+        f"4-part UEID regex (ADR-014 + ADR-026 R4). Expected pattern "
+        f"matching: {canonical_pattern}"
+    )
+
+
+def test_subagent_constants_in_json_only() -> None:
+    """SUBAGENT_* tuning values MUST live in algorithm_constants.json, NOT in .py.
+
+    Per ADR-019 R7 + ADR-027 R10 + ADR-026 R6: algorithm/subagent tuning
+    values are JSON-only. Drift detector extends the W3.2 invariant l to
+    cover the new SUBAGENT_* keys. No Python DEFAULT_SUBAGENT_* / hardcoded
+    SUBAGENT_* constants allowed.
+    """
+    v2_root = IKIGAI_SRC / "agents" / "v2"
+    if not v2_root.exists():
+        pytest.skip(f"{v2_root} not present")
+
+    allowed_definers = {v2_root / "prompts" / "load_constants.py"}
+    forbidden_pattern = re.compile(r"^(DEFAULT_SUBAGENT|SUBAGENT_).*")
+
+    violations: list[str] = []
+    for py_file in _iter_python_files(v2_root):
+        if py_file.resolve() in {p.resolve() for p in allowed_definers}:
+            continue
+        try:
+            tree = ast.parse(py_file.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        for node in tree.body:
+            if not isinstance(node, ast.Assign):
+                continue
+            for target in node.targets:
+                name = target.id if isinstance(target, ast.Name) else None
+                if name is None:
+                    continue
+                if forbidden_pattern.match(name):
+                    violations.append(
+                        _format_violation(
+                            py_file,
+                            node.lineno,
+                            "SUBAGENT-CONST",
+                            f"forbidden subagent constant: {name} (must live in algorithm_constants.json)",
+                        )
+                    )
+
+    assert not violations, (
+        "ADR-019 / ADR-026 R6 violation — SUBAGENT_* constants MUST live in "
+        "prompts/algorithm_constants.json, NOT in src/ikigai/src/agents/v2/*.py. "
+        "Violations:\n" + "\n".join(sorted(violations))
+    )
+
+
+def test_subagent_constants_present_in_json() -> None:
+    """algorithm_constants.json MUST define all 4 SUBAGENT_* keys (ADR-027 R10).
+
+    W4.4 added the SUBAGENT_* constants per ADR-027 R10 forward-dependency.
+    The keys MUST be present in JSON (the canonical source) and absent
+    from Python modules (per test_subagent_constants_in_json_only).
+    """
+    import json
+
+    json_path = IKIGAI_SRC / "agents" / "v2" / "prompts" / "algorithm_constants.json"
+    if not json_path.exists():
+        pytest.skip(f"{json_path} not present")
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    required = (
+        "SUBAGENT_PARENT_TIMEOUT_S",
+        "SUBAGENT_MAX_FAN_OUT",
+        "SUBAGENT_MAX_DISPATCH_DEPTH",
+        "SUBAGENT_CHECKPOINT_KEEP_AFTER_REPLAY",
+    )
+    missing = [k for k in required if k not in data]
+    assert not missing, f"algorithm_constants.json missing SUBAGENT_* keys (ADR-027 R10): {missing}"
+
+
+# ---------------------------------------------------------------------------
 # AST helpers (used above)
 # ---------------------------------------------------------------------------
 
