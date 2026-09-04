@@ -29,8 +29,9 @@ from __future__ import annotations
 import hashlib
 import os
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import frontmatter
 
@@ -42,22 +43,30 @@ def vault_write(
     vault_path: str,
     frontmatter_fields: dict[str, Any],
     body: str,
+    actor: Literal["user", "agent", "system"] = "user",
 ) -> dict[str, Any]:
     """Write markdown file to vault. ONLY writer per attribution §7.
+
+    Per spec 2026-09-03-sonho-tree-hybrid-design §vault_write actor parameter.
+    Records actor in audit log at vault root for drift invariant (g).
 
     Args:
         vault_root: vault root directory (anchor for path resolution)
         vault_path: relative path within vault/, e.g. "plans/q3/task-x.md"
         frontmatter_fields: dict of YAML frontmatter key/values
         body: markdown body below frontmatter
+        actor: actor performing the write (user/agent/system)
 
     Returns:
-        {written: bool, vault_path: str, sha256: str}
+        {written: bool, vault_path: str, sha256: str, actor: str}
 
     Raises:
         ValueError: if vault_path is absolute, escapes vault_root,
-                    or body+frontmatter both empty
+                    body+frontmatter both empty, or actor is invalid
     """
+    if actor not in ("user", "agent", "system"):
+        raise ValueError(f"actor must be one of ['user', 'agent', 'system'], got {actor!r}")
+
     # No-op protection
     if not frontmatter_fields and not body.strip():
         raise ValueError("empty body and frontmatter rejected (no-op)")
@@ -111,10 +120,24 @@ def vault_write(
             raise
 
     sha256 = hashlib.sha256(target.read_bytes()).hexdigest()
+
+    # Append audit log entry (drift invariant g: every vault_write audit log
+    # includes actor + timestamp + path). Audit log lives at vault root, NOT
+    # next to the written file (per ADR-012 vault-only invariant).
+    try:
+        audit_path = vault_root / ".vault_audit.log"
+        ts = datetime.now(timezone.utc).isoformat()
+        with audit_path.open("a", encoding="utf-8") as f:
+            f.write(f"{ts} actor={actor} path={vault_path}\n")
+    except Exception:
+        # Audit log write failure must NOT fail the vault write (already succeeded)
+        pass
+
     return {
         "written": True,
         "vault_path": vault_path,
         "sha256": sha256,
+        "actor": actor,
     }
 
 

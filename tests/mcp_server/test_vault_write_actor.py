@@ -24,7 +24,7 @@ def test_vault_write_accepts_actor_default_user(monkeypatch) -> None:
         )
         parsed = json.loads(result)
         assert parsed.get("written") is True
-        audit_log = tmp_path / "test" / ".vault_audit.log"
+        audit_log = tmp_path / ".vault_audit.log"
         assert audit_log.exists()
         content = audit_log.read_text()
         assert "actor=user" in content
@@ -47,7 +47,7 @@ def test_vault_write_accepts_actor_agent(monkeypatch) -> None:
         )
         parsed = json.loads(result)
         assert parsed.get("written") is True
-        audit_log = tmp_path / "test" / ".vault_audit.log"
+        audit_log = tmp_path / ".vault_audit.log"
         assert audit_log.exists()
         content = audit_log.read_text()
         assert "actor=agent" in content

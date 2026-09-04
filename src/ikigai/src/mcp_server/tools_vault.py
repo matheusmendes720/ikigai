@@ -8,9 +8,8 @@ return JSON strings, errors returned as {"error": "..."}).
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 # Aliases so public functions below (also named vault_read / vault_write)
 # do not shadow the impl imports.
@@ -42,7 +41,9 @@ def vault_write(
     vault_path: Annotated[str, "Relative path within vault/, e.g. 'plans/q3/task-x.md'"],
     frontmatter: Annotated[dict[str, Any], "YAML frontmatter key/values (dict)"],
     body: Annotated[str, "Markdown body below frontmatter"],
-    actor: Annotated[str, "Actor performing the write: user/agent/system"] = "user",
+    actor: Annotated[
+        Literal["user", "agent", "system"], "Actor performing the write: user/agent/system"
+    ] = "user",
 ) -> str:
     """Write markdown file to vault. ONLY vault writer per attribution §7.
 
@@ -53,10 +54,6 @@ def vault_write(
     Uses VaultLock for cross-platform concurrency safety.
     Atomic via tmp-file + atomic rename (B6.4 Windows-safe pattern).
     """
-    if actor not in ("user", "agent", "system"):
-        return json.dumps(
-            {"error": f"actor must be one of ['user', 'agent', 'system'], got {actor!r}", "code": -32602}
-        )
     try:
         vault_root = _resolve_vault_root()
         result = _vault_write_impl(
@@ -64,22 +61,12 @@ def vault_write(
             vault_path=vault_path,
             frontmatter_fields=frontmatter,
             body=body,
+            actor=actor,
         )
     except ValueError as e:
         return json.dumps({"error": str(e), "code": -32602})
     except Exception as e:
         return json.dumps({"error": f"vault write failed: {e}", "code": -32603})
-
-    # Append audit log entry (drift invariant g: every vault_write audit log includes actor + timestamp + path)
-    try:
-        audit_path = (vault_root / vault_path).parent / ".vault_audit.log"
-        audit_path.parent.mkdir(parents=True, exist_ok=True)
-        ts = datetime.now(timezone.utc).isoformat()
-        with audit_path.open("a", encoding="utf-8") as f:
-            f.write(f"{ts} actor={actor} path={vault_path}\n")
-    except Exception:
-        # Audit log write failure must NOT fail the vault write (already succeeded)
-        pass
 
     return json.dumps(result, indent=2)
 
