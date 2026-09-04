@@ -17,7 +17,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .common import EntityType, Period, Priority, RegimeState, StrEnum, UEID
+from .common import Period, Priority, StrEnum, UEID
 
 
 # ---------------------------------------------------------------------------
@@ -71,9 +71,7 @@ class Task(BaseModel):
 
     def mark_done(self) -> Task:
         """Return a new Task with done=True and done_at=now."""
-        return self.model_copy(
-            update={"done": True, "done_at": datetime.utcnow()}
-        )
+        return self.model_copy(update={"done": True, "done_at": datetime.utcnow()})
 
 
 # ---------------------------------------------------------------------------
