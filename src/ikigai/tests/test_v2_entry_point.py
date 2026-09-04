@@ -39,6 +39,7 @@ def test_entry_point_accepts_valid_node_names(tmp_path):
         "plan",
         "reflect",
         "commit",
+        "dispatch_sub_agents",
         "surface_intentions",
     )
     for ep in valid_entry_points:

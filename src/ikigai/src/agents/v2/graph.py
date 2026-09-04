@@ -62,6 +62,7 @@ from .nodes.score_vectors import score_vectors_node  # noqa: E402
 from .nodes.surface_intentions import surface_intentions_node  # noqa: E402
 from .nodes.tag_and_persist import tag_and_persist_node  # noqa: E402
 from .state import IKIGAiStateDict  # noqa: E402
+from .subgraph import dispatch_sub_agents  # noqa: E402
 
 _init_tracing_ok = True
 try:
@@ -90,6 +91,7 @@ NODES = (
     "tag_and_persist",
     "reflect",
     "commit",
+    "dispatch_sub_agents",
     "surface_intentions",
 )
 
@@ -203,7 +205,21 @@ def _route_after_reflect(
 
 
 def _route_after_commit(state: IKIGAiStateDict) -> str:
-    """After commit: surface intentions on success, route to error_node if any node raised."""
+    """After commit: route through dispatch_sub_agents (W4.4 B-N10), then surface_intentions.
+
+    Per ADR-026: a parent node signals sub-agent fan-out by populating
+    state['dispatch_plan']. dispatch_sub_agents is a no-op (passthrough)
+    when dispatch_plan is empty/absent, so the linear pipeline behavior
+    is preserved when no children are scheduled. When dispatch_plan is
+    populated, it spawns children, merges outputs, then routes onward.
+    """
+    if state.get("error_type"):
+        return "error"
+    return "dispatch_sub_agents"
+
+
+def _route_after_dispatch_sub_agents(state: IKIGAiStateDict) -> str:
+    """After dispatch_sub_agents: surface intentions (dispatcher never errors parent)."""
     if state.get("error_type"):
         return "error"
     return "surface_intentions"
@@ -261,6 +277,12 @@ def make_v2_graph(
         builder.add_node("tag_and_persist", _safe_node("tag_and_persist", tag_and_persist_node))
         builder.add_node("reflect", _safe_node("reflect", reflect_node))
         builder.add_node("commit", _safe_node("commit", commit_node))
+        # W4.4 B-N10: dispatch_sub_agents is the 11th node (ADR-026 R1 dedicated dispatcher).
+        # Wrapped in _safe_node for uniform error-channel semantics; in practice
+        # the node catches its own exceptions per ADR-026 R5 (failure isolation).
+        builder.add_node(
+            "dispatch_sub_agents", _safe_node("dispatch_sub_agents", dispatch_sub_agents)
+        )
         builder.add_node(
             "surface_intentions", _safe_node("surface_intentions", surface_intentions_node)
         )
@@ -316,6 +338,14 @@ def make_v2_graph(
         builder.add_conditional_edges(
             "commit",
             _route_after_commit,
+            {
+                "error": "error",
+                "dispatch_sub_agents": "dispatch_sub_agents",
+            },
+        )
+        builder.add_conditional_edges(
+            "dispatch_sub_agents",
+            _route_after_dispatch_sub_agents,
             {
                 "error": "error",
                 "surface_intentions": "surface_intentions",

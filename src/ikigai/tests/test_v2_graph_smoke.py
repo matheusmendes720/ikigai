@@ -1,15 +1,15 @@
 """v2 graph smoke test — invoke make_v2_graph().invoke() end-to-end with FAKE_LLM.
 
-Per W3.3 brief (sdd/w33-smoke-brief.md):
+Per W3.3 brief (sdd/w33-smoke-brief.md) + W4.4 B-N10 dispatch node:
 - Builds v2 graph via make_v2_graph(checkpoint_db=...)
 - Invokes with stub state in FAKE_LLM mode
-- Asserts all 10 nodes run sequentially
+- Asserts all 11 nodes run sequentially
 - Includes API 529 retry logic (Diag 03 risk flag)
 - Exits 0 under pytest
 
-NODES tuple (10 entries) at graph.py:83-94:
+NODES tuple (11 entries) at graph.py:83-94:
     observe, score_vectors, heuristics, balance, decompose, plan,
-    tag_and_persist, reflect, commit, surface_intentions
+    tag_and_persist, reflect, commit, dispatch_sub_agents, surface_intentions
 """
 
 from __future__ import annotations
@@ -126,11 +126,11 @@ def test_v2_graph_imports():
     from agents.v2.graph import NODES, make_v2_graph
 
     assert callable(make_v2_graph), "make_v2_graph must be callable"
-    assert len(NODES) == 10, f"Expected 10 nodes, got {len(NODES)}"
+    assert len(NODES) == 11, f"Expected 11 nodes (W4.4 added dispatch_sub_agents), got {len(NODES)}"
 
 
 def test_v2_graph_named_nodes():
-    """All 10 expected node names are present."""
+    """All 11 expected node names are present."""
     from agents.v2.graph import NODES
 
     expected = (
@@ -143,6 +143,7 @@ def test_v2_graph_named_nodes():
         "tag_and_persist",
         "reflect",
         "commit",
+        "dispatch_sub_agents",
         "surface_intentions",
     )
     assert NODES == expected, f"NODES = {NODES}"
@@ -194,11 +195,12 @@ def test_v2_graph_smoke_entry_point_observe(tmp_path, monkeypatch):
         "tag_and_persist",
         "reflect",
         "commit",
+        "dispatch_sub_agents",
         "surface_intentions",
     ],
 )
 def test_v2_graph_smoke_all_entry_points(tmp_path, monkeypatch, entry_point):
-    """Each of the 10 NODES is a valid entry point."""
+    """Each of the 11 NODES is a valid entry point."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     from agents.v2.graph import NODES, make_v2_graph
 
@@ -220,7 +222,7 @@ def test_v2_graph_invalid_entry_point_raises():
 
 
 def test_v2_graph_sequential_node_invocation(tmp_path, monkeypatch):
-    """Verify all 10 NODES are reachable as entry points (sequential coverage)."""
+    """Verify all 11 NODES are reachable as entry points (sequential coverage)."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     from agents.v2.graph import NODES, make_v2_graph
 

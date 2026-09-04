@@ -29,7 +29,7 @@ End result: vault file written at ikigai/cycles/<cycle_id>.md + taskdog
 mock receives "quarterly OKRs YYYY-MM-DD" call.
 
 entry_point_override="commit" rationale:
-  The full pipeline (entry_point="observe") runs all 9 nodes including
+  The full pipeline (entry_point="observe") runs all 11 nodes including
   ``tag_and_persist`` which requires ``state["proposed_entity"]`` and
   ``state["vault_path"]`` (not populated by upstream nodes in test mode).
   When these are absent, ``tag_and_persist`` raises KeyError → safe_node

@@ -101,4 +101,10 @@ def _defensive_default() -> dict[str, Any]:
         "HEURISTICS_H3_PUSH_DOWNGRADE_DAYS": 10,
         "HEURISTICS_H6_SEVERITY_WARN": 0.5,
         "HEURISTICS_H6_SEVERITY_CRITICAL": 1.0,
+        # W4.4 — Sub-agent dispatch tuning (ADR-026 S4 + ADR-027 R10).
+        # Mirror values from prompts/algorithm_constants.json exactly.
+        "SUBAGENT_PARENT_TIMEOUT_S": 60.0,
+        "SUBAGENT_MAX_FAN_OUT": 5,
+        "SUBAGENT_MAX_DISPATCH_DEPTH": 2,
+        "SUBAGENT_CHECKPOINT_KEEP_AFTER_REPLAY": True,
     }
