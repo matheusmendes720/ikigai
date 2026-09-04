@@ -1,17 +1,17 @@
 """Plan hierarchy: Dream → Goal → Objective → Project → Task → Deliverable."""
 
-from ikigai.entities.plan.deliverable import DeliverableEntity
-from ikigai.entities.plan.dream import DreamEntity
-from ikigai.entities.plan.goal import GoalEntity
-from ikigai.entities.plan.objective import ObjectiveEntity
-from ikigai.entities.plan.project import ProjectEntity
-from ikigai.entities.plan.task import TaskEntity
+from ikigai.entities.plan.deliverable import Deliverable
+from ikigai.entities.plan.dream import Dream
+from ikigai.entities.plan.goal import Goal
+from ikigai.entities.plan.objective import Objective
+from ikigai.entities.plan.project import Project
+from ikigai.entities.plan.task import Task
 
 __all__ = [
-    "DeliverableEntity",
-    "DreamEntity",
-    "GoalEntity",
-    "ObjectiveEntity",
-    "ProjectEntity",
-    "TaskEntity",
+    "Deliverable",
+    "Dream",
+    "Goal",
+    "Objective",
+    "Project",
+    "Task",
 ]
