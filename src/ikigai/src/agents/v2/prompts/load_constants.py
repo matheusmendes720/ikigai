@@ -118,4 +118,13 @@ def _defensive_default() -> dict[str, Any]:
         "MEMORY_RETENTION_WEEKLY_DAYS": 90,
         "MEMORY_RETENTION_MONTHLY_DAYS": 365,
         "MEMORY_RETENTION_QUARTERLY_DAYS": None,
+        # W5.1.1 — Kill switch + review queue tuning (ADR-029 R10 + §W5.1.1).
+        # Mirror values from prompts/algorithm_constants.json exactly. No
+        # Python DEFAULT_KILL_SWITCH_* constants permitted (ADR-019 R2 +
+        # ADR-029 §"Algorithm Constants JSON Keys").
+        "KILL_SWITCH_RATE_LIMIT_PER_HOUR": 50,
+        "KILL_SWITCH_RATE_LIMIT_WINDOW_S": 3600,
+        "KILL_SWITCH_HALT_TIMEOUT_S": 5.0,
+        "KILL_SWITCH_NOTIFY_OPERATOR": True,
+        "REVIEW_QUEUE_BATCH_SIZE": 10,
     }
