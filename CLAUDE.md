@@ -273,26 +273,42 @@ algoritmo deferidas até evidência empírica.
 > only**, not to agent/harness plumbing. Estado vivo em
 > `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/MEMORY.md`.
 
-> **Wave 3 SHIPPED (2026-09-04, dcode-harness roadmap)** — 5/8 Wave 3 tasks
-> shipped:
+> **Wave 3 SHIPPED (2026-09-04, dcode-harness roadmap)** — **8/8 Wave 3 tasks
+> shipped**:
 >
 > | Task | Commit | Status |
 > |------|--------|--------|
 > | W3.1 — multi-tree pytest collection | `688b316` | ✅ shipped |
 > | W3.2 — QHE constants → prompt-template | `1ef638c` | ✅ shipped (49/49 PASS, ruff clean, ADR-019 forthcoming W5.2) |
 > | W3.3 — v2 graph smoke test | `0f3feb1` | ✅ shipped (17/17 PASS, API 529 retry helper per Diag 03) |
-> | W3.4 — ADR-025 skill binding mechanism | `9604443` | ✅ shipped **DRAFT — pending user acceptance** |
+> | W3.4 — ADR-025 skill binding mechanism | `9604443` + `82de324` | ✅ shipped **Accepted 2026-09-04** |
+> | W3.5 — wire daily entry point | `c3f9251` + `01d4005` + `27e7a4b` + `3c086a1` | ✅ shipped (37 PASS / 9 skipped) |
+> | W3.6 — CLI wrapper triggers graph → taskdog Path 1 | `059cffb` | ✅ shipped (75/75 v2 combo PASS, drift invariant l) |
 > | W3.7 — stale NODES count assertion | `fbe083c` | ✅ shipped (drift fix discovered during Wave 3 regression sweep) |
-> | W3.5 — wire daily entry point | — | ⛔ blocked on ADR-025 Accepted |
-> | W3.6 — CLI wrapper triggers graph → taskdog | — | ⛔ blocked on W3.5 |
-> | W3.8 — E2E smoke chat → vault + taskdog → fork | — | ⛔ blocked on W3.5, W3.6, W3.7 (W3.7 unblocks 2026-09-04) |
+> | W3.8 — E2E smoke chat → vault + taskdog → fork | `b77e0f1` | ✅ shipped (78/78 PASS, drift 24/24) |
 >
-> Wave 3 cumulative regression: **46/46 PASS** in 5-file v2 combo (smoke +
-> imports_safely + pav + entry_point + canonical_scope) in 4.42s. Zero Wave 3
+> Wave 3 cumulative regression: **78/78 PASS** in v2 combo (canonical_scope 24
+> + invoke_skill_taskdog 12 + daily 17 + graph_smoke 17 + e2e_smoke 3 +
+> imports_safely 8 + entry_point 5). ruff clean across all modified files.
+> Zero Wave 3 regressions.
+>
+> **Wave 3 final acceptance gated on user review (#11) of 4 masters + PLAN +
+> TASKS.** Two open follow-ups surfaced from Wave 3 review (both non-blocking,
+> tracked in `~/.git/sdd/progress.md`):
+> 1. CLI wrapper gap — `interfaces/cli/v2.py:_run_weekly/_run_monthly/_run_quarterly`
+>    still use the W2.3 cycle+score+regime path and don't route through
+>    `invoke_skill()`. Only `_run_daily` was wired in W3.5. Separate scope.
+> 2. `interfaces/cli/v2.py` 747 lines (CLAUDE.md 500-line guideline; pre-existing,
+>    exacerbated by W3.6 post-processor extraction to `_skill_outputs.py`).
+>
+> **Wave 4 kickoff (Scenario B: Sub-agents + stateful subgraphs, 32-44h)** is
+> pending the user's #11 4-master review acceptance. Wave 3 zero
 > regressions; one pre-existing stale-assertion drift fixed (W3.7).
 >
-> **Blocked on user input** — dcode-harness roadmap awaiting 4-master review
-> (#11) + ADR-025 acceptance before W3.5/W5.4 can ship.
+> **Wave 3 SHIP-COMPLETE — awaiting #11 4-master review for Wave 4 kickoff.**
+> All Wave 3 blockers (ADR-025 acceptance, W3.5/3.6/3.7/3.8 ships) cleared.
+> Wave 4 Scenario B (Sub-agents + stateful subgraphs, 32-44h) requires user
+> acceptance of the 4 masters before kickoff.
 
 ## Root Layout (não-`src/`)
 
