@@ -454,9 +454,9 @@ _SKILLS_DIR = IKIGAI_SRC / "agents" / "v2" / "skills"
     "skill_name",
     [
         pytest.param("daily", id="daily"),  # actual filename is daily.md, not ikigai-daily.md
-        pytest.param("weekly", id="weekly", marks=pytest.mark.skip(reason="W3.6 territory")),
-        pytest.param("monthly", id="monthly", marks=pytest.mark.skip(reason="W3.6 territory")),
-        pytest.param("quarterly", id="quarterly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("weekly", id="weekly"),
+        pytest.param("monthly", id="monthly"),
+        pytest.param("quarterly", id="quarterly"),
     ],
 )
 def test_skill_manifest_has_entry_point(skill_name) -> None:
@@ -482,9 +482,9 @@ def test_skill_manifest_has_entry_point(skill_name) -> None:
     "skill_name",
     [
         pytest.param("daily", id="daily"),  # actual filename is daily.md, not ikigai-daily.md
-        pytest.param("weekly", id="weekly", marks=pytest.mark.skip(reason="W3.6 territory")),
-        pytest.param("monthly", id="monthly", marks=pytest.mark.skip(reason="W3.6 territory")),
-        pytest.param("quarterly", id="quarterly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("weekly", id="weekly"),
+        pytest.param("monthly", id="monthly"),
+        pytest.param("quarterly", id="quarterly"),
     ],
 )
 def test_skill_entry_point_is_valid_node(skill_name) -> None:
@@ -514,8 +514,7 @@ def test_skill_entry_point_is_valid_node(skill_name) -> None:
     assert nodes_match, "Could not find NODES tuple in graph.py"
     nodes_list = [n.strip().strip(",'\"") for n in nodes_match.group(1).split() if n.strip()]
     assert entry_point in nodes_list, (
-        f"{skill_name}.md entry_point {entry_point!r} not in NODES; "
-        f"must be one of {nodes_list}"
+        f"{skill_name}.md entry_point {entry_point!r} not in NODES; must be one of {nodes_list}"
     )
 
 
@@ -523,9 +522,9 @@ def test_skill_entry_point_is_valid_node(skill_name) -> None:
     "skill_name",
     [
         pytest.param("daily", id="daily"),  # actual filename is daily.md, not ikigai-daily.md
-        pytest.param("weekly", id="weekly", marks=pytest.mark.skip(reason="W3.6 territory")),
-        pytest.param("monthly", id="monthly", marks=pytest.mark.skip(reason="W3.6 territory")),
-        pytest.param("quarterly", id="quarterly", marks=pytest.mark.skip(reason="W3.6 territory")),
+        pytest.param("weekly", id="weekly"),
+        pytest.param("monthly", id="monthly"),
+        pytest.param("quarterly", id="quarterly"),
     ],
 )
 def test_skill_manifest_has_actor_field(skill_name) -> None:
@@ -546,8 +545,7 @@ def test_skill_manifest_has_actor_field(skill_name) -> None:
         f"{skill_name}.md missing actor field in frontmatter (ADR-025 R4)"
     )
     assert frontmatter["actor"] in {"user", "agent"}, (
-        f"{skill_name}.md actor must be 'user' or 'agent', "
-        f"got {frontmatter['actor']!r}"
+        f"{skill_name}.md actor must be 'user' or 'agent', got {frontmatter['actor']!r}"
     )
 
 
@@ -569,7 +567,10 @@ def test_no_make_v2_graph_call_outside_invoke_skill() -> None:
     # Find the invoke_skill function's AST node
     invoke_skill_node: ast.FunctionDef | None = None
     for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "invoke_skill":
+        if (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == "invoke_skill"
+        ):
             invoke_skill_node = node
             break
 
@@ -583,9 +584,7 @@ def test_no_make_v2_graph_call_outside_invoke_skill() -> None:
         if func_name != "make_v2_graph":
             continue
         # Check if it has entry_point=... keyword argument
-        has_entry_point = any(
-            kw.arg == "entry_point" for kw in node.keywords
-        )
+        has_entry_point = any(kw.arg == "entry_point" for kw in node.keywords)
         if not has_entry_point:
             continue
         # Check if this call is inside invoke_skill function body
@@ -604,6 +603,77 @@ def test_no_make_v2_graph_call_outside_invoke_skill() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# W3.6 — ADR-013 taskdog post-processor guard (invariant l)
+# ---------------------------------------------------------------------------
+
+
+def test_invoke_skill_guards_taskdog_call_with_outputs_check() -> None:
+    """invoke_skill() MUST consult manifest.outputs before firing taskdog (inv l).
+
+    Per W3.6: side-effect tools (taskdog_create_task) are fired by the CLI
+    post-processor ONLY when the skill's manifest declares them in
+    ``outputs``. This invariant AST-greps the invoke_skill function body to
+    verify a conditional guard references both ``outputs`` and
+    ``taskdog_create_task`` before the @tool invocation.
+
+    Implementation may live either inline in invoke_skill or in a delegated
+    helper (e.g. ``interfaces.cli._skill_outputs.post_process_skill_outputs``).
+    The helper is permitted because the inline call inside invoke_skill is
+    what gates the firing; the helper just carries the policy.
+    """
+    v2_cli_path = REPO_ROOT / "interfaces" / "cli" / "v2.py"
+    skill_outputs_path = REPO_ROOT / "interfaces" / "cli" / "_skill_outputs.py"
+    if not v2_cli_path.exists():
+        pytest.skip(f"{v2_cli_path} not present")
+
+    v2_source = v2_cli_path.read_text(encoding="utf-8")
+    v2_tree = ast.parse(v2_source)
+
+    # Locate the invoke_skill FunctionDef
+    invoke_skill_node: ast.FunctionDef | None = None
+    for node in ast.walk(v2_tree):
+        if (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == "invoke_skill"
+        ):
+            invoke_skill_node = node
+            break
+    assert invoke_skill_node is not None, "invoke_skill function not found in v2.py"
+
+    body_source = ast.unparse(invoke_skill_node)
+
+    # The guard must reference BOTH the outputs gate AND taskdog_create_task.
+    # Allow either an inline check OR delegation to _skill_outputs (which
+    # owns the canonical gate).
+    has_outputs_check = "outputs" in body_source
+    has_taskdog_reference = "taskdog_create_task" in body_source
+    has_delegation = "_skill_outputs" in body_source or "post_process_skill_outputs" in body_source
+
+    assert has_outputs_check, (
+        "invoke_skill() must consult manifest['outputs'] before firing "
+        "taskdog_create_task (invariant l). Body excerpt:\n" + body_source[:600]
+    )
+    assert has_taskdog_reference or has_delegation, (
+        "invoke_skill() must reference taskdog_create_task or delegate to "
+        "_skill_outputs.post_process_skill_outputs (invariant l). "
+        "Body excerpt:\n" + body_source[:600]
+    )
+
+    # If the helper module exists, it MUST itself contain the conditional
+    # guard — verify it's not a passthrough.
+    if skill_outputs_path.exists():
+        helper_source = skill_outputs_path.read_text(encoding="utf-8")
+        assert "outputs" in helper_source, (
+            "_skill_outputs.py must inspect manifest.outputs "
+            "(invariant l: canonical gate is in the helper)."
+        )
+        assert "taskdog_create_task" in helper_source, (
+            "_skill_outputs.py must reference taskdog_create_task "
+            "(invariant l: canonical gate is in the helper)."
+        )
+
+
 def _is_node_inside(node: ast.AST, parent: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     """Return True if node is syntactically inside parent FunctionDef body."""
     for child in ast.walk(parent):
@@ -612,7 +682,9 @@ def _is_node_inside(node: ast.AST, parent: ast.FunctionDef | ast.AsyncFunctionDe
     return False
 
 
-def _find_parent_function(node: ast.AST, tree: ast.AST) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
+def _find_parent_function(
+    node: ast.AST, tree: ast.AST
+) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
     """Find the FunctionDef/AsyncFunctionDef that contains node (direct parent only)."""
     for parent in ast.walk(tree):
         if not isinstance(parent, (ast.FunctionDef, ast.AsyncFunctionDef)):
