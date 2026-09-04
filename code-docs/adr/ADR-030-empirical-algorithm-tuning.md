@@ -224,6 +224,9 @@ invariant (m) is needed.
 numeric literals matching migrated ranges (0.85, 0.60, 1.20, 0.50, 8.0, 3, 2, 0.65,
 1.0). CI failure on regression. Mirrors ADR-019 R2 for the inline-numeric case.
 
+**ADR-amendment trigger:** New keys in `algorithm_constants.json` require an
+ADR amendment extending invariant (m)'s literal-denylist — couples R1 to R6.
+
 ---
 
 ## §R2 — No new IKIGAI_TOOLS without explicit ADR
