@@ -508,9 +508,9 @@ def dispatch_sub_agents(state: IKIGAiStateDict | dict[str, Any]) -> dict[str, An
     """
     # Normalize state to dict for read access (LangGraph passes TypedDict-like)
     if hasattr(state, "items"):
-        state_dict: dict[str, Any] = dict(state)  # type: ignore[arg-type]
+        state_dict: dict[str, Any] = dict(state)
     else:
-        state_dict = dict(state)  # type: ignore[arg-type]
+        state_dict = dict(state)
 
     plan = state_dict.get("dispatch_plan") or []
     if not isinstance(plan, list) or not plan:
@@ -636,7 +636,7 @@ def dispatch_sub_agents(state: IKIGAiStateDict | dict[str, Any]) -> dict[str, An
 
         # 5. Merge outputs per spec's merge_strategy (only on success/partial)
         if result.get("status") in ("success", "partial"):
-            strategy: MergeStrategy = spec.get("merge_strategy") or "replace"  # type: ignore[assignment]
+            strategy: MergeStrategy = spec.get("merge_strategy") or "replace"
             _merge_result(updates, dict(result.get("outputs") or {}), strategy)
             for key in result.get("fields_written") or []:
                 written_keys.add(str(key))
