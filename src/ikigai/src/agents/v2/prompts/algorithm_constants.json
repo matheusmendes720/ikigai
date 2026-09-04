@@ -1,0 +1,26 @@
+{
+  "_comment": "Single source of truth for algorithm tuning constants in the IKIGAi v2 graph. Per ADR-019 (forthcoming — see dcode-harness-TASKS.md W3.2 + W5.2): algorithm tuning happens ONLY by editing this JSON file. New Python DEFAULT_* constants in src/ikigai/src/agents/v2/*.py are FORBIDDEN. Drift detector: src/ikigai/tests/test_canonical_scope.py test_no_algorithm_constants_in_agent_code. Related: memory/algorithm-scope-reframed-2026-08-30.md, memory/algorithm-gate-dropped-2026-09-03.md.",
+
+  "QHE_PUSH_THRESHOLD": 0.85,
+  "QHE_RECOVER_THRESHOLD": 0.60,
+  "WORKLOAD_OVERLOAD_FACTOR": 1.20,
+  "WORKLOAD_UNDERLOAD_FACTOR": 0.50,
+  "CAPACITY_HOURS_PER_DAY": 8.0,
+  "HYSTERESIS_UPGRADE_DAYS": 3,
+  "HYSTERESIS_DOWNGRADE_DAYS": 2,
+
+  "REGIME_TARGETS": {
+    "PUSH": 0.85,
+    "MAINTAIN": 0.65,
+    "REDUCE": 0.45,
+    "RECOVER": 0.25
+  },
+
+  "HEURISTICS_H2_DEVIATION_WARN": 0.15,
+  "HEURISTICS_H2_DEVIATION_CRITICAL": 0.30,
+  "HEURISTICS_H3_MAINTAIN_UPGRADE_DAYS": 14,
+  "HEURISTICS_H3_PUSH_QHE_THRESHOLD": 0.80,
+  "HEURISTICS_H3_PUSH_DOWNGRADE_DAYS": 10,
+  "HEURISTICS_H6_SEVERITY_WARN": 0.5,
+  "HEURISTICS_H6_SEVERITY_CRITICAL": 1.0
+}

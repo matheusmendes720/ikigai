@@ -64,9 +64,7 @@ def commit_node(state: IKIGAiStateDict) -> dict[str, Any]:
     q_he = state.get("q_he_score", 0.65)
     vector_scores = cast(dict[str, float], state.get("vector_scores", {}))
     meta_vector = state.get("meta_vector_score", 0.0)
-    corrections_raw: list[dict[str, Any]] = cast(
-        list[dict[str, Any]], state.get("corrections", [])
-    )
+    corrections_raw: list[dict[str, Any]] = cast(list[dict[str, Any]], state.get("corrections", []))
 
     # Build cycle-summary frontmatter
     frontmatter: dict[str, Any] = {

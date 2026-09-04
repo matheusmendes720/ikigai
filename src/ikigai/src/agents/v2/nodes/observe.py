@@ -10,15 +10,9 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from ..prompts.load_constants import get as _c
 from ..prompts.observe_qhe_observation import render_observe_qhe_observation
-from ..state import (
-    DEFAULT_CAPACITY_HOURS_PER_DAY,
-    DEFAULT_QHE_PUSH,
-    DEFAULT_QHE_RECOVER,
-    DEFAULT_WORKLOAD_OVERLOAD_FACTOR,
-    DEFAULT_WORKLOAD_UNDERLOAD_FACTOR,
-    IKIGAiStateDict,
-)
+from ..state import IKIGAiStateDict
 
 
 def _default_vault_root() -> Path:
@@ -50,23 +44,23 @@ def observe_node(state: IKIGAiStateDict) -> dict[str, Any]:
     q_he_score = qhe_obs.get("q_he", 0.65)
 
     workload_estimate = _read_workload_from_upi()
-    capacity_estimate = DEFAULT_CAPACITY_HOURS_PER_DAY
+    capacity_estimate = _c("CAPACITY_HOURS_PER_DAY")
 
     # Determine regime from Q_HE
-    if q_he_score >= DEFAULT_QHE_PUSH:
+    if q_he_score >= _c("QHE_PUSH_THRESHOLD"):
         regime = "PUSH"
-    elif q_he_score >= DEFAULT_QHE_RECOVER:
+    elif q_he_score >= _c("QHE_RECOVER_THRESHOLD"):
         regime = "MAINTAIN"
     else:
         regime = "RECOVER"
 
     # Determine balancer verdict
     workload_ratio = workload_estimate / max(capacity_estimate, 1.0)
-    if q_he_score < DEFAULT_QHE_RECOVER:
+    if q_he_score < _c("QHE_RECOVER_THRESHOLD"):
         balancer = "RECOVER"
-    elif workload_ratio >= DEFAULT_WORKLOAD_OVERLOAD_FACTOR:
+    elif workload_ratio >= _c("WORKLOAD_OVERLOAD_FACTOR"):
         balancer = "OVERLOAD"
-    elif workload_ratio <= DEFAULT_WORKLOAD_UNDERLOAD_FACTOR:
+    elif workload_ratio <= _c("WORKLOAD_UNDERLOAD_FACTOR"):
         balancer = "UNDERLOAD"
     else:
         balancer = "OK"

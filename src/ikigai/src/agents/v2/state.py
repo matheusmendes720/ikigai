@@ -25,16 +25,28 @@ PHASE_STATES = Literal["FUNDAÇÃO", "BUSCA", "HACKATHON", "RECUPERACAO", "OVERC
 BALANCER_VERDICTS = Literal["OK", "OVERLOAD", "UNDERLOAD", "RECOVER"]
 
 # ---------------------------------------------------------------------------
-# Constants
+# Constants — REMOVED 2026-09-04 (W3.2)
 # ---------------------------------------------------------------------------
-
-DEFAULT_QHE_PUSH = 0.85
-DEFAULT_QHE_RECOVER = 0.60
-DEFAULT_WORKLOAD_OVERLOAD_FACTOR = 1.20
-DEFAULT_WORKLOAD_UNDERLOAD_FACTOR = 0.50
-DEFAULT_CAPACITY_HOURS_PER_DAY = 8.0
-HYSTERESIS_UPGRADE_DAYS = 3
-HYSTERESIS_DOWNGRADE_DAYS = 2
+# All algorithm-tuning constants formerly here have been migrated to the
+# prompt-template configuration at:
+#     src/ikigai/src/agents/v2/prompts/algorithm_constants.json
+# consumed via:
+#     src/ikigai/src/agents/v2/prompts/load_constants.py
+#
+# Per ADR-019 (forthcoming — see dcode-harness-TASKS.md W5.2): algorithm
+# tuning happens ONLY by editing algorithm_constants.json. New Python
+# DEFAULT_* constants in src/ikigai/src/agents/v2/*.py are FORBIDDEN.
+# Drift detector enforces this invariant — see
+# src/ikigai/tests/test_canonical_scope.py :: test_no_algorithm_constants_in_agent_code.
+#
+# Removed (with their old values for reference):
+#   DEFAULT_QHE_PUSH                  = 0.85
+#   DEFAULT_QHE_RECOVER               = 0.60
+#   DEFAULT_WORKLOAD_OVERLOAD_FACTOR  = 1.20
+#   DEFAULT_WORKLOAD_UNDERLOAD_FACTOR = 0.50
+#   DEFAULT_CAPACITY_HOURS_PER_DAY    = 8.0
+#   HYSTERESIS_UPGRADE_DAYS           = 3
+#   HYSTERESIS_DOWNGRADE_DAYS         = 2
 
 TIER_DAYS: dict[str, int | None] = {
     "daily": 1,

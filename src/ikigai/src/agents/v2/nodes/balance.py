@@ -8,16 +8,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..prompts.load_constants import get as _c
 from ..prompts.observe_qhe_observation import render_observe_qhe_observation
 from ..prompts.score_meta_vector_observation import render_score_meta_vector_observation
-from ..state import (
-    DEFAULT_QHE_RECOVER,
-    DEFAULT_WORKLOAD_OVERLOAD_FACTOR,
-    DEFAULT_WORKLOAD_UNDERLOAD_FACTOR,
-    HYSTERESIS_DOWNGRADE_DAYS,
-    HYSTERESIS_UPGRADE_DAYS,
-    IKIGAiStateDict,
-)
+from ..state import IKIGAiStateDict
 
 
 def balance_node(state: IKIGAiStateDict) -> dict[str, Any]:
@@ -44,20 +38,20 @@ def balance_node(state: IKIGAiStateDict) -> dict[str, Any]:
     workload_ratio = workload / max(capacity, 1.0)
 
     # Determine verdict
-    if q_he < DEFAULT_QHE_RECOVER:
+    if q_he < _c("QHE_RECOVER_THRESHOLD"):
         verdict: str = "RECOVER"
-    elif workload_ratio >= DEFAULT_WORKLOAD_OVERLOAD_FACTOR:
+    elif workload_ratio >= _c("WORKLOAD_OVERLOAD_FACTOR"):
         verdict = "OVERLOAD"
-    elif workload_ratio <= DEFAULT_WORKLOAD_UNDERLOAD_FACTOR:
+    elif workload_ratio <= _c("WORKLOAD_UNDERLOAD_FACTOR"):
         verdict = "UNDERLOAD"
     else:
         verdict = "OK"
 
     # Hysteresis check — upgrade only after sustained days
     is_hysteresis_active = False
-    if regime in ("MAINTAIN", "REDUCE", "RECOVER") and days < HYSTERESIS_UPGRADE_DAYS:
+    if regime in ("MAINTAIN", "REDUCE", "RECOVER") and days < _c("HYSTERESIS_UPGRADE_DAYS"):
         is_hysteresis_active = True
-    elif regime == "PUSH" and days < HYSTERESIS_DOWNGRADE_DAYS:
+    elif regime == "PUSH" and days < _c("HYSTERESIS_DOWNGRADE_DAYS"):
         is_hysteresis_active = True
 
     # Emit corrections
@@ -67,7 +61,7 @@ def balance_node(state: IKIGAiStateDict) -> dict[str, Any]:
             {
                 "heuristic": "H1",
                 "signal_type": "regime_override",
-                "description": f"Q_HE {q_he:.2f} below recover threshold {DEFAULT_QHE_RECOVER}",
+                "description": f"Q_HE {q_he:.2f} below recover threshold {_c('QHE_RECOVER_THRESHOLD')}",
                 "target_ueid": None,
                 "urgency": "critical",
                 "metadata": {"current_regime": regime, "days_in_regime": days},
@@ -78,7 +72,7 @@ def balance_node(state: IKIGAiStateDict) -> dict[str, Any]:
             {
                 "heuristic": "H1",
                 "signal_type": "workload_overload",
-                "description": f"Workload {workload:.1f}h/day exceeds {DEFAULT_WORKLOAD_OVERLOAD_FACTOR}x capacity",
+                "description": f"Workload {workload:.1f}h/day exceeds {_c('WORKLOAD_OVERLOAD_FACTOR')}x capacity",
                 "target_ueid": None,
                 "urgency": "high",
                 "metadata": {"workload": workload, "capacity": capacity},

@@ -11,6 +11,7 @@ from typing import Any
 from ..prompts.h1_energy import render_h1_energy
 from ..prompts.h2_qhe_composite import render_h2_qhe_composite
 from ..prompts.h6_severity import render_h6_severity
+from ..prompts.load_constants import get as _c
 from ..state import CorrectionSignal, IKIGAiStateDict
 
 
@@ -71,17 +72,19 @@ def _h2_qhe_composite(
     obs = render_h2_qhe_composite(prompt_state)
     q_he = obs.get("h2_qhe_composite", state.get("q_he_score", 0.65))
     regime = state.get("regime_state", "MAINTAIN")
-    targets = {"PUSH": 0.85, "MAINTAIN": 0.65, "REDUCE": 0.45, "RECOVER": 0.25}
+    targets = _c("REGIME_TARGETS")
     target = targets.get(regime, 0.65)
     deviation = target - q_he
-    if deviation > 0.15:
+    if deviation > _c("HEURISTICS_H2_DEVIATION_WARN"):
         corrections.append(
             {
                 "heuristic": "H2",
                 "signal_type": "qhe_below_target",
                 "description": f"Q_HE {q_he:.2f} is {deviation:.2f} below {regime} target {target:.2f}",
                 "target_ueid": None,
-                "urgency": "critical" if deviation > 0.3 else "high",
+                "urgency": (
+                    "critical" if deviation > _c("HEURISTICS_H2_DEVIATION_CRITICAL") else "high"
+                ),
                 "metadata": {
                     "q_he": round(q_he, 3),
                     "target": target,
@@ -98,23 +101,29 @@ def _h3_regime_fsm(state: IKIGAiStateDict, prompt_state: dict[str, Any]) -> list
     regime = state.get("regime_state", "MAINTAIN")
     days = state.get("days_in_regime", 1)
     is_hysteresis = state.get("is_hysteresis_active", False)
-    if regime == "MAINTAIN" and days >= 14:
+    if regime == "MAINTAIN" and days >= _c("HEURISTICS_H3_MAINTAIN_UPGRADE_DAYS"):
         corrections.append(
             {
                 "heuristic": "H3",
                 "signal_type": "potential_upgrade",
-                "description": "14+ days in MAINTAIN — consider PUSH if Q_HE > 0.80",
+                "description": (
+                    f"{_c('HEURISTICS_H3_MAINTAIN_UPGRADE_DAYS')}+ days in MAINTAIN — "
+                    f"consider PUSH if Q_HE > {_c('HEURISTICS_H3_PUSH_QHE_THRESHOLD')}"
+                ),
                 "target_ueid": None,
                 "urgency": "low",
                 "metadata": {"regime": regime, "days_in_regime": days},
             }
         )
-    elif regime == "PUSH" and days >= 10 and not is_hysteresis:
+    elif regime == "PUSH" and days >= _c("HEURISTICS_H3_PUSH_DOWNGRADE_DAYS") and not is_hysteresis:
         corrections.append(
             {
                 "heuristic": "H3",
                 "signal_type": "potential_downgrade",
-                "description": "10+ days in PUSH without sustained Q_HE — consider MAINTAIN",
+                "description": (
+                    f"{_c('HEURISTICS_H3_PUSH_DOWNGRADE_DAYS')}+ days in PUSH without "
+                    "sustained Q_HE — consider MAINTAIN"
+                ),
                 "target_ueid": None,
                 "urgency": "medium",
                 "metadata": {"regime": regime, "days_in_regime": days},
@@ -131,17 +140,19 @@ def _h6_severity(state: IKIGAiStateDict, prompt_state: dict[str, Any]) -> list[C
     q_he = state.get("q_he_score", 0.65)
     workload = state.get("workload_estimate", 2.0)
     capacity = state.get("capacity_estimate", 8.0)
-    infractions = 1.0 if workload > capacity * 1.2 else 0.0
+    infractions = 1.0 if workload > capacity * _c("WORKLOAD_OVERLOAD_FACTOR") else 0.0
     hours_dev = (workload - capacity) / max(capacity, 1.0)
     severity = float(infractions) * abs(hours_dev) * q_he
-    if severity > 0.5:
+    if severity > _c("HEURISTICS_H6_SEVERITY_WARN"):
         corrections.append(
             {
                 "heuristic": "H6",
                 "signal_type": "high_severity",
                 "description": f"Severity {severity:.2f} — infractions={infractions}, hours_dev={hours_dev:.2f}",
                 "target_ueid": None,
-                "urgency": "critical" if severity > 1.0 else "high",
+                "urgency": (
+                    "critical" if severity > _c("HEURISTICS_H6_SEVERITY_CRITICAL") else "high"
+                ),
                 "metadata": {
                     "severity": round(severity, 3),
                     "infractions": infractions,
