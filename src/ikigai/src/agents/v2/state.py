@@ -196,6 +196,13 @@ class IKIGAiStateDict(TypedDict):
     suggestions_count: NotRequired[int]
     suggestions_language: NotRequired[Literal["pt-BR", "en"]]
 
+    # ---- Sub-agent dispatch (ADR-026 + ADR-027 R5.14) ---------------------
+    # dispatch_depth tracks the recursion level for sub-agent fan-out
+    # (per ADR-027 R5.14). Parent (root) cycle = 0; child = 1;
+    # grandchild = 2; etc. Cap = SUBAGENT_MAX_DISPATCH_DEPTH. Not all
+    # skills use dispatch (daily has no children) — field is NotRequired.
+    dispatch_depth: NotRequired[int]
+
 
 # ---------------------------------------------------------------------------
 # compute_meta_vector — REMOVED from v2 (FORBIDDEN_FUNCTION per ADR-013).

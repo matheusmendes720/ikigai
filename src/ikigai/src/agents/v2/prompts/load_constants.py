@@ -107,4 +107,8 @@ def _defensive_default() -> dict[str, Any]:
         "SUBAGENT_MAX_FAN_OUT": 5,
         "SUBAGENT_MAX_DISPATCH_DEPTH": 2,
         "SUBAGENT_CHECKPOINT_KEEP_AFTER_REPLAY": True,
+        # W4.5 — Checkpoint retention tuning (ADR-027 R10).
+        # Mirror values from prompts/algorithm_constants.json exactly.
+        "CHECKPOINT_RETENTION_COUNT": 1000,
+        "MAX_CHECKPOINT_AGE_DAYS": 90,
     }

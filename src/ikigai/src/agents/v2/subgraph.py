@@ -36,6 +36,8 @@ from .prompts.load_constants import get as _algo_const
 if TYPE_CHECKING:
     from .state import IKIGAiStateDict
 
+from .checkpoint import build_subagent_thread_id  # W4.5 — 4-segment thread_id (ADR-027 R3)
+
 # ---------------------------------------------------------------------------
 # Logger
 # ---------------------------------------------------------------------------
@@ -368,8 +370,17 @@ def _invoke_subagent(
         from .graph import make_v2_graph
 
         graph = make_v2_graph(checkpoint_db=":memory:", entry_point=entry_point)
-        # LangGraph invoke respects checkpointer; pass config with thread_id
-        config = {"configurable": {"thread_id": f"subagent-{sub_agent_id}"}}
+        # LangGraph invoke respects checkpointer; pass config with thread_id.
+        # W4.5 — close the W4.4 reviewer's minor observation: use the full
+        # 4-segment hierarchical thread_id format per ADR-027 R3 (parent's
+        # thread_id + ``-subagent-<short_hash>`` suffix) rather than the
+        # legacy ``f"subagent-{sub_agent_id}"`` format.
+        parent_thread_id = str(initial_state.get("thread_id") or "agent-daily-default-parent")
+        config = {
+            "configurable": {
+                "thread_id": build_subagent_thread_id(parent_thread_id, sub_agent_id),
+            }
+        }
         child_result = graph.invoke(initial_state, config)
         duration_s = time.monotonic() - started
         # If child graph populated error channel, surface as failure.
