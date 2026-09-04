@@ -4,18 +4,18 @@ The health resource probe is deferred to B3.5 (gated on a sidecar JSON
 file the gateway writes on startup). For B3.4, probe_mcp_gateway
 answers only "is the gateway process alive?" via pidfile.
 """
+
 from __future__ import annotations
 
 import os
 import tempfile
 from pathlib import Path
 
-import pytest
-
 
 def test_pidfile_alive_returns_running() -> None:
     """Pidfile pointing to current PID → running=True, pid=os.getpid()."""
     from interfaces.cli.mcp_gateway_probe import probe_mcp_gateway
+
     current_pid = os.getpid()
 
     with tempfile.TemporaryDirectory() as tmpdir:

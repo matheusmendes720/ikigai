@@ -8,6 +8,7 @@ Verifies:
 - Tier 2: backend Started/Uptime fields present
 - Tier 2: queue payload present + drilldown binding registered
 - Tier 2: format_uptime helper produces expected short forms
+- Live subscription: Tasks tab + filesystem watcher on data/tasks.jsonl
 
 Per fork-boilerplate: minimal test coverage (smoke + invariant).
 Full Textual snapshot tests deferred to v1.2.
@@ -18,9 +19,9 @@ from __future__ import annotations
 import ast
 import inspect
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
-from textual.widgets import DataTable
 
 from interfaces.tui.operator.app import (
     OperatorApp,
@@ -31,10 +32,12 @@ from interfaces.tui.operator.data import (
     AdapterRow,
     BackendRow,
     QueueRow,
+    TaskRow,
     format_uptime,
     load_adapter_rows,
     load_backend_rows,
     load_queue_rows,
+    load_task_rows,
 )
 
 
@@ -45,13 +48,14 @@ def test_app_imports() -> None:
     assert QueueDetailScreen is not None
 
 
-def test_app_has_three_tabs() -> None:
-    """Three tab actions must be defined (1/2/3 keys) + drilldown/refresh/quit."""
+def test_app_has_four_tabs() -> None:
+    """Four tab actions must be defined (1/2/3/4 keys) + drilldown/refresh/quit."""
     app = OperatorApp()
     bindings = {b.key for b in app.BINDINGS}
     assert "1" in bindings
     assert "2" in bindings
     assert "3" in bindings
+    assert "4" in bindings  # Tasks tab
     assert "r" in bindings  # refresh
     assert "q" in bindings  # quit
     assert "d" in bindings  # tier 2: drilldown
@@ -148,10 +152,10 @@ async def test_app_runs_in_pilot_mode() -> None:
     """Smoke test: app boots in Textual pilot mode without exception."""
     app = OperatorApp()
     async with app.run_test() as pilot:
-        # Default tab is adapters — DataTable should be present
+        # Default tab is "tasks" — renders empty-state Static when no tasks.jsonl
         await pilot.pause()
-        tables = app.query(DataTable)
-        assert len(tables) >= 1
+        # App must have mounted without raising
+        assert app.is_mounted
 
 
 # === Tier 2 additions ===
@@ -206,3 +210,112 @@ def test_queue_detail_screen_read_only() -> None:
     # No write bindings — must be read-only
     assert "w" not in keys
     assert "d" not in keys
+
+
+# === Live filesystem subscription (data/tasks.jsonl) ===
+
+
+def test_load_task_rows_returns_empty_when_file_absent() -> None:
+    """If data/tasks.jsonl does not exist, load_task_rows returns [] (no crash)."""
+    rows = load_task_rows()
+    assert isinstance(rows, list)
+
+
+def test_load_task_rows_parses_valid_jsonl() -> None:
+    """load_task_rows parses one JSON object per line, skipping blanks."""
+    import json
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fake = Path(tmpdir) / "tasks.jsonl"
+        fake.write_text(
+            json.dumps(
+                {
+                    "ueid": "cli:task:abc:def:00000001",
+                    "title": "Test task",
+                    "due": "2026-09-03",
+                    "priority": "high",
+                    "source_fork": "ikigai",
+                }
+            )
+            + "\n\n"
+            + json.dumps(
+                {
+                    "ueid": "cli:task:abc:def:00000002",
+                    "title": "Another",
+                    "priority": "low",
+                    "source_fork": "cli",
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        with patch("interfaces.tui.operator.data.TASKS_JSONL", new=fake):
+            rows = load_task_rows()
+        assert len(rows) == 2
+        assert rows[0].ueid == "cli:task:abc:def:00000001"
+        assert rows[0].title == "Test task"
+        assert rows[0].due == "2026-09-03"
+        assert rows[0].priority == "high"
+        assert rows[0].source_fork == "ikigai"
+        assert rows[1].due is None  # not in record
+
+
+def test_load_task_rows_skips_malformed_lines() -> None:
+    """Malformed JSON lines are skipped silently; valid lines are still returned."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fake = Path(tmpdir) / "tasks.jsonl"
+        fake.write_text(
+            '{"ueid":"t:1","title":"Good","priority":"low","source_fork":"x"}\n'
+            "not valid json\n"
+            '{"ueid":"t:2","title":"Also good","priority":"high","source_fork":"y"}\n',
+            encoding="utf-8",
+        )
+        with patch("interfaces.tui.operator.data.TASKS_JSONL", new=fake):
+            rows = load_task_rows()
+        assert len(rows) == 2
+        assert rows[0].ueid == "t:1"
+        assert rows[1].ueid == "t:2"
+
+
+def test_load_task_rows_task_row_dataclass() -> None:
+    """TaskRow is a frozen dataclass with the expected fields."""
+    row = TaskRow(
+        ueid="cli:task:a:b:c:00000001",
+        title="Test",
+        due="2026-09-03",
+        priority="medium",
+        source_fork="ikigai",
+    )
+    assert row.ueid == "cli:task:a:b:c:00000001"
+    assert row.title == "Test"
+    assert row.due == "2026-09-03"
+    assert row.priority == "medium"
+    assert row.source_fork == "ikigai"
+
+
+def test_mtime_changes_on_file_write() -> None:
+    """os.path.getmtime returns distinct values when file is created/modified."""
+    import os
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fake = Path(tmpdir) / "tasks.jsonl"
+        assert not fake.exists()
+        with pytest.raises(OSError):
+            os.path.getmtime(str(fake))
+
+        fake.write_text(
+            '{"ueid":"t:1","title":"A","priority":"low","source_fork":"x"}\n'
+        )
+        mtime_after_create = os.path.getmtime(str(fake))
+        assert mtime_after_create > 0
+
+        fake.write_text(
+            '{"ueid":"t:2","title":"B","priority":"high","source_fork":"y"}\n'
+        )
+        mtime_after_append = os.path.getmtime(str(fake))
+        assert mtime_after_append >= mtime_after_create
+

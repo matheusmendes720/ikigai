@@ -14,6 +14,7 @@ Logic:
   - pidfile + PID alive   → running=True, pid=<pid>, started_at=<mtime>
   - pidfile + PID dead    → running=False, pid=None (stale pidfile)
 """
+
 from __future__ import annotations
 
 import os
@@ -32,6 +33,7 @@ def _is_pid_alive(pid: int) -> bool:
     try:
         if os.name == "nt":  # Windows
             import ctypes
+
             kernel32 = ctypes.windll.kernel32
             PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
             STILL_ACTIVE = 259
