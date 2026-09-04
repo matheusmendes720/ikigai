@@ -510,7 +510,7 @@ def test_skill_entry_point_is_valid_node(skill_name) -> None:
     if not v2_graph_path.exists():
         pytest.skip("graph.py not present")
     graph_source = v2_graph_path.read_text(encoding="utf-8")
-    nodes_match = re.search(r"^NODES\s*=\s*\((.*?)\)", graph_source, re.DOTALL)
+    nodes_match = re.search(r"^NODES\s*=\s*\((.*?)\)", graph_source, re.DOTALL | re.MULTILINE)
     assert nodes_match, "Could not find NODES tuple in graph.py"
     nodes_list = [n.strip().strip(",'\"") for n in nodes_match.group(1).split() if n.strip()]
     assert entry_point in nodes_list, (
