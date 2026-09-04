@@ -10,6 +10,7 @@ Tests verify:
   5. Error code range is enforced (-32799 to -32000)
   6. JSON-RPC v2.0 protocol version is the only valid value
 """
+
 from __future__ import annotations
 
 import json
@@ -34,9 +35,12 @@ VALID_UEID = UEID("tsk:foo:11111111-1111-1111-1111-111111111111:1111111111111111
 
 # === A2UIRequest ===
 
+
 def test_request_minimal_roundtrip() -> None:
     """mesh.read with bare params dict still validates."""
-    req = A2UIRequest(id="req-001", method="mesh.read", params={"ueid": str(VALID_UEID)})
+    req = A2UIRequest(
+        id="req-001", method="mesh.read", params={"ueid": str(VALID_UEID)}
+    )
     as_json = req.model_dump_json()
     restored = A2UIRequest.model_validate_json(as_json)
     assert restored.id == "req-001"
@@ -66,8 +70,11 @@ def test_request_rejects_long_id() -> None:
 
 # === A2UIResponse ===
 
+
 def test_response_success_roundtrip() -> None:
-    resp = A2UIResponse(id="req-001", result={"ueid": str(VALID_UEID), "view": {}, "mismatches": []})
+    resp = A2UIResponse(
+        id="req-001", result={"ueid": str(VALID_UEID), "view": {}, "mismatches": []}
+    )
     as_json = resp.model_dump_json()
     restored = A2UIResponse.model_validate_json(as_json)
     assert restored.result == {"ueid": str(VALID_UEID), "view": {}, "mismatches": []}
@@ -77,7 +84,9 @@ def test_response_success_roundtrip() -> None:
 def test_response_error_roundtrip() -> None:
     resp = A2UIResponse(
         id="req-001",
-        error=A2UIError(code=-32602, message="Invalid UEID", data={"ueid": "bad-input"}),
+        error=A2UIError(
+            code=-32602, message="Invalid UEID", data={"ueid": "bad-input"}
+        ),
     )
     as_json = resp.model_dump_json()
     restored = A2UIResponse.model_validate_json(as_json)
@@ -101,6 +110,7 @@ def test_response_error_rejects_long_message() -> None:
 
 # === A2UINotification ===
 
+
 def test_notification_default_method_is_mesh_event() -> None:
     note = A2UINotification(params={"event_id": "evt_abc123", "ueid": str(VALID_UEID)})
     assert note.method == "mesh.event"
@@ -114,6 +124,7 @@ def test_notification_rejects_unknown_method() -> None:
 
 # === MeshReadParams ===
 
+
 def test_mesh_read_params_validates_ueid() -> None:
     """UEID is validated on construction; bad UEIDs raise ValueError."""
     with pytest.raises(ValidationError):
@@ -126,6 +137,7 @@ def test_mesh_read_params_accepts_valid_ueid() -> None:
 
 
 # === TaskWriteParams ===
+
 
 @pytest.mark.parametrize(
     "action",
@@ -172,6 +184,7 @@ def test_task_write_params_defaults_fields_to_empty_dict() -> None:
 
 # === MeshSubscribeParams ===
 
+
 def test_subscribe_params_default_filters() -> None:
     p = MeshSubscribeParams()
     assert p.filters == {}
@@ -183,6 +196,7 @@ def test_subscribe_params_accepts_filters() -> None:
 
 
 # === Frozen invariant ===
+
 
 def test_request_is_frozen() -> None:
     """Pydantic v2 strict: frozen=True prevents mutation."""
@@ -198,6 +212,7 @@ def test_response_is_frozen() -> None:
 
 
 # === JSON roundtrip (no data loss) ===
+
 
 def test_full_request_response_cycle_via_json() -> None:
     """End-to-end: build request → JSON → parse on other side → build response."""
@@ -222,6 +237,8 @@ def test_full_request_response_cycle_via_json() -> None:
     assert server_params.fields["title"] == "Hello"
 
     # Server side: build response
-    resp = A2UIResponse(id="req-007", result={"event_id": "evt_abc", "status": "pending"})
+    resp = A2UIResponse(
+        id="req-007", result={"event_id": "evt_abc", "status": "pending"}
+    )
     wire_resp = resp.model_dump_json()
     assert json.loads(wire_resp)["result"]["status"] == "pending"

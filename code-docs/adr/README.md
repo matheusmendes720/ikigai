@@ -24,6 +24,9 @@ The full 27-document consolidation across all 3 surfaces is documented in
 | `ADR-009-pydantic-strict-mode-invariance.md` | 🟡 Proposta | 2026-08-27 | Pydantic v2 strict mode across all entities — decision required |
 | `ADR-010-dual-claude-md-scope.md` | 🟡 Proposta | 2026-08-27 | Dual `CLAUDE.md` scope strategy — decision required |
 | `ADR-011-ikigai-mcp-http-sse-transport.md` | 🟡 Proposta (recommended) | 2026-08-27 | HTTP+SSE transport for IKIGAI MCP server |
+| `ADR-012-fork-connection-architecture.md` | Accepted | 2026-08-30 | Fork connection architecture — vault_write sole writer, 3-fork aggregation, UEID UPSERT (§31 UEID line superseded by ADR-014) |
+| `ADR-013-canonical-scope-discipline.md` | Accepted | 2026-08-31 | Canonical scope discipline — agent layer = planner-only, 6 in-scope / 8 out-of-scope (§7 #1 UEID row superseded by ADR-014) |
+| `ADR-014-ueid-canonical-format.md` | Accepted | 2026-09-04 | UEID canonical format = 4-part (drift detector regex wins; supersedes 2026-08-31 5-part claim) |
 | `2026-08-27-decision-questionnaire.md` | 🟡 Draft | 2026-08-27 | 4 Proposta ADRs (008-011) reframed as decision questions |
 | `2026-08-27-master-adr-index.md` | 🟡 Draft | 2026-08-27 | Cross-surface consolidation (11 cross-cutting + 6 cybernetic + ~13 PAV) |
 | `2026-08-27-cross-cutting-triage.md` | 🟡 Draft | 2026-08-27 | Decision-dependency matrix + recommended order for ADRs 008-011 |

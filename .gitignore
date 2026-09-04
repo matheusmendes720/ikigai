@@ -133,6 +133,19 @@ src/ikigai/Taskwarrior
 src/ikigai/list\[*
 src/ikigai/refatoracao
 
+# ─── Bash heredoc-leak follow-up (2026-09-04) ─────────────────────
+# Stray tokens from sub-agent runs: paren-wrapped calls (`agent('Execute')`),
+# paren-balancing close fragments (`'))]+`), bare English words (`The`,
+# `first`, `StateGraph`), multi-digit (`10`), and pydantic-version-like
+# tokens (`2.13.5\``).
+# Each listed individually because gitignore lacks alternation support.
+/agent('Execute')`
+/'))]+
+/The
+/first
+/StateGraph
+/[0-9][0-9]
+
 # vibe-ops/ test artifacts (left behind by ad-hoc scripts whose cleanup
 # is commented out). Pre-existing tracked files were untracked in B5.5
 # (`git rm --cached`); this pattern prevents future re-tracking.

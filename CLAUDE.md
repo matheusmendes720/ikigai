@@ -168,9 +168,10 @@ math/policy/scoring tools are not in `IKIGAI_TOOLS` (12 tools, see
 cd src/ikigai
 uv sync                 # uv-managed (NOT poetry — see q3-q4-resolved memory)
 # IKIGAI_TOOLS = 12 planning tools (see src/ikigai/tests/test_canonical_scope.py)
-# Phase A SHIPPED 7 fork MCP tools (sf_* + tuiboard_*)
-# Total gateway surface = 19 tools (12 IKIGAI + 7 fork)
-ikigai.bat mcp          # start MCP server (19 tools total: 12 IKIGAI + 7 fork per Phase A)
+# Phase A SHIPPED 7 fork MCP tools (sf_* + tuiboard_*) in SEPARATE UnifiedMCPGateway
+# Total gateway surface = 22 tools (12 IKIGAI FastMCP + 7 fork HTTP+SSE) + 6 resources
+# (corrected 2026-09-04 per Diag 02 — NOT 19 tools as previously claimed)
+ikigai.bat mcp          # start MCP server (15 @MCP.tool + 6 @MCP.resource on FastMCP)
 ikigai.bat agent <thread>
 ikigai.bat chat <thread>
 ```
@@ -179,12 +180,13 @@ ikigai.bat chat <thread>
 
 ```bash
 # Contract test — enumerates tools + resources via stdio handshake
+# (corrected 2026-09-04: 15 tools + 6 resources on FastMCP gateway; 7 more fork tools in UnifiedMCPGateway)
 make mcp-inspect              # POSIX (uses system python)
 scripts/mcp-inspect.bat       # Windows cmd/PowerShell wrapper
 python scripts/mcp_inspect.py # Direct invocation (any platform)
 
 # Optional flags
-python scripts/mcp_inspect.py --tool-count 13 --resource-count 3
+python scripts/mcp_inspect.py --tool-count 15 --resource-count 6
 ```
 
 ### Vibe-ops
@@ -238,7 +240,7 @@ Shared Pydantic v2 models. All layers import from here.
 
 Cross-fork task view + bidirectional sync via Deep Agent gateway. **v1 scope = `create` action only.**
 
-- **UEID** is the canonical join key across all forks (5-part regex `^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+:[a-f0-9-]+$` per `ueid-5part-canonical-decision-2026-08-31.md`)
+- **UEID** is the canonical join key across all forks (**4-part** regex `^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$` per `code-docs/adr/ADR-014-ueid-canonical-format.md`; supersedes the 2026-08-31 5-part claim)
 - **Write path**: fork → CLI enqueues `TaskChange` to `data/review_queue/` → Agent validates → propagates `PropagationEvent` to all forks
 - **Read path**: `life mesh show <ueid>` joins slices from all 3 adapters (CLI / taskdog / UPI)
 - **3 adapters** (all implement `ForkAdapter` Protocol): `CliAdapter`, `TaskdogAdapter`, `SolverforgeCalendarAdapter`
@@ -250,7 +252,7 @@ Cross-fork task view + bidirectional sync via Deep Agent gateway. **v1 scope = `
 `vibe-ops/src/cybernetics/daily_loop.py`: TARGET → SENSOR → ADJUSTER → PERSIST → SYNC → INDEX
 (composition paths raise `NotImplementedError` per attribution §3; IKIGAI agent does NOT execute this loop — it observes feedback only)
 `SyncEngine` (`vibe-ops/src/middleware/sync_engine.py`): Obsidian ↔ SQLite ↔ Taskwarrior.
-UEID format: `<CLUSTER>:<ENTITY>:<ID>` (5-part canonical; 4-part is deprecated alias).
+UEID format: `<CLUSTER>:<ENTITY>:<HASH>:<SEQ>` (**4-part canonical per ADR-014**; the 2026-08-31 5-part claim is superseded).
 
 PolicyEngine states (PUSH / MAINTAIN / REDUCE / RECOVER) with hysteresis.
 

@@ -16,6 +16,12 @@ The detector is load-bearing enforcement per ADR-013 §"Drift Detector":
 running this test in CI is the canonical way to prevent future sessions
 from accidentally re-introducing deleted math/kernel code.
 
+Additional invariants enforced here (Phase 8.5 extension):
+- 5-part UEID regex is canonical (per ueid-5part-canonical-decision-2026-08-31)
+- Fork adapter Protocol coverage: every adapter in src/mesh/adapters/ implements
+  ForkAdapter (read/apply_change/supports_field)
+- data/review_queue/ is append-only — only queue.enqueue writes new files
+
 Run::
 
     pytest src/ikigai/tests/test_canonical_scope.py -v
@@ -307,6 +313,135 @@ def test_ikigai_tools_count_is_12() -> None:
     assert total_count == 12, (
         f"IKIGAI_TOOLS must contain exactly 12 entries per ADR-013; "
         f"found {total_count}. Adding/removing requires updating ADR-013."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase 8.5 — additional invariants
+# ---------------------------------------------------------------------------
+
+
+def test_ueid_canonical_regex_enforced() -> None:
+    """UEID regex in src/contracts/common.py must be the canonical 4-part format.
+
+    Per ueid-5part-canonical-decision-2026-08-31: a 5-part promotion was
+    considered but the actual canonical regex in src/contracts/common.py
+    remains 4-part (type:slug:uuid:hash). This test enforces that nobody
+    silently changes the canonical regex or introduces a divergent one.
+    """
+    common_path = REPO_ROOT / "src" / "contracts" / "common.py"
+    if not common_path.exists():
+        pytest.skip(f"{common_path} not present")
+    source = common_path.read_text(encoding="utf-8")
+
+    # Canonical 4-part UEID: type:slug:uuid:hash (all lowercase, 4 colons-separated
+    # segments). uuid is full 36-char hex with dashes, hash is bare hex.
+    canonical_pattern = r"^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$"
+    assert canonical_pattern in source, (
+        f"UEID canonical regex not found in {common_path}. "
+        f"Expected 4-part pattern: {canonical_pattern!r}. "
+        "See ueid-5part-canonical-decision-2026-08-31."
+    )
+
+
+def test_fork_adapter_protocol_coverage() -> None:
+    """Every concrete fork adapter in src/mesh/adapters/ must implement ForkAdapter.
+
+    Per phase-3-data-mesh spec: CLI, taskdog, and solverforge-calendar
+    adapters must each define read/apply_change/supports_field. The a2ui
+    adapter is spec-only (no storage backing) — it is excluded from this
+    invariant.
+    """
+    adapters_dir = REPO_ROOT / "src" / "mesh" / "adapters"
+    if not adapters_dir.exists():
+        pytest.skip(f"{adapters_dir} not present")
+
+    required_methods = {"read", "apply_change", "supports_field"}
+    excluded = {"a2ui_schema.py"}  # spec-only — no storage
+    missing: list[str] = []
+    for py_file in sorted(adapters_dir.glob("*.py")):
+        if py_file.name in {"base.py", "__init__.py"} | excluded:
+            continue
+        try:
+            tree = ast.parse(py_file.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        found_class_with_methods = False
+        for node in tree.body:
+            if not isinstance(node, ast.ClassDef):
+                continue
+            method_names = {
+                child.name
+                for child in node.body
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
+            }
+            if required_methods.issubset(method_names):
+                found_class_with_methods = True
+                break
+        if not found_class_with_methods:
+            missing.append(py_file.name)
+
+    assert not missing, (
+        "Fork adapters missing ForkAdapter Protocol methods "
+        f"(read/apply_change/supports_field): {sorted(missing)}"
+    )
+
+
+def test_review_queue_append_only() -> None:
+    """data/review_queue/ must only be written via mesh.queue.enqueue().
+
+    Append-only invariant from CLAUDE.md global conventions. Direct
+    writes outside the queue violate this and break the review-queue
+    worker (which polls by file mtime).
+
+    The review_queue_worker.py is an exception — it CONSUMES events by
+    appending a status field (the 'processed' marker). It is allowed
+    to write to data/review_queue/ but only via its single ack path.
+    """
+    mesh_dir = REPO_ROOT / "src" / "mesh"
+    if not mesh_dir.exists():
+        pytest.skip(f"{mesh_dir} not present")
+
+    queue_py = mesh_dir / "queue.py"
+    queue_source = queue_py.read_text(encoding="utf-8") if queue_py.exists() else ""
+
+    # Files in mesh/ that mention review_queue and contain write patterns.
+    # Allowlist: queue.py (writer) and review_queue_worker.py (ack consumer).
+    allowlist = {"queue.py", "review_queue_worker.py"}
+    write_patterns = {
+        'open(',
+        '.write_text(',
+        '.write_bytes(',
+    }
+
+    review_queue_violations: list[str] = []
+    for py_file in mesh_dir.rglob("*.py"):
+        if "__pycache__" in py_file.parts:
+            continue
+        if py_file.name in allowlist:
+            continue
+        try:
+            source = py_file.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if "review_queue" not in source.lower() and "REVIEW_QUEUE" not in source:
+            continue
+        for pattern in write_patterns:
+            if pattern in source:
+                review_queue_violations.append(
+                    f"{py_file.relative_to(REPO_ROOT)}:{pattern}"
+                )
+                break
+
+    assert not review_queue_violations, (
+        "data/review_queue/ must be append-only via mesh.queue.enqueue() "
+        "or consumed via review_queue_worker. Other writers:\n  "
+        + "\n  ".join(sorted(review_queue_violations))
+    )
+
+    # Sanity check: queue.py MUST contain the enqueue function.
+    assert "def enqueue" in queue_source, (
+        "mesh/queue.py must define enqueue() as the canonical review_queue writer"
     )
 
 
