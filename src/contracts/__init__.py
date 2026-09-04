@@ -22,6 +22,14 @@ Layers:
 from __future__ import annotations
 
 from .common import UEID, Period, Priority, EntityType, RegimeState, TimestampMixin  # noqa: F403
+from .common import PaeCyclePhase, PlanTier, VectorKey  # noqa: F403
+from .base import BasePlanContract  # noqa: F403
+from .sonho import Sonho  # noqa: F403
+from .objetivo import Objetivo  # noqa: F403
+from .meta import Meta  # noqa: F403
+from .projeto import Projeto  # noqa: F403
+from .entrega import Entrega  # noqa: F403
+from .tarefa import Tarefa  # noqa: F403
 from .task import Task, Subtask, ChecklistItem, Project, Milestone, Deliverable  # noqa: F403
 from .planning import PlanningCycle, Wave, Sprint, VaultEvent  # noqa: F403
 from .metrics import Burndown, ExecutionRate, QHEScore  # noqa: F403
@@ -34,6 +42,19 @@ __all__ = [
     "EntityType",
     "RegimeState",
     "TimestampMixin",
+    # new enums
+    "PaeCyclePhase",
+    "PlanTier",
+    "VectorKey",
+    # base
+    "BasePlanContract",
+    # plan hierarchy
+    "Sonho",
+    "Objetivo",
+    "Meta",
+    "Projeto",
+    "Entrega",
+    "Tarefa",
     # task
     "Task",
     "Subtask",
