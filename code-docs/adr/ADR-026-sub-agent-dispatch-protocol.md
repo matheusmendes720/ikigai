@@ -506,7 +506,7 @@ and references ADR-027.**
   `make_v2_graph`, post-process)
 - `interfaces/cli/_skill_outputs.py` — W3.6 post-processor (the
   pattern for dispatcher-style post-processing of graph results)
-- `src/ikigai/vault/vault_write.py:41-67` — `vault_write` signature
+- `src/ikigai/src/ikigai/vault/vault_write.py:41-67` — `vault_write` signature
   with `actor` parameter (R3 enforcement target)
 - `src/ikigai/src/agents/v2/prompts/algorithm_constants.json` —
   tuning values live here (R6)
