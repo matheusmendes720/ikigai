@@ -258,7 +258,7 @@ PolicyEngine states (PUSH / MAINTAIN / REDUCE / RECOVER) with hysteresis.
 
 ---
 
-## Current Mode (2026-09-03)
+## Current Mode (2026-09-04)
 
 **Data-first methodology** — IKIGAi está pausado para *novas decisões de
 algoritmo* (M01/N01/A02/A06, IKIGAI vector weights). Não escrever código de
@@ -272,6 +272,27 @@ algoritmo deferidas até evidência empírica.
 > não escrever novo código" directive is applicable to **algorithm decisions
 > only**, not to agent/harness plumbing. Estado vivo em
 > `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/MEMORY.md`.
+
+> **Wave 3 SHIPPED (2026-09-04, dcode-harness roadmap)** — 5/8 Wave 3 tasks
+> shipped:
+>
+> | Task | Commit | Status |
+> |------|--------|--------|
+> | W3.1 — multi-tree pytest collection | `688b316` | ✅ shipped |
+> | W3.2 — QHE constants → prompt-template | `1ef638c` | ✅ shipped (49/49 PASS, ruff clean, ADR-019 forthcoming W5.2) |
+> | W3.3 — v2 graph smoke test | `0f3feb1` | ✅ shipped (17/17 PASS, API 529 retry helper per Diag 03) |
+> | W3.4 — ADR-025 skill binding mechanism | `9604443` | ✅ shipped **DRAFT — pending user acceptance** |
+> | W3.7 — stale NODES count assertion | `fbe083c` | ✅ shipped (drift fix discovered during Wave 3 regression sweep) |
+> | W3.5 — wire daily entry point | — | ⛔ blocked on ADR-025 Accepted |
+> | W3.6 — CLI wrapper triggers graph → taskdog | — | ⛔ blocked on W3.5 |
+> | W3.8 — E2E smoke chat → vault + taskdog → fork | — | ⛔ blocked on W3.5, W3.6, W3.7 (W3.7 unblocks 2026-09-04) |
+>
+> Wave 3 cumulative regression: **46/46 PASS** in 5-file v2 combo (smoke +
+> imports_safely + pav + entry_point + canonical_scope) in 4.42s. Zero Wave 3
+> regressions; one pre-existing stale-assertion drift fixed (W3.7).
+>
+> **Blocked on user input** — dcode-harness roadmap awaiting 4-master review
+> (#11) + ADR-025 acceptance before W3.5/W5.4 can ship.
 
 ## Root Layout (não-`src/`)
 
