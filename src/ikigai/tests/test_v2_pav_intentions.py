@@ -1,9 +1,6 @@
 """PAV intention surfacing tests — verify 9th v2 node + pt-BR suggestions."""
+
 from __future__ import annotations
-
-import os
-
-import pytest
 
 # conftest.py sets up sys.path with IKIGAI_PKG_ROOT (src/ikigai/), SRC_ROOT (src/),
 # and REPO_ROOT. The v2 modules live under src/ikigai/src/agents/v2/, which
@@ -17,19 +14,21 @@ def test_prompt_template_imports():
     from agents.v2.prompts.surface_pav_intentions import (
         render_surface_pav_intentions,
     )
+
     assert render_surface_pav_intentions is not None
 
 
 def test_node_imports():
     """surface_intentions node is importable."""
     from agents.v2.nodes.surface_intentions import surface_intentions_node
+
     assert surface_intentions_node is not None
 
 
 def test_graph_has_10_nodes():
     """v2 graph now has 10 nodes (was 8 pre-Phase 8.4; +1 for surface_intentions)."""
     # graph.py lives in agents/v2/ so it resolves via the sys.path entry
-    from agents.v2.graph import NODES, make_v2_graph
+    from agents.v2.graph import NODES
 
     assert len(NODES) == 10
     assert "surface_intentions" in NODES
@@ -78,7 +77,7 @@ def test_vault_read_only_no_writes(tmp_path, monkeypatch):
     )
 
     state = {"vault_root": str(vault_root)}
-    result = render_surface_pav_intentions(state)
+    render_surface_pav_intentions(state)
 
     # Verify vault directory was NOT modified (only read)
     cycle_state_files = list((vault_root / "ikigai" / "meta" / "cycle_state").iterdir())
