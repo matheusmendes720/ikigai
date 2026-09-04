@@ -29,7 +29,6 @@ if str(_REPO_ROOT) not in sys.path:
 
 from ikigai.vault.vault_write import vault_write  # noqa: E402
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -77,7 +76,10 @@ def test_audit_log_created_on_first_write(vault_root: Path) -> None:
     vault_write(
         vault_root=vault_root,
         vault_path="plans/q3/task-x.md",
-        frontmatter_fields={"ueid": "tsk:audit:00000000-0000-0000-0000-000000000000:0000000000000000", "title": "Audit Test"},
+        frontmatter_fields={
+            "ueid": "tsk:audit:00000000-0000-0000-0000-000000000000:0000000000000000",
+            "title": "Audit Test",
+        },
         body="# Audit Test\n",
     )
 
@@ -91,7 +93,9 @@ def test_audit_log_entry_has_actor_timestamp_path(vault_root: Path) -> None:
     vault_write(
         vault_root=vault_root,
         vault_path="audit-fields.md",
-        frontmatter_fields={"ueid": "tsk:fields:00000000-0000-0000-0000-000000000000:0000000000000001"},
+        frontmatter_fields={
+            "ueid": "tsk:fields:00000000-0000-0000-0000-000000000000:0000000000000001"
+        },
         body="x",
         actor="agent",
     )
@@ -113,7 +117,9 @@ def test_audit_log_records_each_actor(vault_root: Path, actor: str) -> None:
     vault_write(
         vault_root=vault_root,
         vault_path=f"by-{actor}.md",
-        frontmatter_fields={"ueid": f"tsk:{actor}:00000000-0000-0000-0000-000000000000:000000000000000{len(actor)}"},
+        frontmatter_fields={
+            "ueid": f"tsk:{actor}:00000000-0000-0000-0000-000000000000:000000000000000{len(actor)}"
+        },
         body="x",
         actor=actor,  # type: ignore[arg-type]
     )
@@ -133,7 +139,9 @@ def test_audit_log_appends_across_multiple_writes(vault_root: Path) -> None:
         vault_write(
             vault_root=vault_root,
             vault_path=p,
-            frontmatter_fields={"ueid": f"tsk:multi:00000000-0000-0000-0000-000000000000:000000000000000{i}"},
+            frontmatter_fields={
+                "ueid": f"tsk:multi:00000000-0000-0000-0000-000000000000:000000000000000{i}"
+            },
             body=f"content {i}",
             actor="user",
         )
@@ -164,7 +172,8 @@ def test_audit_log_preserves_previous_entries_on_overwrite(
     entries = _read_audit_entries(vault_root)
     assert len(entries) == 2
     assert all(
-        _AUDIT_LINE_RE.match(e).group("path") == "overwrite-me.md" for e in entries  # type: ignore[union-attr]
+        _AUDIT_LINE_RE.match(e).group("path") == "overwrite-me.md"
+        for e in entries  # type: ignore[union-attr]
     )
 
 
@@ -194,7 +203,9 @@ def test_audit_log_failure_does_not_fail_write(
     result = vault_write(
         vault_root=vault_root,
         vault_path="must-survive.md",
-        frontmatter_fields={"ueid": "tsk:survive:00000000-0000-0000-0000-000000000000:0000000000000099"},
+        frontmatter_fields={
+            "ueid": "tsk:survive:00000000-0000-0000-0000-000000000000:0000000000000099"
+        },
         body="important content",
     )
 
@@ -228,7 +239,7 @@ def test_failed_write_does_not_create_audit_entry(
     vault_root: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """When vault_write raises (e.g., path traversal), NO audit entry is created."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="resolves outside"):
         vault_write(
             vault_root=vault_root,
             vault_path="../../../etc/passwd.md",
@@ -236,9 +247,7 @@ def test_failed_write_does_not_create_audit_entry(
             body="bad",
         )
 
-    assert not _audit_path(vault_root).exists(), (
-        "audit log must not be created on failed writes"
-    )
+    assert not _audit_path(vault_root).exists(), "audit log must not be created on failed writes"
 
 
 # ---------------------------------------------------------------------------
@@ -253,7 +262,9 @@ def test_all_vault_write_calls_produce_audit_entries(vault_root: Path) -> None:
         vault_write(
             vault_root=vault_root,
             vault_path=f"bulk-{i}.md",
-            frontmatter_fields={"ueid": f"tsk:bulk:00000000-0000-0000-0000-000000000000:000000000000000{i}"},
+            frontmatter_fields={
+                "ueid": f"tsk:bulk:00000000-0000-0000-0000-000000000000:000000000000000{i}"
+            },
             body=f"bulk {i}",
         )
 
