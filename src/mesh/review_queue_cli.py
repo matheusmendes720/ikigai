@@ -32,8 +32,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from contracts.task_change import TaskChange, TaskStatus
-from mesh import queue as queue_mod
+from src.contracts.task_change import TaskChange, TaskStatus
+from src.mesh import queue as queue_mod
 
 VALID_STATUSES: tuple[TaskStatus, ...] = (
     "pending",

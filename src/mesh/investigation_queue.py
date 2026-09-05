@@ -18,7 +18,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterator
 
-from contracts.investigation import Investigation, InvestigationStatus
+from src.contracts.investigation import Investigation, InvestigationStatus
 
 # Project root is 2 levels up from src/mesh/
 PROJECT_ROOT = Path(__file__).parent.parent.parent

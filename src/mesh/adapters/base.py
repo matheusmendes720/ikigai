@@ -2,8 +2,8 @@
 
 from typing import Any, Protocol, runtime_checkable
 
-from contracts.common import UEID
-from contracts.task_change import PropagationEvent
+from src.contracts.common import UEID
+from src.contracts.task_change import PropagationEvent
 
 
 @runtime_checkable

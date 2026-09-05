@@ -6,8 +6,8 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from contracts.common import UEID
-from contracts.task_change import PropagationEvent
+from src.contracts.common import UEID
+from src.contracts.task_change import PropagationEvent
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 UPI_DB = PROJECT_ROOT / "data" / "solverforge_calendar" / "unified_planning.db"

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 
-from contracts.task_change import TaskChange
+from src.contracts.task_change import TaskChange
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ def validate(event: TaskChange) -> ValidationResult:
 
     # Check 3: UEID collision (existing propagated event with same UEID)
     try:
-        from mesh import queue
+        from src.mesh import queue
 
         for existing in queue.replay_after_restart():
             if existing.ueid == event.ueid and existing.status == "propagated":
