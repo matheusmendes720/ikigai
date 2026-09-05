@@ -16,8 +16,21 @@ from src.mesh.taskdog_cli import main
 
 
 @pytest.fixture
-def taskdog_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Create a tmp taskdog SQLite schema and override the adapter's path."""
+def taskdog_db(
+    request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Path:
+    """Create a tmp taskdog SQLite schema and override the adapter's path.
+
+    Two separate module objects are involved:
+      - ``src.mesh.adapters.taskdog`` — used by the test file to set up data
+        via TaskdogAdapter.apply_change.
+      - ``mesh.adapters.taskdog`` — used by ``main`` inside taskdog_cli.
+
+    Because sys.path contains both repo-root (.) and src/, Python treats these
+    as two distinct module objects.  Both must be patched so that:
+      1. ``db_with_three_tasks`` writes to the isolated tmp DB.
+      2. ``main`` reads from the same isolated tmp DB (not the original path).
+    """
     db_path = tmp_path / "tasks.db"
     conn = __import__("sqlite3").connect(db_path)
     conn.executescript("""
@@ -36,7 +49,21 @@ def taskdog_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """)
     conn.commit()
     conn.close()
-    monkeypatch.setattr(taskdog_mod, "TASKDOG_DB", db_path)
+
+    # ``src.mesh.adapters.taskdog`` — used by TaskdogAdapter.apply_change
+    original_src = taskdog_mod.TASKDOG_DB
+    taskdog_mod.TASKDOG_DB = db_path
+
+    # ``mesh.adapters.taskdog`` — used by main() / _apply_db_override
+    from mesh.adapters import taskdog as taskdog_mod_for_main
+    original_main = taskdog_mod_for_main.TASKDOG_DB
+    taskdog_mod_for_main.TASKDOG_DB = db_path
+
+    def _restore() -> None:
+        taskdog_mod.TASKDOG_DB = original_src
+        taskdog_mod_for_main.TASKDOG_DB = original_main
+
+    request.addfinalizer(_restore)
     return db_path
 
 
