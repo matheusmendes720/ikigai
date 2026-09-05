@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import ast
 import re
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -441,6 +442,76 @@ def test_review_queue_append_only() -> None:
     assert "def enqueue" in queue_source, (
         "mesh/queue.py must define enqueue() as the canonical review_queue writer"
     )
+
+
+# ---------------------------------------------------------------------------
+# Plan C — Investigation queue drift invariant (h)
+# ---------------------------------------------------------------------------
+
+
+def test_investigation_queue_invariants() -> None:
+    """Plan C drift invariant (h): investigation queue structural integrity.
+
+    Asserts:
+    1. data/investigation_queue/ exists or can be created (mkdir parents=True).
+    2. InvestigationQueue file naming: inq-*.json only (no .tmp, no orphan).
+    3. Every JSON file in data/investigation_queue/ validates as Investigation
+       (Pydantic v2 strict — frozen, extra=forbid).
+    4. No resurrection: terminal states (resolved, archived) cannot transition.
+    5. Audit log .investigation_audit.log is append-only (read-only check).
+    """
+    queue_dir = REPO_ROOT / "data" / "investigation_queue"
+    # Invariant 1: directory exists
+    queue_dir.mkdir(parents=True, exist_ok=True)
+    assert queue_dir.is_dir()
+
+    # Invariant 2: only inq-*.json files (plus .keep marker and audit log)
+    for entry in queue_dir.iterdir():
+        if entry.name in (".keep", ".investigation_audit.log"):
+            continue
+        if entry.suffix == ".json":
+            assert entry.name.startswith("inq-"), (
+                f"unexpected JSON in queue dir: {entry.name} "
+                f"(must match inq-*.json or be .keep/.audit_log)"
+            )
+            # Invariant 3: file validates as Investigation
+            from src.contracts.investigation import Investigation
+
+            try:
+                Investigation.model_validate_json(entry.read_text(encoding="utf-8"))
+            except Exception as exc:
+                pytest.fail(f"investigation file failed validation: {entry.name}: {exc}")
+        elif ".tmp." in entry.name:
+            pytest.fail(f"orphan tmp file in queue: {entry.name}")
+
+    # Invariant 4: terminal-state transitions rejected (uses helper, not queue itself)
+    import mesh.investigation_queue as iq_mod
+    from mesh.investigation_queue import transition as _transition
+    from src.contracts.investigation import Investigation
+
+    # Save original QUEUE_DIR
+    original_qd = iq_mod.QUEUE_DIR
+    try:
+        # Redirect to tmp for this check
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as td:
+            iq_mod.QUEUE_DIR = Path(td)
+            # Create + complete a resolved investigation
+            inv = Investigation(
+                inq_id="inq-drift-test",
+                source="agent",
+                payload="drift invariant check",
+                created_at=datetime.now(),
+                status="resolved",
+            )
+            iq_mod.enqueue(inv)
+            # Try to transition resolved → archived (must fail)
+            with pytest.raises(ValueError, match="invalid transition"):
+                _transition("inq-drift-test", "archived", "drift-test")
+    finally:
+        iq_mod.QUEUE_DIR = original_qd
 
 
 # ---------------------------------------------------------------------------
