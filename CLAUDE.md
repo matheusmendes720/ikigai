@@ -310,6 +310,8 @@ algoritmo deferidas até evidência empírica.
 > Wave 4 Scenario B (Sub-agents + stateful subgraphs, 32-44h) requires user
 > acceptance of the 4 masters before kickoff.
 
+> **Plan D SHIPPED (2026-09-04, commits `2b43502`..`cf353ad`, 14 commits)** — meta-planner integration. Spec at `docs/superpowers/specs/2026-09-04-meta-planner-design.md` + plan at `docs/superpowers/plans/2026-09-04-meta-planner-plan-d.md`. 6 tracks (A contracts / B subgraph nodes / C state wiring / D observe hint / E CLI / F ADR-031). 11 Pydantic v2 strict contracts + 3 nodes + 3-node subgraph factory + `life v2 plan` CLI command + 3 E2E tests. Final reviewer verdict: APPROVED_FOR_USER_ACCEPTANCE. Drift 41/41 PASS, E.2 tests 3/3 PASS. ADR-031 status: DRAFT (pending #11 acceptance).
+
 ## Root Layout (não-`src/`)
 
 O Typer CLI raiz (`python -m life.cli …`) vive em diretórios paralelos a `src/`:

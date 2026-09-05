@@ -40,7 +40,7 @@ suggesting `/plan` for planning-shaped inputs (zero writes).
 
 | Component | File | LOC |
 |-----------|------|-----|
-| Contracts (12 models) | `src/ikigai/contracts/proposal.py` | ~180 |
+| Contracts (11 models + 1 enum) | `src/ikigai/contracts/proposal.py` | ~180 |
 | classify_intent | `nodes/meta_plan/classify_intent.py` | ~50 |
 | fetch_context | `nodes/meta_plan/fetch_context.py` | ~120 |
 | generate_proposal | `nodes/meta_plan/generate_proposal.py` | ~150 |
