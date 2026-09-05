@@ -766,7 +766,7 @@ def _run_plan(
       3. If --approve: execute via proposal_executor
       4. If --reject X.field: log rejection (amend-and-rerun deferred to follow-up)
     """
-    from agents.v2.contracts.proposal import Proposal
+    from src.ikigai.contracts.proposal import Proposal
 
     # 1. Invoke subgraph
     graph_result = invoke_skill("meta_plan")
