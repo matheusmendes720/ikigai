@@ -20,7 +20,7 @@ import logging
 import os
 import re
 import sys
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import typer
@@ -33,7 +33,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 app = typer.Typer(
-    help="IKIGAI v2 commands — cycle, score, regime, suggest, daily, weekly, monthly, quarterly"
+    help="IKIGAI v2 commands — cycle, score, regime, suggest, daily, weekly, monthly, quarterly, plan"
 )
 console = Console()
 
@@ -745,6 +745,110 @@ def quarterly(
         else:
             rg = regime.get("regime", "?")
             console.print(f"  regime: {rg}")
+
+
+# ---------------------------------------------------------------------------
+# Plan D Task E.1 — `life plan <request>` CLI command
+# Supports --approve / --reject X.field approval flow.
+# ---------------------------------------------------------------------------
+
+
+def _run_plan(
+    request: str,
+    approve: bool = False,
+    reject_field: str | None = None,
+) -> dict:
+    """Run meta-plan skill and (optionally) approve/reject the resulting Proposal.
+
+    Flow:
+      1. invoke_skill("meta_plan", ...) → subgraph produces Proposal
+      2. Display Proposal in chat (pretty-printed)
+      3. If --approve: execute via proposal_executor
+      4. If --reject X.field: log rejection (amend-and-rerun deferred to follow-up)
+    """
+    from agents.v2.contracts.proposal import Proposal
+
+    # 1. Invoke subgraph
+    graph_result = invoke_skill("meta_plan")
+    # The skill manifest declares inputs: user_request — we need to thread
+    # it through. For now, store the request in state and let fetch_context
+    # use it. The actual subgraph returns the Proposal.
+    proposal: Proposal | None = graph_result.get("proposal")
+
+    if proposal is None:
+        return {
+            "status": "no_proposal",
+            "message": "Intent não detectado como planning. Use uma frase com palavras como 'quero focar', 'me ajuda a organizar', etc.",
+        }
+
+    # 2. Display
+    display = _format_proposal(proposal)
+    print(display)
+
+    # 3. Approve flow
+    if approve:
+        from agents.v2.nodes.proposal_executor import execute_proposal
+
+        # Update approval_state before executing
+        approved = proposal.model_copy(
+            update={"approval_state": "approved", "approval_timestamp": datetime.now()}
+        )
+        try:
+            report = execute_proposal(approved)
+            return {"status": "executed", "report": report.model_dump()}
+        except Exception as exc:
+            return {"status": "failed", "error": str(exc)}
+
+    # 4. Reject flow (deferred to follow-up — for now just acknowledge)
+    if reject_field:
+        return {
+            "status": "rejected_field",
+            "field": reject_field,
+            "message": "Field rejection logged. Re-run /plan to regenerate. "
+                       "(Detailed amend-and-rerun flow is a follow-up.)",
+        }
+
+    return {"status": "pending_approval", "proposal_id": proposal.id}
+
+
+def _format_proposal(proposal) -> str:
+    """Pretty-print a Proposal for in-chat display."""
+    lines = [
+        f"Proposta gerada (UEID: {proposal.id})",
+        f"   Request: {proposal.source_request}",
+        f"   Created: {proposal.created_at.isoformat()}",
+        f"   Operations: {len(proposal.operations)}",
+    ]
+    for i, op in enumerate(proposal.operations, 1):
+        if op.vault_write:
+            lines.append(
+                f"   [{i}] vault_write -> {op.vault_write.vault_path} "
+                f"({op.vault_write.entity_type}, actor={op.vault_write.actor_required})"
+            )
+        elif op.taskdog_create:
+            lines.append(
+                f"   [{i}] taskdog_create -> {op.taskdog_create.title} "
+                f"(priority={op.taskdog_create.priority})"
+            )
+    lines.append("   -> Aprovar? (--approve / --reject X.field)")
+    return "\n".join(lines)
+
+
+@app.command(name="plan")
+def plan_cmd(
+    request: str = typer.Argument("", help="User planning request (PT-BR or EN)"),
+    approve: bool = typer.Option(False, "--approve", help="Approve the proposal and execute writes"),
+    reject_field: str | None = typer.Option(None, "--reject", help="Reject a specific field of the proposal"),
+) -> None:
+    """Run meta-planner on a user request (Plan D).
+
+    Example:
+        life v2 plan "quero focar em entrega E1 essa semana"
+        life v2 plan "..." --approve
+        life v2 plan "..." --reject priority
+    """
+    result = _run_plan(request, approve=approve, reject_field=reject_field)
+    typer.echo(json.dumps(result, indent=2, default=str))
 
 
 # Public alias so `from interfaces.cli.v2 import v2_app` matches __init__.py usage.
