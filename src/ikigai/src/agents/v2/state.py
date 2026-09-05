@@ -205,6 +205,43 @@ class IKIGAiStateDict(TypedDict):
 
 
 # ---------------------------------------------------------------------------
+# Plan D — Meta-planner state keys (Task C.1)
+# All keys optional (TypedDict NotRequired pattern). Populated by:
+#   - observe (intent detection → plan_intent_hint) — Task D.1
+#   - classify_intent (→ intent_classification) — Task B.1
+#   - fetch_context (→ memory_refs, folder_reads, hierarchy_matches) — Task B.2
+#   - generate_proposal (→ proposal, proposal_pending) — Task B.3
+#   - proposal_executor (→ execution_report) — Task B.4
+# ---------------------------------------------------------------------------
+
+
+class MetaPlanStateDict(TypedDict, total=False):
+    """Subset of IKIGAiStateDict used by the meta-planner subgraph."""
+
+    # Input
+    user_request: str
+    # Outputs from each node
+    plan_intent_hint: str  # populated by observe (Task D.1)
+    intent_classification: Any  # IntentClassification — avoid circular import
+    memory_refs: list[Any]  # list[MemoryRef]
+    folder_reads: list[Any]  # list[FolderReadOp]
+    hierarchy_matches: Any  # HierarchyMatch
+    proposal: Any  # Proposal — the central artifact
+    proposal_pending: bool
+    execution_report: Any  # ExecutionReport
+
+
+# Extend IKIGAiStateDict with the meta-planner keys via inheritance.
+# Use a new class to keep backward compatibility for existing consumers.
+class IKIGAiStateDictWithMetaPlan(IKIGAiStateDict, MetaPlanStateDict):
+    """IKIGAiStateDict extended with meta-planner keys (Plan D)."""
+
+
+# Alias for cleaner imports
+MetaPlanEnabledState = IKIGAiStateDictWithMetaPlan
+
+
+# ---------------------------------------------------------------------------
 # compute_meta_vector — REMOVED from v2 (FORBIDDEN_FUNCTION per ADR-013).
 # The stub `_stub_meta_vector` in score_vectors.py provides an inline
 # placeholder. Full historical implementation available in the archive at:
