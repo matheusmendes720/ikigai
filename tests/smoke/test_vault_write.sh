@@ -9,7 +9,7 @@ cd "$REPO_ROOT"
 
 echo "=== Step 1: Verify vault_write function is importable via PYTHONPATH=. ==="
 PYTHONPATH=. python -c "
-from src.ikigai.src.ikigai.vault.vault_write import vault_write
+from sys_ikigai.vault.vault_write import vault_write
 print('vault_write callable OK')
 "
 
@@ -24,7 +24,7 @@ echo ""
 echo "=== Step 3: Verify path traversal rejection (absolute path raises ValueError) ==="
 PYTHONPATH=. python -c "
 from pathlib import Path
-from src.ikigai.src.ikigai.vault.vault_write import vault_write
+from sys_ikigai.vault.vault_write import vault_write
 
 try:
     vault_write(
@@ -44,7 +44,7 @@ echo "=== Step 4: Verify atomic no .tmp leftover ==="
 TMPDIR=$(mktemp -d)
 PYTHONPATH=. python -c "
 from pathlib import Path
-from src.ikigai.src.ikigai.vault.vault_write import vault_write
+from sys_ikigai.vault.vault_write import vault_write
 
 vault_root = Path('$TMPDIR/vault')
 vault_root.mkdir(parents=True)
