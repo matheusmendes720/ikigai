@@ -37,6 +37,21 @@ def observe_node(state: IKIGAiStateDict) -> dict[str, Any]:
         updates["agent_response"] = agent_response
         updates["user_input"] = None
 
+    # Plan D Task D.1 — intent detection (~30 LOC)
+    # Emits plan_intent_hint when user_input matches planning keywords.
+    # ZERO writes. Just a hint to invoke /plan explicitly.
+    from .meta_plan.classify_intent import classify_intent
+
+    plan_intent_hint: str | None = None
+    if user_input:
+        intent = classify_intent(user_input)
+        if intent.level in ("high", "medium"):
+            plan_intent_hint = (
+                f"💡 Detectei intent de planning (level={intent.level}). "
+                f"Use `/plan {user_input[:60]}` para proposta estruturada."
+            )
+    updates["plan_intent_hint"] = plan_intent_hint
+
     # Read Q_HE via prompt template
     vault_root = str(_default_vault_root())
     prompt_state = {"vault_root": vault_root, "date": state.get("cycle_start", "")}
