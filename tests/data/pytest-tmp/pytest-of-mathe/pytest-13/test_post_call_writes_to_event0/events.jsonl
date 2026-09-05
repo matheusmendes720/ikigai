@@ -1,0 +1,1 @@
+{"ts": 1788642923.0913298, "event": "taskdog.add", "data": {"namespace": "taskdog", "tool": "taskdog_add", "tool_short": "add", "arguments": {"title": "smoke task"}}}

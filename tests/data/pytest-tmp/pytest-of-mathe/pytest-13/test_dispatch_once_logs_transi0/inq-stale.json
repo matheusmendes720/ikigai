@@ -1,0 +1,11 @@
+{
+  "actor": "dispatcher:stale",
+  "created_at": "2026-08-01T18:16:19.930262",
+  "inq_id": "inq-stale",
+  "inq_ueid": null,
+  "payload": "x",
+  "source": "agent",
+  "status": "archived",
+  "tags": [],
+  "updated_at": "2026-09-05T18:16:19.966675"
+}

@@ -1,0 +1,1 @@
+{"event_id":"5268af22997e4c90b57165b97f42017f","ueid":"kill:kill-event:ea2e1bc4-45b0-4afb-9b82-2b26fa179648:2e36d47583ce4121","kill_id":"kill-eve","timestamp":1788642927.2899399,"kill_switch_trigger":"vault_write_bypass","actor_at_fault":"agent","entity_id":null,"context":{"vault_path":"x.md"},"recovery_path":"Edit .kill_switch.md and set status: inactive (or delete the file)"}

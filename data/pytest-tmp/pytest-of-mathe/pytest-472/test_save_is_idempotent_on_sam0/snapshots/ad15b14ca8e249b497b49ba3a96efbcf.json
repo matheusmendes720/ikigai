@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "ad15b14ca8e249b497b49ba3a96efbcf",
+  "name": "baseline",
+  "created_at": "2026-09-05T21:42:20.202906Z",
+  "task_count": 1,
+  "sha256": "08f5913faac663f8b0cfb77861d6601058ae028de3447c6dad76f22f4886dab9",
+  "tasks": [
+    {
+      "ueid": "sc:task:a:0:0",
+      "title": "A"
+    }
+  ],
+  "filters": {},
+  "description": null
+}

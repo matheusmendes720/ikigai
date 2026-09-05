@@ -1,0 +1,1 @@
+{"event_id":"evt_autoisolate","ueid":"tsk:test:00000000-0000-0000-0000-000000000000:0000000000000000","action":"create","fields":{"title":"AutoIsolate"},"source_fork":"interfaces/cli","timestamp":"2026-08-30T14:30:00Z","status":"pending"}

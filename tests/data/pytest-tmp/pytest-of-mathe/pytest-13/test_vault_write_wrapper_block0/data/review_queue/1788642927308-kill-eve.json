@@ -1,0 +1,1 @@
+{"event_id":"498d7f10b62347f794d354a2c1195faa","ueid":"kill:kill-event:98ca6379-ca0c-44de-83d9-73f35cad0a41:a0c4cd2a57f243d9","kill_id":"kill-eve","timestamp":1788642927.3083525,"kill_switch_trigger":"manual_override","actor_at_fault":"agent","entity_id":null,"context":{"mechanism":"env_var","vault_path":"test.md"},"recovery_path":"unset IKIGAI_KILL_SWITCH"}

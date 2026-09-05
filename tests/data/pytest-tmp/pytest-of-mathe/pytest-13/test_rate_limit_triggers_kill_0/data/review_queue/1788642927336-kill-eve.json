@@ -1,0 +1,1 @@
+{"event_id":"873eb27002884cbd81a4bd47acebfd10","ueid":"kill:kill-event:2b9fe8b0-e721-434f-8b56-f867b747f414:49bc88a4591b4096","kill_id":"kill-eve","timestamp":1788642927.3367925,"kill_switch_trigger":"rate_limit_exceeded","actor_at_fault":"user","entity_id":null,"context":{"vault_path":"plan2.md","limit_per_hour":50,"window_s":3600.0},"recovery_path":"unset IKIGAI_KILL_SWITCH"}
