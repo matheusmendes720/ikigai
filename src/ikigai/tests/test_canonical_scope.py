@@ -696,27 +696,37 @@ def test_invoke_skill_guards_taskdog_call_with_outputs_check() -> None:
     helper (e.g. ``interfaces.cli._skill_outputs.post_process_skill_outputs``).
     The helper is permitted because the inline call inside invoke_skill is
     what gates the firing; the helper just carries the policy.
+
+    After W6.X v2.py split, invoke_skill lives in interfaces/cli/_v2_skills.py
+    (not v2.py). Test searches both files for the FunctionDef.
     """
-    v2_cli_path = REPO_ROOT / "interfaces" / "cli" / "v2.py"
     skill_outputs_path = REPO_ROOT / "interfaces" / "cli" / "_skill_outputs.py"
-    if not v2_cli_path.exists():
-        pytest.skip(f"{v2_cli_path} not present")
+    candidates = [
+        REPO_ROOT / "interfaces" / "cli" / "v2.py",
+        REPO_ROOT / "interfaces" / "cli" / "_v2_skills.py",
+    ]
+    existing = [p for p in candidates if p.exists()]
+    if not existing:
+        pytest.skip("neither v2.py nor _v2_skills.py is present")
 
-    v2_source = v2_cli_path.read_text(encoding="utf-8")
-    v2_tree = ast.parse(v2_source)
-
-    # Locate the invoke_skill FunctionDef
     invoke_skill_node: ast.FunctionDef | None = None
-    for node in ast.walk(v2_tree):
-        if (
-            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-            and node.name == "invoke_skill"
-        ):
-            invoke_skill_node = node
+    body_source: str = ""
+    for path in existing:
+        source = path.read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name == "invoke_skill"
+            ):
+                invoke_skill_node = node
+                body_source = ast.unparse(node)
+                break
+        if invoke_skill_node is not None:
             break
-    assert invoke_skill_node is not None, "invoke_skill function not found in v2.py"
-
-    body_source = ast.unparse(invoke_skill_node)
+    assert invoke_skill_node is not None, (
+        "invoke_skill function not found in v2.py or _v2_skills.py"
+    )
 
     # The guard must reference BOTH the outputs gate AND taskdog_create_task.
     # Allow either an inline check OR delegation to _skill_outputs (which
@@ -1408,10 +1418,13 @@ def test_meta_plan_approval_required_for_writes() -> None:
     """Invariant (o): proposal_executor MUST assert approval_state == 'approved'
     before executing any write. Prevents accidental auto-execution.
     """
-    import os
-
-    executor_path = "src/ikigai/src/agents/v2/nodes/proposal_executor.py"
-    if not os.path.exists(executor_path):
+    # Path is relative to src/ikigai (pytest cwd). Earlier draft used a
+    # repo-root relative path with redundant "src/ikigai" prefix; corrected
+    # post-Plan D shipping (cf353ad).
+    executor_path = (
+        REPO_ROOT / "src" / "ikigai" / "src" / "agents" / "v2" / "nodes" / "proposal_executor.py"
+    )
+    if not executor_path.exists():
         # Pre-implementation: invariant vacuously fails so the implementer
         # knows to add the assertion when creating the file.
         pytest.fail(
@@ -1420,7 +1433,7 @@ def test_meta_plan_approval_required_for_writes() -> None:
             "state.proposal.approval_state == 'approved' before any write."
         )
 
-    source = open(executor_path).read()
+    source = executor_path.read_text(encoding="utf-8")
     assert "approval_state == 'approved'" in source or (
         "approval_state" in source and "approved" in source
     ), (
