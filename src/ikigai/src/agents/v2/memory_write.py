@@ -232,7 +232,7 @@ def memory_write_atomic(
     # Lazy import — vault_write is the canonical writer (ADR-012). Imported
     # lazily to avoid a circular dependency at module load (memory_write
     # may be imported by vault_write-adjacent modules).
-    from ikigai.vault.vault_write import vault_write
+    from sys_ikigai.vault.vault_write import vault_write
 
     vault_root_path = Path(vault_root)
     if frontmatter_fields is None:

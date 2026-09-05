@@ -27,7 +27,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from ikigai.vault.vault_write import vault_write  # noqa: E402
+from sys_ikigai.vault.vault_write import vault_write  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -187,7 +187,7 @@ def test_audit_log_failure_does_not_fail_write(
     This test patches the audit write to raise and verifies the write
     returns success.
     """
-    import ikigai.vault.vault_write as vw
+    import sys_ikigai.vault.vault_write as vw
 
     real_open = vw.Path.open
 

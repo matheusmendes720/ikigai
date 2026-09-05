@@ -38,7 +38,7 @@ import pytest
 
 def test_chain_vault_read_then_strategics(tmp_path: Path) -> None:
     """vault_read a file → load_strategics → both produce expected output."""
-    from ikigai.vault.vault_read import vault_read
+    from sys_ikigai.vault.vault_read import vault_read
     from strategics.loader import load_strategics
 
     vault = tmp_path / "vault"
@@ -63,7 +63,7 @@ def test_chain_vault_read_then_strategics(tmp_path: Path) -> None:
 
 def test_chain_strategics_then_vault_write(tmp_path: Path) -> None:
     """Read strategics → write a new vault file informed by them."""
-    from ikigai.vault.vault_write import vault_write
+    from sys_ikigai.vault.vault_write import vault_write
     from strategics.loader import load_strategics
 
     vault = tmp_path / "vault"
@@ -89,8 +89,8 @@ def test_chain_strategics_then_vault_write(tmp_path: Path) -> None:
 
 def test_chain_vault_read_then_vault_write_round_trip(tmp_path: Path) -> None:
     """Full round-trip: read existing → derive new → write → read back."""
-    from ikigai.vault.vault_read import vault_read
-    from ikigai.vault.vault_write import vault_write
+    from sys_ikigai.vault.vault_read import vault_read
+    from sys_ikigai.vault.vault_write import vault_write
 
     vault = tmp_path / "vault"
     vault.mkdir()

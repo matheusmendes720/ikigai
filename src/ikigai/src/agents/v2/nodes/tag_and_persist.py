@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from mcp_server.tools_vault import vault_write
+from src.ikigai.src.mcp_server.tools_vault import vault_write
 
 from ..state import IKIGAiStateDict
 

@@ -6,11 +6,11 @@ Phase B7.4 closes the agent layer with the round-trip test:
 The trace artifact (Implementer Report format, B3-B4 precedent) is
 written to src/ikigai/tests/reports/b7-4-report.md at session end.
 
-Path setup mirrors src/ikigai/tests/conftest.py: add src/ikigai/src/ to
-sys.path so `from src.ikigai.src.ikigai.vault.X import Y` and
-`from src.ikigai.src.strategics.loader import Z` resolve correctly via
-namespace packages (no __init__.py in src/ or src/ikigai/, but the chain
-src -> ikigai -> src -> ikigai -> vault/sync etc. resolves fine).
+Path setup mirrors src/ikigai/tests/conftest.py. After the 2026-09-05
+namespace rename, `sys_ikigai/` lives at repo root, so adding
+`<repo-root>/` to sys.path covers both `from sys_ikigai.X` and
+`from src.ikigai.src.strategics.X` styles. The old `<repo>/src/ikigai/src/`
+append (Plan A Task 9 followup workaround for the dual-module bug) is gone.
 """
 
 from __future__ import annotations
@@ -22,12 +22,14 @@ from pathlib import Path
 
 import pytest
 
-# Path setup: this file lives at src/ikigai/tests/e2e/conftest.py
-# parent.parent.parent = src/ikigai ; + "src" = src/ikigai/src (where
-# ikigai/, mcp_server/, strategics/ etc. live as namespace packages).
-_SRC = Path(__file__).resolve().parent.parent.parent / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
+# Path setup: this file lives at src/ikigai/tests/e2e/conftest.py.
+# Prepend repo root so both `sys_ikigai.X` (at repo root) and
+# `src.ikigai.src.X` (namespace chain via repo root) resolve.
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+_SRC_ROOT = _REPO_ROOT / "src"
+for p in (_REPO_ROOT, _SRC_ROOT):
+    if str(p) not in sys.path:
+        sys.path.insert(0, str(p))
 
 
 # ─────────────────────────────────────────────────────────────────────────────

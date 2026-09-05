@@ -1,7 +1,7 @@
 """proposal_executor — execute approved Proposal via shipped write infra (Plan D Task B.4).
 
 REUSES (zero new write code):
-- ``wrap_vault_write`` (ADR-029, ``src.ikigai.src.ikigai.security.vault_write_wrapper``)
+- ``wrap_vault_write`` (ADR-029, ``sys_ikigai.security.vault_write_wrapper``)
 - ``taskdog_create_task`` (W3.6 Path 1, ``src.ikigai.src.agents.tools``)
 
 Refuses to execute any Proposal whose ``approval_state != 'approved'``
@@ -53,7 +53,7 @@ def wrap_vault_write(
     When this module's attribute is patched by tests, this proxy is
     replaced wholesale — the real wrapper is never built.
     """
-    from src.ikigai.src.ikigai.security.vault_write_wrapper import (
+    from sys_ikigai.security.vault_write_wrapper import (
         make_wrapped_vault_write,
     )
 

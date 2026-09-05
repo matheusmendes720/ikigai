@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from ikigai.core.heuristics import (
+from sys_ikigai.core.heuristics import (
     apply_hysteresis,
     classify_opportunity,
     compute_opportunity_fit,
@@ -19,12 +19,12 @@ from ikigai.core.heuristics import (
     recalibrate_weight_ucb,
     should_promote_skill,
 )
-from ikigai.core.heuristics.phase_pivot import PhaseDecision
-from ikigai.core.heuristics.regime import RegimeDecision
-from ikigai.entities.plan.task import TaskEntity
-from ikigai.entities.skill import SkillLevel
-from ikigai.enums import Phase, RegimeType, StatusType, VectorType
-from ikigai.types import UEID
+from sys_ikigai.core.heuristics.phase_pivot import PhaseDecision
+from sys_ikigai.core.heuristics.regime import RegimeDecision
+from sys_ikigai.entities.plan.task import TaskEntity
+from sys_ikigai.entities.skill import SkillLevel
+from sys_ikigai.enums import Phase, RegimeType, StatusType, VectorType
+from sys_ikigai.types import UEID
 
 # -------------------------------------------------------------------------- #
 # Regime

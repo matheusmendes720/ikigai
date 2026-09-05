@@ -18,7 +18,7 @@ from typing import Any
 
 import pytest
 
-from ikigai.gateway import UnifiedMCPGateway
+from sys_ikigai.gateway import UnifiedMCPGateway
 
 # ---------------------------------------------------------------------------
 # Path setup (same pattern as conftest.py — mirrors its sys.path setup)
@@ -79,7 +79,7 @@ def _spawn_jsonrpc(
 
 def test_taskdog_client_imports():
     """taskdog fork client module is importable."""
-    from ikigai.gateway.clients import taskdog
+    from sys_ikigai.gateway.clients import taskdog
 
     assert taskdog is not None
     assert hasattr(taskdog, "taskdog_adapter")
@@ -87,7 +87,7 @@ def test_taskdog_client_imports():
 
 def test_solverforge_client_imports():
     """solverforge-calendar fork client module is importable."""
-    from ikigai.gateway.clients import solverforge_calendar
+    from sys_ikigai.gateway.clients import solverforge_calendar
 
     assert solverforge_calendar is not None
     assert hasattr(solverforge_calendar, "solverforge_calendar_adapter")
@@ -95,7 +95,7 @@ def test_solverforge_client_imports():
 
 def test_tuiboard_client_imports():
     """tuiboard fork client module is importable."""
-    from ikigai.gateway.clients import tuiboard
+    from sys_ikigai.gateway.clients import tuiboard
 
     assert tuiboard is not None
     assert hasattr(tuiboard, "tuiboard_adapter")
@@ -103,7 +103,7 @@ def test_tuiboard_client_imports():
 
 def test_cli_client_imports():
     """native CLI fork client module is importable."""
-    from ikigai.gateway.clients import cli
+    from sys_ikigai.gateway.clients import cli
 
     assert cli is not None
     assert hasattr(cli, "cli_adapter")
@@ -116,7 +116,7 @@ def test_cli_client_imports():
 
 def test_taskdog_adapter_factory_wires():
     """taskdog_adapter() returns a StdioAdapter with correct name."""
-    from ikigai.gateway.clients.taskdog import taskdog_adapter
+    from sys_ikigai.gateway.clients.taskdog import taskdog_adapter
 
     adapter = taskdog_adapter()
     assert adapter.name == "taskdog"
@@ -127,7 +127,7 @@ def test_taskdog_adapter_factory_wires():
 
 def test_solverforge_adapter_factory_wires():
     """solverforge_calendar_adapter() returns a StdioAdapter with correct name."""
-    from ikigai.gateway.clients.solverforge_calendar import solverforge_calendar_adapter
+    from sys_ikigai.gateway.clients.solverforge_calendar import solverforge_calendar_adapter
 
     adapter = solverforge_calendar_adapter()
     assert adapter.name == "solverforge-calendar"
@@ -138,7 +138,7 @@ def test_solverforge_adapter_factory_wires():
 
 def test_tuiboard_adapter_factory_wires():
     """tuiboard_adapter() returns a StdioAdapter with correct name."""
-    from ikigai.gateway.clients.tuiboard import tuiboard_adapter
+    from sys_ikigai.gateway.clients.tuiboard import tuiboard_adapter
 
     adapter = tuiboard_adapter()
     assert adapter.name == "tuiboard"
@@ -147,7 +147,7 @@ def test_tuiboard_adapter_factory_wires():
 
 def test_cli_adapter_factory_wires():
     """cli_adapter() returns a StdioAdapter with correct name."""
-    from ikigai.gateway.clients.cli import cli_adapter
+    from sys_ikigai.gateway.clients.cli import cli_adapter
 
     adapter = cli_adapter()
     assert adapter.name == "cli"
@@ -162,7 +162,7 @@ def test_cli_adapter_factory_wires():
 
 def test_register_default_adapters_wires_4_forks():
     """register_default_adapters() registers exactly 4 adapters."""
-    from ikigai.gateway import UnifiedMCPGateway, register_default_adapters
+    from sys_ikigai.gateway import UnifiedMCPGateway, register_default_adapters
 
     gateway = UnifiedMCPGateway()
     register_default_adapters(gateway)
@@ -184,7 +184,7 @@ class _ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
 
 def test_health_check_returns_adapter_list():
     """health_check() returns status + adapter list."""
-    from ikigai.gateway import UnifiedMCPGateway, register_default_adapters
+    from sys_ikigai.gateway import UnifiedMCPGateway, register_default_adapters
 
     gateway = UnifiedMCPGateway()
     register_default_adapters(gateway)
@@ -223,7 +223,7 @@ def _get_health(url: str) -> dict:
 
 def test_gateway_http_health_endpoint():
     """GET /health on UnifiedMCPGateway returns adapter list."""
-    from ikigai.gateway import UnifiedMCPGateway, register_default_adapters
+    from sys_ikigai.gateway import UnifiedMCPGateway, register_default_adapters
 
     gateway = UnifiedMCPGateway()
     register_default_adapters(gateway)
@@ -258,8 +258,8 @@ def _post(url: str, payload: dict) -> dict:
 
 def test_gateway_e2e_call_taskdog_via_http():
     """POST /call taskdog namespace → returns 200 + result (mocked)."""
-    from ikigai.gateway import UnifiedMCPGateway
-    from ikigai.gateway.client_adapter import MCPClientAdapter
+    from sys_ikigai.gateway import UnifiedMCPGateway
+    from sys_ikigai.gateway.client_adapter import MCPClientAdapter
 
     class FakeTaskdog(MCPClientAdapter):
         def __init__(self) -> None:
@@ -290,7 +290,7 @@ def test_gateway_e2e_unknown_namespace_returns_404():
     """POST /call with unknown namespace → HTTP 404."""
     import urllib.error
 
-    from ikigai.gateway import UnifiedMCPGateway
+    from sys_ikigai.gateway import UnifiedMCPGateway
 
     gateway = UnifiedMCPGateway()
     url, server = _start_gateway(gateway)

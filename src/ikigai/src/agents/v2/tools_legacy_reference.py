@@ -224,7 +224,7 @@ if False:
         """Sync the latest checkpoint to a vault markdown file."""
         import datetime as _dt
 
-        from ikigai.vault.vault_write import vault_write as _vault_write_impl
+        from sys_ikigai.vault.vault_write import vault_write as _vault_write_impl
 
         d = _read_checkpoint_data(thread_id)
         cycle_id = d.get("cycle_id", _dt.date.today().isoformat())

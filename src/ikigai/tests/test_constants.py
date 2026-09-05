@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ikigai.constants import NSM
+from sys_ikigai.constants import NSM
 
 
 class TestPavNs:

@@ -13,10 +13,10 @@ from typing import Annotated, Any, Literal
 
 # Aliases so public functions below (also named vault_read / vault_write)
 # do not shadow the impl imports.
-from ikigai.vault.vault_read import (
+from sys_ikigai.vault.vault_read import (
     vault_read as _vault_read_impl,
 )
-from ikigai.vault.vault_write import (
+from sys_ikigai.vault.vault_write import (
     vault_write as _vault_write_impl,
 )
 

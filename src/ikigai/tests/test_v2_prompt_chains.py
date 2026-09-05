@@ -191,7 +191,7 @@ def test_v2_drift_detector_count_unaffected() -> None:
 
 
 def test_v2_no_forbidden_imports_in_prompts() -> None:
-    """No prompt module imports from ikigai.core.scoring or ikigai.core.heuristics."""
+    """No prompt module imports from sys_ikigai.core.scoring or ikigai.core.heuristics."""
     FORBIDDEN = frozenset({"ikigai.core.scoring", "ikigai.core.heuristics", "ikigai.core"})
     violations = []
     for py_file in PROMPTS_DIR.rglob("*.py"):  # type: ignore[union-attr]

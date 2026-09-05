@@ -10,17 +10,17 @@ from pathlib import Path
 
 import pytest
 
-from ikigai.entities import GoalEntity
-from ikigai.enums import EntityType
-from ikigai.propagation.frontmatter import (
+from sys_ikigai.entities import GoalEntity
+from sys_ikigai.enums import EntityType
+from sys_ikigai.propagation.frontmatter import (
     dict_to_frontmatter,
     frontmatter_to_dict,
     parse_from_markdown,
     serialize_to_markdown,
 )
-from ikigai.propagation.markdown_db import MarkdownDB
-from ikigai.propagation.sqlite_adapter import SQLiteAdapter
-from ikigai.propagation.triagem import DriftEntry, Triagem
+from sys_ikigai.propagation.markdown_db import MarkdownDB
+from sys_ikigai.propagation.sqlite_adapter import SQLiteAdapter
+from sys_ikigai.propagation.triagem import DriftEntry, Triagem
 
 
 class TestFrontmatterSerialization:

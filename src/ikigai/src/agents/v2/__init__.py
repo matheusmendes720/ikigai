@@ -4,5 +4,5 @@ This package is a READ-ONLY parallel branch. All math calls have been replaced
 with prompt-chain stubs. Phase 8.2 will wire the actual MCP tool calls.
 
 Drift detector: this directory is scanned by test_canonical_scope.py.
-Do NOT import ikigai.core.scoring, ikigai.core.heuristics, or cybernetics.daily_loop.
+Do NOT import sys_ikigai.core.scoring, ikigai.core.heuristics, or cybernetics.daily_loop.
 """

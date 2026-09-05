@@ -414,7 +414,7 @@ def _handle_ikigai_sync_vault(arguments: dict[str, Any]) -> str:
 # Task I/O — Deep Agent ↔ interfaces via data/tasks.jsonl
 # (delegated to vault subsystem to keep vault-write scanner happy)
 # ---------------------------------------------------------------------------
-from ikigai.vault.task_io import _read_tasks_from_data, _write_tasks_to_data  # noqa: E402
+from sys_ikigai.vault.task_io import _read_tasks_from_data, _write_tasks_to_data  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # FastMCP tool wrappers

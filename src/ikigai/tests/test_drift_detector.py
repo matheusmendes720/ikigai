@@ -12,9 +12,9 @@ from pathlib import Path
 
 import pytest
 
-from ikigai.adapters.drift_detector import DriftDetector, DriftFinding
-from ikigai.entities.drift_state import DriftState
-from ikigai.propagation.sqlite_adapter import SQLiteAdapter
+from sys_ikigai.adapters.drift_detector import DriftDetector, DriftFinding
+from sys_ikigai.entities.drift_state import DriftState
+from sys_ikigai.propagation.sqlite_adapter import SQLiteAdapter
 
 
 @pytest.fixture
@@ -45,8 +45,8 @@ def test_detector_reports_in_sync(vault_and_db: Path) -> None:
     _write(md)
 
     adapter = SQLiteAdapter(db_path=db)
-    from ikigai.adapters.sqlite_bridge import IKIGAiRecordBridge
-    from ikigai.entities.ikigai_record import IKIGAiRecord
+    from sys_ikigai.adapters.sqlite_bridge import IKIGAiRecordBridge
+    from sys_ikigai.entities.ikigai_record import IKIGAiRecord
 
     rec = IKIGAiRecord.model_validate(
         {
@@ -87,8 +87,8 @@ def test_detector_reports_markdown_newer(vault_and_db: Path) -> None:
     os.utime(md, (fut.timestamp(), fut.timestamp()))
 
     adapter = SQLiteAdapter(db_path=db)
-    from ikigai.adapters.sqlite_bridge import IKIGAiRecordBridge
-    from ikigai.entities.ikigai_record import IKIGAiRecord
+    from sys_ikigai.adapters.sqlite_bridge import IKIGAiRecordBridge
+    from sys_ikigai.entities.ikigai_record import IKIGAiRecord
 
     rec = IKIGAiRecord.model_validate(
         {

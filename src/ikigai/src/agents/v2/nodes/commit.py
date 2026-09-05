@@ -18,7 +18,7 @@ import datetime as dt
 import json
 from typing import Any, cast
 
-from mcp_server.tools_vault import vault_write
+from src.ikigai.src.mcp_server.tools_vault import vault_write
 
 from ..state import IKIGAiStateDict
 

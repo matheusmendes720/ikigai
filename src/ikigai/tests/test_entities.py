@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from ikigai.entities import (
+from sys_ikigai.entities import (
     DeliverableEntity,
     DreamEntity,
     GoalEntity,
@@ -15,8 +15,8 @@ from ikigai.entities import (
     TaskEntity,
     TaskPriority,
 )
-from ikigai.enums import EntityType, StatusType
-from ikigai.types import UEID
+from sys_ikigai.enums import EntityType, StatusType
+from sys_ikigai.types import UEID
 
 
 def _ueid(suffix):

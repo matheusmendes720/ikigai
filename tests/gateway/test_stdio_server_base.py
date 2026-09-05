@@ -1,7 +1,7 @@
 """Tests for the shared JSON-RPC 2.0 stdio server transport."""
 from __future__ import annotations
 
-from ikigai.gateway.stdio_server_base import StdioServerBase
+from sys_ikigai.gateway.stdio_server_base import StdioServerBase
 
 
 def test_handle_initialize_returns_server_info():

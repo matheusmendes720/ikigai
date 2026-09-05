@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 # Ensure src/ is on sys.path (handled by src/ikigai/tests/conftest.py)
-from ikigai.vault.sync_cli import (
+from sys_ikigai.vault.sync_cli import (
     _REVERSE_SYNC_STATE_DEFAULT,
     _SYNC_STATE_DEFAULT,
     _TASKDOG_DB_DEFAULT,
@@ -125,7 +125,7 @@ def cli_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict:
     adapter = _StubTaskdogAdapter(taskdog_db)
 
     # Patch module-level defaults before importing sync_cli
-    import ikigai.vault.sync_cli as cli_mod
+    import sys_ikigai.vault.sync_cli as cli_mod
 
     monkeypatch.setattr(cli_mod, "VAULT_ROOT", vault)
     monkeypatch.setattr(cli_mod, "SYNC_STATE", state)

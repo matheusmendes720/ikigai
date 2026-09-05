@@ -50,7 +50,7 @@ def test_vault_task_round_trips_through_taskdog(
     )
 
     # 2. Push to taskdog (via run_sync — B6.6 pattern)
-    from ikigai.vault.sync import run_sync
+    from sys_ikigai.vault.sync import run_sync
 
     class _NoopAdapter:
         def call_tool(self, name: str, args: dict) -> dict:
@@ -65,7 +65,7 @@ def test_vault_task_round_trips_through_taskdog(
     assert result.errors == []
 
     # 3. Reverse sync: simulate taskdog -> vault via vault_write (B6.7 pattern)
-    from ikigai.vault.vault_write import vault_write
+    from sys_ikigai.vault.vault_write import vault_write
 
     write_result = vault_write(
         vault_root=tmp_vault,
@@ -81,7 +81,7 @@ def test_vault_task_round_trips_through_taskdog(
     assert write_result["written"] is True
 
     # 4. Read back via vault_read (B7.1)
-    from ikigai.vault.vault_read import vault_read
+    from sys_ikigai.vault.vault_read import vault_read
 
     read_result = vault_read(tmp_vault, "plans/q3/test-task.md")
     assert read_result["frontmatter"]["status"] == "done"
@@ -91,8 +91,8 @@ def test_vault_read_after_taskdog_status_change(
     tmp_vault: Path,
 ) -> None:
     """After vault_write updates status, vault_read sees the new status."""
-    from ikigai.vault.vault_read import vault_read
-    from ikigai.vault.vault_write import vault_write
+    from sys_ikigai.vault.vault_read import vault_read
+    from sys_ikigai.vault.vault_write import vault_write
 
     (tmp_vault / "s.md").write_text("---\nstatus: planned\n---\n# S\n", encoding="utf-8")
 
@@ -114,7 +114,7 @@ def test_mcp_handles_absent_vault_file_gracefully(
     tmp_vault: Path,
 ) -> None:
     """vault_read on missing file raises FileNotFoundError (caught by MCP wrapper)."""
-    from ikigai.vault.vault_read import vault_read
+    from sys_ikigai.vault.vault_read import vault_read
 
     with pytest.raises(FileNotFoundError):
         vault_read(tmp_vault, "nonexistent.md")

@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from ikigai.core.scoring.meta_vector import compute_alignment_label, meta_vector
-from ikigai.core.scoring.qhe import compute_qhe, h_from_streak
-from ikigai.core.scoring.rice import W_IKIGAI_BY_VECTOR, compute_rice_score
-from ikigai.core.scoring.vector_scores import (
+from sys_ikigai.core.scoring.meta_vector import compute_alignment_label, meta_vector
+from sys_ikigai.core.scoring.qhe import compute_qhe, h_from_streak
+from sys_ikigai.core.scoring.rice import W_IKIGAI_BY_VECTOR, compute_rice_score
+from sys_ikigai.core.scoring.vector_scores import (
     score_course,
     score_market,
     score_passion,
     score_revenue,
     score_skill,
 )
-from ikigai.enums import AlignmentLabel, VectorType
-from ikigai.types import ScoreValue
+from sys_ikigai.enums import AlignmentLabel, VectorType
+from sys_ikigai.types import ScoreValue
 
 
 class TestScorePassion:

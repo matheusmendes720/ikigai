@@ -4,12 +4,10 @@ Per Plan A Task 9 followup, this conftest uses CORRECTED path ordering to
 resolve namespace package conflicts. The test chain mixes TWO import styles:
   - `from src.ikigai.src.agents.v2....` (dotted, canonical repo-root path)
     → needs <repo>/ (life/) PREPENDED to sys.path so `src` resolves via
-      the `life/src/` directory (NOT via `life/src/ikigai/src/` which
-      would shadow `src.ikigai.src` as a top-level `src` package).
-  - `from ikigai....`, `from agents....`, `from mcp_server....` (bare
-    package paths used internally)
-    → needs <repo>/src/ikigai/src/ APPENDED to sys.path (NOT prepended)
-      so it does NOT shadow the dotted resolution.
+      the `life/src/` directory.
+  - `from sys_ikigai....` (bare package path)
+    → needs <repo>/ (life/) on sys.path so `sys_ikigai` resolves via
+      `life/sys_ikigai/` (at repo root, post 2026-09-05 rename).
   - `from src.mesh....`, `from contracts....` (repo-root src/ tree)
     → needs <repo>/src/ on sys.path so `src.mesh` / `contracts` resolve.
 
@@ -18,6 +16,10 @@ are required because pytest collects conftest.py BEFORE test modules but
 runs pytest_load_initial_conftests BEFORE the conftest is imported. This
 double-setup is necessary for tests to find the `src.ikigai.src.*` chain
 on Windows + pytest 9.1.1 namespace packages.
+
+The old APPEND of `<repo>/src/ikigai/src/` (Plan A Task 9 followup workaround
+for the dual-module-identity bug) is removed since `sys_ikigai/` now lives
+at repo root.
 
 Plan A Task 9 — keep this conftest stable; tests/ikigai/agents/v2/ now
 holds node tests for the v2 graph (commit, tag_and_persist, etc.).
@@ -35,28 +37,15 @@ def _add_paths() -> None:
     repo_root = Path(__file__).resolve().parent.parent.parent
 
     # PREPEND these — Python resolves dotted `src.ikigai.src.*` via the
-    # namespace chain at `life/src/`. If `life/src/ikigai/src/` is also
-    # prepended, Python's import system finds `src` FIRST at the wrong
-    # level and `src.ikigai.src.X` fails to resolve.
+    # namespace chain at `life/src/`. AND `sys_ikigai.X` via `life/sys_ikigai/`.
     prepend_paths = [
-        repo_root,  # resolves `src.ikigai.src.*` (namespace package chain)
+        repo_root,  # resolves `src.ikigai.src.*` AND `sys_ikigai.X`
         repo_root / "src",  # resolves `src.mesh.*`, bare `contracts.*`
-    ]
-
-    # APPEND these — they provide the bare `ikigai.*`, `agents.*`,
-    # `mcp_server.*` import style. Appending (instead of prepending) keeps
-    # them from shadowing the dotted `src.ikigai.src.*` resolution above.
-    append_paths = [
-        repo_root / "src" / "ikigai" / "src",  # bare ikigai.*, agents.*, mcp_server.*
     ]
 
     for p in prepend_paths:
         if p.is_dir() and str(p) not in sys.path:
             sys.path.insert(0, str(p))
-
-    for p in append_paths:
-        if p.is_dir() and str(p) not in sys.path:
-            sys.path.append(str(p))
 
     return repo_root
 

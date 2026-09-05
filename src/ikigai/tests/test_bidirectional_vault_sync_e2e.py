@@ -32,13 +32,13 @@ from src.contracts.task_change import TaskAction, TaskChange  # noqa: E402
 from src.mesh.agent_consumer import Decision, ValidationResult  # noqa: E402
 from src.mesh.agent_propagator import propagate  # noqa: E402
 
-from ikigai.vault.sync import (  # noqa: E402
+from sys_ikigai.vault.sync import (  # noqa: E402
     ReverseSyncState,
     ReverseSyncTaskEntry,
     reverse_sync,
     save_reverse_state,
 )
-from ikigai.vault.vault_write import vault_write  # noqa: E402
+from sys_ikigai.vault.vault_write import vault_write  # noqa: E402
 
 
 @pytest.fixture
@@ -159,7 +159,7 @@ def test_roundtrip_done_status_propagates_back_to_vault(fresh_env, monkeypatch):
     #    propagate() resolves vault_root from agent_propagator.py paths;
     #    we intercept _vault_write_impl and point it at our tmp vault so the
     #    file lands where we can verify it.
-    import ikigai.vault.vault_write as _vw
+    import sys_ikigai.vault.vault_write as _vw
 
     writes: list[dict] = []
 

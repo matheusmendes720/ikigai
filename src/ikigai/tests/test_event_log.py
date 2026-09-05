@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from ikigai.gateway.event_log import (
+from sys_ikigai.gateway.event_log import (
     DEFAULT_MAX_BYTES,
     DEFAULT_MAX_ROTATIONS,
     EventLog,
@@ -59,7 +59,7 @@ def test_event_log_since_filters_by_timestamp(
     ts on systems with coarse clock resolution (Windows `time.time()` often
     resolves only to ~1ms), causing since() to return all events.
     """
-    import ikigai.gateway.event_log as event_log_mod
+    import sys_ikigai.gateway.event_log as event_log_mod
 
     ts_iter = iter([100.0 + i * 0.001 for i in range(3)])
     monkeypatch.setattr(event_log_mod.time, "time", lambda: next(ts_iter))

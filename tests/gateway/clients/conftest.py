@@ -44,7 +44,7 @@ def server_process_factory(tmp_path: Path):
     @contextmanager
     def _factory(module: str, *, env: dict[str, str] | None = None) -> Iterator[tuple]:
         # Add repo root, src, and src/ikigai to PYTHONPATH so the fork module resolves
-        # AND so `from ikigai.gateway.stdio_server_base import ...` works.
+        # AND so `from sys_ikigai.gateway.stdio_server_base import ...` works.
         repo_root = Path(__file__).resolve().parents[3]
         src_dir = repo_root / "src"
         ikigai_src = repo_root / "src" / "ikigai" / "src"

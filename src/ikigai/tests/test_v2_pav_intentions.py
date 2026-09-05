@@ -6,7 +6,7 @@ from __future__ import annotations
 # and REPO_ROOT. The v2 modules live under src/ikigai/src/agents/v2/, which
 # resolves via the IKIGAI_PKG_ROOT sys.path entry. Import style matches
 # test_v2_prompt_chains.py: "from agents.v2.prompts import ..." not
-# "from ikigai.src.agents.v2.prompts import ...".
+# "from sys_ikigai.src.agents.v2.prompts import ...".
 
 
 def test_prompt_template_imports():

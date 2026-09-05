@@ -238,13 +238,14 @@ def test_start_worker_writes_pidfile(tmp_data_dir: Path) -> None:
 def tmp_data_dir(tmp_path, monkeypatch):
     """Redirect all mesh adapter paths to a fresh tmp directory.
 
-    Patches BOTH `src.mesh.queue.QUEUE_DIR` AND `mesh.queue.QUEUE_DIR` because
-    `src/mesh/review_queue_worker.py` uses `from mesh import queue` (different
-    module identity due to dual sys.path — repo root + src/). Patching only
-    `src.mesh.queue.QUEUE_DIR` leaves the worker reading from the unpatched
-    PROJECT_ROOT/data/review_queue/, so run_once() finds nothing.
+    OUT OF SCOPE for 2026-09-05 sys_ikigai rename: this fixture must patch
+    BOTH `src.mesh.queue.QUEUE_DIR` AND `mesh.queue.QUEUE_DIR` because
+    `src/mesh/review_queue_worker.py:25` does `from mesh import queue`
+    (bare, no `src.` prefix). The dual sys.path setup (`life/` + `life/src/`)
+    makes these two distinct module instances. See conftest.py for the same
+    comment and the follow-up scope (change production code to `from src.mesh`
+    or add `src/__init__.py`).
     """
-    # Second module identity — sibling to `src.mesh.queue` per dual sys.path.
     import mesh.queue as _queue_pkg
 
     data_root = tmp_path / "data"
@@ -253,7 +254,6 @@ def tmp_data_dir(tmp_path, monkeypatch):
     queue_dir = data_root / "review_queue"
     queue_dir.mkdir(parents=True, exist_ok=True)
 
-    # Patch BOTH module identities.
     monkeypatch.setattr(_queue, "QUEUE_DIR", queue_dir)
     monkeypatch.setattr(_queue_pkg, "QUEUE_DIR", queue_dir)
 

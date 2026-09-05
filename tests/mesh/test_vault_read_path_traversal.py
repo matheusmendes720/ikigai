@@ -12,7 +12,7 @@ import pytest
 
 def test_absolute_path_rejected(tmp_path: Path) -> None:
     """Absolute paths are rejected with ValueError."""
-    from src.ikigai.src.ikigai.vault.vault_read import vault_read
+    from sys_ikigai.vault.vault_read import vault_read
 
     # Use a Windows-aware absolute path that is recognized as absolute on
     # both POSIX and Windows. On Windows, "/etc/passwd" is a relative path
@@ -24,7 +24,7 @@ def test_absolute_path_rejected(tmp_path: Path) -> None:
 
 def test_parent_traversal_rejected(tmp_path: Path) -> None:
     """Paths resolving outside vault_root raise ValueError."""
-    from src.ikigai.src.ikigai.vault.vault_read import vault_read
+    from sys_ikigai.vault.vault_read import vault_read
 
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -34,7 +34,7 @@ def test_parent_traversal_rejected(tmp_path: Path) -> None:
 
 def test_symlink_escape_rejected(tmp_path: Path) -> None:
     """Symlinks pointing outside vault_root are rejected (resolve() catches it)."""
-    from src.ikigai.src.ikigai.vault.vault_read import vault_read
+    from sys_ikigai.vault.vault_read import vault_read
 
     vault = tmp_path / "vault"
     vault.mkdir()

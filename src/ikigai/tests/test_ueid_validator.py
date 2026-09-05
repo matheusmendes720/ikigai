@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from ikigai.entities.ueid import UEID
+from sys_ikigai.entities.ueid import UEID
 
 
 class TestUEIDValidator:

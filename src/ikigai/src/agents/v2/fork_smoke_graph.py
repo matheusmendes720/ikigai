@@ -69,7 +69,7 @@ def _safe_node(name: str, fn: Callable[[dict], dict[str, Any]]) -> Any:
 # ---------------------------------------------------------------------------
 def _connect(state: dict) -> dict[str, Any]:
     """Initialize UnifiedMCPGateway; record startup result."""
-    from ikigai.gateway import UnifiedMCPGateway
+    from sys_ikigai.gateway import UnifiedMCPGateway
 
     try:
         gateway = UnifiedMCPGateway()

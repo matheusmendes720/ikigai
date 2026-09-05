@@ -130,6 +130,8 @@ src/ikigai/data/
 src/ikigai/[0-9].[0-9]
 src/ikigai/[0-9]
 src/ikigai/Taskwarrior
+src/ikigai/IntentClassification
+src/ikigai/dict
 src/ikigai/list\[*
 src/ikigai/refatoracao
 
@@ -145,6 +147,31 @@ src/ikigai/refatoracao
 /first
 /StateGraph
 /[0-9][0-9]
+/[0-9][0-9][0-9]
+
+# ─── Bash heredoc-leak follow-up (2026-09-05) ─────────────────────
+# Additional stray tokens from sub-agent runs (W6.X item 4 cleanup)
+/Callable\[*
+/FAIL
+/IntentClassification
+/anything
+/ast.FunctionDef
+/data\),
+/global
+/quarterly
+/reasons
+/server
+/shown
+/what
+/vault/sync
+/~[0-9]*
+/\{op.taskdog_create.title\}
+# Python type annotation / constant fragments
+/STALE_THRESHOLD_DAYS
+# Backtick-prefixed expression fragments
+/`.*
+# WriteResult stray from pydantic model dump
+src/ikigai/WriteResult\`
 
 # vibe-ops/ test artifacts (left behind by ad-hoc scripts whose cleanup
 # is commented out). Pre-existing tracked files were untracked in B5.5

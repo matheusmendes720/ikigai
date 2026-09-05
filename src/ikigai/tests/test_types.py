@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ikigai.types import UEID, ScoreValue
+from sys_ikigai.types import UEID, ScoreValue
 
 
 class TestUEID:
@@ -45,7 +45,7 @@ class TestUEID:
 
     def test_generate_handles_all_entity_types(self) -> None:
         """All entity types must be accepted."""
-        from ikigai.enums import EntityType
+        from sys_ikigai.enums import EntityType
 
         for et in EntityType:
             ueid = UEID.generate("study", et, "test")

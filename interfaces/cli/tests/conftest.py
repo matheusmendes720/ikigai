@@ -3,6 +3,13 @@
 Path strategy:
 - `life/` repo root and `life/src/` must be on sys.path for `from src.contracts...`
   and `from src.mesh...` imports to resolve.
+- Post 2026-09-05 namespace rename, `sys_ikigai/` lives at repo root too, so
+  the `_REPO_ROOT` prepend already covers it. `sys_ikigai/vault/...` etc. resolve
+  via `from sys_ikigai.X`.
+- BUT: `agents/`, `mcp_server/`, `observability/`, `strategics/`, and
+  `ikigai_wrapper.py` are SIBLINGS of `sys_ikigai/`, not inside it (they live
+  at `<repo>/src/ikigai/src/`). These still need `<repo>/src/ikigai/src/`
+  appended so `from agents.v2.X import Y` etc. resolve.
 - Each test gets an isolated tmp data dir to avoid touching real `data/`.
 
 We monkeypatch the module-level constants in src.mesh.adapters and
@@ -25,9 +32,11 @@ for p in (_SRC_ROOT, _REPO_ROOT):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
-# Append life/src/ikigai/src/ so `from agents.v2.X` resolves from
-# interfaces/cli/tests/ (matches src/ikigai/tests/conftest pattern at line 61).
-# conftest.py is at life/interfaces/cli/tests/conftest.py → _REPO_ROOT (parents[3]) = life/
+# Append `<repo>/src/ikigai/src/` so sibling packages of sys_ikigai/
+# (`agents`, `mcp_server`, `observability`, `strategics`, `ikigai_wrapper`)
+# resolve. These are NOT inside `sys_ikigai/` per the 2026-09-05 namespace
+# rename. The sys_ikigai/ package itself is at repo root, so it doesn't need
+# this entry.
 _IKIGAI_SRC = _REPO_ROOT / "src" / "ikigai" / "src"
 if str(_IKIGAI_SRC) not in sys.path:
     sys.path.append(str(_IKIGAI_SRC))
@@ -44,13 +53,13 @@ def tmp_data_dir(tmp_path, monkeypatch):
     import src.mesh.adapters.taskdog as _taskdog_adapter
     import src.mesh.adapters.solverforge_calendar as _upi_adapter
     import src.mesh.queue as _queue
-    # Second module identity — `mesh.queue` (no `src.` prefix) is imported by
-    # `src/mesh/review_queue_worker.py` via `from mesh import queue`. Because
-    # sys.path contains BOTH repo-root (.) and src/, Python treats `mesh.queue`
-    # and `src.mesh.queue` as two distinct module objects (same file, two
-    # module table entries). Patching only `src.mesh.queue.QUEUE_DIR` leaves
-    # the worker reading from the unpatched `PROJECT_ROOT/data/review_queue/`,
-    # so run_once() finds nothing and consumed=0.
+    # OUT OF SCOPE for 2026-09-05 sys_ikigai rename: `src/mesh/review_queue_worker.py`
+    # imports `from mesh import queue` (bare, no `src.` prefix). Because both
+    # `life/` and `life/src/` are on sys.path, `mesh` and `src.mesh` resolve to
+    # TWO distinct module instances of the same files. Patching only
+    # `src.mesh.queue.QUEUE_DIR` leaves the worker reading from the unpatched
+    # `mesh.queue.QUEUE_DIR`, so run_once() finds nothing. Track for follow-up:
+    # the structural fix would change production code to `from src.mesh import queue`.
     import mesh.queue as _queue_pkg
 
     data_root = tmp_path / "data"

@@ -23,12 +23,12 @@ from pathlib import Path
 
 import pytest
 
-from ikigai.gateway.downstream import (
+from sys_ikigai.gateway.downstream import (
     solverforge_calendar_adapter,
     taskdog_adapter,
     tuiboard_adapter,
 )
-from ikigai.gateway.stdio_adapter import (
+from sys_ikigai.gateway.stdio_adapter import (
     StdioAdapter,
     StdioAdapterConfig,
     StdioAdapterError,
@@ -259,7 +259,7 @@ def test_solverforge_factory_returns_named_adapter() -> None:
 
 
 def test_all_three_adapters_register_under_distinct_names() -> None:
-    from ikigai.gateway.gateway import UnifiedMCPGateway
+    from sys_ikigai.gateway.gateway import UnifiedMCPGateway
 
     g = UnifiedMCPGateway()
     a1 = tuiboard_adapter(binary="x1")

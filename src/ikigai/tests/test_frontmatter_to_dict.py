@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from ikigai.vault.frontmatter_to_dict import frontmatter_to_dict
+from sys_ikigai.vault.frontmatter_to_dict import frontmatter_to_dict
 
 
 @pytest.fixture

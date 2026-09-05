@@ -160,7 +160,7 @@ def test_executor_partial_failure_returns_partial_status() -> None:
 
 def test_executor_kill_switch_blocks_all_writes() -> None:
     """wrap_vault_write raising KillSwitchAbort → propagated immediately."""
-    from src.ikigai.src.ikigai.security.vault_write_wrapper import KillSwitchAbort
+    from sys_ikigai.security.vault_write_wrapper import KillSwitchAbort
 
     proposal = Proposal(
         id="prop:test01:01:0001",

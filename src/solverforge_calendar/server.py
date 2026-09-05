@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import os
 
-from ikigai.gateway.stdio_server_base import StdioServerBase
+from sys_ikigai.gateway.stdio_server_base import StdioServerBase
 
 logger = logging.getLogger(__name__)
 

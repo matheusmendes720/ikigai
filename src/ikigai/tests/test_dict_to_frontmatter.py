@@ -5,8 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ikigai.entities.ikigai_record import IKIGAiRecord
-from ikigai.vault.dict_to_frontmatter import dict_to_frontmatter
+from sys_ikigai.entities.ikigai_record import IKIGAiRecord
+from sys_ikigai.vault.dict_to_frontmatter import dict_to_frontmatter
 
 
 def _record() -> IKIGAiRecord:

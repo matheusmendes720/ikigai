@@ -192,7 +192,7 @@ def test_sync_vault_rejects_path_traversal(monkeypatch: pytest.MonkeyPatch) -> N
     # The sync_vault tool composes vault_path as `cycle-{cycle_id}.md`,
     # so to test the traversal rejection we have to call vault_write with
     # a path that escapes the vault root.
-    from ikigai.vault.vault_write import vault_write
+    from sys_ikigai.vault.vault_write import vault_write
 
     with pytest.raises(ValueError, match=r"traversal|outside|escape|root"):
         vault_write(

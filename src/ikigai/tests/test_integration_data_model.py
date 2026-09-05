@@ -27,19 +27,19 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from ikigai.adapters.checkpoint_adapter import CheckpointAdapter
-from ikigai.adapters.drift_detector import DriftDetector
-from ikigai.adapters.sqlite_bridge import IKIGAiRecordBridge
-from ikigai.adapters.state_reducer import StateReducer
-from ikigai.entities.drift_state import DriftState
-from ikigai.entities.fractal_regime import FractalRegime, FractalRegimeState
-from ikigai.entities.ikigai_record import EntityType, IKIGAiRecord, StatusType
-from ikigai.entities.override import OverrideRecord
-from ikigai.entities.phase_snapshot import PhaseSnapshot
-from ikigai.entities.score_value import ScoreUnit, ScoreValue
-from ikigai.propagation.sqlite_adapter import SQLiteAdapter
-from ikigai.vault.dict_to_frontmatter import dict_to_frontmatter
-from ikigai.vault.frontmatter_to_dict import frontmatter_to_dict
+from sys_ikigai.adapters.checkpoint_adapter import CheckpointAdapter
+from sys_ikigai.adapters.drift_detector import DriftDetector
+from sys_ikigai.adapters.sqlite_bridge import IKIGAiRecordBridge
+from sys_ikigai.adapters.state_reducer import StateReducer
+from sys_ikigai.entities.drift_state import DriftState
+from sys_ikigai.entities.fractal_regime import FractalRegime, FractalRegimeState
+from sys_ikigai.entities.ikigai_record import EntityType, IKIGAiRecord, StatusType
+from sys_ikigai.entities.override import OverrideRecord
+from sys_ikigai.entities.phase_snapshot import PhaseSnapshot
+from sys_ikigai.entities.score_value import ScoreUnit, ScoreValue
+from sys_ikigai.propagation.sqlite_adapter import SQLiteAdapter
+from sys_ikigai.vault.dict_to_frontmatter import dict_to_frontmatter
+from sys_ikigai.vault.frontmatter_to_dict import frontmatter_to_dict
 
 # Vault path — data/matheus lives inside src/ikigai/ package
 VAULT = Path(__file__).resolve().parents[1] / "data" / "matheus"

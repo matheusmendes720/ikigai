@@ -376,14 +376,10 @@ def test_propagator_vault_target_invokes_vault_write(
     """When event.source_fork=='vault', propagate() calls vault_write."""
     from src.mesh import agent_propagator
 
-    # Patch the module that the propagator's lazy import resolves to.
-    # The propagator does `from ikigai.vault.vault_write import vault_write`
-    # (no `src.ikigai.src.` prefix). Because sys.path contains both `src/` and
-    # `src/ikigai/src/`, these resolve to TWO distinct module objects. Patch
-    # BOTH so the stub is reached whichever identity the propagator resolves.
-    import src.ikigai.src.ikigai.vault.vault_write as vw_direct
-    from src.ikigai.src.ikigai.vault import vault_write as vw_pkg
-    from ikigai.vault import vault_write as vw_propagator  # second identity
+    # After the 2026-09-05 namespace rename, `sys_ikigai.vault.vault_write`
+    # has a SINGLE module identity (no dual `src.ikigai.src.*` alias). The
+    # previous triple-patch was a workaround for the dual-module-identity bug.
+    from sys_ikigai.vault import vault_write as vw
 
     captured: list[dict] = []
 
@@ -398,9 +394,7 @@ def test_propagator_vault_target_invokes_vault_write(
         )
         return {"written": True, "vault_path": vault_path, "sha256": "deadbeef"}
 
-    monkeypatch.setattr(vw_direct, "vault_write", _stub)
-    monkeypatch.setattr(vw_pkg, "vault_write", _stub)
-    monkeypatch.setattr(vw_propagator, "vault_write", _stub)
+    monkeypatch.setattr(vw, "vault_write", _stub)
 
     event = TaskChange(
         event_id="vault-target-001",
@@ -434,8 +428,7 @@ def test_propagator_non_vault_target_does_not_touch_vault(
     """source_fork=='taskdog' means propagate() MUST NOT call vault_write."""
     from src.mesh import agent_propagator
 
-    import src.ikigai.src.ikigai.vault.vault_write as vw_direct
-    from src.ikigai.src.ikigai.vault import vault_write as vw_pkg
+    from sys_ikigai.vault import vault_write as vw
 
     called = {"n": 0}
 
@@ -443,8 +436,7 @@ def test_propagator_non_vault_target_does_not_touch_vault(
         called["n"] += 1
         return {"written": True, "vault_path": kw.get("vault_path", ""), "sha256": "x"}
 
-    monkeypatch.setattr(vw_direct, "vault_write", _stub)
-    monkeypatch.setattr(vw_pkg, "vault_write", _stub)
+    monkeypatch.setattr(vw, "vault_write", _stub)
 
     event = TaskChange(
         event_id="non-vault-001",

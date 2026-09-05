@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from ikigai.propagation.sqlite_adapter import SQLiteAdapter
+from sys_ikigai.propagation.sqlite_adapter import SQLiteAdapter
 
 
 class TestUpsert:
