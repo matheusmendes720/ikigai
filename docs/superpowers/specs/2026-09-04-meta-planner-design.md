@@ -431,7 +431,7 @@ Drift detector grows from current baseline (29 functions in `test_canonical_scop
 | Component | Effort |
 |-----------|--------|
 | ADR-031 (this design promoted to ADR) | 2-3h |
-| `src/ikigai/contracts/proposal.py` (12 models) | 1-2h |
+| `src/ikigai/contracts/proposal.py` (11 models + 1 enum) | 1-2h |
 | `nodes/observe.py` intent detection (+30 LOC) | 1h |
 | `nodes/meta_plan/classify_intent.py` | 1h |
 | `nodes/meta_plan/fetch_context.py` | 2h |

@@ -34,7 +34,7 @@ These apply to every task. Each task's requirements implicitly include this sect
 
 | File | Responsibility |
 |------|----------------|
-| `src/ikigai/contracts/proposal.py` | 12 Pydantic v2 strict models (IntentClassification, FolderReadOp, MemoryRef, HierarchyMatch, HierarchyContext, VaultWriteOp, TaskdogOp, Traceability, ProposalOperation, Proposal, ExecutionReport, ProposalApprovalState enum) |
+| `src/ikigai/contracts/proposal.py` | 11 Pydantic v2 strict BaseModels + ProposalApprovalState enum (IntentClassification, FolderReadOp, MemoryRef, HierarchyMatch, HierarchyContext, VaultWriteOp, TaskdogOp, Traceability, ProposalOperation, Proposal, ExecutionReport) |
 | `src/ikigai/src/agents/v2/nodes/meta_plan/__init__.py` | Package marker |
 | `src/ikigai/src/agents/v2/nodes/meta_plan/classify_intent.py` | Pure-keyword intent classifier (~50 LOC) |
 | `src/ikigai/src/agents/v2/nodes/meta_plan/fetch_context.py` | Memory + external folder + hierarchy scan (~120 LOC) |
@@ -97,7 +97,7 @@ Parallel tracks: B, C, D can run in parallel after A.1 lands. Track F is fully p
 
 ## Track A — Contracts + Drift Invariants
 
-### Task A.1: Create `src/ikigai/contracts/proposal.py` with 12 Pydantic v2 strict models
+### Task A.1: Create `src/ikigai/contracts/proposal.py` with 11 Pydantic v2 strict BaseModels + ProposalApprovalState enum
 
 **Files:**
 - Create: `src/ikigai/contracts/proposal.py`
@@ -501,7 +501,7 @@ Expected: All clean (exit 0).
 
 Create commit msg at `C:\Users\mathe\.git\sdd\plan-d-a1-commit-msg.txt`:
 ```
-feat(contracts): meta-planner Proposal contracts — 12 Pydantic v2 strict models (Plan D Task A.1)
+feat(contracts): meta-planner Proposal contracts — 11 Pydantic v2 strict BaseModels + ProposalApprovalState enum (Plan D Task A.1)
 
 Adds src/ikigai/contracts/proposal.py with 12 frozen+extra="forbid" models
 per ADR-009: IntentClassification, FolderReadOp, MemoryRef, HierarchyMatch,
@@ -2637,7 +2637,7 @@ suggesting `/plan` for planning-shaped inputs (zero writes).
 
 | Component | File | LOC |
 |-----------|------|-----|
-| Contracts (12 models) | `src/ikigai/contracts/proposal.py` | ~180 |
+| Contracts (11 models + 1 enum) | `src/ikigai/contracts/proposal.py` | ~180 |
 | classify_intent | `nodes/meta_plan/classify_intent.py` | ~50 |
 | fetch_context | `nodes/meta_plan/fetch_context.py` | ~120 |
 | generate_proposal | `nodes/meta_plan/generate_proposal.py` | ~150 |
@@ -2763,7 +2763,7 @@ Expected: Commit lands; OK (no Co-Authored-By).
 | Spec section | Plan tasks covering it |
 |--------------|----------------------|
 | §Architecture (3-node subgraph + executor) | B.1, B.2, B.3, B.4, C.1, C.2, C.3, D.1 |
-| §Components (12 Pydantic v2 strict models) | A.1 |
+| §Components (11 Pydantic v2 strict BaseModels + ProposalApprovalState enum) | A.1 |
 | §Data flow + error handling (8 edge cases) | A.1, B.2, B.3, B.4 |
 | §Testing strategy (pyramid + drift invariants) | A.2, B.1-B.4, E.2 |
 | §Out-of-scope (explicit) | ADR-031 F.1 documents |

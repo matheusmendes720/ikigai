@@ -1360,6 +1360,7 @@ def test_meta_plan_pydantic_v2_strict() -> None:
         ExecutionReport,
         FolderReadOp,
         HierarchyContext,
+        HierarchyMatch,
         IntentClassification,
         MemoryRef,
         Proposal,
@@ -1378,6 +1379,7 @@ def test_meta_plan_pydantic_v2_strict() -> None:
         FolderReadOp,
         MemoryRef,
         HierarchyContext,
+        HierarchyMatch,
         ProposalOperation,
         Traceability,
     ]:
