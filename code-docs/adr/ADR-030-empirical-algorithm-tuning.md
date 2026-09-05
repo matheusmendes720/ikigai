@@ -1,6 +1,6 @@
 # ADR-030 — Empirical Algorithm Tuning Approach
 
-> **Status:** DRAFT (2026-09-04)
+> **Status:** ACCEPTED (2026-09-05) — promoted from DRAFT after W5.2 review APPROVED (`7069a38`; w52-adr-030-empirical-algorithm-tuning-review.md, 0 Critical / 0 Important / 1 Minor closed inline)
 > **Deciders:** matheus (project owner)
 > **Load-bearing:** YES — gates W5.6 (SONHO data collection ritual) + W5.10 (algorithm tuning, 4-8 weeks) + future algorithm-tuning iterations after the dcode-harness roadmap completes
 > **Supersedes:** none (new decision; extends ADR-019 prompt-template pattern into a general policy)

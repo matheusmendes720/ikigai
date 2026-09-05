@@ -1,6 +1,6 @@
 # ADR-027 — Stateful Subgraph Checkpoint Schema
 
-> **Status:** DRAFT (2026-09-04)
+> **Status:** ACCEPTED (2026-09-05) — promoted from DRAFT after W4.5 implementation REVIEWER APPROVED (`693efe7`)
 > **Deciders:** matheus (project owner)
 > **Load-bearing:** YES — locks the SqliteSaver checkpoint schema consumed by ADR-026 (sub-agent dispatch, DRAFT `3cc9799`) and inherited by ADR-028 (memory layer, W4.3 next); gates W4.5 (stateful subgraph consumer, B-N11, 12-16h) and W4.4 (sub-agent dispatch node, B-N10, 12-16h)
 > **Supersedes:** none (new decision)

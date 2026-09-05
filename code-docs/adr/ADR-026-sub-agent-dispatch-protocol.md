@@ -1,6 +1,6 @@
 # ADR-026 — Sub-Agent Dispatch Protocol
 
-> **Status:** DRAFT (2026-09-04)
+> **Status:** ACCEPTED (2026-09-05) — promoted from DRAFT after W4.4 implementation REVIEWER APPROVED (`0b68996`; w44-subagent-dispatch-node-review.md)
 > **Deciders:** matheus (project owner)
 > **Load-bearing:** YES — gates W4.4 sub-agent dispatch node implementation (B-N10, 12-16h); precedes ADR-027 (stateful subgraph checkpoint schema) and ADR-028 (memory layer) in the Wave 4 Sequence-B stack
 > **Supersedes:** none (new decision)
