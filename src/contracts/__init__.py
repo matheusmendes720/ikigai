@@ -33,6 +33,7 @@ from .tarefa import Tarefa  # noqa: F403
 from .task import Task, Subtask, ChecklistItem, Project, Milestone, Deliverable  # noqa: F403
 from .planning import PlanningCycle, Wave, Sprint, VaultEvent  # noqa: F403
 from .metrics import Burndown, ExecutionRate, QHEScore  # noqa: F403
+from .investigation import Investigation, InvestigationStatus  # noqa: F403
 
 __all__ = [
     # common
@@ -71,4 +72,7 @@ __all__ = [
     "Burndown",
     "ExecutionRate",
     "QHEScore",
+    # investigation
+    "Investigation",
+    "InvestigationStatus",
 ]
