@@ -256,21 +256,20 @@ def test_v2_cli_help_renders_all_eight_commands() -> None:
 
 
 def test_v2_daily_routes_to_suggest(monkeypatch) -> None:
-    """daily command orchestrates render_surface_pav_intentions (suggest primitive)."""
+    """daily command orchestrates ikigai-daily skill via invoke_skill() (W3.5)."""
     import os
 
     os.environ.setdefault("IKIGAI_FAKE_LLM", "1")
 
-    # Capture _run_suggest invocation via mock
-    mock_suggest_result = {
-        "suggestions": ["[mock] test suggestion 1", "[mock] test suggestion 2"],
-        "language": "pt-BR",
-        "source": "test",
-        "graph": "ikigai_surface_intentions",
-        "date": "2026-09-04",
-        "vault_root": "vault",
-    }
-    monkeypatch.setattr(v2, "_run_suggest", lambda date_str: mock_suggest_result)
+    # Mock invoke_skill — daily.md is surface-only, returns user_suggestions
+    captured_skill = []
+    def fake_invoke_skill(skill_name, entry_point_override=None):
+        captured_skill.append(skill_name)
+        return {
+            "user_suggestions": ["[mock] test suggestion 1", "[mock] test suggestion 2"],
+            "suggestions_language": "pt-BR",
+        }
+    monkeypatch.setattr(v2, "invoke_skill", fake_invoke_skill)
 
     from typer.testing import CliRunner
 
@@ -282,19 +281,26 @@ def test_v2_daily_routes_to_suggest(monkeypatch) -> None:
     assert output_data["skill"] == "ikigai-daily"
     assert output_data["date"] == "2026-09-04"
     assert "surface" in output_data
-    assert output_data["surface"]["suggestions"] == mock_suggest_result["suggestions"]
+    assert output_data["surface"]["suggestions"] == [
+        "[mock] test suggestion 1",
+        "[mock] test suggestion 2",
+    ]
+    assert output_data["surface"]["language"] == "pt-BR"
+    assert captured_skill == ["ikigai-daily"], (
+        f"daily MUST route through invoke_skill('ikigai-daily'); got {captured_skill}"
+    )
 
 
 def test_v2_weekly_routes_to_score_and_regime(monkeypatch) -> None:
-    """weekly command orchestrates score + regime primitives (NOT cycle)."""
+    """weekly command routes through invoke_skill('ikigai-weekly') (W6.X item 2)."""
     mock_score = {"passion_score": 80, "graph": "ikigai_score_passion_observation", "date": "2026-09-04"}
     mock_regime = {"regime": "PUSH", "graph": "ikigai_heuristics_regime_observation", "date": "2026-09-04"}
 
-    monkeypatch.setattr(v2, "_run_score", lambda date_str: mock_score)
-    monkeypatch.setattr(v2, "_run_regime", lambda date_str: mock_regime)
-    # IMPORTANT: weekly should NOT call _run_cycle (per skill behavior contract)
-    cycle_called = []
-    monkeypatch.setattr(v2, "_run_cycle", lambda dry_run=False: cycle_called.append(dry_run) or {"graph": "should_not_run"})
+    captured_skill = []
+    def fake_invoke_skill(skill_name, entry_point_override=None):
+        captured_skill.append(skill_name)
+        return {"score": mock_score, "regime": mock_regime}
+    monkeypatch.setattr(v2, "invoke_skill", fake_invoke_skill)
 
     from typer.testing import CliRunner
 
@@ -306,22 +312,22 @@ def test_v2_weekly_routes_to_score_and_regime(monkeypatch) -> None:
     assert output_data["skill"] == "ikigai-weekly"
     assert output_data["score"] == mock_score
     assert output_data["regime"] == mock_regime
-    assert cycle_called == [], "weekly MUST NOT invoke _run_cycle (per weekly.md behavior)"
+    assert captured_skill == ["ikigai-weekly"], (
+        f"weekly MUST route through invoke_skill('ikigai-weekly'); got {captured_skill}"
+    )
 
 
 def test_v2_monthly_routes_to_cycle_dry_run_score_regime(monkeypatch) -> None:
-    """monthly command orchestrates cycle (dry-run) + score + regime."""
+    """monthly command routes through invoke_skill('ikigai-monthly') (W6.X item 2)."""
     mock_cycle = {"graph": "ikigai_maintainer_v2", "entry_point": "observe", "dry_run": True, "compiled": True}
     mock_score = {"passion_score": 75, "graph": "ikigai_score_passion_observation"}
     mock_regime = {"regime": "MAINTAIN", "graph": "ikigai_heuristics_regime_observation"}
 
-    cycle_args = []
-    def fake_cycle(dry_run: bool = False):
-        cycle_args.append(dry_run)
-        return mock_cycle
-    monkeypatch.setattr(v2, "_run_cycle", fake_cycle)
-    monkeypatch.setattr(v2, "_run_score", lambda date_str: mock_score)
-    monkeypatch.setattr(v2, "_run_regime", lambda date_str: mock_regime)
+    captured_skill = []
+    def fake_invoke_skill(skill_name, entry_point_override=None):
+        captured_skill.append(skill_name)
+        return {"cycle": mock_cycle, "score": mock_score, "regime": mock_regime}
+    monkeypatch.setattr(v2, "invoke_skill", fake_invoke_skill)
 
     from typer.testing import CliRunner
 
@@ -334,22 +340,22 @@ def test_v2_monthly_routes_to_cycle_dry_run_score_regime(monkeypatch) -> None:
     assert output_data["cycle"] == mock_cycle
     assert output_data["score"] == mock_score
     assert output_data["regime"] == mock_regime
-    assert cycle_args == [True], f"monthly MUST invoke _run_cycle(dry_run=True); got {cycle_args}"
+    assert captured_skill == ["ikigai-monthly"], (
+        f"monthly MUST route through invoke_skill('ikigai-monthly'); got {captured_skill}"
+    )
 
 
 def test_v2_quarterly_routes_to_cycle_dry_run_score_regime(monkeypatch) -> None:
-    """quarterly command orchestrates cycle (dry-run) + score + regime."""
+    """quarterly command routes through invoke_skill('ikigai-quarterly') (W6.X item 2)."""
     mock_cycle = {"graph": "ikigai_maintainer_v2", "entry_point": "observe", "dry_run": True, "compiled": True}
     mock_score = {"passion_score": 70, "graph": "ikigai_score_passion_observation"}
     mock_regime = {"regime": "RECOVER", "graph": "ikigai_heuristics_regime_observation"}
 
-    cycle_args = []
-    def fake_cycle(dry_run: bool = False):
-        cycle_args.append(dry_run)
-        return mock_cycle
-    monkeypatch.setattr(v2, "_run_cycle", fake_cycle)
-    monkeypatch.setattr(v2, "_run_score", lambda date_str: mock_score)
-    monkeypatch.setattr(v2, "_run_regime", lambda date_str: mock_regime)
+    captured_skill = []
+    def fake_invoke_skill(skill_name, entry_point_override=None):
+        captured_skill.append(skill_name)
+        return {"cycle": mock_cycle, "score": mock_score, "regime": mock_regime}
+    monkeypatch.setattr(v2, "invoke_skill", fake_invoke_skill)
 
     from typer.testing import CliRunner
 
@@ -362,27 +368,32 @@ def test_v2_quarterly_routes_to_cycle_dry_run_score_regime(monkeypatch) -> None:
     assert output_data["cycle"] == mock_cycle
     assert output_data["score"] == mock_score
     assert output_data["regime"] == mock_regime
-    assert cycle_args == [True], f"quarterly MUST invoke _run_cycle(dry_run=True); got {cycle_args}"
+    assert captured_skill == ["ikigai-quarterly"], (
+        f"quarterly MUST route through invoke_skill('ikigai-quarterly'); got {captured_skill}"
+    )
 
 
 def test_v2_daily_default_date_is_today(monkeypatch) -> None:
-    """When no date given, daily defaults to today."""
+    """When no date given, daily defaults to today (date captured by Typer, not invoke_skill)."""
     from datetime import date as _date
 
     today = _date.today().isoformat()
-    captured_date = []
-    def fake_suggest(date_str):
-        captured_date.append(date_str)
-        return {"suggestions": [], "language": "pt-BR", "graph": "ikigai_surface_intentions"}
-    monkeypatch.setattr(v2, "_run_suggest", fake_suggest)
+    monkeypatch.setattr(
+        v2,
+        "invoke_skill",
+        lambda skill_name, entry_point_override=None: {"user_suggestions": [], "suggestions_language": "pt-BR"},
+    )
 
     from typer.testing import CliRunner
 
     runner = CliRunner()
-    result = runner.invoke(v2.app, ["daily"])
+    result = runner.invoke(v2.app, ["daily", "--json"])
 
-    assert result.exit_code == 0
-    assert captured_date == [today], f"daily should default to today ({today}); got {captured_date}"
+    assert result.exit_code == 0, f"daily exited {result.exit_code}: {result.output}"
+    output_data = json.loads(result.output)
+    assert output_data["date"] == today, (
+        f"daily should default to today ({today}); got {output_data.get('date')!r}"
+    )
 
 
 def test_v2_app_imports_cleanly() -> None:
