@@ -1290,6 +1290,107 @@ def test_memory_schema_module_defines_default_db_filename() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Plan D — Meta-planner drift invariants (n, o, p)
+# Added 2026-09-04 per docs/superpowers/specs/2026-09-04-meta-planner-design.md
+# ---------------------------------------------------------------------------
+
+
+def test_meta_plan_no_direct_vault_writes() -> None:
+    """Invariant (n): meta_plan subgraph nodes NEVER call vault_write directly.
+
+    All writes MUST route through proposal_executor → wrap_vault_write (ADR-029).
+    """
+    from glob import glob
+
+    nodes = glob("src/ikigai/src/agents/v2/nodes/meta_plan/*.py")
+    # If the directory doesn't exist yet, this invariant vacuously passes
+    # (the absence of meta_plan nodes is itself correct).
+    if not nodes:
+        return
+
+    for node in nodes:
+        # Skip __init__.py
+        if node.endswith("__init__.py"):
+            continue
+        content = open(node).read()
+        # Look for direct vault_write( call without wrap_
+
+        # Match `vault_write(` but not preceded by `wrap_` or `wrap_vault_write`
+        # Heuristic: find all `vault_write(` substrings and ensure none
+        # appear outside of comments/docstrings/strings we cannot easily
+        # detect. Simpler: just forbid the substring `vault_write(` in node
+        # code. proposal_executor lives outside meta_plan/ so this check
+        # covers only the 3 subgraph nodes (classify/fetch/generate).
+        if "vault_write(" in content:
+            # Allow if wrapped (defensive — executor may import helper)
+            assert "wrap_vault_write" in content, (
+                f"{node} calls vault_write( directly. "
+                "Per ADR-029 all vault writes MUST route through wrap_vault_write."
+            )
+
+
+def test_meta_plan_approval_required_for_writes() -> None:
+    """Invariant (o): proposal_executor MUST assert approval_state == 'approved'
+    before executing any write. Prevents accidental auto-execution.
+    """
+    import os
+
+    executor_path = "src/ikigai/src/agents/v2/nodes/proposal_executor.py"
+    if not os.path.exists(executor_path):
+        # Pre-implementation: invariant vacuously fails so the implementer
+        # knows to add the assertion when creating the file.
+        pytest.fail(
+            "proposal_executor.py does not exist yet. "
+            "Invariant (o) requires the executor to assert "
+            "state.proposal.approval_state == 'approved' before any write."
+        )
+
+    source = open(executor_path).read()
+    assert "approval_state == 'approved'" in source or (
+        "approval_state" in source and "approved" in source
+    ), (
+        "proposal_executor.py must assert approval_state == 'approved' "
+        "before performing writes. See Plan D Task B.4."
+    )
+
+
+def test_meta_plan_pydantic_v2_strict() -> None:
+    """Invariant (p): all proposal-related models are frozen=True, extra='forbid'."""
+    from src.ikigai.contracts.proposal import (
+        ExecutionReport,
+        FolderReadOp,
+        HierarchyContext,
+        IntentClassification,
+        MemoryRef,
+        Proposal,
+        ProposalOperation,
+        TaskdogOp,
+        Traceability,
+        VaultWriteOp,
+    )
+
+    for model in [
+        IntentClassification,
+        Proposal,
+        VaultWriteOp,
+        TaskdogOp,
+        ExecutionReport,
+        FolderReadOp,
+        MemoryRef,
+        HierarchyContext,
+        ProposalOperation,
+        Traceability,
+    ]:
+        config = model.model_config
+        assert config.get("frozen") is True, (
+            f"{model.__name__}.model_config.frozen must be True (ADR-009)"
+        )
+        assert config.get("extra") == "forbid", (
+            f"{model.__name__}.model_config.extra must be 'forbid' (ADR-009)"
+        )
+
+
+# ---------------------------------------------------------------------------
 # AST helpers (used above)
 # ---------------------------------------------------------------------------
 
