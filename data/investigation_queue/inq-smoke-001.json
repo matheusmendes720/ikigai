@@ -1,0 +1,14 @@
+{
+  "actor": "agent",
+  "created_at": "2026-09-05T18:42:16.563105",
+  "inq_id": "inq-smoke-001",
+  "inq_ueid": null,
+  "payload": "Investigate why daily_consolidator emits empty after plan rewrite",
+  "source": "agent",
+  "status": "open",
+  "tags": [
+    "ready",
+    "investigation"
+  ],
+  "updated_at": "2026-09-05T18:42:16.563107"
+}

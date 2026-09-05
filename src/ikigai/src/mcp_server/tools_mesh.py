@@ -18,10 +18,10 @@ import uuid
 from datetime import UTC, datetime
 from typing import Annotated, Any
 
-from contracts.common import UEID
-from contracts.task_change import TaskAction, TaskChange
-from mesh import queue as _queue
-from mesh.adapters import CliAdapter, SolverforgeCalendarAdapter, TaskdogAdapter
+from src.contracts.common import UEID
+from src.contracts.task_change import TaskAction, TaskChange
+from src.mesh import queue as _queue
+from src.mesh.adapters import CliAdapter, SolverforgeCalendarAdapter, TaskdogAdapter
 from pydantic import ValidationError
 
 _GATEWAY_STARTED_AT: float = _time.time()

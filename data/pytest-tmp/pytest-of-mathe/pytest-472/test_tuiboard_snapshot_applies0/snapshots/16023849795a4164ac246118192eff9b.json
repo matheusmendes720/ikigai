@@ -1,0 +1,24 @@
+{
+  "snapshot_id": "16023849795a4164ac246118192eff9b",
+  "name": "done-only",
+  "created_at": "2026-09-05T21:42:15.758094Z",
+  "task_count": 1,
+  "sha256": "019f6c1118b4d89326a26bc7125d43024a35e58c88841282a14be2920f9e55ed",
+  "tasks": [
+    {
+      "ueid": "tb:task:22222222-2222-2222-2222-222222222222:bbbbbbbbbbbbbbb2",
+      "title": "B",
+      "status": "done",
+      "due": null,
+      "vector": null,
+      "tags": []
+    }
+  ],
+  "filters": {
+    "status": "done",
+    "vector": null,
+    "tags": null,
+    "due_before": null
+  },
+  "description": null
+}

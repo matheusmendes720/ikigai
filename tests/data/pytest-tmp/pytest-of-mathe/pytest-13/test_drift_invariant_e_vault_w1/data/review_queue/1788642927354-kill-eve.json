@@ -1,0 +1,1 @@
+{"event_id":"f6eecd8d26f84efaa18e7635a6beedea","ueid":"kill:kill-event:5d1775ae-3be7-4685-9628-bf6a08f836d0:09f8e8e58eec47c8","kill_id":"kill-eve","timestamp":1788642927.354249,"kill_switch_trigger":"actor_mismatch","actor_at_fault":"unknown","entity_id":null,"context":{"invalid_actor":"unknown","vault_path":"plan.md"},"recovery_path":"unset IKIGAI_KILL_SWITCH"}

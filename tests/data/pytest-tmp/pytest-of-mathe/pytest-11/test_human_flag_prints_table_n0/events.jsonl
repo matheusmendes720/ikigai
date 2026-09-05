@@ -1,0 +1,5 @@
+{"ts": 1788642779.6082025, "event": "tick", "data": {"i": 0, "label": "event-0"}}
+{"ts": 1788642779.609596, "event": "tick", "data": {"i": 1, "label": "event-1"}}
+{"ts": 1788642779.6103082, "event": "tick", "data": {"i": 2, "label": "event-2"}}
+{"ts": 1788642779.6111946, "event": "tick", "data": {"i": 3, "label": "event-3"}}
+{"ts": 1788642779.6117039, "event": "tick", "data": {"i": 4, "label": "event-4"}}

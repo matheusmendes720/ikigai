@@ -1,0 +1,11 @@
+{
+  "actor": "agent",
+  "created_at": "2026-09-05T18:42:16.587006",
+  "inq_id": "inq-summary-001",
+  "inq_ueid": null,
+  "payload": "investigation 1",
+  "source": "agent",
+  "status": "open",
+  "tags": [],
+  "updated_at": "2026-09-05T18:42:16.587007"
+}

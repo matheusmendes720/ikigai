@@ -30,12 +30,12 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from mesh.adapters import cli as cli_mod
-from mesh.adapters import solverforge_calendar as calendar_mod
-from mesh.adapters import taskdog as taskdog_mod
-from mesh.adapters.cli import CliAdapter
-from mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
-from mesh.adapters.taskdog import TaskdogAdapter
+from src.mesh.adapters import cli as cli_mod
+from src.mesh.adapters import solverforge_calendar as calendar_mod
+from src.mesh.adapters import taskdog as taskdog_mod
+from src.mesh.adapters.cli import CliAdapter
+from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
+from src.mesh.adapters.taskdog import TaskdogAdapter
 
 # Per-fork override state — module-globals the adapters read from. The CLI
 # mutates them only when an override flag was passed; the module defaults

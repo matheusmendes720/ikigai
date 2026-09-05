@@ -1,0 +1,1 @@
+C:/Users/mathe/code_space/life-oss/life/tests/data/pytest-tmp/pytest-of-mathe/pytest-13/test_symlink_escape_rejected0/outside.md

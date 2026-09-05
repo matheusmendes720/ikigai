@@ -1,0 +1,27 @@
+{
+  "snapshot_id": "f07db11574c44b78b64fea64b92fe24f",
+  "name": "test-snap",
+  "created_at": "2026-09-05T21:42:15.387398Z",
+  "task_count": 2,
+  "sha256": "f7512218728fc47b84a1bf562ce6c1eff22e6153bbf02578fad70dcb4d869d7d",
+  "tasks": [
+    {
+      "ueid": "tb:task:11111111-1111-1111-1111-111111111111:aaaaaaaaaaaaaaa1",
+      "title": "First",
+      "status": "planned",
+      "due": null,
+      "vector": null,
+      "tags": []
+    },
+    {
+      "ueid": "tb:task:22222222-2222-2222-2222-222222222222:bbbbbbbbbbbbbbb2",
+      "title": "Second",
+      "status": "done",
+      "due": null,
+      "vector": null,
+      "tags": []
+    }
+  ],
+  "filters": {},
+  "description": null
+}

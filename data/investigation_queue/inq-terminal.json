@@ -1,0 +1,11 @@
+{
+  "actor": "user:mathe",
+  "created_at": "2026-09-05T18:42:16.596275",
+  "inq_id": "inq-terminal",
+  "inq_ueid": null,
+  "payload": "x",
+  "source": "agent",
+  "status": "resolved",
+  "tags": [],
+  "updated_at": "2026-09-05T18:42:16.614961"
+}

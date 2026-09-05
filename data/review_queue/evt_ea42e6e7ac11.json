@@ -1,0 +1,1 @@
+{"event_id":"evt_ea42e6e7ac11","ueid":"tsk:foo:11111111-1111-1111-1111-111111111111:1111111111111111","action":"create","fields":{"title":"Test task","priority":"high"},"source_fork":"interfaces/cli","timestamp":"2026-09-05T21:32:44.293384","status":"propagated"}

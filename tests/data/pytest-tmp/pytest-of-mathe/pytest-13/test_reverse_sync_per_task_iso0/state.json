@@ -1,0 +1,1 @@
+{"version":1,"last_sync_at":"2026-09-05T21:15:29.766777+00:00","tasks":{"task:good1:01234567:89abcdef0":{"last_seen_status":"done","last_seen_title":"Good","taskdog_id":null,"vault_path":"plans/g.md"},"task:bad2:89abcdef:abcdef01":{"last_seen_status":"done","last_seen_title":"Bad","taskdog_id":null,"vault_path":"plans/bad.md"}}}

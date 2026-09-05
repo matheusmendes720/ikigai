@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from contracts.investigation import Investigation
-from mesh.investigation_queue import (
+from src.contracts.investigation import Investigation
+from src.mesh.investigation_queue import (
     enqueue,
     get,
     transition,
@@ -22,7 +22,7 @@ from mesh.investigation_queue import (
 from src.ikigai.src.mcp_server.investigation_enqueue import investigation_enqueue
 from src.ikigai.src.mcp_server.investigation_status import investigation_status
 from src.ikigai.src.mcp_server.investigation_complete import investigation_complete
-from agents.v2.workers.investigation_dispatcher import dispatch_once
+from src.ikigai.src.agents.v2.workers.investigation_dispatcher import dispatch_once
 
 
 @pytest.fixture
@@ -30,7 +30,7 @@ def fresh_queue(monkeypatch):
     """Redirect all queue operations to a temp directory."""
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_path = Path(tmp_dir)
-        import mesh.investigation_queue as q
+        import src.mesh.investigation_queue as q
         monkeypatch.setattr(q, "QUEUE_DIR", tmp_path)
         monkeypatch.setattr(q, "audit_log_path", lambda: tmp_path / ".investigation_audit.log")
         yield tmp_path
@@ -186,7 +186,7 @@ def test_full_lifecycle_concurrent_enqueue_idempotent(fresh_queue):
 
 def test_full_lifecycle_dispatcher_logs_all_transitions(fresh_queue, caplog):
     """Every dispatcher-driven transition is audit-logged."""
-    import mesh.investigation_queue as q
+    import src.mesh.investigation_queue as q
 
     # 1 stale → archive
     enqueue(Investigation(
