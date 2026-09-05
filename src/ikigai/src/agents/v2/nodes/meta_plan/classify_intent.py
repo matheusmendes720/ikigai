@@ -1,48 +1,82 @@
-"""TEMPORARY classify_intent stub (Plan D Task D.1).
+"""classify_intent node — pure keyword classifier for meta-planner (Plan D Task B.1).
 
-Plan D B.1 will replace this with the full intent classifier. Until B.1
-ships, this stub recognises a small set of PT-BR / EN planning keywords
-so that D.1's hint-on-detect test cases can pass.
+No LLM call. ~50 LOC. Matches user_request against PT-BR + EN planning
+keywords to detect intent level: high / medium / low.
 
-Returns IntentClassification(level="high"|"low", score=int) for any input.
-- "high" if user_input contains any HIGH_INTENT_KEYWORDS
-- "low"  otherwise
+The classifier is intentionally simple: a more sophisticated LLM-based
+classifier would violate the data-first methodology (ADR-007) and add
+unbounded latency. The keyword list lives here, NOT in algorithm_constants.json,
+because these are NLU-style heuristics not algorithm tuning constants
+(ADR-030 R6 does not apply).
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from typing import Literal
 
-HIGH_INTENT_KEYWORDS: tuple[str, ...] = (
-    "focar",
-    "semana",
-    "plano",
-    "planejar",
-    "objetivo",
-    "meta",
-    "plan",
-    "goal",
-    "focus",
-    "weekly",
-    "week",
-)
+from src.ikigai.contracts.proposal import IntentClassification
+
+PLANNING_KEYWORDS: dict[str, list[str]] = {
+    "high": [
+        "quero focar",
+        "me ajuda a organizar",
+        "decomponha",
+        "esta semana",
+        "esse mês",
+        "objetivo",
+        "meta",
+        "projeto",
+        "tarefas",
+        "planejamento",
+        "i want to focus",
+        "help me organize",
+        "decompose",
+        "this week",
+        "this month",
+        "goal",
+        "project",
+    ],
+    "medium": [
+        "como posso",
+        "qual seria",
+        "sugestão",
+        "recomendação",
+        "próximo passo",
+        "agenda",
+        "schedule",
+        "how can i",
+        "what would",
+        "suggestion",
+        "recommendation",
+        "next step",
+    ],
+}
 
 
-@dataclass(frozen=True)
-class IntentClassification:
-    """Lightweight intent classification result (stub schema)."""
+def classify_intent(user_request: str) -> IntentClassification:
+    """Classify user_request as high / medium / low planning intent.
 
-    level: str  # "high" | "medium" | "low"
-    score: int  # 0..N — kept int for stub simplicity
+    High: ≥1 high keyword.
+    Medium: ≥1 medium keyword AND 0 high keywords.
+    Low: zero matches.
 
-
-def classify_intent(user_input: str) -> IntentClassification:
-    """Return IntentClassification for user_input.
-
-    TEMPORARY stub: keyword match only. B.1 will replace with prompt-chain
-    classifier per `docs/superpowers/specs/2026-09-04-meta-planner-design.md`.
+    Returns IntentClassification(level, score) — score is total keyword hits
+    across all tiers.
     """
-    text = (user_input or "").lower()
-    if any(kw in text for kw in HIGH_INTENT_KEYWORDS):
-        return IntentClassification(level="high", score=1)
-    return IntentClassification(level="low", score=0)
+    text = user_request.lower().strip()
+    scores = {"high": 0, "medium": 0}
+    for tier, keywords in PLANNING_KEYWORDS.items():
+        for kw in keywords:
+            if kw in text:
+                scores[tier] += 1
+
+    total_score = scores["high"] + scores["medium"]
+    level: Literal["high", "medium", "low"]
+    if scores["high"] >= 1:
+        level = "high"
+    elif scores["medium"] >= 1:
+        level = "medium"
+    else:
+        level = "low"
+
+    return IntentClassification(level=level, score=total_score)
