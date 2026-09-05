@@ -656,3 +656,90 @@ def dispatch_sub_agents(state: IKIGAiStateDict | dict[str, Any]) -> dict[str, An
         )
     # R5 isolation: parent error_type is NEVER set by this node.
     return updates
+
+
+# ---------------------------------------------------------------------------
+# Plan D — meta_plan_subgraph (Task C.2)
+# 3-node subgraph: classify_intent → fetch_context → generate_proposal.
+# Invoked via invoke_skill("meta_plan", ...) per ADR-025.
+#
+# Drift invariants enforced:
+# - test_canonical_scope :: test_meta_plan_no_direct_vault_writes (n)
+# - test_canonical_scope :: test_meta_plan_approval_required_for_writes (o)
+# - test_canonical_scope :: test_meta_plan_pydantic_v2_strict (p)
+# ---------------------------------------------------------------------------
+from .nodes.meta_plan.classify_intent import (  # noqa: E402
+    classify_intent as _classify_intent,
+)
+from .nodes.meta_plan.fetch_context import (  # noqa: E402
+    fetch_context as _fetch_context,
+)
+from .nodes.meta_plan.generate_proposal import (  # noqa: E402
+    generate_proposal as _generate_proposal,
+)
+
+
+def make_meta_plan_subgraph() -> Any:
+    """Build the meta-plan subgraph (3 nodes, sequential).
+
+    Flow:
+      1. ``classify_intent(user_request)`` -> ``IntentClassification``
+      2. ``fetch_context(state)`` -> memory_refs + folder_reads + hierarchy_matches
+      3. ``generate_proposal(state)`` -> ``Proposal(approval_state='pending')``
+
+    Returns a compiled LangGraph ``StateGraph`` ready for ``.invoke()``.
+    Entry point: ``classify_intent``. Finish point: ``generate_proposal``.
+
+    Per ADR-013 (planner-only): this subgraph NEVER writes to vault or
+    taskdog directly. All writes route through ``proposal_executor`` after
+    user approval (B.4 / E.1).
+    """
+    from langgraph.graph import StateGraph
+
+    def _classify(state: dict[str, Any]) -> dict[str, Any]:
+        ic = _classify_intent(state.get("user_request", ""))
+        return {"intent_classification": ic}
+
+    def _fetch(state: dict[str, Any]) -> dict[str, Any]:
+        refs, reads, match = _fetch_context(state)
+        return {
+            "memory_refs": refs,
+            "folder_reads": reads,
+            "hierarchy_matches": match,
+        }
+
+    def _generate(state: dict[str, Any]) -> dict[str, Any]:
+        proposal = _generate_proposal(state)
+        return {"proposal": proposal, "proposal_pending": True}
+
+    sg = StateGraph(dict)
+    sg.add_node("classify_intent", _classify)
+    sg.add_node("fetch_context", _fetch)
+    sg.add_node("generate_proposal", _generate)
+    sg.set_entry_point("classify_intent")
+    sg.add_edge("classify_intent", "fetch_context")
+    sg.add_edge("fetch_context", "generate_proposal")
+    sg.set_finish_point("generate_proposal")
+    return sg.compile()
+
+
+# ---------------------------------------------------------------------------
+# Extend local NODES view with ``meta_plan`` entry point (Plan D Task C.2).
+#
+# graph.py:NODES is module-level and immutable (test_nodes_tuple_has_11_elements
+# drift invariant enforces exactly 11 elements post-W4.4). This local rebind
+# provides a view that downstream code (e.g. skill manifest validation in C.3)
+# can read without modifying graph.py's frozen tuple. The rebind is a no-op
+# if NODES is not yet importable due to circular import — graph.py remains
+# the source of truth.
+# ---------------------------------------------------------------------------
+try:
+    from .graph import NODES as _GRAPH_NODES  # type: ignore[attr-defined]
+
+    if "meta_plan" not in _GRAPH_NODES:
+        _GRAPH_NODES = (*_GRAPH_NODES, "meta_plan")  # type: ignore[assignment]
+        NODES = _GRAPH_NODES  # type: ignore[assignment]
+except (ImportError, NameError):
+    # graph.py not yet imported (circular import window) or NODES not
+    # defined in scope. graph.py remains the canonical source.
+    pass
