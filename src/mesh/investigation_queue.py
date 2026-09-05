@@ -56,7 +56,7 @@ def _retry_atomic_write(write_fn):  # type: ignore[no-untyped-def]
 # Valid status transitions (append-only — no resurrection)
 # ---------------------------------------------------------------------------
 _VALID_TRANSITIONS: dict[InvestigationStatus, frozenset[InvestigationStatus]] = {
-    "open": frozenset({"in_progress", "archived"}),
+    "open": frozenset({"in_progress", "archived", "resolved"}),  # resolved for crystallized
     "in_progress": frozenset({"resolved", "archived", "open"}),  # allow back to open if false alarm
     "resolved": frozenset(),  # terminal
     "archived": frozenset(),  # terminal
