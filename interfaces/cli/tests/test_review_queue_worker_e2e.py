@@ -376,9 +376,14 @@ def test_propagator_vault_target_invokes_vault_write(
     """When event.source_fork=='vault', propagate() calls vault_write."""
     from src.mesh import agent_propagator
 
-    # Patch the module that the propagator's lazy import resolves to
+    # Patch the module that the propagator's lazy import resolves to.
+    # The propagator does `from ikigai.vault.vault_write import vault_write`
+    # (no `src.ikigai.src.` prefix). Because sys.path contains both `src/` and
+    # `src/ikigai/src/`, these resolve to TWO distinct module objects. Patch
+    # BOTH so the stub is reached whichever identity the propagator resolves.
     import src.ikigai.src.ikigai.vault.vault_write as vw_direct
     from src.ikigai.src.ikigai.vault import vault_write as vw_pkg
+    from ikigai.vault import vault_write as vw_propagator  # second identity
 
     captured: list[dict] = []
 
@@ -395,6 +400,7 @@ def test_propagator_vault_target_invokes_vault_write(
 
     monkeypatch.setattr(vw_direct, "vault_write", _stub)
     monkeypatch.setattr(vw_pkg, "vault_write", _stub)
+    monkeypatch.setattr(vw_propagator, "vault_write", _stub)
 
     event = TaskChange(
         event_id="vault-target-001",

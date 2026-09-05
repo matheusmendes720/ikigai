@@ -44,6 +44,14 @@ def tmp_data_dir(tmp_path, monkeypatch):
     import src.mesh.adapters.taskdog as _taskdog_adapter
     import src.mesh.adapters.solverforge_calendar as _upi_adapter
     import src.mesh.queue as _queue
+    # Second module identity — `mesh.queue` (no `src.` prefix) is imported by
+    # `src/mesh/review_queue_worker.py` via `from mesh import queue`. Because
+    # sys.path contains BOTH repo-root (.) and src/, Python treats `mesh.queue`
+    # and `src.mesh.queue` as two distinct module objects (same file, two
+    # module table entries). Patching only `src.mesh.queue.QUEUE_DIR` leaves
+    # the worker reading from the unpatched `PROJECT_ROOT/data/review_queue/`,
+    # so run_once() finds nothing and consumed=0.
+    import mesh.queue as _queue_pkg
 
     data_root = tmp_path / "data"
     data_root.mkdir(parents=True, exist_ok=True)
@@ -59,7 +67,9 @@ def tmp_data_dir(tmp_path, monkeypatch):
     upi_db = data_root / "solverforge_calendar" / "unified_planning.db"
     monkeypatch.setattr(_upi_adapter, "UPI_DB", upi_db)
 
-    # Mesh queue: data/review_queue/
-    monkeypatch.setattr(_queue, "QUEUE_DIR", data_root / "review_queue")
+    # Mesh queue: data/review_queue/ — patch BOTH module identities.
+    queue_dir = data_root / "review_queue"
+    monkeypatch.setattr(_queue, "QUEUE_DIR", queue_dir)
+    monkeypatch.setattr(_queue_pkg, "QUEUE_DIR", queue_dir)
 
     return data_root
