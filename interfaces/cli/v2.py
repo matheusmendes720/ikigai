@@ -343,81 +343,61 @@ def _run_daily(date_str: str) -> dict:
 
 
 def _run_weekly(date_str: str) -> dict:
-    """Run ikigai-weekly skill — score vectors, regime check (no full cycle).
+    """Run ikigai-weekly skill via invoke_skill().
 
-    Composition per src/ikigai/src/agents/v2/skills/weekly.md:
-        1. Read last 7 daily reports
-        2. Read cycle_state + habit_state
-        3. Run v2_score (passion vector observation)
-        4. Run v2_regime (regime check)
-        5. (vault_write of weekly review — handled by v2 cycle's commit node)
-        6. (taskdog_create_task — NOT here)
+    Per W6.X item 2: wires `weekly` command to
+    make_v2_graph(entry_point="observe") via the invoke_skill()
+    helper. Weekly.md declares outputs=[vault_write, taskdog_create_task].
 
-    Note: weekly.md invocation example shows `v2 cycle --dry-run` but the
-    behavior section (canonical) calls score + regime. We follow the behavior
-    contract (score + regime), not the example invocation.
+    Transforms graph result to the format expected by the Typer command:
+    graph result -> {"skill": "...", "date": "...", "score": {...}, "regime": {...}}
     """
-    score_result = _run_score(date_str)
-    regime_result = _run_regime(date_str)
+    graph_result = invoke_skill("ikigai-weekly")
     return {
         "skill": "ikigai-weekly",
         "date": date_str,
-        "score": score_result,
-        "regime": regime_result,
+        "score": graph_result.get("score", {}),
+        "regime": graph_result.get("regime", {}),
     }
 
 
 def _run_monthly(date_str: str) -> dict:
-    """Run ikigai-monthly skill — full cycle (dry-run) + score + regime.
+    """Run ikigai-monthly skill via invoke_skill().
 
-    Composition per src/ikigai/src/agents/v2/skills/monthly.md:
-        1. Read last 4 weekly reviews
-        2. Read cycle_state + habit_state
-        3. Run v2_cycle --dry-run (8-node graph, plan-only)
-        4. Run v2_score (monthly passion vector)
-        5. Run v2_regime (updated regime recommendation)
-        6. (vault_write of monthly review — handled by cycle's commit node)
+    Per W6.X item 2: wires `monthly` command to
+    make_v2_graph(entry_point="observe") via the invoke_skill()
+    helper. Monthly.md declares outputs=[vault_write].
 
-    Monthly aggregates weekly reviews, so the full cycle (in dry-run mode) is
-    invoked first to surface planning context, then score + regime observe.
+    Transforms graph result to the format expected by the Typer command:
+    graph result -> {"skill": "...", "date": "...", "cycle": {...}, "score": {...}, "regime": {...}}
     """
-    cycle_result = _run_cycle(dry_run=True)
-    score_result = _run_score(date_str)
-    regime_result = _run_regime(date_str)
+    graph_result = invoke_skill("ikigai-monthly")
     return {
         "skill": "ikigai-monthly",
         "date": date_str,
-        "cycle": cycle_result,
-        "score": score_result,
-        "regime": regime_result,
+        "cycle": graph_result.get("cycle", {}),
+        "score": graph_result.get("score", {}),
+        "regime": graph_result.get("regime", {}),
     }
 
 
 def _run_quarterly(date_str: str) -> dict:
-    """Run ikigai-quarterly skill — full cycle (dry-run) + score + regime.
+    """Run ikigai-quarterly skill via invoke_skill().
 
-    Composition per src/ikigai/src/agents/v2/skills/quarterly.md:
-        1. Read last 3 monthly reviews
-        2. Read last 13 weekly reviews
-        3. Read cycle_state + habit_state
-        4. Run v2_cycle --dry-run (8-node graph for quarterly context)
-        5. Run v2_score (quarterly passion vector)
-        6. Run v2_regime (regime recommendation for next quarter)
-        7. (vault_write of quarterly review — handled by cycle's commit node)
+    Per W6.X item 2: wires `quarterly` command to
+    make_v2_graph(entry_point="observe") via the invoke_skill()
+    helper. Quarterly.md declares outputs=[vault_write, taskdog_create_task].
 
-    Quarterly is the broadest skill — strategic realignment. Uses dry-run to
-    keep it as a planner-only surface (no writes from the per-skill command
-    itself).
+    Transforms graph result to the format expected by the Typer command:
+    graph result -> {"skill": "...", "date": "...", "cycle": {...}, "score": {...}, "regime": {...}}
     """
-    cycle_result = _run_cycle(dry_run=True)
-    score_result = _run_score(date_str)
-    regime_result = _run_regime(date_str)
+    graph_result = invoke_skill("ikigai-quarterly")
     return {
         "skill": "ikigai-quarterly",
         "date": date_str,
-        "cycle": cycle_result,
-        "score": score_result,
-        "regime": regime_result,
+        "cycle": graph_result.get("cycle", {}),
+        "score": graph_result.get("score", {}),
+        "regime": graph_result.get("regime", {}),
     }
 
 
