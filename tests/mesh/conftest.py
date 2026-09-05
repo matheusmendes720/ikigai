@@ -41,5 +41,14 @@ def _isolate_review_queue(
     # here keeps the conftest import cheap when sys.path is already set up.
     from src.mesh import queue as queue_mod
 
-    qdir = tmp_path_factory.mktemp("review_queue")
+    try:
+        qdir = tmp_path_factory.mktemp("review_queue")
+    except PermissionError:
+        # Fallback for Windows permission issues with pytest temp dirs
+        import tempfile
+        import shutil
+        qdir = Path(tempfile.mkdtemp(prefix="review_queue_"))
+        # Clean up at exit
+        import atexit
+        atexit.register(lambda: shutil.rmtree(qdir, ignore_errors=True))
     monkeypatch.setattr(queue_mod, "QUEUE_DIR", qdir)
