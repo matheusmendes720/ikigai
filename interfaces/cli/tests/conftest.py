@@ -25,6 +25,13 @@ for p in (_SRC_ROOT, _REPO_ROOT):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
+# Append life/src/ikigai/src/ so `from agents.v2.X` resolves from
+# interfaces/cli/tests/ (matches src/ikigai/tests/conftest pattern at line 61).
+# conftest.py is at life/interfaces/cli/tests/conftest.py → _REPO_ROOT (parents[3]) = life/
+_IKIGAI_SRC = _REPO_ROOT / "src" / "ikigai" / "src"
+if str(_IKIGAI_SRC) not in sys.path:
+    sys.path.append(str(_IKIGAI_SRC))
+
 
 @pytest.fixture
 def tmp_data_dir(tmp_path, monkeypatch):
