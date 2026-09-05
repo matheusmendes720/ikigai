@@ -19,6 +19,9 @@ from typing import Any, cast
 
 from mcp.server.fastmcp import FastMCP
 
+from mcp_server.investigation_complete import investigation_complete
+from mcp_server.investigation_enqueue import investigation_enqueue
+from mcp_server.investigation_status import investigation_status
 from mcp_server.tracing import init_mcp_tracing, traced_tool_dispatch
 
 # ---------------------------------------------------------------------------
@@ -669,6 +672,46 @@ def ikigai_sync_vault(date: str = "") -> str:
             {"date": date},
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# Plan C Task 3: Investigation Queue MCP tools
+# ---------------------------------------------------------------------------
+
+
+@MCP.tool(
+    name="investigation_enqueue",
+    description="Park a pre-form observation in the investigation queue. Investigations live outside the 6-level SONHO/OBJETIVO/META/PROJETO/ENTREGA/TAREFA hierarchy and can later crystallize into a UEID via inq_ueid.",
+)
+def _tool_investigation_enqueue(
+    inq_id: str,
+    source: str,
+    payload: str,
+    tags: list[str] | None = None,
+    actor: str = "agent",
+) -> dict[str, Any]:
+    return investigation_enqueue(inq_id, source, payload, tags, actor)
+
+
+@MCP.tool(
+    name="investigation_status",
+    description="Fetch the status of one investigation (by inq_id) or a summary across all statuses.",
+)
+def _tool_investigation_status(inq_id: str | None = None) -> dict[str, Any]:
+    return investigation_status(inq_id)
+
+
+@MCP.tool(
+    name="investigation_complete",
+    description="Mark an investigation resolved (success) or archived (abandoned). Terminal states — no resurrection.",
+)
+def _tool_investigation_complete(
+    inq_id: str,
+    final_status: str = "resolved",
+    actor: str = "agent",
+    inq_ueid: str | None = None,
+) -> dict[str, Any]:
+    return investigation_complete(inq_id, final_status, actor, inq_ueid)  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------
