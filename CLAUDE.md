@@ -258,13 +258,30 @@ PolicyEngine states (PUSH / MAINTAIN / REDUCE / RECOVER) with hysteresis.
 
 ---
 
-## Current Mode (2026-09-04)
+## Current Mode (2026-09-05)
 
 **Data-first methodology** — IKIGAi está pausado para *novas decisões de
 algoritmo* (M01/N01/A02/A06, IKIGAI vector weights). Não escrever código de
 algoritmo novo até 5+ SONHO logs manuais
 (`vault/ikigai/closing-2026/01-q3-2026/04-relatórios-diários/`). Decisões de
 algoritmo deferidas até evidência empírica.
+
+### SONHO Log Ritual (Phase 1.5 — 2026-09-05)
+
+The 5+ SONHO log gate is **operational, not architectural**. Drift invariants
+(m1, m2) only check template + trigger wiring — the counter is manual.
+
+**Template:** `vault/ikigai/templates/sonho-log.md` (67 lines, 4 sections: O que
+pensei / O que senti / O que decidi / O que observei).
+
+**Trigger:** After `life v2 daily` runs, `_print_sonho_log_hint` prints a
+one-liner pointing to today's log filename. Opt-in only — never auto-writes.
+Skipped in `--json` mode.
+
+**Cadence:** 1 log per working day (Mon–Fri), 5–10 min each. Friday's log feeds
+into `../03-revisões-semanais/YYYY-Www.md`.
+
+**Count:** 1/5 as of 2026-09-05 (`2026-09-05.md`).
 
 > **Phase 8 SHIPPED (2026-09-03, commits `fb41578` → `3b7b8f6`)** actively
 > restored agent code (`src/ikigai/src/agents/v2/`) + MCP wrappers + gateway

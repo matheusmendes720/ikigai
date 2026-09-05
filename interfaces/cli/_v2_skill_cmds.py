@@ -24,6 +24,23 @@ import typer
 from ._v2_skills import _run_daily, _run_monthly, _run_quarterly, _run_weekly
 
 
+def _print_sonho_log_hint(console, date_str: str) -> None:
+    """Print a one-line SONHO log suggestion (Phase 1.2 — Wave 5 ritual).
+
+    Opt-in only: never writes a log automatically. Tells the user where the
+    template lives and the suggested filename for today's log.
+
+    Per "data-first methodology" (CLAUDE.md): Wave 5 Scenario C is gated on
+    5+ SONHO logs collected. The trigger is friction-zero (one line) so the
+    ritual is sustainable.
+    """
+    console.print(
+        f"\n[dim]📓 SONHO log:[/dim] "
+        f"[cyan]vault/ikigai/templates/sonho-log.md[/cyan] → "
+        f"[cyan]vault/ikigai/closing-2026/01-q3-2026/04-relatórios-diários/{date_str}.md[/cyan]"
+    )
+
+
 def register_skill(app: typer.Typer, console) -> None:
     """Bind 4 per-skill typer commands to `app` (W2.3 / W6.X item 2).
 
@@ -40,7 +57,9 @@ def register_skill(app: typer.Typer, console) -> None:
             "",
             help="Date to surface daily intentions for (YYYY-MM-DD). Defaults to today.",
         ),
-        json_output: bool = typer.Option(False, "--json", help="Machine-readable output"),
+        json_output: bool = typer.Option(
+            False, "--json", help="Machine-readable output"
+        ),
     ) -> None:
         """Run ikigai-daily skill — surface PAV intentions (3-5 pt-BR suggestions).
 
@@ -66,6 +85,10 @@ def register_skill(app: typer.Typer, console) -> None:
                 console.print("  [dim](no suggestions surfaced)[/dim]")
             for i, s in enumerate(suggestions, 1):
                 console.print(f"  {i}. {s}")
+            # Phase 1.2 — SONHO log trigger (Wave 5 data-first methodology).
+            # Opt-in only: prints a one-liner reminder, never writes.
+            # Skipped in --json mode so machine consumers stay clean.
+            _print_sonho_log_hint(console, date_str)
 
     @app.command(name="weekly")
     def weekly(
@@ -73,7 +96,9 @@ def register_skill(app: typer.Typer, console) -> None:
             "",
             help="Date for weekly review (YYYY-MM-DD). Defaults to today.",
         ),
-        json_output: bool = typer.Option(False, "--json", help="Machine-readable output"),
+        json_output: bool = typer.Option(
+            False, "--json", help="Machine-readable output"
+        ),
     ) -> None:
         """Run ikigai-weekly skill — score vectors + regime check.
 
@@ -104,7 +129,9 @@ def register_skill(app: typer.Typer, console) -> None:
                 console.print(f"  passion_score: {ps}")
             # Regime line
             if "error" in regime:
-                console.print(f"  [yellow]Regime: error — {regime.get('error')}[/yellow]")
+                console.print(
+                    f"  [yellow]Regime: error — {regime.get('error')}[/yellow]"
+                )
             else:
                 rg = regime.get("regime", "?")
                 console.print(f"  regime: {rg}")
@@ -115,7 +142,9 @@ def register_skill(app: typer.Typer, console) -> None:
             "",
             help="Date for monthly review (YYYY-MM-DD). Defaults to today.",
         ),
-        json_output: bool = typer.Option(False, "--json", help="Machine-readable output"),
+        json_output: bool = typer.Option(
+            False, "--json", help="Machine-readable output"
+        ),
     ) -> None:
         """Run ikigai-monthly skill — full cycle (dry-run) + score + regime.
 
@@ -139,7 +168,9 @@ def register_skill(app: typer.Typer, console) -> None:
             console.print(f"[green]ikigai-monthly for {date_str}:[/green]")
             # Cycle line
             if "error_type" in cycle and cycle["error_type"]:
-                console.print(f"  [yellow]Cycle: error — {cycle['error_type']}[/yellow]")
+                console.print(
+                    f"  [yellow]Cycle: error — {cycle['error_type']}[/yellow]"
+                )
             else:
                 console.print(
                     f"  cycle: {cycle.get('graph', '?')} "
@@ -156,7 +187,9 @@ def register_skill(app: typer.Typer, console) -> None:
                 console.print(f"  passion_score: {ps}")
             # Regime line
             if "error" in regime:
-                console.print(f"  [yellow]Regime: error — {regime.get('error')}[/yellow]")
+                console.print(
+                    f"  [yellow]Regime: error — {regime.get('error')}[/yellow]"
+                )
             else:
                 rg = regime.get("regime", "?")
                 console.print(f"  regime: {rg}")
@@ -167,7 +200,9 @@ def register_skill(app: typer.Typer, console) -> None:
             "",
             help="Date for quarterly review (YYYY-MM-DD). Defaults to today.",
         ),
-        json_output: bool = typer.Option(False, "--json", help="Machine-readable output"),
+        json_output: bool = typer.Option(
+            False, "--json", help="Machine-readable output"
+        ),
     ) -> None:
         """Run ikigai-quarterly skill — strategic realignment (cycle dry-run + score + regime).
 
@@ -190,7 +225,9 @@ def register_skill(app: typer.Typer, console) -> None:
             regime = result.get("regime", {})
             console.print(f"[green]ikigai-quarterly for {date_str}:[/green]")
             if "error_type" in cycle and cycle["error_type"]:
-                console.print(f"  [yellow]Cycle: error — {cycle['error_type']}[/yellow]")
+                console.print(
+                    f"  [yellow]Cycle: error — {cycle['error_type']}[/yellow]"
+                )
             else:
                 console.print(
                     f"  cycle: {cycle.get('graph', '?')} "
@@ -205,7 +242,9 @@ def register_skill(app: typer.Typer, console) -> None:
                 )
                 console.print(f"  passion_score: {ps}")
             if "error" in regime:
-                console.print(f"  [yellow]Regime: error — {regime.get('error')}[/yellow]")
+                console.print(
+                    f"  [yellow]Regime: error — {regime.get('error')}[/yellow]"
+                )
             else:
                 rg = regime.get("regime", "?")
                 console.print(f"  regime: {rg}")

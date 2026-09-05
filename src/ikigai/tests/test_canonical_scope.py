@@ -1480,6 +1480,88 @@ def test_meta_plan_pydantic_v2_strict() -> None:
         )
 
 
+def test_sonho_log_template_exists() -> None:
+    """Invariant (m1): SONHO log template file exists at canonical path.
+
+    Per Wave 5 data-first methodology (CLAUDE.md "Current Mode"): the SONHO
+    log ritual gates Scenario C. The template at
+    ``vault/ikigai/templates/sonho-log.md`` is the single source of truth
+    for log structure (frontmatter + 4 sections).
+    """
+    template_path = REPO_ROOT / "vault" / "ikigai" / "templates" / "sonho-log.md"
+    assert template_path.exists(), (
+        f"SONHO log template missing at {template_path}. "
+        "Wave 5 data-first methodology requires this template to exist."
+    )
+    content = template_path.read_text(encoding="utf-8")
+    # Verify frontmatter + 4 sections
+    assert content.startswith("---"), "SONHO log template must have YAML frontmatter"
+    for section in (
+        "## 1. O que pensei",
+        "## 2. O que senti",
+        "## 3. O que decidi",
+        "## 4. O que observei",
+    ):
+        assert section in content, f"SONHO log template missing section: {section}"
+
+
+def test_sonho_log_trigger_wired_in_daily_command() -> None:
+    """Invariant (m2): `life v2 daily` prints a SONHO log hint after running.
+
+    Per Phase 1.2: the daily Typer command must call
+    ``_print_sonho_log_hint(console, date_str)`` to remind the user to
+    write a SONHO log. Opt-in only (never auto-writes); skipped in --json
+    mode.
+
+    The check is structural (AST) so the wiring can't silently regress.
+    """
+    skill_cmds_path = REPO_ROOT / "interfaces" / "cli" / "_v2_skill_cmds.py"
+    assert skill_cmds_path.exists(), f"missing {skill_cmds_path}"
+    source = skill_cmds_path.read_text(encoding="utf-8")
+
+    # 1. Helper function exists
+    assert "def _print_sonho_log_hint" in source, (
+        "interfaces/cli/_v2_skill_cmds.py must define _print_sonho_log_hint"
+    )
+
+    # 2. The daily command body calls the helper
+    tree = ast.parse(source)
+    daily_func = None
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.FunctionDef) and node.name == "daily"):
+            continue
+        # Decorator is `@app.command(name="daily")` — an ast.Call, not ast.Attribute.
+        for decorator in node.decorator_list:
+            if not isinstance(decorator, ast.Call):
+                continue
+            for kw in decorator.keywords:
+                if (
+                    kw.arg == "name"
+                    and isinstance(kw.value, ast.Constant)
+                    and kw.value.value == "daily"
+                ):
+                    daily_func = node
+                    break
+            if daily_func is not None:
+                break
+        if daily_func is not None:
+            break
+    assert daily_func is not None, (
+        "Could not locate @app.command(name='daily') function in _v2_skill_cmds.py"
+    )
+
+    calls_hint = any(
+        isinstance(child, ast.Call)
+        and isinstance(child.func, ast.Name)
+        and child.func.id == "_print_sonho_log_hint"
+        for child in ast.walk(daily_func)
+    )
+    assert calls_hint, (
+        "The daily Typer command must call _print_sonho_log_hint(console, date_str) "
+        "after the suggestions loop (Phase 1.2 trigger)."
+    )
+
+
 # ---------------------------------------------------------------------------
 # AST helpers (used above)
 # ---------------------------------------------------------------------------
