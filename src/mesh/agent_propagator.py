@@ -63,7 +63,7 @@ def propagate(
             # Lazy import — agent_propagator lives in src/mesh/ not src/ikigai/.
             # The cross-tree import is intentional: src/ikigai/ is the system
             # of record; src/mesh/ consumes it.
-            from ikigai.vault.vault_write import (
+            from sys_ikigai.vault.vault_write import (
                 vault_write as _vault_write_impl,
             )
 

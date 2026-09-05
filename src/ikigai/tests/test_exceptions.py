@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ikigai.exceptions import (
+from sys_ikigai.exceptions import (
     DriftDetectedError,
     GuardConditionFailedError,
     IKIGAiError,

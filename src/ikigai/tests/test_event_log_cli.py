@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from ikigai.gateway.event_log import EventLog
-from ikigai.gateway.event_log_cli import _format_record, main
+from sys_ikigai.gateway.event_log import EventLog
+from sys_ikigai.gateway.event_log_cli import _format_record, main
 
 
 @pytest.fixture
@@ -263,7 +263,7 @@ def test_human_status_shows_aligned_columns(
 
 def test_summarize_data_tool_call() -> None:
     """Tool-shaped data summaries are kept short for table readability."""
-    from ikigai.gateway.event_log_cli import _summarize_data
+    from sys_ikigai.gateway.event_log_cli import _summarize_data
 
     summary = _summarize_data({"tool": "taskdog.add", "arguments": {"title": "x"}})
     assert "taskdog.add" in summary
@@ -272,7 +272,7 @@ def test_summarize_data_tool_call() -> None:
 
 def test_summarize_data_long_payload_is_truncated() -> None:
     """Payloads >80 chars get truncated so the table stays readable."""
-    from ikigai.gateway.event_log_cli import _summarize_data
+    from sys_ikigai.gateway.event_log_cli import _summarize_data
 
     huge = {"k": "x" * 200}
     summary = _summarize_data(huge)

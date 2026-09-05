@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 import pytest
 from pydantic import ValidationError
 
-from ikigai.entities.correction_signal import CorrectionSignal
+from sys_ikigai.entities.correction_signal import CorrectionSignal
 
 
 class TestCorrectionSignal:

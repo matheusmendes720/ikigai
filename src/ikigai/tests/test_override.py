@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 import pytest
 from pydantic import ValidationError
 
-from ikigai.entities.override import OverrideRecord
+from sys_ikigai.entities.override import OverrideRecord
 
 
 class TestOverrideRecord:

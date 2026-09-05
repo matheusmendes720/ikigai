@@ -21,9 +21,9 @@ from typing import Any
 
 import pytest
 
-from ikigai.gateway.client_adapter import MCPClientAdapter
-from ikigai.gateway.event_log import EventLog
-from ikigai.gateway.gateway import GatewayConfig, UnifiedMCPGateway
+from sys_ikigai.gateway.client_adapter import MCPClientAdapter
+from sys_ikigai.gateway.event_log import EventLog
+from sys_ikigai.gateway.gateway import GatewayConfig, UnifiedMCPGateway
 
 
 class _ThreadingHTTPServer(ThreadingMixIn, HTTPServer):

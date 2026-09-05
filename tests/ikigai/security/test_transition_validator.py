@@ -14,7 +14,7 @@ import pytest
 from src.contracts.sonho import Sonho  # noqa: I001 — `src.` prefix is the canonical repo-root import path
 from src.contracts.objetivo import Objetivo
 from src.contracts.meta import Meta
-from ikigai.security.transition_validator import validate_phase_transition
+from sys_ikigai.security.transition_validator import validate_phase_transition
 
 
 # Valid 4-part UEIDs (UEID regex enforces ^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$)

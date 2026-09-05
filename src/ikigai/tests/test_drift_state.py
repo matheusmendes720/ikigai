@@ -1,6 +1,6 @@
 """Tests for DriftState enum."""
 
-from ikigai.entities.drift_state import DriftState
+from sys_ikigai.entities.drift_state import DriftState
 
 
 def test_four_states_present() -> None:

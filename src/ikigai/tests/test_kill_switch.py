@@ -23,8 +23,8 @@ from typing import Any
 
 import pytest
 
-from ikigai.security import kill_switch as ks
-from ikigai.security.vault_write_wrapper import (
+from sys_ikigai.security import kill_switch as ks
+from sys_ikigai.security.vault_write_wrapper import (
     LEGAL_CALLERS,
     KillSwitchAbort,
     KillSwitchActorViolation,

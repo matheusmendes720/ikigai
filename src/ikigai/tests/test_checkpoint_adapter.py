@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from ikigai.adapters.checkpoint_adapter import CheckpointAdapter
-from ikigai.entities.ikigai_record import IKIGAiRecord
+from sys_ikigai.adapters.checkpoint_adapter import CheckpointAdapter
+from sys_ikigai.entities.ikigai_record import IKIGAiRecord
 
 
 @pytest.fixture

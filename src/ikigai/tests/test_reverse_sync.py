@@ -14,7 +14,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from ikigai.vault.sync import (  # noqa: E402
+from sys_ikigai.vault.sync import (  # noqa: E402
     ReverseSyncState,
     ReverseSyncTaskEntry,
     reverse_sync,
@@ -63,7 +63,7 @@ def test_reverse_sync_emits_done_for_moved_to_done(tmp_path: Path, tmp_queue: Pa
     )
     initial_state_path = state_path
     # Write initial state
-    from ikigai.vault.sync import save_reverse_state
+    from sys_ikigai.vault.sync import save_reverse_state
 
     save_reverse_state(initial_state_path, initial)
 
@@ -90,7 +90,7 @@ def test_reverse_sync_emits_done_for_moved_to_done(tmp_path: Path, tmp_queue: Pa
 def test_reverse_sync_emits_update_for_status_change(tmp_path: Path, tmp_queue: Path) -> None:
     """Status changed (not to done) -> emit UPDATE event."""
     state_path = tmp_path / "state.json"
-    from ikigai.vault.sync import save_reverse_state
+    from sys_ikigai.vault.sync import save_reverse_state
 
     save_reverse_state(
         state_path,
@@ -123,7 +123,7 @@ def test_reverse_sync_emits_update_for_status_change(tmp_path: Path, tmp_queue: 
 def test_reverse_sync_skips_unchanged(tmp_path: Path, tmp_queue: Path) -> None:
     """Same status as before -> no event."""
     state_path = tmp_path / "state.json"
-    from ikigai.vault.sync import save_reverse_state
+    from sys_ikigai.vault.sync import save_reverse_state
 
     save_reverse_state(
         state_path,
@@ -156,7 +156,7 @@ def test_reverse_sync_emits_update_for_new_ueid_with_vault_match(
     (orphan, vault_path unknown). v1.3 will do vault lookup.
     """
     state_path = tmp_path / "state.json"
-    from ikigai.vault.sync import save_reverse_state
+    from sys_ikigai.vault.sync import save_reverse_state
 
     save_reverse_state(state_path, ReverseSyncState(version=1))
 
@@ -178,7 +178,7 @@ def test_reverse_sync_emits_update_for_new_ueid_with_vault_match(
 def test_reverse_sync_is_idempotent(tmp_path: Path, tmp_queue: Path) -> None:
     """Re-run with same input -> 0 events emitted the second time."""
     state_path = tmp_path / "state.json"
-    from ikigai.vault.sync import save_reverse_state
+    from sys_ikigai.vault.sync import save_reverse_state
 
     save_reverse_state(
         state_path,
@@ -205,7 +205,7 @@ def test_reverse_sync_is_idempotent(tmp_path: Path, tmp_queue: Path) -> None:
 def test_reverse_sync_updates_snapshot(tmp_path: Path, tmp_queue: Path) -> None:
     """After reverse_sync, snapshot reflects current taskdog state."""
     state_path = tmp_path / "state.json"
-    from ikigai.vault.sync import (
+    from sys_ikigai.vault.sync import (
         load_reverse_state,
         save_reverse_state,
     )
@@ -242,7 +242,7 @@ def test_reverse_sync_updates_snapshot(tmp_path: Path, tmp_queue: Path) -> None:
 def test_reverse_sync_per_task_isolation(tmp_path: Path, tmp_queue: Path) -> None:
     """One task throwing doesn't crash the loop — error recorded, others processed."""
     state_path = tmp_path / "state.json"
-    from ikigai.vault.sync import save_reverse_state
+    from sys_ikigai.vault.sync import save_reverse_state
 
     save_reverse_state(
         state_path,
@@ -305,7 +305,7 @@ def test_reverse_sync_per_task_isolation(tmp_path: Path, tmp_queue: Path) -> Non
 def test_reverse_sync_source_fork_override(tmp_path: Path, tmp_queue: Path) -> None:
     """source_fork kwarg populates emitted events' source_fork field."""
     state_path = tmp_path / "state.json"
-    from ikigai.vault.sync import save_reverse_state
+    from sys_ikigai.vault.sync import save_reverse_state
 
     save_reverse_state(
         state_path,

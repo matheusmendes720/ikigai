@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ikigai.state_machines import (
+from sys_ikigai.state_machines import (
     StateMachine,
     deliverable_state_machine,
     dream_state_machine,
@@ -15,7 +15,7 @@ from ikigai.state_machines import (
     routine_state_machine,
     task_state_machine,
 )
-from ikigai.state_machines._sm_base import TransitionError
+from sys_ikigai.state_machines._sm_base import TransitionError
 
 
 class TestStateMachineBasics:

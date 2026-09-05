@@ -6,7 +6,7 @@ import json
 
 from typer.testing import CliRunner
 
-from ikigai.cli.app import app
+from sys_ikigai.cli.app import app
 
 runner = CliRunner()
 

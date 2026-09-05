@@ -21,7 +21,7 @@ import sqlite3
 from datetime import date, timedelta
 from typing import Any
 
-from ikigai.enums import VectorType
+from sys_ikigai.enums import VectorType
 
 
 # Canonical vector names (strings — for dict key conversion)

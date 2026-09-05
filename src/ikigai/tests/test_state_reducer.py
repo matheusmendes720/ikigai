@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from ikigai.adapters.state_reducer import StateReducer
-from ikigai.entities.ikigai_record import EntityType, IKIGAiRecord
+from sys_ikigai.adapters.state_reducer import StateReducer
+from sys_ikigai.entities.ikigai_record import EntityType, IKIGAiRecord
 
 
 @pytest.fixture

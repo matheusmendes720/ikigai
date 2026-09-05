@@ -221,7 +221,7 @@ def test_drift_invariant_e_vault_write_actor_agent_bypasses_validator(
     review_dir = data_root / "review_queue"
     review_dir.mkdir(parents=True, exist_ok=True)
 
-    from ikigai.security.vault_write_wrapper import (
+    from sys_ikigai.security.vault_write_wrapper import (
         KillSwitchBypassDetected,
         _RateLimitTracker,
         make_wrapped_vault_write,
@@ -289,9 +289,9 @@ def test_wrapper_modules_loaded_in_sys_modules() -> None:
     # Either importing on test execution (preferred) or already-loaded.
     if "ikigai.security.vault_write_wrapper" not in sys.modules:
         # Trigger import via canonical path.
-        import ikigai.security.vault_write_wrapper
+        import sys_ikigai.security.vault_write_wrapper
     if "ikigai.security.kill_switch" not in sys.modules:
-        import ikigai.security.kill_switch  # noqa: F401
+        import sys_ikigai.security.kill_switch  # noqa: F401
 
     assert "ikigai.security.vault_write_wrapper" in sys.modules
     assert "ikigai.security.kill_switch" in sys.modules

@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from ikigai.gateway.client_cli import (
+from sys_ikigai.gateway.client_cli import (
     _parse_sse_frame,
     _strip_chunked_framing,
     main,
@@ -208,7 +208,7 @@ def test_main_watch_parses_args(capsys: pytest.CaptureFixture) -> None:
         print(json.dumps({"event": "hello", "data": {"k": "v"}}), flush=True)
         return 0
 
-    import ikigai.gateway.client_cli as cli_mod
+    import sys_ikigai.gateway.client_cli as cli_mod
 
     original = cli_mod.watch
     cli_mod.watch = fake_watch  # type: ignore[assignment]
@@ -246,7 +246,7 @@ def test_main_watch_parses_args(capsys: pytest.CaptureFixture) -> None:
 
 def test_summarize_data_tool_call() -> None:
     """Tool-shaped payloads get a compact `tool=...()` rendering."""
-    from ikigai.gateway.client_cli import _summarize_data
+    from sys_ikigai.gateway.client_cli import _summarize_data
 
     summary = _summarize_data({"tool": "taskdog.add", "arguments": {"title": "x"}})
     assert "taskdog.add" in summary
@@ -255,7 +255,7 @@ def test_summarize_data_tool_call() -> None:
 
 def test_summarize_data_long_payload_truncated() -> None:
     """Payloads >100 chars get truncated for streaming readability."""
-    from ikigai.gateway.client_cli import _summarize_data
+    from sys_ikigai.gateway.client_cli import _summarize_data
 
     huge = {"blob": "x" * 200}
     summary = _summarize_data(huge)
@@ -265,7 +265,7 @@ def test_summarize_data_long_payload_truncated() -> None:
 
 def test_summarize_data_result_field() -> None:
     """Dicts with a top-level `result` collapse to `result=...`."""
-    from ikigai.gateway.client_cli import _summarize_data
+    from sys_ikigai.gateway.client_cli import _summarize_data
 
     summary = _summarize_data({"result": "ok"})
     assert summary.startswith("result=")
@@ -273,7 +273,7 @@ def test_summarize_data_result_field() -> None:
 
 def test_format_event_human_shape() -> None:
     """Human line starts with `[HH:MM:SS.mmm]` then event name + data summary."""
-    from ikigai.gateway.client_cli import _format_event_human
+    from sys_ikigai.gateway.client_cli import _format_event_human
 
     line = _format_event_human({"event": "task.created", "data": {"title": "hi"}})
     # Verify the bracket+timestamp prefix is preserved
@@ -305,7 +305,7 @@ def test_watch_human_emits_compact_lines_not_json() -> None:
 
 def test_main_json_flag_forces_json_mode(capsys: pytest.CaptureFixture) -> None:
     """`--json` forces JSON-per-line output (default behavior, but explicit)."""
-    import ikigai.gateway.client_cli as cli_mod
+    import sys_ikigai.gateway.client_cli as cli_mod
 
     captured: dict = {}
 
@@ -331,7 +331,7 @@ def test_main_json_flag_forces_json_mode(capsys: pytest.CaptureFixture) -> None:
 
 def test_main_human_flag_forces_human_mode(capsys: pytest.CaptureFixture) -> None:
     """`--human` forces compact rendered lines."""
-    import ikigai.gateway.client_cli as cli_mod
+    import sys_ikigai.gateway.client_cli as cli_mod
 
     captured: dict = {}
 

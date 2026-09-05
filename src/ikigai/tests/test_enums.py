@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ikigai.enums import (
+from sys_ikigai.enums import (
     AlignmentLabel,
     ClusterType,
     EntityType,

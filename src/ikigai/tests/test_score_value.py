@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from ikigai.entities.score_value import ScoreUnit, ScoreValue
+from sys_ikigai.entities.score_value import ScoreUnit, ScoreValue
 
 
 class TestScoreValue:

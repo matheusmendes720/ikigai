@@ -1,5 +1,15 @@
 """Test suite root — mirrors src/operational/ layout.
 
+After the 2026-09-05 namespace rename (src/ikigai/src/ikigai/ → sys_ikigai/ at
+repo root), the THREE import styles below resolve from TWO sys.path entries:
+  - `from sys_ikigai.X import Y`     → <repo-root>/sys_ikigai/
+  - `from src.mesh import queue`     → <repo-root>/src/mesh/
+  - `from contracts.X import Y`      → <repo-root>/src/contracts/
+
+So `_REPO_ROOT` alone (which gives access to BOTH `sys_ikigai/` and `src/`)
+suffices. The old `<repo>/src/ikigai/src/` sys.path append was a Plan A
+Task 9 followup workaround for the dual-module-identity bug and is removed.
+
 Also auto-isolates src.mesh.queue.QUEUE_DIR to a per-test tmp dir so tests
 that touch the review queue never write to the real `data/review_queue/`.
 Tests that want a specific queue path can still override via their own
@@ -18,48 +28,14 @@ from pathlib import Path
 # src.* (some plugins walk sys.path or import src.mesh during their own
 # collection/setup).
 # ---------------------------------------------------------------------------
-# Ensure both IKIGAI's own src tree AND the repo-root src tree are on
-# sys.path so that:
-#   - IKIGAI modules (ikigai/, mcp_server/, agents/) resolve from
-#     `src/ikigai/src/` (set by pyproject.toml pythonpath = ["src"]).
-#   - Repo-root modules (mesh/, contracts/, operational/, …) resolve
-#     from `life/src/` (the directory that actually contains `src.mesh`).
-# Without the second entry, `from src.mesh import queue` raises
-# `ModuleNotFoundError: No module named 'src.mesh'` on Windows pytest.
+# Post-rename: only <repo-root>/ is needed. It contains both `sys_ikigai/`
+# (at repo root) and `src/` (the dotted prefix package).
 _THIS = Path(__file__).resolve()
-# Three distinct paths are needed because tests use THREE import styles:
-#   1. `from src.ikigai.src.ikigai.vault.vault_read import vault_read`
-#      → requires <repo-root>/src/ikigai/ on sys.path (one 'src/ikigai/' is
-#        the namespace package prefix the test uses).
-#   2. `from src.mesh import queue`
-#      → requires <repo-root>/ on sys.path (so 'src.mesh' resolves as a
-#        dotted path under the repo-root src/ tree).
-#   3. `from contracts.task_change import TaskChange`  (no 'src.' prefix,
-#      used by mesh/queue.py and mcp_server/tools_mesh.py)
-#      → requires <repo-root>/src/ on sys.path so the bare 'contracts'
-#        package resolves. Without this, 17 ikigai_maintainer_node tests +
-#        test_server_fastmcp.py collection fail with ModuleNotFoundError.
-#
-# Plan A Task 9 followup (RESOLVED): the `_IKIGAI_PKG_ROOT` (=
-# <repo-root>/src/ikigai/) entry that lives on sys.path collides with the
-# dotted `src.ikigai.src.X` import style, because `src/ikigai/` contains a
-# `src/` subdirectory. Python's namespace-package machinery sees the inner
-# `src/` and creates a spurious `src.ikigai` namespace distribution that
-# resolves `src.ikigai` to `<repo>/src/ikigai/src/ikigai/` instead of
-# `<repo>/src/ikigai/` — breaking `src.ikigai.src` lookup.
-#
-# Fix: append `<repo>/src/ikigai/src/` INSTEAD. That directory contains the
-# bare `ikigai/` package, so `from ikigai.X import …` works for code in this
-# test tree. And because it's INSIDE the dotted chain (not at a sibling
-# level), it doesn't disturb `src.ikigai.src.X` resolution.
-_IKIGAI_SRC = _THIS.parent.parent / "src"  # <repo-root>/src/ikigai/src/
-_SRC_ROOT = _THIS.parent.parent.parent  # <repo-root>/src/  (contracts/, mesh/)
 _REPO_ROOT = _THIS.parent.parent.parent.parent  # <repo-root>
+_SRC_ROOT = _THIS.parent.parent.parent  # <repo-root>/src/  (contracts/, mesh/)
 for _p in (_REPO_ROOT, _SRC_ROOT):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
-if str(_IKIGAI_SRC) not in sys.path:
-    sys.path.append(str(_IKIGAI_SRC))
 
 # ---------------------------------------------------------------------------
 # Redirect tempfile.tempdir to a project-local directory. On Windows,

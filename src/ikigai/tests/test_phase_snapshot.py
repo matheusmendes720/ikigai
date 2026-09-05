@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from ikigai.entities.phase_snapshot import PhaseSnapshot
+from sys_ikigai.entities.phase_snapshot import PhaseSnapshot
 
 
 def test_round_trip() -> None:
@@ -64,6 +64,6 @@ def test_frozen() -> None:
 
 def test_weights_isolated_from_ikigai_record() -> None:
     """SPEC I7 — phase_weights MUST NOT live on IKIGAiRecord."""
-    from ikigai.entities.ikigai_record import IKIGAiRecord
+    from sys_ikigai.entities.ikigai_record import IKIGAiRecord
 
     assert "phase_weights" not in IKIGAiRecord.model_fields
