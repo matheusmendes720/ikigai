@@ -7,7 +7,7 @@ cd /d "%~dp0\..\.."
 
 echo === Step 1: Verify vault_write function is importable via PYTHONPATH=. ===
 set PYTHONPATH=.
-python -c "from src.ikigai.src.ikigai.vault.vault_write import vault_write; print('vault_write callable OK')"
+python -c "from sys_ikigai.vault.vault_write import vault_write; print('vault_write callable OK')"
 if errorlevel 1 (
     echo FAIL: vault_write not importable
     exit /b 1
@@ -31,7 +31,7 @@ echo.
 echo === Step 3: Verify path traversal rejection (absolute path raises ValueError) ===
 python -c "
 from pathlib import Path
-from src.ikigai.src.ikigai.vault.vault_write import vault_write
+from sys_ikigai.vault.vault_write import vault_write
 try:
     vault_write(
         vault_root=Path('.'),
@@ -55,7 +55,7 @@ set TMPDIR=%TEMP%\vault_write_smoke_%RANDOM%
 mkdir "%TMPDIR%"
 python -c "
 from pathlib import Path
-from src.ikigai.src.ikigai.vault.vault_write import vault_write
+from sys_ikigai.vault.vault_write import vault_write
 import glob as g
 
 vault_root = Path(r'%TMPDIR%\vault')
