@@ -4,10 +4,10 @@ from dataclasses import dataclass
 import logging
 from pathlib import Path
 
-from contracts.task_change import TaskChange, PropagationEvent
-from mesh import queue as _queue
-from mesh.agent_consumer import ValidationResult
-from mesh.adapters.base import ForkAdapter
+from src.contracts.task_change import TaskChange, PropagationEvent
+from src.mesh import queue as _queue
+from src.mesh.agent_consumer import ValidationResult
+from src.mesh.adapters.base import ForkAdapter
 
 
 logger = logging.getLogger(__name__)

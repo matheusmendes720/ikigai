@@ -10,10 +10,10 @@ v1 scope: only CREATE actions are wired. UPDATE/DELETE/DONE return early
 (per Phase 3 v1 design — full scope gated on 5+ SONHO logs).
 """
 
-from mesh.adapters.base import ForkAdapter
-from mesh.adapters.cli import CliAdapter
-from mesh.adapters.taskdog import TaskdogAdapter
-from mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
+from src.mesh.adapters.base import ForkAdapter
+from src.mesh.adapters.cli import CliAdapter
+from src.mesh.adapters.taskdog import TaskdogAdapter
+from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
 
 __all__ = [
     "ForkAdapter",

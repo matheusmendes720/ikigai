@@ -48,12 +48,17 @@ def test_autouse_routes_queue_writes_to_tmp(tmp_path: Path) -> None:
     """
     # Project root (parent of src/) — the real QUEUE_DIR would land under
     # PROJECT_ROOT/data/review_queue. The autouse should send writes elsewhere.
+    # Note: post-W6.X, pytest's tempfile.tempdir is redirected to
+    # data/pytest-tmp/ (Windows permission workaround), so the isolated
+    # dir lives under data/pytest-tmp/, NOT under data/review_queue/.
+    # The strict assertion is "not the real review_queue path"; the broader
+    # "not under data/" check was overly strict for the W6.X tempdir setup.
     project_root = queue_mod.PROJECT_ROOT
     actual_qdir = queue_mod.QUEUE_DIR
-    assert str(actual_qdir) != str(project_root / "data" / "review_queue")
-    assert not str(actual_qdir).startswith(str(project_root / "data")), (
+    real_queue = project_root / "data" / "review_queue"
+    assert actual_qdir != real_queue, (
         f"Autouse isolation regressed — QUEUE_DIR points at {actual_qdir!s} "
-        f"which is under the real project data dir."
+        f"which IS the real data/review_queue path."
     )
 
 

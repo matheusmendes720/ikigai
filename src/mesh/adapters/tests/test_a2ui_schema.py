@@ -18,8 +18,8 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from contracts.common import UEID
-from mesh.adapters.a2ui_schema import (
+from src.contracts.common import UEID
+from src.mesh.adapters.a2ui_schema import (
     A2UIError,
     A2UINotification,
     A2UIRequest,
