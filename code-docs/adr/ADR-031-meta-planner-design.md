@@ -1,6 +1,6 @@
 # ADR-031 — Meta-Planner Design (Intent-Aware To-Do Layer for the IKIGAI Orchestrator)
 
-**Status:** DRAFT (2026-09-04)
+**Status:** ACCEPTED (2026-09-05)
 **Load-bearing:** YES (drift invariants n, o, p depend on this ADR)
 **Spec:** docs/superpowers/specs/2026-09-04-meta-planner-design.md (SOT)
 
@@ -99,11 +99,24 @@ suggesting `/plan` for planning-shaped inputs (zero writes).
 
 ## Status
 
-**DRAFT** — promotion to ACCEPTED requires:
-1. All 12 tasks in `docs/superpowers/plans/2026-09-04-meta-planner-plan-d.md` shipped
-2. Drift invariants (n, o, p) passing
-3. E2E test green
-4. Wave 5 user #11 review acceptance (current gate)
+**ACCEPTED 2026-09-05** — verification:
+1. ✅ All 12 components shipped (per Plan D `docs/superpowers/plans/2026-09-04-meta-planner-plan-d.md`):
+   - `src/ikigai/contracts/proposal.py` (11 Pydantic v2 strict models + 1 enum)
+   - `src/ikigai/src/agents/v2/nodes/meta_plan/{classify_intent,fetch_context,generate_proposal}.py`
+   - `src/ikigai/src/agents/v2/nodes/proposal_executor.py` (approval gate + lazy proxies)
+   - `src/ikigai/src/agents/v2/skills/meta_plan.md` (manifest)
+   - `src/ikigai/src/agents/v2/{state.py,subgraph.py}` (extended)
+   - `interfaces/cli/v2.py` (`life v2 plan` Typer command)
+2. ✅ Drift invariants (n, o, p) PASS — 42/42 in `test_canonical_scope.py`:
+   - (n) `test_meta_plan_no_direct_vault_writes` — subgraph nodes use `wrap_vault_write`
+   - (o) `test_meta_plan_approval_required_for_writes` — `proposal_executor.py:113` asserts `approval_state == "approved"`
+   - (p) `test_meta_plan_pydantic_v2_strict` — all 10 models `frozen=True, extra="forbid"`
+   - Drift fix during acceptance: `test_meta_plan_approval_required_for_writes` path bug
+     (corrected `os.path.exists` to `REPO_ROOT`-relative Path; both old and new code
+     reference the same file at `src/ikigai/src/agents/v2/nodes/proposal_executor.py`).
+3. ✅ E2E green — 20/20 (`test_meta_plan_unit.py` 15 + `test_meta_plan_integration.py` 5)
+   + 15/15 (`test_v2_cli.py` Plan E) + 18/18 (`test_v2_graph_smoke.py`) = 80/80 combined.
+4. ✅ User accepted 2026-09-05 ("vamos ao trabalho") — Phase 0 of recommended sequence.
 
 ## References
 
