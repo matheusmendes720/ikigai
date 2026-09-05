@@ -1,6 +1,6 @@
 # ADR-028 — Cross-Cycle Memory Layer
 
-> **Status:** DRAFT (2026-09-04)
+> **Status:** ACCEPTED (2026-09-05) — promoted from DRAFT after W4.6 implementation REVIEWER APPROVED (`b53dcb0`) + R1 schema amendment (`d602a4d`) folding W4.6 7-column memory_schema.py into the spec
 > **Deciders:** matheus (project owner)
 > **Load-bearing:** YES — locks the cross-cycle memory architecture that ADR-027 (stateful subgraph, DRAFT `648b83a`) checkpoint schema inherits; gates W4.6 (B-N12, memory layer implementation, 12-16h) and W4.7 (drift invariant o); consumed by W4.8 (E2E multi-level smoke, B.6) to validate "weekly knows what daily produced"
 > **Supersedes:** none (new decision)
