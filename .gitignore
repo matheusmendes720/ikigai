@@ -270,3 +270,70 @@ openwiki/.last-update.json.tmp
 session-ses_*.md
 2026-*-sessions/
 *-sessions/
+
+# Ruflo local secrets and runtime data
+.env
+.env.local
+.env.*.local
+.claude-flow/data/
+.claude-flow/logs/
+.claude-flow/sessions/
+
+# ─── Working-tree hygiene wave 2026-09-05 (post-W6.X) ────────────
+# data/pytest-tmp/ — active scratch dir since W6.X (commit ff3037f
+# redirected tempfile.tempdir here). 809 test-scratch files were
+# tracked accidentally during initial W6.X wiring; must be untracked
+# in a separate `git rm -rf --cached` commit (442 are already deleted
+# from disk and show as ` D`). Mirror exists at src/data/pytest-tmp/.
+data/pytest-tmp/
+src/data/pytest-tmp/
+# src/data/ — misplaced runtime state (canonical location is data/
+# at repo root). src/data/ikigai_checkpoints.db should move to data/.
+src/data/
+
+# .claude-flow/ broader subdir coverage — existing pattern covers
+# data/, logs/, sessions/. New subdirs (agents/, tasks/, hive-mind/,
+# graph/, hooks/, learning/, workflows/) and root files (agents.json,
+# harness-active-policy.json, memory-package.json) are tool runtime.
+.claude-flow/agents/
+.claude-flow/tasks/
+.claude-flow/hive-mind/
+.claude-flow/graph/
+.claude-flow/hooks/
+.claude-flow/learning/
+.claude-flow/workflows/
+.claude-flow/agents.json
+.claude-flow/harness-active-policy.json
+.claude-flow/memory-package.json
+
+# .swarm/ — only state.json is tracked (older intent). New tool
+# scratch (memory.db, schema.sql, model-router-state.json) should
+# not be tracked. Pattern narrows to .db + .sql so state.json stays.
+.swarm/*.db
+.swarm/*.sql
+
+# .claude/ — local tool runtime state. Specific files only (do NOT
+# blanket-ignore .claude/ — agents/, commands/, helpers/*.{sh,mjs,cjs}
+# are tracked plugin assets).
+.claude/proven-config.json
+.claude/.proven-config-version
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/helpers/.helpers-version
+.claude/helpers/helpers.manifest.json
+
+# PAV archive relocated 2026-08-31 (git mv src/operational/ ->
+# archive/legacy-pav/src-operational/). Existing gitignore patterns
+# reference pre-archive paths; mirror them at the new location so the
+# committed Go binary + bin/ don't re-track.
+archive/legacy-pav/src-operational/medic/medic.exe
+archive/legacy-pav/src-operational/medic/bin/
+
+# Stray root-level files from bash heredoc-leak patterns (2026-09-05).
+# PascalCase identifier (`Static`, 0 bytes) and lowercase word (`empty`,
+# 0 bytes) — same root-cause class as existing /None /str /int /Path
+# patterns in the heredoc-leak sections above.
+# Cleanup is via `rm Static empty` in the closeout commit; these
+# patterns prevent recurrence.
+/Static
+/empty
