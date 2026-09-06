@@ -1,1 +1,0 @@
-{"event_id":"evt_e2e_001","ueid":"tsk:smoke-test:11111111-2222-3333-4444-555555555555:aaaaaaaaaaaaaaaa","action":"create","fields":{"title":"Smoke test task","due":"2099-01-01","priority":"high"},"source_fork":"interfaces/cli","timestamp":"2026-08-28T14:30:00Z","status":"propagated"}
