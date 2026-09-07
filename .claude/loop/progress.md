@@ -18,11 +18,11 @@
 
 ## Aggregate Stats
 
-- **Total ticks:** 9
+- **Total ticks:** 10
 - **Total cost:** $1.80
-- **Avg cost/tick:** $0.20
+- **Avg cost/tick:** $0.18
 - **Pass rate:** 100%
-- **Current streak:** 9
+- **Current streak:** 10
 
 ## Log
 
@@ -108,5 +108,14 @@
 - model: opus
 - attempt: 1/1
 - notes: M4 launch — state-machine only. Created `specs/M4-langgraph-integration/SPEC.md` (95L) with corrected graph registry (3 graphs: pae_maintainer / ikigai_maintainer_v2 / ikigai_fork_smoke — CLAUDE.md table of 5 is stale; `ikigai_maintainer_v2` IS registered at `src/ikigai/src/agents/v2/graph.py:make_v2_graph`). SPEC has 5 acceptance criteria: graph tool surface, SqliteSaver persistence at `.swarm/langgraph_checkpoint.db`, `--graph <key>` flag on loop-tick.sh, integration test 5/5 PASS, no regression in 11/11/33/33/68. Updated `roadmap.md` M4 to STATUS: IN-PROGRESS with SPEC ref. Replaced stale T-4.1 (`scripts/langgraph_invoke.py` approach) with 5 sub-tasks aligned to SPEC.md (T-4.1 orchestrator prompt, T-4.2 --graph flag, T-4.3 SqliteSaver shared path, T-4.4 tests, T-4.5 regression + closeout). 0 LLM calls (state-machine only).
+- next_action: advance
+
+## 2026-09-08T00:05:00Z | T-4.1 | PASS
+- commit: (pending this tick)
+- cost_usd: 0
+- duration_min: 0
+- model: opus
+- attempt: 1/1
+- notes: Orchestrator prompt additive change — added "Tool Surface (LangGraph graphs — M4)" section to `.claude/agents/loop/orchestrator.md` (between HARD RULES and Prompt Template). Section lists 3 graphs (pae_maintainer / ikigai_maintainer_v2 / ikigai_fork_smoke) in a table with one-line invocation (`make dev-graph NAME=<key>`), source path, and factory function name. Includes cron entrypoint pointer + stale-registry warning (CLAUDE.md 5-graph table is wrong). 21 lines added, 0 removed; all existing sections preserved. tasks.md T-4.1 marked done with all 4 acceptance bullets checked. 0 LLM calls (deterministic file edit). Cost guard: $0 spent, well under $0.30 estimate.
 - next_action: advance
 
