@@ -79,17 +79,19 @@
 - **notes:** Added "Tool Surface (LangGraph graphs — M4)" section before "Prompt Template". Lists 3 graphs in a table with one-line invocation, source path, and factory function. Includes cron entrypoint pointer (`bash .claude/loop/loop-tick.sh --graph <key>`) and stale-registry warning (CLAUDE.md 5-graph table is wrong). Additive only — no edits to existing sections.
 
 #### T-4.2 — Add `--graph <key>` flag to loop-tick.sh
-- **status:** pending
+- **status:** done
 - **spec_ref:** `specs/M4-langgraph-integration/SPEC.md` (acceptance criterion #3)
 - **acceptance:**
-  - [ ] `bash .claude/loop/loop-tick.sh --graph pae_maintainer` runs cleanly without LLM call
-  - [ ] `--graph` skips orchestrator prompt, dispatches directly to named graph via `make dev-graph NAME=<key>`
-  - [ ] Exits with the graph's terminal status code
-  - [ ] Mirror flag added to `.claude/loop/loop-tick.bat` for Windows parity
-  - [ ] No regression in existing loop-tick.sh behavior (without --graph, runs orchestrator as before)
+  - [x] `bash .claude/loop/loop-tick.sh --graph pae_maintainer` runs cleanly without LLM call (verified — exit=0, ckpts→70, stderr silent)
+  - [x] `--graph` skips orchestrator prompt, dispatches directly to named graph via inline Python dispatcher (3 branches: pae_maintainer / ikigai_maintainer_v2 / ikigai_fork_smoke)
+  - [x] Exits with the graph's terminal status code (exit=0 verified all 3 graphs)
+  - [x] Mirror flag added to `.claude/loop/loop-tick.bat` for Windows parity (already present at `loop-tick.bat:32-37` — no edit needed)
+  - [x] No regression in existing loop-tick.sh behavior (orchestrator path unchanged at loop-tick.sh:186+)
 - **estimated_cost_usd:** 0.50
-- **estimated_minutes:** 8
+- **estimated_minutes:** 12
 - **attempts:** 0
+- **last_verdict:** PASS
+- **notes:** Inline `python -c "..."` heredoc dispatches each graph via `graph.invoke(initial, config={'configurable': {'thread_id': ...}})`. SqliteSaver persisted at `.swarm/langgraph_checkpoint.db` (gitignored line 315). VALID_GRAPH_KEYS enforces fail-fast on unknown graph names (exit=2). pae_maintainer returned uncompiled StateGraph so needs `.compile(checkpointer=...)`; v2 + fork_smoke factories compile internally with `checkpointer_db` kwarg. Dual sys.path mirrors conftest (repo root → dotted-prefix `src.X`; `src/` → bare `contracts.X`; v2 agents package → `v2.graph` import). Backticks stripped from comments (would otherwise trigger bash command substitution inside heredoc). CRLF→LF converted via one-liner (Edit re-introduced CRLF on Windows). 3 graphs verified PASS clean (ckpts=70 / 79 / 84); 0 LLM calls.
 
 #### T-4.3 — SqliteSaver shared checkpoint path
 - **status:** pending

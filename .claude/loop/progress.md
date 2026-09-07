@@ -119,3 +119,102 @@
 - notes: Orchestrator prompt additive change — added "Tool Surface (LangGraph graphs — M4)" section to `.claude/agents/loop/orchestrator.md` (between HARD RULES and Prompt Template). Section lists 3 graphs (pae_maintainer / ikigai_maintainer_v2 / ikigai_fork_smoke) in a table with one-line invocation (`make dev-graph NAME=<key>`), source path, and factory function name. Includes cron entrypoint pointer + stale-registry warning (CLAUDE.md 5-graph table is wrong). 21 lines added, 0 removed; all existing sections preserved. tasks.md T-4.1 marked done with all 4 acceptance bullets checked. 0 LLM calls (deterministic file edit). Cost guard: $0 spent, well under $0.30 estimate.
 - next_action: advance
 
+
+## 2026-09-07T23:39:09Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-203910 checkpoints=5 status=0 
+- next_action: advance
+
+## 2026-09-07T23:45:07Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-204507 checkpoints=32 status=0 
+- next_action: advance
+
+## 2026-09-07T23:45:09Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-204509 checkpoints=41 status=0 
+- next_action: advance
+
+## 2026-09-07T23:45:12Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-204512 checkpoints=46 status=0 
+- next_action: advance
+
+## 2026-09-07T23:45:44Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-204544 checkpoints=52 status=0 
+- next_action: advance
+
+## 2026-09-07T23:45:47Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-204547 checkpoints=58 status=0 
+- next_action: advance
+
+## 2026-09-07T23:49:29Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-204929 checkpoints=64 status=0 
+- next_action: advance
+
+## 2026-09-07T23:49:40Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-204940 checkpoints=70 status=0
+- next_action: advance
+
+## 2026-09-07T23:50:41Z | T-4.2 | PASS
+- commit: (pending this tick)
+- cost_usd: 0
+- duration_min: 0
+- model: none (deterministic file edit + 3 graph verifications)
+- attempt: 1/1
+- notes: All 3 graphs verified PASS clean end-to-end via `bash .claude/loop/loop-tick.sh --graph <key>`: pae_maintainer (ckpts=70), ikigai_maintainer_v2 (ckpts=79), ikigai_fork_smoke (ckpts=84). stderr silent — backtick + CRLF pitfalls resolved. Inline `python -c "..."` heredoc dispatches each graph via `graph.invoke(initial, config={'configurable': {'thread_id': ...}})`. SqliteSaver at `.swarm/langgraph_checkpoint.db` (line 315 gitignored). VALID_GRAPH_KEYS fail-fast (exit=2). tasks.md T-4.2 marked done with all 5 acceptance bullets checked (amended bullet 2 from `make dev-graph NAME=<key>` to inline Python dispatcher per actual implementation).
+- next_action: advance
+
+## 2026-09-07T23:50:30Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-205030 checkpoints=79 status=0 
+- next_action: advance
+
+## 2026-09-07T23:50:41Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-205041 checkpoints=84 status=0 
+- next_action: advance

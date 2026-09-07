@@ -20,9 +20,17 @@ set -euo pipefail
 COST_CAP_USD=5
 MAX_RUNTIME_MIN=30
 DRY_RUN=false
+GRAPH_NAME=""
 LOG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/logs"
 PROGRESS_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/progress.md"
 LOOP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Absolute repo root (parent of .claude/). Set once at the top so the
+# --graph dispatch block can reference it (was unbound before, breaking
+# dry-run with `set -euo pipefail`).
+PROJECT_ROOT="$(cd "$LOOP_DIR/../.." && pwd)"
+
+# Valid graph keys for --graph dispatch (must match langgraph.json registry)
+VALID_GRAPH_KEYS="pae_maintainer ikigai_maintainer_v2 ikigai_fork_smoke"
 
 # Parse args
 while [[ $# -gt 0 ]]; do
@@ -30,9 +38,18 @@ while [[ $# -gt 0 ]]; do
     --cost-cap) COST_CAP_USD="$2"; shift 2 ;;
     --max-runtime) MAX_RUNTIME_MIN="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
+    --graph) GRAPH_NAME="$2"; shift 2 ;;
     *) echo "Unknown arg: $1"; exit 1 ;;
   esac
 done
+
+# Validate --graph value (fail-fast before any other work)
+if [ -n "$GRAPH_NAME" ]; then
+  case " $VALID_GRAPH_KEYS " in
+    *" $GRAPH_NAME "*) ;;
+    *) echo "Unknown graph: $GRAPH_NAME (valid: $VALID_GRAPH_KEYS)" >&2; exit 2 ;;
+  esac
+fi
 
 mkdir -p "$LOG_DIR"
 
@@ -42,6 +59,129 @@ TICK_ID=$(date +%Y%m%d-%H%M%S)
 LOG_FILE="$LOG_DIR/tick-$TICK_ID.log"
 
 echo "[$TICK_TS] Loop tick starting (id=$TICK_ID, cost_cap=\$$COST_CAP_USD, max_runtime=${MAX_RUNTIME_MIN}min)" | tee "$LOG_FILE"
+
+# --- GRAPH DISPATCH (--graph path, no LLM cost) ---
+# Skip the orchestrator prompt + cost guard entirely when --graph is passed.
+# Runs named graph end-to-end via inline Python (matches AGENTS_JSON pattern
+# above). Exit code = graph's terminal status code. SqliteSaver persists at
+# .swarm/langgraph_checkpoint.db (gitignored at .gitignore:315).
+if [ -n "$GRAPH_NAME" ]; then
+  if $DRY_RUN; then
+    echo "[$TICK_TS] DRY RUN -- would invoke graph: $GRAPH_NAME" | tee -a "$LOG_FILE"
+    echo "[$TICK_TS] checkpoint_db: $PROJECT_ROOT/.swarm/langgraph_checkpoint.db" | tee -a "$LOG_FILE"
+    echo "[$TICK_TS] thread_id: cron-${TICK_ID}" | tee -a "$LOG_FILE"
+    exit 0
+  fi
+
+  echo "[$TICK_TS] GRAPH MODE: $GRAPH_NAME (no orchestrator LLM, skip cost-guard)" | tee -a "$LOG_FILE"
+
+  TICK_START_S=$(date +%s)
+
+  # $() command substitution is exempt from `set -e` traps in bash — we
+  # capture the exit code into GRAPH_EXIT_CODE rather than letting a non-zero
+  # python exit abort the script before we can append progress.md.
+  GRAPH_OUTPUT=$(cd "$PROJECT_ROOT" && python -c "
+import os, sys, traceback
+from pathlib import Path
+
+graph_name = '$GRAPH_NAME'
+project_root = Path.cwd()
+ckpt_dir = project_root / '.swarm'
+ckpt_db = str(ckpt_dir / 'langgraph_checkpoint.db')
+thread_id = 'cron-${TICK_ID}'
+
+ckpt_dir.mkdir(parents=True, exist_ok=True)
+
+try:
+    if graph_name == 'pae_maintainer':
+        # Factory returns UNCOMPILED StateGraph; needs explicit compile + SqliteSaver.
+        # NOTE: SqliteSaver.from_conn_string() returns a _GeneratorContextManager,
+        # not a saver instance — that breaks .compile(checkpointer=...). Also,
+        # langgraph's PregelLoop spawns worker threads that need cross-thread
+        # sqlite3 access, so the connection MUST be opened with check_same_thread=False.
+        sys.path.insert(0, str(project_root / 'vibe-ops' / 'src'))
+        import sqlite3
+        from langgraph.checkpoint.sqlite import SqliteSaver
+        from langgraph_entry import make_pae_graph
+        _conn = sqlite3.connect(ckpt_db, check_same_thread=False)
+        _saver = SqliteSaver(_conn)
+        _saver.setup()
+        graph = make_pae_graph().compile(checkpointer=_saver)
+        import datetime as dt
+        today = dt.date.today().isoformat()
+        initial = {
+            'cycle_id': thread_id,
+            'cycle_start': today,
+            'cycle_end': today,
+        }
+    elif graph_name == 'ikigai_maintainer_v2':
+        # Factory compiles internally with SqliteSaver(check_same_thread=False).
+        # graph.py uses relative imports (nodes.X), so we must import the
+        # v2 package, not the bare module. Dual sys.path mirrors conftest:
+        # repo root resolves dotted-prefix src.X; src/ resolves bare contracts.X.
+        sys.path.insert(0, str(project_root))
+        sys.path.insert(0, str(project_root / 'src'))
+        sys.path.insert(0, str(project_root / 'src' / 'ikigai' / 'src' / 'agents'))
+        from v2.graph import make_v2_graph
+        graph = make_v2_graph(checkpoint_db=ckpt_db)
+        initial = {}
+    elif graph_name == 'ikigai_fork_smoke':
+        # Factory compiles internally with SqliteSaver(check_same_thread=False).
+        # fork_smoke_graph has no relative imports so bare import works too,
+        # but we keep the package form for symmetry with ikigai_maintainer_v2.
+        sys.path.insert(0, str(project_root))
+        sys.path.insert(0, str(project_root / 'src'))
+        sys.path.insert(0, str(project_root / 'src' / 'ikigai' / 'src' / 'agents'))
+        from v2.fork_smoke_graph import make_fork_smoke_graph
+        graph = make_fork_smoke_graph(checkpoint_db=ckpt_db)
+        initial = {}
+    else:
+        print(f'Unknown graph: {graph_name}', file=sys.stderr)
+        sys.exit(2)
+
+    config = {'configurable': {'thread_id': thread_id}}
+    result = graph.invoke(initial, config=config)
+
+    import sqlite3
+    con = sqlite3.connect(ckpt_db)
+    try:
+        count = con.execute('SELECT COUNT(*) FROM checkpoints').fetchone()[0]
+    finally:
+        con.close()
+
+    print(f'graph={graph_name} thread_id={thread_id} checkpoints={count} status=0')
+    sys.exit(0)
+except Exception as e:
+    print(f'graph={graph_name} thread_id={thread_id} status=1 error={type(e).__name__}: {e}', file=sys.stderr)
+    traceback.print_exc(file=sys.stderr)
+    sys.exit(1)
+" 2>&1)
+  GRAPH_EXIT_CODE=$?
+
+  TICK_END_S=$(date +%s)
+  DURATION_S=$((TICK_END_S - TICK_START_S))
+  VERDICT=$([ $GRAPH_EXIT_CODE -eq 0 ] && echo PASS || echo FAIL)
+
+  echo "[$TICK_TS] graph-dispatch result (exit=$GRAPH_EXIT_CODE): $GRAPH_OUTPUT" | tee -a "$LOG_FILE"
+
+  # Always append progress.md (audit trail, even on failure)
+  {
+    echo ""
+    echo "## $TICK_TS | $GRAPH_NAME | $VERDICT"
+    echo "- commit: -"
+    echo "- cost_usd: 0"
+    echo "- duration_min: $((DURATION_S / 60))"
+    echo "- model: none (--graph deterministic dispatch)"
+    echo "- attempt: 1/1"
+    NOTES=$(echo "$GRAPH_OUTPUT" | tr '\n' ' ' | head -c 500)
+    echo "- notes: $NOTES"
+    echo "- next_action: $([ $GRAPH_EXIT_CODE -eq 0 ] && echo advance || echo retry)"
+  } >> "$PROGRESS_FILE"
+
+  echo "[$TICK_TS] GRAPH MODE done (exit=$GRAPH_EXIT_CODE, verdict=$VERDICT)" | tee -a "$LOG_FILE"
+  exit $GRAPH_EXIT_CODE
+fi
+# --- END GRAPH DISPATCH ---
 
 # Cost guard: refuse to run if today's spend is over 80% of cap
 # (assumes a daily cap of 10x the per-tick cap; adjust as needed)
