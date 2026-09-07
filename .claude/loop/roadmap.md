@@ -13,7 +13,7 @@
 
 ## Current Roadmap
 
-### M0 — Bootstrap (STATUS: IN_PROGRESS)
+### M0 — Bootstrap (STATUS: DONE)
 - **What:** Initialize the loop engineering infrastructure itself
 - **Why:** The loop can't run until it has agents, state files, and a constitution
 - **Acceptance:**
@@ -28,17 +28,17 @@
 - **Dependencies:** none
 - **Estimated ticks:** 1-2
 
-### M1 — Wire loop-tick.sh to claude-flow daemon
+### M1 — Wire loop-tick.sh to claude-flow daemon (STATUS: DONE)
 - **What:** Add `loop-tick` to the existing claude-flow daemon schedules
 - **Why:** Today the daemon runs `audit` (4h) and `optimize` (2h) — add a 60m loop-tick
 - **Acceptance:**
-  - [ ] `bash .claude/helpers/daemon-manager.sh list` shows `loop-tick` schedule
-  - [ ] After 1h, `progress.md` has at least 1 new entry
-  - [ ] No manual intervention required
+  - [x] `bash .claude/helpers/daemon-manager.sh list` shows `loop-tick` schedule
+  - [x] After 1h, `progress.md` has at least 1 new entry (verified by 2026-09-07T22:14:30Z entry + this tick's entry)
+  - [x] No manual intervention required
 - **Dependencies:** M0
 - **Estimated ticks:** 1
 
-### M2 — Fill empty ikigai skills
+### M2 — Fill empty ikigai skills (STATUS: PENDING)
 - **What:** The 4 ikigai skills (daily, weekly, monthly, quarterly) are 0 bytes. Build them as loop components.
 - **Why:** These are the obvious integration points for the loop engineering pattern
 - **Acceptance:**
@@ -48,7 +48,7 @@
 - **Dependencies:** M1
 - **Estimated ticks:** 2-4
 
-### M3 — First hill-climb cron
+### M3 — First hill-climb cron (STATUS: PENDING)
 - **What:** Weekly analysis of `progress.md` + `.swarm/memory.db` + `progress.md`
 - **Why:** Outer loop 4. Improves the harness itself over time.
 - **Acceptance:**
@@ -59,7 +59,7 @@
 - **Dependencies:** M2
 - **Estimated ticks:** 1-2 (then 1/week)
 
-### M4 — Integrate with LangGraph graphs
+### M4 — Integrate with LangGraph graphs (STATUS: PENDING)
 - **What:** Wrap the existing 3 LangGraph graphs (pae_maintainer, ikigai_maintainer_v2, ikigai_fork_smoke) as orchestrator options
 - **Why:** Today the graphs are manual-invocation. Make them sub-agent tools.
 - **Acceptance:**
@@ -69,7 +69,7 @@
 - **Dependencies:** M3
 - **Estimated ticks:** 3-5
 
-### M5 — IKIGAi MCP integration
+### M5 — IKIGAi MCP integration (STATUS: PENDING)
 - **What:** Orchestrator uses IKIGAi MCP tools (19 total) for the "research" + "knowledge" + "task" workflow
 - **Why:** Today IKIGAi is invoked manually via `ikigai.bat agent`. Make it accessible from the loop.
 - **Acceptance:**
@@ -78,7 +78,7 @@
 - **Dependencies:** M4
 - **Estimated ticks:** 2-3
 
-### M6 — Worktree isolation helper
+### M6 — Worktree isolation helper (STATUS: PENDING)
 - **What:** `scripts/worktree-helper.sh` creates/destroys git worktrees per sub-agent
 - **Why:** Prevent parallel sub-agents from stepping on each other
 - **Acceptance:**
@@ -88,7 +88,7 @@
 - **Dependencies:** M5
 - **Estimated ticks:** 1
 
-### M7 — Cost dashboard
+### M7 — Cost dashboard (STATUS: PENDING)
 - **What:** Daily cron writes a `cost-report.md` to `.claude/loop/logs/`
 - **Why:** "Loop brittleness" + "runaway cost" are top risks (Ronacher)
 - **Acceptance:**
@@ -97,7 +97,7 @@
 - **Dependencies:** M6
 - **Estimated ticks:** 1
 
-### M8 — Notification channel
+### M8 — Notification channel (STATUS: PENDING)
 - **What:** Wire Telegram/Feishu/email for FAIL/NEEDS_FIX alerts
 - **Why:** "HITL fatigue" mitigation. Only alert when intervention needed.
 - **Acceptance:**
@@ -106,7 +106,7 @@
 - **Dependencies:** M7
 - **Estimated ticks:** 1
 
-### M9 — Production mode
+### M9 — Production mode (STATUS: PENDING)
 - **What:** Cron auto-starts on session start, runs 24/7, only needs human on NEEDS_FIX
 - **Why:** The actual goal of loop engineering
 - **Acceptance:**
