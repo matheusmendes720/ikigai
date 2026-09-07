@@ -29,7 +29,6 @@ from src.mesh.adapters.a2ui_schema import (
     TaskWriteParams,
 )
 
-
 VALID_UEID = UEID("tsk:foo:11111111-1111-1111-1111-111111111111:1111111111111111")
 
 

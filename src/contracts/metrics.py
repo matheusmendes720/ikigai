@@ -16,8 +16,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .common import RegimeState, UEID
-
+from .common import UEID, RegimeState
 
 # ---------------------------------------------------------------------------
 # Burndown

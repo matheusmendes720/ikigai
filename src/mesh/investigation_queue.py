@@ -14,9 +14,10 @@ import json
 import os
 import time
 import uuid
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from src.contracts.investigation import Investigation, InvestigationStatus
 
@@ -142,7 +143,7 @@ def transition(
     updated = current.model_copy(
         update={
             "status": new_status,
-            "updated_at": datetime.now(),
+            "updated_at": datetime.now(),  # noqa: DTZ005 — matches Investigation.updated_at naive datetime convention
             "actor": actor,
             "inq_ueid": inq_ueid if inq_ueid is not None else current.inq_ueid,
         }
@@ -193,12 +194,11 @@ def log_transition(
     inq_id: str, old: InvestigationStatus, new: InvestigationStatus, actor: str
 ) -> None:
     """Append a transition event to the audit log. Format: ISO8601|inq_id|old→new|actor."""
-    ts = datetime.now().isoformat()
+    ts = datetime.now().isoformat()  # noqa: DTZ005 — naive ISO8601 for grep-ability; matches Investigation.updated_at convention
     _append_audit(f"{ts}|{inq_id}|{old}->{new}|{actor}")
 
 
 # Convenience for tests / scripts
 def iter_all() -> Iterator[Investigation]:
     """Iterate investigations lazily."""
-    for inv in list_all():
-        yield inv
+    yield from list_all()

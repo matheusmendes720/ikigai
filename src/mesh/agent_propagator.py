@@ -1,14 +1,13 @@
 """Deep Agent propagator: emits approved events to all relevant forks + vault."""
 
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 
-from src.contracts.task_change import TaskChange, PropagationEvent
+from src.contracts.task_change import PropagationEvent, TaskChange
 from src.mesh import queue as _queue
-from src.mesh.agent_consumer import ValidationResult
 from src.mesh.adapters.base import ForkAdapter
-
+from src.mesh.agent_consumer import ValidationResult
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,7 @@ def propagate(
         try:
             adapter.apply_change(propagation)
             results.append(PropagationResult(fork_name=adapter.name, success=True))
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — adapter failures are isolated per spec; narrowing risks hiding runtime plugin errors. Error captured in PropagationResult for caller visibility.
             results.append(
                 PropagationResult(
                     fork_name=adapter.name,
@@ -92,7 +91,7 @@ def propagate(
             logger.info(
                 "vault write ok: %s (sha256=%s)", result["vault_path"], result["sha256"]
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — vault_write_impl can raise ImportError, OSError, ValidationError, etc.; broad catch is intentional because vault write is best-effort and must never crash propagation (per spec §Q1=B)
             # Best-effort: vault write failures must not crash propagation
             logger.error("vault write failed for %s: %s", event.ueid, exc)
 

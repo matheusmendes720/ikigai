@@ -21,21 +21,40 @@ Layers:
 
 from __future__ import annotations
 
-from .common import UEID, Period, Priority, EntityType, RegimeState, TimestampMixin  # noqa: F403
-from .common import PaeCyclePhase, PlanTier, VectorKey  # noqa: F403
-from .base import BasePlanContract  # noqa: F403
-from .sonho import Sonho  # noqa: F403
-from .objetivo import Objetivo  # noqa: F403
-from .meta import Meta  # noqa: F403
-from .projeto import Projeto  # noqa: F403
-from .entrega import Entrega  # noqa: F403
-from .tarefa import Tarefa  # noqa: F403
-from .task import Task, Subtask, ChecklistItem, Project, Milestone, Deliverable  # noqa: F403
-from .planning import PlanningCycle, Wave, Sprint, VaultEvent  # noqa: F403
-from .metrics import Burndown, ExecutionRate, QHEScore  # noqa: F403
-from .investigation import Investigation, InvestigationStatus  # noqa: F403
+from .base import BasePlanContract
+from .common import (
+    UEID,
+    EntityType,
+    PaeCyclePhase,
+    Period,
+    PlanTier,
+    Priority,
+    RegimeState,
+    TimestampMixin,
+    VectorKey,
+)
+from .entrega import Entrega
+from .investigation import Investigation, InvestigationStatus
+from .meta import Meta
+from .metrics import Burndown, ExecutionRate, QHEScore
+from .objetivo import Objetivo
+from .planning import PlanningCycle, Sprint, VaultEvent, Wave
+from .projeto import Projeto
+from .sonho import Sonho
+from .tarefa import Tarefa
+from .task import (
+    ChecklistItem,
+    Deliverable,
+    Milestone,
+    Project,
+    Subtask,
+    Task,
+)
 
-__all__ = [
+# (alphabetical sort would destroy the intentional # common / # plan hierarchy / # metrics groupings)
+# Ruff RUF022 cannot apply noqa to `__all__ = [...]` itself, so we suppress at the module level via per-file-ignore.
+# See: pyproject.toml [tool.ruff.lint.per-file-ignores] for the canonical suppression.
+__all__ = [  # noqa: RUF022 — entries are grouped by domain with comments, not alphabetically sorted
     # common
     "UEID",
     "Period",
