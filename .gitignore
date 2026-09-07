@@ -364,3 +364,7 @@ archive/legacy-pav/src-operational/medic/bin/
 # cause as /Static /empty /None /str above; cleanup via `rm word`).
 # Recurrence prevention: pattern locks it out if the redirect recurs.
 /word
+# Loop engineering runtime logs — generated on each loop-tick run, would
+# accumulate unbounded if tracked. Scaffolding (loop-tick.sh, roadmap,
+# tasks, progress, specs) IS tracked; only the log output is ignored.
+.claude/loop/logs/
