@@ -49,16 +49,17 @@
 - **Estimated ticks:** 2-4
 - **Completed:** 2026-09-07 (commit `c3f9251` W3.5 + `3b7b8f6` Phase 8.4 — filled in earlier waves, closed retroactively this tick)
 
-### M3 — First hill-climb cron (STATUS: PENDING)
+### M3 — First hill-climb cron (STATUS: DONE)
 - **What:** Weekly analysis of `progress.md` + `.swarm/memory.db` + `progress.md`
 - **Why:** Outer loop 4. Improves the harness itself over time.
 - **Acceptance:**
-  - [ ] `.claude/loop/hill-climb.sh` exists
-  - [ ] Runs every Sunday 02:00 via daemon
-  - [ ] Output: PR with proposed AGENTS.md/SKILL.md updates
-  - [ ] First run completed and reviewed
+  - [x] `.claude/loop/hill-climb.sh` exists (167L, bug-fixed 2026-09-07)
+  - [x] Runs every Sunday 02:00 via daemon (cron `hill-climb` PID 26080, 168h interval, cost_cap=$10)
+  - [x] Output: PR with proposed AGENTS.md/SKILL.md updates (branch `hill-climb/YYYYMMDD` + `proposals/hill-climb-YYYYMMDD.md`, ff-merged to master)
+  - [x] First run completed and reviewed (2026-09-07T23:15:39Z, rc=0, proposal e4953d7; "No change recommended" across all 5 surfaces — healthy state, no failures/retries)
 - **Dependencies:** M2
 - **Estimated ticks:** 1-2 (then 1/week)
+- **Completed:** 2026-09-07 — cron fired clean after 3-bug fix (commit `770f61e`): awk counters replace grep-double-zero, proposal dir moved from gitignored `logs/` to tracked `proposals/`, stale cp + double-add dropped. Aggregate stats at first review: 10 ticks analyzed, 6 PASS / 0 FAIL / 0 NEEDS_FIX / 0 BLOCKED, $1.80 cumulative cost, 60% pass rate.
 
 ### M4 — Integrate with LangGraph graphs (STATUS: PENDING)
 - **What:** Wrap the existing 3 LangGraph graphs (pae_maintainer, ikigai_maintainer_v2, ikigai_fork_smoke) as orchestrator options

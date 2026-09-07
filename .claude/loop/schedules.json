@@ -6,5 +6,13 @@
     "command": "bash .claude/loop/loop-tick.sh",
     "cost_cap_usd": 5.0,
     "added_at": "2026-09-07T22:14:29.985300+00:00"
+  },
+  {
+    "name": "hill-climb",
+    "interval": "168h",
+    "interval_seconds": 604800,
+    "command": "bash .claude/loop/hill-climb.sh",
+    "cost_cap_usd": 10.0,
+    "added_at": "2026-09-07T22:55:29.287114+00:00"
   }
 ]

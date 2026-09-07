@@ -90,10 +90,10 @@ These will be auto-generated as each milestone unlocks.
 - [x] T-2.4: `.claude/skills/ikigai-quarterly/SKILL.md` — quarterly re-prioritization (67L, cron `0 11 1 1,4,7,10 *`, entry_point=observe)
 - **Notes:** M2 premise was stale — the 4 skill files were filled in W3.5 (`c3f9251 feat(w3.5): wire ikigai-daily skill via invoke_skill() per ADR-025`) and Phase 8.4 (`3b7b8f6 feat(phase 8.4): v2 interfaces (CLI + 4 skills)`). Source files at `src/ikigai/src/agents/v2/skills/{daily,weekly,monthly,quarterly}.md`; symlinks at `.claude/skills/ikigai-{daily,weekly,monthly,quarterly}/SKILL.md` resolve correctly. All 4 acceptance bullets met: content + cadence + entry_point + triggers. IKIGAI-planner-only constraint preserved in all 4 (no PAE math).
 
-### M3 — First hill-climb cron
-- T-3.1: Create `.claude/loop/hill-climb.sh`
-- T-3.2: Add weekly schedule to daemon
-- T-3.3: First run, review PR, merge
+### M3 — First hill-climb cron (DONE — 2026-09-07)
+- [x] T-3.1: `.claude/loop/hill-climb.sh` exists (167L, bug-fixed in commit `770f61e` — awk counters + tracked proposals dir + dropped stale cp)
+- [x] T-3.2: `hill-climb` schedule wired via `daemon-manager.sh add --interval 168h --command 'bash .claude/loop/hill-climb.sh' --cost-cap-usd 10` (PID 26080, 168h = weekly Sunday 02:00 ish)
+- [x] T-3.3: First run executed 2026-09-07T23:15:39Z, rc=0; proposal at `.claude/loop/proposals/hill-climb-20260907.md` (commit `e4953d7`) ff-merged to master; "No change recommended" across constitution/orchestrator/worker/verifier/AGENTS.md surfaces (healthy state: 0 FAIL, 0 NEEDS_FIX, 0 BLOCKED)
 
 (Add tasks for M4-M9 as each milestone starts)
 
