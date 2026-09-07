@@ -29,12 +29,12 @@ fi
 SINCE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v-7d +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "1970-01-01T00:00:00Z")
 RECENT_TRACES=$(grep "^## " "$PROGRESS_FILE" 2>/dev/null | tail -50 || echo "No traces yet")
 
-# Aggregate stats
-TOTAL_TICKS=$(grep -c "^## " "$PROGRESS_FILE" 2>/dev/null || echo 0)
-TOTAL_PASS=$(grep -c "| PASS" "$PROGRESS_FILE" 2>/dev/null || echo 0)
-TOTAL_FAIL=$(grep -c "| FAIL" "$PROGRESS_FILE" 2>/dev/null || echo 0)
-TOTAL_NEEDS_FIX=$(grep -c "| NEEDS_FIX" "$PROGRESS_FILE" 2>/dev/null || echo 0)
-TOTAL_BLOCKED=$(grep -c "| BLOCKED" "$PROGRESS_FILE" 2>/dev/null || echo 0)
+# Aggregate stats (awk avoids the grep -c double-zero bug when count=0)
+TOTAL_TICKS=$(awk '/^## /{c++} END{print c+0}' "$PROGRESS_FILE")
+TOTAL_PASS=$(awk '/\| PASS/{c++} END{print c+0}' "$PROGRESS_FILE")
+TOTAL_FAIL=$(awk '/\| FAIL/{c++} END{print c+0}' "$PROGRESS_FILE")
+TOTAL_NEEDS_FIX=$(awk '/\| NEEDS_FIX/{c++} END{print c+0}' "$PROGRESS_FILE")
+TOTAL_BLOCKED=$(awk '/\| BLOCKED/{c++} END{print c+0}' "$PROGRESS_FILE")
 
 # Cost aggregate
 TOTAL_COST=$(grep "cost_usd:" "$PROGRESS_FILE" 2>/dev/null | awk -F': ' '{s+=$NF} END {printf "%.2f", s+0}')
@@ -93,9 +93,11 @@ if [ "$TOTAL_FAIL" -gt 0 ]; then
   echo "  - Deterministic gates flaky (check test suite)"
 fi
 
-# Build the proposal
-PROPOSAL_FILE="$SCRIPT_DIR/logs/hill-climb-$(date +%Y%m%d).md"
-mkdir -p "$(dirname "$PROPOSAL_FILE")"
+# Build the proposal (writes to a tracked dir so `git add` actually stages it;
+# .claude/loop/logs/ is gitignored, which broke prior runs)
+PROPOSAL_DIR="$SCRIPT_DIR/proposals"
+PROPOSAL_FILE="$PROPOSAL_DIR/hill-climb-$(date +%Y%m%d).md"
+mkdir -p "$PROPOSAL_DIR"
 
 cat > "$PROPOSAL_FILE" <<EOF
 # Hill-Climb Proposal — $(date +%Y-%m-%d)
@@ -145,8 +147,7 @@ cd "$PROJECT_ROOT"
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   BRANCH="hill-climb/$(date +%Y%m%d)"
   git checkout -b "$BRANCH" 2>/dev/null || git checkout "$BRANCH" 2>/dev/null
-  cp "$PROPOSAL_FILE" ".claude/loop/logs/hill-climb-LATEST.md"
-  git add .claude/loop/logs/hill-climb-LATEST.md
+  git add "$PROPOSAL_FILE"
   git commit -m "chore(hill-climb): weekly harness review $(date +%Y-%m-%d)
 
 Proposes changes to:
