@@ -304,6 +304,7 @@ src/data/
 .claude-flow/hooks/
 .claude-flow/learning/
 .claude-flow/workflows/
+.claude-flow/schedules/
 .claude-flow/agents.json
 .claude-flow/harness-active-policy.json
 .claude-flow/memory-package.json
@@ -368,3 +369,14 @@ archive/legacy-pav/src-operational/medic/bin/
 # accumulate unbounded if tracked. Scaffolding (loop-tick.sh, roadmap,
 # tasks, progress, specs) IS tracked; only the log output is ignored.
 .claude/loop/logs/
+
+# ─── Bash heredoc-leak follow-up (2026-09-07) ─────────────────────
+# Stray root-level files from bash redirect leaks during M0/M1 loop
+# scaffolding work: `80%` (0-byte from `> 80%` redirect) and `c` (251-byte
+# heredoc fragment from `awk ... OVER_BUDGET ... > c`). Same root-cause
+# class as /Static /empty /None /str /int /Path above.
+# Cleanup: `rm 80% c` in closeout commit.
+# Prevention: bash redirections should use `cmd > file.txt 2>&1` style;
+# bare `> word` with shell-special chars leaks the literal.
+/80%
+/c
