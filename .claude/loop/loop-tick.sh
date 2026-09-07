@@ -45,9 +45,18 @@ echo "[$TICK_TS] Loop tick starting (id=$TICK_ID, cost_cap=\$$COST_CAP_USD, max_
 
 # Cost guard: refuse to run if today's spend is over 80% of cap
 # (assumes a daily cap of 10x the per-tick cap; adjust as needed)
+# NOTE: We use `awk` for the comparison (not `bc`, which is not on
+# Windows Git Bash) and check the result with string equality —
+# `(( math-expr ))` returns exit-1 when the expression is 0 (false),
+# which `set -e` traps and aborts the whole script before we ever
+# reach the dry-run branch.
 DAILY_CAP=$((COST_CAP_USD * 10))
-TODAY_SPEND=$(grep "^## .* \\$" "$PROGRESS_FILE" 2>/dev/null | grep "$(date -u +%Y-%m-%d)" | awk -F'$' '{s+=$NF} END {printf "%.2f", s+0}')
-if (( $(echo "$TODAY_SPEND > $DAILY_CAP * 0.8" | bc -l 2>/dev/null || echo 0) )); then
+# `|| echo "0.00"` guards against `set -e` tripping when grep finds no
+# `## ... $` lines (fresh progress.md has none yet, but `grep` exits 1
+# and the pipeline return code propagates through `$()`).
+TODAY_SPEND=$(grep "^## .* \\$" "$PROGRESS_FILE" 2>/dev/null | grep "$(date -u +%Y-%m-%d)" | awk -F'$' '{s+=$NF} END {printf "%.2f", s+0}' || echo "0.00")
+OVER_BUDGET=$(awk -v t="$TODAY_SPEND" -v c="$DAILY_CAP" 'BEGIN { print (t+0 > c * 0.8) ? 1 : 0 }')
+if [ "$OVER_BUDGET" = "1" ]; then
   echo "[$TICK_TS] ABORT: Today's spend \$$TODAY_SPEND > 80% of daily cap \$$DAILY_CAP" | tee -a "$LOG_FILE"
   exit 78  # EX_CONFIG
 fi
@@ -105,21 +114,57 @@ fi
 
 # Invoke the orchestrator
 # The actual invocation depends on what agent runtime is available.
-# In life-oss, we have:
-#   1. claude-flow (built-in to .claude/)
-#   2. MiniMax Mavis (via mavis tool)
-#   3. Direct Claude Code via the orchestrator agent file
+# In life-oss, we use Claude Code (`claude` CLI) directly with the 3
+# loop agents registered inline via `--agents` JSON so the orchestrator
+# can dispatch worker + verifier sub-agents per tick.
 #
-# For now, use Claude Code directly. The user can wire to claude-flow later.
+# (Earlier draft invoked `claude-code` which does NOT exist — only `claude` does.)
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../.."
 PROJECT_ROOT=$(pwd)
+LOOP_AGENTS_DIR="$PROJECT_ROOT/.claude/agents/loop"
 
-# Use timeout to enforce max runtime
-timeout $((MAX_RUNTIME_MIN * 60)) claude-code \
-  --agent "$PROJECT_ROOT/.claude/agents/loop/orchestrator.md" \
-  --prompt "$ORCHESTRATOR_PROMPT" \
-  --model claude-opus-4-8 \
-  --max-cost "$COST_CAP_USD" \
+# Build the agents JSON inline (3 agents: orchestrator/worker/verifier).
+# Python is used because JSON-escaping newlines + nested JSON in bash
+# heredocs is fragile on Windows Git Bash. Python 3 is on PATH.
+AGENTS_JSON=$(python -c "
+import json
+def slurp(p):
+    with open(p, encoding='utf-8') as f:
+        return f.read()
+agents = {
+    'loop-orchestrator': {
+        'description': 'State machine — reads loop state, picks next milestone, dispatches worker + verifier',
+        'prompt': slurp('.claude/agents/loop/orchestrator.md'),
+        'tools': ['Read', 'Write', 'Edit', 'Bash', 'Glob', 'Grep', 'Task'],
+        'model': 'opus'
+    },
+    'loop-worker': {
+        'description': 'Maker — implements one task per invocation',
+        'prompt': slurp('.claude/agents/loop/worker.md'),
+        'tools': ['Read', 'Write', 'Edit', 'Bash', 'Glob', 'Grep'],
+        'model': 'sonnet'
+    },
+    'loop-verifier': {
+        'description': 'Checker — scores 1-5 on 5 dimensions, returns JSON verdict',
+        'prompt': slurp('.claude/agents/loop/verifier.md'),
+        'tools': ['Read', 'Bash', 'Glob', 'Grep'],
+        'model': 'haiku'
+    }
+}
+print(json.dumps(agents))
+")
+
+# Use timeout to enforce max runtime.
+# Permissions: targeted --allowedTools whitelist (NOT global bypass).
+# The orchestrator only needs Read/Write/Edit/Bash/Glob/Grep/Task —
+# anything else will prompt, which is the safe default.
+timeout $((MAX_RUNTIME_MIN * 60)) claude \
+  --agent "loop-orchestrator" \
+  --agents "$AGENTS_JSON" \
+  --model "claude-opus-4-8" \
+  --max-budget-usd "$COST_CAP_USD" \
+  --allowedTools "Read" "Write" "Edit" "Bash" "Glob" "Grep" "Task" \
+  -p "$ORCHESTRATOR_PROMPT" \
   2>&1 | tee -a "$LOG_FILE"
 
 EXIT_CODE=$?

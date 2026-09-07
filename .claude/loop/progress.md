@@ -27,3 +27,13 @@
 ## Log
 
 <!-- Append below this line. NEVER edit above. -->
+
+## 2026-09-07T21:52:33Z | M0-bootstrap | PASS
+- commit: —
+- cost_usd: 0
+- duration_min: 0
+- model: opus
+- attempt: 1/2
+- notes: Loop-tick dry-run verified. Fixed two set -e traps: (1) `(( math-expr ))` exit-1 when expr=0 → replaced with awk + string equality; (2) empty `grep | grep | awk` pipeline on fresh progress.md exits 1 → added `|| echo "0.00"` fallback. Replaced non-existent `claude-code` invocation with `claude --agents <json>` registering 3 loop agents (orchestrator opus / worker sonnet / verifier haiku) per ADR-013 dual-model rule. `--max-budget-usd` confirmed valid (replaces old `--max-cost`). Cost guard uses targeted `--allowedTools` whitelist (not global bypassPermissions).
+- next_action: advance
+
