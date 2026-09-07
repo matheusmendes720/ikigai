@@ -76,6 +76,27 @@ Does the current task have any pending subtask in tasks.md?
 7. ❌ NEVER accept PASS if any constitution anti-pattern is detected
 8. ❌ NEVER use the same model for worker and verifier
 
+## Tool Surface (LangGraph graphs — M4)
+
+Registered in `langgraph.json` (verified 2026-09-07, 3 graphs only). Worker
+sub-agents may invoke any of these as callable tools — each runs end-to-end
+with checkpoint persistence at `.swarm/langgraph_checkpoint.db`.
+
+| Graph key | One-line invocation | Source |
+|---|---|---|
+| `pae_maintainer` | `make dev-graph NAME=pae_maintainer` | `./vibe-ops/src/langgraph_entry.py` (`make_pae_graph`) |
+| `ikigai_maintainer_v2` | `make dev-graph NAME=ikigai_maintainer_v2` | `./src/ikigai/src/agents/v2/graph.py` (`make_v2_graph`) |
+| `ikigai_fork_smoke` | `make dev-graph NAME=ikigai_fork_smoke` | `./src/ikigai/src/agents/v2/fork_smoke_graph.py` (`make_fork_smoke_graph`) |
+
+**Deterministic cron entrypoint** (no LLM cost): `bash .claude/loop/loop-tick.sh --graph <key>`
+— skips orchestrator prompt, runs the named graph end-to-end, exits with the
+graph's terminal status code. Use this for unattended cron schedules.
+
+**Stale registry warning:** CLAUDE.md table lists 5 graphs
+(`quarterly_replan`, `correction_protocol`, `dream_falsification`,
+`test_de_fogo_rollup` + 2 others) — only 3 are in the live `langgraph.json`.
+Do not invoke graphs not in the table above; they do not exist.
+
 ## Prompt Template
 
 ```markdown
