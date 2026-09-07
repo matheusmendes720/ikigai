@@ -222,7 +222,8 @@ build/
 htmlcov/
 
 # ─── Runtime Data Layer ───────────────────────────────────────────
-# All mutable runtime state: SQLite, Chroma, boulder JSON, session logs
+# All mutable runtime state: SQLite, Chroma, boulder JSON, session logs.
+# Phase 3 v1 mesh queue (canonical write path for TaskChange events).
 data/*.db
 data/*.json
 data/*.jsonl
@@ -230,6 +231,7 @@ data/chroma_db/
 data/*.log
 data/session-*.md
 data/*-sessions/
+data/review_queue/
 logs/
 *.log
 
@@ -321,6 +323,12 @@ src/data/
 .claude/scheduled_tasks.lock
 .claude/helpers/.helpers-version
 .claude/helpers/helpers.manifest.json
+# Mirror tool runtime state misplaced under src/ikigai/ (canonical
+# location for these is the repo root). Patterns mirror root-level
+# .claude-flow/ + .claude/ entries; gitignore anchored patterns
+# don't match nested subdirs without explicit prefix.
+src/ikigai/.claude-flow/
+src/ikigai/.claude/
 
 # PAV archive relocated 2026-08-31 (git mv src/operational/ ->
 # archive/legacy-pav/src-operational/). Existing gitignore patterns
@@ -337,3 +345,22 @@ archive/legacy-pav/src-operational/medic/bin/
 # patterns prevent recurrence.
 /Static
 /empty
+# Backtick-wrapped expression fragments (e.g. `Proposal(approval_state`,
+# `agent('Execute')`) — bash > word with leading backticks leaks
+# unquoted paren content as a 0-byte filename.
+/``*
+# .swarm/ state files written by claude-flow at runtime. state.json is
+# the only one tracked (older intent). Add backups/ + JSON state files
+# so they don't get picked up if the loose track pattern is broadened.
+.swarm/backups/
+.swarm/model-router-state.json
+# SQLite WAL-mode artifacts emitted alongside .swarm/*.db at runtime —
+# ignored so they don't get tracked on every daemon tick. Mirror pattern
+# at the canonical db-root location (data/) is already in place via
+# data/*.db + data/chroma_db/ + data/review_queue/ above.
+.swarm/*.db-shm
+.swarm/*.db-wal
+# Stray root-level zero-byte file from bash heredoc leak (same root
+# cause as /Static /empty /None /str above; cleanup via `rm word`).
+# Recurrence prevention: pattern locks it out if the redirect recurs.
+/word
