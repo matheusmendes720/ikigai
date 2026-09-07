@@ -17,14 +17,14 @@
 - **What:** Initialize the loop engineering infrastructure itself
 - **Why:** The loop can't run until it has agents, state files, and a constitution
 - **Acceptance:**
-  - [ ] `.claude/loop/roadmap.md` exists (this file)
-  - [ ] `.claude/loop/tasks.md` exists and is empty
-  - [ ] `.claude/loop/progress.md` exists with `STATUS: INITIALIZED`
-  - [ ] `.claude/loop/constitution.md` exists (already done)
-  - [ ] `.claude/agents/loop/{orchestrator,worker,verifier}.md` exist
-  - [ ] `.claude/loop/loop-tick.{sh,bat}` exist
-  - [ ] `.claude/skills/loop-engineering/SKILL.md` exists
-  - [ ] One manual tick runs end-to-end (no cron)
+  - [x] `.claude/loop/roadmap.md` exists (this file)
+  - [x] `.claude/loop/tasks.md` exists and is empty
+  - [x] `.claude/loop/progress.md` exists with `STATUS: INITIALIZED`
+  - [x] `.claude/loop/constitution.md` exists (already done)
+  - [x] `.claude/agents/loop/{orchestrator,worker,verifier}.md` exist
+  - [x] `.claude/loop/loop-tick.{sh,bat}` exist
+  - [x] `.claude/skills/loop-engineering/SKILL.md` exists
+  - [x] One manual tick runs end-to-end (no cron)
 - **Dependencies:** none
 - **Estimated ticks:** 1-2
 
@@ -61,22 +61,25 @@
 - **Estimated ticks:** 1-2 (then 1/week)
 - **Completed:** 2026-09-07 — cron fired clean after 3-bug fix (commit `770f61e`): awk counters replace grep-double-zero, proposal dir moved from gitignored `logs/` to tracked `proposals/`, stale cp + double-add dropped. Aggregate stats at first review: 10 ticks analyzed, 6 PASS / 0 FAIL / 0 NEEDS_FIX / 0 BLOCKED, $1.80 cumulative cost, 60% pass rate.
 
-### M4 — Integrate with LangGraph graphs (STATUS: PENDING)
-- **What:** Wrap the existing 3 LangGraph graphs (pae_maintainer, ikigai_maintainer_v2, ikigai_fork_smoke) as orchestrator options
-- **Why:** Today the graphs are manual-invocation. Make them sub-agent tools.
+### M4 — Integrate with LangGraph graphs (STATUS: IN-PROGRESS)
+- **What:** Wrap the 3 graphs actually registered in `langgraph.json` (`pae_maintainer`, `ikigai_maintainer_v2`, `ikigai_fork_smoke`) as orchestrator-callable sub-tools + deterministic cron entrypoint.
+- **Why:** Today the graphs are manual-invocation via `make dev-graph NAME=<x>`. Make them dispatchable from the loop orchestrator AND from cron unattended (no LLM cost per tick).
+- **Spec:** `specs/M4-langgraph-integration/SPEC.md` (verified 2026-09-07, actual registry — CLAUDE.md table of 5 graphs is stale)
 - **Acceptance:**
-  - [ ] Orchestrator can call `pae_maintainer` graph as a sub-agent
-  - [ ] Same for `ikigai_maintainer_v2`
-  - [ ] Graph state persists across ticks (SqliteSaver)
+  - [ ] Orchestrator prompt registers 3 graph names as callable tools with one-line invocation syntax
+  - [ ] `SqliteSaver` checkpoint file at `.swarm/langgraph_checkpoint.db` shared across ticks (`thread_id` survives daemon restarts)
+  - [ ] `bash .claude/loop/loop-tick.sh --graph <key>` flag added — deterministic gate that runs named graph end-to-end, exits with terminal code, no orchestrator LLM
+  - [ ] `tests/test_m4_langgraph_integration.py` (5/5 PASS) exercises each graph + asserts checkpoint DB exists
+  - [ ] No regression in `tests/test_loop_infra.py` (11/11), drift 33/33, interfaces 68/68
 - **Dependencies:** M3
 - **Estimated ticks:** 3-5
 
-### M5 — IKIGAi MCP integration (STATUS: PENDING)
-- **What:** Orchestrator uses IKIGAi MCP tools (19 total) for the "research" + "knowledge" + "task" workflow
-- **Why:** Today IKIGAi is invoked manually via `ikigai.bat agent`. Make it accessible from the loop.
+### M5 — IKIGAI MCP integration (STATUS: PENDING)
+- **What:** Orchestrator uses IKIGAI MCP tools (19 total) for the "research" + "knowledge" + "task" workflow
+- **Why:** Today IKIGAI is invoked manually via `ikigai.bat agent`. Make it accessible from the loop.
 - **Acceptance:**
-  - [ ] Orchestrator prompt includes IKIGAi tool list
-  - [ ] One tick completes a task using IKIGAi MCP successfully
+  - [ ] Orchestrator prompt includes IKIGAI tool list
+  - [ ] One tick completes a task using IKIGAI MCP successfully
 - **Dependencies:** M4
 - **Estimated ticks:** 2-3
 

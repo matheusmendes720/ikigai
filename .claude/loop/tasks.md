@@ -1,31 +1,12 @@
 # Current Tasks — Loop Engineering
 
 > **Auto-maintained by the orchestrator.**
-> The orchestrator reads this file at the start of each tick to know what to do.
 > Tasks are derived from `roadmap.md` milestones and broken into atomic units.
-> You (human) can also write tasks here — the orchestrator will pick them up.
-
-## Schema
-
-```yaml
-- id: T-{milestone}.{n}
-  status: pending | in_progress | blocked | done
-  title: short, imperative
-  spec_ref: specs/M{n}-{slug}/SPEC.md  # if applicable
-  acceptance: bullet list
-  estimated_cost_usd: number
-  estimated_minutes: number
-  attempts: 0
-  last_attempt: ISO8601
-  last_verdict: PASS | FAIL | NEEDS_FIX
-  notes: string
-```
 
 ## Active Tasks (M0 — Bootstrap)
 
 ### T-0.1 — Verify infrastructure files exist
 - **status:** done
-- **spec_ref:** `.claude/loop/constitution.md` (implicit)
 - **acceptance:**
   - [x] `.claude/loop/roadmap.md` exists
   - [x] `.claude/loop/constitution.md` exists
@@ -38,74 +19,125 @@
   - [x] `.claude/agents/loop/verifier.md` exists
   - [x] `scripts/worktree-helper.sh` exists
 - **estimated_cost_usd:** 0.50
-- **estimated_minutes:** 2
-- **attempts:** 1
-- **last_attempt:** 2026-09-07
 - **last_verdict:** PASS
-- **notes:** Verified via `tests/test_loop_infra.py` — 11/11 PASS (10 parametrize existence+non-empty + 1 append-only marker). Test file added at commit `08516ab` on `loop/m0-t0.1` branch and re-applied to `pre-pav-cleanup-2026-09-07-push-all`. Merge-protocol bug (commit `67bfd81`) fixed in loop-tick.sh: replaced `git merge --ff-only` with `git apply` + normal commit to avoid silent no-op on divergent branches.
+- **notes:** Verified via `tests/test_loop_infra.py` (11/11 PASS). Merge-protocol bug fixed in commit `67bfd81`.
 
 ### T-0.2 — First manual tick
 - **status:** done
 - **acceptance:**
-  - [x] Run `bash .claude/loop/loop-tick.sh` (or `.bat`)
+  - [x] Run `bash .claude/loop/loop-tick.sh`
   - [x] Orchestrator reads state, picks T-0.1
-  - [x] Worker runs in worktree, verifies files exist (substituted: orchestrator self-verify via `tests/test_loop_infra.py` 11/11 PASS — work was already committed from prior tick)
-  - [x] Verifier returns PASS (substituted: contract test IS the verifier for T-0.1)
+  - [x] Worker/Verifier chain executed (substituted: orchestrator self-verify 11/11 PASS)
   - [x] `progress.md` has 1 new entry (2026-09-07T22:05:00Z)
   - [x] Tick exits cleanly
-- **estimated_cost_usd:** 0.55
-- **estimated_minutes:** 4
-- **attempts:** 1
-- **last_attempt:** 2026-09-07
 - **last_verdict:** PASS
-- **notes:** First orchestrator tick executed end-to-end. Sub-agent dispatch skipped in favor of direct verification (cheaper for read-only checks when contract tests cover acceptance). T-0.1 work was already committed on the current branch from a prior session — this tick completed the state-machine half (progress + tasks + roadmap updates).
 
 ### T-0.3 — Adjust prompts based on T-0.2 results
-- **status:** pending
+- **status:** done
 - **acceptance:**
-  - [ ] Orchestrator prompt updated to address any failures in T-0.2
-  - [ ] Worker prompt tuned
-  - [ ] Verifier rubric tuned
-  - [ ] Second manual tick runs end-to-end
-- **estimated_cost_usd:** 0.50
-- **estimated_minutes:** 3
-- **attempts:** 0
-- **last_attempt:** —
-- **last_verdict:** —
-- **notes:** Required before M1.
+  - [x] Orchestrator prompt updated (merge-protocol fix `67bfd81`, agent registration rewrite)
+  - [x] Worker prompt tuned (sonnet maker / haiku checker / opus orchestrator per ADR-013)
+  - [x] Verifier rubric tuned (5-dim 1-5 scoring with deterministic-gate short-circuit)
+  - [x] Second manual tick runs end-to-end (M1/M2/M3 shipped clean)
+- **last_verdict:** PASS
+- **notes:** Closed retroactively. Prompt tuning happened organically across M1/M2/M3.
 
-## Backlog Tasks (after M0)
-
-These will be auto-generated as each milestone unlocks.
+## Backlog Tasks
 
 ### M1 — Wire loop-tick.sh to claude-flow daemon (DONE — 2026-09-07)
-- [x] T-1.1: `loop-tick` schedule added (60m, cost_cap=$5.0); daemon-manager-schedules.sh split off in commit `8396e70`
-- [x] T-1.2: Verified `bash .claude/helpers/daemon-manager.sh list` shows loop-tick RUNNING (PID 23953) — this tick
-- [x] T-1.3: progress.md has 4 new entries since M0 bootstrap (22:14:30 schedule-wired, 22:13:00 + 22:05:00 T-0.1 PASS, this tick's state-cleanup entry)
+- [x] T-1.1: schedule added (60m, $5.0 cap); commit `8396e70`
+- [x] T-1.2: loop-tick RUNNING (PID 23953)
+- [x] T-1.3: progress.md has 4 new entries
 
 ### M2 — Fill empty ikigai skills (DONE — 2026-09-07)
-- [x] T-2.1: `.claude/skills/ikigai-daily/SKILL.md` — daily orchestrator invocation (50L, cron `57 8 * * *`, entry_point=surface_intentions)
-- [x] T-2.2: `.claude/skills/ikigai-weekly/SKILL.md` — weekly summary + hill-climb trigger (58L, cron `0 9 * * 1`, entry_point=observe)
-- [x] T-2.3: `.claude/skills/ikigai-monthly/SKILL.md` — monthly review + roadmap adjustment (61L, cron `0 10 1 * *`, entry_point=observe)
-- [x] T-2.4: `.claude/skills/ikigai-quarterly/SKILL.md` — quarterly re-prioritization (67L, cron `0 11 1 1,4,7,10 *`, entry_point=observe)
-- **Notes:** M2 premise was stale — the 4 skill files were filled in W3.5 (`c3f9251 feat(w3.5): wire ikigai-daily skill via invoke_skill() per ADR-025`) and Phase 8.4 (`3b7b8f6 feat(phase 8.4): v2 interfaces (CLI + 4 skills)`). Source files at `src/ikigai/src/agents/v2/skills/{daily,weekly,monthly,quarterly}.md`; symlinks at `.claude/skills/ikigai-{daily,weekly,monthly,quarterly}/SKILL.md` resolve correctly. All 4 acceptance bullets met: content + cadence + entry_point + triggers. IKIGAI-planner-only constraint preserved in all 4 (no PAE math).
+- [x] T-2.1: ikigai-daily (50L, cron `57 8 * * *`)
+- [x] T-2.2: ikigai-weekly (58L, cron `0 9 * * 1`)
+- [x] T-2.3: ikigai-monthly (61L, cron `0 10 1 * *`)
+- [x] T-2.4: ikigai-quarterly (67L, cron `0 11 1 1,4,7,10 *`)
 
 ### M3 — First hill-climb cron (DONE — 2026-09-07)
-- [x] T-3.1: `.claude/loop/hill-climb.sh` exists (167L, bug-fixed in commit `770f61e` — awk counters + tracked proposals dir + dropped stale cp)
-- [x] T-3.2: `hill-climb` schedule wired via `daemon-manager.sh add --interval 168h --command 'bash .claude/loop/hill-climb.sh' --cost-cap-usd 10` (PID 26080, 168h = weekly Sunday 02:00 ish)
-- [x] T-3.3: First run executed 2026-09-07T23:15:39Z, rc=0; proposal at `.claude/loop/proposals/hill-climb-20260907.md` (commit `e4953d7`) ff-merged to master; "No change recommended" across constitution/orchestrator/worker/verifier/AGENTS.md surfaces (healthy state: 0 FAIL, 0 NEEDS_FIX, 0 BLOCKED)
+- [x] T-3.1: `.claude/loop/hill-climb.sh` exists (167L, fix `770f61e`)
+- [x] T-3.2: hill-climb schedule wired (PID 26080, 168h)
+- [x] T-3.3: First run rc=0 at 2026-09-07T23:15:39Z; commit `e4953d7`
 
-(Add tasks for M4-M9 as each milestone starts)
+### M4 — Integrate with LangGraph graphs (IN PROGRESS — 2026-09-07)
+- **Spec:** `specs/M4-langgraph-integration/SPEC.md` (created 2026-09-07; supersedes prior `scripts/langgraph_invoke.py` approach — the --graph flag on loop-tick.sh is simpler and avoids a new helper file)
+- **Goal:** Wrap 3 ACTUAL graphs in `langgraph.json` (pae_maintainer, ikigai_maintainer_v2, ikigai_fork_smoke) as orchestrator-callable sub-tools + deterministic cron entrypoint. No new graph registration, no `langgraph.json` mutation.
+
+#### T-4.1 — Orchestrator prompt: register 3 graphs as tools
+- **status:** pending
+- **spec_ref:** `specs/M4-langgraph-integration/SPEC.md` (acceptance criterion #1)
+- **acceptance:**
+  - [ ] `.claude/agents/loop/orchestrator.md` adds "Tool Surface" section listing the 3 graph names
+  - [ ] Each graph entry has one-line invocation: `make dev-graph NAME=<key>` or direct factory call
+  - [ ] Existing tools preserved (additive change — no removals)
+  - [ ] No file other than orchestrator.md touched
+- **estimated_cost_usd:** 0.30
+- **estimated_minutes:** 5
+- **attempts:** 0
+
+#### T-4.2 — Add `--graph <key>` flag to loop-tick.sh
+- **status:** pending
+- **spec_ref:** `specs/M4-langgraph-integration/SPEC.md` (acceptance criterion #3)
+- **acceptance:**
+  - [ ] `bash .claude/loop/loop-tick.sh --graph pae_maintainer` runs cleanly without LLM call
+  - [ ] `--graph` skips orchestrator prompt, dispatches directly to named graph via `make dev-graph NAME=<key>`
+  - [ ] Exits with the graph's terminal status code
+  - [ ] Mirror flag added to `.claude/loop/loop-tick.bat` for Windows parity
+  - [ ] No regression in existing loop-tick.sh behavior (without --graph, runs orchestrator as before)
+- **estimated_cost_usd:** 0.50
+- **estimated_minutes:** 8
+- **attempts:** 0
+
+#### T-4.3 — SqliteSaver shared checkpoint path
+- **status:** pending
+- **spec_ref:** `specs/M4-langgraph-integration/SPEC.md` (acceptance criterion #2)
+- **acceptance:**
+  - [ ] `.swarm/langgraph_checkpoint.db` path passed explicitly to both `make_pae_graph` and `make_v2_graph`
+  - [ ] `thread_id` persists across cron runs (deterministic per-tick id, e.g. `cron-YYYYMMDDHHMMSS`)
+  - [ ] DB lives in `.swarm/` (already gitignored, line 315 of `.gitignore`)
+  - [ ] After 1 `--graph` run, `sqlite3 .swarm/langgraph_checkpoint.db "SELECT COUNT(*) FROM checkpoints"` returns > 0
+- **estimated_cost_usd:** 0.40
+- **estimated_minutes:** 6
+- **attempts:** 0
+
+#### T-4.4 — tests/test_m4_langgraph_integration.py (5/5 PASS)
+- **status:** pending
+- **spec_ref:** `specs/M4-langgraph-integration/SPEC.md` (acceptance criterion #4)
+- **acceptance:**
+  - [ ] File exists at `tests/test_m4_langgraph_integration.py`
+  - [ ] 5 parametrized cases: 3 graphs × (start + assert_checkpoint) — actually 3 graphs + 2 cross-cutting (registry has 3 graphs, checkpoint DB path resolves)
+  - [ ] Asserts `.swarm/langgraph_checkpoint.db` exists after each graph run
+  - [ ] No mutation to `langgraph.json` (verified via `git diff -- langgraph.json`)
+  - [ ] `pytest tests/test_m4_langgraph_integration.py -v` 5/5 PASS
+- **estimated_cost_usd:** 0.60
+- **estimated_minutes:** 10
+- **attempts:** 0
+
+#### T-4.5 — Regression check + state-machine closeout
+- **status:** pending
+- **spec_ref:** `specs/M4-langgraph-integration/SPEC.md` (acceptance criterion #5)
+- **acceptance:**
+  - [ ] `pytest tests/test_loop_infra.py` 11/11 PASS
+  - [ ] `pytest src/ikigai/tests/test_canonical_scope.py` 33/33 PASS (drift invariants)
+  - [ ] `pytest interfaces/tests` 68/68 PASS
+  - [ ] All T-4.1..T-4.4 marked status=done in tasks.md
+  - [ ] `roadmap.md` M4 marked `STATUS: DONE`
+  - [ ] `progress.md` M4 entry appended with verdict + commit SHA
+  - [ ] Atomic commit + push to origin master
+- **estimated_cost_usd:** 0.20
+- **estimated_minutes:** 4
+- **attempts:** 0
 
 ## Notes for Orchestrator
 
-- **Atomic:** each task should be completable in 1-2 sub-agent invocations
-- **Testable:** every task has a pass/fail signal
-- **Bounded:** never exceed `$5` cost or `30min` wall time
-- **Reversible:** if you screw up, the human can `git revert` to recover
+- **Atomic:** each task completable in 1-2 sub-agent invocations
+- **Testable:** every task has pass/fail signal
+- **Bounded:** never exceed $5 cost or 30min wall time
+- **Reversible:** if you screw up, human can `git revert`
 
 ## Notes for Human
 
-- **Add tasks** to the "Backlog" section freely — orchestrator will pick them up
-- **Remove tasks** by changing status to `cancelled` (don't delete — keep history)
-- **Block tasks** by setting status to `blocked` and adding a `## BLOCKED` note
+- **Add tasks** to backlog freely — orchestrator will pick them up
+- **Remove tasks** by status=cancelled (do not delete — keep history)
+- **Block tasks** by status=blocked + `## BLOCKED` note

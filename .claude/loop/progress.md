@@ -18,11 +18,11 @@
 
 ## Aggregate Stats
 
-- **Total ticks:** 8
+- **Total ticks:** 9
 - **Total cost:** $1.80
-- **Avg cost/tick:** $0.225
+- **Avg cost/tick:** $0.20
 - **Pass rate:** 100%
-- **Current streak:** 8
+- **Current streak:** 9
 
 ## Log
 
@@ -99,5 +99,14 @@
 - model: opus
 - attempt: 2/2
 - notes: Hill-climb cron first clean run after 3-bug fix in `770f61e`: (1) replaced `grep -c || echo 0` with `awk` counters (grep doubled zeros when count=0), (2) moved proposal dir from gitignored `.claude/loop/logs/` to tracked `.claude/loop/proposals/` (line 371 of .gitignore was breaking `git add` silently), (3) dropped stale `cp` + double `git add`. Cron PID 26080, 168h interval (weekly Sunday 02:00), cost_cap=$10. rc=0; proposal at `.claude/loop/proposals/hill-climb-20260907.md` ff-merged to master. Aggregate at first review: "No change recommended" across all 5 surfaces (constitution/orchestrator/worker/verifier/AGENTS.md) — healthy state, 0 FAIL/NEEDS_FIX/BLOCKED.
+- next_action: advance
+
+## 2026-09-07T23:45:00Z | M4-start | PASS
+- commit: (pending this tick)
+- cost_usd: 0
+- duration_min: 0
+- model: opus
+- attempt: 1/1
+- notes: M4 launch — state-machine only. Created `specs/M4-langgraph-integration/SPEC.md` (95L) with corrected graph registry (3 graphs: pae_maintainer / ikigai_maintainer_v2 / ikigai_fork_smoke — CLAUDE.md table of 5 is stale; `ikigai_maintainer_v2` IS registered at `src/ikigai/src/agents/v2/graph.py:make_v2_graph`). SPEC has 5 acceptance criteria: graph tool surface, SqliteSaver persistence at `.swarm/langgraph_checkpoint.db`, `--graph <key>` flag on loop-tick.sh, integration test 5/5 PASS, no regression in 11/11/33/33/68. Updated `roadmap.md` M4 to STATUS: IN-PROGRESS with SPEC ref. Replaced stale T-4.1 (`scripts/langgraph_invoke.py` approach) with 5 sub-tasks aligned to SPEC.md (T-4.1 orchestrator prompt, T-4.2 --graph flag, T-4.3 SqliteSaver shared path, T-4.4 tests, T-4.5 regression + closeout). 0 LLM calls (state-machine only).
 - next_action: advance
 
