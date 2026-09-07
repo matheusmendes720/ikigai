@@ -380,3 +380,14 @@ archive/legacy-pav/src-operational/medic/bin/
 # bare `> word` with shell-special chars leaks the literal.
 /80%
 /c
+# ─── Bash heredoc-leak follow-up (2026-09-07 cont.) ─────────────
+# Two more stray root-level files from this session's loop wiring work:
+# `c'` (0-byte, trailing single quote) and `word`` (0-byte, trailing
+# backtick). Same root-cause class — bare `> word'` or `> word\`` leaks
+# the literal including trailing shell-special chars. Cleanup via `rm`.
+# Also add .worktrees/ safety pattern (only registered worktrees should
+# exist; stale dirs on disk need PendingFileRenameOperations on Windows
+# reboot per the windows-orphan-dir-delete memory).
+/c'
+/word`
+/.worktrees/

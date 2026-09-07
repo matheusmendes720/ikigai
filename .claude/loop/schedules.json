@@ -1,0 +1,10 @@
+[
+  {
+    "name": "loop-tick",
+    "interval": "60m",
+    "interval_seconds": 3600,
+    "command": "bash .claude/loop/loop-tick.sh",
+    "cost_cap_usd": 5.0,
+    "added_at": "2026-09-07T22:14:29.985300+00:00"
+  }
+]
