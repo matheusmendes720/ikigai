@@ -38,15 +38,16 @@
 - **Dependencies:** M0
 - **Estimated ticks:** 1
 
-### M2 — Fill empty ikigai skills (STATUS: PENDING)
+### M2 — Fill empty ikigai skills (STATUS: DONE)
 - **What:** The 4 ikigai skills (daily, weekly, monthly, quarterly) are 0 bytes. Build them as loop components.
 - **Why:** These are the obvious integration points for the loop engineering pattern
 - **Acceptance:**
-  - [ ] `.claude/skills/ikigai-daily/SKILL.md` has content (invoke orchestrator with daily scope)
-  - [ ] Same for weekly/monthly/quarterly
-  - [ ] Each has a clear "what runs when" cadence
+  - [x] `.claude/skills/ikigai-daily/SKILL.md` has content (invoke orchestrator with daily scope)
+  - [x] Same for weekly/monthly/quarterly
+  - [x] Each has a clear "what runs when" cadence
 - **Dependencies:** M1
 - **Estimated ticks:** 2-4
+- **Completed:** 2026-09-07 (commit `c3f9251` W3.5 + `3b7b8f6` Phase 8.4 — filled in earlier waves, closed retroactively this tick)
 
 ### M3 — First hill-climb cron (STATUS: PENDING)
 - **What:** Weekly analysis of `progress.md` + `.swarm/memory.db` + `progress.md`

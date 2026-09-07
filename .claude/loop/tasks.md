@@ -83,11 +83,12 @@ These will be auto-generated as each milestone unlocks.
 - [x] T-1.2: Verified `bash .claude/helpers/daemon-manager.sh list` shows loop-tick RUNNING (PID 23953) — this tick
 - [x] T-1.3: progress.md has 4 new entries since M0 bootstrap (22:14:30 schedule-wired, 22:13:00 + 22:05:00 T-0.1 PASS, this tick's state-cleanup entry)
 
-### M2 — Fill empty ikigai skills
-- T-2.1: `.claude/skills/ikigai-daily/SKILL.md` — daily orchestrator invocation
-- T-2.2: `.claude/skills/ikigai-weekly/SKILL.md` — weekly summary + hill-climb trigger
-- T-2.3: `.claude/skills/ikigai-monthly/SKILL.md` — monthly review + roadmap adjustment
-- T-2.4: `.claude/skills/ikigai-quarterly/SKILL.md` — quarterly re-prioritization
+### M2 — Fill empty ikigai skills (DONE — 2026-09-07)
+- [x] T-2.1: `.claude/skills/ikigai-daily/SKILL.md` — daily orchestrator invocation (50L, cron `57 8 * * *`, entry_point=surface_intentions)
+- [x] T-2.2: `.claude/skills/ikigai-weekly/SKILL.md` — weekly summary + hill-climb trigger (58L, cron `0 9 * * 1`, entry_point=observe)
+- [x] T-2.3: `.claude/skills/ikigai-monthly/SKILL.md` — monthly review + roadmap adjustment (61L, cron `0 10 1 * *`, entry_point=observe)
+- [x] T-2.4: `.claude/skills/ikigai-quarterly/SKILL.md` — quarterly re-prioritization (67L, cron `0 11 1 1,4,7,10 *`, entry_point=observe)
+- **Notes:** M2 premise was stale — the 4 skill files were filled in W3.5 (`c3f9251 feat(w3.5): wire ikigai-daily skill via invoke_skill() per ADR-025`) and Phase 8.4 (`3b7b8f6 feat(phase 8.4): v2 interfaces (CLI + 4 skills)`). Source files at `src/ikigai/src/agents/v2/skills/{daily,weekly,monthly,quarterly}.md`; symlinks at `.claude/skills/ikigai-{daily,weekly,monthly,quarterly}/SKILL.md` resolve correctly. All 4 acceptance bullets met: content + cadence + entry_point + triggers. IKIGAI-planner-only constraint preserved in all 4 (no PAE math).
 
 ### M3 — First hill-climb cron
 - T-3.1: Create `.claude/loop/hill-climb.sh`
