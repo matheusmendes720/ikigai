@@ -94,16 +94,18 @@
 - **notes:** Inline `python -c "..."` heredoc dispatches each graph via `graph.invoke(initial, config={'configurable': {'thread_id': ...}})`. SqliteSaver persisted at `.swarm/langgraph_checkpoint.db` (gitignored line 315). VALID_GRAPH_KEYS enforces fail-fast on unknown graph names (exit=2). pae_maintainer returned uncompiled StateGraph so needs `.compile(checkpointer=...)`; v2 + fork_smoke factories compile internally with `checkpointer_db` kwarg. Dual sys.path mirrors conftest (repo root → dotted-prefix `src.X`; `src/` → bare `contracts.X`; v2 agents package → `v2.graph` import). Backticks stripped from comments (would otherwise trigger bash command substitution inside heredoc). CRLF→LF converted via one-liner (Edit re-introduced CRLF on Windows). 3 graphs verified PASS clean (ckpts=70 / 79 / 84); 0 LLM calls.
 
 #### T-4.3 — SqliteSaver shared checkpoint path
-- **status:** pending
+- **status:** done
 - **spec_ref:** `specs/M4-langgraph-integration/SPEC.md` (acceptance criterion #2)
 - **acceptance:**
-  - [ ] `.swarm/langgraph_checkpoint.db` path passed explicitly to both `make_pae_graph` and `make_v2_graph`
-  - [ ] `thread_id` persists across cron runs (deterministic per-tick id, e.g. `cron-YYYYMMDDHHMMSS`)
-  - [ ] DB lives in `.swarm/` (already gitignored, line 315 of `.gitignore`)
-  - [ ] After 1 `--graph` run, `sqlite3 .swarm/langgraph_checkpoint.db "SELECT COUNT(*) FROM checkpoints"` returns > 0
-- **estimated_cost_usd:** 0.40
-- **estimated_minutes:** 6
+  - [x] `.swarm/langgraph_checkpoint.db` path passed explicitly to both `make_pae_graph` and `make_v2_graph` (via T-4.2 inline dispatcher; `loop-tick.sh:106` `pae_maintainer` branch uses `_conn = sqlite3.connect(ckpt_db, check_same_thread=False)` + SqliteSaver; `loop-tick.sh:126` `ikigai_maintainer_v2` branch uses `make_v2_graph(checkpoint_db=ckpt_db)`; `loop-tick.sh:136` `ikigai_fork_smoke` branch uses `make_fork_smoke_graph(checkpoint_db=ckpt_db)`)
+  - [x] `thread_id` persists across cron runs (deterministic per-tick id, `cron-{TICK_ID}` where TICK_ID is `date +%Y%m%d-%H%M%S`) — verified: top thread_ids `cron-20260907-205041` (5 ckpts), `cron-20260907-205030` (9 ckpts), `cron-20260907-204940` (6 ckpts), `cron-20260907-204929` (6 ckpts), `cron-20260907-204547` (6 ckpts)
+  - [x] DB lives in `.swarm/` (gitignored at `.gitignore:315` — `.swarm/langgraph_checkpoint.db`)
+  - [x] `SELECT COUNT(*) FROM checkpoints` returns 84 (way > 0) — verified via `python -c "import sqlite3; ..."` (sqlite3 CLI not on Windows PATH; Python sqlite3 is the portable verification)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 4
 - **attempts:** 0
+- **last_verdict:** PASS
+- **notes:** T-4.3 is state-machine only — no code change. All 4 acceptance bullets satisfied by the T-4.2 inline dispatcher (loop-tick.sh:83-138) that already passes `ckpt_db = str(ckpt_dir / 'langgraph_checkpoint.db')` to all 3 graph factories. Deterministic thread_id pattern `cron-{TICK_ID}` (TICK_ID=`date +%Y%m%d-%H%M%S`) gives unique per-tick thread_ids while staying sortable by tick-time. SqliteSaver uses `check_same_thread=False` because langgraph's PregelLoop spawns worker threads that need cross-thread sqlite3 access. `pae_maintainer` requires explicit `.compile(checkpointer=_saver)` (factory returns uncompiled StateGraph); v2 + fork_smoke factories compile internally and accept `checkpoint_db=ckpt_db` kwarg. 84 ckpts across 7+ unique thread_ids = the cross-run persistence guarantee is live.
 
 #### T-4.4 — tests/test_m4_langgraph_integration.py (5/5 PASS)
 - **status:** pending

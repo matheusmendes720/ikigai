@@ -218,3 +218,12 @@
 - attempt: 1/1
 - notes: graph=ikigai_fork_smoke thread_id=cron-20260907-205041 checkpoints=84 status=0 
 - next_action: advance
+
+## 2026-09-07T23:54:24Z | T-4.3 | PASS
+- commit: (state-machine only — no code change; satisfied by T-4.2 commit `f0318387`)
+- cost_usd: 0
+- duration_min: 4
+- model: none (state-machine verification via Python sqlite3 query)
+- attempt: 1/1
+- notes: All 4 T-4.3 acceptance bullets verified end-to-end: (1) `.swarm/langgraph_checkpoint.db` path passed explicitly to all 3 graph factories via T-4.2 inline dispatcher (loop-tick.sh:106 `_conn = sqlite3.connect(ckpt_db, check_same_thread=False)` + SqliteSaver for pae_maintainer; loop-tick.sh:126 `make_v2_graph(checkpoint_db=ckpt_db)`; loop-tick.sh:136 `make_fork_smoke_graph(checkpoint_db=ckpt_db)`); (2) thread_id persists across cron runs with deterministic `cron-{TICK_ID}` (TICK_ID=`date +%Y%m%d-%H%M%S`); (3) DB at `.swarm/langgraph_checkpoint.db` (gitignored line 315); (4) `SELECT COUNT(*) FROM checkpoints` = 84 across 7+ unique thread_ids. T-4.3 was already satisfied by the T-4.2 dispatcher — this tick just records the verification.
+- next_action: advance
