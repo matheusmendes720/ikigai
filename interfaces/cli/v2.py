@@ -1,95 +1,193 @@
-"""v2 — Deep Agent / IKIGAI v2 Typer sub-app (W6.X item 2b — slimmed root).
+"""v2 — IKIGAI v2 Typer sub-app (post V5-D + V5-F radical cleanup).
 
-Nine commands per plan §11.4 + Wave 2 W2.3 + Plan D:
-  life v2 cycle       — invoke ikigai_maintainer_v2 LangGraph
-  life v2 score       — call render_score_passion_observation prompt chain
-  life v2 regime      — call render_heuristics_regime_observation prompt chain
-  life v2 suggest     — call render_surface_pav_intentions prompt chain (W2.1)
-  life v2 daily       — ikigai-daily skill orchestrator (W2.3 / W3.5)
-  life v2 weekly      — ikigai-weekly skill orchestrator (W2.3 / W6.X item 2)
-  life v2 monthly     — ikigai-monthly skill orchestrator (W2.3 / W6.X item 2)
-  life v2 quarterly   — ikigai-quarterly skill orchestrator (W2.3 / W6.X item 2)
-  life v2 plan        — meta-planner (Plan D E.1)
+V5-D (2026-09-06): kept only `plan` (Plan D meta-planner); retired
+daily/weekly/today. The previous file referenced `_v2_plan.py` for the
+`plan` command body.
 
-Module layout (W6.X item 2b — CLAUDE.md 500-line guideline compliance):
-  v2.py              — typer app + re-exports + register_*() calls  (this file)
-  _v2_handlers.py    — _load_handlers / _load_graph_factory / _resolve_vault_root
-  _v2_primitives.py  — _run_cycle/_run_score/_run_regime/_run_suggest
-                       + register_observation(app) → cycle/score/regime/suggest
-  _v2_skills.py      — load_skill_manifest / invoke_skill / per-skill orchestrators
-  _v2_skill_cmds.py  — register_skill(app) → daily/weekly/monthly/quarterly
-  _v2_plan.py        — _run_plan / _format_proposal / register_plan(app)
+V5-F (2026-09-07 "Opção B-A — radical-máxima"): merged
+`v2.py + _v2_plan.py` → deleted `_v2_plan.py`. The 3 fns
+(`_run_plan`, `_format_proposal`, `register_plan`) now live directly
+in this module.
 
-Re-exports below preserve test import paths (test_v2_cli.py + test_meta_plan_e2e.py
-monkeypatch symbols in this module's namespace — `from ._v2_skills import invoke_skill`
-etc. must remain at module-level so `monkeypatch.setattr(v2, ..., ...)` works).
-
-Provenance: src/ikigai/src/agents/v2/graph.py  +  mcp_server/server.py
+Pattern preserved (NOT refactored):
+  - `register_plan(app)` takes the Typer instance as a parameter
+    rather than using `@app.command(...)` directly at module top-level.
+    This breaks a circular import discovered in Plan D Task E.1
+    (`agents.v2.subgraph` ↔ `agents.v2.nodes.proposal_executor` ↔
+    `interfaces.cli.v2`).
+  - Lazy imports of `Proposal`, `make_meta_plan_subgraph`,
+    `execute_proposal` live INSIDE `_run_plan`'s body (not at module
+    top-level) for the same reason. Defer to first invocation.
 """
 
 from __future__ import annotations
 
+import json
 import sys
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import typer
-from rich.console import Console
 
-# Ensure repo root is on sys.path so `from src.ikigai.src...` resolves.
+# Ensure `life/` is on sys.path so `from src.X` and `from agents.X`
+# resolve when this CLI is invoked via `python -m interfaces.cli.main`.
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
+
 app = typer.Typer(
-    help="IKIGAI v2 commands — cycle, score, regime, suggest, daily, weekly, monthly, quarterly, plan"
-)
-console = Console()
-
-# ---------------------------------------------------------------------------
-# Re-exports — keep test import paths stable (W6.X item 2b)
-# ---------------------------------------------------------------------------
-# Tests patch these symbols in this module's namespace via
-# `monkeypatch.setattr(v2, "_load_handlers", ...)` etc. They MUST live on
-# this module. The sub-modules look these names up late-bound through v2's
-# namespace at call time so the patches take effect.
-
-from ._v2_handlers import (  # noqa: E402, F401  # re-export — test monkeypatch target
-    _load_graph_factory,
-    _load_handlers,
-    _resolve_vault_root,
-)
-from ._v2_plan import _run_plan, register_plan  # noqa: E402, F401  # re-export — test import target
-from ._v2_primitives import (  # noqa: E402, F401
-    _run_cycle,
-    _run_regime,
-    _run_score,
-    _run_suggest,
-    register_observation,
-)
-from ._v2_skill_cmds import register_skill  # noqa: E402, F401
-from ._v2_skills import (  # noqa: E402, F401  # re-exports — test monkeypatch targets
-    _run_daily,
-    _run_monthly,
-    _run_quarterly,
-    _run_weekly,
-    invoke_skill,
-    load_skill_manifest,
+    help="IKIGAI v2 commands — plan (Plan D meta-planner; only surviving command post V5-D)",
 )
 
-# ---------------------------------------------------------------------------
-# Bind 9 typer commands to app (cycle/score/regime/suggest + plan +
-# daily/weekly/monthly/quarterly). Kept out of v2.py to honour the
-# 500-line guideline; each `register_*` decorator-binds commands onto `app`
-# so v2.app retains full sub-app surface.
-# ---------------------------------------------------------------------------
 
-register_observation(app, console)
-register_skill(app, console)
+# ===========================================================================
+# V5-F: inlined from former _v2_plan.py — see header docstring for rationale
+# ===========================================================================
+
+
+def _run_plan(
+    request: str,
+    *,
+    approve: bool = False,
+    reject_field: str | None = None,
+) -> dict[str, Any]:
+    """Execute meta-planner subgraph + optional approval flow (Plan D Tasks E.1 + E.2).
+
+    Returns a JSON-serializable dict; prints the proposal to stdout for the
+    non-JSON path. The lazy imports below MUST stay inside the function
+    body — moving them to module level reintroduces the Plan D Task E.1
+    circular import (agents.v2.subgraph ↔ agents.v2.nodes.proposal_executor
+    ↔ interfaces.cli.v2).
+    """
+    # Lazy imports — preserve verbatim from former _v2_plan.py.
+    from src.ikigai.contracts.proposal import Proposal
+    from agents.v2.subgraph import make_meta_plan_subgraph
+
+    compiled = make_meta_plan_subgraph()
+    graph_result = compiled.invoke({"user_request": request})
+    proposal: Proposal | None = graph_result.get("proposal")
+
+    if proposal is None:
+        return {
+            "status": "no_proposal",
+            "message": "Intent não detectado — refine your request and try again.",
+        }
+
+    display = _format_proposal(proposal)
+    print(display)
+
+    if approve:
+        # Lazy import preserved for the same circular-import reason.
+        from agents.v2.nodes.proposal_executor import execute_proposal
+
+        approved = proposal.model_copy(
+            update={
+                "approval_state": "approved",
+                "approval_timestamp": datetime.now(),
+            }
+        )
+        try:
+            report = execute_proposal(approved)
+            return {
+                "status": "executed",
+                "report": report.model_dump(),
+            }
+        except Exception as exc:  # noqa: BLE001 — executor may raise anything
+            return {
+                "status": "failed",
+                "error": str(exc),
+            }
+
+    if reject_field:
+        return {
+            "status": "rejected_field",
+            "field": reject_field,
+            "message": (
+                f"Field {reject_field!r} rejected. Refine and re-submit, "
+                "or omit --reject to see the full proposal."
+            ),
+        }
+
+    return {
+        "status": "pending_approval",
+        "proposal_id": proposal.id,
+    }
+
+
+def _format_proposal(proposal: Any) -> str:
+    """Pretty-print a Proposal for in-chat display.
+
+    Body shape (preserved from former _v2_plan.py):
+      - Proposta gerada (UEID: <id>)
+      - Request: <user_request>
+      - Created: <created_at>
+      - Operations: numbered list
+      - Review guidance line
+    """
+    lines = [
+        "",
+        f"Proposta gerada (UEID: {proposal.id})",
+        f"Request: {proposal.user_request}",
+        f"Created: {proposal.created_at}",
+        "",
+        "Operations:",
+    ]
+    for i, op in enumerate(proposal.operations, start=1):
+        lines.append(f"  {i}. {op}")
+    lines.extend(
+        [
+            "",
+            "Review and approve with --approve, "
+            "or reject a specific field with --reject <field>.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def register_plan(app: typer.Typer) -> None:
+    """Register the `plan` command on a Typer sub-app.
+
+    The parameter is named `app` to match the former `_v2_plan.py`
+    signature — caller in this module passes the top-level `app`
+    defined above. Pattern preserved: do NOT convert to a
+    `@app.command(name="plan")` at module top-level, that reintroduces
+    the Plan D Task E.1 circular import.
+    """
+
+    @app.command(name="plan")
+    def plan_cmd(
+        request: str = typer.Argument("", help="User planning request (PT-BR or EN)"),
+        approve: bool = typer.Option(
+            False,
+            "--approve",
+            help="Approve the proposal and execute writes",
+        ),
+        reject_field: str | None = typer.Option(
+            None,
+            "--reject",
+            help="Reject a specific field of the proposal",
+        ),
+    ) -> None:
+        """Run meta-planner on a user request (Plan D)."""
+        result = _run_plan(
+            request,
+            approve=approve,
+            reject_field=reject_field,
+        )
+        typer.echo(json.dumps(result, indent=2, default=str))
+
+
+# Wire the single `plan` command into the Typer app.
 register_plan(app)
 
-
-# Public alias so `from interfaces.cli.v2 import v2_app` matches __init__.py usage.
+# Backward-compat alias — callers that imported `v2_app` keep working.
 v2_app = app
+
+
+__all__ = ["app", "v2_app", "register_plan", "_run_plan", "_format_proposal"]
+
 
 if __name__ == "__main__":
     app()

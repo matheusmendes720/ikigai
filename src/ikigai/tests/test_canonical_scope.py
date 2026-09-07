@@ -127,10 +127,23 @@ FORBIDDEN_CLASSES: frozenset[str] = frozenset(
 )
 
 # MCP tool names that MUST NOT be registered via @MCP.tool in mcp_server.
-# PHASE 8.2 UPDATE: ikigai_score, ikigai_regime, ikigai_phase, ikigai_corrections,
-# ikigai_checkpoint, ikigai_sync_vault, ikigai_plan_cycle were re-registered as
-# vault-reading observation wrappers (no math execution). Removed from this set.
-FORBIDDEN_MCP_TOOLS: frozenset[str] = frozenset()
+#
+# V5-E (2026-09-07 "Opção B-A — radical-máxima") DELETED these 7 observation
+# wrappers from server.py (they re-read PAV-written vault artifacts, no
+# math execution). Drift net now forbids re-registration — if any of these
+# tool names reappear inside an ``@MCP.tool(...)`` decorator, the suite
+# FAILS at ``test_no_forbidden_mcp_tool_wrappers``.
+FORBIDDEN_MCP_TOOLS: frozenset[str] = frozenset(
+    {
+        "ikigai_score",
+        "ikigai_regime",
+        "ikigai_phase",
+        "ikigai_corrections",
+        "ikigai_plan_cycle",
+        "ikigai_checkpoint",
+        "ikigai_sync_vault",
+    }
+)
 
 # Production directories to scan (combined for AST walk).
 SCAN_ROOTS: list[Path] = [p for p in PROD_LAYERS if p.exists()]
@@ -563,7 +576,12 @@ def test_skill_manifest_has_entry_point(skill_name) -> None:
     ],
 )
 def test_skill_entry_point_is_valid_node(skill_name) -> None:
-    """All skill entry_point values MUST be members of NODES (ADR-025 R4)."""
+    """All skill entry_point values MUST be members of VALID_ENTRY_POINTS (ADR-025 R4).
+
+    Post V5-D: graph.py was deleted; the canonical entry-point surface
+    is ``VALID_ENTRY_POINTS`` exported from
+    ``src/ikigai/src/agents/v2/subagent_types.py`` (see ADR-026 R1).
+    """
     import re
 
     skill_file = _SKILLS_DIR / f"{skill_name}.md"
@@ -580,16 +598,13 @@ def test_skill_entry_point_is_valid_node(skill_name) -> None:
     if entry_point is None:
         pytest.skip(f"{skill_name}.md has no entry_point (skip-for-W3.6)")
 
-    # Import NODES at runtime to avoid the legacy-state import conflict
-    v2_graph_path = IKIGAI_SRC / "agents" / "v2" / "graph.py"
-    if not v2_graph_path.exists():
-        pytest.skip("graph.py not present")
-    graph_source = v2_graph_path.read_text(encoding="utf-8")
-    nodes_match = re.search(r"^NODES\s*=\s*\((.*?)\)", graph_source, re.DOTALL | re.MULTILINE)
-    assert nodes_match, "Could not find NODES tuple in graph.py"
-    nodes_list = [n.strip().strip(",'\"") for n in nodes_match.group(1).split() if n.strip()]
-    assert entry_point in nodes_list, (
-        f"{skill_name}.md entry_point {entry_point!r} not in NODES; must be one of {nodes_list}"
+    # Import VALID_ENTRY_POINTS at runtime — canonical entry points
+    # (ADR-026 R1, post V5-D).
+    from src.ikigai.src.agents.v2.subagent_types import VALID_ENTRY_POINTS
+
+    assert entry_point in VALID_ENTRY_POINTS, (
+        f"{skill_name}.md entry_point {entry_point!r} not in VALID_ENTRY_POINTS; "
+        f"must be one of {list(VALID_ENTRY_POINTS)}"
     )
 
 
@@ -624,342 +639,9 @@ def test_skill_manifest_has_actor_field(skill_name) -> None:
     )
 
 
-def test_no_make_v2_graph_call_outside_invoke_skill() -> None:
-    """Any make_v2_graph(entry_point=...) call outside invoke_skill() is flagged.
-
-    Per ADR-025 R4: invoke_skill() is the only permitted call site for
-    make_v2_graph(entry_point=...) in interfaces/cli/v2.py.
-    Uses AST scan to detect all call sites, then checks each one is
-    inside the invoke_skill function body.
-    """
-    v2_cli_path = REPO_ROOT / "interfaces" / "cli" / "v2.py"
-    if not v2_cli_path.exists():
-        pytest.skip(f"{v2_cli_path} not present")
-
-    source = v2_cli_path.read_text(encoding="utf-8")
-    tree = ast.parse(source)
-
-    # Find the invoke_skill function's AST node
-    invoke_skill_node: ast.FunctionDef | None = None
-    for node in ast.walk(tree):
-        if (
-            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-            and node.name == "invoke_skill"
-        ):
-            invoke_skill_node = node
-            break
-
-    # Find all make_v2_graph(entry_point=...) call sites in the module
-    violations: list[str] = []
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-        # Check if it's make_v2_graph(...)
-        func_name = _called_name(node.func)
-        if func_name != "make_v2_graph":
-            continue
-        # Check if it has entry_point=... keyword argument
-        has_entry_point = any(kw.arg == "entry_point" for kw in node.keywords)
-        if not has_entry_point:
-            continue
-        # Check if this call is inside invoke_skill function body
-        if invoke_skill_node is not None and _is_node_inside(node, invoke_skill_node):
-            continue  # allowed — inside invoke_skill
-        # Check if this call is inside a function whose name starts with "_load_graph_factory"
-        # (lazy import wrapper — allowed to call make_v2_graph)
-        parent_func = _find_parent_function(node, tree)
-        if parent_func is not None and parent_func.name == "_load_graph_factory":
-            continue  # allowed — lazy factory wrapper
-        violations.append(f"make_v2_graph(entry_point=...) at line {node.lineno}")
-
-    assert not violations, (
-        "make_v2_graph(entry_point=...) may only be called inside invoke_skill() "
-        "(per ADR-025 R4). Violations:\n  " + "\n  ".join(violations)
-    )
-
-
-# ---------------------------------------------------------------------------
-# W3.6 — ADR-013 taskdog post-processor guard (invariant l)
-# ---------------------------------------------------------------------------
-
-
-def test_invoke_skill_guards_taskdog_call_with_outputs_check() -> None:
-    """invoke_skill() MUST consult manifest.outputs before firing taskdog (inv l).
-
-    Per W3.6: side-effect tools (taskdog_create_task) are fired by the CLI
-    post-processor ONLY when the skill's manifest declares them in
-    ``outputs``. This invariant AST-greps the invoke_skill function body to
-    verify a conditional guard references both ``outputs`` and
-    ``taskdog_create_task`` before the @tool invocation.
-
-    Implementation may live either inline in invoke_skill or in a delegated
-    helper (e.g. ``interfaces.cli._skill_outputs.post_process_skill_outputs``).
-    The helper is permitted because the inline call inside invoke_skill is
-    what gates the firing; the helper just carries the policy.
-
-    After W6.X v2.py split, invoke_skill lives in interfaces/cli/_v2_skills.py
-    (not v2.py). Test searches both files for the FunctionDef.
-    """
-    skill_outputs_path = REPO_ROOT / "interfaces" / "cli" / "_skill_outputs.py"
-    candidates = [
-        REPO_ROOT / "interfaces" / "cli" / "v2.py",
-        REPO_ROOT / "interfaces" / "cli" / "_v2_skills.py",
-    ]
-    existing = [p for p in candidates if p.exists()]
-    if not existing:
-        pytest.skip("neither v2.py nor _v2_skills.py is present")
-
-    invoke_skill_node: ast.FunctionDef | None = None
-    body_source: str = ""
-    for path in existing:
-        source = path.read_text(encoding="utf-8")
-        tree = ast.parse(source)
-        for node in ast.walk(tree):
-            if (
-                isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-                and node.name == "invoke_skill"
-            ):
-                invoke_skill_node = node
-                body_source = ast.unparse(node)
-                break
-        if invoke_skill_node is not None:
-            break
-    assert invoke_skill_node is not None, (
-        "invoke_skill function not found in v2.py or _v2_skills.py"
-    )
-
-    # The guard must reference BOTH the outputs gate AND taskdog_create_task.
-    # Allow either an inline check OR delegation to _skill_outputs (which
-    # owns the canonical gate).
-    has_outputs_check = "outputs" in body_source
-    has_taskdog_reference = "taskdog_create_task" in body_source
-    has_delegation = "_skill_outputs" in body_source or "post_process_skill_outputs" in body_source
-
-    assert has_outputs_check, (
-        "invoke_skill() must consult manifest['outputs'] before firing "
-        "taskdog_create_task (invariant l). Body excerpt:\n" + body_source[:600]
-    )
-    assert has_taskdog_reference or has_delegation, (
-        "invoke_skill() must reference taskdog_create_task or delegate to "
-        "_skill_outputs.post_process_skill_outputs (invariant l). "
-        "Body excerpt:\n" + body_source[:600]
-    )
-
-    # If the helper module exists, it MUST itself contain the conditional
-    # guard — verify it's not a passthrough.
-    if skill_outputs_path.exists():
-        helper_source = skill_outputs_path.read_text(encoding="utf-8")
-        assert "outputs" in helper_source, (
-            "_skill_outputs.py must inspect manifest.outputs "
-            "(invariant l: canonical gate is in the helper)."
-        )
-        assert "taskdog_create_task" in helper_source, (
-            "_skill_outputs.py must reference taskdog_create_task "
-            "(invariant l: canonical gate is in the helper)."
-        )
-
-
-def _is_node_inside(node: ast.AST, parent: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
-    """Return True if node is syntactically inside parent FunctionDef body."""
-    for child in ast.walk(parent):
-        if child is node:
-            return True
-    return False
-
-
-def _find_parent_function(
-    node: ast.AST, tree: ast.AST
-) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
-    """Find the FunctionDef/AsyncFunctionDef that contains node (direct parent only)."""
-    for parent in ast.walk(tree):
-        if not isinstance(parent, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            continue
-        for child in parent.body:
-            if _contains_node(child, node):
-                return parent
-    return None
-
-
-def _contains_node(parent: ast.AST, target: ast.AST) -> bool:
-    """Return True if target is inside parent (direct containment check)."""
-    for child in ast.walk(parent):
-        if child is target:
-            return True
-    return False
-
-
-# ---------------------------------------------------------------------------
-# W3.2 — ADR-019 prompt-template-only invariant
-# ---------------------------------------------------------------------------
-
-# Module-level constants for algorithm tuning are forbidden in
-# src/ikigai/src/agents/v2/*.py EXCEPT in prompts/load_constants.py (the
-# loader itself). Algorithm tuning happens ONLY by editing
-# prompts/algorithm_constants.json — see dcode-harness-TASKS.md W3.2 + W5.2.
-#
-# The regex matches the EXACT names of constants that lived in state.py
-# pre-W3.2, plus a generic pattern for any future DEFAULT_QHE / DEFAULT_WORKLOAD
-# / DEFAULT_CAPACITY / HYSTERESIS_* / HEURISTICS_H<N>_* / REGIME_TARGETS additions.
-_FORBIDDEN_ALGO_CONST_NAMES: tuple[str, ...] = (
-    "DEFAULT_QHE_PUSH",
-    "DEFAULT_QHE_RECOVER",
-    "DEFAULT_WORKLOAD_OVERLOAD_FACTOR",
-    "DEFAULT_WORKLOAD_UNDERLOAD_FACTOR",
-    "DEFAULT_CAPACITY_HOURS_PER_DAY",
-    "HYSTERESIS_UPGRADE_DAYS",
-    "HYSTERESIS_DOWNGRADE_DAYS",
-    "REGIME_TARGETS",
-)
-# Generic pattern catches future additions matching the same prefix.
-_FORBIDDEN_ALGO_CONST_PATTERN = re.compile(
-    r"^(DEFAULT_QHE|DEFAULT_WORKLOAD|DEFAULT_CAPACITY|HYSTERESIS_|HEURISTICS_H\d_|REGIME_TARGETS)"
-)
-
-
-def test_no_algorithm_constants_in_agent_code() -> None:
-    """agents/v2/*.py MUST NOT define algorithm-tuning constants (ADR-019).
-
-    Algorithm tuning values (Q_HE thresholds, workload factors, hysteresis
-    days, regime targets, heuristic deviation thresholds) are stored in
-    prompts/algorithm_constants.json and accessed via prompts/load_constants.
-    The only file allowed to DEFINE these constants is
-    prompts/load_constants.py (the loader's _defensive_default fallback).
-
-    Violations include:
-      - Re-introducing DEFAULT_QHE_PUSH = 0.85 in state.py
-      - Hardcoding {"PUSH": 0.85, ...} in heuristics.py
-      - Adding DEFAULT_CAPACITY_HOURS_PER_DAY = 8.0 anywhere
-
-    To TUNE the algorithm: edit prompts/algorithm_constants.json. To add a
-    NEW tuning knob: add it to that JSON first, then load_constants exposes
-    it via get(key). Never introduce a Python DEFAULT_* in agent code.
-    """
-    v2_root = IKIGAI_SRC / "agents" / "v2"
-    if not v2_root.exists():
-        pytest.skip(f"{v2_root} not present")
-
-    # Only load_constants.py is allowed to DEFINE these constants (it needs
-    # _defensive_default for cases where the JSON file is absent). Every
-    # other file in agents/v2/ must reference them via load_constants.get().
-    allowed_definers = {v2_root / "prompts" / "load_constants.py"}
-
-    violations: list[str] = []
-    for py_file in _iter_python_files(v2_root):
-        if py_file.resolve() in {p.resolve() for p in allowed_definers}:
-            continue
-        try:
-            tree = ast.parse(py_file.read_text(encoding="utf-8"))
-        except SyntaxError:
-            continue
-
-        # Only check MODULE-LEVEL assignments (top-level body, not inside a
-        # function or class). This avoids false positives on local variable
-        # names that happen to share the prefix.
-        for node in tree.body:
-            if not isinstance(node, ast.Assign):
-                continue
-            for target in node.targets:
-                name = target.id if isinstance(target, ast.Name) else None
-                if name is None:
-                    continue
-                if name in _FORBIDDEN_ALGO_CONST_NAMES or _FORBIDDEN_ALGO_CONST_PATTERN.match(name):
-                    violations.append(
-                        _format_violation(
-                            py_file,
-                            node.lineno,
-                            "ALGO-CONST",
-                            f"forbidden algorithm constant: {name}",
-                        )
-                    )
-
-    assert not violations, (
-        "ADR-019 violation — algorithm tuning constants MUST live in "
-        "prompts/algorithm_constants.json, NOT in src/ikigai/src/agents/v2/*.py. "
-        "Use load_constants.get(key) instead. Violations:\n" + "\n".join(sorted(violations))
-    )
-
-
-def test_no_state_module_imports_default_constants() -> None:
-    """agents/v2/state.py MUST NOT export DEFAULT_QHE_* / HYSTERESIS_* / etc.
-
-    These names were stripped from state.py in W3.2 (2026-09-04). The state
-    module is now pure data classes + TypedDicts. Adding them back would
-    violate ADR-019 (algorithm-tuning lives in prompt-template config only).
-    """
-    state_path = IKIGAI_SRC / "agents" / "v2" / "state.py"
-    if not state_path.exists():
-        pytest.skip(f"{state_path} not present")
-    try:
-        tree = ast.parse(state_path.read_text(encoding="utf-8"))
-    except SyntaxError:
-        pytest.skip(f"{state_path} has syntax errors")
-
-    violations: list[str] = []
-    for node in tree.body:
-        if not isinstance(node, ast.Assign):
-            continue
-        for target in node.targets:
-            name = target.id if isinstance(target, ast.Name) else None
-            if name is None:
-                continue
-            if name in _FORBIDDEN_ALGO_CONST_NAMES or _FORBIDDEN_ALGO_CONST_PATTERN.match(name):
-                violations.append(
-                    _format_violation(
-                        state_path,
-                        node.lineno,
-                        "STATE-ALGO-CONST",
-                        f"forbidden algorithm constant in state.py: {name}",
-                    )
-                )
-    assert not violations, (
-        "ADR-019 violation — state.py MUST NOT export algorithm constants "
-        "(they live in prompts/algorithm_constants.json). Violations:\n"
-        + "\n".join(sorted(violations))
-    )
-
-
 # ---------------------------------------------------------------------------
 # W4.4 — ADR-026 sub-agent dispatch drift invariants
 # ---------------------------------------------------------------------------
-
-
-def test_nodes_tuple_has_11_elements() -> None:
-    """NODES tuple MUST have exactly 11 elements (10 → 11 after W4.4).
-
-    Per ADR-026 R1 + W4.4 brief: the dispatcher is a dedicated node added
-    to NODES. The 11th node is ``dispatch_sub_agents``. Reducing back to
-    10 (or adding a 12th without ADR amendment) violates R1.
-    """
-    v2_graph_path = IKIGAI_SRC / "agents" / "v2" / "graph.py"
-    if not v2_graph_path.exists():
-        pytest.skip(f"{v2_graph_path} not present")
-    graph_source = v2_graph_path.read_text(encoding="utf-8")
-    nodes_match = re.search(r"^NODES\s*=\s*\((.*?)\)", graph_source, re.DOTALL | re.MULTILINE)
-    assert nodes_match, "Could not find NODES tuple in graph.py"
-    nodes_list = [n.strip().strip(",'\"") for n in nodes_match.group(1).split() if n.strip()]
-    assert len(nodes_list) == 11, (
-        f"NODES tuple must have exactly 11 elements after W4.4 (ADR-026 R1). "
-        f"Found {len(nodes_list)}: {nodes_list}"
-    )
-
-
-def test_dispatch_sub_agents_in_nodes() -> None:
-    """``dispatch_sub_agents`` MUST be a member of NODES (ADR-026 R1).
-
-    Drift detector enforces: the dedicated dispatcher is the canonical
-    sub-agent spawn surface. Adding dispatch logic inline elsewhere
-    violates R1 single-dispatch-surface invariant.
-    """
-    v2_graph_path = IKIGAI_SRC / "agents" / "v2" / "graph.py"
-    if not v2_graph_path.exists():
-        pytest.skip(f"{v2_graph_path} not present")
-    graph_source = v2_graph_path.read_text(encoding="utf-8")
-    nodes_match = re.search(r"^NODES\s*=\s*\((.*?)\)", graph_source, re.DOTALL | re.MULTILINE)
-    assert nodes_match, "Could not find NODES tuple in graph.py"
-    nodes_list = [n.strip().strip(",'\"") for n in nodes_match.group(1).split() if n.strip()]
-    assert "dispatch_sub_agents" in nodes_list, (
-        f"NODES tuple must contain 'dispatch_sub_agents' (ADR-026 R1). Current NODES: {nodes_list}"
-    )
 
 
 def test_subagent_spec_ueid_validation() -> None:
@@ -980,76 +662,6 @@ def test_subagent_spec_ueid_validation() -> None:
         f"4-part UEID regex (ADR-014 + ADR-026 R4). Expected pattern "
         f"matching: {canonical_pattern}"
     )
-
-
-def test_subagent_constants_in_json_only() -> None:
-    """SUBAGENT_* tuning values MUST live in algorithm_constants.json, NOT in .py.
-
-    Per ADR-019 R7 + ADR-027 R10 + ADR-026 R6: algorithm/subagent tuning
-    values are JSON-only. Drift detector extends the W3.2 invariant l to
-    cover the new SUBAGENT_* keys. No Python DEFAULT_SUBAGENT_* / hardcoded
-    SUBAGENT_* constants allowed.
-    """
-    v2_root = IKIGAI_SRC / "agents" / "v2"
-    if not v2_root.exists():
-        pytest.skip(f"{v2_root} not present")
-
-    allowed_definers = {v2_root / "prompts" / "load_constants.py"}
-    forbidden_pattern = re.compile(r"^(DEFAULT_SUBAGENT|SUBAGENT_).*")
-
-    violations: list[str] = []
-    for py_file in _iter_python_files(v2_root):
-        if py_file.resolve() in {p.resolve() for p in allowed_definers}:
-            continue
-        try:
-            tree = ast.parse(py_file.read_text(encoding="utf-8"))
-        except SyntaxError:
-            continue
-        for node in tree.body:
-            if not isinstance(node, ast.Assign):
-                continue
-            for target in node.targets:
-                name = target.id if isinstance(target, ast.Name) else None
-                if name is None:
-                    continue
-                if forbidden_pattern.match(name):
-                    violations.append(
-                        _format_violation(
-                            py_file,
-                            node.lineno,
-                            "SUBAGENT-CONST",
-                            f"forbidden subagent constant: {name} (must live in algorithm_constants.json)",
-                        )
-                    )
-
-    assert not violations, (
-        "ADR-019 / ADR-026 R6 violation — SUBAGENT_* constants MUST live in "
-        "prompts/algorithm_constants.json, NOT in src/ikigai/src/agents/v2/*.py. "
-        "Violations:\n" + "\n".join(sorted(violations))
-    )
-
-
-def test_subagent_constants_present_in_json() -> None:
-    """algorithm_constants.json MUST define all 4 SUBAGENT_* keys (ADR-027 R10).
-
-    W4.4 added the SUBAGENT_* constants per ADR-027 R10 forward-dependency.
-    The keys MUST be present in JSON (the canonical source) and absent
-    from Python modules (per test_subagent_constants_in_json_only).
-    """
-    import json
-
-    json_path = IKIGAI_SRC / "agents" / "v2" / "prompts" / "algorithm_constants.json"
-    if not json_path.exists():
-        pytest.skip(f"{json_path} not present")
-    data = json.loads(json_path.read_text(encoding="utf-8"))
-    required = (
-        "SUBAGENT_PARENT_TIMEOUT_S",
-        "SUBAGENT_MAX_FAN_OUT",
-        "SUBAGENT_MAX_DISPATCH_DEPTH",
-        "SUBAGENT_CHECKPOINT_KEEP_AFTER_REPLAY",
-    )
-    missing = [k for k in required if k not in data]
-    assert not missing, f"algorithm_constants.json missing SUBAGENT_* keys (ADR-027 R10): {missing}"
 
 
 # ---------------------------------------------------------------------------
@@ -1107,38 +719,6 @@ def test_default_db_filename_matches_adrr027_r135() -> None:
     assert m, (
         f"_DEFAULT_DB_FILENAME must be exactly 'ikigai_checkpoints.db' "
         f"per ADR-027 R13.5. Source: {source[:500]}"
-    )
-
-
-def test_checkpoint_and_subagent_constants_in_json() -> None:
-    """algorithm_constants.json MUST define ALL 6 tuning keys (4 SUBAGENT + 2 CHECKPOINT).
-
-    Per ADR-019 R7 + ADR-027 R10 + ADR-026 R6: algorithm/checkpoint tuning
-    values are JSON-only. W4.4 added the 4 SUBAGENT_* keys; W4.5 adds
-    CHECKPOINT_RETENTION_COUNT + MAX_CHECKPOINT_AGE_DAYS. All 6 MUST be
-    present in the JSON (canonical source) and absent from Python modules.
-    """
-    import json
-
-    json_path = IKIGAI_SRC / "agents" / "v2" / "prompts" / "algorithm_constants.json"
-    if not json_path.exists():
-        pytest.skip(f"{json_path} not present")
-    data = json.loads(json_path.read_text(encoding="utf-8"))
-    required = (
-        # W4.4 — Sub-agent dispatch tuning
-        "SUBAGENT_PARENT_TIMEOUT_S",
-        "SUBAGENT_MAX_FAN_OUT",
-        "SUBAGENT_MAX_DISPATCH_DEPTH",
-        "SUBAGENT_CHECKPOINT_KEEP_AFTER_REPLAY",
-        # W4.5 — Checkpoint retention tuning (ADR-027 R10)
-        "CHECKPOINT_RETENTION_COUNT",
-        "MAX_CHECKPOINT_AGE_DAYS",
-    )
-    missing = [k for k in required if k not in data]
-    assert not missing, (
-        f"algorithm_constants.json missing tuning keys "
-        f"(ADR-027 R10 + ADR-026 R6): {missing}. "
-        f"Found keys: {sorted(k for k in data if not k.startswith('_'))}"
     )
 
 
@@ -1212,139 +792,6 @@ def test_memory_schema_version_constant_is_one() -> None:
     assert m, (
         f"MEMORY_SCHEMA_VERSION = 1 not found in {memory_schema_path}. "
         "ADR-028 R11 mandates schema_version=1 as the canonical initial version."
-    )
-
-
-def test_memory_retention_keys_present_in_json() -> None:
-    """algorithm_constants.json MUST define all 4 MEMORY_RETENTION_* keys (ADR-028 R8).
-
-    Per ADR-019 R6 + ADR-028 R8: the 4 retention tuning values live ONLY
-    in the JSON canonical source. Mirror values in load_constants._defensive_default()
-    for the JSON-absent fallback (per W4.6 brief §"Critical content" item 5).
-    """
-    import json
-
-    json_path = IKIGAI_SRC / "agents" / "v2" / "prompts" / "algorithm_constants.json"
-    if not json_path.exists():
-        pytest.skip(f"{json_path} not present")
-    data = json.loads(json_path.read_text(encoding="utf-8"))
-    required = (
-        "MEMORY_RETENTION_DAILY_DAYS",
-        "MEMORY_RETENTION_WEEKLY_DAYS",
-        "MEMORY_RETENTION_MONTHLY_DAYS",
-        "MEMORY_RETENTION_QUARTERLY_DAYS",
-    )
-    missing = [k for k in required if k not in data]
-    assert not missing, (
-        f"algorithm_constants.json missing MEMORY_RETENTION_* keys "
-        f"(ADR-028 R8): {missing}. Found keys: "
-        f"{sorted(k for k in data if not k.startswith('_'))}"
-    )
-
-
-def test_memory_retention_keys_mirrored_in_defensive_default() -> None:
-    """load_constants._defensive_default() MUST mirror all 4 MEMORY_RETENTION_* values.
-
-    The defensive default is the JSON-absent fallback (per W4.6 brief
-    §"Critical content" item 5). Mirror values to keep tests that mock
-    the file path deterministic. Drift between JSON and defensive
-    default breaks the SOT invariant.
-    """
-    import json
-
-    json_path = IKIGAI_SRC / "agents" / "v2" / "prompts" / "algorithm_constants.json"
-    load_path = IKIGAI_SRC / "agents" / "v2" / "prompts" / "load_constants.py"
-    if not json_path.exists() or not load_path.exists():
-        pytest.skip(f"{json_path} or {load_path} not present")
-    data = json.loads(json_path.read_text(encoding="utf-8"))
-    load_source = load_path.read_text(encoding="utf-8")
-
-    required = (
-        "MEMORY_RETENTION_DAILY_DAYS",
-        "MEMORY_RETENTION_WEEKLY_DAYS",
-        "MEMORY_RETENTION_MONTHLY_DAYS",
-        "MEMORY_RETENTION_QUARTERLY_DAYS",
-    )
-    missing = [k for k in required if f'"{k}"' not in load_source]
-    assert not missing, (
-        f"load_constants._defensive_default() missing MEMORY_RETENTION_* "
-        f"mirrors (ADR-028 R8 + ADR-019 R6): {missing}"
-    )
-
-    # Value sanity — each retention value in JSON must appear in the
-    # defensive default. We compare by string representation (None for
-    # quarterly, int for the rest).
-    for key in required:
-        json_value = data[key]
-        # Look for the key in load_constants and verify the value matches.
-        m = re.search(
-            rf'"{re.escape(key)}"\s*:\s*([^,\n]+),?\s*$',
-            load_source,
-            re.MULTILINE,
-        )
-        assert m, f"{key} not parsed in load_constants.py"
-        defensive_value_str = m.group(1).strip().rstrip(",")
-        # Normalize None
-        if json_value is None:
-            assert defensive_value_str == "None", (
-                f"{key}: JSON value is None but defensive default is {defensive_value_str!r}"
-            )
-        else:
-            # Must be an integer literal equal to JSON value
-            assert defensive_value_str == str(int(json_value)), (
-                f"{key}: JSON value is {json_value} but defensive default "
-                f"is {defensive_value_str!r}"
-            )
-
-
-def test_no_memory_retention_constants_in_agent_code() -> None:
-    """MEMORY_RETENTION_* tuning values MUST live in JSON only (ADR-019 R6 + ADR-028 R8).
-
-    Drift detector extension of the W3.2 invariant l to cover the 4 new
-    W4.6 retention keys. The only file allowed to DEFINE these constants
-    is prompts/load_constants.py (the loader's _defensive_default
-    fallback). All other .py files in agents/v2/ MUST reference retention
-    via load_constants.get(key) — NEVER hardcode DEFAULT_MEMORY_* or
-    inline MEMORY_RETENTION_* values.
-    """
-    v2_root = IKIGAI_SRC / "agents" / "v2"
-    if not v2_root.exists():
-        pytest.skip(f"{v2_root} not present")
-
-    allowed_definers = {v2_root / "prompts" / "load_constants.py"}
-    forbidden_pattern = re.compile(r"^(DEFAULT_MEMORY_|MEMORY_RETENTION_).*")
-
-    violations: list[str] = []
-    for py_file in _iter_python_files(v2_root):
-        if py_file.resolve() in {p.resolve() for p in allowed_definers}:
-            continue
-        try:
-            tree = ast.parse(py_file.read_text(encoding="utf-8"))
-        except SyntaxError:
-            continue
-        # Check module-level assignments only.
-        for node in tree.body:
-            if not isinstance(node, ast.Assign):
-                continue
-            for target in node.targets:
-                name = target.id if isinstance(target, ast.Name) else None
-                if name is None:
-                    continue
-                if forbidden_pattern.match(name):
-                    violations.append(
-                        _format_violation(
-                            py_file,
-                            node.lineno,
-                            "MEMORY-CONST",
-                            f"forbidden memory constant: {name} (must live in algorithm_constants.json)",
-                        )
-                    )
-
-    assert not violations, (
-        "ADR-019 / ADR-028 R8 violation — MEMORY_RETENTION_* / DEFAULT_MEMORY_* "
-        "constants MUST live in prompts/algorithm_constants.json, NOT in "
-        "src/ikigai/src/agents/v2/*.py. Use load_constants.get(key) instead. "
-        "Violations:\n" + "\n".join(sorted(violations))
     )
 
 
@@ -1480,85 +927,29 @@ def test_meta_plan_pydantic_v2_strict() -> None:
         )
 
 
-def test_sonho_log_template_exists() -> None:
-    """Invariant (m1): SONHO log template file exists at canonical path.
+def test_planning_note_template_exists() -> None:
+    """Invariant (m1): planning note template file exists at canonical path.
 
-    Per Wave 5 data-first methodology (CLAUDE.md "Current Mode"): the SONHO
-    log ritual gates Scenario C. The template at
-    ``vault/ikigai/templates/sonho-log.md`` is the single source of truth
-    for log structure (frontmatter + 4 sections).
+    Repurposed 2026-09-07 from the SONHO log ritual (which gated Wave 5
+    Scenario C and was dropped per
+    ``algorithm-gate-dropped-2026-09-03.md``). The template at
+    ``vault/ikigai/templates/sonho-log.md`` (filename retained for path
+    stability — only the CONTENT was repurposed) is the canonical human→agent
+    planning-change channel: frontmatter + 1 ``## Mudança`` section, 1-3
+    bullets, friction ≈ zero. The agent layer consumes these when operational.
     """
     template_path = REPO_ROOT / "vault" / "ikigai" / "templates" / "sonho-log.md"
     assert template_path.exists(), (
-        f"SONHO log template missing at {template_path}. "
-        "Wave 5 data-first methodology requires this template to exist."
+        f"Planning note template missing at {template_path}."
     )
     content = template_path.read_text(encoding="utf-8")
-    # Verify frontmatter + 4 sections
-    assert content.startswith("---"), "SONHO log template must have YAML frontmatter"
-    for section in (
-        "## 1. O que pensei",
-        "## 2. O que senti",
-        "## 3. O que decidi",
-        "## 4. O que observei",
-    ):
-        assert section in content, f"SONHO log template missing section: {section}"
-
-
-def test_sonho_log_trigger_wired_in_daily_command() -> None:
-    """Invariant (m2): `life v2 daily` prints a SONHO log hint after running.
-
-    Per Phase 1.2: the daily Typer command must call
-    ``_print_sonho_log_hint(console, date_str)`` to remind the user to
-    write a SONHO log. Opt-in only (never auto-writes); skipped in --json
-    mode.
-
-    The check is structural (AST) so the wiring can't silently regress.
-    """
-    skill_cmds_path = REPO_ROOT / "interfaces" / "cli" / "_v2_skill_cmds.py"
-    assert skill_cmds_path.exists(), f"missing {skill_cmds_path}"
-    source = skill_cmds_path.read_text(encoding="utf-8")
-
-    # 1. Helper function exists
-    assert "def _print_sonho_log_hint" in source, (
-        "interfaces/cli/_v2_skill_cmds.py must define _print_sonho_log_hint"
+    # Verify frontmatter + planning-note markers
+    assert content.startswith("---"), "Planning note template must have YAML frontmatter"
+    assert "type: planning_note" in content, (
+        "Planning note template frontmatter must declare type=planning_note"
     )
-
-    # 2. The daily command body calls the helper
-    tree = ast.parse(source)
-    daily_func = None
-    for node in ast.walk(tree):
-        if not (isinstance(node, ast.FunctionDef) and node.name == "daily"):
-            continue
-        # Decorator is `@app.command(name="daily")` — an ast.Call, not ast.Attribute.
-        for decorator in node.decorator_list:
-            if not isinstance(decorator, ast.Call):
-                continue
-            for kw in decorator.keywords:
-                if (
-                    kw.arg == "name"
-                    and isinstance(kw.value, ast.Constant)
-                    and kw.value.value == "daily"
-                ):
-                    daily_func = node
-                    break
-            if daily_func is not None:
-                break
-        if daily_func is not None:
-            break
-    assert daily_func is not None, (
-        "Could not locate @app.command(name='daily') function in _v2_skill_cmds.py"
-    )
-
-    calls_hint = any(
-        isinstance(child, ast.Call)
-        and isinstance(child.func, ast.Name)
-        and child.func.id == "_print_sonho_log_hint"
-        for child in ast.walk(daily_func)
-    )
-    assert calls_hint, (
-        "The daily Typer command must call _print_sonho_log_hint(console, date_str) "
-        "after the suggestions loop (Phase 1.2 trigger)."
+    assert "## Mudança" in content, (
+        "Planning note template missing '## Mudança' section"
     )
 
 
