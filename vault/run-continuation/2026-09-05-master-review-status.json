@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-09-05",
+  "purpose": "User review status for the 4 Wave 3 masters + PLAN + TASKS. Preenche as decisões e commita. Wave 4 kickoff só desbloqueia quando todos os 4 mestres estão accepted (ou annotated-with-blocker).",
+  "reviewer": "matheus",
+  "review_started_at": null,
+  "review_completed_at": null,
+  "decisions": {
+    "master_01_component_hierarchy": {
+      "file": "docs/superpowers/specs/2026-09-04-component-hierarchy.md",
+      "decision": null,
+      "decision_at": null,
+      "notes": "",
+      "blocking_issues": []
+    },
+    "master_02_task_breakdown": {
+      "file": "docs/superpowers/specs/2026-09-04-task-breakdown.md",
+      "decision": null,
+      "decision_at": null,
+      "notes": "",
+      "blocking_issues": []
+    },
+    "master_03_capability_status": {
+      "file": "docs/superpowers/specs/2026-09-04-capability-status.md",
+      "decision": null,
+      "decision_at": null,
+      "notes": "",
+      "blocking_issues": []
+    },
+    "master_04_adr_spec_gap": {
+      "file": "docs/superpowers/specs/2026-09-04-adr-spec-gap.md",
+      "decision": null,
+      "decision_at": null,
+      "notes": "",
+      "blocking_issues": []
+    },
+    "plan_dcode_harness": {
+      "file": "docs/superpowers/specs/2026-09-04-dcode-harness-PLAN.md",
+      "decision": null,
+      "decision_at": null,
+      "notes": "",
+      "blocking_issues": []
+    },
+    "tasks_dcode_harness": {
+      "file": "docs/superpowers/specs/2026-09-04-dcode-harness-TASKS.md",
+      "decision": null,
+      "decision_at": null,
+      "notes": "",
+      "blocking_issues": []
+    }
+  },
+  "wave_4_kickoff_authorized": false,
+  "next_session_first_action": "Read vault/run-continuation/2026-09-05-orchestration-handoff.md, then fill this status JSON"
+}

@@ -7,9 +7,15 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PID_DIR="$PROJECT_ROOT/.claude-flow/pids"
 LOG_DIR="$PROJECT_ROOT/.claude-flow/logs"
 METRICS_DIR="$PROJECT_ROOT/.claude-flow/metrics"
+SCHEDULES_DIR="$PROJECT_ROOT/.claude-flow/schedules"
+SCHEDULES_CONFIG="$PROJECT_ROOT/.claude/loop/schedules.json"
 
 # Ensure directories exist
-mkdir -p "$PID_DIR" "$LOG_DIR" "$METRICS_DIR"
+mkdir -p "$PID_DIR" "$LOG_DIR" "$METRICS_DIR" "$SCHEDULES_DIR"
+
+# Load scheduled-task library (loop-engineering wiring).
+# Kept in a separate file so this script stays under the 500-line rule.
+source "$SCRIPT_DIR/daemon-manager-schedules.sh"
 
 # PID files
 SWARM_MONITOR_PID="$PID_DIR/swarm-monitor.pid"
@@ -204,6 +210,7 @@ show_status() {
     echo ""
 }
 
+
 # Main command handling
 case "${1:-status}" in
     "start")
@@ -224,18 +231,47 @@ case "${1:-status}" in
     "start-metrics")
         start_metrics_daemon "${2:-60}"
         ;;
+    "add")
+        shift
+        add_schedule "$@"
+        ;;
+    "remove")
+        shift
+        remove_schedule "$@"
+        ;;
+    "list")
+        list_schedules
+        ;;
+    "start-schedule")
+        start_schedule "${2:-}"
+        ;;
+    "stop-schedule")
+        stop_schedule "${2:-}"
+        ;;
+    "cron")
+        fire_schedule_once "${2:-}"
+        ;;
     "help"|"-h"|"--help")
         echo "Claude Flow V3 Daemon Manager"
         echo ""
         echo "Usage: $0 [command] [options]"
         echo ""
-        echo "Commands:"
+        echo "Daemon commands:"
         echo "  start [swarm_interval] [metrics_interval]  Start all daemons"
         echo "  stop                                       Stop all daemons"
         echo "  restart [swarm_interval] [metrics_interval] Restart all daemons"
         echo "  status                                     Show daemon status"
         echo "  start-swarm [interval]                     Start swarm monitor only"
         echo "  start-metrics [interval]                   Start metrics daemon only"
+        echo ""
+        echo "Scheduled-task commands (loop-engineering wiring):"
+        echo "  add --name X --interval 60m --command 'CMD' [--cost-cap-usd 5]"
+        echo "                                             Add + start a scheduled task"
+        echo "  remove --name X                            Stop + delete a scheduled task"
+        echo "  list                                       List all scheduled tasks"
+        echo "  start-schedule X                           Start a single schedule"
+        echo "  stop-schedule X                            Stop a single schedule"
+        echo "  cron X                                     Fire schedule X once (no daemon)"
         echo "  help                                       Show this help"
         echo ""
         echo "Examples:"
@@ -243,6 +279,9 @@ case "${1:-status}" in
         echo "  $0 start 10 30     # Start with 10s swarm, 30s metrics intervals"
         echo "  $0 status          # Show current status"
         echo "  $0 stop            # Stop all daemons"
+        echo "  $0 add --name loop-tick --interval 60m \\"
+        echo "        --command 'bash .claude/loop/loop-tick.sh' --cost-cap-usd 5"
+        echo "  $0 list            # Show all scheduled tasks"
         ;;
     *)
         error "Unknown command: $1"
