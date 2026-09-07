@@ -9,8 +9,7 @@ The worker operates in two modes:
 1. run_once(): single drain pass (idempotent, safe to call repeatedly)
 2. start_worker(): daemon mode with pidfile-based liveness (loop until SIGTERM/KeyboardInterrupt)
 
-For cross-platform pidfile management, we reuse _is_pid_alive from
-interfaces.cli.mcp_gateway_probe.
+For cross-platform pidfile management, we inline _is_pid_alive here.
 """
 
 from __future__ import annotations
@@ -138,8 +137,6 @@ def stop_worker(pidfile_path: Path) -> bool:
         return False
 
     # Check if alive and kill
-    from interfaces.cli.mcp_gateway_probe import _is_pid_alive
-
     if _is_pid_alive(pid):
         try:
             sig = signal.SIGTERM if hasattr(signal, "SIGTERM") else signal.SIGABRT
@@ -154,13 +151,42 @@ def stop_worker(pidfile_path: Path) -> bool:
         return False
 
 
+def _is_pid_alive(pid: int) -> bool:
+    """Cross-platform check whether pid is a running process.
+
+    Windows: uses kernel32 OpenProcess + GetExitCodeProcess.
+    POSIX: uses os.kill(pid, 0) signal-0 probe (raises if dead).
+    """
+    if pid <= 0:
+        return False
+    try:
+        if os.name == "nt":  # Windows
+            import ctypes
+
+            kernel32 = ctypes.windll.kernel32
+            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            STILL_ACTIVE = 259
+            handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+            if handle == 0:
+                return False
+            try:
+                exit_code = ctypes.c_ulong()
+                kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
+                return exit_code.value == STILL_ACTIVE
+            finally:
+                kernel32.CloseHandle(handle)
+        else:  # POSIX
+            os.kill(pid, 0)
+            return True
+    except (OSError, ProcessLookupError, PermissionError):
+        return False
+
+
 def worker_status(pidfile_path: Path) -> dict[str, Any]:
     """Same shape as probe_mcp_gateway: {running: bool, pid: int|None, started_at: str|None}.
 
-    Reuses _is_pid_alive from interfaces.cli.mcp_gateway_probe for cross-platform probe.
+    Cross-platform probe via local _is_pid_alive.
     """
-    from interfaces.cli.mcp_gateway_probe import _is_pid_alive
-
     result: dict[str, Any] = {
         "running": False,
         "pid": None,

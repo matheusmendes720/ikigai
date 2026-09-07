@@ -149,10 +149,39 @@ START_COMMANDS: dict[str, list[str]] = {
 LOG_DIR = Path(__file__).parent.parent.parent / "data" / "run" / "logs"
 
 
-def _pid_alive(pid: int) -> bool:
-    """Cross-platform liveness check. Delegates to gateway_probe to keep one impl."""
-    from interfaces.cli.mcp_gateway_probe import _is_pid_alive
+def _is_pid_alive(pid: int) -> bool:
+    """Cross-platform check whether pid is a running process.
 
+    Windows: uses kernel32 OpenProcess + GetExitCodeProcess.
+    POSIX: uses os.kill(pid, 0) signal-0 probe (raises if dead).
+    """
+    if pid <= 0:
+        return False
+    try:
+        if os.name == "nt":  # Windows
+            import ctypes
+
+            kernel32 = ctypes.windll.kernel32
+            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            STILL_ACTIVE = 259
+            handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+            if handle == 0:
+                return False
+            try:
+                exit_code = ctypes.c_ulong()
+                kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
+                return exit_code.value == STILL_ACTIVE
+            finally:
+                kernel32.CloseHandle(handle)
+        else:  # POSIX
+            os.kill(pid, 0)
+            return True
+    except (OSError, ProcessLookupError, PermissionError):
+        return False
+
+
+def _pid_alive(pid: int) -> bool:
+    """Backward-compat alias — kept so existing call sites at lines 183/223/241 still bind."""
     return _is_pid_alive(pid)
 
 
@@ -265,6 +294,43 @@ def _stop_process(name: str, pidfile_path: Path) -> tuple[bool, str]:
     return True, f"killed PID={pid}"
 
 
+def _probe_mcp_gateway(pidfile_path: Path) -> dict[str, Any]:
+    """Probe mcp_gateway status via pidfile.
+
+    Shape matches other backend_status() rows:
+        {running: bool, pid: int | None, started_at: str | None}
+
+    Logic:
+      - pidfile missing       → running=False, pid=None
+      - pidfile unreadable    → running=False, pid=None (no crash)
+      - pidfile + PID alive   → running=True, pid=<pid>, started_at=<mtime>
+      - pidfile + PID dead    → running=False, pid=None (stale pidfile)
+    """
+    result: dict[str, Any] = {
+        "running": False,
+        "pid": None,
+        "started_at": None,
+    }
+
+    if not pidfile_path.exists():
+        return result
+
+    try:
+        pid = int(pidfile_path.read_text().strip())
+    except (ValueError, OSError):
+        return result
+
+    # Capture pidfile mtime as "started_at" (ISO timestamp would be nice but
+    # backend_status() shape currently uses str-coerced values; defer parsing).
+    result["started_at"] = str(pidfile_path.stat().st_mtime)
+
+    if _is_pid_alive(pid):
+        result["running"] = True
+        result["pid"] = pid
+
+    return result
+
+
 def backend_status() -> list[dict[str, Any]]:
     """Return status snapshot for all backend processes.
 
@@ -272,7 +338,6 @@ def backend_status() -> list[dict[str, Any]]:
     checks PID alive. Other 2 processes still report running=False (their
     wiring lands in B5).
     """
-    from interfaces.cli.mcp_gateway_probe import probe_mcp_gateway
     from src.mesh.review_queue_worker import worker_status
 
     rows = []
@@ -288,7 +353,7 @@ def backend_status() -> list[dict[str, Any]]:
         pidfile = meta.get("pidfile_path")
         if pidfile is not None:
             if name == "mcp_gateway":
-                probe = probe_mcp_gateway(pidfile_path=pidfile)
+                probe = _probe_mcp_gateway(pidfile)
             elif name == "review_queue_worker":
                 probe = worker_status(pidfile)
             else:

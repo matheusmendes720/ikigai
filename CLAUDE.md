@@ -68,9 +68,21 @@ life/
 │   │       ├── cli.py         CliAdapter (data/tasks.jsonl)
 │   │       ├── taskdog.py     TaskdogAdapter (SQLite UPSERT on ueid)
 │   │       └── solverforge_calendar.py SolverforgeCalendarAdapter (UPI ueid column)
-│   ├── ikigai/                ← was life-ops/ikigai/ (Deep Agent + MCP)
+│   ├── ikigai/                ← Deep Agent + MCP gateway (FastMCP server)
+│   │   └── src/
+│   │       ├── agents/         v2 LangGraph graph (9 nodes + subgraphs)
+│   │       └── mcp_server/     15 @MCP.tool + 6 @MCP.resource
 │   ├── life_tatics/            ← was life-ops/life_tatics/
 │   └── planner/                ← was life-ops/planner/
+│
+├── sys_ikigai/                 ← was src/ikigai/src/ikigai/ (renamed 2026-09-05, commit 685dec5)
+│   ├── entities/              Pydantic v2 strict: UEID, Task, Project, Regime, Score…
+│   ├── gateway/               Fork clients (CLI / taskdog / solverforge_calendar / tuiboard)
+│   ├── state_machines/        Dream / Goal / Objective / Project / Task / Habit / Routine / Deliverable FSMs
+│   ├── propagation/           MarkdownDB + frontmatter + sqlite_adapter + triagem
+│   ├── vault/                 VaultLock + vault_write (sole vault writer per ADR-012)
+│   ├── security/              kill_switch + transition_validator
+│   └── adapters/              drift_detector + checkpoint + sqlite_bridge + state_reducer
 │
 ├── vibe-ops/                   cybernetic engine (Target→Sensor→Adjuster)
 │   ├── src/
@@ -93,8 +105,10 @@ life/
 │   └── session-*.md            session transcripts
 │
 ├── interfaces/                  INTERFACE LAYER (consumers)
-│   ├── cli/                   Typer CLI — `life mesh show`, `life task add` (Phase 3 v1)
-│   └── tui/                   TUI apps (planned)
+│   ├── cli/                   Typer CLI — `life v2 daily/weekly/...`, `life mesh show`, kill_switch
+│   │                           v2.py split into 6 modules (commit 11f463b, max 267L)
+│   └── tui/
+│       └── operator/          Textual 4-tab TUI (Chat / Tasks / State / KillSwitch) — `life tui`
 │
 ├── strategics/                  STRATEGIC KNOWLEDGE (PT-BR, read-only)
 │   ├── Hierarquia de Objetivos.md
@@ -143,6 +157,17 @@ life/
 
 ## Build / Run / Test
 
+### Test discovery & sys.path
+
+`tests/conftest.py` (repo root) is the single source of truth for test
+imports. It:
+
+- Adds `<repo>/` to `sys.path` (resolves BOTH `from src.contracts.X` via `<repo>/src/` AND `from sys_ikigai.X` via `<repo>/sys_ikigai/`).
+- Redirects `tempfile.tempdir` + `TMPDIR`/`TEMP`/`TMP` to `data/pytest-tmp/` (gitignored) to dodge Windows `PermissionError [WinError 5]` on stale `AppData\Local\Temp\pytest-of-<user>\` dirs.
+
+`mypy.ini` lives at repo root with `mypy_path = src .. ../..` and
+`explicit_package_bases = True` (closes W6.X item 5 dup-source error).
+
 ### PAV kernel — ARCHIVED 2026-08-31
 
 The Produtividade Algorítmica Visual (PAV) kernel — pure-arithmetic business
@@ -175,6 +200,27 @@ ikigai.bat mcp          # start MCP server (15 @MCP.tool + 6 @MCP.resource on Fa
 ikigai.bat agent <thread>
 ikigai.bat chat <thread>
 ```
+
+### Interfaces (interfaces/cli/ + interfaces/tui/)
+
+```bash
+# CLI — v2 split into 6 modules (commit 11f463b, max 267L in _v2_primitives.py)
+python -m interfaces.cli.main v2 daily       # daily run → invoke_skill path
+python -m interfaces.cli.main v2 weekly      # weekly run → invoke_skill path
+python -m interfaces.cli.main v2 plan        # meta-planner (Plan D SHIPPED 2026-09-04)
+python -m interfaces.cli.main mesh show <ueid>
+python -m interfaces.cli.main task add ...
+python -m interfaces.cli.main kill_switch status|pause|resume  # W5.3 SHIPPED 2026-09-05
+
+# TUI — Textual 4-tab operator (Chat / Tasks / State / KillSwitch)
+python -m interfaces.tui.operator.main
+# or: life tui
+```
+
+The `kill_switch` lives at `sys_ikigai/security/kill_switch.py` and is
+the canonical way to pause/resume the cybernetic engine without killing
+the daemon process. Both CLI subcommand and 5th TUI tab were added in
+W5.3 (commit batch, 7 new files + 2 edits, 13/13 PASS).
 
 ### Phase B3 — MCP Gateway
 
@@ -258,80 +304,39 @@ PolicyEngine states (PUSH / MAINTAIN / REDUCE / RECOVER) with hysteresis.
 
 ---
 
-## Current Mode (2026-09-05)
+## Current Mode
 
 **Data-first methodology** — IKIGAi está pausado para *novas decisões de
 algoritmo* (M01/N01/A02/A06, IKIGAI vector weights). Não escrever código de
 algoritmo novo até 5+ SONHO logs manuais
 (`vault/ikigai/closing-2026/01-q3-2026/04-relatórios-diários/`). Decisões de
-algoritmo deferidas até evidência empírica.
+algoritmo deferidas até evidência empírica. The "pausado" directive applies
+to **algorithm decisions only** — agent/harness plumbing and Drift net work
+are not paused.
 
-### SONHO Log Ritual (Phase 1.5 — 2026-09-05)
+### Planning Note channel (human → agent)
 
-The 5+ SONHO log gate is **operational, not architectural**. Drift invariants
-(m1, m2) only check template + trigger wiring — the counter is manual.
+Lightweight canal for planning changes. **Not** a ritual, **not** a gate —
+the original "5+ SONHO logs" framing gated Wave 5 Scenario C, which was
+dropped 2026-09-03 per
+`~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-dropped-2026-09-03.md`;
+the template was repurposed for the human→agent channel that the agent
+layer will consume when it goes operational.
 
-**Template:** `vault/ikigai/templates/sonho-log.md` (67 lines, 4 sections: O que
-pensei / O que senti / O que decidi / O que observei).
+- **Template:** `vault/ikigai/templates/sonho-log.md` (filename retained for path stability — only CONTENT was repurposed; 1 section: `## Mudança`)
+- **Trigger:** manual only — after any planning delta (sprint boundary, goal change, project pivot, scope refinement)
+- **Cadence:** event-driven (NOT daily). 1–3 bullets per note, <2 min.
+- **Where:** `vault/ikigai/closing-2026/<quarter>/04-relatórios-diários/YYYY-MM-DD.md`
+- **Atrito-alvo:** zero — só registra o delta, sem análise ou refinamento
 
-**Trigger:** After `life v2 daily` runs, `_print_sonho_log_hint` prints a
-one-liner pointing to today's log filename. Opt-in only — never auto-writes.
-Skipped in `--json` mode.
+### Where shipped-wave history lives
 
-**Cadence:** 1 log per working day (Mon–Fri), 5–10 min each. Friday's log feeds
-into `../03-revisões-semanais/YYYY-Www.md`.
-
-**Count:** 1/5 as of 2026-09-05 (`2026-09-05.md`).
-
-> **Phase 8 SHIPPED (2026-09-03, commits `fb41578` → `3b7b8f6`)** actively
-> restored agent code (`src/ikigai/src/agents/v2/`) + MCP wrappers + gateway
-> E2E + v2 interfaces + 9th v2 node surfacing PAV intentions. The "pausado /
-> não escrever novo código" directive is applicable to **algorithm decisions
-> only**, not to agent/harness plumbing. Estado vivo em
-> `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/MEMORY.md`.
-
-> **Wave 3 SHIPPED (2026-09-04, dcode-harness roadmap)** — **8/8 Wave 3 tasks
-> shipped**:
->
-> | Task | Commit | Status |
-> |------|--------|--------|
-> | W3.1 — multi-tree pytest collection | `688b316` | ✅ shipped |
-> | W3.2 — QHE constants → prompt-template | `1ef638c` | ✅ shipped (49/49 PASS, ruff clean, ADR-019 forthcoming W5.2) |
-> | W3.3 — v2 graph smoke test | `0f3feb1` | ✅ shipped (17/17 PASS, API 529 retry helper per Diag 03) |
-> | W3.4 — ADR-025 skill binding mechanism | `9604443` + `82de324` | ✅ shipped **Accepted 2026-09-04** |
-> | W3.5 — wire daily entry point | `c3f9251` + `01d4005` + `27e7a4b` + `3c086a1` | ✅ shipped (37 PASS / 9 skipped) |
-> | W3.6 — CLI wrapper triggers graph → taskdog Path 1 | `059cffb` | ✅ shipped (75/75 v2 combo PASS, drift invariant l) |
-> | W3.7 — stale NODES count assertion | `fbe083c` | ✅ shipped (drift fix discovered during Wave 3 regression sweep) |
-> | W3.8 — E2E smoke chat → vault + taskdog → fork | `b77e0f1` | ✅ shipped (78/78 PASS, drift 24/24) |
->
-> Wave 3 cumulative regression: **78/78 PASS** in v2 combo (canonical_scope 24
-> + invoke_skill_taskdog 12 + daily 17 + graph_smoke 17 + e2e_smoke 3 +
-> imports_safely 8 + entry_point 5). ruff clean across all modified files.
-> Zero Wave 3 regressions.
->
-> **Wave 3 final acceptance gated on user review (#11) of 4 masters + PLAN +
-> TASKS.** Two open follow-ups surfaced from Wave 3 review (both non-blocking,
-> tracked in `~/.git/sdd/progress.md`):
-> 1. CLI wrapper gap — `interfaces/cli/v2.py:_run_weekly/_run_monthly/_run_quarterly`
->    still use the W2.3 cycle+score+regime path and don't route through
->    `invoke_skill()`. Only `_run_daily` was wired in W3.5. Separate scope.
-> 2. `interfaces/cli/v2.py` 747 lines (CLAUDE.md 500-line guideline; pre-existing,
->    exacerbated by W3.6 post-processor extraction to `_skill_outputs.py`).
->
-> **Wave 4 kickoff (Scenario B: Sub-agents + stateful subgraphs, 32-44h)** is
-> pending the user's #11 4-master review acceptance. Wave 3 zero
-> regressions; one pre-existing stale-assertion drift fixed (W3.7).
->
-> **Wave 3 SHIP-COMPLETE — awaiting #11 4-master review for Wave 4 kickoff.**
-> All Wave 3 blockers (ADR-025 acceptance, W3.5/3.6/3.7/3.8 ships) cleared.
-> Wave 4 Scenario B (Sub-agents + stateful subgraphs, 32-44h) requires user
-> acceptance of the 4 masters before kickoff.
-
-> **Plan D SHIPPED (2026-09-04, commits `2b43502`..`cf353ad`, 14 commits)** — meta-planner integration. Spec at `docs/superpowers/specs/2026-09-04-meta-planner-design.md` + plan at `docs/superpowers/plans/2026-09-04-meta-planner-plan-d.md`. 6 tracks (A contracts / B subgraph nodes / C state wiring / D observe hint / E CLI / F ADR-031). 11 Pydantic v2 strict contracts + 3 nodes + 3-node subgraph factory + `life v2 plan` CLI command + 3 E2E tests. Final reviewer verdict: APPROVED_FOR_USER_ACCEPTANCE. Drift 41/41 PASS, E.2 tests 3/3 PASS. ADR-031 status: DRAFT (pending #11 acceptance).
-
-> **Plan C SHIPPED (2026-09-05, commits `52e0e9e`..`30e0fd1`, 6 commits)** — Investigation Queue. Pre-form observation queue for raw data / shadow loops / ambiguous leads that don't fit the 6-level SONHO/OBJETIVO/META/PROJETO/ENTREGA/TAREFA hierarchy. Plan at `docs/superpowers/plans/2026-09-03-investigation-queue-plan-c.md`. 6 tracks (T1 schema / T2 queue helpers / T3 MCP tools / T4 drift invariant h / T5 dispatcher / T6 integration smoke). 1 Pydantic v2 strict contract (`Investigation` + `InvestigationStatus` Literal) + filesystem append-only queue at `data/investigation_queue/` with audit log + 3 MCP tools (`investigation_enqueue` / `investigation_status` / `investigation_complete`) + cron-invoked dispatcher worker (pure dispatch, NO LLM, 3 rules: stale→archive, crystallized→resolve, ready-tag→hint) + drift invariant (h) `test_investigation_queue_invariants` + 7-test E2E smoke. Final reviewer verdict: APPROVED_FOR_USER_ACCEPTANCE. Drift 41/41 → 42/42 PASS, runnable 95/95 PASS post-W6.X (commit `ff3037f` unblocked 13 tests/mesh/ PermissionErrors; combined sweep 42 drift + 8 contracts + 10 lifecycle + 15 dispatcher + 7 integration + 13 queue). 4 minor non-blocking findings (M-1 docstring vs assertion mismatch, M-2 test count +1 superset, M-3 MCP count 19 not 15 incl Plan B forks, M-4 already-fixed-via-this-update) deferred to Wave 6 hygiene. SONHO tree now persistable from all 3 input streams: Plan A (native), Plan B (external research), Plan C (pre-form observations).
-
-> **W6.X Hygiene Wave SHIPPED (2026-09-05, commits `ff3037f` + `f9c1505` + `3a4ed8c` + `9f8687f` + `a73ec6e` + `39fd55a`, 6 commits)** — closes the 5-item W3.5/3.6/3.8 non-blocking follow-up bundle. Items: (1) Windows pytest env fix — `ff3037f` tempfile.tempdir redirect to `data/pytest-tmp/` unblocked 13 `tests/mesh/` PermissionErrors, sweep 82 → 95 PASS; (2) CLI wrapper gap — `f9c1505` wires `_run_weekly/_run_monthly/_run_quarterly` to `invoke_skill()`, matching `_run_daily` from W3.5; tests updated at `a73ec6e` to mock `invoke_skill` (15/15 PASS); (3) `test_taskdog_cli.py` 13 failures — `3a4ed8c` root cause was dual module identity (`src.mesh.adapters.taskdog` vs `mesh.adapters.taskdog`), patched both; (4) bash artifacts cleanup — `9f8687f` 27 stray files deleted + 18 `.gitignore` patterns; (5) mypy dup-source resolution — `39fd55a` added `mypy.ini` with `mypy_path = src .. ../..` + `explicit_package_bases = True`, dup-source error gone (542 remaining `[import-not-found]` errors are pre-existing stub-resolution issues, separate scope). 1 minor pre-existing finding (4 cross-pollution failures in `test_review_queue_worker.py` when run as suite, PASSES in isolation) deferred to next hygiene pass.
+Wave 3 / Wave 4 / Wave 5 / Plan C / Plan D / W6.X hygiene milestones,
+commit hashes, PASS counts, and ADR-acceptance states all live in
+`~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/` —
+not here. CLAUDE.md is the durable-contract file; memory holds the
+audit trail. Add a one-line memory entry per shipped wave and link it
+from `MEMORY.md`.
 
 ## Root Layout (não-`src/`)
 
@@ -376,15 +381,84 @@ Para subir um graph específico: `make dev-graph NAME=pae_maintainer`.
 
 ---
 
+---
+
+## Drift Invariants & Tests
+
+The Drift net is the regression guard for canonical contracts. If a
+contributor changes a load-bearing invariant without explicitly bumping
+the contract version, CI fails.
+
+| File | Purpose | Approx lines |
+|------|---------|--------------|
+| `src/ikigai/tests/test_canonical_scope.py` | IKIGAI_TOOLS count, planner-only scope (no PAE math), fork MCP surface | 1586 |
+| `src/ikigai/tests/test_drift_invariants.py` | UEID 4-part regex, append-only invariants, dual-tree identity | 297 |
+| `src/ikigai/tests/test_drift_extended_invariants.py` | Wave 3+ invariants (a-h): canonical_scope, investigation_queue, dual-module identity, cross-pollution | growing |
+
+**Invariant categories:**
+
+1. **canonical_scope** — IKIGAI agent must remain planner-only (no PAE math execution; math/policy/scoring tools are explicitly forbidden per ADR-013).
+2. **drift_invariants** — UEID 4-part canonical format (ADR-014); vault/strategics/vibe-ops append-only; vault_write is sole vault writer (ADR-012).
+3. **dual_module_identity** — guards the `src.X` vs `X` import split that surfaced via taskdog CLI test failures (W6.X item 3). Tests must patch BOTH identities or `monkeypatch.setattr` silently no-ops.
+4. **cross_pollution** — flags state pollution between test modules (e.g. shared filesystem fixtures leaking across boundaries). Same root cause as W6.X deferred finding.
+
+**When you add a feature that crosses an invariant boundary**, the right
+move is to add a new test in `test_drift_extended_invariants.py` rather
+than weakening an existing one. Drift tests are append-only — they grow
+with the system but never get deleted.
+
+---
+
+## Import-Path Rules
+
+Two import styles coexist, and mixing them silently breaks tests:
+
+| Layer | Style | Example | Resolves via |
+|-------|-------|---------|--------------|
+| `src/contracts/`, `src/mesh/`, `src/ikigai/` (agents/MCP) | dotted-prefix | `from src.contracts.sonho import ...` | `<repo>/src/` |
+| `sys_ikigai/` (entities, gateway, state_machines, vault, security) | bare namespace | `from sys_ikigai.entities.task import Task` | `<repo>/sys_ikigai/` |
+
+Both resolve from `<repo>/` after the 2026-09-05 namespace rename
+(`src/ikigai/src/ikigai/` → `sys_ikigai/`, commit `685dec5`). The
+`tests/conftest.py` setup adds `<repo>/` to `sys.path` once, and both
+styles work.
+
+**Why this matters — dual-module identity bug class:**
+
+If production code uses dotted-prefix (`from src.contracts.X`) but a test
+monkeypatches the bare module (`monkeypatch.setattr(sys.modules["contracts.X"], ...)`),
+the patch silently no-ops because `sys.modules["src.contracts.X"]` is
+the *actual* module instance the production code holds. The test
+passes its assertion against an unpatched object. The first hit was
+`test_taskdog_cli.py` (W6.X item 3, commit `3a4ed8c`); the structural
+fix was the sys_ikigai rename which made the dotted-prefix pattern
+explicit. **Rule: when monkeypatching, patch BOTH identities.**
+
+---
+
+## Windows Quirks
+
+A handful of Windows-only bugs have shipped and stayed fixed. If you
+hit them again, the fix is already known:
+
+| Bug | Fix | Commit |
+|-----|-----|--------|
+| `sys.stdin.readline()` HANGS on Windows pipes (MCP stdio handshake) | Use `sys.stdin.buffer.readline()` | `b93a1f3` |
+| pytest-asyncio raises `PermissionError [WinError 5]` on stale `AppData\Local\Temp\pytest-of-<user>\` dirs | `tests/conftest.py` redirects `tempfile.tempdir` + `TMPDIR`/`TEMP`/`TMP` to `data/pytest-tmp/` | `ff3037f` |
+| Empty directory locked by another process (e.g. `__pycache__` mid-collect) | Mark for deletion via `PendingFileRenameOperations` registry, finishes on next reboot | per Windows orphan-dir memory |
+
+**`mypy.ini`** lives at repo root (`mypy_path = src .. ../..` + `explicit_package_bases = True`, commit `39fd55a`) — the dup-source resolution closes the W6.X item 5 finding. The 542 remaining `[import-not-found]` errors are pre-existing stub-resolution issues, separate scope.
+
+---
+
 ## What Is Broken / TODO
 
-- **interfaces/tui/ is empty** — Phase 4-6 of reorg (CLI shipped in Phase 3 v1)
-- **MCP Gateway ✅ wired as code** — 19 tools advertised (12 IKIGAI_TOOLS + 7 fork tools: `sf_*` + `tuiboard_*` per Phase A); `vault_write` sole vault writer (ADR-012)
-- **Deep Agent harness exists but doesn't fill interfaces yet**
-- **`vibe_ops.db` moved to `data/`**; `vibe_ops_test.db` moved to `data/test-fixtures/` (Phase 0 audit-closure 2026-08-31) — some code paths may still reference old locations
-- **Phase 3 v1 ships `create` only** for the data mesh; `update`/`delete`/`done` deferred to v1.2-v1.4 (gated on data-first methodology: 5+ SONHO logs). Phase A SHIPPED extended fork side via MCP tools; Phase 8 SHIPPED restored agent v2 plumbing.
+- **Deep Agent harness exists but doesn't fill interfaces yet — current state, NOT implicit roadmap.** v2 graph code lives at `src/ikigai/src/agents/v2/` but is not registered as a LangGraph runtime graph (Phase 8.1, commit `fb41578`). User scope (2026-09-06 pivot): agent **operates the interface** and **reasons about planning context** (SONHOS / metas / objetivos across projects/tasks). Filling interface fields automatically from agent output is **NOT the priority** and should not be re-introduced as a roadmap item without explicit user demand.
+- **`vibe_ops.db` lives in `data/`** (Phase 0 audit-closure 2026-08-31) — some code paths may still reference old root location
+- **Phase 3 v1 ships `create` only** for the data mesh; `update`/`delete`/`done` deferred. v1.2-v1.4 is **NOT a roadmap item** — only proceeds if user adjudicates (data-first SONHO-log gate was DROPPED 2026-09-03 per [[algorithm-gate-dropped-2026-09-03]]). Phase A extended fork side via MCP tools; Phase 8 restored agent v2 plumbing.
 - **Phase 3 minor findings (logged, non-blocking)**: UPI `id` churn on UPSERT conflict; `propagate()` doesn't auto-ack `partial_propagation` status
-- **Path 3 taskdog MCP gateway DEFERRED** — `taskdog_mcp.server` module not built; canonical path is Path 1 (harness @tool → subprocess → taskdog.exe). See `docs/design-system/24-taskdog-paths-architecture.md`.
+- **MCP Gateway ✅ wired as code** — 15 IKIGAI_TOOLS + 7 fork tools (`sf_*` + `tuiboard_*`) in UnifiedMCPGateway + 6 resources (corrected 2026-09-04 per Diag 02); `vault_write` is the sole vault writer (ADR-012)
+- **Path 3 taskdog MCP shipped (read-only)** — commit `6b9c9d1`. Canonical write path is still Path 1 (harness @tool → subprocess → taskdog.exe). See `docs/design-system/24-taskdog-paths-architecture.md`.
 
 ---
 
@@ -392,13 +466,15 @@ Para subir um graph específico: `make dev-graph NAME=pae_maintainer`.
 
 | Task | Start here |
 |------|-----------|
-| Using mesh | `life mesh show <ueid>` (after `life task add ...`) |
-| Building interfaces | interfaces/cli/ or interfaces/tui/ |
-| Deep Agent development | src/ikigai/src/agents/ + vault/ |
-| Unifying contracts | src/contracts/ + src/mesh/ (Phase 3 DONE) |
-| MCP Gateway integration | src/ikigai/MCP_GATEWAY.md |
-| Understanding the system | docs/ARCHITECTURE_INDEX.md |
-| Phase 3 spec/plan | docs/superpowers/specs/ + docs/superpowers/plans/ (2026-08-28) |
+| Using mesh | `python -m interfaces.cli.main mesh show <ueid>` (after `task add ...`) |
+| Building interfaces | `interfaces/cli/` (split 6 modules) or `interfaces/tui/operator/` (Textual 4-tab) |
+| Deep Agent development | `src/ikigai/src/agents/` (v2 graph + 9 nodes) + `vault/` |
+| Unifying contracts | `src/contracts/` + `src/mesh/` (Phase 3 DONE) |
+| MCP Gateway integration | `src/ikigai/MCP_GATEWAY.md` |
+| Understanding the system | `docs/ARCHITECTURE_INDEX.md` |
+| Kill switch (pause/resume engine) | `sys_ikigai/security/kill_switch.py` + CLI `kill_switch status\|pause\|resume` + 5th TUI tab |
+| Drift net / invariant work | `src/ikigai/tests/test_canonical_scope.py` + `test_drift_invariants.py` + `test_drift_extended_invariants.py` |
+| Phase 3 spec/plan | `docs/superpowers/specs/` + `docs/superpowers/plans/` (2026-08-28) |
 
 ---
 
