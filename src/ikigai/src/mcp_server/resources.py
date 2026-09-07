@@ -19,8 +19,8 @@ from pathlib import Path
 from typing import Any
 
 from contracts.common import UEID
-from mesh import queue as _queue
 from mesh.adapters import CliAdapter, SolverforgeCalendarAdapter, TaskdogAdapter
+from src.mesh import queue as _queue
 
 from mcp_server.tools_mesh import ikigai_health
 

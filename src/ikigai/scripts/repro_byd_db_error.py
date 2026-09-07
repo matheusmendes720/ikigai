@@ -20,7 +20,7 @@ Expected::
 Then run ``scripts/verify_traces.py`` within 5 minutes to confirm both
 backends received the span.
 """
-import os
+
 import sys
 from pathlib import Path
 
@@ -39,7 +39,7 @@ DB = ROOT / "data" / "matheus" / "deliverables" / "byd-d4-outputs" / "byd-tracke
 @observed_tool("ikigai.read_sqlite_as_text")
 def read_db_as_text(path: str) -> str:
     """Simulates the deepagents fallback: open with utf-8 regardless of content."""
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return f.read()
 
 

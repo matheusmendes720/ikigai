@@ -351,6 +351,7 @@ def _invoke_agent_or_fallback(
         if isinstance(exc, (KeyboardInterrupt, SystemExit, GeneratorExit)):
             raise
         import traceback as _tb
+
         print(f"[invoke-fallback] {type(exc).__name__}: {exc}", flush=True)
         _tb.print_exc()
         return None

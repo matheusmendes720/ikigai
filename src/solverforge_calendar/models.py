@@ -3,6 +3,7 @@
 Per spec §10 (decisions): all cross-process types use Pydantic v2 strict
 (frozen=True, extra="forbid"). UEID imported from src/contracts.common.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -21,6 +22,7 @@ class _Base(BaseModel):
 
 class SfScheduleInput(_Base):
     """Input for sf_schedule — add or update a scheduled event."""
+
     ueid: UEID
     title: str = Field(..., max_length=200)
     start_at: datetime
@@ -44,7 +46,9 @@ class SfReplanInput(_Base):
     horizon_start: datetime
     horizon_end: datetime  # max 14 days from horizon_start
     affected_ueids: list[UEID] = []
-    strategy: Literal["minimize_moves", "earliest_first", "load_balance"] = "minimize_moves"
+    strategy: Literal["minimize_moves", "earliest_first", "load_balance"] = (
+        "minimize_moves"
+    )
     hard_constraints: list[str] = []
 
 

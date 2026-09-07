@@ -7,6 +7,7 @@ Usage:
 Or from project root with uv:
     cd src/ikigai && uv run python run_mcp_server.py
 """
+
 from __future__ import annotations
 
 import asyncio

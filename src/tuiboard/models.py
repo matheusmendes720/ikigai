@@ -109,11 +109,13 @@ class TuiboardDiffOutput(_Base):
 
 class TuiboardAggregateInput(_Base):
     """Input for tuiboard_aggregate tool — no parameters required."""
+
     pass
 
 
 class TuiboardAggregateTask(_Base):
     """One task in the aggregated view across all forks."""
+
     ueid: str
     title: str
     status: str | None = None
@@ -125,6 +127,7 @@ class TuiboardAggregateTask(_Base):
 
 class TuiboardAggregateOutput(_Base):
     """Aggregated view across all 3 forks with source breakdown."""
+
     tasks: list[TuiboardAggregateTask]
     count: int
     sources: dict[str, int]

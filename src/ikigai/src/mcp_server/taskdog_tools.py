@@ -94,7 +94,7 @@ def taskdog_supports_field(field_name: str) -> str:
 
 __all__ = [
     "mcp",
-    "taskdog_read",
     "taskdog_list",
+    "taskdog_read",
     "taskdog_supports_field",
 ]

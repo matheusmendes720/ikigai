@@ -3,6 +3,7 @@
 Transport-only scaffold (Phase A1). Tools (tuiboard_diff, tuiboard_snapshot,
 tuiboard_render) are added in A2-A3.
 """
+
 from __future__ import annotations
 
 import logging
@@ -20,6 +21,7 @@ def _build_server() -> StdioServerBase:
     # A2: read tools
     from tuiboard.tools.tuiboard_diff import handle as tb_diff
     from tuiboard.models import TuiboardDiffInput
+
     server.register_tool(
         name="tuiboard_diff",
         handler=tb_diff,
@@ -28,6 +30,7 @@ def _build_server() -> StdioServerBase:
     # A3: write tools (tuiboard_snapshot) - stub added in A2.6 for E2E
     from tuiboard.tools.tuiboard_snapshot import handle as tb_snapshot
     from tuiboard.models import TuiboardSnapshotInput
+
     server.register_tool(
         name="tuiboard_snapshot",
         handler=tb_snapshot,
@@ -36,6 +39,7 @@ def _build_server() -> StdioServerBase:
     # A3.4: render tool (4 layouts)
     from tuiboard.tools.tuiboard_render import handle as tb_render
     from tuiboard.models import TuiboardRenderInput
+
     server.register_tool(
         name="tuiboard_render",
         handler=tb_render,
@@ -44,6 +48,7 @@ def _build_server() -> StdioServerBase:
     # A4.3: aggregator-driven tool (multi-fork read)
     from tuiboard.tools.tuiboard_aggregate import handle as tb_aggregate
     from tuiboard.models import TuiboardAggregateInput
+
     server.register_tool(
         name="tuiboard_aggregate",
         handler=tb_aggregate,

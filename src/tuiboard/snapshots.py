@@ -2,6 +2,7 @@
 
 Per spec: idempotent on (name, filters). sha256 of canonical (sorted) task list.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -24,8 +25,12 @@ class SnapshotStore:
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
     def save(
-        self, *, name: str, tasks: list[dict],
-        filters: dict | None = None, description: str | None = None,
+        self,
+        *,
+        name: str,
+        tasks: list[dict],
+        filters: dict | None = None,
+        description: str | None = None,
     ) -> dict:
         # Idempotent on name: if a snapshot with this name exists, return its id
         existing = self._find_by_name(name)
@@ -55,8 +60,11 @@ class SnapshotStore:
         tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         os.replace(tmp, path)
         return {
-            "snapshot_id": sid, "name": name, "created_at": now,
-            "task_count": len(tasks), "sha256": sha,
+            "snapshot_id": sid,
+            "name": name,
+            "created_at": now,
+            "task_count": len(tasks),
+            "sha256": sha,
         }
 
     def load(self, snapshot_id: str) -> dict:
@@ -69,11 +77,15 @@ class SnapshotStore:
         results = []
         for path in self._dir.glob("*.json"):
             data = json.loads(path.read_text(encoding="utf-8"))
-            results.append({
-                "snapshot_id": data["snapshot_id"], "name": data["name"],
-                "created_at": data["created_at"], "task_count": data["task_count"],
-                "sha256": data["sha256"],
-            })
+            results.append(
+                {
+                    "snapshot_id": data["snapshot_id"],
+                    "name": data["name"],
+                    "created_at": data["created_at"],
+                    "task_count": data["task_count"],
+                    "sha256": data["sha256"],
+                }
+            )
         return results
 
     def _find_by_name(self, name: str) -> dict | None:
@@ -81,8 +93,10 @@ class SnapshotStore:
             data = json.loads(path.read_text(encoding="utf-8"))
             if data.get("name") == name:
                 return {
-                    "snapshot_id": data["snapshot_id"], "name": data["name"],
-                    "created_at": data["created_at"], "task_count": data["task_count"],
+                    "snapshot_id": data["snapshot_id"],
+                    "name": data["name"],
+                    "created_at": data["created_at"],
+                    "task_count": data["task_count"],
                     "sha256": data["sha256"],
                 }
         return None

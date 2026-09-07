@@ -1,4 +1,5 @@
 """MCP tool: investigation_complete — Plan C Task 3."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -33,6 +34,7 @@ def investigation_complete(
 
     # Local imports (matching investigation_enqueue pattern)
     from mesh.investigation_queue import get, log_transition, transition
+
     try:
         old = get(inq_id)
     except KeyError as exc:

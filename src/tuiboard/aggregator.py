@@ -41,9 +41,9 @@ class TaskAggregator:
         uses taskdog's slice; one present only in cli uses cli's slice.
         """
         tasks: dict[str, AggregatedTask] = {}
-        tasks.update(self._read_cli())            # lowest precedence (write first)
-        tasks.update(self._read_solverforge())    # overwrites cli on collision
-        tasks.update(self._read_taskdog())        # highest precedence (overwrites all)
+        tasks.update(self._read_cli())  # lowest precedence (write first)
+        tasks.update(self._read_solverforge())  # overwrites cli on collision
+        tasks.update(self._read_taskdog())  # highest precedence (overwrites all)
         return list(tasks.values())
 
     def _read_cli(self) -> dict[str, AggregatedTask]:
@@ -72,15 +72,25 @@ class TaskAggregator:
         return result
 
     def _read_taskdog(self) -> dict[str, AggregatedTask]:
-        """Read from TaskdogAdapter (SQLite, fixed project-relative path).
+        """Read from TaskdogAdapter (SQLite, derived from self._data_dir).
 
-        Returns {} if DB missing (graceful degradation — aggregator still
-        returns whatever the other forks provide).
+        Per fork-isolation contract: the aggregator respects `data_dir` for ALL
+        forks (cli, taskdog, solverforge) so test fixtures can point at a
+        per-test tmp dir without polluting from the real project DBs.
+
+        Returns {} if DB missing or import fails (graceful degradation).
         """
         try:
+            import src.mesh.adapters.taskdog as td_module
             from src.mesh.adapters.taskdog import TaskdogAdapter
         except ImportError:
             return {}
+        taskdog_db = self._data_dir / "data" / "taskdog" / "tasks.db"
+        # Honor data_dir: stash the original path, swap for the test path
+        # only if it's been overridden. Default (data_dir = repo data/) keeps
+        # the adapter's project-relative behavior.
+        if taskdog_db != td_module.TASKDOG_DB:
+            td_module.TASKDOG_DB = taskdog_db
         adapter = TaskdogAdapter()
         result: dict[str, AggregatedTask] = {}
         for row in adapter.list_all():
@@ -102,15 +112,27 @@ class TaskAggregator:
         return result
 
     def _read_solverforge(self) -> dict[str, AggregatedTask]:
-        """Read from SolverforgeCalendarAdapter (SQLite, fixed project-relative path).
+        """Read from SolverforgeCalendarAdapter (SQLite, derived from self._data_dir).
+
+        Per fork-isolation contract: the aggregator respects `data_dir` for ALL
+        forks (cli, taskdog, solverforge) so test fixtures can point at a
+        per-test tmp dir without polluting from the real project DBs.
 
         Returns {} if DB missing or import fails (graceful degradation).
         The adapter stores title in `ikigai` JSON blob (per apply_change contract).
         """
         try:
-            from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
+            import src.mesh.adapters.solverforge_calendar as sf_module
+            from src.mesh.adapters.solverforge_calendar import (
+                SolverforgeCalendarAdapter,
+            )
         except ImportError:
             return {}
+        upi_db = (
+            self._data_dir / "data" / "solverforge_calendar" / "unified_planning.db"
+        )
+        if upi_db != sf_module.UPI_DB:
+            sf_module.UPI_DB = upi_db
         adapter = SolverforgeCalendarAdapter()
         result: dict[str, AggregatedTask] = {}
         for row in adapter.list_all():

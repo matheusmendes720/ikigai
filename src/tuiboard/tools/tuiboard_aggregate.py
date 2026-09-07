@@ -3,6 +3,7 @@
 Wraps the A4.2 TaskAggregator (cli + solverforge-calendar + taskdog) and
 exposes it via MCP. Returns aggregated view + per-source counts.
 """
+
 from __future__ import annotations
 
 import os

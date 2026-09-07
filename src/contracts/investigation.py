@@ -6,6 +6,7 @@ namespace) and a status lifecycle: open → in_progress → resolved | archived.
 
 See docs/superpowers/plans/2026-09-03-investigation-queue-plan-c.md for design.
 """
+
 from __future__ import annotations
 
 from datetime import datetime

@@ -28,7 +28,9 @@ def handle(args: dict) -> dict:
     plan_id = uuid.uuid4()
 
     db = _db()
-    all_in_horizon = db.list_busy_in_window(start=inp.horizon_start, end=inp.horizon_end)
+    all_in_horizon = db.list_busy_in_window(
+        start=inp.horizon_start, end=inp.horizon_end
+    )
 
     # Determine which ueids to consider
     if inp.affected_ueids:
@@ -143,7 +145,9 @@ def handle(args: dict) -> dict:
     return output.model_dump(mode="json")
 
 
-def _sort_by_strategy(rows: list[dict], strategy: str, horizon_start: datetime) -> list[dict]:
+def _sort_by_strategy(
+    rows: list[dict], strategy: str, horizon_start: datetime
+) -> list[dict]:
     """Sort rows by strategy:
     - minimize_moves: original chronological order (preserves existing order)
     - earliest_first: by start_at ascending
@@ -175,7 +179,9 @@ def _satisfies_constraints(
     return True
 
 
-def _conflicts(busy: list[tuple[datetime, datetime]], start: datetime, end: datetime) -> bool:
+def _conflicts(
+    busy: list[tuple[datetime, datetime]], start: datetime, end: datetime
+) -> bool:
     """Check if [start, end) overlaps any interval in busy."""
     for b_start, b_end in busy:
         if min(b_end, end) > max(b_start, start):

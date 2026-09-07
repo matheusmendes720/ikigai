@@ -1,4 +1,5 @@
 """MCP tool: investigation_status — Plan C Task 3."""
+
 from __future__ import annotations
 
 from typing import Any

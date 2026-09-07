@@ -1,4 +1,5 @@
 """MCP tool: investigation_enqueue — Plan C Task 3."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -43,6 +44,7 @@ def investigation_enqueue(
 
     # Local import to avoid circular: server.py imports this module at registration time
     from mesh.investigation_queue import enqueue as _enqueue
+
     try:
         path = _enqueue(inv)
     except (OSError, ValueError) as exc:
