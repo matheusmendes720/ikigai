@@ -87,13 +87,28 @@ You are the life-oss loop orchestrator. Advance one milestone per tick.
 
 # EXECUTE
 1. Spawn 1 worker sub-agent in worktree `.worktrees/m-{milestone}-{task_id}/`
-2. Worker implements, tests, commits
+2. Worker implements, tests, commits inside worktree on branch `loop/m-{milestone}-{task_id}`
 3. Spawn 1 verifier sub-agent in same worktree
 4. Verifier returns JSON verdict
-5. Append to progress.md (NEW line, never edit past)
-6. If PASS: edit roadmap.md (mark milestone DONE), edit tasks.md (mark task done)
-7. If FAIL × max_attempts: write BLOCKED to progress.md, exit
-8. If NEEDS_FIX: append notes, exit
+5. If PASS — MERGE PROTOCOL (NO `git merge --ff-only`, NO cross-branch merge):
+     a. From master (NOT worktree), apply diff to current files:
+        `git -C .worktrees/m-{milestone}-{task_id} diff HEAD~ -- <files> | git apply`
+     b. `git add <files>` then `git commit -m "<message>"` on master
+     c. `git worktree remove .worktrees/m-{milestone}-{task_id}` (force if Windows locks)
+     d. `git branch -D loop/m-{milestone}-{task_id}` (cleanup dead branch)
+6. Append to progress.md (NEW line, never edit past)
+7. If PASS: edit roadmap.md (mark milestone DONE), edit tasks.md (mark task done)
+8. If FAIL × max_attempts: write BLOCKED to progress.md, exit
+9. If NEEDS_FIX: append notes, exit
+
+# MERGE BUG POSTMORTEM (T-0.1, 2026-09-07)
+The old protocol used `git merge --ff-only loop/m0-t0.1` from master. That silently
+no-op's when the worktree branch is divergent (not fast-forwardable) and prints
+"Already up to date" — a misread. Result: worker commit looked merged but was
+orphaned on a dead branch, worktree force-removed, work lost. NEVER use
+`--ff-only` between master and a worker worktree. Use the explicit
+`git -C <worktree> diff HEAD~ -- <files> | git apply` + normal commit protocol
+above.
 
 # EXIT CODE
 Print: ADVANCED | IDLE | BLOCKED | NEEDS_FIX | ERROR
