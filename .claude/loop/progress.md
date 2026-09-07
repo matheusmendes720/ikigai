@@ -74,3 +74,12 @@
 - notes: M1 acceptance verified retroactively. `bash .claude/helpers/daemon-manager.sh list` -> loop-tick RUNNING (PID 23953, every 60m, cost_cap=$5.0). progress.md has 4 new entries since M0 bootstrap (22:14:30 schedule-wired, 22:13:00 + 22:05:00 T-0.1 PASS, this tick). Updated roadmap.md: M1 STATUS=DONE. Updated tasks.md: M1 backlog tasks all checked. State-machine half complete (prior session ran daemon schedule add but didn't update roadmap/tasks). NOTE: still on `pre-pav-cleanup-2026-09-07-push-all` branch — not master. M0+M1 done in 2 ticks total. Budget: $1.25 spent / $3.75 remaining.
 - next_action: advance
 
+## 2026-09-07T22:35:00Z | M2-fill-skills | PASS
+- commit: (pending this tick)
+- cost_usd: 0
+- duration_min: 0
+- model: opus
+- attempt: 1/1
+- notes: M2 acceptance verified retroactively. Discovery: 4 ikigai skill files at `src/ikigai/src/agents/v2/skills/{daily,weekly,monthly,quarterly}.md` were ALREADY FILLED (50/58/61/67 lines) via W3.5 (`c3f9251`) and Phase 8.4 (`3b7b8f6`). Symlinks at `.claude/skills/ikigai-{daily,weekly,monthly,quarterly}/SKILL.md` resolve correctly to source files. All 4 preserve canonical invariants: `vault_write` is sole vault writer (ADR-012), IKIGAI does NOT execute math (planner-only per ADR-013). Cadences: daily 08:57, weekly Mon 09:00, monthly 1st 10:00, quarterly Jan/Apr/Jul/Oct 11:00. Premise in roadmap.md was stale ("0 bytes") — closed without writing new content. No file changes beyond state-machine updates. Budget: $0 (verification only, no LLM).
+- next_action: advance
+
