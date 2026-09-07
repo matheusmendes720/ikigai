@@ -36,6 +36,12 @@ from interfaces.tui.operator.data import (
     load_task_rows,
 )
 
+# W5.3 — KillSwitch consumer UX (5th tab + persistent banner)
+from interfaces.tui.operator._kill_switch_tab import (
+    KillSwitchTab,
+    banner_widget,
+)
+
 
 class SummaryPanel(Static):
     """Top-of-screen summary banner (one line per metric)."""
@@ -86,6 +92,7 @@ class OperatorApp(App):
         Binding("2", "show_adapters", "Adapters"),
         Binding("3", "show_backend", "Backend"),
         Binding("4", "show_queue", "Queue"),
+        Binding("5", "show_kill_switch", "KillSwitch"),
         Binding("d", "drilldown_queue", "Detail"),
         Binding("r", "refresh", "Refresh"),
         Binding("q", "quit", "Quit"),
@@ -126,6 +133,11 @@ class OperatorApp(App):
         self.active_tab = "queue"
         self._render_queue()
 
+    # W5.3 — 5th tab (KillSwitch) action
+    def action_show_kill_switch(self) -> None:
+        self.active_tab = "kill_switch"
+        self._render_kill_switch()
+
     def _non_task_refresh(self) -> None:
         """Refresh non-task tabs (called every 5s)."""
         if self.active_tab == "adapters":
@@ -134,6 +146,12 @@ class OperatorApp(App):
             self._render_backend()
         elif self.active_tab == "queue":
             self._render_queue()
+        elif self.active_tab == "kill_switch":
+            self._render_kill_switch()
+
+        # W5.3 — banner must update whenever the auto-refresh fires,
+        # regardless of which tab is showing (per design §4.4).
+        self._update_killswitch_banner()
 
     def action_drilldown_queue(self) -> None:
         """Open modal with the full payload of the highlighted queue row."""
@@ -160,9 +178,7 @@ class OperatorApp(App):
         if index < 0 or index >= len(rows):
             return
         row = rows[index]
-        self.push_screen(
-            QueueDetailScreen(event_id=row.event_id, payload=row.payload)
-        )
+        self.push_screen(QueueDetailScreen(event_id=row.event_id, payload=row.payload))
 
     # ---- Live filesystem watcher ----
 
@@ -201,7 +217,10 @@ class OperatorApp(App):
             label = "(no tasks yet)"
         else:
             import datetime as _dt
-            label = _dt.datetime.fromtimestamp(self._tasks_watcher_mtime).strftime("%H:%M:%S")
+
+            label = _dt.datetime.fromtimestamp(self._tasks_watcher_mtime).strftime(
+                "%H:%M:%S"
+            )
         status_widget.update(f"Live: watching data/tasks.jsonl (mtime: {label})")
 
     # ---- Render helpers ----
@@ -209,6 +228,8 @@ class OperatorApp(App):
     def _render_tasks(self) -> None:
         content = self.query_one("#content", Container)
         content.remove_children()
+        # W5.3 — banner (active-only)
+        self._mount_banner(content)
 
         rows = load_task_rows()
 
@@ -216,14 +237,10 @@ class OperatorApp(App):
         content.mount(summary)
         if not rows:
             summary.update(
-                "[bold]Tasks[/bold]  ·  "
-                "[dim]No tasks in data/tasks.jsonl[/dim]"
+                "[bold]Tasks[/bold]  ·  [dim]No tasks in data/tasks.jsonl[/dim]"
             )
         else:
-            summary.update(
-                f"[bold]Tasks[/bold]  ·  "
-                f"[green]{len(rows)} task(s)[/green]"
-            )
+            summary.update(f"[bold]Tasks[/bold]  ·  [green]{len(rows)} task(s)[/green]")
 
         status_line = Static(
             f"Live: watching data/tasks.jsonl (mtime: {self._tasks_watcher_mtime})",
@@ -250,6 +267,8 @@ class OperatorApp(App):
     def _render_adapters(self) -> None:
         content = self.query_one("#content", Container)
         content.remove_children()
+        # W5.3 — banner (active-only)
+        self._mount_banner(content)
 
         rows = load_adapter_rows()
         ok_count = sum(1 for r in rows if r.exists)
@@ -279,6 +298,8 @@ class OperatorApp(App):
     def _render_backend(self) -> None:
         content = self.query_one("#content", Container)
         content.remove_children()
+        # W5.3 — banner (active-only)
+        self._mount_banner(content)
 
         rows = load_backend_rows()
         running_count = sum(1 for r in rows if r.running)
@@ -301,8 +322,7 @@ class OperatorApp(App):
             running_cell = "✅" if row.running else "⏸"
             pid_cell = str(row.pid) if row.pid is not None else "—"
             started_cell = (
-                "—" if row.started_at is None
-                else _format_started_at(row.started_at)
+                "—" if row.started_at is None else _format_started_at(row.started_at)
             )
             uptime_cell = format_uptime(row.started_at)
             table.add_row(
@@ -319,6 +339,8 @@ class OperatorApp(App):
     def _render_queue(self) -> None:
         content = self.query_one("#content", Container)
         content.remove_children()
+        # W5.3 — banner (active-only)
+        self._mount_banner(content)
 
         rows = load_queue_rows(limit=100)
         self._current_queue_rows = rows  # cache for drilldown
@@ -343,7 +365,9 @@ class OperatorApp(App):
             return
 
         table = DataTable(zebra_stripes=True, cursor_type="row")
-        table.add_columns("Event ID", "UEID", "Action", "Source Fork", "Status", "Timestamp")
+        table.add_columns(
+            "Event ID", "UEID", "Action", "Source Fork", "Status", "Timestamp"
+        )
         for index, row in enumerate(rows):
             status_cell = (
                 "[yellow]⏳ pending[/yellow]"
@@ -360,6 +384,70 @@ class OperatorApp(App):
                 key=str(index),
             )
         content.mount(table)
+
+    # === W5.3 — 5th tab + persistent status banner ===
+
+    def _mount_banner(self, content) -> None:
+        """Mount the kill-switch status banner (if active) at top of `content`.
+
+        Per design doc §4.4: banner is read-only — no `p` / `r` keys
+        without `shift+` prefix. The actual recovery keys live on
+        `KillSwitchTab` (this tab itself).
+        """
+        banner = banner_widget()
+        if banner is not None:
+            content.mount(banner)
+
+    def _update_killswitch_banner(self) -> None:
+        """Refresh an existing banner widget (auto-refresh hook)."""
+        try:
+            existing = self.query_one("#killswitch-banner", Static)
+        except Exception:
+            return  # banner not mounted — that's fine
+        fresh = banner_widget()
+        if fresh is None:
+            existing.remove()
+            return
+        # Re-render in place
+        from sys_ikigai.security.kill_switch import (
+            check_kill_switch,
+            _recovery_path_for_reason,  # type: ignore[attr-defined]  # noqa: PGH003
+        )
+
+        from interfaces.tui.operator._kill_switch_tab import (
+            _count_recent_kill_switch_events,
+            _last_kill_switch_trigger,
+            VAULT_ROOT as _VR,
+            DATA_ROOT as _DR,
+        )
+
+        status = check_kill_switch(_VR, _DR)
+        if not status.is_active:
+            existing.remove()
+            return
+        in_1h = _count_recent_kill_switch_events()
+        last = _last_kill_switch_trigger()
+        lines = [
+            "[bold red]KILL SWITCH ACTIVE[/bold red] — "
+            f"reason: [yellow]{status.active_reason}[/yellow]",
+            f"events in last 1h: {in_1h}  ·  last trigger: {last or '—'}",
+            f"recovery: {_recovery_path_for_reason(status.active_reason)}",
+        ]
+        existing.update("\n".join(lines))
+
+    def _render_kill_switch(self) -> None:
+        """Render the 5th tab — KillSwitch state + recovery path.
+
+        The widget itself is the single child of `#content`; refreshes
+        happen via `KillSwitchTab.on_mount` (called once) and from
+        `_non_task_refresh` (every 5s while this tab is active).
+        """
+        content = self.query_one("#content", Container)
+        content.remove_children()
+        # Banner first (per design §4.4 — visible on every tab when active)
+        self._mount_banner(content)
+        tab = KillSwitchTab(id="killswitch-tab")
+        content.mount(tab)
 
 
 def _format_started_at(mtime: float) -> str:

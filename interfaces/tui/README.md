@@ -19,7 +19,7 @@ vault/ (markdown — source of truth)
 
 | App | Focus | Tech |
 |-----|-------|------|
-| `daily-view` | Today's tasks + regime + Q_HE | Textual |
+| `daily-view` | Today's tasks | Textual |
 | `kanban` | Gantt / board view by horizon | Textual |
 | `calendar` | Wave/sprint calendar | Textual |
 
