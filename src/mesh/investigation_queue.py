@@ -56,8 +56,12 @@ def _retry_atomic_write(write_fn):  # type: ignore[no-untyped-def]
 # Valid status transitions (append-only — no resurrection)
 # ---------------------------------------------------------------------------
 _VALID_TRANSITIONS: dict[InvestigationStatus, frozenset[InvestigationStatus]] = {
-    "open": frozenset({"in_progress", "archived", "resolved"}),  # resolved for crystallized
-    "in_progress": frozenset({"resolved", "archived", "open"}),  # allow back to open if false alarm
+    "open": frozenset(
+        {"in_progress", "archived", "resolved"}
+    ),  # resolved for crystallized
+    "in_progress": frozenset(
+        {"resolved", "archived", "open"}
+    ),  # allow back to open if false alarm
     "resolved": frozenset(),  # terminal
     "archived": frozenset(),  # terminal
 }
@@ -83,7 +87,9 @@ def _atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
     """Write JSON atomically: write to tmp, then rename. Reused for all writes."""
     tmp = path.with_suffix(path.suffix + f".tmp.{os.getpid()}.{uuid.uuid4().hex[:8]}")
     try:
-        tmp.write_text(json.dumps(payload, indent=2, sort_keys=True, default=str), encoding="utf-8")
+        tmp.write_text(
+            json.dumps(payload, indent=2, sort_keys=True, default=str), encoding="utf-8"
+        )
         os.replace(tmp, path)  # atomic on POSIX and Windows (Python 3.3+)
     finally:
         if tmp.exists():
@@ -183,7 +189,9 @@ def _append_audit(line: str) -> None:
         f.write(line + "\n")
 
 
-def log_transition(inq_id: str, old: InvestigationStatus, new: InvestigationStatus, actor: str) -> None:
+def log_transition(
+    inq_id: str, old: InvestigationStatus, new: InvestigationStatus, actor: str
+) -> None:
     """Append a transition event to the audit log. Format: ISO8601|inq_id|old→new|actor."""
     ts = datetime.now().isoformat()
     _append_audit(f"{ts}|{inq_id}|{old}->{new}|{actor}")

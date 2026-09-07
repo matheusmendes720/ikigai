@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 def log_screentime(mode: str, duration: int) -> dict:
     """
     Domain logic for tracking developer/screen time.
@@ -10,5 +11,5 @@ def log_screentime(mode: str, duration: int) -> dict:
         "mode": mode,
         "duration_minutes": duration,
         "timestamp": now,
-        "message": f"Logged {duration} minutes of {mode} screentime."
+        "message": f"Logged {duration} minutes of {mode} screentime.",
     }

@@ -18,6 +18,7 @@ Expected::
 Then run ``scripts/verify_traces.py`` within 5 minutes to confirm both
 backends received the span.
 """
+
 import sys
 from pathlib import Path
 
@@ -37,7 +38,7 @@ MISSING = ROOT / "src" / "ikigai" / "entities" / "ops" / "__init__.py"
 @observed_tool("ikigai.read_file")
 def read_file(path: str) -> str:
     """Simulates a tool call that opens the given path."""
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return f.read()
 
 

@@ -2,6 +2,7 @@
 
 Per spec 2026-09-03-sonho-tree-hybrid-design §Schema Additions.
 """
+
 from datetime import datetime
 from typing import Any, Literal
 
@@ -10,7 +11,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from src.contracts.common import PaeCyclePhase, PlanTier, UEID, VectorKey
 
 
-def _check_vector_subset(child_vectors: list[str], parent_vectors: list[str]) -> list[str]:
+def _check_vector_subset(
+    child_vectors: list[str], parent_vectors: list[str]
+) -> list[str]:
     """Validate that child vectors are subset of parent vectors.
 
     Per Decision #5: child.ikigai_vectors ⊆ parent.ikigai_vectors.
@@ -77,5 +80,7 @@ class BasePlanContract(BaseModel):
         This validator only enforces non-empty list (sanity check).
         """
         if not v:
-            raise ValueError("ikigai_vectors cannot be empty (must declare at least one)")
+            raise ValueError(
+                "ikigai_vectors cannot be empty (must declare at least one)"
+            )
         return v

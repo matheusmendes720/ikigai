@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 def manage_block(action: str, name: str) -> dict:
     """
     Domain logic for managing a time allocation block.
@@ -10,5 +11,5 @@ def manage_block(action: str, name: str) -> dict:
         "action": action,
         "block_name": name,
         "timestamp": now,
-        "message": f"Block {action} recorded for {name}."
+        "message": f"Block {action} recorded for {name}.",
     }
