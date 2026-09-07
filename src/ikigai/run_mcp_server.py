@@ -19,7 +19,7 @@ _src = Path(__file__).parent / "src"
 if str(_src) not in sys.path:
     sys.path.insert(0, str(_src))
 
-from mcp_server.server import main
+from mcp_server.server import main  # noqa: E402 — path-fixup import, must follow sys.path mutation
 
 if __name__ == "__main__":
     asyncio.run(main())

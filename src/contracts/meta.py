@@ -11,5 +11,5 @@ from src.contracts.base import BasePlanContract
 class Meta(BasePlanContract):
     """Measurable goal with success metrics and periodic review cadence."""
 
-    success_metrics: list[str] = []
+    success_metrics: list[str] = Field(default_factory=list)
     review_frequency_days: int = Field(default=7, ge=1)

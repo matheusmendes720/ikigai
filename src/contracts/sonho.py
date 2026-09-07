@@ -3,6 +3,8 @@
 Per spec 2026-09-03-sonho-tree-hybrid-design §Schema Additions.
 """
 
+from pydantic import Field
+
 from src.contracts.base import BasePlanContract
 
 
@@ -11,4 +13,4 @@ class Sonho(BasePlanContract):
 
     motivation: str
     success_metric: str
-    core_values: list[str] = []
+    core_values: list[str] = Field(default_factory=list)

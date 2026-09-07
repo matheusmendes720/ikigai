@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from solverforge_calendar.db import SolverforgeDB
-from solverforge_calendar.models import SfReplanInput, SfReplanOutput, SfPlanDiff
+from solverforge_calendar.models import SfPlanDiff, SfReplanInput, SfReplanOutput
 
 
 def _db() -> SolverforgeDB:
@@ -35,10 +35,10 @@ def handle(args: dict) -> dict:
     # Determine which ueids to consider
     if inp.affected_ueids:
         # Only replan the listed ueids (keep others untouched in the diff)
-        target_ueids = set(str(u) for u in inp.affected_ueids)
+        target_ueids = {str(u) for u in inp.affected_ueids}
     else:
         # Replan everything in horizon
-        target_ueids = set(row["ueid"] for row in all_in_horizon)
+        target_ueids = {row["ueid"] for row in all_in_horizon}
 
     diff: list[SfPlanDiff] = []
     unresolvable: list[str] = []
@@ -62,19 +62,23 @@ def handle(args: dict) -> dict:
         duration = end - before if (before and end) else timedelta(hours=1)
 
         # Try to keep at original time first (any strategy)
-        if before and end and _satisfies_constraints(before, end, inp.hard_constraints):
-            if not _conflicts(busy, before, end):
-                diff.append(
-                    SfPlanDiff(
-                        ueid=UEID(ueid),
-                        action="kept",
-                        before=before,
-                        after=before,
-                        reason="original slot satisfies constraints",
-                    )
+        if (
+            before
+            and end
+            and _satisfies_constraints(before, end, inp.hard_constraints)
+            and not _conflicts(busy, before, end)
+        ):
+            diff.append(
+                SfPlanDiff(
+                    ueid=UEID(ueid),
+                    action="kept",
+                    before=before,
+                    after=before,
+                    reason="original slot satisfies constraints",
                 )
-                busy.append((before, end))
-                continue
+            )
+            busy.append((before, end))
+            continue
 
         # Try to find a new slot
         new_slot = _find_slot(
@@ -209,4 +213,4 @@ def _find_slot(
 
 
 # Re-export UEID locally to avoid line-length issues in SfPlanDiff construction below
-from src.contracts.common import UEID  # noqa: E402
+from src.contracts.common import UEID

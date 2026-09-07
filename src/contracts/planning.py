@@ -17,8 +17,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .common import EntityType, StrEnum, UEID
-
+from .common import UEID, EntityType, StrEnum
 
 # ---------------------------------------------------------------------------
 # Wave

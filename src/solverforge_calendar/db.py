@@ -7,12 +7,10 @@ src/mesh/adapters/solverforge_calendar.py. UPSERT on ueid.
 from __future__ import annotations
 
 import json
+import sqlite3
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-
-import sqlite3
-
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS unified_planning_items (

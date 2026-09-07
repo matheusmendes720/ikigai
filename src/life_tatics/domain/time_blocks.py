@@ -5,7 +5,7 @@ def manage_block(action: str, name: str) -> dict:
     """
     Domain logic for managing a time allocation block.
     """
-    now = datetime.now().isoformat()
+    now = datetime.now().isoformat()  # noqa: DTZ005 — log entries use naive local timestamps
     return {
         "ok": True,
         "action": action,

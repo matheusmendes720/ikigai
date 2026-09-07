@@ -8,7 +8,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from src.contracts.common import PaeCyclePhase, PlanTier, UEID, VectorKey
+from src.contracts.common import UEID, PaeCyclePhase, PlanTier, VectorKey
 
 
 def _check_vector_subset(

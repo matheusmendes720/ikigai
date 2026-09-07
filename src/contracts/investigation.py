@@ -51,7 +51,7 @@ class Investigation(BaseModel):
     )
     created_at: datetime = Field(..., description="Creation timestamp.")
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(),
+        default_factory=lambda: datetime.now(),  # noqa: DTZ005 — single-user local system; naive datetimes are the project convention (see task.py, planning.py, etc.)
         description="Last update timestamp. Defaults to creation time.",
     )
     inq_ueid: str | None = Field(

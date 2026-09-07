@@ -19,8 +19,8 @@ def _build_server() -> StdioServerBase:
     os.makedirs(data_dir, exist_ok=True)
     server = StdioServerBase(name="solverforge-calendar", version="0.1.0")
     # A2: read tools
-    from solverforge_calendar.tools.sf_availability import handle as sf_avail
     from solverforge_calendar.models import SfAvailabilityInput
+    from solverforge_calendar.tools.sf_availability import handle as sf_avail
 
     server.register_tool(
         name="sf_availability",
@@ -28,8 +28,8 @@ def _build_server() -> StdioServerBase:
         schema=SfAvailabilityInput.model_json_schema(),
     )
     # A3: write tools
-    from solverforge_calendar.tools.sf_schedule import handle as sf_sched
     from solverforge_calendar.models import SfScheduleInput
+    from solverforge_calendar.tools.sf_schedule import handle as sf_sched
 
     server.register_tool(
         name="sf_schedule",
@@ -37,8 +37,8 @@ def _build_server() -> StdioServerBase:
         schema=SfScheduleInput.model_json_schema(),
     )
     # A4: advanced tools
-    from solverforge_calendar.tools.sf_replan import handle as sf_replan
     from solverforge_calendar.models import SfReplanInput
+    from solverforge_calendar.tools.sf_replan import handle as sf_replan
 
     server.register_tool(
         name="sf_replan",

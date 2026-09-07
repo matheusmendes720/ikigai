@@ -41,7 +41,7 @@ def validate(event: TaskChange) -> ValidationResult:
     if event.action.value == "create" and "due" in event.fields:
         try:
             due = date.fromisoformat(event.fields["due"])
-            if due < date.today():
+            if due < date.today():  # noqa: DTZ011 — due-date comparison is local-date semantics; user-supplied ISO date is also naive
                 return ValidationResult(
                     Decision.REJECT,
                     f"Due date {due} is in the past. Use a future date or remove due field.",
@@ -57,12 +57,15 @@ def validate(event: TaskChange) -> ValidationResult:
         from src.mesh import queue
 
         for existing in queue.replay_after_restart():
-            if existing.ueid == event.ueid and existing.status == "propagated":
-                if existing.fields.get("title") != event.fields.get("title"):
-                    return ValidationResult(
-                        Decision.REJECT,
-                        f"UEID collision: {event.ueid} already exists with different content.",
-                    )
+            if (
+                existing.ueid == event.ueid
+                and existing.status == "propagated"
+                and existing.fields.get("title") != event.fields.get("title")
+            ):
+                return ValidationResult(
+                    Decision.REJECT,
+                    f"UEID collision: {event.ueid} already exists with different content.",
+                )
     except (ImportError, AttributeError) as exc:
         # Per B5.0-F6: was a silent pass before; now log a warning so this
         # silent failure mode doesn't slip past code review unnoticed.

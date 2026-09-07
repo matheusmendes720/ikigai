@@ -4,12 +4,18 @@ Per audit B5.0-F13: queue.enqueue() and ack() are wrapped with retry decorators
 to handle transient filesystem errors (EBUSY on Windows, NFS stale handles, etc.).
 """
 
+import logging
 import os
 import time
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Any, Callable, Iterator, TypeVar
+from typing import Any, TypeVar
+
+from pydantic import ValidationError
 
 from src.contracts.task_change import TaskChange, TaskStatus
+
+logger = logging.getLogger(__name__)
 
 # Project root is 2 levels up from src/mesh/
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -91,8 +97,11 @@ def consume_pending() -> Iterator[TaskChange]:
             event = _read_event_file(path)
             if event.status == "pending":
                 yield event
-        except Exception:
-            continue  # skip malformed files
+        except (OSError, ValidationError, ValueError) as exc:
+            # Skip malformed files: unreadable, unparseable JSON, or schema-invalid.
+            # Logged (per S112) so silent skipping doesn't hide systemic queue corruption.
+            logger.warning("skipping malformed queue file %s: %s", path.name, exc)
+            continue
 
 
 def ack(event_id: str, status: TaskStatus) -> None:

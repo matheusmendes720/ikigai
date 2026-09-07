@@ -25,7 +25,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from src.contracts.common import UEID
 
-
 # === Literal type aliases (used by both spec and tests) ===
 
 A2UIAction = Literal["create", "update", "delete", "done"]
@@ -119,14 +118,14 @@ class MeshSubscribeParams(BaseModel):
 
 __all__ = [
     "A2UIAction",
+    "A2UIError",
     "A2UIMethod",
+    "A2UINotification",
     "A2UINotificationMethod",
     "A2UIProtocolVersion",
-    "A2UIError",
     "A2UIRequest",
     "A2UIResponse",
-    "A2UINotification",
     "MeshReadParams",
-    "TaskWriteParams",
     "MeshSubscribeParams",
+    "TaskWriteParams",
 ]

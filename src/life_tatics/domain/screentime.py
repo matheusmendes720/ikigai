@@ -5,7 +5,7 @@ def log_screentime(mode: str, duration: int) -> dict:
     """
     Domain logic for tracking developer/screen time.
     """
-    now = datetime.now().isoformat()
+    now = datetime.now().isoformat()  # noqa: DTZ005 — log entries use naive local timestamps
     return {
         "ok": True,
         "mode": mode,

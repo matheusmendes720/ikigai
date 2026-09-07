@@ -1,7 +1,9 @@
 import json
+
 import typer
-from life_tatics.domain.time_blocks import manage_block
+
 from life_tatics.domain.screentime import log_screentime
+from life_tatics.domain.time_blocks import manage_block
 
 app = typer.Typer(
     help="Standalone Time Allocation and Routine Tracker (@life-tatics).",
