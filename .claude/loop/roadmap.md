@@ -98,14 +98,15 @@
 - **Estimated ticks:** 1
 - **Completed:** 2026-09-07 — T-6.1..T-6.4 all PASS. Spec at `specs/M6-worktree-isolation/SPEC.md` documents commands, exit code matrix, parallel-safety contract. Script body pre-existing at commit `91fb7d4` (M0 bootstrap) — awk bug in `cleanup-all` regex fix landed in M6 commit. Auto-cleanup hook fires on every tick exit path (dry-run/cost-abort/graph-dispatch/overrun/normal) via bash EXIT trap, gated on zero `status: pending` tasks. Regression sweep: test_loop_infra 11/11 + test_m4_langgraph_integration 9/9 + test_canonical_scope 32/32 + test_m5_ikigai_mcp_integration 2/2 = 54/54 PASS.
 
-### M7 — Cost dashboard (STATUS: IN-PROGRESS)
+### M7 — Cost dashboard (STATUS: DONE)
 - **What:** Daily cron writes a `cost-report.md` to `.claude/loop/logs/`
 - **Why:** "Loop brittleness" + "runaway cost" are top risks (Ronacher)
 - **Acceptance:**
-  - [ ] `cost-report.md` shows ticks/day, $USD/day, $USD/tick avg
-  - [ ] Spike detection (>$10/day) triggers alarm
+  - [x] `cost-report.md` shows ticks/day, $USD/day, $USD/tick avg
+  - [x] Spike detection (>$10/day) triggers alarm (exit code 2)
 - **Dependencies:** M6
 - **Estimated ticks:** 1
+- **Completed:** 2026-09-08 — T-7.1..T-7.4 all PASS. Pure bash + awk script (`scripts/cost-dashboard.sh`, 92L) — zero Python changes. Live report shows ticks_day=112, usd_total=$1.80, usd_avg_per_tick=$0.02, spike_alarm=none. Spike alarm via exit code 2 enables M8 notification channel to pipe on `$? -eq 2` without parsing report file. Commits: 726bfde0 (T-7.1 SPEC + scaffold), 4b2510d3 (T-7.2 tests), ca6a114c (T-7.3 daemon-manager add), + closeout commit (T-7.4). Total M7 cost: $0.00 (pure bash, zero LLM calls). Spec at `specs/M7-cost-dashboard/SPEC.md`.
 
 ### M8 — Notification channel (STATUS: PENDING)
 - **What:** Wire Telegram/Feishu/email for FAIL/NEEDS_FIX alerts

@@ -1036,3 +1036,12 @@
 - attempt: 1/1 (after 2 self-corrections in same tick)
 - notes: T-7.2 deliverable landed + pushed to origin/master (4b2510d3: 1 file changed, 139 insertions(+); new file tests/test_cost_dashboard.sh). Pure bash, mirrors tests/test_worktree_helper.sh conventions (PASS/FAIL counters, ok()/fail() helpers, numbered sections, summary block). 3 test groups per SPEC criterion #5: (1) aggregation correctness — seeds 2 today + 1 yesterday entries (cost_usd: 0.50/1.30/0.20), asserts ticks_day=3, usd_total=$2.00, usd_avg_per_tick=$0.67; (2) spike alarm — seeds today entries summing $11.50, asserts exit code 2 + spike_alarm SPIKE line present; (3) idempotent re-run — runs twice with sleep 1, asserts metric body identical (generated_at excluded from diff). 7/7 assertions PASS, exit 0. Two self-corrections during authoring: (a) script's REPO_ROOT resolution uses $(dirname "$0")/.. — initial test copied script to <tmp>/cost-dashboard.sh making REPO_ROOT resolve to <tmp>/..; fixed by placing script at <tmp>/scripts/cost-dashboard.sh so REPO_ROOT matches spec layout; (b) `set -u` strict mode caught `$2.00` as positional arg — escaped to `\$2.00`; (c) grep pattern was literal `spike_alarm: SPIKE` but report format is markdown-bold `**spike_alarm:** SPIKE` — adjusted pattern to `spike_alarm:\*\* SPIKE`. Total 7 PASS assertions, 0 FAIL. T-7.3 (daemon-manager daily cron schedule, 00:30 UTC) is next.
 - next_action: advance (T-7.3 next)
+
+## 2026-09-08T01:55:00Z | T-7.3 cost-dashboard cron schedule | PASS
+- commit: ca6a114c
+- cost_usd: 0
+- duration_min: 1
+- model: opus (daemon-manager add; 0 LLM calls)
+- attempt: 1/1
+- notes: T-7.3 deliverable landed + pushed to origin/master (ca6a114c: 1 file changed, 8 insertions(+); .claude/loop/schedules.json updated). Per SPEC criterion #6 ("Dependencies"), wired M7 Cost Dashboard into the daemon-manager. Command: `bash .claude/helpers/daemon-manager.sh add --name cost-dashboard --interval 1440m --command 'bash scripts/cost-dashboard.sh' --cost-cap-usd 0.5`. Schedule fires daily (86400s interval). Verified RUNNING (PID 46159, log at .claude-flow/logs/schedules/cost-dashboard.log). schedules.json now registers 3 tasks: loop-tick (60m, $5.0), hill-climb (168h, $10.0), cost-dashboard (1440m, $0.5) — completes SPEC acceptance criteria #1-6. Spike alarm signal via exit code 2 enables M8 notification channel to pipe on `$? -eq 2` without parsing report file. Next: T-7.4 regression sweep + state-machine closeout + memory entry.
+- next_action: advance (T-7.4 next)
