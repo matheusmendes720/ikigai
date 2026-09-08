@@ -29,6 +29,12 @@ LOOP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # dry-run with `set -euo pipefail`).
 PROJECT_ROOT="$(cd "$LOOP_DIR/../.." && pwd)"
 
+# Honor $PYTHON env var (default: "python"). WSL2 subprocesses (e.g. pytest
+# running tests) often lack `python` on PATH — only `python.exe` resolves.
+# Production cron inherits the user's PATH which has `python`; tests set
+# PYTHON=/mnt/c/Python314/python.exe explicitly.
+PYTHON="${PYTHON:-python}"
+
 # Valid graph keys for --graph dispatch (must match langgraph.json registry)
 VALID_GRAPH_KEYS="pae_maintainer ikigai_maintainer_v2 ikigai_fork_smoke"
 
@@ -80,7 +86,7 @@ if [ -n "$GRAPH_NAME" ]; then
   # $() command substitution is exempt from `set -e` traps in bash — we
   # capture the exit code into GRAPH_EXIT_CODE rather than letting a non-zero
   # python exit abort the script before we can append progress.md.
-  GRAPH_OUTPUT=$(cd "$PROJECT_ROOT" && python -c "
+  GRAPH_OUTPUT=$(cd "$PROJECT_ROOT" && "$PYTHON" -c "
 import os, sys, traceback
 from pathlib import Path
 
