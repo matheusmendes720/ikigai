@@ -474,7 +474,7 @@
 
 #### T-9.2 — Wire auto-start into SessionStart hook
 - **status:** done
-- **commit:** (this tick — atomic with state-machine updates)
+- **commit:** 60c32464
 - **acceptance:**
   - [x] .claude/settings.json SessionStart hook chain extended with daemon-manager.sh start-schedule loop-tick call (settings.json line 73 — inline cmd /c with CLAUDE_PROJECT_DIR primary + USERPROFILE fallback + exit 0 silent no-op)
   - [x] Hook idempotent (daemon-manager.sh start-schedule handles is_running — warm call verified: "Schedule loop-tick already running (PID: 54994)", PID preserved)

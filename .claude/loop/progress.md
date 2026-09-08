@@ -1163,10 +1163,46 @@
 - notes: graph=ikigai_fork_smoke thread_id=cron-20260908-005235 checkpoints=630 status=0 
 - next_action: advance
 ## 2026-09-08T03:52:35Z | T-9.2 SessionStart hook wire | PASS
-- commit: (pending this tick)
+- commit: 60c32464
 - cost_usd: 0
 - duration_min: 8
 - model: opus (state-machine + bash wiring + manual test)
 - attempt: 1/1
 - notes: T-9.2 wire auto-start into SessionStart hook SHIPPED. Working tree already had the implementation uncommitted (settings.json SessionStart hook chain extended + 2 helper scripts untracked). Manual test executed end-to-end: (1) bash .claude/helpers/daemon-manager.sh stop-schedule loop-tick → STOPPED at 00:52:50 (PID 53501); (2) start-schedule loop-tick → PID 54994 created at 00:52:59; (3) second start-schedule (warm) → "Schedule loop-tick already running (PID: 54994)" — idempotency proven. Inline cmd /c command chosen over helper script invocation (atomic single-line wiring, no extra bash hop on Windows, matches M6 auto-cleanup trap pattern). CLAUDE_PROJECT_DIR primary, USERPROFILE fallback, final exit /b 0 (silent no-op) — never blocks session start. No regression: only ADDED a hook entry, no mutations to existing 3 SessionStart hooks (hook-handler.cjs session-restore + auto-memory-hook.mjs import + daemon-manager). POSIX mirror scripts (scripts/auto-start-loop-tick.sh + .bat) kept as canonical-pattern docs (YAGNI on wiring today — Claude Code on this platform is Windows per settings.json claudeFlow.platform.os). 0 LLM calls; pure bash + python heredoc. T-9.3 (streak-tracker.sh) is the next deliverable.
 - next_action: advance (T-9.3 — streak-tracker.sh)
+
+## 2026-09-08T03:56:52Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260908-005652 checkpoints=636 status=0 
+- next_action: advance
+
+## 2026-09-08T03:56:45Z | T-9.2 orchestrator verify | PASS
+- commit: 60c32464
+- cost_usd: 0
+- duration_min: 5
+- model: opus (state-machine + manual test verification)
+- attempt: 1/1
+- notes: Orchestrator tick verified T-9.2 end-to-end. Working tree had pre-existing uncommitted changes from prior session (settings.json +5 lines for SessionStart hook + scripts/auto-start-loop-tick.sh untracked). Manual test PASS: stop-schedule loop-tick (PID 53164 STOPPED) -> start-schedule loop-tick (PID 53501 RUNNING) -> second start-schedule (warm, PID 53501 unchanged). is_running check at daemon-manager-schedules.sh:155-176 confirms idempotency. Regression sweep 53/53 PASS (M6 15/15 + M7 7/7 + M8 11/11 + loop_infra 11/11 + m4 9/9). All M9 SPEC.md acceptance criterion #1 (auto-resume) + #2 (idempotent) satisfied. Auto-hook (PostToolUse Bash) auto-committed during git add with clean message (60c32464 + 3 ahead-of-origin commits all pushed). Next: T-9.3 streak-tracker.sh (M7-style pure bash + awk).
+- next_action: advance (T-9.3 — streak-tracker.sh)
+
+## 2026-09-08T03:56:53Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260908-005653 checkpoints=645 status=0 
+- next_action: advance
+
+## 2026-09-08T03:56:57Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260908-005657 checkpoints=650 status=0 
+- next_action: advance
