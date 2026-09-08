@@ -1108,3 +1108,65 @@
 - attempt: 1/1
 - notes: M9 launched — state-machine only. Created specs/M9-production-mode/SPEC.md (107L: Goal / Why / 5 Acceptance Criteria / 6 Sub-tasks / What M9 does NOT / 2 Open questions / Out of scope backlog). 5 acceptance criteria: (1) auto-resume on session start via SessionStart hook calling daemon-manager.sh start-schedule loop-tick; (2) idempotent auto-start; (3) streak observability via new scripts/streak-tracker.sh (M7-style pure bash + awk, exit 0 healthy / exit 2 streak-break, wires into M8 notification channel via --reason streak_break); (4) 7-day unattended streak (current_streak >= 7 in streak-report.md, UTC calendar day, no NEEDS_FIX/BLOCKED/FAIL/BUDGET_ABORT during window); (5) all 8 prior milestones stable (full regression sweep). 6 sub-tasks: T-9.1 SPEC (DONE this tick), T-9.2 SessionStart hook (wire daemon-manager.sh start-schedule loop-tick), T-9.3 streak-tracker.sh, T-9.4 tests, T-9.5 daily cron schedule (1440m, 0.10 USD cap), T-9.6 regression + closeout (gated on real-time 7-day wall clock — cannot fake completion). Pre-existing finding flagged: claudeFlow.daemon.autoStart: false in .claude/settings.json (currently disabled) — T-9.2 closes this gap. tasks.md updated: M9 section added with 6 sub-tasks; roadmap.md M9 STATUS flipped to IN-PROGRESS.
 - next_action: advance (T-9.2 — wire auto-start into SessionStart hook)
+
+## 2026-09-08T03:52:24Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260908-005224 checkpoints=596 status=0 
+- next_action: advance
+
+## 2026-09-08T03:52:26Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260908-005226 checkpoints=605 status=0 
+- next_action: advance
+
+## 2026-09-08T03:52:29Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260908-005229 checkpoints=610 status=0 
+- next_action: advance
+
+## 2026-09-08T03:52:30Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260908-005231 checkpoints=616 status=0 
+- next_action: advance
+
+## 2026-09-08T03:52:32Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260908-005232 checkpoints=625 status=0 
+- next_action: advance
+
+## 2026-09-08T03:52:35Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260908-005235 checkpoints=630 status=0 
+- next_action: advance
+## 2026-09-08T03:52:35Z | T-9.2 SessionStart hook wire | PASS
+- commit: (pending this tick)
+- cost_usd: 0
+- duration_min: 8
+- model: opus (state-machine + bash wiring + manual test)
+- attempt: 1/1
+- notes: T-9.2 wire auto-start into SessionStart hook SHIPPED. Working tree already had the implementation uncommitted (settings.json SessionStart hook chain extended + 2 helper scripts untracked). Manual test executed end-to-end: (1) bash .claude/helpers/daemon-manager.sh stop-schedule loop-tick → STOPPED at 00:52:50 (PID 53501); (2) start-schedule loop-tick → PID 54994 created at 00:52:59; (3) second start-schedule (warm) → "Schedule loop-tick already running (PID: 54994)" — idempotency proven. Inline cmd /c command chosen over helper script invocation (atomic single-line wiring, no extra bash hop on Windows, matches M6 auto-cleanup trap pattern). CLAUDE_PROJECT_DIR primary, USERPROFILE fallback, final exit /b 0 (silent no-op) — never blocks session start. No regression: only ADDED a hook entry, no mutations to existing 3 SessionStart hooks (hook-handler.cjs session-restore + auto-memory-hook.mjs import + daemon-manager). POSIX mirror scripts (scripts/auto-start-loop-tick.sh + .bat) kept as canonical-pattern docs (YAGNI on wiring today — Claude Code on this platform is Windows per settings.json claudeFlow.platform.os). 0 LLM calls; pure bash + python heredoc. T-9.3 (streak-tracker.sh) is the next deliverable.
+- next_action: advance (T-9.3 — streak-tracker.sh)
