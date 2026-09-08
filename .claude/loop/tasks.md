@@ -570,17 +570,19 @@
 - **notes:** Verification: bash tests/test_dispatch.sh -> 14 pass, 0 fail in <1s. Worker branch loop/m10-t10.1 had untracked dispatch files in working dir (commit b9c9278d on branch was misleading — only touched .claude-flow/policy/state.json). Reconciled via cp from worktree + git add on master + atomic commit c24841c (2 files, +392 lines). Worktree branch deleted. Pre-existing bogus commit 34065397 on master (only state.json with same scaffold message) preserved in history; c24841c supersedes for actual content. Next: T-10.2 wire M6/M7/M8 hooks.
 
 #### T-10.2 — Wire M6/M7/M8 hooks into dispatch.sh EXIT trap
-- **status:** pending
-- **commit:** —
+- **status:** done
+- **commit:** 3773821
 - **acceptance:**
-  - [ ] EXIT trap LIFO order: M6 worktree cleanup → M8 notify (`reason=tick_*` per verdict) → progress.md append
-  - [ ] Regression sweep (M9 acceptance #5 — 6 test suites) runs as pre-dispatch gate; failure → exit 1 with `regression_failed`
-  - [ ] On verifier PASS: commit + push + roadmap STATUS flip + tasks.md status flip atomic (no partial state)
-  - [ ] `tick_pass` reason added to M8's notify.sh reason list (alongside existing `spike_alarm|tick_fail|needs_fix|blocked`)
-  - [ ] `--dry-run` skips commit/push/notify but still runs regression sweep + worker + verifier (orchestrator verification path)
+  - [x] EXIT trap LIFO order: M6 worktree cleanup → M8 notify (`reason=tick_*` per verdict) → progress.md append
+  - [x] Regression sweep (M9 acceptance #5 — 6 test suites) runs as pre-dispatch gate; failure → exit 1 with `regression_failed`
+  - [x] On verifier PASS: commit + push + roadmap STATUS flip + tasks.md status flip atomic (no partial state)
+  - [x] `tick_pass` reason added to M8's notify.sh reason list (alongside existing `spike_alarm|tick_fail|needs_fix|blocked`)
+  - [x] `--dry-run` skips commit/push/notify but still runs regression sweep + worker + verifier (orchestrator verification path)
 - **estimated_cost_usd:** 0.00
-- **estimated_minutes:** 20
-- **last_verdict:** —
+- **estimated_minutes:** 18
+- **attempts:** 1 (3 bug fixes during T-10.2 implementation; see notes)
+- **last_verdict:** PASS
+- **notes:** T-10.2 SHIPPED. 3 implementation bugs caught + fixed during test cycle: (1) bash `trap 'X' EXIT` REPLACES previous trap — only last-registered fires. Fixed via single chained trap `cleanup_worktree → fire_notify → append_progress` (same latent bug exists in loop-tick.sh M8 wiring line 109→158 — pre-existing, out of scope). (2) tasks.md flip awk had variable mismatch (`block=1` set but `in_block` checked) + `next` dropped the header line + section-close regex `/^##[# ]/` matched `### ` (task headers) right after the header match — fixed by using `in_block` consistently, removing `next`, tightening section-close to `/^## /`. (3) Group 7 test grep needed `status:** done` (markdown-bold) not `status: done`. Final: tests/test_dispatch.sh 20/20 PASS (Groups 1-7 cover missing-task / already-done / pending+dry-run / regression_failed / tick_pass EXIT trap / dry-run regression gate / execute state flips). Full regression sweep 96/96 PASS (bash 44: worktree 15 + cost 7 + notify 11 + streak 11; pytest 52: loop_infra 11 + m4 9 + canonical_scope 32). Real worker chain remains T-10.3 deliverable.
 
 #### T-10.3 — Acceptance + closeout (single-command dispatch end-to-end)
 - **status:** pending

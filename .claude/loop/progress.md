@@ -1334,3 +1334,66 @@
 - notes: Phase 8.2 SHIPPED. 10/11 v2 graph nodes wired to mcp_bridge (9 via sync wrappers + 1 in-process commit_node). surface_intentions deferred per SPEC §6; error_node infrastructure-only. drift 32/32 PASS preserved. Final whole-branch review verdict (architect-reviewer-2): SPEC PASS + QUALITY APPROVED. 3 Minor findings (non-blocking): (1) mcp_bridge.py:42 docstring fragment dupe, (2) observe.py:12 hardcoded date default, (3) test_phase_8_2_wiring.py:14 import-style mismatch. Pre-existing ledger item error_type/error_channel routing mismatch DEFER-AS-TECH-DEBT (out of Phase 8.2 scope; refactor when graph.py error routing is touched). Net -288 lines (656 deleted, 368 added). ADR-013 planner-only boundary satisfied. Loop's cost_cap_usd preserved ($0 implementation cost).
 - next_action: idle (Phase 8.2 milestone complete; Phase 8.3 = backlog)
 
+
+## 2026-09-08T08:37:03Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260908-053703 checkpoints=716 status=0 
+- next_action: advance
+
+## 2026-09-08T08:37:05Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260908-053705 checkpoints=729 status=0 
+- next_action: advance
+
+## 2026-09-08T08:37:08Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260908-053708 checkpoints=734 status=0 
+- next_action: advance
+
+## 2026-09-08T08:37:10Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260908-053710 checkpoints=740 status=0 
+- next_action: advance
+
+## 2026-09-08T08:37:11Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260908-053711 checkpoints=753 status=0 
+- next_action: advance
+
+## 2026-09-08T08:37:14Z | ikigai_fork_smoke | PASS
+## 2026-09-08T08:39:46Z | T-10.2 | PASS
+- commit: 3773821
+- cost_usd: 0
+- duration_min: 18
+- model: opus (state-machine + bash verification; 0 LLM calls beyond orchestrator)
+- attempt: 1/1
+- notes: T-10.2 SHIPPED. M6/M7/M8 hooks wired into dispatch.sh EXIT trap. EXIT trap LIFO order (cleanup_worktree → fire_notify → append_progress) via single chained trap (BASH GOTCHA: trap 'X' EXIT REPLACES previous — only last-registered fires; same latent bug in loop-tick.sh M8 line 109→158, pre-existing out of scope). Regression sweep pre-dispatch gate runs 6 suites (worktree_helper / cost_dashboard / notify / streak_tracker / pytest loop_infra / pytest canonical_scope); exit 1 + regression_failed on failure. tick_pass reason added to fire_notify mappings (PASS → tick_pass, FAIL → tick_fail, NEEDS_FIX → needs_fix, BLOCKED → blocked). tasks.md status flip via awk (3 bugs caught + fixed: variable name mismatch `block=1` vs `in_block`, `next` dropped header line, section-close regex matched task headers). --dry-run skips commit/push/notify but still runs regression sweep + worker + verifier. tests/test_dispatch.sh 20/20 PASS (Groups 1-7); full regression 96/96 PASS (bash 44 + pytest 52). Real worker → verifier → commit chain remains T-10.3 deliverable.
+- next_action: advance (T-10.3 next)
+
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260908-053714 checkpoints=758 status=0 
+- next_action: advance
