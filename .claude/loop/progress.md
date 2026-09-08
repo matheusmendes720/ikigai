@@ -1297,3 +1297,12 @@
 - notes: M9 SHIPPED. T-9.3 landed in parallel session (8645bf75 on master) — concurrent loop-tick completed before this orchestrator worktree merge. Original worktree branch loop/m9-t9.3 (f7dbf53) cleaned up. T-9.4 tests/test_streak_tracker.sh shipped (860f30d) — 4 test groups (cold-start / healthy / break / idempotent), 11/11 PASS in ~2s. One self-correction: YESTERDAY computed AFTER heredoc expand in test 2 (used ${YESTERDAY:-$DAY_BEFORE} fallback masking the bug, got streak=2 instead of 3) — fixed by computing all date vars upfront. T-9.5 streak-tracker cron registered (12cc97b): daemon-manager add --name streak-tracker --interval 1440m --cost-cap-usd 0.10 (PID 62296 RUNNING). T-9.6 regression sweep clean: bash 44/44 (worktree 15 + cost 7 + notify 11 + streak 11) + pytest 52/52 (loop_infra 11 + m4 9 + canonical_scope 32) = 96/96 PASS. M9 infrastructure complete. 7-day streak acceptance criterion DEFERRED to wall-clock gate (current_streak=2 on 2026-09-08, auto-passes 2026-09-13 if no break). Pattern mirrors M8→M8.1 deferred real-receipt verification.
 - next_action: idle (M9 milestone complete; M10 = backlog)
 
+## 2026-09-08T13:30:00Z | Phase 8.2 kickoff | PASS
+- commit: a08b5a7 (PLAN) + ac859e8 (tasks.md)
+- cost_usd: 0
+- duration_min: 5
+- model: opus (state-machine only; 0 LLM calls)
+- attempt: 1/1
+- notes: Phase 8.2 kickoff. SPEC committed at ad6c972 (7 design decisions locked) + PLAN.md committed at a08b5a7 (732 lines, 3 atomic tasks T-8.2.1/2/3). tasks.md updated with 3 pending entries (commit ac859e8). STALE-ref detected: SPEC L105 references dispatch_sub_agents.py but file does NOT exist in src/ikigai/src/agents/v2/nodes/ (verified 2026-09-08 — actual node set: balance/commit/decompose/error/heuristics/meta_plan/observe/plan/proposal_executor/reflect/score_vectors/surface_intentions/tag_and_persist.py). Documented gap in T-8.2.3 notes; implementer will resolve at dispatch time. Next: task-brief for T-8.2.1/2/3 then Workflow pipeline dispatch.
+- next_action: advance (dispatch Workflow)
+
