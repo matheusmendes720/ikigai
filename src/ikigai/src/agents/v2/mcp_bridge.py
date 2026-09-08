@@ -31,6 +31,12 @@ from opentelemetry.trace import Status, StatusCode
 
 from observability.otel_init import get_tracer
 
+# Production binding — spawn the FastMCP gateway subprocess and return a
+# sync-call client (FastMcpClient.call() mirrors FakeMcpServer.call()).
+from src.ikigai.src.agents.v2 import mcp_client as mcp_client_mod  # noqa: E402
+
+bind_prod_server = mcp_client_mod.bind_server_to_gateway
+
 # Module-level server handle. Production binds this to the
 # FastMCP gateway client. Tests monkeypatch it to FakeMcpServer.
 _server: Any = None
