@@ -29,7 +29,7 @@ from typing import Any
 
 from opentelemetry.trace import Status, StatusCode
 
-from observability.otel_init import get_tracer
+from src.ikigai.src.observability.otel_init import get_tracer
 
 # Production binding — spawn the FastMCP gateway subprocess and return a
 # sync-call client (FastMcpClient.call() mirrors FakeMcpServer.call()).
