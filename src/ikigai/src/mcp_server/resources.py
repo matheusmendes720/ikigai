@@ -18,7 +18,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from contracts.common import UEID
+from src.contracts.common import UEID
 from mesh.adapters import CliAdapter, SolverforgeCalendarAdapter, TaskdogAdapter
 from src.mesh import queue as _queue
 

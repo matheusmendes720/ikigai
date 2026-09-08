@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from contracts.investigation import InvestigationStatus
+from src.contracts.investigation import InvestigationStatus
 
 
 def investigation_complete(

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from contracts.investigation import Investigation
+from src.contracts.investigation import Investigation
 from pydantic import ValidationError
 
 

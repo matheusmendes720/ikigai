@@ -5,7 +5,7 @@
       "args": ["-u", "-m", "mcp_server"],
       "cwd": "C:\\Users\\mathe\\code_space\\life-oss\\life\\src\\ikigai\\src",
       "env": {
-        "PYTHONPATH": "C:\\Users\\mathe\\code_space\\life-oss\\life\\src;C:\\Users\\mathe\\code_space\\life-oss\\life\\src\\ikigai\\src"
+        "PYTHONPATH": "C:\\Users\\mathe\\code_space\\life-oss\\life;C:\\Users\\mathe\\code_space\\life-oss\\life\\src;C:\\Users\\mathe\\code_space\\life-oss\\life\\src\\ikigai\\src"
       }
     }
   }

@@ -31,13 +31,15 @@ IKIGAI_CWD = REPO_ROOT / "src" / "ikigai" / "src"
 
 
 def build_pythonpath() -> str:
+    """Build 3-entry PYTHONPATH: REPO_ROOT + LIFE_SRC + IKIGAI_SRC."""
+    repo_root_str = str(REPO_ROOT)
     src_dir = str(REPO_ROOT / "src")
     mcp_src = str(IKIGAI_CWD)
     sep = ";" if platform.system() == "Windows" else ":"
     existing = os.environ.get("PYTHONPATH", "")
     if existing:
-        return f"{existing}{sep}{src_dir}{sep}{mcp_src}"
-    return f"{src_dir}{sep}{mcp_src}"
+        return f"{existing}{sep}{repo_root_str}{sep}{src_dir}{sep}{mcp_src}"
+    return f"{repo_root_str}{sep}{src_dir}{sep}{mcp_src}"
 
 
 async def run_probe() -> int:

@@ -4,7 +4,7 @@ setlocal
 set "IKIGAI_ROOT=%~dp0"
 REM Both the poetry-src layout (ikigai/mcp_server/agents/...) AND the
 REM sibling packages (contracts, mesh) live at ..\..\src (life/src).
-set "PYTHONPATH=%IKIGAI_ROOT%src;%IKIGAI_ROOT%..\..\src"
+set "PYTHONPATH=%IKIGAI_ROOT%..\..\..\;%IKIGAI_ROOT%src;%IKIGAI_ROOT%..\..\src"
 
 cd /d "%IKIGAI_ROOT%"
 

@@ -17,7 +17,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from contracts.investigation import Investigation
+from src.contracts.investigation import Investigation
 from mesh.investigation_queue import (
     ensure_queue_dir,
     list_by_status,
