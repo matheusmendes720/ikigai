@@ -90,6 +90,13 @@ jobs:
             python: "3.11"
             manager: ruff-only
             ruff_target: .
+          # Phase 9.1: v2 nodes smoke tests — runs with -m "not integration"
+          # to exclude @pytest.mark.integration (Phase 8.5 convention)
+          - package: v2-nodes
+            path: src/ikigai
+            python: "3.11"
+            manager: uv
+            ruff_target: src/
           # NOTE: PAV kernel (src/operational/) ARCHIVED 2026-08-31 — see
           # archive/legacy-pav/SUPERSEDED.md and ADR-013. The archived
           # package remains self-contained (`uv sync && uv run pytest`
@@ -157,6 +164,27 @@ jobs:
           poetry run mypy ${{ matrix.ruff_target }}
           poetry run pytest -m "not e2e"
 
+      # Phase 9.1: v2 node smoke tests (exclude @pytest.mark.integration per Phase 8.5)
+      - name: Run v2 node tests (quality-gates)
+        if: matrix.package == 'v2-nodes'
+        working-directory: ${{ matrix.path }}
+        env:
+          IKIGAI_FAKE_LLM: "1"
+          PYTHONPATH: ../..
+        run: |
+          uv sync --all-packages
+          uv run pytest \
+            -m "not integration" \
+            interfaces/cli/tests/test_v2_skill_dispatch.py \
+            src/ikigai/src/agents/v2/tests/test_mcp_bridge.py \
+            src/ikigai/src/agents/v2/tests/test_mcp_client.py \
+            src/ikigai/src/agents/v2/tests/test_bridge_observability.py \
+            src/ikigai/src/agents/v2/tests/test_phase_8_2_wiring.py \
+            tests/ikigai/agents/v2/test_tag_and_persist_node.py \
+            src/ikigai/tests/test_v2_interface_dispatch.py \
+            src/ikigai/tests/test_v2_e2e_smoke.py \
+            src/ikigai/tests/mcp/test_fast_mcp_client_e2e_stdio.py
+
   mcp-gateway-contract:
     name: MCP Gateway Contract (B3.6)
     runs-on: ubuntu-latest
@@ -202,6 +230,55 @@ jobs:
       - name: Run review queue worker contract test
         run: |
           PYTHONPATH=. python -m pytest interfaces/cli/tests/test_review_queue_worker.py interfaces/cli/tests/test_review_queue_worker_e2e.py -v
+
+  # Phase 9.1: dedicated v2 nodes smoke job — runs with --confcutdir=. for
+  # dual-module identity fix (per Phase 8.9 / ADR-014) and IKIGAI_FAKE_LLM=1
+  # for $0 CI mode. Runs the same 9 test paths as quality-gates v2-nodes
+  # entry but without the -m "not integration" filter so integration tests
+  # are included (fast feedback before the full quality-gates run completes).
+  v2-nodes-smoke:
+    name: V2 Nodes Smoke (${{ matrix.test_path }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test_path:
+          - interfaces/cli/tests/test_v2_skill_dispatch.py
+          - src/ikigai/src/agents/v2/tests/test_mcp_bridge.py
+          - src/ikigai/src/agents/v2/tests/test_mcp_client.py
+          - src/ikigai/src/agents/v2/tests/test_bridge_observability.py
+          - src/ikigai/src/agents/v2/tests/test_phase_8_2_wiring.py
+          - tests/ikigai/agents/v2/test_tag_and_persist_node.py
+          - src/ikigai/tests/test_v2_interface_dispatch.py
+          - src/ikigai/tests/test_v2_e2e_smoke.py
+          - src/ikigai/tests/mcp/test_fast_mcp_client_e2e_stdio.py
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Cache uv artifacts
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-v2-nodes-${{ hashFiles('**/uv.lock', '**/pyproject.toml') }}
+
+      - name: Install dependencies
+        env:
+          IKIGAI_FAKE_LLM: "1"
+        run: |
+          uv sync --all-packages
+
+      - name: Run v2 node smoke tests
+        env:
+          IKIGAI_FAKE_LLM: "1"
+        run: |
+          uv run pytest --confcutdir=. ${{ matrix.test_path }}
 
   # NOTE: operational-e2e and git-hooks jobs REMOVED 2026-08-31 — PAV
   # kernel archived to archive/legacy-pav/src-operational/. The archived
