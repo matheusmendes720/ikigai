@@ -6,10 +6,10 @@ Path strategy:
 - Post 2026-09-05 namespace rename, `sys_ikigai/` lives at repo root too, so
   the `_REPO_ROOT` prepend already covers it. `sys_ikigai/vault/...` etc. resolve
   via `from sys_ikigai.X`.
-- BUT: `agents/`, `mcp_server/`, `observability/`, `strategics/`, and
-  `ikigai_wrapper.py` are SIBLINGS of `sys_ikigai/`, not inside it (they live
-  at `<repo>/src/ikigai/src/`). These still need `<repo>/src/ikigai/src/`
-  appended so `from agents.v2.X import Y` etc. resolve.
+- NOTE: `src/ikigai/src/agents/v2/` imports (used by test_v2_skill_dispatch.py)
+  are resolved via the test file's own sys.path setup (adds `_SRC_ROOT`), NOT
+  via this conftest. Adding `src/ikigai/src/` here would break module-name
+  resolution for v2 agent tests when combined in the same pytest run.
 - Each test gets an isolated tmp data dir to avoid touching real `data/`.
 
 We monkeypatch the module-level constants in src.mesh.adapters and
@@ -32,14 +32,13 @@ for p in (_SRC_ROOT, _REPO_ROOT):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
-# Append `<repo>/src/ikigai/src/` so sibling packages of sys_ikigai/
-# (`agents`, `mcp_server`, `observability`, `strategics`, `ikigai_wrapper`)
-# resolve. These are NOT inside `sys_ikigai/` per the 2026-09-05 namespace
-# rename. The sys_ikigai/ package itself is at repo root, so it doesn't need
-# this entry.
-_IKIGAI_SRC = _REPO_ROOT / "src" / "ikigai" / "src"
-if str(_IKIGAI_SRC) not in sys.path:
-    sys.path.append(str(_IKIGAI_SRC))
+# NOTE: `_IKIGAI_SRC` (src/ikigai/src/) is intentionally NOT added here.
+# Adding it to sys.path AFTER _SRC_ROOT breaks module-name resolution for
+# src/ikigai/src/agents/v2/tests/ when combined in the same pytest run
+# (Python finds src/ikigai/src as the package base, computing module name
+# as agents.v2.tests instead of src.ikigai.src.agents.v2.tests).
+# Tests that need src/ikigai/src/agents/v2/* already add _SRC_ROOT via their
+# own sys.path setup (e.g. test_v2_skill_dispatch.py ll.20-24).
 
 
 @pytest.fixture
