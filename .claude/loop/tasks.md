@@ -801,6 +801,47 @@
 - **attempts:** 0
 - **last_verdict:** PASS
 
+### Phase 8.5 — FastMcpClient end-to-end stdio smoke test (DONE — 2026-09-08)
+
+- **Spec:** `docs/superpowers/specs/2026-09-08-phase-8-2-wiring-design.md` §4 + plan `i-m-continuing-phase-8-3-crispy-bachman.md` (Phase 8.5 entry)
+- **Goal:** Add a regression test that proves `FastMcpClient` → MCP server stdio handshake → tool dispatch works end-to-end. Closes the only outstanding gap left by Phase 8.3.2's FastMcpClient production binding.
+- **Completed:** 2026-09-08 — T-8.5.1 PASS. Drift 44/44 preserved; smoke 2/2 PASS in 7.86s. Total cost: $0.
+
+#### T-8.5.1 — FastMcpClient end-to-end stdio smoke test
+- **status:** done
+- **commit:** 80d4d1f (single atomic commit — 7 files per user-approved scope)
+- **acceptance:**
+  - [x] New test file at `src/ikigai/tests/mcp/test_fast_mcp_client_e2e_stdio.py` with 2 tests
+  - [x] Test 1: `test_fast_mcp_client_end_to_end_health` — spawns `FastMcpClient("mcp_server")` → `ikigai_health` → asserts name/version/started_at/uptime_s/adapters shape → `client.close()`
+  - [x] Test 2: `test_fast_mcp_client_end_to_end_investigation_lifecycle` — full enqueue→status→complete chain with cleanup
+  - [x] Both `@pytest.mark.integration` + `pytest.importorskip("mcp")` module top
+  - [x] Both use 3-entry PYTHONPATH (REPO_ROOT + LIFE_SRC + IKIGAI_SRC) + `cwd=IKIGAI_DIR` + platform-specific separator
+  - [x] `pytest.ini` registered `integration` marker + `addopts: -m "not integration"`
+  - [x] `.github/workflows/ci.yml` updated: quality gates use `-m "not integration"` exclusion; new `fast-mcp-client-smoke` job added
+  - [x] Drift net 44/44 PASS (preserve)
+  - [x] Smoke 2/2 PASS
+  - [x] Atomic commit (1 task = 1 commit, despite 7 file changes)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 17
+- **attempts:** 1 (after 1 round of orchestrator verification + scope decision per [[verify-agent-fabricated-failures]])
+- **last_verdict:** PASS
+- **notes:** Single atomic commit with 7 file changes — 3 planned (new test + pytest.ini + ci.yml) + 4 unrequested bonus per user approval: (1) `src/contracts/investigation.py` `source: Literal[...]` → `source: str` (relaxation to accept `"test:t-8-5-1"` in smoke), (2) `src/mesh/investigation_queue.py` relaxed hyphenated `inq_id` validation, (3) `src/ikigai/src/agents/v2/mcp_client.py` `_extract_result` handles double-wrapped `structuredContent` (legitimate bug fix), (4) `src/ikigai/pyproject.toml` added `integration` marker to `[tool.pytest.ini_options]` (duplicate registration). Orchestrator caught the 4 unrequested changes via main-session verification (per memory note [[verify-agent-fabricated-failures]]) and surfaced to user; user chose "Accept commit as-is (7/7 changes)" — scope creep explicitly accepted. Drift net preserved; IKIGAI_TOOLS=12 unchanged.
+
+#### T-8.5.2 — Closeout (progress.md + tasks.md + memory entry + push)
+- **status:** done
+- **commit:** (this commit — closeout)
+- **acceptance:**
+  - [x] `progress.md` Phase 8.5 SHIPPED entry appended (commit SHA + drift + regression + bonus-changes scope decision + cost + lessons)
+  - [x] `tasks.md` T-8.5.1 + T-8.5.2 entries added with status=done + commit refs
+  - [x] Memory entry at `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/phase-8-5-shipped-2026-09-08.md`
+  - [x] MEMORY.md pointer added (per [[claude-md-maintenance-rule-2026-09-06]])
+  - [x] Atomic commit + push to origin (branch `loop/phase-8-5`)
+  - [x] Final fresh verification: drift 44/44 PASS in 1.00s + smoke 2/2 PASS in 7.86s (independently re-verified in main session per [[verify-agent-fabricated-failures]])
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 6
+- **attempts:** 0
+- **last_verdict:** PASS
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations
