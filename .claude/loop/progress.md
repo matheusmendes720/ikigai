@@ -1297,6 +1297,15 @@
 - notes: M9 SHIPPED. T-9.3 landed in parallel session (8645bf75 on master) — concurrent loop-tick completed before this orchestrator worktree merge. Original worktree branch loop/m9-t9.3 (f7dbf53) cleaned up. T-9.4 tests/test_streak_tracker.sh shipped (860f30d) — 4 test groups (cold-start / healthy / break / idempotent), 11/11 PASS in ~2s. One self-correction: YESTERDAY computed AFTER heredoc expand in test 2 (used ${YESTERDAY:-$DAY_BEFORE} fallback masking the bug, got streak=2 instead of 3) — fixed by computing all date vars upfront. T-9.5 streak-tracker cron registered (12cc97b): daemon-manager add --name streak-tracker --interval 1440m --cost-cap-usd 0.10 (PID 62296 RUNNING). T-9.6 regression sweep clean: bash 44/44 (worktree 15 + cost 7 + notify 11 + streak 11) + pytest 52/52 (loop_infra 11 + m4 9 + canonical_scope 32) = 96/96 PASS. M9 infrastructure complete. 7-day streak acceptance criterion DEFERRED to wall-clock gate (current_streak=2 on 2026-09-08, auto-passes 2026-09-13 if no break). Pattern mirrors M8→M8.1 deferred real-receipt verification.
 - next_action: idle (M9 milestone complete; M10 = backlog)
 
+## 2026-09-08T05:10:00Z | M10-launch | —
+- commit: —
+- cost_usd: 0.00
+- duration_min: 0
+- model: opus
+- attempt: 1/1
+- notes: M10 launch — end-to-end loop dispatch meta-tooling (state-machine only). User directive: 'estou cuidando da phase 8.2 em outra sessao.. vamos apenas cuidar do meta tooling.. para executar os loops em proximos phases do roadmap'. Created specs/M10-end-to-end-dispatch/SPEC.md (114L, IN-PROGRESS header, owner loop-orchestrator) with 5 acceptance criteria: (1) single-command `bash scripts/dispatch.sh <task_id>` terminal unit, (2) atomic promotion (commit + push + roadmap flip + tasks flip as one rollback-able unit), (3) idempotent replay (already-done → 0 + already_complete; in-progress → resume), (4) notification integration via M8 notify.sh with tick_pass/tick_fail/needs_fix reason mapping, (5) determinism gate (full regression sweep before any LLM spawn). 3 sub-tasks: T-10.1 scaffold scripts/dispatch.sh + tests ($0.00, 15min), T-10.2 wire M6/M7/M8 hooks into EXIT trap ($0.00, 20min), T-10.3 acceptance + closeout ($0.00, 10min). tasks.md M10 section inserted (PENDING — 2026-09-08) with all 3 sub-tasks status=pending. Explicit non-goals per SPEC: no new orchestrator LLM, no new notification channel, no constitution/AGENTS/CLAUDE.md edits, no parallelism bypass of M6 worktree isolation. Q1 default: --dry-run supported. Q2 default: pre-dispatch regression failure = BLOCKED not FAIL. $0 total cost (pure staging, no LLM).
+- next_action: advance (T-10.1 next — worker spawns in .worktrees/m10-t10.1/)
+
 ## 2026-09-08T13:30:00Z | Phase 8.2 kickoff | PASS
 - commit: a08b5a7 (PLAN) + ac859e8 (tasks.md)
 - cost_usd: 0
