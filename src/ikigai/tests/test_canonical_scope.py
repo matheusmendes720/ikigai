@@ -286,6 +286,158 @@ def test_no_forbidden_mcp_tool_wrappers() -> None:
     )
 
 
+# Module-level constants that MUST NOT be defined in production code.
+# Per ADR-013 (planner-only invariant) the agent layer MUST NOT carry any
+# algorithm parameters (PAE weights, QHE coefficients, regime thresholds,
+# scoring tunables). After V5-D/V5-F radical cleanup all such constants
+# were deleted from the agent layer; this guard prevents re-introduction.
+#
+# Match rule: UPPER_SNAKE_CASE names whose body contains an algorithm /
+# scoring / regime / heuristic keyword. This is deliberately broader than
+# the FORBIDDEN_FUNCTIONS list — it catches *parameters* not just code.
+_ALGO_CONSTANT_KEYWORDS: frozenset[str] = frozenset(
+    {
+        "PAE",
+        "QHE",
+        "REGIME",
+        "VECTOR",
+        "SCORE",
+        "SCORING",
+        "WEIGHT",
+        "HEURISTIC",
+        "THRESHOLD",
+        "ALIGNMENT",
+        "PHASE",
+        "CYCLE",
+        "RANK",
+    }
+)
+# Algorithm-typed suffixes that mark a numeric/tunable constant.
+_ALGO_CONSTANT_SUFFIXES: tuple[str, ...] = (
+    "_WEIGHT",
+    "_THRESHOLD",
+    "_COEFFICIENT",
+    "_SCORE",
+    "_FACTOR",
+    "_RATIO",
+    "_DECAY",
+    "_EPSILON",
+    "_ALPHA",
+    "_BETA",
+    "_GAMMA",
+    "_DELTA",
+)
+
+
+def test_no_algorithm_constants_in_agent_code() -> None:
+    """Production code MUST NOT define algorithm-parameter constants (ADR-013).
+
+    Catches module-level ``FOO_BAR = <number>`` assignments whose name
+    matches an algorithm/score/regime keyword OR ends with a tunable
+    suffix (``_WEIGHT``, ``_THRESHOLD``, ``_COEFFICIENT``…). The
+    canonical invariant (l) per ADR-019 R7 / W3.2.
+    """
+    import re as _re
+
+    violations: list[str] = []
+    # Match NAME = <numeric-or-bool-or-call> at module top-level only —
+    # we use ast.Assign nodes restricted to tree.body so nested function
+    # bodies are ignored (those are private constants, not exposed policy).
+    for root in PROD_LAYERS:
+        if not root.exists():
+            continue
+        for py_file in _iter_python_files(root):
+            try:
+                tree = ast.parse(py_file.read_text(encoding="utf-8"))
+            except SyntaxError:
+                continue
+            for node in tree.body:
+                if not isinstance(node, ast.Assign):
+                    continue
+                for target in node.targets:
+                    if not (
+                        isinstance(target, ast.Name)
+                        and target.id.isupper()
+                        and "_" in target.id
+                    ):
+                        continue
+                    # Skip typing constructs — `Foo = Literal["..."]` is a
+                    # TYPE ALIAS for state labels (e.g. REGIME_STATES =
+                    # Literal["PUSH","MAINTAIN",...]) not an algorithm
+                    # tunable. Skip `TypedDict`/`Optional`/`Union` aliases too.
+                    if _is_typing_alias(node.value):
+                        continue
+                    name = target.id
+                    name_upper = name.upper()
+                    # Keyword check (case-insensitive substring on tokens)
+                    if any(
+                        kw in name_upper
+                        for kw in (
+                            "PAE",
+                            "QHE",
+                            "REGIME",
+                            "VECTOR",
+                            "HEURISTIC",
+                            "ALIGNMENT",
+                            "PHASE",
+                            "CYCLE",
+                            "RANK",
+                            "SCORE",
+                            "SCORING",
+                        )
+                    ):
+                        violations.append(
+                            _format_violation(
+                                py_file,
+                                node.lineno,
+                                "CONSTANT-KEYWORD",
+                                f"forbidden algorithm-constant name: {name}",
+                            )
+                        )
+                        continue
+                    # Suffix check (e.g. _WEIGHT, _THRESHOLD)
+                    if any(name.endswith(suf) for suf in _ALGO_CONSTANT_SUFFIXES):
+                        # Only flag if the RHS is a numeric/bool literal —
+                        # exclude string constants (those are usually labels).
+                        value = node.value
+                        if isinstance(value, (ast.Constant,)):
+                            if isinstance(value.value, (int, float, bool)):
+                                violations.append(
+                                    _format_violation(
+                                        py_file,
+                                        node.lineno,
+                                        "CONSTANT-TUNABLE",
+                                        f"forbidden tunable constant: {name}",
+                                    )
+                                )
+    assert not violations, (
+        "ADR-013 violation — forbidden algorithm constants detected:\n"
+        + "\n".join(sorted(violations))
+    )
+
+
+def _is_typing_alias(value_node: ast.AST) -> bool:
+    """Return True iff the RHS is a typing-construct that should not be
+    classified as an algorithm constant.
+
+    Catches:
+      - ``Literal[...]`` (state labels for FSMs — REGIME_STATES, PHASE_STATES, ...)
+      - ``Optional[...]``, ``Union[...]``, ``List[...]``, ``Dict[...]``, ``Tuple[...]``
+      - ``TypedDict`` (inline class definition is handled separately, not via Assign)
+      - direct name references to ``Literal``/``Optional``/``Union`` regardless of subscript
+    """
+    typing_names = {"Literal", "Optional", "Union", "List", "Dict", "Tuple", "Set", "FrozenSet"}
+    # Bare reference: VECTOR_TYPES = Literal
+    if isinstance(value_node, ast.Name) and value_node.id in typing_names:
+        return True
+    # Subscripted: VECTOR_TYPES = Literal["..."]  |  REGIME = Optional[int]
+    if isinstance(value_node, ast.Subscript):
+        sub = value_node.value
+        if isinstance(sub, ast.Name) and sub.id in typing_names:
+            return True
+    return False
+
+
 def test_ikigai_tools_count_is_12() -> None:
     """IKIGAI_TOOLS list MUST have exactly 12 entries (data + vault reads).
 
