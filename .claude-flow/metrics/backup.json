@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-09-05T21:31:41.770Z",
-  "backedUp": false,
-  "sizeBytes": 0,
-  "rotatedAway": 0,
-  "skipped": "no-db"
+  "timestamp": "2026-09-08T00:45:20.828Z",
+  "backedUp": true,
+  "path": "C:\\Users\\mathe\\code_space\\life-oss\\life\\.swarm\\backups\\memory-2026-09-08T00-45-20-823Z.db",
+  "sizeBytes": 172032,
+  "rotatedAway": 0
 }
