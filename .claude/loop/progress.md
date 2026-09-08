@@ -947,3 +947,57 @@
 - attempt: 1/1
 - notes: M6 worktree-isolation helper shipped. T-6.1..T-6.5 all PASS. Spec at specs/M6-worktree-isolation/SPEC.md (121L, 4 commands + exit code matrix + parallel-safety contract). scripts/worktree-helper.sh awk regex fix in cleanup-all (path-based grep broke on Windows Git Bash; switched to refs/heads/loop/* branch match). tests/test_worktree_helper.sh 15/15 PASS (6 test groups, 3 parallel worktrees, idempotent re-run). loop-tick.sh + loop-tick.bat gained --auto-cleanup flag (default off, opt-in). Auto-cleanup bash EXIT trap at loop-tick.sh:97 — fires on every tick exit path (dry-run/cost-abort/graph-dispatch/overrun/normal). Trap gates cleanup-all on zero `status: pending` lines in tasks.md (hardened grep -c with head -n1 + regex validation + fallback to 0 — without this the `|| echo 0` fallback appended a second line and broke `[ -eq 0 ]` integer compare). Full regression sweep 54/54 PASS before closeout: test_loop_infra 11/11 + test_m4_langgraph_integration 9/9 + test_canonical_scope 32/32 + test_m5_ikigai_mcp_integration 2/2.
 - next_action: advance (to M7 cost-dashboard per roadmap.md:101)
+
+## 2026-09-08T01:30:57Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-223057 checkpoints=556 status=0 
+- next_action: advance
+
+## 2026-09-08T01:30:59Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-223059 checkpoints=565 status=0 
+- next_action: advance
+
+## 2026-09-08T01:31:01Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-223101 checkpoints=570 status=0 
+- next_action: advance
+
+## 2026-09-08T01:31:03Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-223103 checkpoints=576 status=0 
+- next_action: advance
+
+## 2026-09-08T01:31:04Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-223104 checkpoints=585 status=0 
+- next_action: advance
+
+## 2026-09-08T01:31:07Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-223107 checkpoints=590 status=0 
+- next_action: advance

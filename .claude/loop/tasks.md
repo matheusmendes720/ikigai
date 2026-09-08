@@ -158,7 +158,7 @@
 - **commit:** 83658b1
 - **notes:** Discovered during T-4.5 acceptance sweep — `test_drift_invariants.py` asserted `test_no_algorithm_constants_in_agent_code` must exist in canonical_scope but it had been deleted when V5-D/V5-F stripped all algorithm constants from the agent layer (per ADR-013). The test asserts no NEW algorithm-parameter constants (PAE/QHE/REGIME/VECTOR/SCORE/WEIGHT/HEURISTIC/THRESHOLD/ALIGNMENT/PHASE/CYCLE/RANK keywords; or suffixes _WEIGHT/_THRESHOLD/_COEFFICIENT/_SCORE/_FACTOR/_RATIO/_DECAY/_EPSILON/_ALPHA/_BETA/_GAMMA/_DELTA) leak back into PROD_LAYERS. Type-alias discrimination via `_is_typing_alias()` is the lesson — `Literal["PUSH", "MAINTAIN", ...]` is a FSM state label, not an algorithm constant. Atomic commit + pushed to origin master (`cb99ff7..83658b1`).
 
-### M5 — IKIGAI MCP integration (IN PROGRESS — 2026-09-08)
+### M5 — IKIGAI MCP integration (DONE — 2026-09-08)
 - **Spec:** `specs/M5-ikigai-mcp-integration/SPEC.md` (created 2026-09-08; supersedes roadmap.md "19 tools" claim with verified live count = 14 tools + 6 resources from `src/ikigai/src/mcp_server/`)
 - **Goal:** Wire the orchestrator prompt to IKIGAI MCP tools so the loop can delegate research/knowledge/task work to the Deep Agent layer. Additive documentation only — no new gateway code.
 - **Pre-existing finding (NOT M5 scope, but flagged):** `tests/interfaces/test_tui_operator.py::test_no_write_paths_in_operator_tui` FAILS pre-existing on clean HEAD `cb99ff7` (recursive `rglob` picks up test fixtures + `app.py:409,426` `remove()` calls). Outside M4 acceptance (which only covered `interfaces/cli/tests`). Suggest future micro-task to scope the AST scan to production-only OR remove `remove` from forbidden list.
@@ -234,17 +234,20 @@
 - **last_verdict:** PASS
 
 #### T-5.6 — Atomic commit + push to origin master
-- **status:** pending
+- **status:** done
 - **spec_ref:** `specs/M5-ikigai-mcp-integration/SPEC.md` (acceptance criterion #6)
 - **acceptance:**
-  - [ ] `tests/test_m5_ikigai_mcp_integration.py` added
-  - [ ] `.claude/loop/{roadmap,tasks,progress}.md` state-machine updates included
-  - [ ] Atomic single commit (no Co-Authored-By trailer per CLAUDE.md)
-  - [ ] Pushed to origin master per standing directive
-  - [ ] Memory entry appended at `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/` (pattern from prior waves)
+  - [x] `tests/test_m5_ikigai_mcp_integration.py` added (6348B; landed in commit `9980f22`)
+  - [x] `.claude/loop/{roadmap,tasks,progress}.md` state-machine updates included (roadmap M5 -> STATUS:DONE, tasks.md T-5.3..T-5.5 done, progress.md M5 entry appended)
+  - [x] Atomic single commit landed as `9980f22 test: close M5 IKIGAI MCP integration milestone` (no Co-Authored-By trailer per CLAUDE.md)
+  - [x] Pushed to origin master per standing directive (9980f22..fcb0d9e on origin/master)
+  - [x] Memory entry appended at `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/m5-ikigai-mcp-integration-shipped-2026-09-08.md`
 - **estimated_cost_usd:** 0.00
 - **estimated_minutes:** 3
 - **attempts:** 0
+- **last_verdict:** PASS
+- **commit:** 9980f22
+- **notes:** Reconciliation tick (2026-09-08). Work landed in commit 9980f22 earlier today; tasks.md had drift (T-5.6 still said pending + M5 still said IN PROGRESS). State-machine reconciled: T-5.6 marked done with commit ref, M5 section header changed to DONE. M7 (cost dashboard) launched as next milestone per roadmap.md.
 
 ### M6 — Worktree isolation helper (DONE — 2026-09-07)
 - **Spec:** `specs/M6-worktree-isolation/SPEC.md` (created 2026-09-07; documents 4 commands + exit code matrix + parallel-safety contract)
@@ -320,6 +323,63 @@
 - **attempts:** 0
 - **last_verdict:** PASS
 - **notes:** Full regression sweep 54/54 PASS before closeout: test_loop_infra 11/11 + test_m4_langgraph_integration 9/9 + test_canonical_scope 32/32 + test_m5_ikigai_mcp_integration 2/2. No regression introduced by M6 file changes.
+
+
+### M7 — Cost dashboard (IN PROGRESS — 2026-09-08)
+- **Spec:** `specs/M7-cost-dashboard/SPEC.md` (created 2026-09-08; aggregates `progress.md` into `.claude/loop/logs/cost-report.md` with tick counts + USD totals + spike alarm)
+- **Goal:** Daily cron reads `.claude/loop/progress.md`, aggregates last-24h tick entries (count / total USD / avg USD-per-tick), writes a markdown report + spike alarm if daily cost > $10. Loop brittleness + runaway-cost mitigation (Ronacher).
+- **Pre-existing finding (NOT M7 scope, but flagged):** Pre-tick aggregate stats in `progress.md` lines 19-25 are stale (show 11 ticks / $1.80 / 100% pass rate — accurate at M0/M1 era). Future micro-task can recompute from live log entries; out of scope for M7.
+
+#### T-7.1 — Write M7 SPEC.md + scaffold scripts/cost-dashboard.sh
+- **status:** pending
+- **spec_ref:** `specs/M7-cost-dashboard/SPEC.md` (acceptance criteria #1 + #2)
+- **acceptance:**
+  - [ ] `specs/M7-cost-dashboard/SPEC.md` exists (covers aggregation logic, output schema, spike threshold, exit codes, idempotency)
+  - [ ] `scripts/cost-dashboard.sh` exists (parses progress.md for last-24h `## YYYY-MM-DD` entries; aggregates tick count, USD total, USD avg; writes `.claude/loop/logs/cost-report.md`; non-zero exit if spike > $10)
+  - [ ] Idempotent: re-running writes the same file (deterministic ordering; no timestamps in body)
+  - [ ] Manual smoke: `bash scripts/cost-dashboard.sh` -> exit 0 + report file exists + contains all 3 metrics
+- **estimated_cost_usd:** 0.30
+- **estimated_minutes:** 8
+- **attempts:** 0
+
+#### T-7.2 — tests/test_cost_dashboard.sh
+- **status:** pending
+- **spec_ref:** `specs/M7-cost-dashboard/SPEC.md` (acceptance criterion #3)
+- **acceptance:**
+  - [ ] `tests/test_cost_dashboard.sh` exists (3+ test groups: aggregation correctness / spike alarm / idempotent re-run)
+  - [ ] Test passes locally (bash test_cost_dashboard.sh returns 0; all groups PASS)
+  - [ ] Pre-cleanup loop handles leftover state (idempotent re-runnable from clean tree)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 6
+- **attempts:** 0
+
+#### T-7.3 — Daily cron schedule via daemon-manager
+- **status:** pending
+- **spec_ref:** `specs/M7-cost-dashboard/SPEC.md` (acceptance criterion #4)
+- **acceptance:**
+  - [ ] `bash .claude/helpers/daemon-manager.sh list` shows `cost-dashboard` schedule
+  - [ ] Cron fires daily at 00:30 UTC (after midnight rollover, before hill-climb weekly)
+  - [ ] Cost cap: $0.50/tick (deterministic script, should run cheap)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 3
+- **attempts:** 0
+
+#### T-7.4 — Regression sweep + state-machine closeout
+- **status:** pending
+- **spec_ref:** `specs/M7-cost-dashboard/SPEC.md` (acceptance criterion #5)
+- **acceptance:**
+  - [ ] `pytest tests/test_loop_infra.py` 11/11 PASS
+  - [ ] `pytest tests/test_m4_langgraph_integration.py` 9/9 PASS
+  - [ ] `pytest src/ikigai/tests/test_canonical_scope.py` 32/32 PASS
+  - [ ] `bash tests/test_cost_dashboard.sh` all groups PASS
+  - [ ] `roadmap.md` M7 marked STATUS: DONE
+  - [ ] `tasks.md` T-7.1..T-7.4 marked status=done
+  - [ ] `progress.md` M7 entry appended with commit SHA
+  - [ ] Atomic commit + push to origin master per standing directive
+  - [ ] Memory entry appended at `~/.claude/projects/.../memory/m7-cost-dashboard-shipped-2026-09-08.md`
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 5
+- **attempts:** 0
 
 ## Notes for Orchestrator
 
