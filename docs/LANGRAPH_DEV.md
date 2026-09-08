@@ -2,6 +2,9 @@
 > This document describes the pre-2026-08-26 PAV TUI/CLI era when 6 LangGraph
 > graphs (PAE-maintainer + 4 swarm) were registered as canonical. PAV is now
 > desativado; canonical flows are owned by deep-agent over forks-prontas widgets.
+>
+> **For Phase 8.x user-facing documentation (CLI skills, LangGraph Studio, CI),
+> see [docs/PHASE_8X_USAGE.md](PHASE_8X_USAGE.md).**
 
 # LangGraph Dev - Single-Project Agentic Flows
 
