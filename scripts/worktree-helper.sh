@@ -69,13 +69,20 @@ case "$cmd" in
     ;;
   cleanup-all)
     echo "Removing ALL loop worktrees:"
-    git -C "$PROJECT_ROOT" worktree list --porcelain | grep "worktree $WORKTREE_BASE" | while read -r line; do
-      WT_PATH=$(echo "$line" | awk '{print $2}')
-      if [ -d "$WT_PATH" ]; then
-        echo "  Removing: $WT_PATH"
-        git -C "$PROJECT_ROOT" worktree remove --force "$WT_PATH" || true
-      fi
-    done
+    # Parse git porcelain output: blocks separated by blank lines, each
+    # starts with "worktree <path>". Match loop worktrees by branch name
+    # (refs/heads/loop/*) instead of path — path formats vary across
+    # POSIX/Git Bash (forward vs backslash separators), but branch names
+    # are canonical. This fixes the cleanup-all regex mismatch bug where
+    # the path-based grep never matched on Windows Git Bash.
+    git -C "$PROJECT_ROOT" worktree list --porcelain | \
+      awk '/^worktree / {wt=$2; branch=""; next} /^branch / {branch=$2; if (branch ~ /^refs\/heads\/loop\//) print wt}' | \
+      while read -r WT_PATH; do
+        if [ -d "$WT_PATH" ]; then
+          echo "  Removing: $WT_PATH"
+          git -C "$PROJECT_ROOT" worktree remove --force "$WT_PATH" || true
+        fi
+      done
     # Remove loop/* branches
     git -C "$PROJECT_ROOT" branch | grep "^  loop/" | while read -r branch; do
       branch=$(echo "$branch" | tr -d ' ')
