@@ -731,3 +731,12 @@
 - attempt: 1/1
 - notes: M5 launch — state-machine only. Created specs/M5-ikigai-mcp-integration/SPEC.md (160L). Verified live IKIGAI MCP tool surface from src/ikigai/src/mcp_server/ = 14 tools (8 IKIGAI: decompose/write_tasks/read_tasks/mesh_show/task_create/health/vault_write/vault_read + 3 Plan C: investigation_enqueue/status/complete + 3 taskdog: read/list/supports_field) + 6 resources. Supersedes roadmap.md stale "19 tools" claim. 4 sub-tasks (T-5.1..T-5.4) mapped to SPEC acceptance criteria. Pre-existing test regression flagged but NOT in M5 scope: tests/interfaces/test_tui_operator.py::test_no_write_paths_in_operator_tui fails on clean HEAD cb99ff7 (recursive rglob catches test fixtures + app.py:409,426 remove() calls). Regression is outside M4 acceptance (which only covered interfaces/cli/tests 98/98). tasks.md: T-5.1..T-5.4 added, status=pending. roadmap.md: M5 → STATUS: IN-PROGRESS. 0 LLM calls.
 - next_action: advance
+
+## 2026-09-08T00:38:44Z | T-5.1 + T-5.2 | PASS
+- commit: (pending this tick)
+- cost_usd: 0
+- duration_min: 4
+- model: opus (deterministic file edits)
+- attempt: 1/1
+- notes: T-5.1 + T-5.2 shipped. (1) orchestrator.md: added "IKIGAI MCP Tool Surface (M5)" section (40 lines) at line 100 — 14-row table (8 IKIGAI + 3 investigation + 3 taskdog) + 6 resources + start commands (ikigai.bat mcp / uv run ikigai mcp) + Windows stdio fix reference (b93a1f3) + ADR-013 scope discipline. (2) worker.md: added "## Tool Availability" section (10 lines) at line 12 — tool count pointer, read-only vs write split, ADR-013 forbidden list. Both edits additive; no existing sections touched. 0 LLM cost.
+- next_action: advance

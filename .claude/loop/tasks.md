@@ -148,27 +148,31 @@
 - **Pre-existing finding (NOT M5 scope, but flagged):** `tests/interfaces/test_tui_operator.py::test_no_write_paths_in_operator_tui` FAILS pre-existing on clean HEAD `cb99ff7` (recursive `rglob` picks up test fixtures + `app.py:409,426` `remove()` calls). Outside M4 acceptance (which only covered `interfaces/cli/tests`). Suggest future micro-task to scope the AST scan to production-only OR remove `remove` from forbidden list.
 
 #### T-5.1 — Add IKIGAI tool surface to orchestrator prompt
-- **status:** pending
+- **status:** done
 - **spec_ref:** `specs/M5-ikigai-mcp-integration/SPEC.md` (acceptance criterion #1)
 - **acceptance:**
-  - [ ] `.claude/agents/loop/orchestrator.md` adds "IKIGAI MCP Tool Surface (M5)" section between HARD RULES and Prompt Template
-  - [ ] Section lists 14 tools + 6 resources in a table
-  - [ ] Each row has: name, one-line invocation, source path
-  - [ ] Cron entrypoint pointer (`ikigai.bat mcp` / `cd src/ikigai && uv run ikigai mcp`)
-  - [ ] Existing sections preserved (additive change)
+  - [x] `.claude/agents/loop/orchestrator.md` adds "IKIGAI MCP Tool Surface (M5)" section between HARD RULES and Prompt Template
+  - [x] Section lists 14 tools + 6 resources in a table
+  - [x] Each row has: name, one-line invocation, source path
+  - [x] Cron entrypoint pointer (`ikigai.bat mcp` / `cd src/ikigai && uv run ikigai mcp`)
+  - [x] Existing sections preserved (additive change)
 - **estimated_cost_usd:** 0.20
 - **estimated_minutes:** 5
 - **attempts:** 0
+- **last_verdict:** PASS
+- **notes:** Section inserted between Tool Surface (LangGraph graphs — M4) and Prompt Template (line 100). 14-row table covers 8 IKIGAI + 3 investigation + 3 taskdog + 6 resources. Cron entrypoint pointer + Windows stdio fix reference (b93a1f3) included. ADR-013 scope discipline callout.
 
 #### T-5.2 — Worker prompt acknowledges IKIGAI MCP availability
-- **status:** pending
+- **status:** done
 - **spec_ref:** `specs/M5-ikigai-mcp-integration/SPEC.md` (acceptance criterion #4)
 - **acceptance:**
-  - [ ] `.claude/agents/loop/worker.md` adds a sentence about IKIGAI MCP tools
-  - [ ] No other worker.md sections modified
+  - [x] `.claude/agents/loop/worker.md` adds "## Tool Availability" section about IKIGAI MCP tools
+  - [x] No other worker.md sections modified
 - **estimated_cost_usd:** 0.10
 - **estimated_minutes:** 2
 - **attempts:** 0
+- **last_verdict:** PASS
+- **notes:** Added "## Tool Availability" section after "Your Job" (line 12). Lists 14 tools + 6 resources pointer, read-only vs write tools split, ADR-013 forbidden math/policy/scoring tools.
 
 #### T-5.3 — One-tick IKIGAI MCP integration test
 - **status:** pending
