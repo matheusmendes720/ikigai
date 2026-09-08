@@ -659,3 +659,75 @@
 - attempt: 1/1
 - notes: M4 SHIPPED. T-4.4 (9/9 M4 integration tests) + T-4.5 (regression + closeout). tests/test_m4_langgraph_integration.py covers 3 graphs (pae_maintainer / ikigai_maintainer_v2 / ikigai_fork_smoke) via bash + PYTHON env var; loop-tick.sh adds $PYTHON support (default: python) to handle WSL2 PATHEXT interop. Regression: test_loop_infra 11/11, test_canonical_scope 31/31 (spec stale at 33/33), interfaces/cli 98/98 (spec stale at 68/68). 0 LLM cost (state-machine + subprocess tests).
 - next_action: advance
+
+## 2026-09-08T00:33:25Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-213325 checkpoints=396 status=0 
+- next_action: advance
+
+## 2026-09-08T00:33:27Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-213327 checkpoints=405 status=0 
+- next_action: advance
+
+## 2026-09-08T00:33:30Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-213330 checkpoints=410 status=0 
+- next_action: advance
+
+## 2026-09-08T00:33:31Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-213331 checkpoints=416 status=0 
+- next_action: advance
+
+## 2026-09-08T00:33:33Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-213333 checkpoints=425 status=0 
+- next_action: advance
+
+## 2026-09-08T00:33:36Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-213336 checkpoints=430 status=0 
+- next_action: advance
+
+## 2026-09-08T00:35:00Z | T-4.4 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 4
+- model: none (deterministic subprocess + sqlite3, no LLM)
+- attempt: 1/1
+- notes: tests/test_m4_langgraph_integration.py created (168L, 5 unique tests / 9 pytest cases via parametrize over 3 graphs). pytest -v = 9/9 PASS in 12.51s. langgraph.json untouched (git diff empty). Test file is UNTRACKED (staged in T-4.5 commit). Two Windows Git Bash fixes: `_run_env()` prepends sys.executable dir to PATH + sets `$PYTHON=python.exe` for WSL2 interop (rc=127 otherwise); `BASH_EXE = shutil.which('bash')` skips MSYS argv-translation layer that mangled `.claude/loop/loop-tick.sh` into `claudelooploop-tick.sh`.
+- next_action: advance to T-4.5 (regression + closeout)
+
+## 2026-09-08T00:37:07Z | M5-start | PASS
+- commit: (pending this tick)
+- cost_usd: 0
+- duration_min: 0
+- model: opus
+- attempt: 1/1
+- notes: M5 launch — state-machine only. Created specs/M5-ikigai-mcp-integration/SPEC.md (160L). Verified live IKIGAI MCP tool surface from src/ikigai/src/mcp_server/ = 14 tools (8 IKIGAI: decompose/write_tasks/read_tasks/mesh_show/task_create/health/vault_write/vault_read + 3 Plan C: investigation_enqueue/status/complete + 3 taskdog: read/list/supports_field) + 6 resources. Supersedes roadmap.md stale "19 tools" claim. 4 sub-tasks (T-5.1..T-5.4) mapped to SPEC acceptance criteria. Pre-existing test regression flagged but NOT in M5 scope: tests/interfaces/test_tui_operator.py::test_no_write_paths_in_operator_tui fails on clean HEAD cb99ff7 (recursive rglob catches test fixtures + app.py:409,426 remove() calls). Regression is outside M4 acceptance (which only covered interfaces/cli/tests 98/98). tasks.md: T-5.1..T-5.4 added, status=pending. roadmap.md: M5 → STATUS: IN-PROGRESS. 0 LLM calls.
+- next_action: advance

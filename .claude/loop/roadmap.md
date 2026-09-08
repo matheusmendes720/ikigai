@@ -74,7 +74,8 @@
 - **Dependencies:** M3
 - **Estimated ticks:** 3-5
 
-### M5 — IKIGAI MCP integration (STATUS: PENDING)
+### M5 — IKIGAI MCP integration (STATUS: IN-PROGRESS)
+- **Spec:** `specs/M5-ikigai-mcp-integration/SPEC.md` (created 2026-09-08; live tool count = 14 tools + 6 resources, NOT 19 as roadmap claimed)
 - **What:** Orchestrator uses IKIGAI MCP tools (19 total) for the "research" + "knowledge" + "task" workflow
 - **Why:** Today IKIGAI is invoked manually via `ikigai.bat agent`. Make it accessible from the loop.
 - **Acceptance:**
