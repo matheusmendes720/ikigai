@@ -1315,3 +1315,12 @@
 - notes: Phase 8.2 kickoff. SPEC committed at ad6c972 (7 design decisions locked) + PLAN.md committed at a08b5a7 (732 lines, 3 atomic tasks T-8.2.1/2/3). tasks.md updated with 3 pending entries (commit ac859e8). STALE-ref detected: SPEC L105 references dispatch_sub_agents.py but file does NOT exist in src/ikigai/src/agents/v2/nodes/ (verified 2026-09-08 — actual node set: balance/commit/decompose/error/heuristics/meta_plan/observe/plan/proposal_executor/reflect/score_vectors/surface_intentions/tag_and_persist.py). Documented gap in T-8.2.3 notes; implementer will resolve at dispatch time. Next: task-brief for T-8.2.1/2/3 then Workflow pipeline dispatch.
 - next_action: advance (dispatch Workflow)
 
+## 2026-09-08T13:45:00Z | Phase 8.2 closeout | PASS
+- commit: c323532d (T-8.2.1 mcp_bridge+FakeMcpServer) + 7a6a7199 (T-8.2.2 4 vault/state nodes) + cf02954c (T-8.2.3 commit_node+e2e)
+- cost_usd: 0
+- duration_min: 15
+- model: opus (state-machine + final whole-branch review)
+- attempt: 1/1
+- notes: Phase 8.2 SHIPPED. 10/11 v2 graph nodes wired to mcp_bridge (9 via sync wrappers + 1 in-process commit_node). surface_intentions deferred per SPEC §6; error_node infrastructure-only. drift 32/32 PASS preserved. Final whole-branch review verdict (architect-reviewer-2): SPEC PASS + QUALITY APPROVED. 3 Minor findings (non-blocking): (1) mcp_bridge.py:42 docstring fragment dupe, (2) observe.py:12 hardcoded date default, (3) test_phase_8_2_wiring.py:14 import-style mismatch. Pre-existing ledger item error_type/error_channel routing mismatch DEFER-AS-TECH-DEBT (out of Phase 8.2 scope; refactor when graph.py error routing is touched). Net -288 lines (656 deleted, 368 added). ADR-013 planner-only boundary satisfied. Loop's cost_cap_usd preserved ($0 implementation cost).
+- next_action: idle (Phase 8.2 milestone complete; Phase 8.3 = backlog)
+
