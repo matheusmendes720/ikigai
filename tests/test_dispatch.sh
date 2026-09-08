@@ -228,12 +228,12 @@ cat > "$TASKS_MD" <<'EOF'
 EOF
 
 MARKER_FILE="${TMPDIR}/notify-reason-marker.txt"
-rm -f "$MARKER_FILE"
+rm -f "/tmp/dispatch-notify-marker.txt"
 
 STUB_NOTIFY="$TMPDIR/stub-notify.sh"
 cat > "$STUB_NOTIFY" <<'STUB'
 #!/bin/bash
-MARKER="${MARKER_FILE:-/tmp/notify-reason-marker.txt}"
+MARKER="/tmp/dispatch-notify-marker.txt"
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --reason) echo "$2" >> "$MARKER"; shift 2 ;;
@@ -244,7 +244,7 @@ exit 0
 STUB
 chmod +x "$STUB_NOTIFY"
 
-OUT=$(MARKER_FILE="$MARKER_FILE" \
+OUT=$(MARKER_FILE="/tmp/dispatch-notify-marker.txt" \
       DISPATCH_TASKS_MD="$TASKS_MD" \
       DISPATCH_PROGRESS_MD="$TMPDIR/.claude/loop/progress.md" \
       DISPATCH_NOTIFY_CMD="$STUB_NOTIFY" \
@@ -257,10 +257,10 @@ else
     fail "exit $EXIT_CODE (expected 0)"
 fi
 
-if grep -q "tick_pass" "$MARKER_FILE" 2>/dev/null; then
+if grep -q "tick_pass" "/tmp/dispatch-notify-marker.txt" 2>/dev/null; then
     ok "notify fired with tick_pass reason"
 else
-    fail "notify did NOT fire tick_pass (marker=$(cat "$MARKER_FILE" 2>/dev/null || echo MISSING))"
+    fail "notify did NOT fire tick_pass (marker=$(cat "/tmp/dispatch-notify-marker.txt" 2>/dev/null || echo MISSING))"
 fi
 
 # ---------- Group 6: --dry-run runs regression sweep (gate test) ----------
