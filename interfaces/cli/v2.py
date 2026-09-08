@@ -182,6 +182,80 @@ def register_plan(app: typer.Typer) -> None:
 # Wire the single `plan` command into the Typer app.
 register_plan(app)
 
+
+def register_skill(app: typer.Typer) -> None:
+    """Register `daily` and `weekly` commands that dispatch the v2 graph.
+
+    Lazy-imports _v2_skills inside each command body to dodge the
+    circular import (v2 ↔ agents.v2.subgraph ↔ agents.v2.nodes.proposal_executor).
+    Mirrors the register_plan pattern (v2.py:149).
+
+    Args:
+        app: Typer instance to register commands on (passed from v2.py caller).
+    """
+
+    @app.command(name="daily")
+    def daily_cmd(
+        date: str | None = typer.Option(
+            None,
+            "--date",
+            help="Date in YYYY-MM-DD format; defaults to today",
+        ),
+        json_output: bool = typer.Option(False, "--json", help="Output raw JSON"),
+    ) -> None:
+        """Run IKIGAI v2 daily reflection cycle (surface_intentions entry point).
+
+        Reads PAV-written state, emits pt-BR suggestions.
+        Entry point: surface_intentions.
+        """
+        # Lazy import — break circular import with agents.v2.subgraph
+        from interfaces.cli import _v2_skills
+
+        _v2_skills.ensure_mcp_server_bound()
+        result = _v2_skills.invoke_skill("daily", date_str=date)
+        if json_output:
+            typer.echo(json.dumps(result, indent=2, default=str))
+        else:
+            surface = result.get("surface_intentions", {})
+            suggestions = surface.get("user_suggestions", [])
+            if suggestions:
+                typer.echo("Sugestoes PAV ({n}):".format(n=len(suggestions)))
+                for i, s in enumerate(suggestions, 1):
+                    typer.echo(f"  {i}. {s}")
+            else:
+                typer.echo("(no suggestions — skill returned empty surface_intentions)")
+
+    @app.command(name="weekly")
+    def weekly_cmd(
+        date: str | None = typer.Option(
+            None,
+            "--date",
+            help="Date in YYYY-MM-DD format; defaults to today",
+        ),
+        json_output: bool = typer.Option(False, "--json", help="Output raw JSON"),
+    ) -> None:
+        """Run IKIGAI v2 weekly review — observe, score vectors, regime check.
+
+        Entry point: observe (full pipeline).
+        """
+        # Lazy import — break circular import with agents.v2.subgraph
+        from interfaces.cli import _v2_skills
+
+        _v2_skills.ensure_mcp_server_bound()
+        result = _v2_skills.invoke_skill("weekly", date_str=date)
+        if json_output:
+            typer.echo(json.dumps(result, indent=2, default=str))
+        else:
+            observe = result.get("observe", {})
+            typer.echo(f"Skill: {result.get('skill')}")
+            typer.echo(f"Date: {result.get('date')}")
+            regime = observe.get("regime_state", "unknown")
+            typer.echo(f"Regime: {regime}")
+
+
+# Wire the skill commands into the Typer app.
+register_skill(app)
+
 # Backward-compat alias — callers that imported `v2_app` keep working.
 v2_app = app
 
