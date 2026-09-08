@@ -33,6 +33,7 @@ from interfaces.tui.operator.data import (
     load_adapter_rows,
     load_backend_rows,
     load_queue_rows,
+    load_skill_rows,
     load_task_rows,
 )
 
@@ -93,6 +94,7 @@ class OperatorApp(App):
         Binding("3", "show_backend", "Backend"),
         Binding("4", "show_queue", "Queue"),
         Binding("5", "show_kill_switch", "KillSwitch"),
+        Binding("6", "show_skills", "Skills"),
         Binding("d", "drilldown_queue", "Detail"),
         Binding("r", "refresh", "Refresh"),
         Binding("q", "quit", "Quit"),
@@ -138,6 +140,11 @@ class OperatorApp(App):
         self.active_tab = "kill_switch"
         self._render_kill_switch()
 
+    # T-9.3 — 6th tab (Skills) action
+    def action_show_skills(self) -> None:
+        self.active_tab = "skills"
+        self._render_skills()
+
     def _non_task_refresh(self) -> None:
         """Refresh non-task tabs (called every 5s)."""
         if self.active_tab == "adapters":
@@ -148,6 +155,8 @@ class OperatorApp(App):
             self._render_queue()
         elif self.active_tab == "kill_switch":
             self._render_kill_switch()
+        elif self.active_tab == "skills":
+            self._render_skills()
 
         # W5.3 — banner must update whenever the auto-refresh fires,
         # regardless of which tab is showing (per design §4.4).
@@ -448,6 +457,55 @@ class OperatorApp(App):
         self._mount_banner(content)
         tab = KillSwitchTab(id="killswitch-tab")
         content.mount(tab)
+
+    def _render_skills(self) -> None:
+        """Render the 6th tab — read-only skill manifest viewer.
+
+        Displays name, entry_point, description, actor, outputs, and file_path
+        for the 4 canonical planning-cycle skills (daily/weekly/monthly/quarterly).
+        Per CLAUDE.md dual-layer architecture: TUI is observer-only (no writes).
+        """
+        content = self.query_one("#content", Container)
+        content.remove_children()
+        self._mount_banner(content)
+
+        rows = load_skill_rows()
+
+        summary = SummaryPanel()
+        content.mount(summary)
+        if not rows:
+            summary.update(
+                "[bold]Skills[/bold]  ·  "
+                "[dim]No skill manifests found[/dim]"
+            )
+        else:
+            summary.update(
+                f"[bold]Skills[/bold]  ·  "
+                f"[green]{len(rows)} skill(s)[/green]  ·  "
+                f"[dim]observer-only (per dual-layer architecture)[/dim]"
+            )
+
+        if not rows:
+            return
+
+        table = DataTable(zebra_stripes=True, cursor_type="row")
+        table.add_columns("Name", "Entry Point", "Description", "Actor", "Outputs", "File Path")
+        for row in rows:
+            if not row.outputs:
+                outputs_cell = "—"
+            else:
+                outputs_cell = ", ".join(str(o) for o in row.outputs)
+            actor_cell = f"[cyan]{row.actor}[/cyan]"
+            table.add_row(
+                row.name,
+                row.entry_point,
+                row.description,
+                actor_cell,
+                outputs_cell,
+                row.file_path,
+                key=row.name,
+            )
+        content.mount(table)
 
 
 def _format_started_at(mtime: float) -> str:

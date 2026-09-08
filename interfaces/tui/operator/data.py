@@ -12,9 +12,12 @@ packages by pytest's `tests/*` __init__.py convention).
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 # Direct imports — avoids chain through interfaces.cli → read_tasks → contracts
 from src.mesh.adapters.cli import TASKS_JSONL
@@ -22,6 +25,7 @@ from src.mesh.adapters.solverforge_calendar import UPI_DB
 from src.mesh.adapters.taskdog import TASKDOG_DB
 
 REPO_ROOT = Path(__file__).parent.parent.parent.parent
+SKILLS_DIR = REPO_ROOT / "src" / "ikigai" / "src" / "agents" / "v2" / "skills"
 REVIEW_QUEUE_DIR = REPO_ROOT / "data" / "review_queue"
 
 
@@ -317,6 +321,69 @@ def load_task_rows() -> list[TaskRow]:
     return rows
 
 
+# === Skill manifest loader ===
+
+@dataclass(frozen=True)
+class SkillRow:
+    """Render-ready row for the skills table (read-only manifest viewer)."""
+
+    name: str
+    entry_point: str
+    description: str
+    actor: str
+    outputs: list[str]
+    file_path: str
+
+
+_FRONTMT_RE = re.compile(r"^---\s*\n(.*?)\n---", re.DOTALL)
+
+
+def _parse_frontmatter(text: str) -> dict[str, Any]:
+    """Parse YAML frontmatter from a markdown file body."""
+    m = _FRONTMT_RE.match(text)
+    if not m:
+        return {}
+    try:
+        return yaml.safe_load(m.group(1)) or {}
+    except yaml.YAMLError:
+        return {}
+
+
+def load_skill_rows() -> list[SkillRow]:
+    """Read skill manifest frontmatter from the 4 planning-cycle skill files.
+
+    Reads daily.md, weekly.md, monthly.md, quarterly.md from SKILLS_DIR.
+    Returns an empty list if the directory does not exist or no files found.
+    Malformed frontmatter is skipped silently.
+    """
+    if not SKILLS_DIR.is_dir():
+        return []
+
+    rows: list[SkillRow] = []
+    for skill_file in sorted(SKILLS_DIR.glob("*.md")):
+        # Only the 4 canonical planning-cycle skills per T-9.3 spec
+        if skill_file.stem not in ("daily", "weekly", "monthly", "quarterly"):
+            continue
+        try:
+            text = skill_file.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        fm = _parse_frontmatter(text)
+        if not fm:
+            continue
+        rows.append(
+            SkillRow(
+                name=str(fm.get("name", skill_file.stem)),
+                entry_point=str(fm.get("entry_point", "—")),
+                description=str(fm.get("description", "—")),
+                actor=str(fm.get("actor", "—")),
+                outputs=list(fm.get("outputs", [])),
+                file_path=str(skill_file),
+            )
+        )
+    return rows
+
+
 def format_uptime(started_at: float | None, now: float | None = None) -> str:
     """Format a duration in human-readable short form.
 
@@ -355,11 +422,13 @@ __all__ = [
     "AdapterRow",
     "BackendRow",
     "QueueRow",
+    "SkillRow",
     "TaskRow",
     "TASKS_JSONL",
     "load_adapter_rows",
     "load_backend_rows",
     "load_queue_rows",
+    "load_skill_rows",
     "load_task_rows",
     "adapter_summary",
     "ADAPTER_REGISTRY",
