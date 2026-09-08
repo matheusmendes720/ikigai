@@ -1583,3 +1583,13 @@
 - next_action: idle (Phase 8.6 milestone complete — v2 graph compiles + invokable; backlog = next)[INFO] Recording command outcome: cat
 
 [OK] Command outcome recorded
+## 2026-09-08T19:00:00Z | Phase 8.7 closeout | PASS
+- commit: b63e801 (T-8.7 interface wiring) + this commit (closeout)
+- cost_usd: 0
+- duration_min: 25
+- model: opus (autonomous loop mode, $0 LLM calls)
+- attempt: 1/1
+- notes: Phase 8.7 SHIPPED. T-8.7 commit `b63e801` wires `interfaces/cli/v2 daily/weekly` to dispatch the v2 LangGraph end-to-end. 3 file changes in single atomic commit: NEW `interfaces/cli/_v2_skills.py` (141 lines: `load_skill_manifest` + `invoke_skill` + `ensure_mcp_server_bound`), modified `interfaces/cli/v2.py` (`register_skill(app)` adds `daily` (entry_point=`surface_intentions`) + `weekly` (entry_point=`observe`) Typer commands with lazy-imports to dodge circular), NEW `interfaces/cli/tests/test_v2_skill_dispatch.py` (4 tests using CliRunner + FakeMcpServer). Verification (re-run in main session per [[verify-agent-fabricated-failures]] iron law): drift net 44/44 + new CLI smoke 4/4 = 48/48 PASS in 4.87s. Production `_server` binding lazy via `ensure_mcp_server_bound()` (idempotent, dotted-prefix setter per [[dual-module-identity-bug-class]]). TUI intentionally NOT touched — per CLAUDE.md dual-layer architecture, TUI is operator-plane observer; user-facing views live in forks. Drift preserved; IKIGAI_TOOLS=12 unchanged. Branch loop/phase-8-7 (cut from loop/phase-8-6 at `abee2c71`; T-8.7 + closeout pushed; no merge to master per standing directive). Memory entry at ~/.claude/projects/.../memory/phase-8-7-shipped-2026-09-08.md. Continuing autonomous loop → Phase 8.8 next.
+- next_action: continue (Phase 8.8 skills validation next)[INFO] Recording command outcome: cat
+
+[OK] Command outcome recorded

@@ -878,6 +878,44 @@
 - **attempts:** 0
 - **last_verdict:** PASS
 
+### Phase 8.7 — Interface wiring (v2 dispatch from CLI/TUI) (DONE — 2026-09-08)
+
+- **Goal:** Wire `interfaces/cli/v2 daily/weekly` to dispatch the v2 LangGraph end-to-end via `mcp_bridge._server = bind_prod_server(...)`. Closes the gap where the v2 graph was invocable (Phase 8.6) but the CLI couldn't drive it.
+- **Completed:** 2026-09-08 — T-8.7 PASS. Drift net 44/44 + CLI smoke 4/4 = 48/48 PASS in 4.87s. Cost: $0.
+
+#### T-8.7 — Interface wiring
+- **status:** done
+- **commit:** b63e801
+- **acceptance:**
+  - [x] New `interfaces/cli/_v2_skills.py` (~141 lines) with `load_skill_manifest`, `invoke_skill`, `ensure_mcp_server_bound`
+  - [x] Modified `interfaces/cli/v2.py` with `register_skill(app)` adding `daily` (entry_point=`surface_intentions`) + `weekly` (entry_point=`observe`) Typer commands
+  - [x] New `interfaces/cli/tests/test_v2_skill_dispatch.py` (4 tests using CliRunner + FakeMcpServer)
+  - [x] Production `_server` binding via `ensure_mcp_server_bound()` (idempotent, dotted-prefix setter)
+  - [x] Lazy-import pattern to break circular import (mirrors v2.py:64-66)
+  - [x] Drift net 44/44 preserved
+  - [x] Targeted regression 48/48 PASS (drift + new CLI smoke)
+  - [x] Atomic commit (1 task = 1 commit)
+  - [x] TUI NOT touched (per CLAUDE.md dual-layer architecture; operator plane)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 25
+- **attempts:** 0
+- **last_verdict:** PASS
+- **notes:** Per [[dual-module-identity-bug-class]], dotted-prefix setter for `_server` used (`src.ikigai.src.agents.v2.mcp_bridge._server`). Implementation pattern mirrors Phase 8.6 — `import X as namespace` + runtime binding.
+
+#### T-8.7.1 — Closeout (progress + tasks + memory + push)
+- **status:** done
+- **commit:** (this commit — closeout)
+- **acceptance:**
+  - [x] `progress.md` Phase 8.7 SHIPPED entry appended
+  - [x] `tasks.md` T-8.7 + T-8.7.1 entries added
+  - [x] Memory entry at `~/.claude/projects/.../memory/phase-8-7-shipped-2026-09-08.md`
+  - [x] MEMORY.md pointer added
+  - [x] Atomic commit + push to origin (branch `loop/phase-8-7`)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 4
+- **attempts:** 0
+- **last_verdict:** PASS
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations
