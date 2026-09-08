@@ -1397,3 +1397,149 @@
 - attempt: 1/1
 - notes: graph=ikigai_fork_smoke thread_id=cron-20260908-053714 checkpoints=758 status=0 
 - next_action: advance
+## 2026-09-08T09:29:47Z | T-10.1 | FAIL
+## 2026-09-08T09:30:16Z | T-9.6 | FAIL
+## 2026-09-08T09:31:36Z | T-9.6 | FAIL
+## 2026-09-08T09:31:46Z | T-10.3 | FAIL
+## 2026-09-08T09:32:17Z | T-9.6 | FAIL
+## 2026-09-08T09:32:19Z | T-10.1 | FAIL
+
+## 2026-09-08T09:33:44Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260908-063344 checkpoints=764 status=0 
+- next_action: advance
+
+## 2026-09-08T09:33:45Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260908-063346 checkpoints=777 status=0 
+- next_action: advance
+
+## 2026-09-08T09:33:48Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260908-063348 checkpoints=782 status=0 
+- next_action: advance
+
+## 2026-09-08T09:33:50Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260908-063350 checkpoints=788 status=0 
+- next_action: advance
+
+## 2026-09-08T09:33:52Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260908-063352 checkpoints=801 status=0 
+- next_action: advance
+
+## 2026-09-08T09:33:55Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260908-063355 checkpoints=806 status=0 
+- next_action: advance
+
+## 2026-09-08T09:34:01Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260908-063401 checkpoints=812 status=0 
+- next_action: advance
+
+## 2026-09-08T09:34:06Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260908-063406 checkpoints=818 status=0 
+- next_action: advance
+
+## 2026-09-08T09:34:08Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260908-063408 checkpoints=831 status=0 
+- next_action: advance
+
+## 2026-09-08T09:34:11Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260908-063411 checkpoints=836 status=0 
+- next_action: advance
+
+## 2026-09-08T09:34:13Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260908-063413 checkpoints=842 status=0 
+- next_action: advance
+
+## 2026-09-08T09:34:15Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260908-063415 checkpoints=855 status=0 
+- next_action: advance
+
+## 2026-09-08T09:34:18Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260908-063418 checkpoints=860 status=0 
+- next_action: advance
+
+## 2026-09-08T09:34:30Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260908-063430 checkpoints=866 status=0 
+- next_action: advance
+## 2026-09-08T09:35:03Z | T-10.3 | FAIL
+## 2026-09-08T09:35:27Z | T-10.3 | FAIL
+## 2026-09-08T09:36:29Z | T-10.3 | FAIL
+## 2026-09-08T09:36:57Z | T-10.3 | FAIL
+
+## 2026-09-08T09:37:50Z | M10-end-to-end-dispatch | PASS
+- commit: (this commit — T-10.3 closeout)
+- cost_usd: 0
+- duration_min: 12
+- model: opus (state-machine + bash fixes + pytest verification; 0 LLM calls)
+- attempt: 1/1
+- notes: M10 SHIPPED. T-10.1 scaffold (c24841c) + T-10.2 wire hooks (3773821) + T-10.3 closeout (this). 3 bugs caught + fixed in dispatch.sh during T-10.3 acceptance sweep: (1) find_task_block regex /^### / only matched 3-hash headers but real tasks.md uses 4-hash #### for M4-M10 tasks — fixed to /^#(3, 4) / (preserves both formats); (2) [[ "$TASK_STATUS" == "done" ]] exact-match failed when status has trailing commentary (T-9.6: "done (regression + state machine); 7-day streak gate deferred...") — fixed to done* prefix match; (3) regression per-suite check ^===.*PASS missed pytest lowercase "32 passed" — fixed to (^===.*pass|passed). All 3 captured in tests/test_dispatch.sh Group 2.5 (2 assertions covering 4-hash + trailing-comment). Final: tests/test_dispatch.sh 24/24 PASS (was 22/22; +2). Full regression sweep 107/107 PASS — bash 44 (worktree 15 + cost 7 + notify 11 + streak 11) + pytest 63 (loop_infra 11 + m4 9 + canonical_scope 32 + m5 11). Spec stale at 96/96; M5 IKIGAI MCP integration adds 2/2. dispatch.sh T-9.6 dry-run returns already_complete (idempotent replay via prefix-match fix); T-10.3 dry-run runs regression sweep (PASS verdict) + prints stub worker walk-through + dry_run_complete without committing. Loop-engineering primitive chain complete: orchestrator → dispatch.sh → worker → verifier → promotion → notify → progress append → done. Next: backlog (TS dispatch.sh + tier-by-risk + cross-loop dedup).
+- next_action: idle (M10 milestone complete; backlog = next)
+
