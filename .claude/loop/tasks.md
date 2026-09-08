@@ -987,6 +987,35 @@
 - **attempts:** 0
 - **last_verdict:** PASS
 
+### Phase 9.0 — Stale v2 interface test references (DONE — 2026-09-08)
+
+- **Goal:** Update 2 pre-existing test files to use Phase 8.7-8.8 revived daily/weekly/monthly/quarterly skill surface (currently reference deleted v2 symbols from V5-D).
+- **Completed:** 2026-09-08 — T-9.0 PASS. Drift 44/44 + 19 updated tests + 15 skill dispatch = 78/78 PASS in 7.17s. Cost: $0.
+
+#### T-9.0 — Update stale v2 interface tests
+- **status:** done
+- **commit:** 21e2a585
+- **acceptance:**
+  - [x] `test_v2_interface_dispatch.py` 13 tests updated to use daily/weekly/monthly/quarterly
+  - [x] `test_v2_e2e_smoke.py` 6 tests updated to call `interfaces/cli/_v2_skills.py:invoke_skill`
+  - [x] No more ModuleNotFoundError at test collection
+  - [x] All 19 tests PASS
+  - [x] Drift 44/44 preserved
+  - [x] Skill dispatch 15/15 still PASS (no regression)
+  - [x] Atomic single commit
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 12
+- **attempts:** 0
+- **last_verdict:** PASS
+
+#### T-9.0.1 — Closeout (progress + tasks + memory + push)
+- **status:** done
+- **commit:** (this commit — closeout)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 3
+- **attempts:** 0
+- **last_verdict:** PASS
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations
