@@ -264,26 +264,47 @@ else
     DISPATCH_VERDICT="PASS"
 fi
 
-# On PASS: do the state flips (roadmap + tasks.md)
+# On PASS: commit + push + state flips (roadmap + tasks.md)
+# Atomic promotion guard: if commit or push fails, abort state flips.
 if [[ "$DISPATCH_VERDICT" == "PASS" ]]; then
     echo ""
-    echo "=== Dispatch PASS: flipping state ==="
+    echo "=== Dispatch PASS: promoting ==="
 
-    # Flip tasks.md: replace "status: pending" with "status: done" for this task block
-    if [[ -f "$TASKS_MD" ]]; then
-        awk -v tid="$TASK_ID" '
-            /^### / && $2 == tid { in_block=1 }
-            /^## / && in_block { in_block=0 }
-            in_block && index($0, "- **status:") && /pending/ {
-                sub(/pending/, "done")
-            }
-            { print }
-        ' "$TASKS_MD" > "${TASKS_MD}.tmp" && mv "${TASKS_MD}.tmp" "$TASKS_MD" || true
-        echo "[dispatch] tasks.md status flip: done"
+    # Stub: in T-10.3, these will be real git operations.
+    # Guard placed now so the structure is correct when the stub is replaced.
+    if true; then
+        # Placeholder for: git commit ... && git push ...
+        echo "[dispatch] commit+push: stub (T-10.3)"
+
+        # Flip roadmap.md: replace "STATUS: IN-PROGRESS" with "STATUS: DONE" for M10
+        ROADMAP_MD="${REPO_ROOT}/.claude/loop/roadmap.md"
+        if [[ -f "$ROADMAP_MD" ]]; then
+            awk '
+                /M10/ && /STATUS: IN-PROGRESS/ { sub(/IN-PROGRESS/, "DONE") }
+                { print }
+            ' "$ROADMAP_MD" > "${ROADMAP_MD}.tmp" && mv "${ROADMAP_MD}.tmp" "$ROADMAP_MD" || true
+            echo "[dispatch] roadmap.md STATUS flip: DONE"
+        fi
+
+        # Flip tasks.md: replace "status: pending" with "status: done" for this task block
+        if [[ -f "$TASKS_MD" ]]; then
+            awk -v tid="$TASK_ID" '
+                /^### / && $2 == tid { in_block=1 }
+                /^## / && in_block { in_block=0 }
+                in_block && index($0, "- **status:") && /pending/ {
+                    sub(/pending/, "done")
+                }
+                { print }
+            ' "$TASKS_MD" > "${TASKS_MD}.tmp" && mv "${TASKS_MD}.tmp" "$TASKS_MD" || true
+            echo "[dispatch] tasks.md status flip: done"
+        fi
+
+        echo ""
+        echo "dispatch_complete: $TASK_ID"
+    else
+        echo "promotion_aborted"
+        exit 1
     fi
-
-    echo ""
-    echo "dispatch_complete: $TASK_ID"
 fi
 
 exit 0

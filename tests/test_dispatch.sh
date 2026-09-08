@@ -341,6 +341,50 @@ else
     fail "tasks.md status NOT flipped"
 fi
 
+# ---------- Group 8: roadmap.md STATUS flips to DONE on PASS ----------
+echo "=== Group 8: roadmap.md STATUS flips to DONE on PASS ==="
+
+# Create a minimal roadmap.md with M10 IN-PROGRESS
+ROADMAP_MD="$TMPDIR/.claude/loop/roadmap.md"
+mkdir -p "$(dirname "$ROADMAP_MD")"
+cat > "$ROADMAP_MD" <<'EOF'
+# Loop Roadmap
+
+### M10 — End-to-end loop dispatch (STATUS: IN-PROGRESS)
+- **What:** dispatch primitive
+- **Acceptance:**
+  - [ ] criterion 1
+EOF
+
+cat > "$TASKS_MD" <<'EOF'
+# Current Tasks
+
+### T-10.654 — Test roadmap flip
+- **status:** pending
+- **acceptance:**
+  - [ ] stub
+- **estimated_cost_usd:** 0.00
+- **notes:** roadmap flip test
+EOF
+
+OUT=$(DISPATCH_TASKS_MD="$TASKS_MD" \
+      DISPATCH_PROGRESS_MD="$TMPDIR/.claude/loop/progress.md" \
+      DISPATCH_ROADMAP_MD="$ROADMAP_MD" \
+      bash "$TMPDIR/scripts/dispatch.sh" T-10.654 --execute 2>&1)
+EXIT_CODE=$?
+
+if [[ "$EXIT_CODE" == "0" ]]; then
+    ok "execute mode exits 0 on PASS (Group 8)"
+else
+    fail "exit $EXIT_CODE (expected 0)"
+fi
+
+if grep -q "STATUS: DONE" "$ROADMAP_MD" 2>/dev/null; then
+    ok "roadmap.md STATUS flipped to DONE"
+else
+    fail "roadmap.md STATUS NOT flipped"
+fi
+
 # ---------- Summary ----------
 echo ""
 echo "=== Summary: $PASS pass, $FAIL fail ==="
