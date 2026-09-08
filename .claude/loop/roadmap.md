@@ -28,6 +28,20 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Phase 9 Option A** (2026-09-03): operator TUI + drift detector + Path 3 taskdog MCP (read-only)
 - **V5 bundle** (2026-09-07): CLI inlined (4 files deleted, v2.py split into 6 modules)
 - **Phase A** (2026-08-30): 7 fork MCP tools live (sf_create_event etc.)
+- **Phase 8.x IKIGAI agent plumbing** (2026-09-08, all SHIPPED):
+  - **8.1** (`fb41578`): recovered `src/ikigai/src/agents/v2/` v2 LangGraph code (graph.py + 9 nodes + state.py)
+  - **8.2** (`c323532d` + `7a6a7199` + `cf02954c`): 10/11 v2 nodes wired to `mcp_bridge` via sync wrappers; `commit.py` in-process; e2e FakeMcpServer test green
+  - **8.3** (`b3ff9898` + `45bf4b5a` + `3815dbd`): real OTel `ikigai.bridge.{tool_name}` spans; `FastMcpClient` stdio transport (persistent background asyncio loop)
+  - **8.4** (`08730afc` + `a76b9f0f`): server-side `ModuleNotFoundError: contracts.investigation` fixed (4 dotted-prefix import swaps + 4 PYTHONPATH configs to 3-entry); `vault_write` wired into `tag_and_persist_node` via `vault_write_wrapper` (dual-module identity bug fixed: provider functions use `import X as namespace` + runtime attribute lookup); bonus `mcp_bridge.py:32` dotted-prefix observability fix
+  - **8.5** (`80d4d1f` + `ad513bb5`): FastMcpClient end-to-end stdio smoke test (`tests/mcp/test_fast_mcp_client_e2e_stdio.py` 2/2 PASS in 7.86s); `@pytest.mark.integration` registered in pytest.ini + `pyproject.toml`; quality-gates exclude integration via `-m "not integration"`
+  - **8.6** (`31f06de`): **v2 graph unblocked + smoke invocation green** — `make_v2_graph()` returns `CompiledStateGraph` with all 13 nodes; `graph.invoke({...}, config={'configurable': {'thread_id': ...}})` succeeds end-to-end via `FakeMcpServer` (signature-compatible with `FastMcpClient`). Branch `loop/phase-8-6` pushed.
+- **Production deployment note (Phase 8.6):** requires `uv venv .venv` + `uv pip install langgraph langchain-anthropic deepagents mcp langgraph-checkpoint-sqlite opentelemetry-*` (system cpython is uv-managed and externally controlled; project's `[tool.poetry]` syntax is not uv-readable)
+- **Remaining for "complete app":**
+  - **8.7** (IN-PROGRESS): wire `interfaces/cli/v2` + `interfaces/tui/operator` to dispatch v2 grafo end-to-end via `mcp_bridge._server = bind_prod_server(...)`
+  - **8.8**: skills validation (daily/weekly/monthly/quarterly entry-point routing)
+  - **8.9**: LangGraph Studio integration (`make dev` server on :2024)
+  - **9.x**: production deployment (real LLM inference + `langgraph deploy`)
+  - **10.x** (DEFERRED, gated on user adjudication): data mesh v1.2 — `update/delete/done` actions; was DROPPED 2026-09-03 per [[algorithm-gate-dropped-2026-09-03]]
 - **Phase 8.2 — v2 graph MCP wiring** (2026-09-08): 10/11 v2 graph nodes wired to real MCP tool calls via `mcp_bridge.py` + `FakeMcpServer` test fixture (9 sync wrappers + 1 in-process `commit_node`). Commits `c323532d` / `7a6a7199` / `cf02954c`; closeout `9720d15`. Drift 32/32 PASS preserved (IKIGAI_TOOLS=12 canonical); regression 45/45 (32 canonical_scope + 10 mcp_bridge + 3 e2e); $0 implementation cost; ADR-013 planner-only boundary satisfied. `surface_intentions` deferred per SPEC §6; `tag_and_persist` READ-ONLY (vault_write NOT wired here, separate work stream). 3 Minor findings (non-blocking) + 1 DEFER-AS-TECH-DEBT (`error_type`/`error_channel` routing mismatch in `graph.py`, out of Phase 8.2 scope). See memory `phase-8-2-wiring-shipped-2026-09-08.md` for full architecture.
 
 ### ⚠️ Stubs / partial
