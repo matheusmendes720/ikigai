@@ -252,6 +252,60 @@ def register_skill(app: typer.Typer) -> None:
             regime = observe.get("regime_state", "unknown")
             typer.echo(f"Regime: {regime}")
 
+    @app.command(name="monthly")
+    def monthly_cmd(
+        date: str | None = typer.Option(
+            None,
+            "--date",
+            help="Date in YYYY-MM-DD format; defaults to today",
+        ),
+        json_output: bool = typer.Option(False, "--json", help="Output raw JSON"),
+    ) -> None:
+        """Run IKIGAI v2 monthly review — aggregate weekly reviews, Q_HE trend.
+
+        Entry point: observe (full pipeline).
+        """
+        # Lazy import — break circular import with agents.v2.subgraph
+        from interfaces.cli import _v2_skills
+
+        _v2_skills.ensure_mcp_server_bound()
+        result = _v2_skills.invoke_skill("monthly", date_str=date)
+        if json_output:
+            typer.echo(json.dumps(result, indent=2, default=str))
+        else:
+            observe = result.get("observe", {})
+            typer.echo(f"Skill: {result.get('skill')}")
+            typer.echo(f"Date: {result.get('date')}")
+            regime = observe.get("regime_state", "unknown")
+            typer.echo(f"Regime: {regime}")
+
+    @app.command(name="quarterly")
+    def quarterly_cmd(
+        date: str | None = typer.Option(
+            None,
+            "--date",
+            help="Date in YYYY-MM-DD format; defaults to today",
+        ),
+        json_output: bool = typer.Option(False, "--json", help="Output raw JSON"),
+    ) -> None:
+        """Run IKIGAI v2 quarterly review — strategic realignment, wave planning.
+
+        Entry point: observe (full pipeline).
+        """
+        # Lazy import — break circular import with agents.v2.subgraph
+        from interfaces.cli import _v2_skills
+
+        _v2_skills.ensure_mcp_server_bound()
+        result = _v2_skills.invoke_skill("quarterly", date_str=date)
+        if json_output:
+            typer.echo(json.dumps(result, indent=2, default=str))
+        else:
+            observe = result.get("observe", {})
+            typer.echo(f"Skill: {result.get('skill')}")
+            typer.echo(f"Date: {result.get('date')}")
+            regime = observe.get("regime_state", "unknown")
+            typer.echo(f"Regime: {regime}")
+
 
 # Wire the skill commands into the Typer app.
 register_skill(app)
