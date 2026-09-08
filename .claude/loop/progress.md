@@ -741,6 +741,15 @@
 - notes: T-5.1 + T-5.2 shipped. (1) orchestrator.md: added "IKIGAI MCP Tool Surface (M5)" section (40 lines) at line 100 — 14-row table (8 IKIGAI + 3 investigation + 3 taskdog) + 6 resources + start commands (ikigai.bat mcp / uv run ikigai mcp) + Windows stdio fix reference (b93a1f3) + ADR-013 scope discipline. (2) worker.md: added "## Tool Availability" section (10 lines) at line 12 — tool count pointer, read-only vs write split, ADR-013 forbidden list. Both edits additive; no existing sections touched. 0 LLM cost.
 - next_action: advance
 
+## 2026-09-07T...Z | T-4.5.1 | PASS
+- commit: 83658b1
+- cost_usd: 0
+- duration_min: 6
+- model: opus (state-machine + deterministic file edits + pytest)
+- attempt: 1/1
+- notes: Drift regression found during T-4.5 acceptance sweep — test_drift_invariants asserted test_no_algorithm_constants_in_agent_code must exist in test_canonical_scope but it had been deleted when V5-D/V5-F stripped algorithm constants. Restored 15-module dual-module aliasing in both conftest files (sys_ikigai + 14 submodules) and added the missing test with _ALGO_CONSTANT_KEYWORDS (12 algorithm keywords) + _ALGO_CONSTANT_SUFFIXES (12 tunable suffixes) + _is_typing_alias helper that skips Literal/Optional/Union/List/Dict/Tuple/Set/FrozenSet constructs (lesson: FSM state labels are type aliases, NOT algorithm constants). Initial FAIL on 3 false positives (VECTOR_TYPES/REGIME_STATES/PHASE_STATES in state.py) — fixed via _is_typing_alias. Final: 7/7 + 32/32 + 4/4 = 43/43 PASS across drift_invariants + canonical_scope + drift_extended_invariants in 0.77s. 3 files +228 -0. Pushed to origin master cb99ff7..83658b1. M5 ready to resume at T-5.3.
+- next_action: advance
+
 ## 2026-09-08T00:39:04Z | tick-close | PASS
 - commit: 2743386 (T-5.1+T-5.2) + 44a3625 (M5-start) on master
 - cost_usd: 0
@@ -749,3 +758,75 @@
 - attempt: 1/1
 - notes: Tick summary. M4 closeout verified pre-existing on master (commit cb99ff7). Pre-existing regression flagged but NOT M5 scope: tests/interfaces/test_tui_operator.py::test_no_write_paths_in_operator_tui fails on clean HEAD (recursive rglob picks up test fixtures + app.py:409,426 remove()). M5 launched: SPEC + roadmap STATUS + 4 sub-tasks added (44a3625). T-5.1 + T-5.2 shipped: orchestrator.md gained 'IKIGAI MCP Tool Surface (M5)' section (43L) with 14-tool table + 6 resources; worker.md gained 'Tool Availability' section (10L) (2743386). 0 LLM cost. Budget: $0 spent this tick (deterministic edits only). Remaining: T-5.3 (integration test) + T-5.4 (regression + closeout) for next tick. Pre-existing uncommitted working-tree changes from prior sessions preserved (loop-tick.bat, v2.py, subagent_types.py, etc.) — NOT this tick's work.
 - next_action: advance
+
+## 2026-09-08T01:03:18Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-220318 checkpoints=436 status=0 
+- next_action: advance
+
+## 2026-09-08T01:03:20Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-220320 checkpoints=445 status=0 
+- next_action: advance
+
+## 2026-09-08T01:03:23Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-220323 checkpoints=450 status=0 
+- next_action: advance
+
+## 2026-09-08T01:03:24Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-220324 checkpoints=456 status=0 
+- next_action: advance
+
+## 2026-09-08T01:03:26Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-220326 checkpoints=465 status=0 
+- next_action: advance
+
+## 2026-09-08T01:03:29Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-220329 checkpoints=470 status=0 
+- next_action: advance
+
+## 2026-09-08T01:15:00Z | M5 | PASS
+- commit: (T-5.6 atomic — pending)
+- cost_usd: 0
+- duration_min: 25
+- model: none (state-machine closeout — no LLM)
+- attempt: 1/1
+- notes: M5 IKIGAI MCP integration CLOSED. T-5.1 orchestrator prompt (14 tools + 6 resources) + T-5.2 worker prompt (Tool Availability section) + T-5.3  (2/2 PASS, 4.82s, /usr/bin/bash) + T-5.4 regression sweep (52/52 PASS in 13.48s: test_loop_infra 11/11 + test_m4_langgraph_integration 9/9 + test_canonical_scope 32/32) + T-5.5 state-machine updates (roadmap.md M5 STATUS: DONE + tasks.md T-5.3..T-5.5 status=done). Next: T-5.6 atomic commit + push to origin master per standing directive.
+- next_action: advance (T-5.6)
+
+## 2026-09-08T01:15:00Z | M5 | PASS
+- commit: (T-5.6 atomic — pending)
+- cost_usd: 0
+- duration_min: 25
+- model: none (state-machine closeout — no LLM)
+- attempt: 1/1
+- notes: M5 IKIGAI MCP integration CLOSED. T-5.1 orchestrator prompt (14 tools + 6 resources) + T-5.2 worker prompt (Tool Availability section) + T-5.3 tests/test_m5_ikigai_mcp_integration.py (2/2 PASS, 4.82s, $0) + T-5.4 regression sweep (52/52 PASS in 13.48s: test_loop_infra 11/11 + test_m4_langgraph_integration 9/9 + test_canonical_scope 32/32) + T-5.5 state-machine updates (roadmap.md M5 STATUS: DONE + tasks.md T-5.3..T-5.5 status=done). Next: T-5.6 atomic commit + push to origin master per standing directive.
+- next_action: advance (T-5.6)

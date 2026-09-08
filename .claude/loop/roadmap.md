@@ -74,15 +74,18 @@
 - **Dependencies:** M3
 - **Estimated ticks:** 3-5
 
-### M5 — IKIGAI MCP integration (STATUS: IN-PROGRESS)
+### M5 — IKIGAI MCP integration (STATUS: DONE)
 - **Spec:** `specs/M5-ikigai-mcp-integration/SPEC.md` (created 2026-09-08; live tool count = 14 tools + 6 resources, NOT 19 as roadmap claimed)
-- **What:** Orchestrator uses IKIGAI MCP tools (19 total) for the "research" + "knowledge" + "task" workflow
+- **What:** Orchestrator uses IKIGAI MCP tools (14 + 6 resources) for the "research" + "knowledge" + "task" workflow
 - **Why:** Today IKIGAI is invoked manually via `ikigai.bat agent`. Make it accessible from the loop.
 - **Acceptance:**
-  - [ ] Orchestrator prompt includes IKIGAI tool list
-  - [ ] One tick completes a task using IKIGAI MCP successfully
+  - [x] Orchestrator prompt includes IKIGAI tool list (T-5.1 — "IKIGAI MCP Tool Surface (M5)" section, 14 tools + 6 resources)
+  - [x] Worker prompt acknowledges IKIGAI MCP availability (T-5.2 — "## Tool Availability" section)
+  - [x] One tick completes a task using IKIGAI MCP successfully (T-5.3 — `tests/test_m5_ikigai_mcp_integration.py` 2/2 PASS; full stdio JSON-RPC handshake → `ikigai_health` roundtrip + `tools/list` confirmation)
+  - [x] Regression sweep clean (T-5.4 — test_loop_infra 11/11 + test_m4_langgraph_integration 9/9 + test_canonical_scope 32/32)
 - **Dependencies:** M4
 - **Estimated ticks:** 2-3
+- **Completed:** 2026-09-08 — T-5.1..T-5.4 all PASS. Test file untracked (will land in T-5.6 atomic commit).
 
 ### M6 — Worktree isolation helper (STATUS: PENDING)
 - **What:** `scripts/worktree-helper.sh` creates/destroys git worktrees per sub-agent
