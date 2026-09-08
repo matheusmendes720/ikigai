@@ -35,6 +35,10 @@ test:
 	uv run --with pydantic --with python-frontmatter pytest vibe-ops/tests/ -v --tb=short
 	cd src/operational && uv run pytest tests/ -v --tb=short
 	uv run --with langgraph --with pydantic pytest langgraph_tests/ -v --tb=short
+	# Phase 8.9: v2 dispatch + v2 agent tests (IKIGAI_FAKE_LLM=1 for $0 CI mode)
+	IKIGAI_FAKE_LLM=1 uv run pytest --confcutdir=. interfaces/cli/tests/test_v2_skill_dispatch.py src/ikigai/src/agents/v2/tests/ -m "not integration" -v --tb=short
+	# Phase 8.9: tag_and_persist node + Phase 8.5 e2e stdio tests (integration tests excluded)
+	IKIGAI_FAKE_LLM=1 uv run pytest --confcutdir=. tests/ikigai/agents/v2/ src/ikigai/tests/mcp/test_fast_mcp_client_e2e_stdio.py -m "not integration" -v --tb=short
 
 logs:
 	tail -f .langgraph/logs/dev.log 2>/dev/null || echo "No logs yet - run 'make dev' first"
