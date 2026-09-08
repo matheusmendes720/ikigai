@@ -987,6 +987,35 @@
 - **attempts:** 0
 - **last_verdict:** PASS
 
+### Phase 9.1 — CI/CD integration (DONE — 2026-09-08)
+
+- **Goal:** Wire Phase 8.x v2 dispatch + skill tests into CI's quality-gates matrix + add dedicated v2-nodes-smoke job. CI yaml was stale (predates Phase 8.x).
+- **Completed:** 2026-09-08 — T-9.1 PASS. Drift 44/44 + v2 dispatch 55/55 PASS. YAML valid + `v2-nodes-smoke` job registered. Cost: $0.
+
+#### T-9.1 — CI/CD integration
+- **status:** done
+- **commit:** 020ad029
+- **acceptance:**
+  - [x] `quality-gates` matrix extended with `v2-nodes` entry (9 test paths, `-m "not integration"`)
+  - [x] NEW `v2-nodes-smoke` job (top-level, separate from quality-gates)
+  - [x] v2-nodes-smoke uses `--confcutdir=.` + `IKIGAI_FAKE_LLM=1` for fast feedback
+  - [x] YAML validity confirmed (`yaml.safe_load` returns 5 jobs)
+  - [x] Drift 44/44 preserved
+  - [x] v2 dispatch 55/55 PASS
+  - [x] Atomic single commit
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 11
+- **attempts:** 0
+- **last_verdict:** PASS
+
+#### T-9.1.1 — Closeout (progress + tasks + memory + push)
+- **status:** done
+- **commit:** (this commit — closeout)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 3
+- **attempts:** 0
+- **last_verdict:** PASS
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations
