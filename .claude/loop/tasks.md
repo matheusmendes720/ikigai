@@ -842,6 +842,42 @@
 - **attempts:** 0
 - **last_verdict:** PASS
 
+### Phase 8.6 — v2 graph unblock + smoke invocation (DONE — 2026-09-08)
+
+- **Goal:** Unblock `make_v2_graph()` compilation + prove end-to-end invocation works via `mcp_bridge._server` monkeypatched to `FakeMcpServer`. Closes the last gap from "v2 graph code exists" to "user can invoke the deep agent harness."
+- **Completed:** 2026-09-08 — T-8.6 PASS. `langgraph.json` already registered `ikigai_maintainer_v2` since commit `2e504358` (2026-09-03); what was missing was the import-time blockers. 5 files in single atomic commit: 1 dotted-prefix fix + 4 `from __future__ import annotations`. Cost: $0.
+
+#### T-8.6 — Unblock v2 graph compilation + smoke invocation
+- **status:** done
+- **commit:** 31f06de
+- **acceptance:**
+  - [x] `make_v2_graph()` compiles without import errors
+  - [x] Returns `CompiledStateGraph` with all 13 nodes (observe, score_vectors, heuristics, balance, decompose, plan, tag_and_persist, reflect, commit, dispatch_sub_agents, surface_intentions, error, __start__)
+  - [x] `graph.invoke({...}, config={thread_id: ...})` succeeds end-to-end with FakeMcpServer
+  - [x] Bare-prefix `from observability.otel_init` fixed to dotted-prefix in graph.py:23 (parallel to Phase 8.3.1 mcp_bridge.py:32 fix)
+  - [x] `from __future__ import annotations` added to 4 v2 node files (balance, heuristics, observe, score_vectors)
+  - [x] Drift net preserved (no new test infra; smoke is bash + python interpreter)
+  - [x] Atomic commit (1 task = 1 commit)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 35
+- **attempts:** 1 (after awk-script disaster recovered via git restore + Python-script retry)
+- **last_verdict:** PASS
+- **notes:** Pre-existing latent bugs surfaced: v2 nodes had references to PAV/QHE/regime FSM symbols (archived per ADR-013 / [[archived-feature-not-vocabulary-2026-09-06]]) inside dead private helpers. `from __future__ import annotations` makes annotation references lazy strings so import succeeds without evaluating them. The active graph call path uses top-level planner-only `*_node` functions which don't reference these archived symbols. Lesson (per [[feedback-precision-calibration]] + [[dual-module-identity-bug-class]]): pre-existing latent bugs only surface on FIRST IMPORT — earlier phases (8.1-8.5) only stubbed individual functions, never imported graph.py at module load.
+
+#### T-8.6.1 — Closeout (progress + tasks + memory + push)
+- **status:** done
+- **commit:** (this commit — closeout)
+- **acceptance:**
+  - [x] `progress.md` Phase 8.6 SHIPPED entry appended
+  - [x] `tasks.md` T-8.6 + T-8.6.1 entries added with status=done + commit refs
+  - [x] Memory entry at `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/phase-8-6-shipped-2026-09-08.md`
+  - [x] MEMORY.md pointer added (per [[claude-md-maintenance-rule-2026-09-06]])
+  - [x] Atomic commit + push to origin (branch `loop/phase-8-6`)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 5
+- **attempts:** 0
+- **last_verdict:** PASS
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations
