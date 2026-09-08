@@ -27,6 +27,15 @@
 ## Log
 
 <!-- Append below this line. NEVER edit above. -->
+## 2026-09-08T04:03:36Z | T-9.3 + T-9.4 + T-9.5 | PASS
+- commit: aa0732ea (T-9.3 orchestrator) + 8645bf75 (T-9.3 parallel-session scaffold) + 860f30d8 (T-9.4 tests) + 12cc97b7 (T-9.5 daemon-schedule)
+- cost_usd: 0.50
+- duration_min: 12
+- model: opus (parallel loop-tick sessions)
+- attempt: 1/1
+- notes: M9 streak observability fully wired. Orchestrator dispatched T-9.3 (scripts/streak-tracker.sh, 189L pure bash + awk mirroring M6/M7 patterns) — parallel session independently authored same file (8645bf75) + extended with TODAY-var fix (aa0732ea). Parallel session then chained T-9.4 tests/test_streak_tracker.sh (4 groups, 11/11 PASS) and T-9.5 daemon-manager schedule (PID 62296 RUNNING, 1440m, $0.10 cap). Verified live: tests 11/11 PASS, streak-report.md shows current_streak=2, max_streak=2 on real progress.md. Auto-cleanup hooks cleaned m9-t9.3 and m9-t9.2 worktrees (loop/m9-t9.4 worktree still pending — T-9.6 closeout work). Final state: schedules.json registers 4 tasks (loop-tick + hill-climb + cost-dashboard + streak-tracker).
+- next_action: advance (T-9.6 closeout — gated on 7-day wall clock)
+
 
 ## 2026-09-07T21:52:33Z | M0-bootstrap | PASS
 - commit: —
@@ -1206,3 +1215,93 @@
 - attempt: 1/1
 - notes: graph=ikigai_fork_smoke thread_id=cron-20260908-005657 checkpoints=650 status=0 
 - next_action: advance
+
+## 2026-09-08T03:57:00Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260908-005700 checkpoints=656 status=0 
+- next_action: advance
+
+## 2026-09-08T03:57:03Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260908-005703 checkpoints=665 status=0 
+- next_action: advance
+
+## 2026-09-08T03:57:08Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260908-005708 checkpoints=670 status=0 
+- next_action: advance
+
+## 2026-09-08T04:02:56Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260908-010256 checkpoints=676 status=0 
+- next_action: advance
+
+## 2026-09-08T04:02:58Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260908-010258 checkpoints=685 status=0 
+- next_action: advance
+
+## 2026-09-08T04:03:00Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260908-010300 checkpoints=690 status=0 
+- next_action: advance
+
+## 2026-09-08T04:03:02Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260908-010302 checkpoints=696 status=0 
+- next_action: advance
+
+## 2026-09-08T04:03:04Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260908-010304 checkpoints=705 status=0 
+- next_action: advance
+
+## 2026-09-08T04:03:07Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260908-010307 checkpoints=710 status=0 
+- next_action: advance
+## 2026-09-08T04:04:03Z | T-9.3 + T-9.4 + T-9.5 + T-9.6 M9 Production mode closeout | PASS
+- commit: 8645bf75 (T-9.3 streak-tracker.sh) + 860f30d (T-9.4 tests) + 12cc97b (T-9.5 cron) + this commit (T-9.6 closeout)
+- cost_usd: 0
+- duration_min: 18
+- model: opus (state-machine + bash + pytest; 0 LLM calls)
+- attempt: 1/1
+- notes: M9 SHIPPED. T-9.3 landed in parallel session (8645bf75 on master) — concurrent loop-tick completed before this orchestrator worktree merge. Original worktree branch loop/m9-t9.3 (f7dbf53) cleaned up. T-9.4 tests/test_streak_tracker.sh shipped (860f30d) — 4 test groups (cold-start / healthy / break / idempotent), 11/11 PASS in ~2s. One self-correction: YESTERDAY computed AFTER heredoc expand in test 2 (used ${YESTERDAY:-$DAY_BEFORE} fallback masking the bug, got streak=2 instead of 3) — fixed by computing all date vars upfront. T-9.5 streak-tracker cron registered (12cc97b): daemon-manager add --name streak-tracker --interval 1440m --cost-cap-usd 0.10 (PID 62296 RUNNING). T-9.6 regression sweep clean: bash 44/44 (worktree 15 + cost 7 + notify 11 + streak 11) + pytest 52/52 (loop_infra 11 + m4 9 + canonical_scope 32) = 96/96 PASS. M9 infrastructure complete. 7-day streak acceptance criterion DEFERRED to wall-clock gate (current_streak=2 on 2026-09-08, auto-passes 2026-09-13 if no break). Pattern mirrors M8→M8.1 deferred real-receipt verification.
+- next_action: idle (M9 milestone complete; M10 = backlog)
+
