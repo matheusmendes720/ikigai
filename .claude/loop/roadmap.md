@@ -11,6 +11,48 @@
 - Each milestone has a SPEC.md in `specs/M{n}-{slug}/SPEC.md` (create before starting)
 - Each milestone passes the constitution gate (`.claude/loop/constitution.md`)
 
+## Application Status
+
+O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loop engineering (M0–M9 abaixo) que opera o sistema.
+
+### ✅ Working end-to-end
+
+- **CLI consumer** (`python -m interfaces.cli.main ...`): `v2 daily/weekly/plan`, `task add`, `mesh show <ueid>`, `kill_switch status|pause|resume`
+- **TUI operator** (`python -m interfaces.tui.operator.main`): Textual 4 tabs (Chat / Tasks / State / KillSwitch)
+- **Data mesh read**: `life mesh show <ueid>` joins CLI / taskdog / solverforge_calendar forks via 3 adapters (`ForkAdapter` Protocol)
+- **Data mesh write** (Phase 3 v1, `create` only): fork → CLI enqueues `TaskChange` to `data/review_queue/` → Agent validates → `PropagationEvent` to all forks
+- **MCP Gateway** (`ikigai.bat mcp`): 15 IKIGAI tools + 7 fork tools (`sf_*` + `tuiboard_*`) + 6 resources = 22 tools + 6 resources
+- **Drift net**: 33/33 canonical_scope + 297 drift_invariants + growing extended invariants
+- **Kill switch**: pause/resume cybernetic engine without killing daemon (CLI subcommand + 5th TUI tab)
+- **Investigation queue**: `enqueue/status/complete` MCP tools + drift 42/42 + TUI read-only browse
+- **Phase 9 Option A** (2026-09-03): operator TUI + drift detector + Path 3 taskdog MCP (read-only)
+- **V5 bundle** (2026-09-07): CLI inlined (4 files deleted, v2.py split into 6 modules)
+- **Phase A** (2026-08-30): 7 fork MCP tools live (sf_create_event etc.)
+
+### ⚠️ Stubs / partial
+
+- **Deep Agent v2 graph** (`ikigai_maintainer_v2` in `langgraph.json`): 9-node graph assembled, SqliteSaver checkpointing — mas Phase 8 deixou todos os nodes como **prompt-chain stubs**. `graph.py` L6-7: "MATH CALLS REPLACED: all node logic replaced with prompt-chain stubs. Phase 8.2 will wire actual MCP tool calls."
+- **Path 1 taskdog write** (canônico): `harness @tool → subprocess → taskdog_cli.py` existe, mas o harness não está wire-ado para chamar (gap da Phase 8.2)
+- **Path 3 taskdog MCP**: 3 read-only tools (`taskdog_read`, `taskdog_list`, `taskdog_supports_field`) — zero write surface
+- **Investigation queue UI**: tools funcionam, TUI browse é read-only (sem criar/sortear pela interface)
+
+### ❌ Not started / deferred
+
+- **Phase 8.2**: wire real MCP tool calls into graph nodes (transforma stubs em executor real) — backlog, não auto-roadmap
+- **Phase 3 v1.2-v1.4**: `update`/`delete`/`done` mesh actions (gated on user adjudication, NÃO auto-roadmap)
+- **Deep Agent fills interfaces**: explicitamente NÃO é prioridade per user pivot 2026-09-06 (CLAUDE.md Current Mode)
+- **LLM-driven mesh validation**: gated
+- **PAV math in agent layer**: PAV archived 2026-08-31; agent é planner-only per ADR-013
+- **M9 (Production mode)**: 7-day unattended streak target — gated on user authorization
+
+### 🐛 Pre-existing bugs (flagged, non-blocking)
+
+- `scripts/mcp_inspect.py` PYTHONPATH bug (Windows parity)
+- `tests/test_tui_operator` rglob false-flake
+- 5 stale PAV test files in `src/ikigai/tests/`
+- 4 zero-byte artifacts no repo root (`$10`, `IN`, `inline`, `{len(lf_data)}`) — bash redirect pattern, deve ir pro `.gitignore`
+- `strategics/planning-with-files` submodule dirty (modified content, sem commit)
+
 ## Current Roadmap
 
 ### M0 — Bootstrap (STATUS: DONE)
