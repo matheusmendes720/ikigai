@@ -1,3 +1,8 @@
+import json
+import subprocess
+from datetime import date
+from typing import Any
+
 from src.ikigai.src.agents.v2 import mcp_bridge
 
 from ..state import IKIGAiStateDict
@@ -7,7 +12,7 @@ def observe_node(state: IKIGAiStateDict) -> dict[str, Any]:
     """Read Q_HE observation via MCP bridge. Replaces prompt-chain stub."""
     try:
         result = mcp_bridge.ikigai_observe_pav_state(
-            date=state.get("date", "2026-09-08")
+            date=state.get("date") or date.today().isoformat()
         )
         return {"observation": result}
     except Exception as e:
@@ -47,7 +52,8 @@ def _read_workload_from_upi() -> float:
 
     Returns hours/day estimate based on active UPI count.
 
-    TODO(Phase 8.2): replace subprocess call with MCP tool wrapper.
+    TODO(Phase 8.4): remove _read_workload_from_upi — replaced by
+    ikigai_observe_pav_state via mcp_bridge.
     """
     try:
         result = subprocess.run(

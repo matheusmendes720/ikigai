@@ -5,12 +5,13 @@ Architecture:
         → MCP Gateway stdio (production)
         → FakeMcpServer (tests via monkeypatch on _server)
 
-12 wrappers, one per canonical IKIGAI_TOOL. Adding a new tool
+9 graph-facing wrappers (the 12 IKIGAI_TOOLS total includes 3
+infrastructure-level tools not invoked from v2 nodes). Adding a new tool
 requires editing this file AND the drift detector in
 src/ikigai/tests/test_canonical_scope.py — do NOT add silently.
 
 Error policy: errors propagate. Caller catches and routes to
-error_channel for graceful degradation per Phase 8.2 SPEC §3.
+error_type for graceful degradation per Phase 8.2 SPEC §3.
 
 Observability (T-8.3.1): every _call() invocation opens an OTel
 span `ikigai.bridge.{tool_name}` so bridge dispatch latency and
@@ -20,7 +21,6 @@ spans emitted by mcp_server/tracing.py.
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import json
 import time
@@ -88,7 +88,7 @@ def _call(tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
             raise
 
 
-# --- 12 IKIGAI_TOOLS wrappers (canonical list) ---
+# --- 9 graph-facing IKIGAI_TOOL wrappers ---
 
 
 def ikigai_observe_pav_state(*, date: str) -> dict[str, Any]:
@@ -138,4 +138,4 @@ def ikigai_commit_summary(*, cycle_id: str) -> dict[str, Any]:
 
 # The remaining 3 IKIGAI_TOOLS are infrastructure-level (vault_write,
 # investigation_enqueue, sync_vault) — not used by v2 graph nodes.
-# Phase 8.2 wires only the 9 graph-facing tools above. See SPEC §2.
+# Phase 8.3 wires production binding; see SPEC §2 for the 9 wrappers.
