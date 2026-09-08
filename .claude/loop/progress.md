@@ -18,11 +18,11 @@
 
 ## Aggregate Stats
 
-- **Total ticks:** 10
+- **Total ticks:** 11
 - **Total cost:** $1.80
-- **Avg cost/tick:** $0.18
+- **Avg cost/tick:** $0.16
 - **Pass rate:** 100%
-- **Current streak:** 10
+- **Current streak:** 11
 
 ## Log
 
@@ -226,4 +226,436 @@
 - model: none (state-machine verification via Python sqlite3 query)
 - attempt: 1/1
 - notes: All 4 T-4.3 acceptance bullets verified end-to-end: (1) `.swarm/langgraph_checkpoint.db` path passed explicitly to all 3 graph factories via T-4.2 inline dispatcher (loop-tick.sh:106 `_conn = sqlite3.connect(ckpt_db, check_same_thread=False)` + SqliteSaver for pae_maintainer; loop-tick.sh:126 `make_v2_graph(checkpoint_db=ckpt_db)`; loop-tick.sh:136 `make_fork_smoke_graph(checkpoint_db=ckpt_db)`); (2) thread_id persists across cron runs with deterministic `cron-{TICK_ID}` (TICK_ID=`date +%Y%m%d-%H%M%S`); (3) DB at `.swarm/langgraph_checkpoint.db` (gitignored line 315); (4) `SELECT COUNT(*) FROM checkpoints` = 84 across 7+ unique thread_ids. T-4.3 was already satisfied by the T-4.2 dispatcher — this tick just records the verification.
+- next_action: advance
+
+## 2026-09-07T23:58:34Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-205834 checkpoints=89 status=0 
+- next_action: advance
+
+## 2026-09-08T00:00:15Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-210015 checkpoints=94 status=0 
+- next_action: advance
+
+## 2026-09-08T00:00:36Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-210036 checkpoints=100 status=0 
+- next_action: advance
+
+## 2026-09-08T00:00:37Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-210037 checkpoints=109 status=0 
+- next_action: advance
+
+## 2026-09-08T00:00:40Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-210040 checkpoints=114 status=0 
+- next_action: advance
+
+## 2026-09-08T00:08:05Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-210805 checkpoints=120 status=0 
+- next_action: advance
+
+## 2026-09-08T00:08:06Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-210806 checkpoints=129 status=0 
+- next_action: advance
+
+## 2026-09-08T00:08:09Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-210809 checkpoints=134 status=0 
+- next_action: advance
+
+## 2026-09-08T00:08:13Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-210813 checkpoints=140 status=0 
+- next_action: advance
+
+## 2026-09-08T00:08:15Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-210815 checkpoints=149 status=0 
+- next_action: advance
+
+## 2026-09-08T00:08:18Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-210818 checkpoints=154 status=0 
+- next_action: advance
+
+## 2026-09-08T00:26:19Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-212619 checkpoints=160 status=0 
+- next_action: advance
+
+## 2026-09-08T00:26:26Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-212626 checkpoints=166 status=0 
+- next_action: advance
+
+## 2026-09-08T00:26:37Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-212637 checkpoints=172 status=0 
+- next_action: advance
+
+## 2026-09-08T00:27:50Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-212750 checkpoints=178 status=0 
+- next_action: advance
+
+## 2026-09-08T00:27:52Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-212752 checkpoints=184 status=0 
+- next_action: advance
+
+## 2026-09-08T00:28:27Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-212827 checkpoints=190 status=0 
+- next_action: advance
+
+## 2026-09-08T00:28:29Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-212829 checkpoints=199 status=0 
+- next_action: advance
+
+## 2026-09-08T00:28:32Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-212832 checkpoints=204 status=0 
+- next_action: advance
+
+## 2026-09-08T00:28:34Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-212834 checkpoints=210 status=0 
+- next_action: advance
+
+## 2026-09-08T00:28:35Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-212835 checkpoints=219 status=0 
+- next_action: advance
+
+## 2026-09-08T00:28:38Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-212838 checkpoints=224 status=0 
+- next_action: advance
+
+## 2026-09-08T00:28:53Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-212853 checkpoints=230 status=0 
+- next_action: advance
+
+## 2026-09-08T00:28:54Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-212854 checkpoints=239 status=0 
+- next_action: advance
+
+## 2026-09-08T00:28:57Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-212857 checkpoints=244 status=0 
+- next_action: advance
+
+## 2026-09-08T00:28:59Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-212859 checkpoints=250 status=0 
+- next_action: advance
+
+## 2026-09-08T00:29:01Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-212901 checkpoints=259 status=0 
+- next_action: advance
+
+## 2026-09-08T00:29:04Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-212904 checkpoints=264 status=0 
+- next_action: advance
+
+## 2026-09-08T00:29:19Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-212919 checkpoints=270 status=0 
+- next_action: advance
+
+## 2026-09-08T00:29:20Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-212920 checkpoints=279 status=0 
+- next_action: advance
+
+## 2026-09-08T00:29:24Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-212924 checkpoints=284 status=0 
+- next_action: advance
+
+## 2026-09-08T00:29:26Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-212926 checkpoints=290 status=0 
+- next_action: advance
+
+## 2026-09-08T00:29:28Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-212928 checkpoints=299 status=0 
+- next_action: advance
+
+## 2026-09-08T00:29:31Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-212931 checkpoints=304 status=0 
+- next_action: advance
+
+## 2026-09-08T00:29:46Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-212946 checkpoints=310 status=0 
+- next_action: advance
+
+## 2026-09-08T00:29:48Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-212948 checkpoints=316 status=0 
+- next_action: advance
+
+## 2026-09-08T00:29:49Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-212949 checkpoints=325 status=0 
+- next_action: advance
+
+## 2026-09-08T00:29:52Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-212952 checkpoints=330 status=0 
+- next_action: advance
+
+## 2026-09-08T00:29:54Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-212954 checkpoints=336 status=0 
+- next_action: advance
+
+## 2026-09-08T00:29:55Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-212955 checkpoints=345 status=0 
+- next_action: advance
+
+## 2026-09-08T00:29:58Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-212958 checkpoints=350 status=0 
+- next_action: advance
+
+## 2026-09-08T00:30:05Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-213005 checkpoints=356 status=0 
+- next_action: advance
+
+## 2026-09-08T00:30:07Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-213007 checkpoints=365 status=0 
+- next_action: advance
+
+## 2026-09-08T00:30:10Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-213010 checkpoints=370 status=0 
+- next_action: advance
+
+## 2026-09-08T00:30:11Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260907-213011 checkpoints=376 status=0 
+- next_action: advance
+
+## 2026-09-08T00:30:13Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260907-213013 checkpoints=385 status=0 
+- next_action: advance
+
+## 2026-09-08T00:30:16Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260907-213016 checkpoints=390 status=0 
+- next_action: advance
+
+## 2026-09-08T00:32:10Z | M4-langgraph-integration | PASS
+- commit: 94529f7
+- cost_usd: 0
+- duration_min: 12
+- model: opus
+- attempt: 1/1
+- notes: M4 SHIPPED. T-4.4 (9/9 M4 integration tests) + T-4.5 (regression + closeout). tests/test_m4_langgraph_integration.py covers 3 graphs (pae_maintainer / ikigai_maintainer_v2 / ikigai_fork_smoke) via bash + PYTHON env var; loop-tick.sh adds $PYTHON support (default: python) to handle WSL2 PATHEXT interop. Regression: test_loop_infra 11/11, test_canonical_scope 31/31 (spec stale at 33/33), interfaces/cli 98/98 (spec stale at 68/68). 0 LLM cost (state-machine + subprocess tests).
 - next_action: advance

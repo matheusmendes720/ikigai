@@ -61,7 +61,7 @@
 - **Estimated ticks:** 1-2 (then 1/week)
 - **Completed:** 2026-09-07 — cron fired clean after 3-bug fix (commit `770f61e`): awk counters replace grep-double-zero, proposal dir moved from gitignored `logs/` to tracked `proposals/`, stale cp + double-add dropped. Aggregate stats at first review: 10 ticks analyzed, 6 PASS / 0 FAIL / 0 NEEDS_FIX / 0 BLOCKED, $1.80 cumulative cost, 60% pass rate.
 
-### M4 — Integrate with LangGraph graphs (STATUS: IN-PROGRESS)
+### M4 — Integrate with LangGraph graphs (STATUS: DONE)
 - **What:** Wrap the 3 graphs actually registered in `langgraph.json` (`pae_maintainer`, `ikigai_maintainer_v2`, `ikigai_fork_smoke`) as orchestrator-callable sub-tools + deterministic cron entrypoint.
 - **Why:** Today the graphs are manual-invocation via `make dev-graph NAME=<x>`. Make them dispatchable from the loop orchestrator AND from cron unattended (no LLM cost per tick).
 - **Spec:** `specs/M4-langgraph-integration/SPEC.md` (verified 2026-09-07, actual registry — CLAUDE.md table of 5 graphs is stale)
