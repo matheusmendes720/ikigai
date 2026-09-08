@@ -97,33 +97,42 @@ read -r WINDOW_START WINDOW_END TOTAL_PASSES TOTAL_BREAKS \
             d = date_list[i]
             v = last_verdict[d]
 
+            # Track most recent date (any verdict)
+            last_tick_at = d
+
             if (v == "PASS") {
                 total_passes++
-                last_tick_at = d
                 run_streak++
                 if (run_streak > max_streak) max_streak = run_streak
             } else {
                 total_breaks++
-                if (last_paused_at == "—") last_paused_at = d
+                # Always overwrite to get MOST RECENT break (not first)
+                last_paused_at = d
                 run_streak = 0
             }
         }
 
         # current_streak: count consecutive PASS days from today backwards
         # If most recent day is not PASS, streak is 0 (broken)
-        most_recent_verdict = last_verdict[most_recent_day]
-        if (most_recent_verdict == "PASS") {
-            current_streak = 1
-            for (i = n_dates; i >= 1; i--) {
-                d = date_list[i]
-                if (d == most_recent_day) continue  # already counted
-                prev = last_verdict[d]
-                if (prev == "PASS") current_streak++
-                else break
-            }
-        } else {
+        # Cold-start (no dates yet) is NOT a break — leave healthy="yes"
+        if (n_dates == 0) {
+            # No data yet — no streak to break
             current_streak = 0
-            healthy = "no"
+        } else {
+            most_recent_verdict = last_verdict[most_recent_day]
+            if (most_recent_verdict == "PASS") {
+                current_streak = 1
+                for (i = n_dates; i >= 1; i--) {
+                    d = date_list[i]
+                    if (d == most_recent_day) continue  # already counted
+                    prev = last_verdict[d]
+                    if (prev == "PASS") current_streak++
+                    else break
+                }
+            } else {
+                current_streak = 0
+                healthy = "no"
+            }
         }
 
         if (window_start == "") window_start = "—"
