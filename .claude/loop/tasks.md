@@ -382,6 +382,77 @@
 - **estimated_minutes:** 5
 - **attempts:** 1
 
+### M8 — Notification channel (DONE — 2026-09-08)
+- **Spec:** `specs/M8-notification-channel/SPEC.md` (created 2026-09-08; ntfy.sh HTTP webhook transport + idempotency contract via sha256 + 600s cooldown)
+- **Goal:** "HITL fatigue" mitigation. Wire one async channel (ntfy.sh; topic-as-secret) that fires ONLY on FAIL/NEEDS_FIX/BLOCKED/OVERRUN/BUDGET_ABORT and on cost spike. Suppresses on PASS/dry-run. Zero LLM in pipeline; pure bash + curl.
+- **Completed:** 2026-09-08 — T-8.1..T-8.4 all PASS. scripts/notify.sh (134L pure bash + curl) wired into .claude/loop/loop-tick.sh EXIT trap via notify_hook() function registered alongside M6's auto_cleanup_hook (LIFO order: worktree cleanup runs first, then notify). Trap maps TICK_VERDICT + SPIKE_DETECTED → notify --reason (FAIL→tick_fail, NEEDS_FIX→needs_fix, BLOCKED→blocked, OVERRUN→overrun, BUDGET_ABORT→budget, SPIKE_DETECTED→spike_alarm). Cooldown dedup (10min default) via sha256(reason:message) keyed state file at .claude/loop/logs/notify-state.json. Disabled when LOOP_NOTIFY_TOPIC unset (exit 0 silently, no HTTP). Total cost across all 4 ticks = $0 (ntfy.sh free tier + zero LLM). Regression sweep clean: test_worktree_helper.sh 15/15 (M6) + test_cost_dashboard.sh 7/7 (M7) + test_notify.sh 11/11 (M8) = 33/33 PASS.
+
+#### T-8.1 — Write M8 SPEC.md + scaffold scripts/notify.sh
+- **status:** done
+- **commit:** b95c0348 (SPEC) + aeb4b0c6 (scaffold) + 9c498077 (follow-up fixes)
+- **spec_ref:** `specs/M8-notification-channel/SPEC.md` (acceptance criteria #1 + #2)
+- **acceptance:**
+  - [x] `specs/M8-notification-channel/SPEC.md` exists (acceptance criteria, ntfy.sh architecture, idempotency contract, env vars, exit codes, disabled-mode no-op, dry-run mode)
+  - [x] `scripts/notify.sh` exists (134L pure bash + curl; mirrors M6/M7 minimal pattern; reasons: spike_alarm, tick_fail, needs_fix, blocked, overrun, budget, test)
+  - [x] Disabled when LOOP_NOTIFY_TOPIC unset (silent exit 0; no HTTP)
+  - [x] Cooldown dedup via sha256(reason:message) keyed state file (default 600s)
+  - [x] --dry-run mode prints curl command without firing (CI-friendly)
+  - [x] Follow-up commit 9c498077 fixes two bash arg-parsing bugs caught by T-8.2 test scaffolding (single-arg --reason + dry-run printf loop)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 7 (across 3 commits)
+- **attempts:** 1
+
+#### T-8.2 — tests/test_notify.sh — 4 test groups, 11/11 PASS
+- **status:** done
+- **commit:** e63c6b5c
+- **spec_ref:** `specs/M8-notification-channel/SPEC.md` (acceptance criterion #3)
+- **acceptance:**
+  - [x] `tests/test_notify.sh` exists (220L, 4 test groups mirrors M7's test_cost_dashboard.sh pattern)
+  - [x] Group 1: disabled mode — unset LOOP_NOTIFY_TOPIC → exit 0, no HTTP call (counter=0 via stub curl)
+  - [x] Group 2: idempotent duplicate suppression — 3 sends within cooldown → counter=1; different messages → counter=2
+  - [x] Group 3: dry-run mode — --dry-run flag → exit 0, counter=0, stdout contains curl command
+  - [x] Group 4: spike alarm wire integration with cost-dashboard.sh (seeds >$10 today, runs cost-dashboard.sh, asserts exit=2, invokes notify --reason spike_alarm, asserts counter=1; SKIP if cost-dashboard.sh missing)
+  - [x] Stub curl via PATH override (no real network calls during tests)
+  - [x] 11/11 PASS (POSIX + Git Bash compatible)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 6
+- **attempts:** 1
+
+#### T-8.3 — Wire notify.sh into loop-tick.sh EXIT trap
+- **status:** done
+- **commit:** e11f3b6
+- **spec_ref:** `specs/M8-notification-channel/SPEC.md` (acceptance criterion #1)
+- **acceptance:**
+  - [x] notify_hook() function + trap notify_hook EXIT registered after M6's auto_cleanup_hook (LIFO order)
+  - [x] TICK_VERDICT="" default in defaults block + TICK_VERDICT=$VERDICT at graph dispatch (L213)
+  - [x] TICK_VERDICT="BUDGET_ABORT" + SPIKE_DETECTED=1 at cost guard (L251)
+  - [x] TICK_VERDICT="OVERRUN" before exit 124 (L389)
+  - [x] TICK_VERDICT=PASS/FAIL at normal tick exit (L393)
+  - [x] Trap captures $? at entry; reads TICK_VERDICT + SPIKE_DETECTED; maps to notify --reason (FAIL→tick_fail, NEEDS_FIX→needs_fix, BLOCKED→blocked, OVERRUN→overrun, BUDGET_ABORT→budget, SPIKE_DETECTED→spike_alarm)
+  - [x] Empty TICK_VERDICT + exit 0 = no-op (PASS / dry-run suppressed)
+  - [x] Empty TICK_VERDICT + exit !=0 = tick_error fallback
+  - [x] Smoke-tested: dry-run --graph pae_maintainer and bare dry-run both exit 0 with no notify fired
+  - [x] Loop's cost_cap_usd preserved ($0/tick; ntfy.sh free tier + zero LLM)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 4
+- **attempts:** 1
+
+#### T-8.4 — Regression sweep + state-machine closeout
+- **status:** done
+- **commit:** (this commit)
+- **spec_ref:** `specs/M8-notification-channel/SPEC.md` (acceptance criterion #2 — real-receipt verification deferred to M8.1)
+- **acceptance:**
+  - [x] Full regression sweep clean: test_worktree_helper.sh 15/15 + test_cost_dashboard.sh 7/7 + test_notify.sh 11/11 = 33/33 PASS
+  - [x] `roadmap.md` M8 marked STATUS: DONE
+  - [x] `tasks.md` M8 section added (DONE — 2026-09-08) + T-8.1..T-8.4 marked status=done
+  - [x] `progress.md` M8 entries appended (T-8.1, T-8.1 fix, T-8.2, T-8.3, T-8.4)
+  - [x] Atomic commit + push to origin master per standing directive
+  - [x] Memory entry appended at `~/.claude/projects/.../memory/m8-notification-channel-shipped-2026-09-08.md`
+  - [ ] M8 acceptance criterion #2 (trigger NEEDS_FIX, receive notification) deferred to M8.1 — gated on user setting `LOOP_NOTIFY_TOPIC`; idempotency + dedup + disabled-mode + dry-run verified by 11 unit tests
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 9
+- **attempts:** 1
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations

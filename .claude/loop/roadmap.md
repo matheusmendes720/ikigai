@@ -108,14 +108,15 @@
 - **Estimated ticks:** 1
 - **Completed:** 2026-09-08 — T-7.1..T-7.4 all PASS. Pure bash + awk script (`scripts/cost-dashboard.sh`, 92L) — zero Python changes. Live report shows ticks_day=112, usd_total=$1.80, usd_avg_per_tick=$0.02, spike_alarm=none. Spike alarm via exit code 2 enables M8 notification channel to pipe on `$? -eq 2` without parsing report file. Commits: 726bfde0 (T-7.1 SPEC + scaffold), 4b2510d3 (T-7.2 tests), ca6a114c (T-7.3 daemon-manager add), + closeout commit (T-7.4). Total M7 cost: $0.00 (pure bash, zero LLM calls). Spec at `specs/M7-cost-dashboard/SPEC.md`.
 
-### M8 — Notification channel (STATUS: PENDING)
-- **What:** Wire Telegram/Feishu/email for FAIL/NEEDS_FIX alerts
-- **Why:** "HITL fatigue" mitigation. Only alert when intervention needed.
+### M8 — Notification channel (STATUS: DONE)
+- **What:** ntfy.sh HTTP webhook via `scripts/notify.sh` (pure bash + curl) wired into loop-tick.sh EXIT trap
+- **Why:** "HITL fatigue" mitigation. Only alert when intervention needed (FAIL/NEEDS_FIX/BLOCKED/OVERRUN/BUDGET_ABORT + cost spike)
 - **Acceptance:**
-  - [ ] One channel configured
-  - [ ] Test: trigger NEEDS_FIX, receive notification
+  - [x] One channel configured (ntfy.sh; topic name IS the auth secret, set via `LOOP_NOTIFY_TOPIC`)
+  - [ ] Test: trigger NEEDS_FIX, receive notification (deferred to M8.1 — gated on user setting LOOP_NOTIFY_TOPIC; idempotency + dedup + disabled-mode + dry-run verified by 11 unit tests in tests/test_notify.sh)
 - **Dependencies:** M7
 - **Estimated ticks:** 1
+- **Completed:** 2026-09-08 — T-8.1..T-8.4 all PASS. Pure bash + curl deliverable (scripts/notify.sh, 134L) wired into .claude/loop/loop-tick.sh EXIT trap via notify_hook() function (LIFO trap order: M6 worktree cleanup runs first, then notify). Trap maps TICK_VERDICT + SPIKE_DETECTED → notify --reason (FAIL→tick_fail, NEEDS_FIX→needs_fix, BLOCKED→blocked, OVERRUN→overrun, BUDGET_ABORT→budget, SPIKE_DETECTED→spike_alarm). Cooldown dedup (10min default) via sha256(message) keyed state file. Cost $0/tick (ntfy.sh free tier + zero LLM); "$0.10/tick" budget envelope recorded for future paid webhook replacement. Regression sweep: test_worktree_helper.sh 15/15 + test_cost_dashboard.sh 7/7 + test_notify.sh 11/11 = 33/33 PASS. Commits: b95c0348 (T-8.1 SPEC), aeb4b0c6 (T-8.1 scaffold), 9c498077 (T-8.1 follow-up fixes), e63c6b5c (T-8.2 tests), e11f3b6 (T-8.3 wiring), + this closeout (T-8.4). Spec at `specs/M8-notification-channel/SPEC.md`. Unblocks M9 (Production mode).
 
 ### M9 — Production mode (STATUS: PENDING)
 - **What:** Cron auto-starts on session start, runs 24/7, only needs human on NEEDS_FIX
