@@ -462,6 +462,7 @@
 
 #### T-9.1 — Write M9 SPEC.md
 - **status:** done
+- **commit:** a9341cb
 - **acceptance:**
   - [x] specs/M9-production-mode/SPEC.md exists (auto-start + streak tracker + 7-day acceptance)
   - [x] Lists 5 acceptance criteria with test signals
