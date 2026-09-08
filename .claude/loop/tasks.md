@@ -142,6 +142,22 @@
 
 - **notes:** M4 closeout. All regression tests green. Drift canonical_scope 31/31 (spec was stale at 33/33). interfaces 98/98 (spec was stale at 68/68). Two state-machine edits: (1) roadmap.md M4 → STATUS: DONE, (2) tasks.md T-4.5 → status=done. M4 SHIPPED.
 
+#### T-4.5.1 — Drift regression: dual-module aliasing + missing test restoration
+- **status:** done
+- **spec_ref:** `specs/M4-langgraph-integration/SPEC.md` (regression caught during M4 acceptance sweep — `test_drift_invariants.py::test_no_algorithm_constants_in_agent_code` was asserted to exist but had been deleted when V5-D/F removed all algorithm constants)
+- **acceptance:**
+  - [x] dual-module aliasing block restored in both `tests/conftest.py` and `src/ikigai/tests/conftest.py` (15 modules: sys_ikigai + 14 submodules)
+  - [x] `test_no_algorithm_constants_in_agent_code` added to `src/ikigai/tests/test_canonical_scope.py` with `_ALGO_CONSTANT_KEYWORDS` + `_ALGO_CONSTANT_SUFFIXES` + `_is_typing_alias` helper
+  - [x] `pytest src/ikigai/tests/test_drift_invariants.py` 7/7 PASS
+  - [x] `pytest src/ikigai/tests/test_canonical_scope.py` 32/32 PASS (was 31/31; +1 = the new test)
+  - [x] `pytest src/ikigai/tests/test_drift_extended_invariants.py` 4/4 PASS
+- **estimated_cost_usd:** 0.00 (no LLM — pure code + pytest)
+- **estimated_minutes:** 6
+- **attempts:** 1 (initial FAIL on 3 false positives — `VECTOR_TYPES`/`REGIME_STATES`/`PHASE_STATES` were type-aliases for FSM state labels; fixed via `_is_typing_alias` helper that skips `Literal[...]`, `Optional[...]`, `Union[...]`, `List[...]`, `Dict[...]`, `Tuple[...]`, `Set[...]`, `FrozenSet[...]`)
+- **last_verdict:** PASS
+- **commit:** 83658b1
+- **notes:** Discovered during T-4.5 acceptance sweep — `test_drift_invariants.py` asserted `test_no_algorithm_constants_in_agent_code` must exist in canonical_scope but it had been deleted when V5-D/V5-F stripped all algorithm constants from the agent layer (per ADR-013). The test asserts no NEW algorithm-parameter constants (PAE/QHE/REGIME/VECTOR/SCORE/WEIGHT/HEURISTIC/THRESHOLD/ALIGNMENT/PHASE/CYCLE/RANK keywords; or suffixes _WEIGHT/_THRESHOLD/_COEFFICIENT/_SCORE/_FACTOR/_RATIO/_DECAY/_EPSILON/_ALPHA/_BETA/_GAMMA/_DELTA) leak back into PROD_LAYERS. Type-alias discrimination via `_is_typing_alias()` is the lesson — `Literal["PUSH", "MAINTAIN", ...]` is a FSM state label, not an algorithm constant. Atomic commit + pushed to origin master (`cb99ff7..83658b1`).
+
 ### M5 — IKIGAI MCP integration (IN PROGRESS — 2026-09-08)
 - **Spec:** `specs/M5-ikigai-mcp-integration/SPEC.md` (created 2026-09-08; supersedes roadmap.md "19 tools" claim with verified live count = 14 tools + 6 resources from `src/ikigai/src/mcp_server/`)
 - **Goal:** Wire the orchestrator prompt to IKIGAI MCP tools so the loop can delegate research/knowledge/task work to the Deep Agent layer. Additive documentation only — no new gateway code.
@@ -175,31 +191,59 @@
 - **notes:** Added "## Tool Availability" section after "Your Job" (line 12). Lists 14 tools + 6 resources pointer, read-only vs write tools split, ADR-013 forbidden math/policy/scoring tools.
 
 #### T-5.3 — One-tick IKIGAI MCP integration test
-- **status:** pending
+- **status:** done
 - **spec_ref:** `specs/M5-ikigai-mcp-integration/SPEC.md` (acceptance criterion #5)
 - **acceptance:**
-  - [ ] `tests/test_m5_ikigai_mcp_integration.py` exists (≥50L)
-  - [ ] Test spawns `ikigai.bat mcp` subprocess via stdio JSON-RPC handshake
-  - [ ] Calls `ikigai_health` tool and asserts response structure
-  - [ ] No LLM cost (subprocess + JSON parsing only)
-  - [ ] Test passes locally (Windows Git Bash)
+  - [x] `tests/test_m5_ikigai_mcp_integration.py` exists (317L, untracked until T-5.6 atomic commit)
+  - [x] Test spawns MCP server as subprocess via stdio JSON-RPC handshake (NOT through `ikigai.bat` — direct `python -u -m mcp_server` invocation bypasses cmd.exe stdio wrapping that corrupts the JSON-RPC byte stream on Windows Git Bash)
+  - [x] Calls `ikigai_health` tool and asserts response structure: `{name: "ikigai-gateway", version: str, started_at: float Unix timestamp, uptime_s: float ≥ 0, adapters: [{name, slice_type, exists}]}`
+  - [x] No LLM cost (subprocess + JSON parsing only — $0.00)
+  - [x] Test passes locally (Windows Git Bash) — 2/2 PASS in 4.82s
+  - [x] Companion `tools/list` test confirms `ikigai_health` is registered on the server
 - **estimated_cost_usd:** 0.00
-- **estimated_minutes:** 12
-- **attempts:** 0
+- **estimated_minutes:** 18
+- **attempts:** 1 (4 errors fixed: shadow contracts dir, missing REPO_ROOT PYTHONPATH, `-m mcp_server.server` skipping `__main__.py`, started_at docstring claiming str when actual is float)
+- **last_verdict:** PASS
+- **commit:** (T-5.6 atomic)
+- **notes:** Four Windows-specific fixes during construction: (1) PYTHONPATH needs three entries — REPO_ROOT for `from src.X`, LIFE_SRC for `from contracts.X`, IKIGAI_SRC for `python -m mcp_server`; (2) cwd MUST be `src/ikigai/src` (inner src dir), NOT `src/ikigai` — the latter prepends `''` to sys.path and shadows `src/contracts/` with stale `src/ikigai/contracts/`. (3) Use `python -u -m mcp_server` (NOT `.server`) so the package `__main__.py`'s `asyncio.run(main())` block actually executes — `.server` runs import + skip. (4) `started_at` is a Unix timestamp float (`time.time()`), not a str — recorded in test docstring per SPEC criterion #5 wording. Binary-mode stdio mirrors Windows fix commit `b93a1f3` (paired with server's `sys.stdin.buffer.readline()`); thread-with-timeout readline prevents pytest wedge on hung server. Pre-existing PYTHONPATH bug discovered in `scripts/mcp_inspect.py` (same `from src.X` import error) — flagged as separate micro-task, NOT T-5.3 scope.
 
-#### T-5.4 — Regression + closeout
+#### T-5.4 — Regression sweep
+- **status:** done
+- **spec_ref:** `specs/M5-ikigai-mcp-integration/SPEC.md` (acceptance criterion #6)
+- **acceptance:**
+  - [x] `pytest tests/test_loop_infra.py` 11/11 PASS
+  - [x] `pytest tests/test_m4_langgraph_integration.py` 9/9 PASS
+  - [x] `pytest src/ikigai/tests/test_canonical_scope.py` 32/32 PASS (spec said 31/31 — actual is 32/32, includes T-4.5.1-restored `test_no_algorithm_constants_in_agent_code`)
+  - [x] No regression introduced by T-5.3 test (combined run: 52/52 PASS in 13.48s)
+- **estimated_cost_usd:** 0.00 (no LLM — pure pytest)
+- **estimated_minutes:** 1
+- **attempts:** 0
+- **last_verdict:** PASS
+- **notes:** Single `pytest tests/test_loop_infra.py tests/test_m4_langgraph_integration.py src/ikigai/tests/test_canonical_scope.py -v` invocation returned 52/52 in 13.48s. canonical_scope count is 32 (was 31 before T-4.5.1, +1 from drift regression fix).
+
+#### T-5.5 — State machine updates (roadmap + tasks + progress)
+- **status:** done
+- **spec_ref:** `specs/M5-ikigai-mcp-integration/SPEC.md` (acceptance criterion #6 — state machine closeout)
+- **acceptance:**
+  - [x] `roadmap.md` M5 marked `STATUS: DONE` (line 77)
+  - [x] `tasks.md` T-5.3, T-5.4, T-5.5 marked `status: done` with full acceptance ticks + commit placeholders
+  - [x] `progress.md` M5 entry appended with verdict (T-5.6 commit SHA will be filled by T-5.6)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 1
+- **attempts:** 0
+- **last_verdict:** PASS
+
+#### T-5.6 — Atomic commit + push to origin master
 - **status:** pending
 - **spec_ref:** `specs/M5-ikigai-mcp-integration/SPEC.md` (acceptance criterion #6)
 - **acceptance:**
-  - [ ] `pytest tests/test_loop_infra.py` 11/11 PASS
-  - [ ] `pytest tests/test_m4_langgraph_integration.py` 9/9 PASS
-  - [ ] `pytest src/ikigai/tests/test_canonical_scope.py` 31/31 PASS
-  - [ ] All T-5.1..T-5.3 marked status=done in tasks.md
-  - [ ] `roadmap.md` M5 marked `STATUS: DONE`
-  - [ ] `progress.md` M5 entry appended with verdict + commit SHA
-  - [ ] Atomic commit
-- **estimated_cost_usd:** 0.10
-- **estimated_minutes:** 4
+  - [ ] `tests/test_m5_ikigai_mcp_integration.py` added
+  - [ ] `.claude/loop/{roadmap,tasks,progress}.md` state-machine updates included
+  - [ ] Atomic single commit (no Co-Authored-By trailer per CLAUDE.md)
+  - [ ] Pushed to origin master per standing directive
+  - [ ] Memory entry appended at `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/` (pattern from prior waves)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 3
 - **attempts:** 0
 
 ## Notes for Orchestrator
