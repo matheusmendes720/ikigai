@@ -539,6 +539,113 @@
 - **last_verdict:** PASS (regression + state machine); streak gate = wall-clock
 - **notes:** Regression sweep clean: bash 44/44 (worktree 15 + cost 7 + notify 11 + streak 11) + pytest 52/52 (loop_infra 11 + m4 9 + canonical_scope 32). M9 infrastructure shipped (T-9.1..T-9.5). 7-day streak acceptance gated on real-time wall clock — auto-passes on 2026-09-13 if no break (current_streak=2 today). Pattern mirrors M8's M8.1 deferred (real-receipt verification).
 
+### M10 — End-to-end loop dispatch (PENDING — 2026-09-08)
+
+- **Goal:** Wire M0–M9 into a single atomic dispatch primitive (`scripts/dispatch.sh <task_id>`) — read state → spawn worker in worktree → implement → verifier → promotion → notify → progress append → tick close, as one terminal unit.
+- **Spec:** specs/M10-end-to-end-dispatch/SPEC.md (created 2026-09-08; 5 acceptance criteria + 3 sub-tasks + tick_* reason mappings on M8's notify channel).
+- **Acceptance:**
+  - [ ] Single-command dispatch (acceptance #1)
+  - [ ] Atomic promotion (acceptance #2)
+  - [ ] Idempotent replay (acceptance #3)
+  - [ ] Notification integration (acceptance #4 — `reason=tick_pass|tick_fail|needs_fix`)
+  - [ ] Determinism gate before LLM (acceptance #5 — full regression sweep runs pre-dispatch, exits 1 on any failure)
+  - [ ] All 9 prior milestones stable (acceptance #5 mirror — 96/96 regression sweep)
+- **Dependencies:** M9 (DONE — only 7-day streak gate remains; not blocking M10)
+- **Estimated ticks:** 3-5
+
+#### T-10.1 — Scaffold scripts/dispatch.sh + tests
+- **status:** pending
+- **commit:** —
+- **acceptance:**
+  - [ ] `scripts/dispatch.sh` exists (~80L, pure bash, mirrors M7/M8 style)
+  - [ ] Accepts positional `<task_id>` + `--dry-run` flag (Q1 default: yes)
+  - [ ] Reads `.claude/loop/tasks.md`, locates task entry, prints status
+  - [ ] Idempotent replay: returns 0 with `already_complete` on `status: done`
+  - [ ] `tests/test_dispatch.sh` covers: missing-task, already-done, not-pending dry-run, regression-failed short-circuit (4 groups)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 15
+- **last_verdict:** —
+
+#### T-10.2 — Wire M6/M7/M8 hooks into dispatch.sh EXIT trap
+- **status:** pending
+- **commit:** —
+- **acceptance:**
+  - [ ] EXIT trap LIFO order: M6 worktree cleanup → M8 notify (`reason=tick_*` per verdict) → progress.md append
+  - [ ] Regression sweep (M9 acceptance #5 — 6 test suites) runs as pre-dispatch gate; failure → exit 1 with `regression_failed`
+  - [ ] On verifier PASS: commit + push + roadmap STATUS flip + tasks.md status flip atomic (no partial state)
+  - [ ] `tick_pass` reason added to M8's notify.sh reason list (alongside existing `spike_alarm|tick_fail|needs_fix|blocked`)
+  - [ ] `--dry-run` skips commit/push/notify but still runs regression sweep + worker + verifier (orchestrator verification path)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 20
+- **last_verdict:** —
+
+#### T-10.3 — Acceptance + closeout (single-command dispatch end-to-end)
+- **status:** pending
+- **commit:** —
+- **acceptance:**
+  - [ ] `bash scripts/dispatch.sh T-10.1 --dry-run` exits 0 + prints chain walk-through (no commit, no notify)
+  - [ ] `bash scripts/dispatch.sh T-10.2` runs full chain: regression sweep → worker → verifier → commit → push → roadmap flip → notify → progress append → exit 0
+  - [ ] Re-dispatch of `T-10.2` after completion returns 0 with `already_complete` (idempotent)
+  - [ ] Regression sweep post-dispatch: bash 44/44 (worktree 15 + cost 7 + notify 11 + streak 11) + pytest 52/52 (loop_infra 11 + m4 9 + canonical_scope 32) = 96/96 PASS
+  - [ ] `roadmap.md` M10 marked `STATUS: DONE`; `tasks.md` M10 section flipped; progress.md append-only entry
+  - [ ] `memory/M10-end-to-end-dispatch-shipped-2026-09-{NN}.md` written per CLAUDE.md maintenance rule
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 10
+- **last_verdict:** —
+
+#### T-8.2.1 — FakeMcpServer + mcp_bridge.py + 4 PAV-observation nodes
+- **status:** pending
+- **commit:** —
+- **spec_ref:** docs/superpowers/specs/2026-09-08-phase-8-2-wiring-design.md (locked at ad6c972) + docs/superpowers/plans/2026-09-08-phase-8-2-wiring.md (at a08b5a7)
+- **acceptance:**
+  - [ ] `src/ikigai/src/agents/v2/mcp_bridge.py` exists with 9 sync wrappers (one per PAV-obs tool surface used by 4 nodes + 4 vault/state nodes + commit)
+  - [ ] `src/ikigai/src/agents/v2/tests/fixtures/fake_mcp_server.py` exists with `canned_response()` + `call()` API
+  - [ ] `src/ikigai/src/agents/v2/tests/test_mcp_bridge.py` passes — all 9 wrappers tested with FakeMcpServer
+  - [ ] 4 nodes rewired: `observe.py`, `score_vectors.py`, `heuristics.py`, `balance.py` — each calls `mcp_bridge.ikigai_X()` in try/except, populates `error_channel` on failure
+  - [ ] Drift 32/32 PASS preserved (no IKIGAI_TOOLS count change)
+  - [ ] All tests under `src/ikigai/tests/` + `src/ikigai/src/agents/v2/tests/` PASS
+  - [ ] Atomic commit (1 task = 1 commit)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 15
+- **attempts:** 0
+- **last_verdict:** —
+- **notes:** Phase 8.2 sub-task 1 of 3. Risk: dual-module identity bug class (per W6.X item 3) — tests must patch BOTH `sys.modules["src.ikigai.src.agents.v2.mcp_bridge"]` AND `sys.modules["ikigai.src.agents.v2.mcp_bridge"]` if production code uses bare imports. IKIGAI_TOOLS=12 stays canonical (drift detector enforces); IKIGAI_NODE_TOOLS=8 separate.
+
+#### T-8.2.2 — 4 vault/state node rewire (read-only tag_and_persist)
+- **status:** pending
+- **commit:** —
+- **spec_ref:** docs/superpowers/specs/2026-09-08-phase-8-2-wiring-design.md §1 + §5 (locked at ad6c972) + docs/superpowers/plans/2026-09-08-phase-8-2-wiring.md (at a08b5a7)
+- **acceptance:**
+  - [ ] 4 nodes rewired: `decompose.py`, `plan.py`, `reflect.py`, `tag_and_persist.py` — each calls mcp_bridge wrapper from T-8.2.1
+  - [ ] `tag_and_persist.py` is READ-ONLY (mcp_bridge wrapper around a read tool — NOT vault_write; vault_write wiring is separate work per SPEC §5)
+  - [ ] ADR-013 preserved: no math/policy/scoring writes to vault (agent layer stays planner-only)
+  - [ ] All error paths populate `error_channel` + route via existing `_route_after_*_error` conditional edges
+  - [ ] Drift 32/32 PASS preserved
+  - [ ] All tests PASS
+  - [ ] Atomic commit (1 task = 1 commit)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 12
+- **attempts:** 0
+- **last_verdict:** —
+- **notes:** Phase 8.2 sub-task 2 of 3. Builds on T-8.2.1 mcp_bridge.py. Constraint: tag_and_persist is read-only per SPEC §5 — vault_write is explicitly out of scope (separate work item). Implementer should re-verify the actual node function names against `ls src/ikigai/src/agents/v2/nodes/` since SPEC L99-102 references the same set.
+
+#### T-8.2.3 — commit.py wiring + e2e graph test
+- **status:** pending
+- **commit:** —
+- **spec_ref:** docs/superpowers/specs/2026-09-08-phase-8-2-wiring-design.md §5 (locked at ad6c972) + docs/superpowers/plans/2026-09-08-phase-8-2-wiring.md (at a08b5a7)
+- **acceptance:**
+  - [ ] `commit.py` rewired — reads prior node outputs (in-process; no MCP)
+  - [ ] `src/ikigai/src/agents/v2/tests/test_phase_8_2_wiring.py` e2e test exists with 3 test cases: `all_nine_wrappers`, `graceful_degradation`, `server_unbound`
+  - [ ] e2e test runs full graph end-to-end with FakeMcpServer — asserts partial cycle verdict via existing `error_node → commit_summary` flow
+  - [ ] Drift 32/32 PASS preserved
+  - [ ] All tests PASS (test_mcp_bridge + test_phase_8_2_wiring + existing canonical_scope 32 + interfaces 73)
+  - [ ] Atomic commit (1 task = 1 commit)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 10
+- **attempts:** 0
+- **last_verdict:** —
+- **notes:** Phase 8.2 sub-task 3 of 3 (closes the phase). **SPEC L105 STALE REF:** `dispatch_sub_agents.py` is mentioned in SPEC §5 T-8.2.3 but does NOT exist in `src/ikigai/src/agents/v2/nodes/` (verified 2026-09-08). The actual node set per `ls`: `balance.py commit.py decompose.py error.py heuristics.py meta_plan/ observe.py plan.py proposal_executor.py reflect.py score_vectors.py surface_intentions.py tag_and_persist.py`. Implementer should skip the dispatch_sub_agents wiring (or wire it against `commit.py` + `surface_intentions.py` per actual state machine) and document the SPEC gap in the commit body. T-8.2.3 is 1 create (e2e test) + 1 modify (commit.py).
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations
