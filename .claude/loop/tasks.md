@@ -951,6 +951,42 @@
 - **attempts:** 0
 - **last_verdict:** PASS
 
+### Phase 8.9 — LangGraph Studio integration (make dev + make test) (DONE — 2026-09-08)
+
+- **Goal:** Make `make dev` (LangGraph dev server on :2024) + expanded `make test` the canonical entry points for interactive use AND CI. Polishes existing Makefile + langgraph.json for production-ready status.
+- **Completed:** 2026-09-08 — T-8.9 PASS. Drift 44/44 preserved. Targeted regression 36/36 PASS in 2.56s. Cost: $0.
+
+#### T-8.9 — LangGraph Studio integration
+- **status:** done
+- **commit:** 89a324a
+- **acceptance:**
+  - [x] `Makefile:test` target expanded with 2 new pytest lines for v2 dispatch + tag_and_persist + e2e stdio
+  - [x] `.env.example` NEW — documents `IKIGAI_FAKE_LLM=1`, `LOOP_NOTIFY_TOPIC`, `PYTHONPATH` 3-entry
+  - [x] `interfaces/cli/tests/conftest.py` — comment-only sys.path fix
+  - [x] `--confcutdir=.` Makefile flag prevents dual-module identity conflict
+  - [x] Drift 44/44 preserved
+  - [x] Targeted regression 36/36 PASS (`--confcutdir=. interfaces/cli/tests/test_v2_skill_dispatch.py src/ikigai/src/agents/v2/tests/ -m "not integration"`)
+  - [x] Atomic single commit
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 22
+- **attempts:** 0
+- **last_verdict:** PASS
+- **notes:** Per implementer: combining multiple conftest paths in one pytest invocation can re-emerge dual-module identity conflict. For CI, prefer one path per pytest run. Tests pre-existing failures in `test_investigation_dispatcher.py` are NOT Phase 8.9's concern.
+
+#### T-8.9.1 — Closeout (progress + tasks + memory + push)
+- **status:** done
+- **commit:** (this commit — closeout)
+- **acceptance:**
+  - [x] `progress.md` Phase 8.9 SHIPPED entry appended
+  - [x] `tasks.md` T-8.9 + T-8.9.1 entries added
+  - [x] Memory entry at `~/.claude/projects/.../memory/phase-8-9-shipped-2026-09-08.md`
+  - [x] MEMORY.md pointer added
+  - [x] Atomic commit + push to origin (branch `loop/phase-8-9`)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 4
+- **attempts:** 0
+- **last_verdict:** PASS
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations
