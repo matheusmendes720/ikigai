@@ -1613,3 +1613,11 @@
 - next_action: continue (autonomous loop — surface remaining-gap analysis to user)[INFO] Recording command outcome: cat
 
 [OK] Command outcome recorded
+## 2026-09-08T21:00:00Z | Phase 9.2 closeout | PASS
+- commit: 533fa858 (T-9.2 docs refresh) + this commit (closeout)
+- cost_usd: 0
+- duration_min: 5
+- model: opus (autonomous loop, $0 LLM)
+- attempt: 1/1
+- notes: Phase 9.2 SHIPPED. T-9.2 commit `533fa858` adds NEW `docs/PHASE_8X_USAGE.md` (212 lines, 7KB) + un-supersedes `docs/LANGRAPH_DEV.md`. Sections: Quick Start, Skill Manifests, CLI Reference (daily/weekly/monthly/quarterly), LangGraph Studio, CI Matrix, Troubleshooting (4 sub-topics), See Also. Drift 44/44 + daily spot-check 4 tests PASS. Branch loop/phase-9-2 (T-9.2 + closeout pushed; no merge to master). Continuing → Phase 9.3.
+- next_action: continue (Phase 9.3 operator TUI)

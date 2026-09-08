@@ -987,6 +987,33 @@
 - **attempts:** 0
 - **last_verdict:** PASS
 
+### Phase 9.2 — Documentation refresh (DONE — 2026-09-08)
+
+- **Goal:** Add `docs/PHASE_8X_USAGE.md` with user-facing examples for v2 graph CLI + make dev workflow. Currently `docs/LANGRAPH_DEV.md` is SUPERSEDED 2026-08-28 (pre-pivot content).
+- **Completed:** 2026-09-08 — T-9.2 PASS. NEW 212-line doc + minor header update. Drift 44/44. Cost: $0.
+
+#### T-9.2 — Documentation refresh
+- **status:** done
+- **commit:** 533fa858
+- **acceptance:**
+  - [x] NEW `docs/PHASE_8X_USAGE.md` (~212 lines) with sections: Quick Start, Skill Manifests, CLI Reference (daily/weekly/monthly/quarterly), LangGraph Studio, CI Matrix, Troubleshooting (4 sub-topics), See Also
+  - [x] `docs/LANGRAPH_DEV.md` header updated to link to new doc
+  - [x] Drift 44/44 preserved
+  - [x] Daily spot-check 4 tests PASS
+  - [x] Atomic single commit
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 5
+- **attempts:** 0
+- **last_verdict:** PASS
+
+#### T-9.2.1 — Closeout (progress + tasks + memory + push)
+- **status:** done
+- **commit:** (this commit — closeout)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 3
+- **attempts:** 0
+- **last_verdict:** PASS
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations
