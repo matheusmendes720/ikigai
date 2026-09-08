@@ -131,6 +131,9 @@ notify_hook() {
   if [[ "${SPIKE_DETECTED:-0}" == "1" ]]; then
     REASON="spike_alarm"
     MSG="Tick $TICK_ID spike (cost > 80% of daily cap, exit=$EXIT_CODE): see $LOG_DIR/cost-report.md"
+  elif [[ "$EXIT_CODE" -eq 0 && "$VERDICT" == "PASS" ]]; then
+    REASON="tick_pass"
+    MSG="Tick $TICK_ID PASS"
   elif [[ "$EXIT_CODE" -ne 0 ]]; then
     case "$VERDICT" in
       FAIL)         REASON="tick_fail"; MSG="Tick $TICK_ID FAIL (exit=$EXIT_CODE)" ;;
