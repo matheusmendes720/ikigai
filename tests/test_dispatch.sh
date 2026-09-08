@@ -211,6 +211,136 @@ else
     ok "stdout does NOT show would_dispatch on --execute (correct)"
 fi
 
+# ---------- Group 5: tick_pass reason fires on PASS via EXIT trap ----------
+echo "=== Group 5: tick_pass reason fires on PASS via EXIT trap ==="
+
+cat > "$TASKS_MD" <<'EOF'
+# Current Tasks — Loop Engineering
+
+## Active Tasks
+
+### T-10.651 — Test PASS notify
+- **status:** pending
+- **acceptance:**
+  - [ ] stub
+- **estimated_cost_usd:** 0.00
+- **notes:** notify test
+EOF
+
+MARKER_FILE="${TMPDIR}/notify-reason-marker.txt"
+rm -f "$MARKER_FILE"
+
+STUB_NOTIFY="$TMPDIR/stub-notify.sh"
+cat > "$STUB_NOTIFY" <<'STUB'
+#!/bin/bash
+MARKER="${MARKER_FILE:-/tmp/notify-reason-marker.txt}"
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --reason) echo "$2" >> "$MARKER"; shift 2 ;;
+        *) shift ;;
+    esac
+done
+exit 0
+STUB
+chmod +x "$STUB_NOTIFY"
+
+OUT=$(MARKER_FILE="$MARKER_FILE" \
+      DISPATCH_TASKS_MD="$TASKS_MD" \
+      DISPATCH_PROGRESS_MD="$TMPDIR/.claude/loop/progress.md" \
+      DISPATCH_NOTIFY_CMD="$STUB_NOTIFY" \
+      bash "$TMPDIR/scripts/dispatch.sh" T-10.651 --execute 2>&1)
+EXIT_CODE=$?
+
+if [[ "$EXIT_CODE" == "0" ]]; then
+    ok "PASS dispatch exits 0"
+else
+    fail "exit $EXIT_CODE (expected 0)"
+fi
+
+if grep -q "tick_pass" "$MARKER_FILE" 2>/dev/null; then
+    ok "notify fired with tick_pass reason"
+else
+    fail "notify did NOT fire tick_pass (marker=$(cat "$MARKER_FILE" 2>/dev/null || echo MISSING))"
+fi
+
+# ---------- Group 6: --dry-run runs regression sweep (gate test) ----------
+echo "=== Group 6: --dry-run runs regression sweep (gate test) ==="
+
+cat > "$TASKS_MD" <<'EOF'
+# Current Tasks — Loop Engineering
+
+## Active Tasks
+
+### T-10.652 — Test dry-run regression
+- **status:** pending
+- **acceptance:**
+  - [ ] stub
+- **estimated_cost_usd:** 0.00
+- **notes:** regression gate test
+EOF
+
+FAKE_REGRESSION_FAIL="$TMPDIR/fake-regression-fail.sh"
+cat > "$FAKE_REGRESSION_FAIL" <<'STUB'
+#!/bin/bash
+echo "fake regression sweep failed"
+exit 1
+STUB
+chmod +x "$FAKE_REGRESSION_FAIL"
+
+set +e
+OUT=$(DISPATCH_TASKS_MD="$TASKS_MD" \
+      DISPATCH_PROGRESS_MD="$TMPDIR/.claude/loop/progress.md" \
+      DISPATCH_REGRESSION_CMD="$FAKE_REGRESSION_FAIL" \
+      bash "$TMPDIR/scripts/dispatch.sh" T-10.652 --dry-run 2>&1)
+EXIT_CODE=$?
+set -e
+
+if [[ "$EXIT_CODE" == "1" ]]; then
+    ok "regression failure in --dry-run exits 1"
+else
+    fail "exit $EXIT_CODE (expected 1 on regression failure in dry-run)"
+fi
+
+if echo "$OUT" | grep -q "regression_failed"; then
+    ok "dry-run output contains regression_failed"
+else
+    fail "dry-run output missing regression_failed (got: $OUT)"
+fi
+
+# ---------- Group 7: --execute does state flips on PASS ----------
+echo "=== Group 7: --execute does state flips on PASS ==="
+
+cat > "$TASKS_MD" <<'EOF'
+# Current Tasks — Loop Engineering
+
+## Active Tasks
+
+### T-10.653 — Test execute state flip
+- **status:** pending
+- **acceptance:**
+  - [ ] stub
+- **estimated_cost_usd:** 0.00
+- **notes:** state flip test
+EOF
+
+OUT=$(DISPATCH_TASKS_MD="$TASKS_MD" \
+      DISPATCH_PROGRESS_MD="$TMPDIR/.claude/loop/progress.md" \
+      bash "$TMPDIR/scripts/dispatch.sh" T-10.653 --execute 2>&1)
+EXIT_CODE=$?
+
+if [[ "$EXIT_CODE" == "0" ]]; then
+    ok "execute mode exits 0 on PASS"
+else
+    fail "exit $EXIT_CODE (expected 0)"
+fi
+
+# Verify status was flipped to done
+if grep -A1 "### T-10.653" "$TASKS_MD" | grep -q "status:\*\* done"; then
+    ok "tasks.md status flipped to done"
+else
+    fail "tasks.md status NOT flipped"
+fi
+
 # ---------- Summary ----------
 echo ""
 echo "=== Summary: $PASS pass, $FAIL fail ==="
