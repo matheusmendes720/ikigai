@@ -23,6 +23,11 @@ DRY_RUN=false
 GRAPH_NAME=""
 AUTO_CLEANUP=false
 LOG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/logs"
+# TICK_VERDICT: set per-exit-path (PASS/FAIL/NEEDS_FIX/BLOCKED/OVERRUN/BUDGET_ABORT)
+# Consumed by notify_hook (M8 EXIT trap) to pick the right notify --reason.
+# Empty until the first exit path assigns it (notify_hook treats empty + exit 0
+# as no-op; empty + exit non-zero falls back to tick_error reason).
+TICK_VERDICT=""
 PROGRESS_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/progress.md"
 TASKS_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/tasks.md"
 LOOP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -102,6 +107,55 @@ auto_cleanup_hook() {
   fi
 }
 trap auto_cleanup_hook EXIT
+
+# --- NOTIFY HOOK (M8 acceptance criterion) ---
+# When tick exits non-zero (FAIL/NEEDS_FIX/BLOCKED/OVERRUN/BUDGET_ABORT) OR a
+# cost spike was detected, invoke scripts/notify.sh with a reason + summary.
+# Cooldown dedup lives in notify.sh itself (LOOP_NOTIFY_COOLDOWN_SEC,
+# default 600s = 10min) — we do NOT add another guard here, else duplicate
+# suppression breaks. notify.sh is free (ntfy.sh free tier + zero LLM
+# calls) so per-tick cost is $0 in steady state; the "$0.10/tick" budget
+# is recorded for future paid webhook replacement (e.g. Opsgenie).
+#
+# Multiple EXIT traps run in registration order — auto_cleanup_hook runs
+# first (worktree cleanup), then notify_hook fires. Each trap captures $?
+# at entry, so both see the same exit code from the tick's terminating
+# exit. TICK_VERDICT is set per-exit-path; empty TICK_VERDICT + exit 0
+# means a clean PASS (no-op); empty + non-zero falls back to tick_error.
+notify_hook() {
+  local EXIT_CODE=$?
+  local VERDICT="${TICK_VERDICT:-UNKNOWN}"
+  local REASON=""
+  local MSG=""
+
+  if [[ "${SPIKE_DETECTED:-0}" == "1" ]]; then
+    REASON="spike_alarm"
+    MSG="Tick $TICK_ID spike (cost > 80% of daily cap, exit=$EXIT_CODE): see $LOG_DIR/cost-report.md"
+  elif [[ "$EXIT_CODE" -ne 0 ]]; then
+    case "$VERDICT" in
+      FAIL)         REASON="tick_fail"; MSG="Tick $TICK_ID FAIL (exit=$EXIT_CODE)" ;;
+      NEEDS_FIX)    REASON="needs_fix"; MSG="Tick $TICK_ID NEEDS_FIX (exit=$EXIT_CODE)" ;;
+      BLOCKED)      REASON="blocked";   MSG="Tick $TICK_ID BLOCKED (exit=$EXIT_CODE)" ;;
+      OVERRUN)      REASON="overrun";   MSG="Tick $TICK_ID OVERRUN (max ${MAX_RUNTIME_MIN}min, exit=$EXIT_CODE)" ;;
+      BUDGET_ABORT) REASON="budget";    MSG="Tick $TICK_ID BUDGET_ABORT (daily cost cap exceeded, exit=$EXIT_CODE)" ;;
+      *)            REASON="tick_error"; MSG="Tick $TICK_ID $VERDICT (exit=$EXIT_CODE)" ;;
+    esac
+  fi
+
+  if [[ -z "$REASON" ]]; then return 0; fi
+
+  local NOTIFY="$PROJECT_ROOT/scripts/notify.sh"
+  if [[ ! -x "$NOTIFY" ]]; then
+    echo "[$TICK_TS] NOTIFY: skipped (notify.sh not executable: $NOTIFY)" >> "$LOG_FILE"
+    return 0
+  fi
+
+  echo "[$TICK_TS] NOTIFY: firing ($REASON, exit=$EXIT_CODE)" >> "$LOG_FILE"
+  set +e
+  bash "$NOTIFY" --reason "$REASON" --message "$MSG" 2>>"$LOG_FILE" || true
+  set -e
+}
+trap notify_hook EXIT
 
 echo "[$TICK_TS] Loop tick starting (id=$TICK_ID, cost_cap=\$$COST_CAP_USD, max_runtime=${MAX_RUNTIME_MIN}min)" | tee "$LOG_FILE"
 
@@ -206,6 +260,7 @@ except Exception as e:
   TICK_END_S=$(date +%s)
   DURATION_S=$((TICK_END_S - TICK_START_S))
   VERDICT=$([ $GRAPH_EXIT_CODE -eq 0 ] && echo PASS || echo FAIL)
+  TICK_VERDICT=$VERDICT
 
   echo "[$TICK_TS] graph-dispatch result (exit=$GRAPH_EXIT_CODE): $GRAPH_OUTPUT" | tee -a "$LOG_FILE"
 
@@ -243,6 +298,8 @@ TODAY_SPEND=$(grep "^## .* \\$" "$PROGRESS_FILE" 2>/dev/null | grep "$(date -u +
 OVER_BUDGET=$(awk -v t="$TODAY_SPEND" -v c="$DAILY_CAP" 'BEGIN { print (t+0 > c * 0.8) ? 1 : 0 }')
 if [ "$OVER_BUDGET" = "1" ]; then
   echo "[$TICK_TS] ABORT: Today's spend \$$TODAY_SPEND > 80% of daily cap \$$DAILY_CAP" | tee -a "$LOG_FILE"
+  TICK_VERDICT="BUDGET_ABORT"
+  SPIKE_DETECTED=1
   exit 78  # EX_CONFIG
 fi
 
@@ -381,8 +438,10 @@ if [ $EXIT_CODE -eq 124 ]; then
   echo "- attempt: 1/2" >> "$PROGRESS_FILE"
   echo "- notes: Tick exceeded max runtime. Killed." >> "$PROGRESS_FILE"
   echo "- next_action: retry" >> "$PROGRESS_FILE"
+  TICK_VERDICT="OVERRUN"
   exit 124
 fi
 
 echo "[$TICK_TS] Tick done (exit=$EXIT_CODE)" | tee -a "$LOG_FILE"
+TICK_VERDICT=$([ $EXIT_CODE -eq 0 ] && echo PASS || echo FAIL)
 exit $EXIT_CODE
