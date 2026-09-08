@@ -80,7 +80,7 @@ find_task_block() {
             next
         }
         /^##[# ]/ { if (in_block && found) exit; in_block=0 }
-        in_block && /^\- \*\*status:\*\*/ {
+        in_block && index($0, "- **status:") {
             sub(/^\- \*\*status:\*\*/, "")
             gsub(/\*/, "")
             gsub(/^[[:space:]]+|[[:space:]]+$/, "")
@@ -189,7 +189,7 @@ cleanup_worktree() {
     if [[ "$verdict" != "PASS" ]]; then return 0; fi
     # Only cleanup if no pending tasks remain
     local pending
-    pending=$(awk '/^\- \*\*status:\*\*/ && /pending/ {count++} END {print count+0}' "$TASKS_MD" 2>/dev/null || echo "0")
+    pending=$(awk 'index($0, "- **status:") && /pending/ {count++} END {print count+0}' "$TASKS_MD" 2>/dev/null || echo "0")
     if [[ "$pending" -eq 0 ]] && [[ -x "${REPO_ROOT}/scripts/worktree-helper.sh" ]]; then
         bash "${REPO_ROOT}/scripts/worktree-helper.sh" cleanup-all >/dev/null 2>&1 || true
     fi
@@ -274,7 +274,7 @@ if [[ "$DISPATCH_VERDICT" == "PASS" ]]; then
         awk -v tid="$TASK_ID" '
             /^### / && $2 == tid { in_block=1 }
             /^## / && in_block { in_block=0 }
-            in_block && /^\- \*\*status:\*\*/ && /pending/ {
+            in_block && index($0, "- **status:") && /pending/ {
                 sub(/pending/, "done")
             }
             { print }
