@@ -14,5 +14,13 @@
     "command": "bash .claude/loop/hill-climb.sh",
     "cost_cap_usd": 10.0,
     "added_at": "2026-09-07T22:55:29.287114+00:00"
+  },
+  {
+    "name": "cost-dashboard",
+    "interval": "1440m",
+    "interval_seconds": 86400,
+    "command": "bash scripts/cost-dashboard.sh",
+    "cost_cap_usd": 0.5,
+    "added_at": "2026-09-08T01:52:16.916721+00:00"
   }
 ]
