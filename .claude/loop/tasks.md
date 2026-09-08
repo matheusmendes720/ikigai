@@ -554,17 +554,20 @@
 - **Estimated ticks:** 3-5
 
 #### T-10.1 — Scaffold scripts/dispatch.sh + tests
-- **status:** pending
-- **commit:** —
+- **status:** done
+- **commit:** c24841c
 - **acceptance:**
-  - [ ] `scripts/dispatch.sh` exists (~80L, pure bash, mirrors M7/M8 style)
-  - [ ] Accepts positional `<task_id>` + `--dry-run` flag (Q1 default: yes)
-  - [ ] Reads `.claude/loop/tasks.md`, locates task entry, prints status
-  - [ ] Idempotent replay: returns 0 with `already_complete` on `status: done`
-  - [ ] `tests/test_dispatch.sh` covers: missing-task, already-done, not-pending dry-run, regression-failed short-circuit (4 groups)
+  - [x] `scripts/dispatch.sh` exists (172L, pure bash, mirrors M7/M8 style — no Python, no new deps)
+  - [x] Accepts positional `<task_id>` + `--dry-run` flag (Q1 default: yes) + `--execute` flag + `--help`
+  - [x] Reads `.claude/loop/tasks.md`, locates task entry via `find_task_block()` awk helper, prints status
+  - [x] Idempotent replay: returns 0 with `already_complete` on `status: done` (no re-run of worker/verifier/commit/push/notify)
+  - [x] `tests/test_dispatch.sh` exists (220L) — covers 4 groups: missing-task (exit 1 + not_found) / already-done (exit 0 + already_complete) / pending task + --dry-run (exit 0 + dry_run_complete) / regression_failed short-circuit (exit 1 + no would_dispatch on --execute). 14/14 PASS
+  - [x] POSIX + Git Bash compatible
 - **estimated_cost_usd:** 0.00
-- **estimated_minutes:** 15
-- **last_verdict:** —
+- **estimated_minutes:** 5
+- **attempts:** 1
+- **last_verdict:** PASS
+- **notes:** Verification: bash tests/test_dispatch.sh -> 14 pass, 0 fail in <1s. Worker branch loop/m10-t10.1 had untracked dispatch files in working dir (commit b9c9278d on branch was misleading — only touched .claude-flow/policy/state.json). Reconciled via cp from worktree + git add on master + atomic commit c24841c (2 files, +392 lines). Worktree branch deleted. Pre-existing bogus commit 34065397 on master (only state.json with same scaffold message) preserved in history; c24841c supersedes for actual content. Next: T-10.2 wire M6/M7/M8 hooks.
 
 #### T-10.2 — Wire M6/M7/M8 hooks into dispatch.sh EXIT trap
 - **status:** pending

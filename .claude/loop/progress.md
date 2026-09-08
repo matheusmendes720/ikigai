@@ -27,6 +27,16 @@
 ## Log
 
 <!-- Append below this line. NEVER edit above. -->
+## 2026-09-08T07:27:27Z | T-10.1 | PASS
+- commit: c24841c
+- cost_usd: 0
+- duration_min: 5
+- model: opus (state-machine + bash verification; 0 LLM calls beyond orchestrator)
+- attempt: 1/1
+- notes: T-10.1 SHIPPED (reconciliation tick). Worker branch loop/m10-t10.1 had untracked dispatch files in working dir but its commit b9c9278d was misleading (only touched .claude-flow/policy/state.json). Master also had bogus commit 34065397 with the same scaffold message but no actual content. Reconciled: cp from worktree + git add on master + atomic commit c24841c (2 files, +392 lines). bash tests/test_dispatch.sh -> 14 pass, 0 fail in <1s. scripts/dispatch.sh (172L pure bash) implements positional task_id + --dry-run (default) + --execute + --help; find_task_block() awk helper; idempotent replay (status=done -> exit 0 + already_complete); missing task -> exit 1 + not_found; regression sweep gate with DISPATCH_REGRESSION_CMD override; stubs for worker/verifier/commit/push (wired in T-10.2). tests/test_dispatch.sh (220L) covers 4 groups / 14 assertions / 14/14 PASS. POSIX + Git Bash compatible, no Python, no new deps. Worktree branch deleted. Orphan worktree dir stuck on Windows Device-or-resource-busy lock (harmless; git no longer tracks it; known Windows quirk per MEMORY.md). Pre-existing bogus commit 34065397 preserved in history; c24841c is the atomic commit with real content. Next tick: T-10.2 wire M6/M7/M8 hooks into dispatch.sh EXIT trap.
+- next_action: advance (T-10.2 next)
+
+
 
 
 ## 2026-09-07T21:52:33Z | M0-bootstrap | PASS
