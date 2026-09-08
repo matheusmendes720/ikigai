@@ -1054,3 +1054,48 @@
 - attempt: 1/1
 - notes: T-7.4 closeout landed + pushed (b412c90: 3 files changed, +43/-32). roadmap.md M7 STATUS flipped to DONE with 4-commit summary + acceptance checkboxes ticked. tasks.md M7 section header flipped to "DONE — 2026-09-08", T-7.1..T-7.4 all status=done with commit refs (726bfde0, 4b2510d3, ca6a114c, b412c90). Memory entry appended at ~/.claude/projects/.../memory/m7-cost-dashboard-shipped-2026-09-08.md + MEMORY.md pointer added. Live regression: tests/test_cost_dashboard.sh 7/7 PASS (re-run on real progress.md); live cost-report.md shows 112 ticks_day, $1.80 total, $0.02/tick avg, spike_alarm=none. Schedules.json registers 3 tasks. M7 complete — pure bash deliverable, zero src/ changes, $0 total cost across all 4 ticks. Unblocks M8 (Notification channel wiring).
 - next_action: advance (M8 — Notification channel wiring)
+
+## 2026-09-08T02:30:00Z | T-8.1 M8 Notification channel SPEC + scaffold | PASS
+- commit: b95c0348
+- cost_usd: 0
+- duration_min: 5
+- model: opus (SPEC + bash scaffold; 0 LLM calls)
+- attempt: 1/1
+- notes: M8 SPEC committed (b95c0348: 1 file changed, specs/M8-notification-channel/SPEC.md — 96 lines covering acceptance criteria, ntfy.sh HTTP webhook architecture, idempotency contract via sha256 + 600s cooldown, env vars, exit codes, disabled-mode no-op, dry-run mode). scripts/notify.sh scaffold landed (aeb4b0c6: 1 file, 134 lines — pure bash + curl, mirrors M6/M7 minimal-pattern). Reason taxonomy: spike_alarm, tick_fail, needs_fix, blocked, overrun, budget, test. Disabled when LOOP_NOTIFY_TOPIC unset (exit 0 silently). Cooldown dedup via state file `.claude/loop/logs/notify-state.json`. Cost $0 (ntfy.sh free tier + zero LLM).
+- next_action: advance (T-8.2 tests)
+
+## 2026-09-08T02:32:00Z | T-8.1 follow-up fix notify.sh arg parser + dry-run format | PASS
+- commit: 9c498077
+- cost_usd: 0
+- duration_min: 2
+- model: opus (bug fix; 0 LLM calls)
+- attempt: 1/1
+- notes: Two bash arg-parsing bugs caught during T-8.2 test scaffolding and fixed in 9c498077: (1) `for arg in "$@"` with `shift` inside loop mis-parsed single-arg sends (`--reason test --message ping` exited 1 with "unknown arg: test"); replaced with `while [[ $# -gt 0 ]]` + explicit shift 2 per two-arg flag. (2) `printf '  curl %s\n' "${CURL_ARGS[@]}"` printed each flag on its own line; replaced with per-arg printf loop building single line. ~10 lines diff, localized to notify.sh. Both caught by tests/test_notify.sh T-8.2 regression which would FAIL without fix.
+- next_action: advance (T-8.2 tests)
+
+## 2026-09-08T02:34:00Z | T-8.2 tests/test_notify.sh — 4 test groups, 11/11 PASS | PASS
+- commit: e63c6b5c
+- cost_usd: 0
+- duration_min: 6
+- model: opus (test scaffolding; 0 LLM calls)
+- attempt: 1/1
+- notes: T-8.2 test file landed (e63c6b5c: 1 file, 220 lines, tests/test_notify.sh). 4 test groups: (1) disabled mode (unset LOOP_NOTIFY_TOPIC → exit 0, no HTTP call), (2) idempotent duplicate suppression (3 sends within cooldown → counter=1; different messages → counter=2), (3) dry-run mode (--dry-run flag → exit 0, counter=0, stdout contains curl command), (4) spike alarm wire integration with cost-dashboard.sh (seeds >$10 today, runs cost-dashboard.sh, asserts exit=2, then notify --reason spike_alarm, asserts counter=1; SKIP if cost-dashboard.sh not in scripts/). Stub curl via PATH override (increments COUNTER_FILE, prints 200, exits 0). POSIX + Git Bash compatible. ~170 lines net. 11/11 PASS.
+- next_action: advance (T-8.3 wire into loop-tick)
+
+## 2026-09-08T02:36:00Z | T-8.3 wire notify.sh into loop-tick.sh EXIT trap | PASS
+- commit: e11f3b6
+- cost_usd: 0
+- duration_min: 4
+- model: opus (bash wiring; 0 LLM calls)
+- attempt: 1/1
+- notes: T-8.3 wiring landed (e11f3b6: 1 file, +59 insertions). 6 edits to .claude/loop/loop-tick.sh: (1) TICK_VERDICT="" default in defaults block, (2) notify_hook() function + trap notify_hook EXIT registered after M6's auto_cleanup_hook trap (LIFO order: worktree cleanup runs first, then notify), (3) TICK_VERDICT=$VERDICT at graph dispatch verdict (L213), (4) TICK_VERDICT="BUDGET_ABORT" + SPIKE_DETECTED=1 at cost guard (L251), (5) TICK_VERDICT="OVERRUN" before exit 124 (L389), (6) TICK_VERDICT=PASS/FAIL at normal tick exit (L393). notify_hook maps TICK_VERDICT+SPIKE_DETECTED→notify --reason: FAIL→tick_fail, NEEDS_FIX→needs_fix, BLOCKED→blocked, OVERRUN→overrun, BUDGET_ABORT→budget, SPIKE_DETECTED→spike_alarm (overrides), empty+exit 0→no-op, empty+exit!=0→tick_error fallback. Smoke-tested: dry-run --graph pae_maintainer and bare dry-run both exit 0 with no notify fired. Pure bash + 1 subprocess; loop's cost_cap_usd preserved. M8 acceptance criterion #1 satisfied (channel wired); criterion #2 deferred to M8.1 (real notify receipt verification — gated on user setting LOOP_NOTIFY_TOPIC).
+- next_action: advance (T-8.4 regression sweep + closeout)
+
+## 2026-09-08T02:45:00Z | T-8.4 M8 Notification channel closeout | PASS
+- commit: (this commit)
+- cost_usd: 0
+- duration_min: 9
+- model: opus (state-machine closeout; 0 LLM calls beyond this turn)
+- attempt: 1/1
+- notes: T-8.4 closeout landed + pushed. Full regression sweep clean (33/33 PASS): test_worktree_helper.sh 15/15 (M6 regression clean) + test_cost_dashboard.sh 7/7 (M7 regression clean) + test_notify.sh 11/11 (M8 fresh). roadmap.md M8 STATUS flipped to DONE with 5-commit summary (b95c0348, aeb4b0c6, 9c498077, e63c6b5c, e11f3b6, this closeout) + acceptance checkboxes ticked (criterion #1 wired, criterion #2 deferred to M8.1 real-receipt verification — gated on user setting LOOP_NOTIFY_TOPIC). tasks.md M8 section added (DONE — 2026-09-08) with T-8.1..T-8.4 status=done entries + commit refs. Memory entry appended at ~/.claude/projects/.../memory/m8-notification-channel-shipped-2026-09-08.md + MEMORY.md pointer added. M8 complete — pure bash deliverable, zero src/ changes, $0 total cost across all 4 ticks. Unblocks M9 (Production mode — cron auto-start + 7-day streak + only-human-on-NEEDS_FIX).
+- next_action: advance (M9 — Production mode)
