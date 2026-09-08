@@ -169,3 +169,84 @@ def test_weekly_non_json_output(monkeypatch, fake_server, run_v2_cli):
 
     assert result.exit_code == 0, f"exit {result.exit_code}: {result.output}"
     assert "ikigai-weekly" in result.output or "Regime" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Skill manifest validation tests (T-8.8)
+# ---------------------------------------------------------------------------
+
+SKILL_NAMES = ["daily", "weekly", "monthly", "quarterly"]
+
+
+@pytest.mark.parametrize("skill_name", SKILL_NAMES)
+def test_skill_manifest_frontmatter(skill_name):
+    """Each skill MD file has valid YAML frontmatter with required fields."""
+    from interfaces.cli._v2_skills import load_skill_manifest
+
+    manifest = load_skill_manifest(skill_name)
+
+    # Required frontmatter fields per T-8.8 brief
+    assert "name" in manifest, f"{skill_name}: missing 'name' field"
+    assert "entry_point" in manifest, f"{skill_name}: missing 'entry_point' field"
+    assert "description" in manifest, f"{skill_name}: missing 'description' field"
+    # actor and outputs are optional per brief
+
+
+@pytest.mark.parametrize("skill_name", SKILL_NAMES)
+def test_skill_manifest_entry_point_valid(skill_name):
+    """Each skill's entry_point field references a node in make_v2_graph()."""
+    from interfaces.cli._v2_skills import load_skill_manifest
+    from src.ikigai.src.agents.v2.graph import NODES
+
+    manifest = load_skill_manifest(skill_name)
+    entry_point = manifest.get("entry_point")
+
+    assert entry_point is not None, f"{skill_name}: entry_point is None"
+    assert entry_point in NODES, (
+        f"{skill_name}: entry_point={entry_point!r} not in NODES. "
+        f"Valid nodes: {NODES}"
+    )
+
+
+def test_monthly_invokes_observe(monkeypatch, fake_server, run_v2_cli):
+    """`v2 monthly --json` calls make_v2_graph(entry_point='observe')."""
+    import src.ikigai.src.agents.v2.mcp_bridge as _bridge_mod
+
+    monkeypatch.setattr(_bridge_mod, "_server", fake_server)
+
+    result = run_v2_cli(["monthly", "--date", "2026-09-08", "--json"])
+
+    assert result.exit_code == 0, f"exit {result.exit_code}: {result.output}"
+    payload = json.loads(result.output)
+
+    assert payload.get("skill") == "ikigai-monthly"
+    assert payload.get("date") == "2026-09-08"
+    assert "observe" in payload
+
+
+def test_quarterly_invokes_observe(monkeypatch, fake_server, run_v2_cli):
+    """`v2 quarterly --json` calls make_v2_graph(entry_point='observe')."""
+    import src.ikigai.src.agents.v2.mcp_bridge as _bridge_mod
+
+    monkeypatch.setattr(_bridge_mod, "_server", fake_server)
+
+    result = run_v2_cli(["quarterly", "--date", "2026-09-08", "--json"])
+
+    assert result.exit_code == 0, f"exit {result.exit_code}: {result.output}"
+    payload = json.loads(result.output)
+
+    assert payload.get("skill") == "ikigai-quarterly"
+    assert payload.get("date") == "2026-09-08"
+    assert "observe" in payload
+
+
+def test_monthly_non_json_output(monkeypatch, fake_server, run_v2_cli):
+    """`v2 monthly` (no --json) prints regime info to stdout."""
+    import src.ikigai.src.agents.v2.mcp_bridge as _bridge_mod
+
+    monkeypatch.setattr(_bridge_mod, "_server", fake_server)
+
+    result = run_v2_cli(["monthly", "--date", "2026-09-08"])
+
+    assert result.exit_code == 0, f"exit {result.exit_code}: {result.output}"
+    assert "ikigai-monthly" in result.output or "Regime" in result.output
