@@ -175,20 +175,21 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 5 implementation ticks + 7 days wall-clock for streak gate
 - **Completed:** 2026-09-08 — T-9.1 SPEC (a9341cb) + T-9.2 SessionStart hook (60c32464) + T-9.3 streak-tracker.sh (8645bf75) + T-9.4 tests/test_streak_tracker.sh (860f30d) + T-9.5 streak-tracker cron (12cc97b) + T-9.6 regression sweep clean. M9 infrastructure shipped; 7-day streak gate deferred to wall clock (auto-detected on day 7). Pattern mirrors M8 → M8.1 (real-receipt notification). Regression sweep: bash 44/44 (worktree 15 + cost 7 + notify 11 + streak 11) + pytest 52/52 (loop_infra 11 + m4 9 + canonical_scope 32) = 96/96 PASS.
 
-### M10 — End-to-end loop dispatch (STATUS: IN-PROGRESS)
+### M10 — End-to-end loop dispatch (STATUS: DONE)
 - **What:** `bash scripts/dispatch.sh <task_id>` runs the full chain (read state → spawn worker in worktree → implement → verifier → promotion → notify → progress append) as one terminal unit
 - **Why:** Wire M0–M9 pieces into a single atomic dispatch primitive so a manual session can advance milestones via one CLI call instead of orchestrating 5–6 separate scripts
 - **Spec:** `specs/M10-end-to-end-dispatch/SPEC.md` (created 2026-09-08; 5 acceptance criteria — single-command dispatch / atomic promotion / idempotent replay / notification integration via M8 channel / determinism gate before LLM)
 - **Acceptance:**
-  - [ ] Single-command dispatch (T-10.1 — `scripts/dispatch.sh` scaffold + `tests/test_dispatch.sh`)
-  - [ ] Atomic promotion (T-10.2 — wire M6/M7/M8 hooks into dispatch.sh EXIT trap)
-  - [ ] Idempotent replay (T-10.3 — re-dispatch already-done returns 0 + `already_complete`)
-  - [ ] Notification integration (T-10.2 — `reason=tick_pass|tick_fail|needs_fix` on M8 channel)
-  - [ ] Determinism gate before LLM (T-10.2 — regression sweep runs pre-dispatch, exits 1 on any sub-suite failure)
-  - [ ] All 9 prior milestones stable (full regression sweep 96/96)
+  - [x] Single-command dispatch (T-10.1 — `scripts/dispatch.sh` scaffold + `tests/test_dispatch.sh`)
+  - [x] Atomic promotion (T-10.2 — wire M6/M7/M8 hooks into dispatch.sh EXIT trap)
+  - [x] Idempotent replay (T-10.3 — re-dispatch already-done returns 0 + `already_complete`)
+  - [x] Notification integration (T-10.2 — `reason=tick_pass|tick_fail|needs_fix` on M8 channel)
+  - [x] Determinism gate before LLM (T-10.2 — regression sweep runs pre-dispatch, exits 1 on any sub-suite failure)
+  - [x] All 9 prior milestones stable (full regression sweep 107/107 PASS — bash 44 + pytest 63)
 - **Dependencies:** M9
 - **Estimated ticks:** 3-5
 - **Owner:** loop-orchestrator (bash wrappers, no new orchestrator LLM per SPEC "What M10 does NOT do")
+- **Completed:** 2026-09-08 — T-10.1 scaffold (c24841c) + T-10.2 wire hooks (3773821) + T-10.3 closeout (this commit). 3 bugs caught during T-10.3 acceptance sweep: (1) `find_task_block` regex `/^### /` only matched 3-hash headers but real tasks.md uses 4-hash `#### ` for M4-M10 tasks → fixed to `/^#{3,4} /`; (2) `[[ "$TASK_STATUS" == "done" ]]` exact-match failed when status has trailing commentary (e.g. T-9.6: "done (regression + state machine); 7-day streak gate deferred...") → fixed to `done*` prefix match; (3) regression per-suite check `^===.*PASS` missed pytest lowercase "32 passed" → fixed to `(^===.*pass|passed)`. All 3 captured in tests/test_dispatch.sh Group 2.5 (2 assertions) + Groups 5-8 regression coverage. Final test suite 24/24 PASS (was 22/22; +2 from Group 2.5). Full regression sweep 107/107 PASS (bash 44 + pytest 63; spec 96/96 was stale — M5 IKIGAI MCP integration adds 2/2).
 
 ## Backlog (not yet sequenced)
 

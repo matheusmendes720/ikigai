@@ -74,7 +74,7 @@ find_task_block() {
     local tid="$1"
     awk -v id="$tid" '
         BEGIN { in_block=0; status=""; found=0 }
-        /^### / && $2 == id {
+        /^#{3,4} / && $2 == id {
             in_block=1
             found=1
             next
@@ -106,12 +106,19 @@ run_regression_sweep() {
     local suite="" log=""
 
     # Suite runner: prints PASS/FAIL, accumulates failures
+    # Note: pytest emits "32 passed in 0.47s" (lowercase); bash suites emit
+    # "=== Summary: N pass, 0 fail ===". Both should count as PASS.
     run_suite() {
         local name="$1"; shift
-        "$@" 2>&1 | tee "${LOGDIR:-/tmp}/dispatch-regression-${name}.log" || failed=1
-        if [[ -s "${LOGDIR:-/tmp}/dispatch-regression-${name}.log" ]]; then
-            grep -q "^===.*PASS" "${LOGDIR:-/tmp}/dispatch-regression-${name}.log" 2>/dev/null && \
-                echo "[regression] ${name}: PASS" || echo "[regression] ${name}: FAIL"
+        if "$@" 2>&1 | tee "${LOGDIR:-/tmp}/dispatch-regression-${name}.log"; then
+            if grep -qE "(^===.*pass|passed)" "${LOGDIR:-/tmp}/dispatch-regression-${name}.log" 2>/dev/null; then
+                echo "[regression] ${name}: PASS"
+            else
+                echo "[regression] ${name}: PASS (exit 0)"
+            fi
+        else
+            failed=1
+            echo "[regression] ${name}: FAIL"
         fi
     }
 
@@ -213,7 +220,9 @@ echo "task: $TASK_ID"
 echo "status: $TASK_STATUS"
 
 # --- Idempotent replay ---
-if [[ "$TASK_STATUS" == "done" ]]; then
+# Match "done" prefix to handle trailing commentary
+# (e.g. "done (regression + state machine); 7-day streak gate deferred to wall clock")
+if [[ "$TASK_STATUS" == done* ]]; then
     echo "already_complete"
     exit 0
 fi

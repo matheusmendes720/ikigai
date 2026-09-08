@@ -119,6 +119,37 @@ else
     fail "stdout missing status: done"
 fi
 
+# ---------- Group 2.5: real-format tasks (4-hash + trailing-comment status) ----------
+# Regression for M10 T-10.3 closeout: real tasks.md uses `#### T-...` headers
+# (4 hashes) and status lines often have trailing commentary like
+# "done (regression + state machine); 7-day streak gate deferred to wall clock".
+echo "=== Group 2.5: real-format tasks (4-hash + trailing-comment status) ==="
+
+cat > "$TASKS_MD" <<'EOF'
+# Current Tasks — Loop Engineering
+
+## Active Tasks
+
+#### T-9.6 — Regression + closeout (gated on 7-day streak)
+- **status:** done (regression + state machine); 7-day streak gate deferred to wall clock
+- **commit:** (gated on real-time 7-day wall clock)
+EOF
+
+set +e
+OUT=$(RUN_DISPATCH T-9.6 2>&1)
+EXIT_CODE=$?
+set -e
+if [[ "$EXIT_CODE" == "0" ]]; then
+    ok "4-hash header with trailing-comment status → exit 0"
+else
+    fail "exit $EXIT_CODE (expected 0; dispatch.sh regex bug)"
+fi
+if echo "$OUT" | grep -q "already_complete"; then
+    ok "stdout contains already_complete (idempotent replay)"
+else
+    fail "stdout missing already_complete (got: $OUT)"
+fi
+
 # ---------- Group 3: pending task dry-run ----------
 echo "=== Group 3: pending task + --dry-run → exit 0 (no commit/push) ==="
 
