@@ -118,14 +118,19 @@
 - **Estimated ticks:** 1
 - **Completed:** 2026-09-08 — T-8.1..T-8.4 all PASS. Pure bash + curl deliverable (scripts/notify.sh, 134L) wired into .claude/loop/loop-tick.sh EXIT trap via notify_hook() function (LIFO trap order: M6 worktree cleanup runs first, then notify). Trap maps TICK_VERDICT + SPIKE_DETECTED → notify --reason (FAIL→tick_fail, NEEDS_FIX→needs_fix, BLOCKED→blocked, OVERRUN→overrun, BUDGET_ABORT→budget, SPIKE_DETECTED→spike_alarm). Cooldown dedup (10min default) via sha256(message) keyed state file. Cost $0/tick (ntfy.sh free tier + zero LLM); "$0.10/tick" budget envelope recorded for future paid webhook replacement. Regression sweep: test_worktree_helper.sh 15/15 + test_cost_dashboard.sh 7/7 + test_notify.sh 11/11 = 33/33 PASS. Commits: b95c0348 (T-8.1 SPEC), aeb4b0c6 (T-8.1 scaffold), 9c498077 (T-8.1 follow-up fixes), e63c6b5c (T-8.2 tests), e11f3b6 (T-8.3 wiring), + this closeout (T-8.4). Spec at `specs/M8-notification-channel/SPEC.md`. Unblocks M9 (Production mode).
 
-### M9 — Production mode (STATUS: PENDING)
+### M9 — Production mode (STATUS: IN-PROGRESS)
 - **What:** Cron auto-starts on session start, runs 24/7, only needs human on NEEDS_FIX
 - **Why:** The actual goal of loop engineering
+- **Spec:** specs/M9-production-mode/SPEC.md (created 2026-09-07; 5 acceptance criteria covering auto-start, idempotency, streak observability, 7-day unattended streak, prior-milestone stability)
 - **Acceptance:**
-  - [ ] 7-day streak of ticks without human intervention
-  - [ ] All 8 prior milestones stable
+  - [ ] Auto-resume on session start (T-9.2 — SessionStart hook calls daemon-manager.sh start-schedule loop-tick)
+  - [ ] Idempotent auto-start (T-9.2 — daemon-manager.sh start-schedule already handles is_running check)
+  - [ ] Streak observability (T-9.3..T-9.5 — scripts/streak-tracker.sh + tests + daily cron, M7-style pure bash + awk)
+  - [ ] 7-day unattended streak (T-9.6 — gated on real-time 7-day wall clock, current_streak >= 7 in streak-report.md)
+  - [ ] All 8 prior milestones stable (T-9.6 — full regression sweep clean)
 - **Dependencies:** M8
-- **Estimated ticks:** 7-14 days of unattended operation
+- **Estimated ticks:** 5 implementation ticks + 7 days wall-clock for streak gate
+- **In progress:** 2026-09-07 — T-9.1 SPEC shipped (this tick); T-9.2..T-9.6 pending
 
 ## Backlog (not yet sequenced)
 

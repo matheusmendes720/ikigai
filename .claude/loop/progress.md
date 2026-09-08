@@ -1099,3 +1099,12 @@
 - attempt: 1/1
 - notes: T-8.4 closeout landed + pushed. Full regression sweep clean (33/33 PASS): test_worktree_helper.sh 15/15 (M6 regression clean) + test_cost_dashboard.sh 7/7 (M7 regression clean) + test_notify.sh 11/11 (M8 fresh). roadmap.md M8 STATUS flipped to DONE with 5-commit summary (b95c0348, aeb4b0c6, 9c498077, e63c6b5c, e11f3b6, this closeout) + acceptance checkboxes ticked (criterion #1 wired, criterion #2 deferred to M8.1 real-receipt verification — gated on user setting LOOP_NOTIFY_TOPIC). tasks.md M8 section added (DONE — 2026-09-08) with T-8.1..T-8.4 status=done entries + commit refs. Memory entry appended at ~/.claude/projects/.../memory/m8-notification-channel-shipped-2026-09-08.md + MEMORY.md pointer added. M8 complete — pure bash deliverable, zero src/ changes, $0 total cost across all 4 ticks. Unblocks M9 (Production mode — cron auto-start + 7-day streak + only-human-on-NEEDS_FIX).
 - next_action: advance (M9 — Production mode)
+
+## 2026-09-08T02:44:18Z | M9-launch | PASS
+- commit: (pending this tick)
+- cost_usd: 0
+- duration_min: 0
+- model: opus (state-machine only — 0 LLM calls)
+- attempt: 1/1
+- notes: M9 launched — state-machine only. Created specs/M9-production-mode/SPEC.md (107L: Goal / Why / 5 Acceptance Criteria / 6 Sub-tasks / What M9 does NOT / 2 Open questions / Out of scope backlog). 5 acceptance criteria: (1) auto-resume on session start via SessionStart hook calling daemon-manager.sh start-schedule loop-tick; (2) idempotent auto-start; (3) streak observability via new scripts/streak-tracker.sh (M7-style pure bash + awk, exit 0 healthy / exit 2 streak-break, wires into M8 notification channel via --reason streak_break); (4) 7-day unattended streak (current_streak >= 7 in streak-report.md, UTC calendar day, no NEEDS_FIX/BLOCKED/FAIL/BUDGET_ABORT during window); (5) all 8 prior milestones stable (full regression sweep). 6 sub-tasks: T-9.1 SPEC (DONE this tick), T-9.2 SessionStart hook (wire daemon-manager.sh start-schedule loop-tick), T-9.3 streak-tracker.sh, T-9.4 tests, T-9.5 daily cron schedule (1440m, 0.10 USD cap), T-9.6 regression + closeout (gated on real-time 7-day wall clock — cannot fake completion). Pre-existing finding flagged: claudeFlow.daemon.autoStart: false in .claude/settings.json (currently disabled) — T-9.2 closes this gap. tasks.md updated: M9 section added with 6 sub-tasks; roadmap.md M9 STATUS flipped to IN-PROGRESS.
+- next_action: advance (T-9.2 — wire auto-start into SessionStart hook)

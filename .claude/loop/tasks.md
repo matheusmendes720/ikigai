@@ -453,6 +453,76 @@
 - **estimated_minutes:** 9
 - **attempts:** 1
 
+## Active Tasks (M9 — Production mode)
+
+### M9 — Production mode (IN PROGRESS — 2026-09-07)
+- **Spec:** specs/M9-production-mode/SPEC.md
+- **Goal:** Cron auto-resume on session start + 7-day unattended streak.
+- **Pre-existing finding:** claudeFlow.daemon.autoStart: false — T-9.2 closes this gap.
+
+#### T-9.1 — Write M9 SPEC.md
+- **status:** done
+- **acceptance:**
+  - [x] specs/M9-production-mode/SPEC.md exists (auto-start + streak tracker + 7-day acceptance)
+  - [x] Lists 5 acceptance criteria with test signals
+  - [x] Open questions section explicit about UTC-day convention
+  - [x] Out-of-scope section explicit
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 5
+- **last_verdict:** PASS
+
+#### T-9.2 — Wire auto-start into SessionStart hook
+- **status:** pending
+- **acceptance:**
+  - [ ] .claude/settings.json SessionStart hook chain extended with daemon-manager.sh start-schedule loop-tick call
+  - [ ] Hook idempotent (daemon-manager.sh start-schedule handles is_running)
+  - [ ] Hook respects CLAUDE_PROJECT_DIR env var
+  - [ ] Manual test: stop loop-tick, restart, verify PID recreated
+  - [ ] No regression: existing SessionStart hooks still fire
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 12
+
+#### T-9.3 — scripts/streak-tracker.sh (M7-style pure bash + awk)
+- **status:** pending
+- **acceptance:**
+  - [ ] scripts/streak-tracker.sh exists
+  - [ ] Reads progress.md, computes current_streak + max_streak + last_paused_at + last_tick_at
+  - [ ] Writes .claude/loop/logs/streak-report.md
+  - [ ] Exit 0 healthy / Exit 2 streak-break — wires into M8 notification channel via --reason streak_break
+  - [ ] Idempotent re-run
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 10
+
+#### T-9.4 — tests/test_streak_tracker.sh
+- **status:** pending
+- **acceptance:**
+  - [ ] File exists with 4 test groups (cold-start / healthy / break / idempotent)
+  - [ ] All 4 groups PASS
+  - [ ] POSIX + Git Bash compatible
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 8
+
+#### T-9.5 — Streak cron schedule via daemon-manager
+- **status:** pending
+- **acceptance:**
+  - [ ] daemon-manager.sh list shows streak-tracker schedule
+  - [ ] 1440m interval, 0.10 USD cap
+  - [ ] schedules.json updated + committed
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 3
+
+#### T-9.6 — Regression + closeout (gated on 7-day streak)
+- **status:** pending
+- **acceptance:**
+  - [ ] streak-report.md shows current_streak >= 7 AND most recent tick verdict is PASS
+  - [ ] Full regression sweep clean (M4/M5/M6/M7/M8 + loop_infra + canonical_scope)
+  - [ ] roadmap.md M9 STATUS: DONE
+  - [ ] tasks.md T-9.1..T-9.6 status=done
+  - [ ] Memory entry + atomic commit + push to master
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 7
+- **notes:** Gated on real-time 7-day wall clock. Orchestrator cannot fake completion.
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations
