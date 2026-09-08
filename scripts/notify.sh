@@ -30,23 +30,24 @@ SERVER="${LOOP_NOTIFY_SERVER:-https://ntfy.sh}"
 PRIORITY="${LOOP_NOTIFY_PRIORITY:-default}"
 COOLDOWN_SEC="${LOOP_NOTIFY_COOLDOWN_SEC:-600}"
 
-# --- Arg parsing ---
+# --- Arg parsing (while loop — `for arg in "$@"` with `shift` inside is the
+# classic bash pitfall: the for iterator and shift advance $@ concurrently
+# and consume args in the wrong order). ---
 REASON=""
 MESSAGE=""
 DRY_RUN=0
-for arg in "$@"; do
-    case "$arg" in
-        --reason)        shift; REASON="${1:-}" ;;
-        --message)       shift; MESSAGE="${1:-}" ;;
-        --priority)      shift; PRIORITY="${1:-}" ;;
-        --dry-run)       DRY_RUN=1 ;;
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --reason)        REASON="${2:-}"; shift 2 ;;
+        --message)       MESSAGE="${2:-}"; shift 2 ;;
+        --priority)      PRIORITY="${2:-}"; shift 2 ;;
+        --dry-run)       DRY_RUN=1; shift ;;
         -h|--help)
             sed -n '2,21p' "$0" | sed 's/^# \?//'
             exit 0
             ;;
-        *) echo "unknown arg: $arg" >&2; exit 1 ;;
+        *) echo "unknown arg: $1" >&2; exit 1 ;;
     esac
-    shift 2>/dev/null || true
 done
 
 # --- Pre-flight ---
@@ -103,7 +104,10 @@ CURL_ARGS=(
 # --- Output ---
 if [[ "$DRY_RUN" == "1" ]]; then
     echo "DRY-RUN: would execute:"
-    printf '  curl %s\n' "${CURL_ARGS[@]}"
+    # Build single-line space-separated curl invocation for human inspection
+    # (printf with one %s per array element would print each flag on its own
+    # line — unreadable). Args containing spaces are not expected here.
+    printf '  curl'; for a in "${CURL_ARGS[@]}"; do printf ' %s' "$a"; done; printf '\n'
     exit 0
 fi
 
