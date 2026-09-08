@@ -652,6 +652,100 @@
 - **last_verdict:** PASS
 - **notes:** Phase 8.2 sub-task 3 of 3 (closes the phase). **SPEC L105 STALE REF:** `dispatch_sub_agents.py` is mentioned in SPEC §5 T-8.2.3 but does NOT exist in `src/ikigai/src/agents/v2/nodes/` (verified 2026-09-08). The actual node set per `ls`: `balance.py commit.py decompose.py error.py heuristics.py meta_plan/ observe.py plan.py proposal_executor.py reflect.py score_vectors.py surface_intentions.py tag_and_persist.py`. Implementer should skip the dispatch_sub_agents wiring (or wire it against `commit.py` + `surface_intentions.py` per actual state machine) and document the SPEC gap in the commit body. T-8.2.3 is 1 create (e2e test) + 1 modify (commit.py).
 
+### Phase 8.3 — Bridge observability + production binding + tech debt (DONE — 2026-09-08)
+
+- **Spec:** `docs/superpowers/specs/2026-09-08-phase-8-2-wiring-design.md` §4 (locked at ad6c972) + plan `i-m-continuing-phase-8-3-crispy-bachman.md`
+- **Goal:** Close 3 Minor findings deferred from Phase 8.2 closeout (real OTel spans, production `_server` binding, stale comments) without adding new IKIGAI tool wrappers (T-8.3.2 is transport-only).
+- **Completed:** 2026-09-08 — T-8.3.1/2/3 all PASS. Drift net 35/35 preserved. Targeted regression 65/65 PASS in ~2s (test_mcp_bridge 11/11 + test_bridge_observability 2/2 + test_mcp_client 5/5 + test_phase_8_2_wiring 3/3 + test_drift_invariants 8/8 + test_canonical_scope 32/32 + test_drift_extended_invariants 4/4). Total cost: $0 (subprocess smoke test only; server-side import bug classified as Phase 8.4).
+
+#### T-8.3.4 — Unified `error_type` field for IKIGAI v2 LangGraph nodes
+- **status:** done
+- **commit:** 16276cae
+- **spec_ref:** `test_drift_invariants.py:287` AST invariant (must use `error_type`, NOT `error_channel`)
+- **acceptance:**
+  - [x] `error_type` (not `error_channel`) field used uniformly across v2 nodes
+  - [x] `test_v2_nodes_use_error_type_not_error_channel` AST test stays green
+  - [x] Drift 32/32 PASS preserved (was 31/31 before T-8.3.4)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 4
+- **attempts:** 0
+- **last_verdict:** PASS
+- **notes:** Phase 8.3 task 0 (foundation; landed before T-8.3.1/2/3). All v2 node failure paths populate `error_type` instead of `error_channel`. AST invariant catches any future regression.
+
+#### T-8.3.1 — OTel bridge spans + graph.py real tracer wiring
+- **status:** done
+- **commit:** b3ff9898
+- **spec_ref:** `docs/superpowers/specs/2026-09-08-phase-8-2-wiring-design.md` §4 (closes deferred finding)
+- **acceptance:**
+  - [x] `mcp_bridge.py` wraps `_call()` body in `with _tracer.start_as_current_span(f"ikigai.bridge.{tool_name}")` span
+  - [x] Span attributes mirror `mcp_server/tracing.py:traced_tool_dispatch`: `tool.name`, `tool.arguments_hash` (SHA-256, first 16 hex), `tool.duration_ms`, `tool.error.class`, `tool.error.message` (truncated 500), `tool.error.traceback` (truncated 3000)
+  - [x] Span status: `Status(StatusCode.OK)` on success, `Status(StatusCode.ERROR, str(exc))` on exception
+  - [x] `graph.py` stubs replaced: real `from src.ikigai.src.observability.otel_init import init_tracing, get_tracer` (was `_no_op_tracer`/`_stub_init_tracing`)
+  - [x] Module-level `_tracer = get_tracer("ikigai.bridge")` — prefix deliberately distinct from server-side `ikigai.mcp.{tool_name}` so trace exporters don't double-count
+  - [x] `src/ikigai/src/agents/v2/tests/test_bridge_observability.py` (NEW, 2 tests using InMemorySpanExporter + SimpleSpanProcessor): `test_call_emits_bridge_span` + `test_call_emits_error_span_on_bridge_raise`
+  - [x] Targeted regression: `test_bridge_observability.py` 2/2 PASS, `test_mcp_bridge.py` 11/11 PASS, `test_canonical_scope.py` 32/32 PASS (IKIGAI_TOOLS=12 preserved), `test_drift_invariants.py` 8/8 PASS (error_type invariant green)
+  - [x] Atomic commit (1 task = 1 commit)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 18
+- **attempts:** 0
+- **last_verdict:** PASS
+- **notes:** Replaces graph.py tracing stubs with real OTel imports. Bridge observability tests use InMemorySpanExporter to assert span attributes without needing a real exporter. Span prefix `ikigai.bridge.{tool_name}` matches `mcp_server/tracing.py` server-side `ikigai.mcp.{tool_name}` attribute keys but uses distinct span-name prefix to avoid double-counting in trace aggregators.
+
+#### T-8.3.2 — FastMcpClient stdio binding + bind_prod_server factory
+- **status:** done
+- **commit:** 45bf4b5a
+- **spec_ref:** `docs/superpowers/specs/2026-09-08-phase-8-2-wiring-design.md` §4 (closes deferred finding #2)
+- **acceptance:**
+  - [x] `src/ikigai/src/agents/v2/mcp_client.py` (NEW, ~210L): `FastMcpClient` class with `__init__(server_script)` + `call(tool_name, args)` signature-compatible with `FakeMcpServer.call()`
+  - [x] Persistent background thread + asyncio event loop owns stdio transport + ClientSession (per-call `asyncio.run()` would respawn subprocess every call — wasteful)
+  - [x] `_initialize()` uses ONLY SDK-accepted `StdioServerParameters` fields: `command`, `args`, `env`, `cwd`, `encoding`, `encoding_error_handler` (NO `bufsize=0` — pydantic silently drops unknown kwargs; see `test_stdio_server_parameters_have_only_sdk_accepted_fields` regression test)
+  - [x] `bind_server_to_gateway(server_script)` factory + re-export as `mcp_bridge.bind_prod_server`
+  - [x] `src/ikigai/src/agents/v2/tests/test_mcp_client.py` (NEW, 132L, 5/5 PASS): `test_call_signature_matches_fake_mcp_server` + `test_bind_prod_server_returns_fast_mcp_client` + `test_call_raises_when_server_unbound` + `test_stdio_server_parameters_have_only_sdk_accepted_fields` + `test_subprocess_command_includes_dash_m_and_server_script`
+  - [x] Drift 35/35 PASS preserved (IKIGAI_TOOLS=12; T-8.3.2 is transport-only, NOT a new tool wrapper)
+  - [x] Smoke test: subprocess spawns, stdio opens, MCP initialize handshake reaches server; server-side `ModuleNotFoundError: contracts.investigation` classified as Phase 8.4 scope (not T-8.3.2 client defect)
+  - [x] Targeted regression: 65/65 PASS in 1.34s (test_mcp_client 5 + test_mcp_bridge 11 + test_bridge_observability 2 + test_phase_8_2_wiring 3 + test_drift_invariants 8 + test_drift_extended_invariants 4 + test_canonical_scope 32)
+  - [x] Atomic commit (1 task = 1 commit)
+- **estimated_cost_usd:** 0.00 (≤$0.10 budget for subprocess smoke; ended at $0)
+- **estimated_minutes:** 25
+- **attempts:** 1 (initial test drafted `test_bufsize_zero_passed_to_stdio_client` based on Windows-stdio-memory assumption; replaced with `test_stdio_server_parameters_have_only_sdk_accepted_fields` after discovering `StdioServerParameters` is pydantic BaseModel that silently drops unknown kwargs)
+- **last_verdict:** PASS
+- **notes:** Critical Windows lesson (replaces naive `bufsize=0` expectation from [[windows-stdio-binary-mode-fix-2026-08-30]]): Windows binary-mode stdio handling lives INSIDE the official MCP SDK at `mcp/os/win32/utilities.py:create_windows_process()`. No extra config needed in our transport. Regression test `test_stdio_server_parameters_have_only_sdk_accepted_fields` guards against re-introducing silent-drop fields. Dual-module identity preserved (dotted-prefix imports throughout). ADR-013 planner-only boundary satisfied (transport adapter, NOT a math/policy/scoring wrapper).
+
+#### T-8.3.3 — Tech debt cleanup (error_type comment + observe.py date default + unused imports)
+- **status:** done
+- **commit:** 3815dbd
+- **spec_ref:** Closes 3 Minor findings from Phase 8.2 closeout + 4th NameError risk on `observe.py` dead code
+- **acceptance:**
+  - [x] `mcp_bridge.py` docstring framing clarified: 9 graph-facing wrappers (12 IKIGAI_TOOLS total includes 3 infrastructure-level tools not invoked from v2 nodes: vault_write, investigation_enqueue, sync_vault)
+  - [x] `error_type` field (NOT `error_channel`) framing preserved (was already correct; just verified and left untouched per AST invariant `test_v2_nodes_use_error_type_not_error_channel`)
+  - [x] `nodes/observe.py`: added `from datetime import date` and uses `date.today().isoformat()` when `state.get("date")` is None — replaces stale hardcoded `"2026-09-08"` fallback that would break in any other month
+  - [x] `nodes/observe.py`: added `import json`, `import subprocess`, `from typing import Any` to import block so the retained `_read_workload_from_upi()` helper does NOT NameError when revived or deleted
+  - [x] `nodes/observe.py`: TODO marker updated `TODO(Phase 8.4): remove _read_workload_from_upi — replaced by ikigai_observe_pav_state via mcp_bridge.`
+  - [x] Drift 35/35 PASS preserved (no test/contract surface change)
+  - [x] Targeted regression: 65/65 PASS in 1.91s (same 7 files as T-8.3.2)
+  - [x] AST invariant: `grep -rn "error_channel" src/ikigai/src/agents/v2/nodes/*.py` returns zero hits
+  - [x] Atomic commit (1 task = 1 commit)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 4
+- **attempts:** 0
+- **last_verdict:** PASS
+- **notes:** Comment + import hygiene + dead-code TODO marker cleanup only. ZERO behavioral change. Full-repo regression with `--continue-on-collection-errors` shows 797 pass / 68 fail / 9 error (5 PAV-archived test files + stale fixture data; NOT T-8.3.3's causal link).
+
+#### T-8.3.5 — State machine closeout (this commit)
+- **status:** done
+- **commit:** (this commit)
+- **acceptance:**
+  - [x] `progress.md` Phase 8.3 SHIPPED entry appended (commit SHAs + drift count + regression count + cost + lessons)
+  - [x] `tasks.md` T-8.3.4 + T-8.3.1 + T-8.3.2 + T-8.3.3 entries added with status=done + commit refs
+  - [x] Memory entry at `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/phase-8-3-shipped-2026-09-08.md`
+  - [x] MEMORY.md pointer added (per [[claude-md-maintenance-rule-2026-09-06]]: shipped-wave history in memory, NOT CLAUDE.md)
+  - [x] Atomic commit + push to origin (branch `loop/phase-8-3-t-8-3-4`)
+  - [x] Final fresh pytest regression: 65/65 PASS in 2.06s (same 7 targeted test files)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 6
+- **attempts:** 0
+- **last_verdict:** PASS
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations
