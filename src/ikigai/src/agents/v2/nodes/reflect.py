@@ -15,6 +15,6 @@ def reflect_node(state: IKIGAiStateDict) -> dict[str, Any]:
     """Reflect on cycle via MCP bridge."""
     try:
         result = mcp_bridge.ikigai_reflect(cycle_id=state.get("cycle_id", ""))
-        return {"reflect": result, "error_channel": []}
+        return {"reflect": result}
     except Exception as e:
-        return {"reflect": None, "error_channel": [f"reflect: {e}"]}
+        return {"reflect": None, "error_type": type(e).__name__, "error_message": f"reflect: {e}"}

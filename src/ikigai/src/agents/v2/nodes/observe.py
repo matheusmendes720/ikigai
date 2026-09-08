@@ -9,9 +9,9 @@ def observe_node(state: IKIGAiStateDict) -> dict[str, Any]:
         result = mcp_bridge.ikigai_observe_pav_state(
             date=state.get("date", "2026-09-08")
         )
-        return {"observation": result, "error_channel": []}
+        return {"observation": result}
     except Exception as e:
-        return {"observation": None, "error_channel": [f"observe: {e}"]}
+        return {"observation": None, "error_type": type(e).__name__, "error_message": f"observe: {e}"}
 
 
 def _build_agent_response(state: IKIGAiStateDict) -> str:

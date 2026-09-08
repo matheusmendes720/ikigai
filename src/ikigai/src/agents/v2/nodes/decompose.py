@@ -15,6 +15,6 @@ def decompose_node(state: IKIGAiStateDict) -> dict[str, Any]:
     """Decompose task into subtasks via MCP bridge."""
     try:
         result = mcp_bridge.ikigai_decompose(task_id=state.get("task_id", ""))
-        return {"decompose": result, "error_channel": []}
+        return {"decompose": result}
     except Exception as e:
-        return {"decompose": None, "error_channel": [f"decompose: {e}"]}
+        return {"decompose": None, "error_type": type(e).__name__, "error_message": f"decompose: {e}"}

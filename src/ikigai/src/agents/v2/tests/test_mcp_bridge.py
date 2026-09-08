@@ -81,6 +81,18 @@ def test_commit_summary_returns_canned_response(fake_server):
     assert result == {"verdict": "PASS"}
 
 
+def test_degrade_populates_error_type(fake_server):
+    """When the bridge raises, the node must populate error_type (not error_channel)."""
+    from src.ikigai.src.agents.v2.nodes.observe import observe_node
+
+    # Force a KeyError by calling observe_node with no canned response set up.
+    # The fake_server has no canned response, so mcp_bridge raises KeyError.
+    result = observe_node({})
+    assert "error_type" in result, f"node did not emit error_type on degrade: {result}"
+    assert result.get("error_message", "").startswith("observe:"), result
+    assert "error_channel" not in result, f"old error_channel still present: {result}"
+
+
 def test_missing_canned_response_raises(fake_server):
     with pytest.raises(KeyError):
         ikigai_observe_pav_state(date="2026-09-08")

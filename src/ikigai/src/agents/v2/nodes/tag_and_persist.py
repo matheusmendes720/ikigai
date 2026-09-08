@@ -22,6 +22,6 @@ def tag_and_persist_node(state: IKIGAiStateDict) -> dict[str, Any]:
     """
     try:
         result = mcp_bridge.ikigai_tag_and_persist(ueid=state.get("ueid", ""))
-        return {"tags": result, "error_channel": []}
+        return {"tags": result}
     except Exception as e:
-        return {"tags": None, "error_channel": [f"tag_and_persist: {e}"]}
+        return {"tags": None, "error_type": type(e).__name__, "error_message": f"tag_and_persist: {e}"}

@@ -7,9 +7,9 @@ def heuristics_node(state: IKIGAiStateDict) -> dict[str, Any]:
     """Apply heuristics via MCP bridge."""
     try:
         result = mcp_bridge.ikigai_heuristics(context=state.get("context", {}))
-        return {"heuristics": result, "error_channel": []}
+        return {"heuristics": result}
     except Exception as e:
-        return {"heuristics": None, "error_channel": [f"heuristics: {e}"]}
+        return {"heuristics": None, "error_type": type(e).__name__, "error_message": f"heuristics: {e}"}
 
 
 def _h1_energy_required(

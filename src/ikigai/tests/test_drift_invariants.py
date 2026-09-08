@@ -284,6 +284,40 @@ def test_legacy_drift_invariants_a_d_still_pass() -> None:
 # ---------------------------------------------------------------------------
 
 
+def test_v2_nodes_use_error_type_not_error_channel() -> None:
+    """Per Phase 8.3 T-1: degrade flows must route via error_type, not error_channel."""
+    import ast
+    from pathlib import Path
+
+    THIS_FILE_abs = Path(__file__).resolve()
+    for parent in THIS_FILE_abs.parents:
+        if (parent / "src" / "ikigai" / "src" / "agents").is_dir():
+            repo_root = parent
+            break
+    else:
+        pytest.skip("Could not locate repo root")
+
+    nodes_dir = repo_root / "src" / "ikigai" / "src" / "agents" / "v2" / "nodes"
+    violations = []
+    for py in nodes_dir.glob("*.py"):
+        if py.name in {"__init__.py", "error.py", "surface_intentions.py"}:
+            continue
+        try:
+            tree = ast.parse(py.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                for stmt in ast.walk(node):
+                    if isinstance(stmt, ast.Return) and isinstance(stmt.value, ast.Dict):
+                        for key in stmt.value.keys:
+                            if isinstance(key, ast.Constant) and key.value == "error_channel":
+                                violations.append(f"{py.name}:{node.name}")
+    assert not violations, (
+        f"v2 nodes still use error_channel (Phase 8.3 T-1): {violations}"
+    )
+
+
 def test_wrapper_modules_loaded_in_sys_modules() -> None:
     """Sanity: wrapper + kill switch modules are importable via canonical paths."""
     # Either importing on test execution (preferred) or already-loaded.

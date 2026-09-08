@@ -16,6 +16,6 @@ def commit_node(state: dict) -> dict:
         result = mcp_bridge.ikigai_commit_summary(
             cycle_id=state.get("cycle_id", "")
         )
-        return {"commit": result, "error_channel": []}
+        return {"commit": result}
     except Exception as e:
-        return {"commit": None, "error_channel": [f"commit: {e}"]}
+        return {"commit": None, "error_type": type(e).__name__, "error_message": f"commit: {e}"}

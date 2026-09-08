@@ -49,7 +49,7 @@ def test_all_nine_wrappers_resolve_via_fake_server(fake_server):
 
 
 def test_graceful_degradation_on_missing_canned_response(monkeypatch):
-    """Verify mcp_bridge raises → caller catches → error_channel populated."""
+    """Verify mcp_bridge raises → caller catches → error_type populated."""
     server = FakeMcpServer()  # no canned responses registered
     monkeypatch.setattr("src.ikigai.src.agents.v2.mcp_bridge._server", server)
 
@@ -62,7 +62,8 @@ def test_graceful_degradation_on_missing_canned_response(monkeypatch):
     # And the node catches it gracefully:
     result = observe_node({"date": "2026-09-08"})
     assert result["observation"] is None
-    assert "observe:" in result["error_channel"][0]
+    assert "error_type" in result
+    assert "observe:" in result["error_message"]
 
 
 def test_server_unbound_raises_runtime_error():

@@ -15,6 +15,6 @@ def plan_node(state: IKIGAiStateDict) -> dict[str, Any]:
     """Build plan via MCP bridge."""
     try:
         result = mcp_bridge.ikigai_plan(cycle_id=state.get("cycle_id", ""))
-        return {"plan": result, "error_channel": []}
+        return {"plan": result}
     except Exception as e:
-        return {"plan": None, "error_channel": [f"plan: {e}"]}
+        return {"plan": None, "error_type": type(e).__name__, "error_message": f"plan: {e}"}

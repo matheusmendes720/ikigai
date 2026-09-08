@@ -7,6 +7,6 @@ def balance_node(state: IKIGAiStateDict) -> dict[str, Any]:
     """Compute load balance via MCP bridge."""
     try:
         result = mcp_bridge.ikigai_balance(load=state.get("load", 0.0))
-        return {"balance": result, "error_channel": []}
+        return {"balance": result}
     except Exception as e:
-        return {"balance": None, "error_channel": [f"balance: {e}"]}
+        return {"balance": None, "error_type": type(e).__name__, "error_message": f"balance: {e}"}
