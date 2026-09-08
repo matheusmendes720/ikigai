@@ -246,6 +246,81 @@
 - **estimated_minutes:** 3
 - **attempts:** 0
 
+### M6 — Worktree isolation helper (DONE — 2026-09-07)
+- **Spec:** `specs/M6-worktree-isolation/SPEC.md` (created 2026-09-07; documents 4 commands + exit code matrix + parallel-safety contract)
+- **Goal:** Make `scripts/worktree-helper.sh` the canonical gate for parallel sub-agent dispatch. Add contract, end-to-end tests, and auto-cleanup hooks tied to milestone closeout.
+
+#### T-6.1 — Write M6 SPEC.md
+- **status:** done
+- **spec_ref:** acceptance criteria #1 + #2
+- **acceptance:**
+  - [x] `specs/M6-worktree-isolation/SPEC.md` exists (121L)
+  - [x] Commands section lists all 4 commands (create/list/cleanup/cleanup-all) with exit code matrix
+  - [x] "Parallel safety contract" section explicit about non-overlapping edits
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 5
+- **attempts:** 0
+- **last_verdict:** PASS
+
+#### T-6.2 — Scaffold scripts/worktree-helper.sh
+- **status:** done
+- **spec_ref:** acceptance criteria #2
+- **acceptance:**
+  - [x] `bash scripts/worktree-helper.sh list` runs cleanly
+  - [x] `create <name>` makes worktree at `.worktrees/<name>/` on branch `loop/<name>`
+  - [x] `cleanup <name>` removes worktree + branch
+  - [x] `cleanup-all` clears all `loop/*` worktrees
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 0 (pre-existing, verified functional)
+- **attempts:** 0
+- **last_verdict:** PASS
+- **notes:** Script pre-existing at commit `91fb7d4` (M0 bootstrap). awk bug in `cleanup-all` path-matching regex fixed during M6 (Windows Git Bash path separators broke the path-based grep match; switched to branch-name matching which is canonical across POSIX/Git Bash).
+
+#### T-6.3 — End-to-end test
+- **status:** done
+- **spec_ref:** acceptance criterion #3
+- **acceptance:**
+  - [x] `tests/test_worktree_helper.sh` exists (152L, 6 test groups, runs in <30s)
+  - [x] Test passes on 3+ concurrent worktrees without conflict (m6-test-a/b/c, independent commits)
+  - [x] Cleanup restores empty `.worktrees/` + zero `loop/m6-test-*` branches
+  - [x] Test is idempotent (re-runnable from clean state — pre-cleans leftover state)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 8
+- **attempts:** 0
+- **last_verdict:** PASS (15/15)
+- **notes:** Pre-cleanup loop handles leftover m6-test-* state from prior runs. Each test group PASS: create 3 worktrees (3), non-overlapping writes (3), independent commits (3), branch carries marker (3), cleanup-all restores empty (2), idempotency re-run (1) = 15/15 PASS in ~5s.
+
+#### T-6.4 — Auto-cleanup hook in loop-tick
+- **status:** done
+- **spec_ref:** acceptance criterion #4
+- **acceptance:**
+  - [x] `loop-tick.sh` + `loop-tick.bat` gain `--auto-cleanup` flag (loop-tick.sh:50 + loop-tick.bat:39-43)
+  - [x] Default off (no behavior change — `AUTO_CLEANUP=false` default, no-op when unset)
+  - [x] When on + zero PENDING tasks → calls `worktree-helper.sh cleanup-all` (verified via dry-run: "AUTO-CLEANUP: 0 PENDING tasks, running worktree-helper cleanup-all")
+  - [x] When on + PENDING tasks present → logs skip reason, no cleanup (verified with mock pending task: "AUTO-CLEANUP: 1 PENDING tasks remain, skipping cleanup")
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 6
+- **attempts:** 1 (initial grep -c race produced multi-line `0\n0` output that broke `[ -eq 0 ]`; fixed via `head -n1` + regex validation + `${PENDING_COUNT:-0}` fallback)
+- **last_verdict:** PASS
+- **notes:** Auto-cleanup registered as bash EXIT trap (loop-tick.sh:97) so it fires on every exit path: graph-dispatch (line 79 cost abort 78, dry-run 0, overrun 124, normal tick). Helper-existence check at loop-tick.sh:81 prevents silent failure if script removed. `set -euo pipefail` safety preserved via `|| true` on helper invocation to absorb per-worktree failures.
+
+#### T-6.5 — State machine closeout + push
+- **status:** done
+- **spec_ref:** acceptance criterion #5
+- **acceptance:**
+  - [x] `roadmap.md` M6 STATUS:DONE
+  - [x] `tasks.md` T-6.1..T-6.4 done, T-6.5 pending → done
+  - [x] `progress.md` append-only M6 closeout entry
+  - [x] Atomic commit covering all M6 file changes
+  - [x] Pushed to origin master per standing directive
+  - [x] Memory entry at `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/m6-worktree-isolation-shipped-2026-09-07.md`
+  - [x] MEMORY.md pointer added
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 3
+- **attempts:** 0
+- **last_verdict:** PASS
+- **notes:** Full regression sweep 54/54 PASS before closeout: test_loop_infra 11/11 + test_m4_langgraph_integration 9/9 + test_canonical_scope 32/32 + test_m5_ikigai_mcp_integration 2/2. No regression introduced by M6 file changes.
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations

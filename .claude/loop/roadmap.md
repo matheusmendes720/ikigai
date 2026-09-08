@@ -87,15 +87,16 @@
 - **Estimated ticks:** 2-3
 - **Completed:** 2026-09-08 — T-5.1..T-5.4 all PASS. Test file untracked (will land in T-5.6 atomic commit).
 
-### M6 — Worktree isolation helper (STATUS: PENDING)
+### M6 — Worktree isolation helper (STATUS: DONE)
 - **What:** `scripts/worktree-helper.sh` creates/destroys git worktrees per sub-agent
 - **Why:** Prevent parallel sub-agents from stepping on each other
 - **Acceptance:**
-  - [ ] Script creates worktree at `.worktrees/m-{id}/`
-  - [ ] Auto-cleanup post-merge
-  - [ ] Tests pass on at least 3 milestone executions
+  - [x] Script creates worktree at `.worktrees/m-{id}/`
+  - [x] Auto-cleanup post-merge (via `--auto-cleanup` flag on loop-tick.sh/bat)
+  - [x] Tests pass on at least 3 milestone executions (`tests/test_worktree_helper.sh` 15/15 PASS, 3 parallel worktrees)
 - **Dependencies:** M5
 - **Estimated ticks:** 1
+- **Completed:** 2026-09-07 — T-6.1..T-6.4 all PASS. Spec at `specs/M6-worktree-isolation/SPEC.md` documents commands, exit code matrix, parallel-safety contract. Script body pre-existing at commit `91fb7d4` (M0 bootstrap) — awk bug in `cleanup-all` regex fix landed in M6 commit. Auto-cleanup hook fires on every tick exit path (dry-run/cost-abort/graph-dispatch/overrun/normal) via bash EXIT trap, gated on zero `status: pending` tasks. Regression sweep: test_loop_infra 11/11 + test_m4_langgraph_integration 9/9 + test_canonical_scope 32/32 + test_m5_ikigai_mcp_integration 2/2 = 54/54 PASS.
 
 ### M7 — Cost dashboard (STATUS: PENDING)
 - **What:** Daily cron writes a `cost-report.md` to `.claude/loop/logs/`

@@ -21,8 +21,10 @@ COST_CAP_USD=5
 MAX_RUNTIME_MIN=30
 DRY_RUN=false
 GRAPH_NAME=""
+AUTO_CLEANUP=false
 LOG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/logs"
 PROGRESS_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/progress.md"
+TASKS_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/tasks.md"
 LOOP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Absolute repo root (parent of .claude/). Set once at the top so the
 # --graph dispatch block can reference it (was unbound before, breaking
@@ -45,6 +47,7 @@ while [[ $# -gt 0 ]]; do
     --max-runtime) MAX_RUNTIME_MIN="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
     --graph) GRAPH_NAME="$2"; shift 2 ;;
+    --auto-cleanup) AUTO_CLEANUP=true; shift ;;
     *) echo "Unknown arg: $1"; exit 1 ;;
   esac
 done
@@ -63,6 +66,42 @@ mkdir -p "$LOG_DIR"
 TICK_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 TICK_ID=$(date +%Y%m%d-%H%M%S)
 LOG_FILE="$LOG_DIR/tick-$TICK_ID.log"
+
+# --- AUTO-CLEANUP HOOK (M6 acceptance criterion #4) ---
+# When --auto-cleanup is set, run worktree-helper.sh cleanup-all at tick end
+# IF tasks.md has zero `status: pending` lines. Otherwise log skip reason.
+# Registered as an EXIT trap so it runs on every exit path (graph-dispatch,
+# cost abort, dry-run, overrun, normal tick) without leaking worktrees.
+# Default off (opt-in for safety) — when off, behavior is unchanged.
+auto_cleanup_hook() {
+  if [ "$AUTO_CLEANUP" != "true" ]; then
+    return 0
+  fi
+  local HELPER="$PROJECT_ROOT/scripts/worktree-helper.sh"
+  if [ ! -x "$HELPER" ]; then
+    echo "[$TICK_TS] AUTO-CLEANUP: skipped (helper not executable: $HELPER)" | tee -a "$LOG_FILE"
+    return 0
+  fi
+  # Count PENDING tasks. `grep -c` exits 1 when zero matches — guard with
+  # `|| true` so `set -euo pipefail` does not abort the script on a
+  # freshly-completed tasks.md (all status=done, no pending). Then strip
+  # trailing newline + coerce non-numeric output (e.g. empty after grep
+  # fails) to "0" before integer compare. Without the head -n1 + tr dance,
+  # the `|| echo 0` fallback appends a second line that breaks `[ -eq 0 ]`.
+  local PENDING_COUNT
+  PENDING_COUNT=$(grep -c 'status: pending' "$TASKS_FILE" 2>/dev/null | head -n1 || true)
+  PENDING_COUNT="${PENDING_COUNT:-0}"
+  if ! [[ "$PENDING_COUNT" =~ ^[0-9]+$ ]]; then
+    PENDING_COUNT=0
+  fi
+  if [ "$PENDING_COUNT" -eq 0 ]; then
+    echo "[$TICK_TS] AUTO-CLEANUP: 0 PENDING tasks, running worktree-helper cleanup-all" | tee -a "$LOG_FILE"
+    bash "$HELPER" cleanup-all 2>&1 | tee -a "$LOG_FILE" || true
+  else
+    echo "[$TICK_TS] AUTO-CLEANUP: $PENDING_COUNT PENDING tasks remain, skipping cleanup" | tee -a "$LOG_FILE"
+  fi
+}
+trap auto_cleanup_hook EXIT
 
 echo "[$TICK_TS] Loop tick starting (id=$TICK_ID, cost_cap=\$$COST_CAP_USD, max_runtime=${MAX_RUNTIME_MIN}min)" | tee "$LOG_FILE"
 

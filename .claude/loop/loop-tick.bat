@@ -9,6 +9,7 @@ set "COST_CAP=5"
 set "MAX_RUNTIME=30"
 set "DRY_RUN="
 set "GRAPH="
+set "AUTO_CLEANUP="
 
 :parse_args
 if "%~1"=="" goto :after_args
@@ -35,6 +36,11 @@ if "%~1"=="--graph" (
   shift
   goto :parse_args
 )
+if "%~1"=="--auto-cleanup" (
+  set "AUTO_CLEANUP=--auto-cleanup"
+  shift
+  goto :parse_args
+)
 echo Unknown arg: %~1
 exit /b 1
 
@@ -42,6 +48,7 @@ exit /b 1
 set "ARGS=--cost-cap %COST_CAP% --max-runtime %MAX_RUNTIME%"
 if defined DRY_RUN set "ARGS=%ARGS% --dry-run"
 if defined GRAPH set "ARGS=%ARGS% %GRAPH%"
+if defined AUTO_CLEANUP set "ARGS=%ARGS% %AUTO_CLEANUP%"
 
 REM Try Git Bash first, then WSL bash, then cygwin bash
 where bash >nul 2>&1
