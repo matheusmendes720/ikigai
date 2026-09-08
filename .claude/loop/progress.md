@@ -1563,3 +1563,13 @@
 - next_action: idle (Phase 8.4 milestone complete; backlog = next)[INFO] Recording command outcome: cat
 
 [OK] Command outcome recorded
+## 2026-09-08T17:40:00Z | Phase 8.5 closeout | PASS
+- commit: 80d4d1f (T-8.5.1 FastMcpClient e2e stdio smoke test) + this commit (closeout)
+- cost_usd: 0
+- duration_min: 17
+- model: opus (verify-only; orchestrator re-verified in main session)
+- attempt: 1/1 (after 1 round of orchestrator verification + scope decision)
+- notes: Phase 8.5 SHIPPED. T-8.5.1 commit `80d4d1f` adds regression test proving FastMcpClient → MCP server stdio handshake → tool dispatch works end-to-end. 7 files in single atomic commit (3 planned: new test file `src/ikigai/tests/mcp/test_fast_mcp_client_e2e_stdio.py` 2 tests + pytest.ini marker + .github/workflows/ci.yml quality gates + new fast-mcp-client-smoke job; 4 bonus decided by user: `src/contracts/investigation.py` source field Literal→str, `src/mesh/investigation_queue.py` relaxed hyphenated inq_id validation, `mcp_client.py` _extract_result handles double-wrapped structuredContent, pyproject.toml integration marker duplicate registration). Drift net 44/44 PASS in 1.00s, smoke 2/2 PASS in 7.86s. IKIGAI_TOOLS=12 preserved. Legacy mcp_inspect.py pre-existing PYTHONPATH bug fixed in Phase 8.4 still works. $0 cost. Branch loop/phase-8-5 (NOT pushed; orchestrator handles push). Memory entry at ~/.claude/projects/.../memory/phase-8-5-shipped-2026-09-08.md.
+- next_action: idle (Phase 8.5 milestone complete; backlog = next)[INFO] Recording command outcome: cat
+
+[OK] Command outcome recorded
