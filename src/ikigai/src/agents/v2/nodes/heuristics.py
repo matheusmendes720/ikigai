@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from src.ikigai.src.agents.v2 import mcp_bridge
 
 from ..state import IKIGAiStateDict

@@ -20,7 +20,7 @@ from typing import Any, Literal
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, StateGraph
 
-from observability.otel_init import get_tracer, init_tracing
+from src.ikigai.src.observability.otel_init import get_tracer, init_tracing
 
 
 from .nodes.balance import balance_node  # noqa: E402
