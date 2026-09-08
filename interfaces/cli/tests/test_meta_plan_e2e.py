@@ -1,7 +1,7 @@
 """E2E tests for life plan CLI (Plan D Task E.2)."""
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from interfaces.cli.v2 import _run_plan
 
@@ -42,22 +42,26 @@ def test_run_plan_happy_path():
         "approval_timestamp": None,
     }
 
-    with patch("interfaces.cli.v2.invoke_skill") as mock_invoke, \
+    fake_compiled = MagicMock()
+    fake_compiled.invoke.return_value = {"proposal": _dict_to_proposal(fake_proposal_dict)}
+    with patch("agents.v2.subgraph.make_meta_plan_subgraph") as mock_mksg, \
          patch("agents.v2.nodes.proposal_executor.execute_proposal") as mock_exec:
-        mock_invoke.return_value = {"proposal": _dict_to_proposal(fake_proposal_dict)}
+        mock_mksg.return_value = fake_compiled
         mock_exec.return_value = _fake_report()
 
         result = _run_plan("quero focar em X", approve=True)
 
     assert result["status"] == "executed"
-    assert mock_invoke.called
+    assert mock_mksg.called
     assert mock_exec.called
 
 
 def test_run_plan_no_proposal_for_low_intent():
     """Low-intent request → no Proposal → user gets hint message."""
-    with patch("interfaces.cli.v2.invoke_skill") as mock_invoke:
-        mock_invoke.return_value = {"proposal": None}
+    fake_compiled = MagicMock()
+    fake_compiled.invoke.return_value = {"proposal": None}
+    with patch("agents.v2.subgraph.make_meta_plan_subgraph") as mock_mksg:
+        mock_mksg.return_value = fake_compiled
 
         result = _run_plan("que horas são?")
 
@@ -66,8 +70,10 @@ def test_run_plan_no_proposal_for_low_intent():
 
 def test_run_plan_reject_field():
     """--reject X.field → status='rejected_field'."""
-    with patch("interfaces.cli.v2.invoke_skill") as mock_invoke:
-        mock_invoke.return_value = {"proposal": _fake_proposal()}
+    fake_compiled = MagicMock()
+    fake_compiled.invoke.return_value = {"proposal": _fake_proposal()}
+    with patch("agents.v2.subgraph.make_meta_plan_subgraph") as mock_mksg:
+        mock_mksg.return_value = fake_compiled
 
         result = _run_plan("x", reject_field="priority")
 

@@ -121,7 +121,7 @@ def _format_proposal(proposal: Any) -> str:
 
     Body shape (preserved from former _v2_plan.py):
       - Proposta gerada (UEID: <id>)
-      - Request: <user_request>
+      - Request: <source_request>
       - Created: <created_at>
       - Operations: numbered list
       - Review guidance line
@@ -129,7 +129,7 @@ def _format_proposal(proposal: Any) -> str:
     lines = [
         "",
         f"Proposta gerada (UEID: {proposal.id})",
-        f"Request: {proposal.user_request}",
+        f"Request: {proposal.source_request}",
         f"Created: {proposal.created_at}",
         "",
         "Operations:",

@@ -34,10 +34,17 @@ _UEID_REGEX = re.compile(r"^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$")
 
 # Valid entry points (post V5-D radical cleanup — graph.py deleted).
 # These are the canonical node names a sub-agent may target. Keep in sync
-# with the surviving v2/nodes/ module exports (error, tag_and_persist,
-# proposal_executor) plus the meta_plan subgraph entry point.
+# with the surviving v2/nodes/ module exports (error, observe, score_vectors,
+# heuristics, balance, plan, decompose, reflect, commit, surface_intentions,
+# tag_and_persist, proposal_executor) plus the meta_plan subgraph entry
+# point. Subset chosen for sub-agent dispatch (ADR-026 R1):
+# - error / tag_and_persist / proposal_executor: terminal/write ops
+# - surface_intentions / observe: read-only observation nodes
+# - meta_plan: subgraph entry (Plan D)
 VALID_ENTRY_POINTS: tuple[str, ...] = (
     "error",
+    "observe",
+    "surface_intentions",
     "tag_and_persist",
     "proposal_executor",
     "meta_plan",
