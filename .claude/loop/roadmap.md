@@ -28,17 +28,18 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Phase 9 Option A** (2026-09-03): operator TUI + drift detector + Path 3 taskdog MCP (read-only)
 - **V5 bundle** (2026-09-07): CLI inlined (4 files deleted, v2.py split into 6 modules)
 - **Phase A** (2026-08-30): 7 fork MCP tools live (sf_create_event etc.)
+- **Phase 8.2 — v2 graph MCP wiring** (2026-09-08): 10/11 v2 graph nodes wired to real MCP tool calls via `mcp_bridge.py` + `FakeMcpServer` test fixture (9 sync wrappers + 1 in-process `commit_node`). Commits `c323532d` / `7a6a7199` / `cf02954c`; closeout `9720d15`. Drift 32/32 PASS preserved (IKIGAI_TOOLS=12 canonical); regression 45/45 (32 canonical_scope + 10 mcp_bridge + 3 e2e); $0 implementation cost; ADR-013 planner-only boundary satisfied. `surface_intentions` deferred per SPEC §6; `tag_and_persist` READ-ONLY (vault_write NOT wired here, separate work stream). 3 Minor findings (non-blocking) + 1 DEFER-AS-TECH-DEBT (`error_type`/`error_channel` routing mismatch in `graph.py`, out of Phase 8.2 scope). See memory `phase-8-2-wiring-shipped-2026-09-08.md` for full architecture.
 
 ### ⚠️ Stubs / partial
 
-- **Deep Agent v2 graph** (`ikigai_maintainer_v2` in `langgraph.json`): 9-node graph assembled, SqliteSaver checkpointing — mas Phase 8 deixou todos os nodes como **prompt-chain stubs**. `graph.py` L6-7: "MATH CALLS REPLACED: all node logic replaced with prompt-chain stubs. Phase 8.2 will wire actual MCP tool calls."
-- **Path 1 taskdog write** (canônico): `harness @tool → subprocess → taskdog_cli.py` existe, mas o harness não está wire-ado para chamar (gap da Phase 8.2)
+- **Deep Agent v2 graph** (`ikigai_maintainer_v2` in `langgraph.json`): 9-node graph assembled, SqliteSaver checkpointing; 10/11 nodes now wire to real MCP tool calls via `mcp_bridge` (Phase 8.2 SHIPPED 2026-09-08). Remaining partials: `surface_intentions` still a prompt-chain stub (deferred per SPEC §6, PAV-written state not wired yet); `tag_and_persist` READ-ONLY (vault_write is a separate work stream).
+- **Path 1 taskdog write** (canônico): `harness @tool → subprocess → taskdog_cli.py` existe, mas o harness não está wire-ado para chamar (gap separado, fora do Phase 8.2 scope)
 - **Path 3 taskdog MCP**: 3 read-only tools (`taskdog_read`, `taskdog_list`, `taskdog_supports_field`) — zero write surface
 - **Investigation queue UI**: tools funcionam, TUI browse é read-only (sem criar/sortear pela interface)
+- **Phase 8.3 backlog**: real observability / OTel tracing on top of `mcp_bridge`; production binding of `_server` to FastMCP client (Phase 8.2 uses `FakeMcpServer` only in tests, $0/tick); address 3 Minor findings (`mcp_bridge.py:42` docstring dupe, `observe.py:12` hardcoded date, `test_phase_8_2_wiring.py:14` import-style mismatch); close `error_type`/`error_channel` ledger item when `graph.py` error routing is refactored
 
 ### ❌ Not started / deferred
 
-- **Phase 8.2**: wire real MCP tool calls into graph nodes (transforma stubs em executor real) — backlog, não auto-roadmap
 - **Phase 3 v1.2-v1.4**: `update`/`delete`/`done` mesh actions (gated on user adjudication, NÃO auto-roadmap)
 - **Deep Agent fills interfaces**: explicitamente NÃO é prioridade per user pivot 2026-09-06 (CLAUDE.md Current Mode)
 - **LLM-driven mesh validation**: gated
