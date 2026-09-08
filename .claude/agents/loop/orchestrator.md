@@ -97,6 +97,49 @@ graph's terminal status code. Use this for unattended cron schedules.
 `test_de_fogo_rollup` + 2 others) — only 3 are in the live `langgraph.json`.
 Do not invoke graphs not in the table above; they do not exist.
 
+## IKIGAI MCP Tool Surface (M5)
+
+IKIGAI exposes 14 tools + 6 resources via FastMCP stdio gateway
+(server.py + taskdog_tools.py in src/ikigai/src/mcp_server/).
+Worker sub-agents may invoke these via stdio JSON-RPC handshake. Each
+tool is planner-only per ADR-013 (no PAE math execution —
+math/policy/scoring tools are explicitly forbidden).
+
+| Tool name | One-line invocation | Source |
+|---|---|---|
+| ikigai_decompose | mcp_call(ikigai_decompose, dream_ueid=...) | src/ikigai/src/mcp_server/server.py:53 |
+| ikigai_write_tasks | mcp_call(ikigai_write_tasks, tasks=[...]) | src/ikigai/src/mcp_server/server.py:66 |
+| ikigai_read_tasks | mcp_call(ikigai_read_tasks, horizon=None, limit=50) | src/ikigai/src/mcp_server/server.py:74 |
+| ikigai_mesh_show | mcp_call(ikigai_mesh_show, ueid=...) | src/ikigai/src/mcp_server/server.py:87 |
+| ikigai_task_create | mcp_call(ikigai_task_create, ueid=..., fields=...) | src/ikigai/src/mcp_server/server.py:97 |
+| ikigai_health | mcp_call(ikigai_health) | src/ikigai/src/mcp_server/server.py:117 |
+| vault_write | mcp_call(vault_write, vault_path=..., body=...) | src/ikigai/src/mcp_server/server.py:127 |
+| vault_read | mcp_call(vault_read, vault_path=...) | src/ikigai/src/mcp_server/server.py:152 |
+| investigation_enqueue | mcp_call(investigation_enqueue, inq_id=..., source=...) | src/ikigai/src/mcp_server/server.py:175 |
+| investigation_status | mcp_call(investigation_status, inq_id=None) | src/ikigai/src/mcp_server/server.py:189 |
+| investigation_complete | mcp_call(investigation_complete, inq_id=...) | src/ikigai/src/mcp_server/server.py:197 |
+| taskdog_read | mcp_call(taskdog_read, ueid=...) | src/ikigai/src/mcp_server/taskdog_tools.py:44 |
+| taskdog_list | mcp_call(taskdog_list, status=None, limit=None) | src/ikigai/src/mcp_server/taskdog_tools.py:62 |
+| taskdog_supports_field | mcp_call(taskdog_supports_field, field_name=...) | src/ikigai/src/mcp_server/taskdog_tools.py:85 |
+
+Resources (6): ueid://{ueid}, queue://pending, queue://events/{event_id},
+health://gateway, plans://cycles, plans://cycles/{cycle_id} (all in
+src/ikigai/src/mcp_server/resources.py).
+
+Start the gateway:
+- Windows: ikigai.bat mcp
+- POSIX: cd src/ikigai && uv run ikigai mcp
+
+Stdio JSON-RPC handshake uses sys.stdin.buffer.readline() (NOT
+sys.stdin.readline() — Windows pipe HANGS; commit b93a1f3). Worker
+sub-agents must use the buffer-level read for stdio MCP.
+
+Scope discipline (ADR-013) — IKIGAI agent layer is planner-only:
+- READ-ONLY: vault_read, ikigai_read_tasks, ikigai_health, taskdog_read, taskdog_list
+- WRITE-WITH-REVIEW: vault_write (sole vault writer per ADR-012), investigation_*
+- FORBIDDEN: any PAE math / scoring / policy tools — not in MCP surface
+
+
 ## Prompt Template
 
 ```markdown
