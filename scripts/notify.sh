@@ -3,7 +3,7 @@
 #
 # Sends a single message via HTTP webhook (ntfy.sh by default) when the
 # loop needs human intervention: M7 spike alarm (cost > $10/day), tick
-# FAIL/NEEDS_FIX/BLOCKED, or a manual test message. Topic name IS the
+# FAIL/NEEDS_FIX/BLOCKED/tick_pass, or a manual test message. Topic name IS the
 # auth secret — pick something unguessable (16+ chars).
 #
 # Pure bash + curl (per M8 SPEC architecture note — mirrors M6/M7
