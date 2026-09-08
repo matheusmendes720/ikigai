@@ -916,6 +916,41 @@
 - **attempts:** 0
 - **last_verdict:** PASS
 
+### Phase 8.8 — Skills validation + monthly/quarterly CLI (DONE — 2026-09-08)
+
+- **Goal:** Validate the 4 v2 skill manifests + add missing `monthly` + `quarterly` CLI commands. Closes the skill surface coverage (Phase 8.7 added only daily + weekly).
+- **Completed:** 2026-09-08 — T-8.8 PASS. Drift 44/44 + CLI smoke 15/15 = 59/59 PASS in 3.72s. Cost: $0.
+
+#### T-8.8 — Skills validation + monthly/quarterly CLI
+- **status:** done
+- **commit:** 011dc20
+- **acceptance:**
+  - [x] `monthly` + `quarterly` CLI commands added (mirror `weekly` with `entry_point=observe`)
+  - [x] 5 new tests added (parametrize over 4 skills)
+  - [x] All 4 skill `entry_point` fields validated against `NODES` tuple (daily=surface_intentions, weekly/monthly/quarterly=observe)
+  - [x] Drift net 44/44 preserved
+  - [x] Targeted regression 59/59 PASS (drift + CLI smoke)
+  - [x] Atomic single commit
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 18
+- **attempts:** 0
+- **last_verdict:** PASS
+- **notes:** 4 skills × 2 parametrized tests = 8 + 3 plain = 11 new tests. Combined CLI smoke 15/15 (4 existing + 11 new). Entry-points all confirmed as valid v2 nodes.
+
+#### T-8.8.1 — Closeout (progress + tasks + memory + push)
+- **status:** done
+- **commit:** (this commit — closeout)
+- **acceptance:**
+  - [x] `progress.md` Phase 8.8 SHIPPED entry appended
+  - [x] `tasks.md` T-8.8 + T-8.8.1 entries added
+  - [x] Memory entry at `~/.claude/projects/.../memory/phase-8-8-shipped-2026-09-08.md`
+  - [x] MEMORY.md pointer added
+  - [x] Atomic commit + push to origin (branch `loop/phase-8-8`)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 4
+- **attempts:** 0
+- **last_verdict:** PASS
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations
