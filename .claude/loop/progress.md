@@ -1045,3 +1045,12 @@
 - attempt: 1/1
 - notes: T-7.3 deliverable landed + pushed to origin/master (ca6a114c: 1 file changed, 8 insertions(+); .claude/loop/schedules.json updated). Per SPEC criterion #6 ("Dependencies"), wired M7 Cost Dashboard into the daemon-manager. Command: `bash .claude/helpers/daemon-manager.sh add --name cost-dashboard --interval 1440m --command 'bash scripts/cost-dashboard.sh' --cost-cap-usd 0.5`. Schedule fires daily (86400s interval). Verified RUNNING (PID 46159, log at .claude-flow/logs/schedules/cost-dashboard.log). schedules.json now registers 3 tasks: loop-tick (60m, $5.0), hill-climb (168h, $10.0), cost-dashboard (1440m, $0.5) — completes SPEC acceptance criteria #1-6. Spike alarm signal via exit code 2 enables M8 notification channel to pipe on `$? -eq 2` without parsing report file. Next: T-7.4 regression sweep + state-machine closeout + memory entry.
 - next_action: advance (T-7.4 next)
+
+## 2026-09-08T02:05:00Z | T-7.4 M7 Cost Dashboard closeout | PASS
+- commit: b412c90
+- cost_usd: 0
+- duration_min: 5
+- model: opus (state-machine closeout; 0 LLM calls beyond this turn)
+- attempt: 1/1
+- notes: T-7.4 closeout landed + pushed (b412c90: 3 files changed, +43/-32). roadmap.md M7 STATUS flipped to DONE with 4-commit summary + acceptance checkboxes ticked. tasks.md M7 section header flipped to "DONE — 2026-09-08", T-7.1..T-7.4 all status=done with commit refs (726bfde0, 4b2510d3, ca6a114c, b412c90). Memory entry appended at ~/.claude/projects/.../memory/m7-cost-dashboard-shipped-2026-09-08.md + MEMORY.md pointer added. Live regression: tests/test_cost_dashboard.sh 7/7 PASS (re-run on real progress.md); live cost-report.md shows 112 ticks_day, $1.80 total, $0.02/tick avg, spike_alarm=none. Schedules.json registers 3 tasks. M7 complete — pure bash deliverable, zero src/ changes, $0 total cost across all 4 ticks. Unblocks M8 (Notification channel wiring).
+- next_action: advance (M8 — Notification channel wiring)
