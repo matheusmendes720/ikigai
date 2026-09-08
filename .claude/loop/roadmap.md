@@ -174,6 +174,21 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 5 implementation ticks + 7 days wall-clock for streak gate
 - **Completed:** 2026-09-08 — T-9.1 SPEC (a9341cb) + T-9.2 SessionStart hook (60c32464) + T-9.3 streak-tracker.sh (8645bf75) + T-9.4 tests/test_streak_tracker.sh (860f30d) + T-9.5 streak-tracker cron (12cc97b) + T-9.6 regression sweep clean. M9 infrastructure shipped; 7-day streak gate deferred to wall clock (auto-detected on day 7). Pattern mirrors M8 → M8.1 (real-receipt notification). Regression sweep: bash 44/44 (worktree 15 + cost 7 + notify 11 + streak 11) + pytest 52/52 (loop_infra 11 + m4 9 + canonical_scope 32) = 96/96 PASS.
 
+### M10 — End-to-end loop dispatch (STATUS: IN-PROGRESS)
+- **What:** `bash scripts/dispatch.sh <task_id>` runs the full chain (read state → spawn worker in worktree → implement → verifier → promotion → notify → progress append) as one terminal unit
+- **Why:** Wire M0–M9 pieces into a single atomic dispatch primitive so a manual session can advance milestones via one CLI call instead of orchestrating 5–6 separate scripts
+- **Spec:** `specs/M10-end-to-end-dispatch/SPEC.md` (created 2026-09-08; 5 acceptance criteria — single-command dispatch / atomic promotion / idempotent replay / notification integration via M8 channel / determinism gate before LLM)
+- **Acceptance:**
+  - [ ] Single-command dispatch (T-10.1 — `scripts/dispatch.sh` scaffold + `tests/test_dispatch.sh`)
+  - [ ] Atomic promotion (T-10.2 — wire M6/M7/M8 hooks into dispatch.sh EXIT trap)
+  - [ ] Idempotent replay (T-10.3 — re-dispatch already-done returns 0 + `already_complete`)
+  - [ ] Notification integration (T-10.2 — `reason=tick_pass|tick_fail|needs_fix` on M8 channel)
+  - [ ] Determinism gate before LLM (T-10.2 — regression sweep runs pre-dispatch, exits 1 on any sub-suite failure)
+  - [ ] All 9 prior milestones stable (full regression sweep 96/96)
+- **Dependencies:** M9
+- **Estimated ticks:** 3-5
+- **Owner:** loop-orchestrator (bash wrappers, no new orchestrator LLM per SPEC "What M10 does NOT do")
+
 ## Backlog (not yet sequenced)
 
 - [ ] Replace bash `loop-tick.sh` with TypeScript version (cross-platform)

@@ -594,56 +594,56 @@
 - **last_verdict:** —
 
 #### T-8.2.1 — FakeMcpServer + mcp_bridge.py + 4 PAV-observation nodes
-- **status:** pending
-- **commit:** —
+- **status:** done
+- **commit:** c323532d
 - **spec_ref:** docs/superpowers/specs/2026-09-08-phase-8-2-wiring-design.md (locked at ad6c972) + docs/superpowers/plans/2026-09-08-phase-8-2-wiring.md (at a08b5a7)
 - **acceptance:**
-  - [ ] `src/ikigai/src/agents/v2/mcp_bridge.py` exists with 9 sync wrappers (one per PAV-obs tool surface used by 4 nodes + 4 vault/state nodes + commit)
-  - [ ] `src/ikigai/src/agents/v2/tests/fixtures/fake_mcp_server.py` exists with `canned_response()` + `call()` API
-  - [ ] `src/ikigai/src/agents/v2/tests/test_mcp_bridge.py` passes — all 9 wrappers tested with FakeMcpServer
-  - [ ] 4 nodes rewired: `observe.py`, `score_vectors.py`, `heuristics.py`, `balance.py` — each calls `mcp_bridge.ikigai_X()` in try/except, populates `error_channel` on failure
-  - [ ] Drift 32/32 PASS preserved (no IKIGAI_TOOLS count change)
-  - [ ] All tests under `src/ikigai/tests/` + `src/ikigai/src/agents/v2/tests/` PASS
-  - [ ] Atomic commit (1 task = 1 commit)
+  - [x] `src/ikigai/src/agents/v2/mcp_bridge.py` exists with 9 sync wrappers (one per PAV-obs tool surface used by 4 nodes + 4 vault/state nodes + commit)
+  - [x] `src/ikigai/src/agents/v2/tests/fixtures/fake_mcp_server.py` exists with `canned_response()` + `call()` API
+  - [x] `src/ikigai/src/agents/v2/tests/test_mcp_bridge.py` passes — all 9 wrappers tested with FakeMcpServer
+  - [x] 4 nodes rewired: `observe.py`, `score_vectors.py`, `heuristics.py`, `balance.py` — each calls `mcp_bridge.ikigai_X()` in try/except, populates `error_channel` on failure
+  - [x] Drift 32/32 PASS preserved (no IKIGAI_TOOLS count change)
+  - [x] All tests under `src/ikigai/tests/` + `src/ikigai/src/agents/v2/tests/` PASS
+  - [x] Atomic commit (1 task = 1 commit)
 - **estimated_cost_usd:** 0.00
 - **estimated_minutes:** 15
 - **attempts:** 0
-- **last_verdict:** —
+- **last_verdict:** PASS
 - **notes:** Phase 8.2 sub-task 1 of 3. Risk: dual-module identity bug class (per W6.X item 3) — tests must patch BOTH `sys.modules["src.ikigai.src.agents.v2.mcp_bridge"]` AND `sys.modules["ikigai.src.agents.v2.mcp_bridge"]` if production code uses bare imports. IKIGAI_TOOLS=12 stays canonical (drift detector enforces); IKIGAI_NODE_TOOLS=8 separate.
 
 #### T-8.2.2 — 4 vault/state node rewire (read-only tag_and_persist)
-- **status:** pending
-- **commit:** —
+- **status:** done
+- **commit:** 7a6a7199
 - **spec_ref:** docs/superpowers/specs/2026-09-08-phase-8-2-wiring-design.md §1 + §5 (locked at ad6c972) + docs/superpowers/plans/2026-09-08-phase-8-2-wiring.md (at a08b5a7)
 - **acceptance:**
-  - [ ] 4 nodes rewired: `decompose.py`, `plan.py`, `reflect.py`, `tag_and_persist.py` — each calls mcp_bridge wrapper from T-8.2.1
-  - [ ] `tag_and_persist.py` is READ-ONLY (mcp_bridge wrapper around a read tool — NOT vault_write; vault_write wiring is separate work per SPEC §5)
-  - [ ] ADR-013 preserved: no math/policy/scoring writes to vault (agent layer stays planner-only)
-  - [ ] All error paths populate `error_channel` + route via existing `_route_after_*_error` conditional edges
-  - [ ] Drift 32/32 PASS preserved
-  - [ ] All tests PASS
-  - [ ] Atomic commit (1 task = 1 commit)
+  - [x] 4 nodes rewired: `decompose.py`, `plan.py`, `reflect.py`, `tag_and_persist.py` — each calls mcp_bridge wrapper from T-8.2.1
+  - [x] `tag_and_persist.py` is READ-ONLY (mcp_bridge wrapper around a read tool — NOT vault_write; vault_write wiring is separate work per SPEC §5)
+  - [x] ADR-013 preserved: no math/policy/scoring writes to vault (agent layer stays planner-only)
+  - [x] All error paths populate `error_channel` + route via existing `_route_after_*_error` conditional edges
+  - [x] Drift 32/32 PASS preserved
+  - [x] All tests PASS
+  - [x] Atomic commit (1 task = 1 commit)
 - **estimated_cost_usd:** 0.00
 - **estimated_minutes:** 12
 - **attempts:** 0
-- **last_verdict:** —
+- **last_verdict:** PASS
 - **notes:** Phase 8.2 sub-task 2 of 3. Builds on T-8.2.1 mcp_bridge.py. Constraint: tag_and_persist is read-only per SPEC §5 — vault_write is explicitly out of scope (separate work item). Implementer should re-verify the actual node function names against `ls src/ikigai/src/agents/v2/nodes/` since SPEC L99-102 references the same set.
 
 #### T-8.2.3 — commit.py wiring + e2e graph test
-- **status:** pending
-- **commit:** —
+- **status:** done
+- **commit:** cf02954c
 - **spec_ref:** docs/superpowers/specs/2026-09-08-phase-8-2-wiring-design.md §5 (locked at ad6c972) + docs/superpowers/plans/2026-09-08-phase-8-2-wiring.md (at a08b5a7)
 - **acceptance:**
-  - [ ] `commit.py` rewired — reads prior node outputs (in-process; no MCP)
-  - [ ] `src/ikigai/src/agents/v2/tests/test_phase_8_2_wiring.py` e2e test exists with 3 test cases: `all_nine_wrappers`, `graceful_degradation`, `server_unbound`
-  - [ ] e2e test runs full graph end-to-end with FakeMcpServer — asserts partial cycle verdict via existing `error_node → commit_summary` flow
-  - [ ] Drift 32/32 PASS preserved
-  - [ ] All tests PASS (test_mcp_bridge + test_phase_8_2_wiring + existing canonical_scope 32 + interfaces 73)
-  - [ ] Atomic commit (1 task = 1 commit)
+  - [x] `commit.py` rewired — reads prior node outputs (in-process; no MCP)
+  - [x] `src/ikigai/src/agents/v2/tests/test_phase_8_2_wiring.py` e2e test exists with 3 test cases: `all_nine_wrappers`, `graceful_degradation`, `server_unbound`
+  - [x] e2e test runs full graph end-to-end with FakeMcpServer — asserts partial cycle verdict via existing `error_node → commit_summary` flow
+  - [x] Drift 32/32 PASS preserved
+  - [x] All tests PASS (test_mcp_bridge + test_phase_8_2_wiring + existing canonical_scope 32 + interfaces 73)
+  - [x] Atomic commit (1 task = 1 commit)
 - **estimated_cost_usd:** 0.00
 - **estimated_minutes:** 10
 - **attempts:** 0
-- **last_verdict:** —
+- **last_verdict:** PASS
 - **notes:** Phase 8.2 sub-task 3 of 3 (closes the phase). **SPEC L105 STALE REF:** `dispatch_sub_agents.py` is mentioned in SPEC §5 T-8.2.3 but does NOT exist in `src/ikigai/src/agents/v2/nodes/` (verified 2026-09-08). The actual node set per `ls`: `balance.py commit.py decompose.py error.py heuristics.py meta_plan/ observe.py plan.py proposal_executor.py reflect.py score_vectors.py surface_intentions.py tag_and_persist.py`. Implementer should skip the dispatch_sub_agents wiring (or wire it against `commit.py` + `surface_intentions.py` per actual state machine) and document the SPEC gap in the commit body. T-8.2.3 is 1 create (e2e test) + 1 modify (commit.py).
 
 ## Notes for Orchestrator
