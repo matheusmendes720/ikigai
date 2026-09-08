@@ -1553,3 +1553,13 @@
 - next_action: idle (Phase 8.3 milestone complete; backlog = next)[INFO] Recording command outcome: cat
 
 [OK] Command outcome recorded
+## 2026-09-08T15:55:00Z | Phase 8.4 closeout | PASS
+- commit: 08730afc (T-8.4.1 dotted-prefix contracts imports + 3-entry PYTHONPATH) + b9698ba1 (T-8.4.2 vault_write wire + dual-module identity fix + observability import fix) + this commit (closeout)
+- cost_usd: 0
+- duration_min: 35
+- model: opus (state-machine + dual-module bug verification + commit amend; 0 LLM calls)
+- attempt: 1/1 (after 2 verification fix cycles on T-8.4.2)
+- notes: Phase 8.4 SHIPPED. (1) Server-side MCP fix: 4 dotted-prefix import swaps (investigation_complete.py:7, investigation_enqueue.py:8, resources.py:21, investigation_dispatcher.py:20) + 4 PYTHONPATH configs updated to 3-entry (mcp_inspect.py, mcp_probe.py, .mcp.json, ikigai.bat). `grep -rn "from contracts\." src/ikigai/src/mcp_server/ src/ikigai/src/agents/v2/workers/` returns zero hits — bare-prefix contracts imports replaced. (2) vault_write wire: tag_and_persist.py 28 → 80 lines via sys_ikigai.security.vault_write_wrapper; plan_node return dict extended with proposed_entity/vault_path/actor/persisted; mcp_bridge.py:32 dotted-prefix observability import fixed. Forward-looking tests at tests/ikigai/agents/v2/test_tag_and_persist_node.py 2/2 PASS. DUAL-MODULE IDENTITY bug class encountered and fixed: capturing `_resolve_vault_root` via `from ... import` at module-level creates a stale reference when test-time monkeypatch changes the source attribute; fix uses `import X as namespace` + runtime attribute lookup in provider functions. Drift net 35/35 preserved (44 tests across 3 files including canonical_scope + drift_invariants + drift_extended_invariants). Targeted regression 69/69 PASS (drift+forward+M5 48/48, v2 tests 21/21). Pre-existing PAV-archived test failures unchanged. Memory entry at ~/.claude/projects/.../memory/phase-8-4-shipped-2026-09-08.md. Branch loop/phase-8-4 (T-8.4.1 + T-8.4.2 pushed; no merge to master per standing directive).
+- next_action: idle (Phase 8.4 milestone complete; backlog = next)[INFO] Recording command outcome: cat
+
+[OK] Command outcome recorded

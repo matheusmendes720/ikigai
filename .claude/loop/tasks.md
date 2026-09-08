@@ -746,6 +746,61 @@
 - **attempts:** 0
 - **last_verdict:** PASS
 
+### Phase 8.4 — Server-side MCP fix + vault_write wire (DONE — 2026-09-08)
+
+- **Spec:** `docs/superpowers/specs/2026-09-08-phase-8-2-wiring-design.md` §4 (closes deferred M3 handshake + M4 vault_write wire) + plan `i-m-continuing-phase-8-3-crispy-bachman.md`
+- **Goal:** Close the `ModuleNotFoundError: contracts.investigation` blocking FastMcpClient server handshake (T-8.3.2 smoke test) AND wire the canonical `vault_write` MCP tool inside v2 graph's `tag_and_persist` node (deferred from Phase 8.2).
+- **Completed:** 2026-09-08 — T-8.4.1 + T-8.4.2 + closeout all PASS. Drift net 35/35 preserved. Targeted regression 48+21 = 69/69 PASS (drift + forward-looking + M5 + v2). Total cost: $0.
+
+#### T-8.4.1 — Dotted-prefix contracts imports + 3-entry PYTHONPATH
+- **status:** done
+- **commit:** 08730afc
+- **acceptance:**
+  - [x] 4 server/worker files import via dotted-prefix from canonical `src/contracts/` (investigation_complete.py:7, investigation_enqueue.py:8, resources.py:21, investigation_dispatcher.py:20)
+  - [x] 4 launchers carry 3-entry PYTHONPATH (REPO_ROOT + LIFE_SRC + IKIGAI_SRC): `scripts/mcp_inspect.py:79-86`, `scripts/mcp_probe.py:35-39`, `.mcp.json:8-10`, `src/ikigai/ikigai.bat:7`
+  - [x] Drift net 35/35 PASS (44 tests across 3 files)
+  - [x] Targeted regression 42/42 PASS
+  - [x] `grep -rn "from contracts\." src/ikigai/src/mcp_server/ src/ikigai/src/agents/v2/workers/` returns zero hits
+  - [x] Atomic commit (1 task = 1 commit)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 5
+- **attempts:** 0
+- **last_verdict:** PASS
+
+#### T-8.4.2 — Wire vault_write into tag_and_persist via wrapper
+- **status:** done
+- **commit:** a76b9f0f (amended; original `3f9d1ae` had dual-module identity bug, fixed post-verification)
+- **acceptance:**
+  - [x] `tag_and_persist_node` calls `make_wrapped_vault_write(...)` wrapped function with all 7 kwargs (actor, vault_path, frontmatter_fields, body, legal_caller, entity, vault_root)
+  - [x] `plan_node` return dict extended with proposed_entity/vault_path/actor/persisted
+  - [x] `LEGAL_CALLERS` whitelist unchanged (tag_and_persist stays there per ADR-029)
+  - [x] DUAL-MODULE IDENTITY BUG FIXED: provider functions use `import X as namespace` + runtime attribute lookup so `monkeypatch.setattr("src.ikigai.src.mcp_server.tools_vault._resolve_vault_root", lambda: tmp_path)` takes effect at call time (not just at module load)
+  - [x] Bonus dotted-prefix import fix in `mcp_bridge.py:32` (was bare-prefix `from observability.otel_init` — production-incompatible)
+  - [x] Forward-looking tests `tests/ikigai/agents/v2/test_tag_and_persist_node.py` 2/2 PASS
+  - [x] Drift net 35/35 preserved
+  - [x] Targeted regression 48/48 PASS (drift + forward-looking + M5)
+  - [x] Atomic commit (1 task = 1 commit, includes dual-module fix as part of T-8.4.2 scope)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 25 (15 for implementer + 10 for orchestrator verification + dual-module fix)
+- **attempts:** 1 (initial implementer commit had 2 bugs: legal_caller at factory + dual-module identity bug; orchestrator caught both during main-session verification per [[verify-agent-fabricated-failures]]; amended to single atomic commit)
+- **last_verdict:** PASS
+- **notes:** Dual-module identity bug class (per [[dual-module-identity-bug-class]]) encountered live during implementation — capturing `_resolve_vault_root` via `from ... import` at module top binds the original reference. test monkeypatch changes the source module attribute but the captured reference still points to the original; writes silently go to production vault root instead of `tmp_path`. Fix: `import src.ikigai.src.mcp_server.tools_vault as _tools_vault` + runtime attribute lookup `_tools_vault._resolve_vault_root()`. This is the canonical application of the memory note.
+
+#### T-8.4.3 — Closeout (progress.md + tasks.md + memory entry + push)
+- **status:** done
+- **commit:** (this commit — closeout)
+- **acceptance:**
+  - [x] `progress.md` Phase 8.4 SHIPPED entry appended (commit SHAs + drift + regression counts + cost + lessons)
+  - [x] `tasks.md` T-8.4.1 + T-8.4.2 + T-8.4.3 entries added with status=done + commit refs
+  - [x] Memory entry at `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/phase-8-4-shipped-2026-09-08.md`
+  - [x] MEMORY.md pointer added (per [[claude-md-maintenance-rule-2026-09-06]])
+  - [x] Atomic commit + push to origin (branch `loop/phase-8-4`)
+  - [x] Final fresh verification: drift 44/44 + forward-looking 2/2 + M5 2/2 + v2 tests 21/21 = 69/69 PASS
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 6
+- **attempts:** 0
+- **last_verdict:** PASS
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations
