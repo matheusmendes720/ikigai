@@ -987,6 +987,35 @@
 - **attempts:** 0
 - **last_verdict:** PASS
 
+### Phase 9.3 — Operator TUI Skills tab (DONE — 2026-09-08)
+
+- **Goal:** Add 6th tab "Skills" to operator TUI showing 4 v2 skill manifests. Observer-only per CLAUDE.md dual-layer architecture.
+- **Completed:** 2026-09-08 — T-9.3 PASS. Drift 44/44. Cost: $0.
+
+#### T-9.3 — Operator TUI Skills tab
+- **status:** done
+- **commit:** a239afee
+- **acceptance:**
+  - [x] `data.py`: `SkillRow` dataclass + `load_skill_rows()` function
+  - [x] `app.py`: 6th tab "Skills" (key `6`) + `action_show_skills()` + 6-column DataTable
+  - [x] load_skill_rows() returns 4 rows (daily, weekly, monthly, quarterly)
+  - [x] Tabs 1-5 still work (BINDINGS unchanged for old keys)
+  - [x] Drift 44/44 preserved
+  - [x] TUI remains observer-only (no writes)
+  - [x] Atomic single commit
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 7
+- **attempts:** 0
+- **last_verdict:** PASS
+
+#### T-9.3.1 — Closeout (progress + tasks + memory + push)
+- **status:** done
+- **commit:** (this commit — closeout)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 3
+- **attempts:** 0
+- **last_verdict:** PASS
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations
