@@ -1,95 +1,17 @@
-"""observe node — read sensors and populate initial state.
+from src.ikigai.src.agents.v2 import mcp_bridge
 
-PHASE 8.2: calls observe_qhe_observation prompt template (FAKE_LLM mode for tests).
-"""
-
-from __future__ import annotations
-
-import json
-import subprocess
-from pathlib import Path
-from typing import Any
-
-from ..prompts.load_constants import get as _c
-from ..prompts.observe_qhe_observation import render_observe_qhe_observation
 from ..state import IKIGAiStateDict
 
 
-def _default_vault_root() -> Path:
-    return Path(__file__).resolve().parent.parent.parent.parent.parent / "vault"
-
-
 def observe_node(state: IKIGAiStateDict) -> dict[str, Any]:
-    """Read sensors: Q_HE score, workload estimate, capacity estimate.
-
-    PHASE 8.2: calls render_observe_qhe_observation prompt template.
-    Returns dict to merge into state.
-    """
-    updates: dict[str, Any] = {
-        "last_step": "observe",
-    }
-
-    # Chat mode — accumulate user message and emit agent response
-    user_input = state.get("user_input")
-    if user_input:
-        agent_response = _build_agent_response(state)
-        updates["messages"] = [{"role": "user", "content": user_input}]
-        updates["agent_response"] = agent_response
-        updates["user_input"] = None
-
-    # Plan D Task D.1 — intent detection (~30 LOC)
-    # Emits plan_intent_hint when user_input matches planning keywords.
-    # ZERO writes. Just a hint to invoke /plan explicitly.
-    from .meta_plan.classify_intent import classify_intent
-
-    plan_intent_hint: str | None = None
-    if user_input:
-        intent = classify_intent(user_input)
-        if intent.level in ("high", "medium"):
-            plan_intent_hint = (
-                f"💡 Detectei intent de planning (level={intent.level}). "
-                f"Use `/plan {user_input[:60]}` para proposta estruturada."
-            )
-    updates["plan_intent_hint"] = plan_intent_hint
-
-    # Read Q_HE via prompt template
-    vault_root = str(_default_vault_root())
-    prompt_state = {"vault_root": vault_root, "date": state.get("cycle_start", "")}
-    qhe_obs = render_observe_qhe_observation(prompt_state)
-    q_he_score = qhe_obs.get("q_he", 0.65)
-
-    workload_estimate = _read_workload_from_upi()
-    capacity_estimate = _c("CAPACITY_HOURS_PER_DAY")
-
-    # Determine regime from Q_HE
-    if q_he_score >= _c("QHE_PUSH_THRESHOLD"):
-        regime = "PUSH"
-    elif q_he_score >= _c("QHE_RECOVER_THRESHOLD"):
-        regime = "MAINTAIN"
-    else:
-        regime = "RECOVER"
-
-    # Determine balancer verdict
-    workload_ratio = workload_estimate / max(capacity_estimate, 1.0)
-    if q_he_score < _c("QHE_RECOVER_THRESHOLD"):
-        balancer = "RECOVER"
-    elif workload_ratio >= _c("WORKLOAD_OVERLOAD_FACTOR"):
-        balancer = "OVERLOAD"
-    elif workload_ratio <= _c("WORKLOAD_UNDERLOAD_FACTOR"):
-        balancer = "UNDERLOAD"
-    else:
-        balancer = "OK"
-
-    updates.update(
-        {
-            "q_he_score": q_he_score,
-            "workload_estimate": workload_estimate,
-            "capacity_estimate": capacity_estimate,
-            "regime_state": regime,
-            "balancer_verdict": balancer,
-        }
-    )
-    return updates
+    """Read Q_HE observation via MCP bridge. Replaces prompt-chain stub."""
+    try:
+        result = mcp_bridge.ikigai_observe_pav_state(
+            date=state.get("date", "2026-09-08")
+        )
+        return {"observation": result, "error_channel": []}
+    except Exception as e:
+        return {"observation": None, "error_channel": [f"observe: {e}"]}
 
 
 def _build_agent_response(state: IKIGAiStateDict) -> str:

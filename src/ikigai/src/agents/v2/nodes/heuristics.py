@@ -1,46 +1,15 @@
-"""heuristics node — H1-H6 deterministic corrections.
+from src.ikigai.src.agents.v2 import mcp_bridge
 
-PHASE 8.2: calls 6 H* prompt templates + regime observation via LLM.
-Pure dict operations, no FORBIDDEN_FUNCTION names.
-"""
-
-from __future__ import annotations
-
-from typing import Any
-
-from ..prompts.h1_energy import render_h1_energy
-from ..prompts.h2_qhe_composite import render_h2_qhe_composite
-from ..prompts.h6_severity import render_h6_severity
-from ..prompts.load_constants import get as _c
-from ..state import CorrectionSignal, IKIGAiStateDict
+from ..state import IKIGAiStateDict
 
 
 def heuristics_node(state: IKIGAiStateDict) -> dict[str, Any]:
-    """Apply H1-H6 heuristics via prompt chain and emit corrections.
-
-    PHASE 8.2: calls render_h* prompt templates (FAKE_LLM mode for tests).
-    Returns corrections list (appended to existing).
-    """
-    corrections: list[CorrectionSignal] = list(state.get("corrections", []))
-    vault_root = str(state.get("vault_root", ""))
-    prompt_state = {"vault_root": vault_root}
-
-    # H1: Energy required from habit consistency
-    corrections.extend(_h1_energy_required(state, prompt_state))
-
-    # H2: Q_HE composite
-    corrections.extend(_h2_qhe_composite(state, prompt_state))
-
-    # H3: Regime transitions
-    corrections.extend(_h3_regime_fsm(state, prompt_state))
-
-    # H6: Severity
-    corrections.extend(_h6_severity(state, prompt_state))
-
-    return {
-        "corrections": corrections,
-        "last_step": "heuristics",
-    }
+    """Apply heuristics via MCP bridge."""
+    try:
+        result = mcp_bridge.ikigai_heuristics(context=state.get("context", {}))
+        return {"heuristics": result, "error_channel": []}
+    except Exception as e:
+        return {"heuristics": None, "error_channel": [f"heuristics: {e}"]}
 
 
 def _h1_energy_required(
