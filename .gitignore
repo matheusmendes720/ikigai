@@ -391,3 +391,15 @@ archive/legacy-pav/src-operational/medic/bin/
 /c'
 /word`
 /.worktrees/
+
+# ─── Bash heredoc-leak follow-up (Phase 9.4) ─────────────────────
+# 0-byte bash redirect artifacts from malformatted `> word` style redirects
+# (e.g. `> agent('Execute')` → creates file `agent('Execute')` instead of string).
+# Same root cause as existing /None /str /int /Path patterns above.
+# Patterns referenced in CLAUDE.md "Zero-byte artifacts untracked":
+#   `0`, `14`, `agent('Execute`, `int`, `None`
+# Listed individually — gitignore does not support alternation `(a|b)`.
+/0
+/14
+/agent\('*
+
