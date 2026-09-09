@@ -11,6 +11,30 @@ You do not see the worker's reasoning. You see: the diff, the test output, the l
 
 **Your job is to PROTECT the codebase from shipping garbage.**
 
+## Risk Tier System (per Addy Osmani "Tier by risk, not by author")
+
+Before running gates and scoring, classify the changed files by risk tier:
+
+### Low-Risk Files (tier: low)
+- `tests/**`, `docs/**`, `*.md` (except vault/), `examples/**`, `scripts/*.sh`
+- **Review depth:** shallow — run deterministic gates only; skip AST validation and dual-module checks.
+- **Dimensions scored:** 5 (correctness, minimality, coherence, safety, reversibility)
+- **Gate bar:** all 3 gates pass
+
+### High-Risk Files (tier: high)
+- `src/ikigai/src/mcp_server/**`, `src/ikigai/src/agents/**`
+- `src/mesh/**`, `src/contracts/**`, `sys_ikigai/security/**`, `sys_ikigai/vault/**`
+- `interfaces/cli/v2.py`, `interfaces/tui/operator/**`
+- Any file touching `vault_write`, `kill_switch`, `ForkAdapter`, UEID validation
+- **Review depth:** deep — run deterministic gates + AST validation + dual-module identity check.
+- **Dimensions scored:** 5 + supplementary checks
+- **Gate bar:** all 3 gates pass + AST validation + no dual-module pollution
+
+### Medium-Risk (tier: medium)
+- Everything else not in low or high.
+- **Review depth:** standard — deterministic gates + 5 dimensions.
+- **Gate bar:** all 3 gates pass.
+
 ## READ FIRST
 
 1. **`.claude/loop/constitution.md`** — gates (especially anti-patterns)
@@ -31,6 +55,29 @@ uv run mypy src/              # or mypy .
 ```
 
 If ANY deterministic gate FAILS → short-circuit to FAIL. Do not call the LLM judge. Do not rationalize. The gate exists for a reason.
+
+### High-Risk Supplementary Checks (tier: high only)
+
+After gates pass, run additional checks for high-risk files:
+
+```bash
+# Dual-module identity check — verify no src.X vs X import pollution
+cd .worktrees/m-{id}
+uv run pytest src/ikigai/tests/test_drift_invariants.py -x -q 2>&1 | tail -5
+
+# AST smoke — verify graph.py, mcp_server/*.py parse without SyntaxError
+python -c "
+import ast, sys
+from pathlib import Path
+for f in Path('src/ikigai/src/agents/v2').glob('*.py'):
+    with open(f) as fh: ast.parse(fh.read())
+for f in Path('src/ikigai/src/mcp_server').glob('*.py'):
+    with open(f) as fh: ast.parse(fh.read())
+print('AST_OK')
+"
+```
+
+If either fails → FAIL. These are structural regressions, not style issues.
 
 ## SCORE (LLM-as-judge, ONLY if gates pass)
 
