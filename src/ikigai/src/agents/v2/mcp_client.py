@@ -218,6 +218,7 @@ def _extract_result(result: Any) -> dict[str, Any]:
 def bind_server_to_gateway(
     server_script: str,
     env: dict[str, str] | None = None,
+    cwd: str | None = None,
 ) -> FastMcpClient:
     """Spawn the FastMCP gateway subprocess and return a sync-call client.
 
@@ -226,4 +227,4 @@ def bind_server_to_gateway(
     re-export) or assign the returned client directly to
     `mcp_bridge._server` before invoking any ikigai_X() function.
     """
-    return FastMcpClient(server_script=server_script, env=env)
+    return FastMcpClient(server_script=server_script, env=env, cwd=cwd)
