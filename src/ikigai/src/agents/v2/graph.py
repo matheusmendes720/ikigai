@@ -70,6 +70,34 @@ NODES = (
 
 
 # ---------------------------------------------------------------------------
+# Token-budget guard (PROD-3): enforce per-skill max_tokens cap
+# ---------------------------------------------------------------------------
+def _make_token_guard(max_tokens: int) -> Callable[[IKIGAiStateDict], dict[str, Any]]:
+    """Return a node wrapper that enforces a token budget.
+
+    Tracks accumulated tokens in state['_token_budget_used'] and aborts
+    with an error if the cap is exceeded. Each node invocation counts as ~50 tokens.
+    """
+
+    def guard(state: IKIGAiStateDict) -> dict[str, Any]:
+        used = state.get("_token_budget_used", 0)
+        node_cost = 50  # rough estimate per node invocation
+        if used + node_cost > max_tokens:
+            return {
+                "originating_node": "token_guard",
+                "error_type": "TokenBudgetExceeded",
+                "error_message": (
+                    f"Token budget exceeded: {used + node_cost} > {max_tokens} "
+                    f"(skill cap). Aborting graph execution."
+                ),
+                "last_step": state.get("last_step", "unknown"),
+            }
+        return {"_token_budget_used": used + node_cost}
+
+    return guard
+
+
+# ---------------------------------------------------------------------------
 # Safe-node wrapper (B5.1-F3): catch exceptions, populate error state, return
 # partial state instead of crashing. The terminal `error_node` consumes this
 # state to produce a failed commit_summary.
@@ -204,6 +232,7 @@ def _route_after_dispatch_sub_agents(state: IKIGAiStateDict) -> str:
 def make_v2_graph(
     checkpoint_db: str | None = None,
     entry_point: str = "observe",
+    max_tokens: int = 96_000,
 ) -> Any:
     """Build the IKIGAi Maintainer StateGraph v2.
 
@@ -214,6 +243,9 @@ def make_v2_graph(
                      Must be one of NODES. Default: "observe" (full pipeline).
                      Skills (daily/weekly/monthly/quarterly) enter at specific
                      nodes to invoke partial pipelines.
+        max_tokens: Per-skill token budget cap (PROD-3 cost guard).
+                    Defaults: daily=1k, weekly=8k, monthly=32k, quarterly=96k.
+                    Passed from invoke_skill() in _v2_skills.py.
 
     Returns:
         Compiled StateGraph ready for .invoke()
@@ -236,9 +268,14 @@ def make_v2_graph(
     with _graph_tracer.start_as_current_span("ikigai.graph.compile") as span:
         span.set_attribute("checkpoint_db", checkpoint_db)
         span.set_attribute("entry_point", entry_point)
+        span.set_attribute("max_tokens", max_tokens)
         builder: StateGraph[IKIGAiStateDict, None, IKIGAiStateDict, IKIGAiStateDict] = StateGraph(
             IKIGAiStateDict
         )
+
+        # Token guard node (PROD-3): runs first, checks budget, routes to entry_point or error
+        token_guard_fn = _make_token_guard(max_tokens)
+        builder.add_node("_token_guard", _safe_node("_token_guard", token_guard_fn))
 
         # Add nodes — wrapped in safe_node so exceptions populate error state
         builder.add_node("observe", _safe_node("observe", observe_node))
@@ -260,6 +297,18 @@ def make_v2_graph(
             "surface_intentions", _safe_node("surface_intentions", surface_intentions_node)
         )
         builder.add_node("error", error_node)
+
+        # Token guard routing: guard → entry_point or error
+        def _route_from_token_guard(state: IKIGAiStateDict) -> str:
+            if state.get("error_type") == "TokenBudgetExceeded":
+                return "error"
+            return entry_point
+
+        builder.add_conditional_edges(
+            "_token_guard",
+            _route_from_token_guard,
+            {"error": "error", entry_point: entry_point},
+        )
 
         # Sequential edges
         builder.add_conditional_edges(
@@ -327,7 +376,7 @@ def make_v2_graph(
 
         builder.add_edge("surface_intentions", END)
         builder.add_edge("error", END)
-        builder.set_entry_point(entry_point)
+        builder.set_entry_point("_token_guard")
 
         # Compile with checkpointer
         import sqlite3
