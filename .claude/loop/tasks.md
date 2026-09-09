@@ -987,6 +987,35 @@
 - **attempts:** 0
 - **last_verdict:** PASS
 
+### Phase 9.4 — Pre-existing PAV test cleanup (DONE — 2026-09-08)
+
+- **Goal:** Rename `test_v2_pav_intentions.py` → `test_v2_surface_intentions.py` (per [[archived-feature-not-vocabulary-2026-09-06]]) + add 0-byte bash-redirect patterns to `.gitignore` (per CLAUDE.md).
+- **Completed:** 2026-09-08 — T-9.4 PASS. Drift 44/44 + renamed tests 6/6 = 50/50 PASS. Cost: $0.
+
+#### T-9.4 — PAV test rename + .gitignore
+- **status:** done
+- **commit:** dbff4aa8 (amended from ff16df0 — fixed NODES count assertion 12→11)
+- **acceptance:**
+  - [x] `git mv src/ikigai/tests/test_v2_pav_intentions.py test_v2_surface_intentions.py` (rename)
+  - [x] Test functions renamed: `test_surface_prompt_template_imports` / `test_surface_intentions_node_imports` / `test_v2_graph_nodes_tuple_size`
+  - [x] `.gitignore` adds 5 patterns (`0`, `14`, `agent('*`, `int`, `None`) with comment
+  - [x] Drift 44/44 preserved
+  - [x] 6 renamed tests PASS
+  - [x] Atomic single commit
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 7
+- **attempts:** 1 (after brief-side error: NODES count is 11, not 12; amended commit)
+- **last_verdict:** PASS
+- **notes:** Brief-side error: assumed NODES has 12 entries but actual is 11 (the `error` node is added separately at graph.py:262). Fix: assert `== 11` matches the NODES tuple.
+
+#### T-9.4.1 — Closeout (progress + tasks + memory + push)
+- **status:** done
+- **commit:** (this commit — closeout)
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 3
+- **attempts:** 0
+- **last_verdict:** PASS
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations
