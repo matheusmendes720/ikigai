@@ -51,8 +51,15 @@ class FastMcpClient:
         client.close()                             # graceful shutdown
     """
 
-    def __init__(self, server_script: str) -> None:
+    def __init__(
+        self,
+        server_script: str,
+        env: dict[str, str] | None = None,
+        cwd: str | None = None,
+    ) -> None:
         self._server_script = server_script
+        self._env = env
+        self._cwd = cwd
         self._loop: asyncio.AbstractEventLoop | None = None
         self._thread: threading.Thread | None = None
         self._session: ClientSession | None = None
@@ -104,6 +111,8 @@ class FastMcpClient:
         params = StdioServerParameters(
             command=sys.executable,
             args=["-m", self._server_script],
+            env=self._env,
+            cwd=self._cwd,
         )
         self._transport_cm = stdio_client(params)
         read_stream, write_stream = await self._transport_cm.__aenter__()
@@ -175,6 +184,15 @@ def _extract_result(result: Any) -> dict[str, Any]:
     structured = getattr(result, "structuredContent", None)
     if structured:
         if isinstance(structured, dict):
+            # Double-wrap pattern: handler returns JSON string, FastMCP wraps it
+            # as {"result": "<json string>"}. Detect + JSON-decode the inner string.
+            if len(structured) == 1 and "result" in structured and isinstance(structured["result"], str):
+                try:
+                    decoded = json.loads(structured["result"])
+                    if isinstance(decoded, dict):
+                        return decoded
+                except (json.JSONDecodeError, ValueError):
+                    pass
             return dict(structured)
         try:
             return dict(structured)
@@ -197,7 +215,10 @@ def _extract_result(result: Any) -> dict[str, Any]:
     return {"value": decoded}
 
 
-def bind_server_to_gateway(server_script: str) -> FastMcpClient:
+def bind_server_to_gateway(
+    server_script: str,
+    env: dict[str, str] | None = None,
+) -> FastMcpClient:
     """Spawn the FastMCP gateway subprocess and return a sync-call client.
 
     This is the production equivalent of `FakeMcpServer()` in tests.
@@ -205,4 +226,4 @@ def bind_server_to_gateway(server_script: str) -> FastMcpClient:
     re-export) or assign the returned client directly to
     `mcp_bridge._server` before invoking any ikigai_X() function.
     """
-    return FastMcpClient(server_script=server_script)
+    return FastMcpClient(server_script=server_script, env=env)
