@@ -1,5 +1,6 @@
 # M8 — Notification Channel
 
+> **Constitution:** .claude/loop/constitution.md
 > **Created:** 2026-09-07
 > **Owner:** loop-orchestrator
 > **Status:** IN-PROGRESS

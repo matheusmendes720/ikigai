@@ -1,5 +1,6 @@
 # SPEC: Period Reports Sync Layer v1.1
 
+> **Constitution:** .claude/loop/constitution.md
 > **Feature ID:** `period-reports-sync`
 > **Status:** Implemented (commit `f43c9742ab44935289721524e0356ec45662618d`)
 > **Plan:** `.omo/plans/period-reports-sync.md`

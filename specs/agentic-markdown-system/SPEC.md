@@ -1,5 +1,6 @@
 # SPEC: Agentic Markdown Strategic Planning System
 
+> **Constitution:** .claude/loop/constitution.md
 > **Feature ID:** `agentic-markdown-system`
 > **Status:** **DELIVERED** (T1-T15 complete; F1-F4 all APPROVED)
 > **Plan:** `.omo/plans/agentic-markdown-system.md`

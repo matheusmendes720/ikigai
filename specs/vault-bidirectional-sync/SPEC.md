@@ -1,5 +1,6 @@
 # SPEC: Vault Bidirectional Sync
 
+> **Constitution:** .claude/loop/constitution.md
 > **Feature ID:** `vault-bidirectional-sync`
 > **Status:** **DELIVERED** (T1-T13 complete; F-Wave pending)
 > **Plan:** `.omo/plans/vault-bidirectional-sync.md`

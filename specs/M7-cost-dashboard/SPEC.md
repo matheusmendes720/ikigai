@@ -1,5 +1,6 @@
 # M7 — Cost Dashboard
 
+> **Constitution:** .claude/loop/constitution.md
 > **Created:** 2026-09-08
 > **Owner:** loop-orchestrator
 > **Status:** IN-PROGRESS

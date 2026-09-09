@@ -1,5 +1,6 @@
 # M6 — Worktree Isolation Helper
 
+> **Constitution:** .claude/loop/constitution.md
 > **What:** Make `scripts/worktree-helper.sh` the canonical gate for parallel sub-agent dispatch. Today the script exists (96 lines, commit `91fb7d4`) but lacks (a) a documented contract, (b) end-to-end tests proving parallel safety, (c) auto-cleanup hooks tied to milestone closeout.
 >
 > **Why:** M5 made IKIGAI MCP reachable from the loop. M6 makes it safe to fan out parallel sub-agents without stepping on each other. M7–M9 (cost dashboard, notification, production mode) all assume worktree isolation works.
