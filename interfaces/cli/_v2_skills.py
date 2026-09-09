@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import os
 import time
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -228,11 +228,52 @@ def invoke_skill(skill_name: str, date_str: str | None = None) -> dict[str, Any]
         config={"configurable": {"thread_id": f"{skill_name}-{date_str}"}},
     )
 
-    return {
+    return_dict: dict[str, Any] = {
         "skill": manifest.get("name", f"ikigai-{skill_name}"),
         "date": date_str,
         entry_point: result,
     }
+
+    # W3.6 post-processing: check manifest outputs for taskdog_create_task gate
+    outputs: list[Any] = manifest.get("outputs", []) or []
+    taskdog_desc = _manifest_declares_taskdog(outputs)
+    if taskdog_desc is not None:
+        title = _derive_taskdog_title(skill_name, taskdog_desc)
+        try:
+            # Import the @tool function (mirrors tools.py canonical path)
+            from src.ikigai.src.agents.tools import taskdog_create_task as _td_tool
+
+            result_str = _td_tool.invoke({"name": title})
+            return_dict["taskdog_result"] = result_str
+        except Exception as exc:  # noqa: BLE001
+            # W3.6 partial-success invariant: taskdog failure → review_queue entry
+            return_dict["taskdog_pending_review_queue"] = True
+            return_dict["taskdog_error"] = str(exc)
+            # Enqueue to mesh queue for agent retry
+            try:
+                from src.mesh.queue import enqueue
+                from src.contracts.task_change import TaskChange
+
+                tc = TaskChange(
+                    event_id=f"err-{skill_name}-{datetime.now().strftime('%Y%m%d%H%M%S%f')}",
+                    ueid="tsk:taskdog-review:00000000-0000-0000-0000-000000000000:0000000000000000",
+                    action="create",
+                    source_fork="taskdog",
+                    fields={
+                        "target_fork": "taskdog",
+                        "error": str(exc),
+                        "original_params": {"name": title},
+                        "created_at": str(date.today()),
+                        "actor": "agent",
+                    },
+                    timestamp=datetime.now(),
+                )
+                enqueue(tc)
+            except Exception:
+                # Queue write failure is non-fatal; flag is already set
+                pass
+
+    return return_dict
 
 
 def ensure_mcp_server_bound() -> None:

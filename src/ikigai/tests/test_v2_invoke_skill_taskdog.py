@@ -1,10 +1,10 @@
 """W3.6 — invoke_skill() taskdog_create_task post-processor tests.
 
 Per W3.6 brief:
-- invoke_skill("ikigai-quarterly") triggers taskdog_create_task via existing @tool
-- invoke_skill("ikigai-daily") does NOT trigger taskdog (outputs=[])
-- invoke_skill("ikigai-weekly") triggers taskdog (outputs declares it)
-- invoke_skill("ikigai-monthly") does NOT trigger taskdog (only vault_write)
+- invoke_skill("quarterly") triggers taskdog_create_task via existing @tool
+- invoke_skill("daily") does NOT trigger taskdog (outputs=[])
+- invoke_skill("weekly") triggers taskdog (outputs declares it)
+- invoke_skill("monthly") does NOT trigger taskdog (only vault_write)
 - Taskdog success → return dict has ``taskdog_result``
 - Taskdog failure → return dict has ``taskdog_pending_review_queue: True`` AND
   data/review_queue/<file>.json created with the canonical record shape
@@ -68,27 +68,57 @@ class _TaskdogMock:
 
 @pytest.fixture
 def taskdog_mock(monkeypatch):
-    """Patch ``agents.tools.taskdog_create_task`` with a mock.
+    """Patch ``src.ikigai.src.agents.tools.taskdog_create_task`` with a mock.
 
-    Uses the bare ``agents.tools`` import style which resolves correctly in
-    pytest (the dotted ``src.ikigai.src.agents.tools`` is the CLI style;
-    pytest's rootdir adds extra paths that would shadow the namespace).
+    The dual-module-identity bug: _v2_skills imports from the full
+    dotted-prefix path, so the patch must target the same sys.modules entry.
     """
-    from agents import tools as tools_mod
+    import sys as _sys
+    from src.ikigai.src.agents import tools as _tools_mod
 
+    _sys.modules["src.ikigai.src.agents.tools"] = _tools_mod
     mock = _TaskdogMock()
-    monkeypatch.setattr(tools_mod, "taskdog_create_task", mock)
+    monkeypatch.setattr(_tools_mod, "taskdog_create_task", mock)
     return mock
 
 
 @pytest.fixture
 def taskdog_mock_failing(monkeypatch):
     """Patch taskdog_create_task to raise ConnectionError on invoke."""
-    from agents import tools as tools_mod
+    import sys as _sys
+    from src.ikigai.src.agents import tools as _tools_mod
 
+    _sys.modules["src.ikigai.src.agents.tools"] = _tools_mod
     mock = _TaskdogMock(raise_exc=ConnectionError("taskdog unavailable (simulated)"))
-    monkeypatch.setattr(tools_mod, "taskdog_create_task", mock)
+    monkeypatch.setattr(_tools_mod, "taskdog_create_task", mock)
     return mock
+
+
+@pytest.fixture
+def fake_server(monkeypatch):
+    """Bind FakeMcpServer to mcp_bridge._server so graph nodes run without a real daemon.
+
+    Binds directly on the imported module object (not via string path) to ensure
+    the binding is visible to all code paths that hold a reference to mcp_bridge.
+    """
+    from src.ikigai.src.agents.v2 import mcp_bridge as _bridge_mod
+    from src.ikigai.src.agents.v2.tests.fixtures.fake_mcp_server import FakeMcpServer
+
+    server = FakeMcpServer()
+    # Provide canned responses for every MCP wrapper the graph might call
+    server.canned_response("ikigai_observe_pav_state", qhe_score=0.75)
+    server.canned_response("ikigai_score_vectors", priorities=[])
+    server.canned_response("ikigai_heuristics", actions=[])
+    server.canned_response("ikigai_balance", delta=0.0)
+    server.canned_response("ikigai_decompose", subtasks=[])
+    server.canned_response("ikigai_plan", plan_id="p1")
+    server.canned_response("ikigai_reflect", lessons=[])
+    server.canned_response("ikigai_tag_and_persist", tags=[])
+    server.canned_response("ikigai_commit_summary", verdict="PASS")
+    # Direct attribute assignment on the module object — avoids string-path
+    # resolution issues with monkeypatch.setattr
+    _bridge_mod._server = server
+    return server
 
 
 def _list_review_queue(tmp_path: Path) -> list[dict]:
@@ -108,8 +138,8 @@ def _list_review_queue(tmp_path: Path) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def test_invoke_skill_skips_taskdog_for_daily(tmp_path, monkeypatch, taskdog_mock):
-    """invoke_skill("ikigai-daily") does NOT fire taskdog (outputs is empty).
+def test_invoke_skill_skips_taskdog_for_daily(tmp_path, monkeypatch, taskdog_mock, fake_server):
+    """invoke_skill("daily") does NOT fire taskdog (outputs is empty).
 
     daily.md has ``outputs: []`` (surface-only skill per W3.5). Even if a
     mock is wired up, the post-processor must short-circuit before calling it.
@@ -118,7 +148,7 @@ def test_invoke_skill_skips_taskdog_for_daily(tmp_path, monkeypatch, taskdog_moc
     monkeypatch.setenv("IKIGAI_VAULT_ROOT", str(tmp_path / "vault"))
     from interfaces.cli._v2_skills import invoke_skill
 
-    result = invoke_skill("ikigai-daily")
+    result = invoke_skill("daily")
 
     assert isinstance(result, dict)
     assert "taskdog_result" not in result
@@ -126,8 +156,8 @@ def test_invoke_skill_skips_taskdog_for_daily(tmp_path, monkeypatch, taskdog_moc
     assert taskdog_mock.calls == [], "taskdog must NOT be called for daily skill"
 
 
-def test_invoke_skill_fires_taskdog_for_quarterly(tmp_path, monkeypatch, taskdog_mock):
-    """invoke_skill("ikigai-quarterly") fires taskdog_create_task exactly once.
+def test_invoke_skill_fires_taskdog_for_quarterly(tmp_path, monkeypatch, taskdog_mock, fake_server):
+    """invoke_skill("quarterly") fires taskdog_create_task exactly once.
 
     quarterly.md outputs declares ``taskdog_create_task: quarterly OKRs``,
     so the post-processor must invoke the @tool with the derived title.
@@ -136,14 +166,14 @@ def test_invoke_skill_fires_taskdog_for_quarterly(tmp_path, monkeypatch, taskdog
     monkeypatch.setenv("IKIGAI_VAULT_ROOT", str(tmp_path / "vault"))
     from interfaces.cli._v2_skills import invoke_skill
 
-    invoke_skill("ikigai-quarterly")
+    invoke_skill("quarterly")
 
     assert len(taskdog_mock.calls) == 1, (
         f"taskdog must be called exactly once for quarterly; got {taskdog_mock.calls}"
     )
 
 
-def test_invoke_skill_taskdog_called_with_state_derived_params(tmp_path, monkeypatch, taskdog_mock):
+def test_invoke_skill_taskdog_called_with_state_derived_params(tmp_path, monkeypatch, taskdog_mock, fake_server):
     """The taskdog invoke payload derives from skill description + date.
 
     Per quarterly.md: ``taskdog_create_task: quarterly OKRs``. The derived
@@ -154,20 +184,20 @@ def test_invoke_skill_taskdog_called_with_state_derived_params(tmp_path, monkeyp
     monkeypatch.setenv("IKIGAI_VAULT_ROOT", str(tmp_path / "vault"))
     from interfaces.cli._v2_skills import invoke_skill
 
-    invoke_skill("ikigai-quarterly")
+    invoke_skill("quarterly")
 
     today = date.today().isoformat()
     assert taskdog_mock.calls[0]["name"] == f"quarterly OKRs {today}"
 
 
-def test_invoke_skill_taskdog_success_includes_result(tmp_path, monkeypatch, taskdog_mock):
+def test_invoke_skill_taskdog_success_includes_result(tmp_path, monkeypatch, taskdog_mock, fake_server):
     """Success path returns ``taskdog_result`` populated with @tool stdout."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     monkeypatch.setenv("IKIGAI_VAULT_ROOT", str(tmp_path / "vault"))
     taskdog_mock.return_value = "Added task 7 ✓ quarterly OKRs 2026-09-04"
     from interfaces.cli._v2_skills import invoke_skill
 
-    result = invoke_skill("ikigai-quarterly")
+    result = invoke_skill("quarterly")
 
     assert "taskdog_result" in result
     assert "Added task 7" in result["taskdog_result"]
@@ -175,7 +205,7 @@ def test_invoke_skill_taskdog_success_includes_result(tmp_path, monkeypatch, tas
 
 
 def test_invoke_skill_taskdog_failure_returns_pending_review_queue(
-    tmp_path, monkeypatch, taskdog_mock_failing
+    tmp_path, monkeypatch, taskdog_mock_failing, fake_server
 ):
     """Failure path returns ``taskdog_pending_review_queue: True``.
 
@@ -187,7 +217,7 @@ def test_invoke_skill_taskdog_failure_returns_pending_review_queue(
     monkeypatch.setenv("IKIGAI_VAULT_ROOT", str(tmp_path / "vault"))
     from interfaces.cli._v2_skills import invoke_skill
 
-    result = invoke_skill("ikigai-quarterly")
+    result = invoke_skill("quarterly")
 
     assert "taskdog_pending_review_queue" in result
     assert result["taskdog_pending_review_queue"] is True
@@ -195,7 +225,7 @@ def test_invoke_skill_taskdog_failure_returns_pending_review_queue(
 
 
 def test_invoke_skill_taskdog_failure_writes_to_review_queue(
-    tmp_path, monkeypatch, taskdog_mock_failing
+    tmp_path, monkeypatch, taskdog_mock_failing, fake_server
 ):
     """Failure path enqueues a TaskChange to data/review_queue/.
 
@@ -213,7 +243,7 @@ def test_invoke_skill_taskdog_failure_writes_to_review_queue(
     monkeypatch.setattr(queue_mod, "QUEUE_DIR", tmp_path / "review_queue")
     from interfaces.cli._v2_skills import invoke_skill
 
-    invoke_skill("ikigai-quarterly")
+    invoke_skill("quarterly")
 
     records = _list_review_queue(tmp_path / "review_queue")
     assert len(records) == 1, f"expected 1 review_queue record; got {records}"
@@ -236,8 +266,8 @@ def test_invoke_skill_taskdog_failure_writes_to_review_queue(
     assert re.match(r"^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$", rec["ueid"])
 
 
-def test_invoke_skill_taskdog_weekly_triggers(tmp_path, monkeypatch, taskdog_mock):
-    """invoke_skill("ikigai-weekly") fires taskdog (weekly.md declares it).
+def test_invoke_skill_taskdog_weekly_triggers(tmp_path, monkeypatch, taskdog_mock, fake_server):
+    """invoke_skill("weekly") fires taskdog (weekly.md declares it).
 
     weekly.md outputs declares ``taskdog_create_task: weekly priorities`` —
     expected behavior is to fire, just like quarterly.
@@ -246,15 +276,15 @@ def test_invoke_skill_taskdog_weekly_triggers(tmp_path, monkeypatch, taskdog_moc
     monkeypatch.setenv("IKIGAI_VAULT_ROOT", str(tmp_path / "vault"))
     from interfaces.cli._v2_skills import invoke_skill
 
-    invoke_skill("ikigai-weekly")
+    invoke_skill("weekly")
 
     assert len(taskdog_mock.calls) == 1
     today = date.today().isoformat()
     assert taskdog_mock.calls[0]["name"] == f"weekly priorities {today}"
 
 
-def test_invoke_skill_taskdog_monthly_skips(tmp_path, monkeypatch, taskdog_mock):
-    """invoke_skill("ikigai-monthly") does NOT fire taskdog.
+def test_invoke_skill_taskdog_monthly_skips(tmp_path, monkeypatch, taskdog_mock, fake_server):
+    """invoke_skill("monthly") does NOT fire taskdog.
 
     monthly.md outputs only declares ``vault_write`` — no taskdog entry.
     The post-processor must short-circuit and return the graph result unchanged.
@@ -263,14 +293,14 @@ def test_invoke_skill_taskdog_monthly_skips(tmp_path, monkeypatch, taskdog_mock)
     monkeypatch.setenv("IKIGAI_VAULT_ROOT", str(tmp_path / "vault"))
     from interfaces.cli._v2_skills import invoke_skill
 
-    result = invoke_skill("ikigai-monthly")
+    result = invoke_skill("monthly")
 
     assert taskdog_mock.calls == [], "taskdog must NOT be called for monthly skill"
     assert "taskdog_result" not in result
     assert "taskdog_pending_review_queue" not in result
 
 
-def test_invoke_skill_actor_user_does_not_block_taskdog(tmp_path, monkeypatch, taskdog_mock):
+def test_invoke_skill_actor_user_does_not_block_taskdog(tmp_path, monkeypatch, taskdog_mock, fake_server):
     """actor=user does NOT prevent taskdog firing — skill.outputs is the gate.
 
     Per W3.6 brief, post-processor is driven by the manifest's `outputs`
@@ -293,7 +323,7 @@ def test_invoke_skill_actor_user_does_not_block_taskdog(tmp_path, monkeypatch, t
     try:
         from interfaces.cli._v2_skills import invoke_skill
 
-        invoke_skill("ikigai-daily")
+        invoke_skill("daily")
 
         assert len(taskdog_mock.calls) == 1, (
             "actor=user must NOT block taskdog firing — manifest.outputs is the gate"
