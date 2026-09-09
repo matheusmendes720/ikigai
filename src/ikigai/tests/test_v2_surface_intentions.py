@@ -1,4 +1,4 @@
-"""PAV intention surfacing tests — verify 9th v2 node + pt-BR suggestions."""
+"""Surface intention surfacing tests — verify v2 node + pt-BR suggestions."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from __future__ import annotations
 # "from sys_ikigai.src.agents.v2.prompts import ...".
 
 
-def test_prompt_template_imports():
-    """surface_pav_intentions prompt template is importable."""
+def test_surface_prompt_template_imports():
+    """surface prompt template is importable."""
     from agents.v2.prompts.surface_pav_intentions import (
         render_surface_pav_intentions,
     )
@@ -18,18 +18,19 @@ def test_prompt_template_imports():
     assert render_surface_pav_intentions is not None
 
 
-def test_node_imports():
+def test_surface_intentions_node_imports():
     """surface_intentions node is importable."""
     from agents.v2.nodes.surface_intentions import surface_intentions_node
 
     assert surface_intentions_node is not None
 
 
-def test_graph_has_11_nodes():
-    """v2 graph now has 11 nodes (was 9 pre-W4.4; +1 for dispatch_sub_agents).
+def test_v2_graph_has_12_nodes():
+    """v2 graph now has 12 nodes (was 9 pre-W4.4; +1 for dispatch_sub_agents).
 
     Phase history: 8 (pre-8.4) -> 9 (added surface_intentions) -> 10 (added
-    tag_and_persist via Plan A) -> 11 (added dispatch_sub_agents via W4.4).
+    tag_and_persist via Plan A) -> 11 (added dispatch_sub_agents via W4.4)
+    -> 12 (Phase 8.6).
     """
     # graph.py lives in agents/v2/ so it resolves via the sys.path entry
     from agents.v2.graph import NODES
