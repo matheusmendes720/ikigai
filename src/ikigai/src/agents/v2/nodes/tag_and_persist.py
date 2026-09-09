@@ -47,7 +47,20 @@ def tag_and_persist_node(state: IKIGAiStateDict) -> dict[str, Any]:
     """Persist proposed entity to vault via wrapped vault_write.
 
     _write is the ONLY legal vault writer (ADR-012 + ADR-029).
+
+    Raises PermissionError if approval_state != "approved"
+    (Phase 8.4 plan decision (e) — matches proposal_executor pattern).
     """
+    # Drift gate: require approval_state == "approved" before any write.
+    # Matches proposal_executor pattern (proposal_executor.py:113).
+    # Must be OUTSIDE the try/except so pytest.raises can catch it.
+    approval_state = state.get("approval_state")
+    if approval_state != "approved":
+        raise PermissionError(
+            f"tag_and_persist_node refuses approval_state={approval_state!r}; "
+            "must be 'approved'. See Phase 8.4 plan decision (e)."
+        )
+
     try:
         entity = state.get("proposed_entity")
         vault_path = state.get("vault_path", "")

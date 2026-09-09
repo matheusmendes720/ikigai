@@ -66,6 +66,7 @@ def test_tag_and_persist_writes_sonho_to_vault(tmp_path: Path, monkeypatch) -> N
         proposed_entity=sonho,
         vault_path="ikigai/closing-2026/01-q3-2026/00-sonho/sonho-life-os-v1.md",
         actor="user",
+        approval_state="approved",
     )
 
     result = tag_and_persist_node(state)
@@ -112,6 +113,7 @@ def test_tag_and_persist_records_actor_in_audit(tmp_path: Path, monkeypatch) -> 
         proposed_entity=sonho,
         vault_path="ikigai/test/test.md",
         actor="agent",
+        approval_state="approved",
     )
 
     result = tag_and_persist_node(state)
@@ -121,3 +123,57 @@ def test_tag_and_persist_records_actor_in_audit(tmp_path: Path, monkeypatch) -> 
     audit_log = tmp_path / ".vault_audit.log"
     assert audit_log.exists()
     assert "actor=agent" in audit_log.read_text()
+
+
+def test_tag_and_persist_requires_approval_state(tmp_path: Path, monkeypatch) -> None:
+    """tag_and_persist_node raises PermissionError when approval_state is missing."""
+    monkeypatch.setattr(
+        "src.ikigai.src.mcp_server.tools_vault._resolve_vault_root",
+        lambda: tmp_path,
+    )
+
+    sonho = _make_sonho(
+        ueid=_TEST_SONHO_UEID,
+        title="T",
+        motivation="m",
+        success_metric="s",
+        actor="agent",
+    )
+
+    # State WITHOUT approval_state — must raise PermissionError.
+    state = IKIGAiStateDict(
+        proposed_entity=sonho,
+        vault_path="ikigai/test/test.md",
+        actor="agent",
+    )
+
+    import pytest
+
+    with pytest.raises(PermissionError, match="approval_state"):
+        tag_and_persist_node(state)
+
+
+def test_tag_and_persist_succeeds_with_approval_state(tmp_path: Path, monkeypatch) -> None:
+    """tag_and_persist_node succeeds when approval_state is 'approved'."""
+    monkeypatch.setattr(
+        "src.ikigai.src.mcp_server.tools_vault._resolve_vault_root",
+        lambda: tmp_path,
+    )
+
+    sonho = _make_sonho(
+        ueid=_TEST_SONHO_UEID,
+        title="T",
+        motivation="m",
+        success_metric="s",
+        actor="agent",
+    )
+
+    state = IKIGAiStateDict(
+        proposed_entity=sonho,
+        vault_path="ikigai/test/test.md",
+        actor="agent",
+        approval_state="approved",
+    )
+
+    result = tag_and_persist_node(state)
+    assert result["persisted"] is True
