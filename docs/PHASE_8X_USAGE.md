@@ -203,6 +203,21 @@ ls src/ikigai/src/agents/v2/skills/
 
 ---
 
+
+## Observability
+
+OpenTelemetry spans are wired on every MCP bridge dispatch (Phase 8.3). To export spans to an OTEL-compatible collector (LangSmith, Langfuse, Grafana Tempo, Jaeger), set:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+# Optional auth headers (comma-separated key=value pairs):
+export OTEL_EXPORTER_OTLP_HEADERS=x-api-key=your-key
+```
+
+The exporter is lazy: only wired when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Local dev without a collector works fine (NoOp tracer).
+
+For LangSmith-specific tracing, also set `LANGCHAIN_API_KEY` (per Phase 8.3 standard config).
+
 ## See Also
 
 - `docs/LANGRAPH_DEV.md` — pre-pivot PAV-era LangGraph guide (SUPERSEDED)

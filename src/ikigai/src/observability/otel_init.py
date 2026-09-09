@@ -18,6 +18,9 @@ Env vars consumed (see ``.env.example`` for the template):
 - ``LANGFUSE_HOST`` — defaults to ``https://cloud.langfuse.com``.
 - ``OTEL_SERVICE_NAME`` — defaults to ``ikigai-maintainer``.
 - ``IKIGAI_ENV`` — deployment.environment attribute (default ``local``).
+- ``OTEL_EXPORTER_OTLP_ENDPOINT`` — if set, generic OTLP HTTP exporter is enabled.
+- ``OTEL_EXPORTER_OTLP_HEADERS`` — optional auth headers for the generic OTLP
+  exporter, format ``key1=value1,key2=value2``.
 """
 
 from __future__ import annotations
@@ -69,6 +72,24 @@ def _build_langfuse_exporter() -> OTLPSpanExporter:
     )
 
 
+def _build_generic_otlp_exporter() -> OTLPSpanExporter:
+    """Build a generic OTLP HTTP exporter for any OTEL-compatible collector.
+
+    Enabled when ``OTEL_EXPORTER_OTLP_ENDPOINT`` is set. Optional auth headers
+    can be passed via ``OTEL_EXPORTER_OTLP_HEADERS`` in the format
+    ``key1=value1,key2=value2``.
+    """
+    endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+    headers_str = os.environ.get("OTEL_EXPORTER_OTLP_HEADERS", "")
+    headers = {}
+    if headers_str:
+        for pair in headers_str.split(","):
+            if "=" in pair:
+                k, v = pair.split("=", 1)
+                headers[k.strip()] = v.strip()
+    return OTLPSpanExporter(endpoint=endpoint, headers=headers)
+
+
 def init_tracing() -> None:
     """Initialize OpenTelemetry with LangSmith + Langfuse exporters.
 
@@ -97,6 +118,11 @@ def init_tracing() -> None:
         # Langfuse — secondary, stack traces + custom events
         if os.environ.get("LANGFUSE_PUBLIC_KEY") and os.environ.get("LANGFUSE_SECRET_KEY"):
             provider.add_span_processor(BatchSpanProcessor(_build_langfuse_exporter()))
+
+        # Generic OTLP — for LangSmith, Langfuse, or any OTEL-compatible collector.
+        # Lazily wired: only crashes if endpoint is set but malformed.
+        if os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT"):
+            provider.add_span_processor(BatchSpanProcessor(_build_generic_otlp_exporter()))
 
         trace.set_tracer_provider(provider)
 
