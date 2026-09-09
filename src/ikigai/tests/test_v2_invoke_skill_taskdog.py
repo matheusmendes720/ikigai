@@ -116,7 +116,7 @@ def test_invoke_skill_skips_taskdog_for_daily(tmp_path, monkeypatch, taskdog_moc
     """
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     monkeypatch.setenv("IKIGAI_VAULT_ROOT", str(tmp_path / "vault"))
-    from interfaces.cli.v2 import invoke_skill
+    from interfaces.cli._v2_skills import invoke_skill
 
     result = invoke_skill("ikigai-daily")
 
@@ -134,7 +134,7 @@ def test_invoke_skill_fires_taskdog_for_quarterly(tmp_path, monkeypatch, taskdog
     """
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     monkeypatch.setenv("IKIGAI_VAULT_ROOT", str(tmp_path / "vault"))
-    from interfaces.cli.v2 import invoke_skill
+    from interfaces.cli._v2_skills import invoke_skill
 
     invoke_skill("ikigai-quarterly")
 
@@ -152,7 +152,7 @@ def test_invoke_skill_taskdog_called_with_state_derived_params(tmp_path, monkeyp
     """
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     monkeypatch.setenv("IKIGAI_VAULT_ROOT", str(tmp_path / "vault"))
-    from interfaces.cli.v2 import invoke_skill
+    from interfaces.cli._v2_skills import invoke_skill
 
     invoke_skill("ikigai-quarterly")
 
@@ -165,7 +165,7 @@ def test_invoke_skill_taskdog_success_includes_result(tmp_path, monkeypatch, tas
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     monkeypatch.setenv("IKIGAI_VAULT_ROOT", str(tmp_path / "vault"))
     taskdog_mock.return_value = "Added task 7 ✓ quarterly OKRs 2026-09-04"
-    from interfaces.cli.v2 import invoke_skill
+    from interfaces.cli._v2_skills import invoke_skill
 
     result = invoke_skill("ikigai-quarterly")
 
@@ -185,7 +185,7 @@ def test_invoke_skill_taskdog_failure_returns_pending_review_queue(
     """
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     monkeypatch.setenv("IKIGAI_VAULT_ROOT", str(tmp_path / "vault"))
-    from interfaces.cli.v2 import invoke_skill
+    from interfaces.cli._v2_skills import invoke_skill
 
     result = invoke_skill("ikigai-quarterly")
 
@@ -211,7 +211,7 @@ def test_invoke_skill_taskdog_failure_writes_to_review_queue(
     from src.mesh import queue as queue_mod
 
     monkeypatch.setattr(queue_mod, "QUEUE_DIR", tmp_path / "review_queue")
-    from interfaces.cli.v2 import invoke_skill
+    from interfaces.cli._v2_skills import invoke_skill
 
     invoke_skill("ikigai-quarterly")
 
@@ -244,7 +244,7 @@ def test_invoke_skill_taskdog_weekly_triggers(tmp_path, monkeypatch, taskdog_moc
     """
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     monkeypatch.setenv("IKIGAI_VAULT_ROOT", str(tmp_path / "vault"))
-    from interfaces.cli.v2 import invoke_skill
+    from interfaces.cli._v2_skills import invoke_skill
 
     invoke_skill("ikigai-weekly")
 
@@ -261,7 +261,7 @@ def test_invoke_skill_taskdog_monthly_skips(tmp_path, monkeypatch, taskdog_mock)
     """
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     monkeypatch.setenv("IKIGAI_VAULT_ROOT", str(tmp_path / "vault"))
-    from interfaces.cli.v2 import invoke_skill
+    from interfaces.cli._v2_skills import invoke_skill
 
     result = invoke_skill("ikigai-monthly")
 
@@ -291,7 +291,7 @@ def test_invoke_skill_actor_user_does_not_block_taskdog(tmp_path, monkeypatch, t
     assert patched != original, "test setup failed: could not patch daily.md"
     daily_md.write_text(patched, encoding="utf-8")
     try:
-        from interfaces.cli.v2 import invoke_skill
+        from interfaces.cli._v2_skills import invoke_skill
 
         invoke_skill("ikigai-daily")
 
@@ -312,7 +312,7 @@ def test_invoke_skill_actor_user_does_not_block_taskdog(tmp_path, monkeypatch, t
 
 def test_manifest_declares_taskdog_handles_bare_string():
     """_manifest_declares_taskdog returns '' for bare-string entries."""
-    from interfaces.cli._skill_outputs import _manifest_declares_taskdog
+    from interfaces.cli._v2_skills import _manifest_declares_taskdog
 
     assert _manifest_declares_taskdog(["taskdog_create_task"]) == ""
     assert _manifest_declares_taskdog([{"vault_write": "x"}]) is None
@@ -322,7 +322,7 @@ def test_manifest_declares_taskdog_handles_bare_string():
 
 def test_manifest_declares_taskdog_handles_dict_entry():
     """_manifest_declares_taskdog returns the description string for dict entries."""
-    from interfaces.cli._skill_outputs import _manifest_declares_taskdog
+    from interfaces.cli._v2_skills import _manifest_declares_taskdog
 
     assert (
         _manifest_declares_taskdog([{"taskdog_create_task": "quarterly OKRs"}]) == "quarterly OKRs"
@@ -337,7 +337,7 @@ def test_manifest_declares_taskdog_handles_dict_entry():
 
 def test_derive_taskdog_title_includes_date():
     """_derive_taskdog_title composes ``<description> <YYYY-MM-DD>``."""
-    from interfaces.cli._skill_outputs import _derive_taskdog_title
+    from interfaces.cli._v2_skills import _derive_taskdog_title
 
     today = date.today().isoformat()
     assert _derive_taskdog_title("ikigai-quarterly", "quarterly OKRs") == (

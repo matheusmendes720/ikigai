@@ -140,7 +140,7 @@ def test_fast_mcp_client_end_to_end_investigation_lifecycle(inq_id: str) -> None
             cwd=str(IKIGAI_DIR),
         )
 
-        # Step 1: enqueue
+        # Step 1: enqueue — capture the returned inq_id (server may generate a different one)
         enqueue_result = client.call("investigation_enqueue", {
             "inq_id": inq_id,
             "source": "test:t-8-5-1",
@@ -151,10 +151,12 @@ def test_fast_mcp_client_end_to_end_investigation_lifecycle(inq_id: str) -> None
         assert isinstance(enqueue_result, dict), (
             f"enqueue returned non-dict: {type(enqueue_result).__name__}"
         )
+        # investigation_enqueue returns the created investigation with its inq_id
+        actual_inq_id = enqueue_result.get("inq_id", inq_id)
 
-        # Step 2: status — should be "open"
+        # Step 2: status — should be "open" — use the server-returned inq_id
         status_result = client.call("investigation_status", {
-            "inq_id": inq_id,
+            "inq_id": actual_inq_id,
         })
         assert isinstance(status_result, dict), (
             f"status returned non-dict: {type(status_result).__name__}"
@@ -164,9 +166,9 @@ def test_fast_mcp_client_end_to_end_investigation_lifecycle(inq_id: str) -> None
             f"expected status='open', got {status_result.get('status')!r}"
         )
 
-        # Step 3: complete
+        # Step 3: complete — use the server-returned inq_id
         complete_result = client.call("investigation_complete", {
-            "inq_id": inq_id,
+            "inq_id": actual_inq_id,
             "final_status": "resolved",
             "actor": "agent",
         })
