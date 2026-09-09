@@ -204,6 +204,20 @@ ls src/ikigai/src/agents/v2/skills/
 ---
 
 
+## Production Deployment
+
+To deploy in production with real LLM calls, copy `.env` to the worktree root and set your API key:
+
+```bash
+cp .env.example .env  # or copy from loop-prod-ready/.env
+# Edit .env: set ANTHROPIC_API_KEY=your-actual-key
+# Set IKIGAI_FAKE_LLM=0 to use real LLM (default is 1 for safe $0 mode)
+```
+
+Per-skill token caps (PROD-3 cost guard rails) are enforced at graph invocation time. Defaults: daily 1k tokens, weekly 8k, monthly 32k, quarterly 96k. Override via environment variables `IKIGAI_MAX_TOKENS_DAILY`, `IKIGAI_MAX_TOKENS_WEEKLY`, `IKIGAI_MAX_TOKENS_MONTHLY`, `IKIGAI_MAX_TOKENS_QUARTERLY`. Rate limiting (10 invoke_skill calls/hour) is enforced by a simple in-memory token bucket; adjust via `IKIGAI_RATE_LIMIT`.
+
+OTEL tracing to a collector is enabled by setting `OTEL_EXPORTER_OTLP_ENDPOINT` (lazy wiring — no-op when absent). See the Observability section for details. All production configuration is through environment variables; no code changes required.
+
 ## Observability
 
 OpenTelemetry spans are wired on every MCP bridge dispatch (Phase 8.3). To export spans to an OTEL-compatible collector (LangSmith, Langfuse, Grafana Tempo, Jaeger), set:
