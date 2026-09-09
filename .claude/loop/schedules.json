@@ -29,6 +29,8 @@
     "interval_seconds": 86400,
     "command": "bash scripts/streak-tracker.sh",
     "cost_cap_usd": 0.1,
-    "added_at": "2026-09-08T04:02:01.483534+00:00"
+    "added_at": "2026-09-08T04:02:01.483534+00:00",
+    "disabled": true,
+    "note": "Removed 2026-09-09: redundant with daemon-manager.sh (M10 closeout). Kept for history."
   }
 ]
