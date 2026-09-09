@@ -292,7 +292,28 @@ def ensure_mcp_server_bound() -> None:
     if _bridge_mod._server is not None:
         return  # already bound — idempotent
 
-    # bind_server_to_gateway is the factory in mcp_client.py
-    server = _mcp_client_mod.bind_server_to_gateway("src.mcp_server.server")
+    # Compute paths for the MCP server subprocess.
+    # The module lives at src/ikigai/src/mcp_server/ and uses
+    # "from mcp_server.server import main" (relative import in __main__.py).
+    # cwd MUST be src/ikigai/src (the INNER src), NOT src/ikigai -- when
+    # cwd=src/ikigai, Python prepends '' to sys.path and resolves
+    # `import contracts.X` to <repo>/src/ikigai/contracts/ (a stale
+    # editable-install shadow) instead of <repo>/src/contracts/.
+    # The inner-src layout sidesteps the shadow. Same pattern as
+    # scripts/mcp_inspect.py and tests/test_m5_ikigai_mcp_integration.py.
+    # PYTHONPATH needs THREE entries (REPO_ROOT + LIFE_SRC + IKIGAI_SRC) to
+    # satisfy every import style: dotted-prefix `src.contracts.X`, bare-namespace
+    # `contracts.X`, and `python -m mcp_server`.
+    worktree_root = str(_repo_root())
+    mcp_cwd = str(Path(worktree_root) / "src" / "ikigai" / "src")
+    life_src = str(Path(worktree_root) / "src")
+    env = dict(os.environ)
+    env["PYTHONPATH"] = worktree_root + ";" + life_src + ";" + mcp_cwd
+
+    # bind_server_to_gateway is the factory in mcp_client.py.
+    # server_script is the short module name `mcp_server` (relies on cwd=mcp_cwd).
+    server = _mcp_client_mod.bind_server_to_gateway(
+        "mcp_server", env=env, cwd=mcp_cwd
+    )
     # Dotted-prefix setter: assign to the actual module, not a local var
     _bridge_mod._server = server
