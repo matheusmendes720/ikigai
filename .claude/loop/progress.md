@@ -1621,3 +1621,11 @@
 - attempt: 1/1 (after brief-side error fixed via amend)
 - notes: Phase 9.4 SHIPPED. T-9.4 commit `dbff4aa8` renames `test_v2_pav_intentions.py` → `test_v2_surface_intentions.py` (per [[archived-feature-not-vocabulary-2026-09-06]]) + adds 5 0-byte bash-redirect patterns to `.gitignore` (per CLAUDE.md). Drift 44/44 + renamed tests 6/6 = 50/50 PASS. Branch loop/phase-9-4 (T-9.4 + closeout pushed; no merge to master). Continuing → Phase 9.5 (final phase of night-shift loop).
 - next_action: continue (Phase 9.5 approval gate)
+## 2026-09-08T21:25:00Z | Phase 9.5 closeout + night-shift loop end | PASS
+- commit: fc88963 (T-9.5 approval gate) + this commit (closeout)
+- cost_usd: 0
+- duration_min: 8
+- model: opus (autonomous loop, $0 LLM)
+- attempt: 1/1
+- notes: Phase 9.5 SHIPPED. T-9.5 commit `fc88963` adds `approval_state == "approved"` gate to `tag_and_persist_node` (matches `proposal_executor.py:113` pattern). 2 new tests + 2 updated fixtures. Drift 44/44 + tag_and_persist 4/4 + skill dispatch 15/15 = 63/63 PASS. NIGHT-SHIFT LOOP ARC COMPLETE: Phases 8.6 → 8.7 → 8.8 → 8.9 → 9.0 → 9.1 → 9.2 → 9.3 → 9.4 → 9.5 all shipped (10 atomic commits, $0 LLM cost, drift preserved throughout). Branch loop/phase-9-5 (T-9.5 + closeout pushed; no merge to master).
+- next_action: idle (loop complete — user can choose next arc)
