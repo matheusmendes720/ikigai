@@ -13,6 +13,21 @@
 #   - ghuntley/how-to-ralph-wiggum — 3 Phases, 2 Prompts, 1 Loop
 #
 # This is the BASH loop. Inside, it invokes the Claude Code agent (orchestrator).
+#
+# === Windows Quirks (Git Bash / MINGW64 / MSYS2) ===
+# - Use `python` (not `python.exe`) in Git Bash; PYTHON env var is honored.
+# - `date -u +%Y-%m-%dT%H:%M:%SZ` works on both Git Bash and POSIX.
+# - `timeout` is from GNU coreutils (installed with Git); if missing use
+#   `gtimeout` from coreutils package or the Windows `timeout.exe` fallback.
+# - subprocesses (e.g. Python scripts) inherit the Git Bash PATH which includes
+#   `/usr/bin` and `/bin` but may lack Windows system32 paths; use absolute
+#   paths or `shutil.which()` in Python to locate executables.
+# - Windows filesystem locking: worktree removal may need `git worktree remove
+#   --force` if a process holds a handle; the merge protocol catches this.
+# - Do NOT use `bc` for arithmetic — not installed on Windows Git Bash by
+#   default; use `awk` or Python arithmetic as shown in cost-guard below.
+# - On Windows, `set -euo pipefail` combined with pipefail can cause
+#   unexpected exits; guard `$()` subshells with `|| true` where noted.
 
 set -euo pipefail
 
