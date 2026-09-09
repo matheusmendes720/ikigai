@@ -4,6 +4,8 @@ Provides:
 - load_skill_manifest(name): parse YAML frontmatter from skills/{name}.md
 - invoke_skill(skill_name, **kwargs): dispatch make_v2_graph() with entry_point
 - ensure_mcp_server_bound(): idempotent production binding
+- _manifest_declares_taskdog(outputs): check if outputs list declares taskdog
+- _derive_taskdog_title(skill_name, description): compose task name with date
 
 This module is lazy-imported inside v2.py command bodies to break
 the circular import (v2.py ↔ agents.v2.subgraph ↔ agents.v2.nodes.proposal_executor).
@@ -11,11 +13,112 @@ the circular import (v2.py ↔ agents.v2.subgraph ↔ agents.v2.nodes.proposal_e
 
 from __future__ import annotations
 
+import os
+import time
 from datetime import date
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+
+# ---------------------------------------------------------------------------
+# Cost guard — per-skill token caps (PROD-3)
+# ---------------------------------------------------------------------------
+def _get_token_cap(skill_name: str) -> int:
+    """Return the max tokens cap for the given skill (env var override).
+
+    Defaults:
+      daily    → 1 000 tokens
+      weekly   → 8 000 tokens
+      monthly  → 32 000 tokens
+      quarterly → 96 000 tokens
+    """
+    defaults = {
+        "daily": 1_000,
+        "weekly": 8_000,
+        "monthly": 32_000,
+        "quarterly": 96_000,
+    }
+    env_keys = {
+        "daily": "IKIGAI_MAX_TOKENS_DAILY",
+        "weekly": "IKIGAI_MAX_TOKENS_WEEKLY",
+        "monthly": "IKIGAI_MAX_TOKENS_MONTHLY",
+        "quarterly": "IKIGAI_MAX_TOKENS_QUARTERLY",
+    }
+    key = env_keys.get(skill_name)
+    if key:
+        override = os.environ.get(key)
+        if override is not None:
+            try:
+                return int(override)
+            except ValueError:
+                pass
+    return defaults.get(skill_name, 96_000)
+
+
+# ---------------------------------------------------------------------------
+# Rate limiter — simple in-memory token bucket (PROD-3)
+# ---------------------------------------------------------------------------
+class _RateLimiter:
+    """Simple token-bucket rate limiter: max N calls per hour."""
+
+    def __init__(self, max_calls: int = 10, window_s: float = 3600.0):
+        self._max_calls = max_calls
+        self._window = window_s
+        self._calls: list[float] = []
+
+    def acquire(self) -> bool:
+        """Return True if under limit; else False. Consumes a token on True."""
+        now = time.monotonic()
+        # Evict calls outside the window
+        self._calls = [t for t in self._calls if now - t < self._window]
+        if len(self._calls) >= self._max_calls:
+            return False
+        self._calls.append(now)
+        return True
+
+
+_rate_limiter: _RateLimiter | None = None
+
+
+def _get_rate_limiter() -> _RateLimiter:
+    global _rate_limiter
+    if _rate_limiter is None:
+        max_calls = int(os.environ.get("IKIGAI_RATE_LIMIT", "10"))
+        _rate_limiter = _RateLimiter(max_calls=max_calls, window_s=3600.0)
+    return _rate_limiter
+
+
+# ---------------------------------------------------------------------------
+# Helper functions (moved from deleted _skill_outputs — PROD-2)
+# ---------------------------------------------------------------------------
+def _manifest_declares_taskdog(outputs: Any) -> str | None:
+    """Return the taskdog description string if outputs declares it, else None.
+
+    Per W3.6: ``outputs: [taskdog_create_task: <description>]`` gates the
+    taskdog @tool call in invoke_skill post-processing.
+    """
+    if not outputs:
+        return None
+    if isinstance(outputs, list):
+        for item in outputs:
+            if isinstance(item, str) and item.startswith("taskdog_create_task"):
+                # Bare string: "taskdog_create_task" — no description
+                return ""
+            if isinstance(item, dict):
+                if "taskdog_create_task" in item:
+                    return str(item["taskdog_create_task"])
+        return None
+    return None
+
+
+def _derive_taskdog_title(skill_name: str, description: str) -> str:
+    """Compose ``<description> <YYYY-MM-DD>`` or ``<skill_name> <YYYY-MM-DD>``."""
+    today = date.today().isoformat()
+    if description:
+        return f"{description} {today}"
+    return f"{skill_name} {today}"
 
 
 def _repo_root() -> Path:
@@ -96,14 +199,28 @@ def invoke_skill(skill_name: str, date_str: str | None = None) -> dict[str, Any]
 
     Returns:
         dict with skill name, date, and graph output dict
+
+    Raises:
+        RuntimeError: if rate limit (10 calls/hour) is exceeded.
     """
+    # PROD-3 rate limit check
+    limiter = _get_rate_limiter()
+    if not limiter.acquire():
+        raise RuntimeError(
+            f"Rate limit exceeded for invoke_skill ({limiter._max_calls}/hour). "
+            "Set IKIGAI_RATE_LIMIT env var to adjust."
+        )
+
     from src.ikigai.src.agents.v2.graph import make_v2_graph
 
     manifest = load_skill_manifest(skill_name)
     entry_point: str = manifest.get("entry_point", "observe")
     date_str = date_str or str(date.today())
 
-    compiled = make_v2_graph(entry_point=entry_point)
+    # Token cap check (PROD-3): record intent; actual enforcement happens in graph
+    token_cap = _get_token_cap(skill_name)
+
+    compiled = make_v2_graph(entry_point=entry_point, max_tokens=token_cap)
     initial_state = _build_initial_state(skill_name, date_str)
 
     result = compiled.invoke(
