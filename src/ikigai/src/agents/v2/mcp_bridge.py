@@ -37,8 +37,7 @@ from src.ikigai.src.agents.v2 import mcp_client as mcp_client_mod  # noqa: E402
 
 bind_prod_server = mcp_client_mod.bind_server_to_gateway
 
-# Module-level server handle. Production binds this to the
-# FastMCP gateway client. Tests monkeypatch it to FakeMcpServer.
+# Module-level server handle — production binds the FastMCP client; tests monkeypatch to FakeMcpServer.
 _server: Any = None
 
 # Module-level tracer — span prefix `ikigai.bridge.{tool_name}` is
