@@ -1,5 +1,6 @@
 # M4 — LangGraph Integration
 
+> **Constitution:** .claude/loop/constitution.md
 **Status:** DRAFT (2026-09-07)
 **Slug:** `langgraph-integration`
 **Owner:** orchestrator

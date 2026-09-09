@@ -1,5 +1,6 @@
 # M5 — IKIGAI MCP Integration
 
+> **Constitution:** .claude/loop/constitution.md
 > **What:** Wire the orchestrator prompt to IKIGAI MCP tools (14 total) so the loop can delegate "research / knowledge / task" work to the Deep Agent layer.
 > **Why:** Today the orchestrator knows nothing about IKIGAI tools — workers can't invoke them through MCP from inside the loop. This milestone makes the agent layer reachable from the loop layer.
 
