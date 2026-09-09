@@ -1653,3 +1653,11 @@
 - attempt: 1/1
 - notes: T-2 SHIPPED. 5 M10 loop engineering refinements closed: Windows quirks doc + risk-tier verifier + M9 cron removal + SPEC.md frontmatter migration + examples/ directory. Drift 44/44 preserved. Branch loop/phase-10-0 (T-2 + closeout pushed). **TIER 1 /loop ultracode arc COMPLETE**: T-1 + T-3 + T-4 + T-2 all SHIPPED. Tier 2 (LLM real, data mesh v1.2) gated on user; Tier 3 explicit DEFERRED per user prior pivots. No more Tier 1 items. Loop pauses for user input.
 - next_action: idle (tier 1 complete; awaiting user direction for tier 2)
+## 2026-09-09T02:00:00Z | Phase 10.0 PROD Tier 1 closeout | PASS
+- commits: 4 atomic + 1 bonus fix (bfc33d45, 979ea6f1, 48b76372, 3f5779ca, 669dd55d)
+- cost_usd: 0
+- duration_min: 25
+- model: opus (autonomous loop, $0 LLM)
+- attempt: 1/1
+- notes: PROD Tier 1 SHIPPED. 4 production hardening tasks closed: (1) .env config bootstrap with MiniMax proxy defaults; (2) test bug fixes (lifecycle inq_id lookup + v2_invoke_skill_taskdog deleted symbols); (3) per-skill token caps + rate limit guard rails; (4) production deployment subsection in PHASE_8X_USAGE.md. Plus 1 bonus fix: TaskChange constructor (valid placeholder UEID + actor field). Drift 44/44 preserved. Branch loop/prod-ready (5 commits + closeout to be pushed). Continuing → Tier 5 (LLM real smoke with key).
+- next_action: continue (Tier 5 LLM real smoke)
