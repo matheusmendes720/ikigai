@@ -229,6 +229,13 @@ def _make_agent(
         default_headers={"x-api-key": api_key},
     )
 
+    # UX 2026-09-10 (persona fix): compose system prompt with project
+    # context (CLAUDE.md excerpt + vault/ layout + strategics/ listing).
+    # The hardcoded _SYSTEM_PROMPT has the role + language rules;
+    # compose_persona adds the project's actual structure so the agent
+    # can answer "what files exist in vault/" without hallucinating.
+    from .persona import compose_persona
+
     with _tracer.start_as_current_span("ikigai.make_agent") as span:
         span.set_attribute("thread_id", thread_id)
         span.set_attribute("human_in_the_loop", human_in_the_loop)
@@ -236,7 +243,7 @@ def _make_agent(
         agent = create_deep_agent(
             model=llm,
             tools=IKIGAI_TOOLS,
-            system_prompt=_SYSTEM_PROMPT,
+            system_prompt=compose_persona(),
             checkpointer=checkpointer,
             interrupt_on=interrupt_on,
             name="ikigai-maintainer",
