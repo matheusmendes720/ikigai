@@ -1,11 +1,11 @@
 {
   "mcpServers": {
     "ikigai": {
-      "command": "python",
+      "command": "C:\\Users\\mathe\\code_space\\life-oss\\life\\.worktrees\\loop-prod-ready\\.venv\\Scripts\\python.exe",
       "args": ["-u", "-m", "mcp_server"],
-      "cwd": "C:\\Users\\mathe\\code_space\\life-oss\\life\\src\\ikigai\\src",
+      "cwd": "C:\\Users\\mathe\\code_space\\life-oss\\life\\.worktrees\\loop-prod-ready\\src\\ikigai\\src",
       "env": {
-        "PYTHONPATH": "C:\\Users\\mathe\\code_space\\life-oss\\life;C:\\Users\\mathe\\code_space\\life-oss\\life\\src;C:\\Users\\mathe\\code_space\\life-oss\\life\\src\\ikigai\\src"
+        "PYTHONPATH": "C:\\Users\\mathe\\code_space\\life-oss\\life\\.worktrees\\loop-prod-ready;C:\\Users\\mathe\\code_space\\life-oss\\life\\.worktrees\\loop-prod-ready\\src;C:\\Users\\mathe\\code_space\\life-oss\\life\\.worktrees\\loop-prod-ready\\src\\ikigai\\src"
       }
     }
   }
