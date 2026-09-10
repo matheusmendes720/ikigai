@@ -81,8 +81,9 @@ Write-Host "  ikigai-deep-agent       → alias for ikigai-chat (same main())" -
 Write-Host "  python -m interfaces.cli v2 chat --prompt '...'" -ForegroundColor White
 Write-Host "  python -m interfaces.tui.operator.main   → TUI operator" -ForegroundColor White
 Write-Host ""
-Write-Host "DO NOT type 'dcode' directly — your PowerShell has it aliased" -ForegroundColor Red
-Write-Host "to 'dcodetui' (different tool). Use 'ikigai-chat' instead." -ForegroundColor Red
+Write-Host ""
+Write-Host "Tip: 'dcode' inside Claude Code multiplex = Claude Code's" -ForegroundColor Red
+Write-Host "deepagents runtime (NOT our harness). Use 'ikigai-chat' here too." -ForegroundColor Red
 Write-Host ""
 Write-Host "Quick test (no LLM):" -ForegroundColor Cyan
 Write-Host "  ikigai-chat --no-chat" -ForegroundColor White
