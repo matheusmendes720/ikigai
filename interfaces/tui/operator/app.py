@@ -43,9 +43,8 @@ from interfaces.tui.operator._kill_switch_tab import (
     banner_widget,
 )
 
-# 2026-09-10 — Chat tab using direct create_deep_agent (Caminho B
-# from the TUI integration question — no subprocess wrapping).
-from interfaces.tui.operator._tui_chat_tab import TuiChatTab as ChatTab
+# 2026-09-10 — Chat tab (was missing despite CLAUDE.md advertising it)
+from interfaces.tui.operator._chat_tab import ChatTab
 
 
 class SummaryPanel(Static):
