@@ -17,6 +17,7 @@ Launch:
 from __future__ import annotations
 
 from interfaces.tui.operator.app import OperatorApp
+from interfaces.tui.operator._tui_chat_tab import TuiChatTab
 
 
 def main() -> int:
@@ -33,4 +34,4 @@ def main() -> int:
     return 0
 
 
-__all__ = ["OperatorApp", "main"]
+__all__ = ["OperatorApp", "TuiChatTab", "main"]
