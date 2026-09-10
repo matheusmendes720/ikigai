@@ -51,7 +51,6 @@ click = "<8.2"
 [tool.poetry.scripts]
 ikigai-maintainer-mcp = "run_mcp_server:main"
 ikigai-deep-agent = "agents.deepagents_harness:main"
-ikigai-tui = "interfaces.tui.operator:main"
 ikigai-taskdog-mcp = "mcp_server.__main__taskdog:main"
 # `ikigai-chat` is the canonical short-form CLI for the IKIGAi Deep Agent
 # harness (UX 2026-09-10: renamed from `dcode` because PowerShell has
