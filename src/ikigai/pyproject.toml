@@ -52,6 +52,10 @@ click = "<8.2"
 ikigai-maintainer-mcp = "run_mcp_server:main"
 ikigai-deep-agent = "agents.deepagents_harness:main"
 ikigai-taskdog-mcp = "mcp_server.__main__taskdog:main"
+# ikigai-taskdog CLI — direct SQLite, no upstream server required
+# (UX 2026-09-10). Replaces the upstream `taskdog` client that
+# required taskdog-server running on :8000. Subcommands: list, add, show.
+ikigai-taskdog = "mesh.__main__ikigai_taskdog:main"
 # ONLY our harness entry — `dcode` is RESERVED for the upstream LangChain
 # Deep Agents CLI (installed globally via pip/uv, not via this project).
 # Per https://docs.langchain.com/oss/deepagents/code/overview, 'dcode' is
