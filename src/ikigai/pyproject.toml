@@ -81,12 +81,15 @@ build-backend = "poetry.core.masonry.api"
 [dependency-groups]
 dev = [
     "types-pyyaml>=6.0.12.20260815",
-    # Upstream LangChain Deep Agents Code CLI — installed in worktree venv
-    # so `dcode` (resolved via PATH) points to the latest upstream. Per
-    # https://docs.langchain.com/oss/deepagents/code/overview, this CLI
-    # loads AGENTS.md from cwd as project context. Our custom subagent
-    # lives at .deepagents/agents/ikigai-planner/AGENTS.md.
-    "deepagents-code>=0.1.68",
+    # Upstream LangChain Deep Agents Code CLI — pinned to v0.1.63 (UX
+    # 2026-09-10). The global Python user install carries the latest
+    # version for testing; our worktree venv pins v0.1.63 which was
+    # confirmed working on Windows before the BlockingError regression
+    # in v0.1.68 (https://github.com/langchain-ai/deepagents/issues/5801).
+    # Per https://docs.langchain.com/oss/deepagents/code/overview, this
+    # CLI loads AGENTS.md from cwd as project context. Our custom
+    # subagent lives at .deepagents/agents/ikigai-planner/AGENTS.md.
+    "deepagents-code==0.1.63",
 ]
 
 [tool.ruff]
