@@ -1,51 +1,40 @@
 # START_HERE.md
 
-**Estado atual em 2026-09-10** (loop-prod-ready HEAD `41357c0`).
+**Estado em 2026-09-10** (loop-prod-ready HEAD final) — `dcode` foi completamente removido do projeto.
 
 ---
 
 ## TL;DR
 
-`dcode` no seu shell = **nosso IKIGAI v2 harness** (com persona: vault/strategics/CLAUDE.md). Funciona em qualquer PowerShell com `.venv/Scripts/` no PATH (que `install.ps1` configurou).
+**`dcode` não existe mais em lugar nenhum** (nem global Python314, nem worktree venv, nem WSL). User decidiu apagar upstream LangChain CLI por complexidade desnecessária (BlockingError no Windows).
 
-`ikigai-chat` é alias exato (mesmo `main()`).
-
-Pra testar upstream LangChain CLI (separado, sem afetar nada): `uvx --from deepagents-code@latest dcode`.
+**Único entry point agora:** `ikigai-chat` (nosso IKIGAI v2 harness).
 
 ---
 
-## Alias strategy (UX 2026-09-10 final)
+## Alias strategy FINAL
 
-| Alias | O que faz | Onde mora |
-|-------|-----------|-----------|
-| `dcode` | Nosso IKIGAI v2 harness (REPL com persona) | `.venv/Scripts/dcode.exe` (worktree) |
-| `ikigai-chat` | Mesmo harness (alias, mais explícito) | `.venv/Scripts/ikigai-chat.exe` (worktree) |
-| `uvx --from deepagents-code@latest dcode` | Upstream LangChain CLI (TUI separada, sem poluir PATH) | uvx cache global |
+| Alias | O que faz |
+|-------|-----------|
+| `ikigai-chat` | **Nosso IKIGAI v2 harness** (REPL com persona vault/strategics/CLAUDE.md) |
 
-**NÃO há** `dcode` no global Python314 — foi uninstalled pra não dar conflito.
+**Nada mais.** Sem `dcode`, sem `ikigai-tui`, sem upstream.
 
 ---
 
 ## Como testar agora (em NOVA janela PowerShell)
 
 ```powershell
-PS> dcode --no-chat
-# esperado: nosso harness help (claude-sonnet-4-5, checkpoint_db, etc)
-
-PS> ikigai-chat
-# esperado: chat REPL abre com persona carregada
-
-PS> $env:ANTHROPIC_API_KEY='sk-cp-...'
-PS> $env:IKIGAI_FAKE_LLM=''
-PS> dcode --prompt "list my tasks"
-# esperado: agent chama taskdog_list_tasks, retorna 1 task formatada
+PS> ikigai-chat --no-chat        # help do nosso harness
+PS> ikigai-chat --prompt "list my tasks"  # one-shot
+PS> ikigai-chat                 # REPL
 ```
 
-Para testar **upstream LangChain** (separado):
+**Se quiser testar upstream LangChain CLI** (separado, sem poluir nada):
 ```powershell
 PS> uvx --from deepagents-code@latest dcode
-# NÃO toca no PATH. Roda via uvx cache.
-# Tem TUI própria do LangChain (que tem BlockingError conhecido no Windows)
+# Roda via uvx cache. Não instala nada no projeto. Não toca no PATH.
+# AVISO: tem BlockingError conhecido no Windows (#5801 'Not planned')
 ```
 
 ---
@@ -54,51 +43,48 @@ PS> uvx --from deepagents-code@latest dcode
 
 1. Abrir PowerShell
 2. `cd C:\Users\mathe\code_space\life-oss\life\.worktrees\loop-prod-ready`
-3. `.venv\Scripts\ikigai-chat.exe` (ou só `ikigai-chat` se PATH configurado)
-4. Chat abre → digita prompt → Enter
-5. Agent responde em PT-BR com contexto IKIGAI
+3. `ikigai-chat` (ou caminho absoluto `.\.venv\Scripts\ikigai-chat.exe`)
+4. Chat REPL abre com persona carregada
+5. Digita prompt → Enter → resposta em PT-BR
 
 ---
 
-## O que NÃO fazer
+## O que foi REMOVIDO (dcode eradication)
 
-- ❌ Não rode `dcode` esperando LangChain TUI — vai bloquear no Windows
-- ❌ Não instale `deepagents-code` no Python314 global — shadow conflict
-- ❌ Não delete `.venv/Scripts/dcode.exe` (é nosso harness)
-
----
-
-## O que FUNCIONA (commit 41357c0 + anteriores)
-
-- ✅ `dcode` em nova janela PowerShell → nosso harness (REPL)
-- ✅ `ikigai-chat` → mesmo harness (alias)
-- ✅ `dcode --prompt "..."` → one-shot via harness
-- ✅ `python -m interfaces.cli v2 chat` → CLI v2
-- ✅ Drift net 46/46
-
-## O que AINDA não funciona (deferred)
-
-- ❌ Upstream dcode TUI no Windows (issue #5801 "Not planned")
-- ❌ TUI nossa (interfaces/tui/operator) — user explicitamente não quer
-- ❌ Persona ainda não carrega vault path explicitamente no startup (só se agente perguntar)
+- ❌ `.venv/Scripts/dcode.exe` (upstream v0.1.63, uninstalled)
+- ❌ `C:\Users\mathe\AppData\Roaming\Python\Python314\Scripts\dcode.exe` (upstream v0.1.68, uninstalled)
+- ❌ `/home/flytwist/.local/bin/dcode` (WSL, eradicated → /tmp/)
+- ❌ `/home/flytwist/.local/share/uv/tools/deepagents-code/` (moved → /tmp/)
+- ❌ `.deepagents/agents/ikigai-planner/AGENTS.md` (deleted — não tem mais dcode pra carregar)
+- ❌ `pyproject.toml` `deepagents-code` dev dep (removed)
+- ❌ `pyproject.toml` `dcode` entry point (only `ikigai-chat` remains)
 
 ---
 
-## Branch state atual
+## O que FUNCIONA (final state)
 
-`loop/prod-ready` HEAD `41357c0` — 24 commits acima do master, incluindo:
-- P0 fix (dcode opens via ikigai-chat)
-- B1+B2 (UEID 4-part + state schema)
-- B3-B6 (deep-dive bugs)
-- consumer + taskdog tool direct DB
-- persona with vault filenames
-- silent shell + .pth
-- upstream dcode eradicated, worktree dcode = our harness
+- ✅ `ikigai-chat` → nosso harness com persona (vault + strategics + CLAUDE.md)
+- ✅ `ikigai-chat --prompt "..."` → one-shot
+- ✅ `python -m interfaces.cli v2 chat` → CLI v2 one-shot
+- ✅ Drift net 46/46 PASS
+- ✅ `uvx --from deepagents-code@latest dcode` → upstream test (separado)
+
+## O que NÃO funciona (deferred / out of scope)
+
+- ❌ Upstream dcode TUI (BlockingError Windows)
+- ❌ TUI nossa (interfaces/tui/operator) — user não quer
+- ❌ Persona com auto-load do vault path (ainda requer agente chamar tool)
 
 ---
 
-## Próximo passo (quando quiser)
+## Branch state
 
-- Rodar `ikigai-chat` no dia-a-dia e me dizer o que tá faltando
-- Decidir sobre persona (system prompt carregando vault/strategics)
-- Quando estabilizar: mergear tudo pra master e fechar `loop-prod-ready`
+`loop-prod-ready` HEAD final — todos commits shipped, nenhum dcode.
+
+---
+
+## Próximo passo (quando você quiser)
+
+- Usar `ikigai-chat` no dia-a-dia, me dizer o que falta
+- Quando estabilizar: mergear tudo pra master
+- Persona com auto-discovery de vault (se quiser) — fix futuro
