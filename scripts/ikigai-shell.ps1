@@ -65,15 +65,19 @@ Write-Host ""
 Write-Host "[ikigai-shell] IKIGAI v2 harness activated from:" -ForegroundColor Cyan
 Write-Host "  $WorktreeRoot" -ForegroundColor White
 Write-Host ""
-Write-Host "Available commands:" -ForegroundColor Cyan
-Write-Host "  dcode                  → chat REPL (real LLM if ANTHROPIC_API_KEY set)" -ForegroundColor White
-Write-Host "  dcode --no-chat        → print help + exit" -ForegroundColor White
-Write-Host "  dcode --prompt '...'   → one-shot agent invocation" -ForegroundColor White
-Write-Host "  ikigai-taskdog-mcp     → taskdog MCP subprocess (Path 3)" -ForegroundColor White
-Write-Host "  ikigai-deep-agent      → alias for dcode" -ForegroundColor White
+Write-Host "Available commands (UX 2026-09-10: dcode renamed to ikigai-chat to" -ForegroundColor Cyan
+Write-Host "avoid collision with PowerShell alias 'dcode' -> 'dcodetui'):" -ForegroundColor Cyan
+Write-Host "  ikigai-chat             → chat REPL (real LLM if ANTHROPIC_API_KEY set)" -ForegroundColor White
+Write-Host "  ikigai-chat --no-chat   → print help + exit" -ForegroundColor White
+Write-Host "  ikigai-chat --prompt '...' → one-shot agent invocation" -ForegroundColor White
+Write-Host "  ikigai-taskdog-mcp      → taskdog MCP subprocess (Path 3)" -ForegroundColor White
+Write-Host "  ikigai-deep-agent       → alias for ikigai-chat (same main())" -ForegroundColor White
 Write-Host "  python -m interfaces.cli v2 chat --prompt '...'" -ForegroundColor White
 Write-Host "  python -m interfaces.tui.operator.main   → TUI operator" -ForegroundColor White
 Write-Host ""
+Write-Host "DO NOT type 'dcode' directly — your PowerShell has it aliased" -ForegroundColor Red
+Write-Host "to 'dcodetui' (different tool). Use 'ikigai-chat' instead." -ForegroundColor Red
+Write-Host ""
 Write-Host "Quick test (no LLM):" -ForegroundColor Cyan
-Write-Host "  dcode --no-chat" -ForegroundColor White
+Write-Host "  ikigai-chat --no-chat" -ForegroundColor White
 Write-Host ""

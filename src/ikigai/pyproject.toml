@@ -51,10 +51,19 @@ click = "<8.2"
 [tool.poetry.scripts]
 ikigai-maintainer-mcp = "run_mcp_server:main"
 ikigai-deep-agent = "agents.deepagents_harness:main"
-# `dcode` is the canonical short-form CLI for the IKIGAi Deep Agent harness.
+# `ikigai-chat` is the canonical short-form CLI for the IKIGAi Deep Agent
+# harness (UX 2026-09-10: renamed from `dcode` because PowerShell has
+# `dcode` aliased to `dcodetui` on this machine, causing the wrong
+# command to run when user typed `dcode` in their shell).
 # Per project convention, the harness is referred to as "dcode" (deep code)
-# in roadmap, planning docs, and user-facing copy. The CLI mirrors
-# ikigai-deep-agent exactly — same main() — so behavior is identical.
+# in roadmap/planning docs — but the installable CLI is `ikigai-chat`
+# to avoid collisions with shell aliases and other agent runtimes.
+# Mirrors ikigai-deep-agent exactly — same main() — so behavior is identical.
+ikigai-chat = "agents.dcode_cli:main"
+# Backward-compat alias (NOT recommended for new use; install via
+# `uv pip install -e .` produces BOTH ikigai-chat AND dcode entries —
+# but `dcode` will collide with PowerShell alias dcodetui on this machine).
+# Keeping dcode as an entry point for systems without the PS alias collision.
 dcode = "agents.dcode_cli:main"
 # Path 3 MCP server for taskdog (read-only per
 # docs/design-system/24-taskdog-paths-architecture.md). Subprocess-bound
