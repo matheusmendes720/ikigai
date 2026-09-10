@@ -160,8 +160,25 @@ def main() -> int:
     p_show.add_argument("--json", action="store_true", help="Output as JSON")
     p_show.set_defaults(func=cmd_show)
 
+    # tui — opens Textual TUI (no server)
+    p_tui = subparsers.add_parser(
+        "tui",
+        help="Open Textual TUI for taskdog (direct SQLite, no server)",
+    )
+    p_tui.set_defaults(func=lambda _a: _import_cmd("cmd_tui", _a))
+
     args = parser.parse_args()
     return args.func(args)
+
+
+def _import_cmd(name: str, args: argparse.Namespace) -> int:
+    """Lazy-import a subcommand from __main__ikigai_taskdog_tui.
+
+    Avoids importing Textual (slow) when user just runs list/add/show.
+    """
+    import importlib
+    mod = importlib.import_module("src.mesh.__main__ikigai_taskdog_tui")
+    return getattr(mod, name)(args)
 
 
 if __name__ == "__main__":
