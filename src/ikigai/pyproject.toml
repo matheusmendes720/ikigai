@@ -51,6 +51,8 @@ click = "<8.2"
 [tool.poetry.scripts]
 ikigai-maintainer-mcp = "run_mcp_server:main"
 ikigai-deep-agent = "agents.deepagents_harness:main"
+ikigai-tui = "interfaces.tui.operator:main"
+ikigai-taskdog-mcp = "mcp_server.__main__taskdog:main"
 # `ikigai-chat` is the canonical short-form CLI for the IKIGAi Deep Agent
 # harness (UX 2026-09-10: renamed from `dcode` because PowerShell has
 # `dcode` aliased to `dcodetui` on this machine, causing the wrong
@@ -69,7 +71,6 @@ dcode = "agents.dcode_cli:main"
 # docs/design-system/24-taskdog-paths-architecture.md). Subprocess-bound
 # FastMCP instance with 3 tools: taskdog_read, taskdog_list,
 # taskdog_supports_field. Wire in .mcp.json or external MCP client.
-ikigai-taskdog-mcp = "mcp_server.__main__taskdog:main"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
