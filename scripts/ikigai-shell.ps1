@@ -21,14 +21,20 @@ $ErrorActionPreference = 'Stop'
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $WorktreeRoot = Split-Path -Parent $ScriptDir  # parent of scripts/
 
-# 1. PATH — adds .venv\Scripts so dcode.exe + ikigai.bat are callable
+# 1. PATH — PREPEND .venv\Scripts so dcode.exe + ikigai.bat win PATH
+# precedence over Python314\Scripts (which has an unrelated dcode.exe
+# shadowing our harness). UX 2026-09-10: prepend (not append) so our
+# `dcode` beats the Python user install's `dcode`.
 $VenvScripts = Join-Path $WorktreeRoot '.venv\Scripts'
 if (-not (Test-Path $VenvScripts)) {
     Write-Error "venv not found at $VenvScripts. Run 'uv sync' first."
 }
 if ($env:PATH -notlike "*$VenvScripts*") {
-    $env:PATH = "$VenvScripts;$env:PATH"
-    Write-Host "[ikigai-shell] PATH += $VenvScripts" -ForegroundColor Green
+    # Filter out existing venv Scripts path (shouldn't be there yet),
+    # then prepend our path so our .exes win PATH precedence.
+    $pathsWithoutVenv = $env:PATH -split ';' | Where-Object { $_ -ne $VenvScripts }
+    $env:PATH = @($VenvScripts) + $pathsWithoutVenv -join ';'
+    Write-Host "[ikigai-shell] PATH prepended with $VenvScripts" -ForegroundColor Green
 }
 
 # 2. PYTHONPATH — ensures sys_ikigai + dotted-prefix imports resolve

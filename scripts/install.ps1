@@ -21,15 +21,22 @@ Write-Host "[install] IKIGAI v2 harness one-shot setup" -ForegroundColor Cyan
 Write-Host "[install] Worktree: $WorktreeRoot" -ForegroundColor White
 Write-Host ""
 
-# 1. Add venv Scripts to Windows user PATH (persistent)
+# 1. Add venv Scripts to Windows user PATH (persistent, PREPENDED
+# so it shadows Python314\Scripts which has an unrelated dcode.exe
+# shadowing our harness). UX 2026-09-10.
 Write-Host "[1/3] Windows user PATH..." -ForegroundColor Yellow
 $currentPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-if ($currentPath -like "*$VenvScripts*") {
-    Write-Host "  already in PATH: $VenvScripts" -ForegroundColor Green
+# Check if venv Scripts is already at the FRONT of PATH (prepended).
+$pathEntries = $currentPath -split ';'
+if ($pathEntries[0] -eq $VenvScripts) {
+    Write-Host "  already at front of PATH: $VenvScripts" -ForegroundColor Green
 } else {
-    $newPath = "$currentPath;$VenvScripts"
+    # Filter out existing venv Scripts (avoid duplicate), then prepend
+    $filtered = $pathEntries | Where-Object { $_ -ne $VenvScripts -and $_ }
+    $newPath = @($VenvScripts) + $filtered -join ';'
     [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
-    Write-Host "  added to user PATH: $VenvScripts" -ForegroundColor Green
+    Write-Host "  prepended to user PATH (front): $VenvScripts" -ForegroundColor Green
+    Write-Host "  shadows Python314\Scripts dcode.exe (LangChain deepagents CLI)" -ForegroundColor Yellow
     Write-Host "  (takes effect in NEW PowerShell windows)" -ForegroundColor Yellow
 }
 Write-Host ""
