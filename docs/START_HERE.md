@@ -1,157 +1,104 @@
 # START_HERE.md
 
-**Read this first thing tomorrow.** Or in a week. Whenever you come back.
+**Estado atual em 2026-09-10** (loop-prod-ready HEAD `41357c0`).
 
 ---
 
-## Estado honesto
+## TL;DR
 
-Depois de uma sessão de 8h nesta branch (`loop/prod-ready` HEAD `0621075`), o estado é:
+`dcode` no seu shell = **nosso IKIGAI v2 harness** (com persona: vault/strategics/CLAUDE.md). Funciona em qualquer PowerShell com `.venv/Scripts/` no PATH (que `install.ps1` configurou).
 
-- **Funciona** (verificado end-to-end uma vez): `v2 daily --json`, `v2 weekly --json`, `do_task_add`, `ikigai-taskdog-mcp` subprocess.
-- **Não funciona** (verificado, falha reproduzível): `dcode --chat`, `ikigai.bat chat`, MCP no Claude Code, qualquer coisa que toque `sys_ikigai` ou OTel.
+`ikigai-chat` é alias exato (mesmo `main()`).
 
-**Diagnóstico completo:** `~/.claude/projects/.../memory/loop-prod-ready-broken-state-2026-09-09.md` (260 linhas — TL;DR, 5 root causes, cascata, meta-lição, TODOs em P0/P1/P2/P3).
-
-**Topologia visual:** `docs/agentic-systems-topology.html` (abrir no navegador).
+Pra testar upstream LangChain CLI (separado, sem afetar nada): `uvx --from deepagents-code@latest dcode`.
 
 ---
 
-## Protocolo de amanhã — 5 passos
+## Alias strategy (UX 2026-09-10 final)
 
-### Passo 1 · Decisão macro (5 min)
+| Alias | O que faz | Onde mora |
+|-------|-----------|-----------|
+| `dcode` | Nosso IKIGAI v2 harness (REPL com persona) | `.venv/Scripts/dcode.exe` (worktree) |
+| `ikigai-chat` | Mesmo harness (alias, mais explícito) | `.venv/Scripts/ikigai-chat.exe` (worktree) |
+| `uvx --from deepagents-code@latest dcode` | Upstream LangChain CLI (TUI separada, sem poluir PATH) | uvx cache global |
 
-Sem decidir isso, qualquer trabalho é desperdício. Três opções:
-
-- **A) Consertar pra valer** — resolver OTel + sys_ikigai + bat + escrever integration test. Estimativa: **meio dia a 1 dia**.
-- **B) Rollback** — `git revert 0621075 08dcd5b 7365b2f 04e87c2e`. Volta pra `edc313e2` (Tier 1 closeout, antes de eu quebrar tudo). Estimativa: **5 min**.
-- **C) Pausar** — commitar estado, fechar branch, abrir outra do zero amanhã. Estimativa: **15 min**.
-
-Você não precisa decidir agora. Mas amanhã, primeiro pensamento = qual dessas três.
+**NÃO há** `dcode` no global Python314 — foi uninstalled pra não dar conflito.
 
 ---
 
-### Passo 2 · Se escolher A (consertar) — ordem de execução
+## Como testar agora (em NOVA janela PowerShell)
 
-Em ordem. **Não pular etapa.** Cada uma valida a anterior.
+```powershell
+PS> dcode --no-chat
+# esperado: nosso harness help (claude-sonnet-4-5, checkpoint_db, etc)
 
-#### P0-A · Resolver conflito OTel (~30 min)
+PS> ikigai-chat
+# esperado: chat REPL abre com persona carregada
 
-Arquivo: `src/ikigai/pyproject.toml`
-
-```toml
-# Linha 24 (atual):
-opentelemetry-instrumentation-langchain = "^0.42b0"
-
-# Trocar pra:
-opentelemetry-instrumentation-langchain = "^0.48b0"
+PS> $env:ANTHROPIC_API_KEY='sk-cp-...'
+PS> $env:IKIGAI_FAKE_LLM=''
+PS> dcode --prompt "list my tasks"
+# esperado: agent chama taskdog_list_tasks, retorna 1 task formatada
 ```
 
-Depois:
-```bash
-cd C:\...\loop-prod-ready
-.venv\Scripts\uv.exe pip install --python .venv\Scripts\python.exe -e .  # SEM --no-deps
+Para testar **upstream LangChain** (separado):
+```powershell
+PS> uvx --from deepagents-code@latest dcode
+# NÃO toca no PATH. Roda via uvx cache.
+# Tem TUI própria do LangChain (que tem BlockingError conhecido no Windows)
 ```
-
-Validar:
-```bash
-.venv\Scripts\python.exe -c "from opentelemetry.trace import Status, StatusCode; print('OTel OK')"
-```
-
-Se falhar: tentar Opção B (`logging<0.48b0`).
-
-#### P0-B · Consertar import sys_ikigai (~15 min)
-
-Arquivo: `src/ikigai/pyproject.toml` linha 7
-
-```toml
-# Trocar:
-packages = [{include = "mcp_server", from = "src"}, ...]
-# Por:
-packages = [{include = "sys_ikigai", from = ".."}, ...]
-```
-
-(assumindo que `sys_ikigai/` está no worktree root, com `from = ".."`)
-
-Ou mais simples: deixar o pyproject como está, garantir que `PYTHONPATH` inclui worktree root (próximo passo).
-
-#### P0-C · Consertar PYTHONPATH do `ikigai.bat` (~10 min)
-
-Arquivo: `src/ikigai/ikigai.bat` linha 7
-
-```bat
-set "PYTHONPATH=%IKIGAI_ROOT%..\..\..\;%IKIGAI_ROOT%src;%IKIGAI_ROOT%..\..\..%"
-#                                                                    ↑ mesma que entrada 1
-```
-
-Validar:
-```bash
-cd C:\...\loop-prod-ready\src\ikigai
-cmd //c "ikigai.bat chat default"
-# Esperado: REPL do deepagent aparece, prompt esperando input
-```
-
-#### P0-D · Teste manual final (~10 min)
-
-```bash
-.venv/Scripts/dcode.exe --chat --thread test-amanha
-# Quando o prompt aparecer, digitar:
-> /tasks list
-# Esperado: resposta do LLM com tarefas
-```
-
-Se chegar aqui: **VOCÊ TEM O HARNESS FUNCIONANDO**. Pode parar e celebrar.
 
 ---
 
-### Passo 3 · Se escolher B (rollback) — 5 min
+## Daily workflow
 
-```bash
-cd C:\...\loop-prod-ready
-git revert --no-edit 0621075 08dcd5b 7365b2f 04e87c2e
-git log --oneline -5  # confirmar voltamos pra edc313e2 + 4 reverts
-```
-
-Estado pós-rollback: idêntico ao que estava em `edc313e2` (Tier 1 SHIPPED, antes da minha sessão). Os 5 broken items desta sessão somem.
+1. Abrir PowerShell
+2. `cd C:\Users\mathe\code_space\life-oss\life\.worktrees\loop-prod-ready`
+3. `.venv\Scripts\ikigai-chat.exe` (ou só `ikigai-chat` se PATH configurado)
+4. Chat abre → digita prompt → Enter
+5. Agent responde em PT-BR com contexto IKIGAI
 
 ---
 
-### Passo 4 · Independentemente da escolha
+## O que NÃO fazer
 
-Escrever um teste de integração que IMPEDISCA o problema de voltar:
-
-`tests/integration/test_dcode_e2e_chat.py`:
-
-```python
-def test_dcode_chat_end_to_end():
-    """Garante que dcode --chat funciona end-to-end antes de qualquer commit."""
-    proc = subprocess.run(
-        ["dcode.exe", "--chat", "--thread", "ci-test"],
-        input="hello\n/exit\n",
-        capture_output=True, text=True, timeout=30
-    )
-    assert proc.returncode == 0
-    assert "hello" in proc.stdout.lower() or any(
-        keyword in proc.stdout.lower()
-        for keyword in ["skill", "regime", "task"]
-    )
-```
-
-Adicionar `@pytest.mark.integration` e gate CI.
+- ❌ Não rode `dcode` esperando LangChain TUI — vai bloquear no Windows
+- ❌ Não instale `deepagents-code` no Python314 global — shadow conflict
+- ❌ Não delete `.venv/Scripts/dcode.exe` (é nosso harness)
 
 ---
 
-### Passo 5 · Honest note pra você
+## O que FUNCIONA (commit 41357c0 + anteriores)
 
-- A sessão de hoje não foi em vão. **4 dos 5 commits** funcionam isoladamente. O problema é integração.
-- A lição mais importante: **smoke test unitário não é prova de sistema funcionando**. Cada "SHIPPED" que eu disse devia ter sido precedido por `dcode --chat` real.
-- Se amanhã você decidir que **não vale o esforço** e quiser voltar pra fin_ops ou qualquer outra coisa do monorepo, **isso é uma resposta válida**. Não é derrota. É priorização.
-- O harness tem 22 tools, 12 contracts, 3 adapters, 5 waves de trabalho. Não é uma coisa de uma sessão.
+- ✅ `dcode` em nova janela PowerShell → nosso harness (REPL)
+- ✅ `ikigai-chat` → mesmo harness (alias)
+- ✅ `dcode --prompt "..."` → one-shot via harness
+- ✅ `python -m interfaces.cli v2 chat` → CLI v2
+- ✅ Drift net 46/46
+
+## O que AINDA não funciona (deferred)
+
+- ❌ Upstream dcode TUI no Windows (issue #5801 "Not planned")
+- ❌ TUI nossa (interfaces/tui/operator) — user explicitamente não quer
+- ❌ Persona ainda não carrega vault path explicitamente no startup (só se agente perguntar)
 
 ---
 
-## TL;DR de uma linha
+## Branch state atual
 
-> **Amanhã, primeiro comando é: decidir A/B/C acima.** Sem decidir, não mexer.
+`loop/prod-ready` HEAD `41357c0` — 24 commits acima do master, incluindo:
+- P0 fix (dcode opens via ikigai-chat)
+- B1+B2 (UEID 4-part + state schema)
+- B3-B6 (deep-dive bugs)
+- consumer + taskdog tool direct DB
+- persona with vault filenames
+- silent shell + .pth
+- upstream dcode eradicated, worktree dcode = our harness
 
-Boa noite.
+---
+
+## Próximo passo (quando quiser)
+
+- Rodar `ikigai-chat` no dia-a-dia e me dizer o que tá faltando
+- Decidir sobre persona (system prompt carregando vault/strategics)
+- Quando estabilizar: mergear tudo pra master e fechar `loop-prod-ready`
