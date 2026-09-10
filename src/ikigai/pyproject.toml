@@ -1,10 +1,10 @@
 [tool.poetry]
 name = "ikigai"
-version = "0.1.0"
+version = "0.2.0"
 description = "Standalone IKIGAi meta-brain for the Algorithmic Life OS"
 authors = ["Matheus + AI Agent"]
 readme = "README.md"
-packages = [{include = "ikigai", from = "src"}, {include = "mcp_server", from = "src"}, {include = "agents", from = "src"}]
+packages = [{include = "mcp_server", from = "src"}, {include = "agents", from = "src"}, {include = "observability", from = "src"}, {include = "strategics", from = "src"}, {include = "ikigai_wrapper.py", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -41,6 +41,11 @@ langchain-anthropic = ">=0.3"
 [tool.poetry.scripts]
 ikigai-maintainer-mcp = "run_mcp_server:main"
 ikigai-deep-agent = "agents.deepagents_harness:main"
+# `dcode` is the canonical short-form CLI for the IKIGAi Deep Agent harness.
+# Per project convention, the harness is referred to as "dcode" (deep code)
+# in roadmap, planning docs, and user-facing copy. The CLI mirrors
+# ikigai-deep-agent exactly — same main() — so behavior is identical.
+dcode = "agents.dcode_cli:main"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
