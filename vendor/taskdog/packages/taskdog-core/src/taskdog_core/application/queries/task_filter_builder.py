@@ -1,0 +1,126 @@
+"""Task filter builder service.
+
+This service encapsulates the logic for composing task filters from
+query input DTOs, centralizing filter construction logic that was
+previously duplicated across API routes.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from taskdog_core.application.queries.filters.date_range_filter import DateRangeFilter
+from taskdog_core.application.queries.filters.non_archived_filter import (
+    NonArchivedFilter,
+)
+from taskdog_core.application.queries.filters.status_filter import StatusFilter
+from taskdog_core.application.queries.filters.tag_filter import TagFilter
+from taskdog_core.domain.entities.task import TaskStatus
+from taskdog_core.domain.exceptions.task_exceptions import TaskValidationError
+
+if TYPE_CHECKING:
+    from taskdog_core.application.dto.query_inputs import ListTasksInput
+    from taskdog_core.application.queries.filters.task_filter import TaskFilter
+
+
+class TaskFilterBuilder:
+    """Builds TaskFilter objects from query input DTOs.
+
+    This service centralizes the filter composition logic, ensuring consistent
+    filter construction across all query endpoints (list, gantt).
+
+    The builder follows the Strategy pattern, creating appropriate filter
+    compositions based on the input DTO parameters.
+    """
+
+    @staticmethod
+    def build(input_dto: ListTasksInput) -> TaskFilter | None:
+        """Build a TaskFilter from the given input DTO.
+
+        Constructs a composite filter by combining individual filters
+        based on the input parameters. Filters are applied in order:
+        1. Archive filter (if not include_archived)
+        2. Status filter (if status specified)
+        3. Tag filter (if tags specified)
+        4. Date range filter (if start_date/end_date specified)
+
+        Args:
+            input_dto: The query input parameters
+
+        Returns:
+            A composed TaskFilter, or None if no filters apply
+        """
+        filter_obj: TaskFilter | None = None
+
+        # Archive filter
+        if not input_dto.include_archived:
+            filter_obj = NonArchivedFilter()
+
+        # Status filter
+        if input_dto.status:
+            try:
+                status = TaskStatus[input_dto.status.upper()]
+            except KeyError:
+                valid = ", ".join(s.name for s in TaskStatus)
+                raise TaskValidationError(
+                    f"Invalid status filter '{input_dto.status}'. "
+                    f"Valid values are: {valid}"
+                ) from None
+            status_filter = StatusFilter(status=status)
+            filter_obj = TaskFilterBuilder._compose(filter_obj, status_filter)
+
+        # Tag filter
+        if input_dto.tags:
+            tag_filter = TagFilter(
+                tags=input_dto.tags,
+                match_all=input_dto.match_all_tags,
+            )
+            filter_obj = TaskFilterBuilder._compose(filter_obj, tag_filter)
+
+        # Date range filter
+        filter_obj = TaskFilterBuilder._apply_date_range(filter_obj, input_dto)
+
+        return filter_obj
+
+    @staticmethod
+    def _compose(
+        existing: TaskFilter | None,
+        new_filter: TaskFilter,
+    ) -> TaskFilter:
+        """Compose two filters, handling None case.
+
+        Args:
+            existing: Existing filter (may be None)
+            new_filter: New filter to add
+
+        Returns:
+            Composed filter
+        """
+        if existing is None:
+            return new_filter
+        return existing >> new_filter
+
+    @staticmethod
+    def _apply_date_range(
+        filter_obj: TaskFilter | None,
+        input_dto: ListTasksInput,
+    ) -> TaskFilter | None:
+        """Apply date range filter based on input DTO.
+
+        Applies DateRangeFilter when start_date and/or end_date are specified.
+
+        Args:
+            filter_obj: Current filter chain
+            input_dto: Query input with date range parameters
+
+        Returns:
+            Updated filter chain with date filter applied
+        """
+        if input_dto.start_date is not None or input_dto.end_date is not None:
+            date_filter = DateRangeFilter(
+                start_date=input_dto.start_date,
+                end_date=input_dto.end_date,
+            )
+            return TaskFilterBuilder._compose(filter_obj, date_filter)
+
+        return filter_obj

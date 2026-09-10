@@ -1,0 +1,652 @@
+"""Tests for TaskUIManager service."""
+
+from datetime import date, datetime, timedelta
+from unittest.mock import MagicMock
+
+import pytest
+
+from taskdog.services.task_data_loader import TaskData, TaskDataLoader
+from taskdog.tui.services.task_ui_manager import TaskUIManager
+from taskdog.tui.state.tui_state import TUIState
+from taskdog.view_models.gantt_view_model import GanttViewModel
+from taskdog.view_models.task_view_model import TaskRowViewModel
+from taskdog_core.application.dto.gantt_overlay import GanttDateRange, GanttOverlay
+from taskdog_core.application.dto.task_dto import TaskRowDto
+from taskdog_core.application.dto.task_list_output import TaskListOutput
+from taskdog_core.domain.entities.task import TaskStatus
+from taskdog_core.domain.exceptions.task_exceptions import (
+    AuthenticationError,
+    ServerConnectionError,
+    ServerError,
+)
+
+
+def create_task_dto(task_id: int, name: str, status: TaskStatus) -> TaskRowDto:
+    """Helper to create TaskRowDto with minimal fields."""
+    return TaskRowDto(
+        id=task_id,
+        name=name,
+        status=status,
+        priority=1,
+        planned_start=None,
+        planned_end=None,
+        deadline=None,
+        actual_start=None,
+        actual_end=None,
+        estimated_duration=None,
+        actual_duration_hours=None,
+        is_fixed=False,
+        depends_on=[],
+        tags=[],
+        is_archived=False,
+        is_finished=status in (TaskStatus.COMPLETED, TaskStatus.CANCELED),
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+    )
+
+
+def create_task_viewmodel(
+    task_id: int, name: str, status: TaskStatus
+) -> TaskRowViewModel:
+    """Helper to create TaskRowViewModel with minimal fields."""
+    return TaskRowViewModel(
+        id=task_id,
+        name=name,
+        status=status,
+        priority=1,
+        is_fixed=False,
+        estimated_duration=None,
+        actual_duration_hours=None,
+        deadline=None,
+        planned_start=None,
+        planned_end=None,
+        actual_start=None,
+        actual_end=None,
+        depends_on=[],
+        tags=[],
+        is_finished=status in (TaskStatus.COMPLETED, TaskStatus.CANCELED),
+        has_notes=False,
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+    )
+
+
+def create_gantt_viewmodel() -> GanttViewModel:
+    """Helper to create GanttViewModel with minimal fields."""
+    return GanttViewModel(
+        start_date=date.today(),
+        end_date=date.today() + timedelta(days=7),
+        tasks=[],
+        task_daily_hours={},
+        daily_workload={},
+        holidays=set(),
+    )
+
+
+def create_gantt_output() -> GanttOverlay:
+    """Helper to create a minimal Gantt overlay for list_tasks responses."""
+    return GanttOverlay(
+        date_range=GanttDateRange(
+            start_date=date.today(),
+            end_date=date.today() + timedelta(days=7),
+        ),
+        task_daily_hours={},
+        daily_workload={},
+        holidays=set(),
+    )
+
+
+def create_task_data(
+    tasks: list[TaskRowDto] | None = None,
+    viewmodels: list[TaskRowViewModel] | None = None,
+    gantt: GanttViewModel | None = None,
+) -> TaskData:
+    """Helper to create TaskData with defaults."""
+    tasks = tasks or []
+    viewmodels = viewmodels or []
+    return TaskData(
+        all_tasks=tasks,
+        task_list_output=TaskListOutput(
+            tasks=tasks,
+            total_count=len(tasks),
+            filtered_count=len(tasks),
+            gantt_data=None,
+        ),
+        table_view_models=viewmodels,
+        gantt_view_model=gantt,
+    )
+
+
+class TestTaskUIManager:
+    """Test cases for TaskUIManager class."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Set up test fixtures."""
+        self.state = TUIState()
+        self.task_data_loader = MagicMock(spec=TaskDataLoader)
+        self.main_screen = MagicMock()
+        self.main_screen.gantt_widget = MagicMock()
+        self.main_screen.task_table = MagicMock()
+        self.on_error = MagicMock()
+
+        self.manager = TaskUIManager(
+            state=self.state,
+            task_data_loader=self.task_data_loader,
+            main_screen_provider=lambda: self.main_screen,
+            on_error=self.on_error,
+        )
+
+    def test_init_with_dependencies(self):
+        """Test TaskUIManager initializes with required dependencies."""
+        assert self.manager.state is self.state
+        assert self.manager.task_data_loader is self.task_data_loader
+        assert self.manager._get_main_screen is not None
+        assert self.manager._on_error is self.on_error
+
+    def test_load_tasks_updates_cache_and_ui(self):
+        """Test load_tasks fetches data, updates cache, and refreshes UI."""
+        # Setup
+        task = create_task_dto(1, "Test Task", TaskStatus.PENDING)
+        vm = create_task_viewmodel(1, "Test Task", TaskStatus.PENDING)
+        gantt = create_gantt_viewmodel()
+        task_data = create_task_data([task], [vm], gantt)
+
+        self.task_data_loader.load_tasks.return_value = task_data
+        self.main_screen.gantt_widget.calculate_date_range.return_value = (
+            date.today(),
+            date.today() + timedelta(days=7),
+        )
+
+        # Execute
+        self.manager.load_tasks()
+
+        # Verify data loader was called
+        self.task_data_loader.load_tasks.assert_called_once()
+
+        # Verify state cache was updated
+        assert len(self.state.viewmodels_cache) == 1
+
+        # Verify UI widgets were refreshed
+        self.main_screen.gantt_widget.update_gantt.assert_called_once()
+        self.main_screen.refresh_tasks.assert_called_once()
+
+    def test_load_tasks_with_keep_scroll_position(self):
+        """Test load_tasks passes keep_scroll_position to refresh_tasks."""
+        # Setup
+        task_data = create_task_data()
+        self.task_data_loader.load_tasks.return_value = task_data
+        self.main_screen.gantt_widget.calculate_date_range.return_value = (
+            date.today(),
+            date.today() + timedelta(days=7),
+        )
+
+        # Execute with keep_scroll_position=True
+        self.manager.load_tasks(keep_scroll_position=True)
+
+        # Verify refresh_tasks was called with keep_scroll_position=True
+        self.main_screen.refresh_tasks.assert_called_once()
+        call_kwargs = self.main_screen.refresh_tasks.call_args[1]
+        assert call_kwargs.get("keep_scroll_position") is True
+
+    def test_calculate_gantt_date_range_uses_widget(self):
+        """Test _calculate_gantt_date_range delegates to gantt_widget."""
+        # Setup
+        expected_range = (date(2024, 1, 1), date(2024, 1, 31))
+        self.main_screen.gantt_widget.calculate_date_range.return_value = expected_range
+
+        # Execute
+        result = self.manager._calculate_gantt_date_range()
+
+        # Verify
+        assert result == expected_range
+        self.main_screen.gantt_widget.calculate_date_range.assert_called_once()
+
+    def test_calculate_gantt_date_range_fallback(self):
+        """Test _calculate_gantt_date_range uses fallback when widget unavailable."""
+        # Setup - no main_screen
+        manager = TaskUIManager(
+            state=self.state,
+            task_data_loader=self.task_data_loader,
+            main_screen_provider=lambda: None,
+        )
+
+        # Execute
+        start_date, end_date = manager._calculate_gantt_date_range()
+
+        # Verify fallback dates (this week's Monday to MIN_GANTT_DISPLAY_DAYS later)
+        today = date.today()
+        expected_start = today - timedelta(days=today.weekday())
+        assert start_date == expected_start
+        assert end_date > start_date
+
+    def test_fetch_task_data_handles_connection_error(self):
+        """Test _fetch_task_data calls error callback on ServerConnectionError."""
+        # Setup
+        original_error = ConnectionError("Connection refused")
+        self.task_data_loader.load_tasks.side_effect = ServerConnectionError(
+            base_url="http://localhost:8000",
+            original_error=original_error,
+        )
+        self.main_screen.gantt_widget.calculate_date_range.return_value = (
+            date.today(),
+            date.today() + timedelta(days=7),
+        )
+
+        # Execute
+        result = self.manager._fetch_task_data()
+
+        # Verify error callback was called with the error
+        self.on_error.assert_called_once()
+        error_arg = self.on_error.call_args[0][0]
+        assert isinstance(error_arg, ServerConnectionError)
+
+        # Verify empty TaskData is returned
+        assert result.all_tasks == []
+        assert result.table_view_models == []
+        assert result.gantt_view_model is None
+
+    def test_fetch_task_data_uses_state_settings(self):
+        """Test _fetch_task_data uses sort/filter settings from state."""
+        # Setup state
+        self.state.sort_by = "priority"
+        self.state.sort_reverse = True
+
+        task_data = create_task_data()
+        self.task_data_loader.load_tasks.return_value = task_data
+        self.main_screen.gantt_widget.calculate_date_range.return_value = (
+            date.today(),
+            date.today() + timedelta(days=7),
+        )
+
+        # Execute
+        self.manager._fetch_task_data()
+
+        # Verify data loader was called with state settings
+        call_kwargs = self.task_data_loader.load_tasks.call_args[1]
+        assert call_kwargs["sort_by"] == "priority"
+        assert call_kwargs["reverse"] is True
+
+    def test_gather_fetch_params_snapshots_state_and_range(self):
+        """gather_fetch_params captures sort/archive/state and gantt window."""
+        self.state.sort_by = "priority"
+        self.state.sort_reverse = True
+        self.state.show_archived = True
+        window = (date.today(), date.today() + timedelta(days=7))
+        self.main_screen.gantt_widget.calculate_date_range.return_value = window
+
+        params = self.manager.gather_fetch_params()
+
+        assert params.include_archived is True
+        assert params.sort_by == "priority"
+        assert params.reverse is True
+        assert params.date_range == window
+
+    def test_fetch_with_params_raises_on_api_error(self):
+        """fetch_with_params propagates API errors (no UI-thread handling)."""
+        from taskdog.tui.services.task_ui_manager import FetchParams
+
+        self.task_data_loader.load_tasks.side_effect = ServerConnectionError(
+            base_url="http://localhost:8000",
+            original_error=ConnectionError("refused"),
+        )
+        params = FetchParams(
+            include_archived=False,
+            sort_by="id",
+            reverse=False,
+            date_range=(date.today(), date.today() + timedelta(days=7)),
+        )
+
+        with pytest.raises(ServerConnectionError):
+            self.manager.fetch_with_params(params)
+
+        # The error callback must NOT fire here (it is UI-thread only)
+        self.on_error.assert_not_called()
+
+    def test_apply_task_data_updates_cache_and_refreshes(self):
+        """apply_task_data writes caches and refreshes widgets."""
+        task = create_task_dto(1, "Test Task", TaskStatus.PENDING)
+        vm = create_task_viewmodel(1, "Test Task", TaskStatus.PENDING)
+        gantt = create_gantt_viewmodel()
+        task_data = create_task_data([task], [vm], gantt)
+
+        self.manager.apply_task_data(task_data, keep_scroll_position=True)
+
+        assert self.state.gantt_cache == gantt
+        assert len(self.state.viewmodels_cache) == 1
+        self.main_screen.refresh_tasks.assert_called_once_with(
+            keep_scroll_position=True
+        )
+
+    def test_update_cache_updates_state(self):
+        """Test _update_cache updates TUIState correctly."""
+        # Setup
+        task = create_task_dto(1, "Test Task", TaskStatus.PENDING)
+        vm = create_task_viewmodel(1, "Test Task", TaskStatus.PENDING)
+        gantt = create_gantt_viewmodel()
+        task_data = create_task_data([task], [vm], gantt)
+
+        # Execute
+        self.manager._update_cache(task_data)
+
+        # Verify state was updated
+        assert len(self.state.viewmodels_cache) == 1
+        assert self.state.viewmodels_cache[0].id == 1
+        assert self.state.gantt_cache == gantt
+
+    def test_refresh_ui_without_main_screen(self):
+        """Test _refresh_ui does nothing when main_screen is None."""
+        # Setup - no main_screen
+        manager = TaskUIManager(
+            state=self.state,
+            task_data_loader=self.task_data_loader,
+            main_screen_provider=lambda: None,
+        )
+        task_data = create_task_data()
+
+        # Execute - should not raise
+        manager._refresh_ui(task_data, keep_scroll_position=False)
+
+    def test_refresh_ui_updates_gantt_widget(self):
+        """Test _refresh_ui updates gantt widget (reads from State cache)."""
+        # Setup
+        task = create_task_dto(1, "Test Task", TaskStatus.PENDING)
+        vm = create_task_viewmodel(1, "Test Task", TaskStatus.PENDING)
+        gantt = create_gantt_viewmodel()
+        task_data = create_task_data([task], [vm], gantt)
+
+        # Execute
+        self.manager._refresh_ui(task_data, keep_scroll_position=False)
+
+        # Verify gantt widget was told to render
+        self.main_screen.gantt_widget.update_gantt.assert_called_once()
+        call_kwargs = self.main_screen.gantt_widget.update_gantt.call_args[1]
+        assert call_kwargs["task_ids"] == [1]
+
+    def test_refresh_ui_updates_task_table(self):
+        """Test _refresh_ui updates task table with viewmodels."""
+        # Setup
+        task = create_task_dto(1, "Test Task", TaskStatus.PENDING)
+        vm = create_task_viewmodel(1, "Test Task", TaskStatus.PENDING)
+        task_data = create_task_data([task], [vm])
+
+        # Execute
+        self.manager._refresh_ui(task_data, keep_scroll_position=True)
+
+        # Verify task table was updated via main_screen
+        self.main_screen.refresh_tasks.assert_called_once_with(
+            keep_scroll_position=True
+        )
+
+
+class TestRecalculateGantt:
+    """Test cases for recalculate_gantt method."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Set up test fixtures."""
+        self.state = TUIState()
+        self.task_data_loader = MagicMock(spec=TaskDataLoader)
+        self.main_screen = MagicMock()
+        self.main_screen.gantt_widget = MagicMock()
+        # Setup default return values for gantt_widget methods
+        self.main_screen.gantt_widget.get_sort_by.return_value = "deadline"
+        self.on_error = MagicMock()
+
+        # Setup mock API client and presenter on task_data_loader
+        self.task_data_loader.api_client = MagicMock()
+        self.task_data_loader.gantt_presenter = MagicMock()
+
+        self.manager = TaskUIManager(
+            state=self.state,
+            task_data_loader=self.task_data_loader,
+            main_screen_provider=lambda: self.main_screen,
+            on_error=self.on_error,
+        )
+
+    def test_gather_gantt_params_snapshots_window_and_sort(self):
+        """gather_gantt_params captures the window plus sort/archive state."""
+        self.state.sort_reverse = True
+        self.state.show_archived = True
+        self.main_screen.gantt_widget.get_sort_by.return_value = "priority"
+
+        params = self.manager.gather_gantt_params(date(2024, 1, 1), date(2024, 1, 31))
+
+        assert params.start_date == date(2024, 1, 1)
+        assert params.end_date == date(2024, 1, 31)
+        assert params.sort_by == "priority"
+        assert params.reverse is True
+        assert params.include_archived is True
+
+    def test_fetch_gantt_raises_on_api_error(self):
+        """fetch_gantt propagates API errors (no UI-thread handling)."""
+        from taskdog.tui.services.task_ui_manager import GanttFetchParams
+
+        self.task_data_loader.api_client.list_tasks.side_effect = ServerError("boom")
+        params = GanttFetchParams(
+            start_date=date(2024, 1, 1),
+            end_date=date(2024, 1, 31),
+            sort_by="id",
+            reverse=False,
+            include_archived=False,
+        )
+
+        with pytest.raises(ServerError):
+            self.manager.fetch_gantt(params)
+        self.on_error.assert_not_called()
+
+    def test_apply_gantt_updates_cache_and_renders(self):
+        """apply_gantt writes the gantt cache and re-renders the widget."""
+        gantt = create_gantt_viewmodel()
+
+        self.manager.apply_gantt(gantt)
+
+        assert self.state.gantt_cache == gantt
+        self.main_screen.gantt_widget.update_view_model_and_render.assert_called_once_with(
+            keep_scroll_position=True
+        )
+
+    def test_apply_gantt_ignores_none(self):
+        """apply_gantt is a no-op when there is no gantt data."""
+        self.manager.apply_gantt(None)
+        self.main_screen.gantt_widget.update_view_model_and_render.assert_not_called()
+
+    def test_fetch_gantt_returns_none_without_gantt_data(self):
+        """fetch_gantt returns None (and skips the presenter) on empty data."""
+        from taskdog.tui.services.task_ui_manager import GanttFetchParams
+
+        task_list_output = TaskListOutput(
+            tasks=[],
+            total_count=0,
+            filtered_count=0,
+            gantt_data=None,
+        )
+        self.task_data_loader.api_client.list_tasks.return_value = task_list_output
+        params = GanttFetchParams(
+            start_date=date(2024, 1, 1),
+            end_date=date(2024, 1, 31),
+            sort_by="id",
+            reverse=False,
+            include_archived=False,
+        )
+
+        result = self.manager.fetch_gantt(params)
+
+        assert result is None
+        self.task_data_loader.gantt_presenter.present.assert_not_called()
+
+
+class TestErrorHandling:
+    """Test cases for error handling in TaskUIManager."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Set up test fixtures."""
+        self.state = TUIState()
+        self.task_data_loader = MagicMock(spec=TaskDataLoader)
+        self.main_screen = MagicMock()
+        self.main_screen.gantt_widget = MagicMock()
+        self.main_screen.gantt_widget.calculate_date_range.return_value = (
+            date.today(),
+            date.today() + timedelta(days=7),
+        )
+        self.main_screen.gantt_widget.get_sort_by.return_value = "deadline"
+        self.on_error = MagicMock()
+
+        # Setup mock API client and presenter on task_data_loader
+        self.task_data_loader.api_client = MagicMock()
+        self.task_data_loader.gantt_presenter = MagicMock()
+
+        self.manager = TaskUIManager(
+            state=self.state,
+            task_data_loader=self.task_data_loader,
+            main_screen_provider=lambda: self.main_screen,
+            on_error=self.on_error,
+        )
+
+    def test_fetch_task_data_handles_authentication_error(self):
+        """Test _fetch_task_data calls error callback with AuthenticationError."""
+        self.task_data_loader.load_tasks.side_effect = AuthenticationError(
+            message="Unauthorized",
+        )
+
+        result = self.manager._fetch_task_data()
+
+        self.on_error.assert_called_once()
+        assert isinstance(self.on_error.call_args[0][0], AuthenticationError)
+        assert result.all_tasks == []
+
+    def test_fetch_task_data_handles_server_error(self):
+        """Test _fetch_task_data calls error callback with ServerError."""
+        self.task_data_loader.load_tasks.side_effect = ServerError(
+            status_code=500,
+            message="Internal Server Error",
+        )
+
+        result = self.manager._fetch_task_data()
+
+        self.on_error.assert_called_once()
+        assert isinstance(self.on_error.call_args[0][0], ServerError)
+        assert result.all_tasks == []
+
+
+class TestCreateEmptyTaskData:
+    """Test cases for _create_empty_task_data method."""
+
+    def test_create_empty_task_data_returns_empty_data(self):
+        """Test _create_empty_task_data returns valid empty TaskData."""
+        state = TUIState()
+        task_data_loader = MagicMock(spec=TaskDataLoader)
+        manager = TaskUIManager(
+            state=state,
+            task_data_loader=task_data_loader,
+            main_screen_provider=lambda: None,
+        )
+
+        result = manager.empty_task_data()
+
+        assert result.all_tasks == []
+        assert result.table_view_models == []
+        assert result.gantt_view_model is None
+        assert result.task_list_output.total_count == 0
+        assert result.task_list_output.filtered_count == 0
+
+
+class TestRefreshUIEdgeCases:
+    """Test cases for _refresh_ui edge cases."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Set up test fixtures."""
+        self.state = TUIState()
+        self.task_data_loader = MagicMock(spec=TaskDataLoader)
+        self.main_screen = MagicMock()
+
+    def test_refresh_ui_without_gantt_widget(self):
+        """Test _refresh_ui handles missing gantt_widget gracefully."""
+        self.main_screen.gantt_widget = None
+
+        manager = TaskUIManager(
+            state=self.state,
+            task_data_loader=self.task_data_loader,
+            main_screen_provider=lambda: self.main_screen,
+        )
+
+        task = create_task_dto(1, "Test Task", TaskStatus.PENDING)
+        vm = create_task_viewmodel(1, "Test Task", TaskStatus.PENDING)
+        gantt = create_gantt_viewmodel()
+        task_data = create_task_data([task], [vm], gantt)
+
+        # Execute - should not raise
+        manager._refresh_ui(task_data, keep_scroll_position=False)
+
+        # Verify task table was still updated
+        self.main_screen.refresh_tasks.assert_called_once()
+
+    def test_refresh_ui_without_gantt_view_model(self):
+        """Test _refresh_ui handles None gantt_view_model gracefully."""
+        self.main_screen.gantt_widget = MagicMock()
+
+        manager = TaskUIManager(
+            state=self.state,
+            task_data_loader=self.task_data_loader,
+            main_screen_provider=lambda: self.main_screen,
+        )
+
+        # Create task_data with None gantt_view_model
+        task = create_task_dto(1, "Test Task", TaskStatus.PENDING)
+        vm = create_task_viewmodel(1, "Test Task", TaskStatus.PENDING)
+        task_data = TaskData(
+            all_tasks=[task],
+            task_list_output=TaskListOutput(
+                tasks=[task],
+                total_count=1,
+                filtered_count=1,
+                gantt_data=None,
+            ),
+            table_view_models=[vm],
+            gantt_view_model=None,
+        )
+
+        # Execute - should not raise
+        manager._refresh_ui(task_data, keep_scroll_position=False)
+
+        # Verify gantt_widget.update_gantt was NOT called (no gantt data)
+        self.main_screen.gantt_widget.update_gantt.assert_not_called()
+
+        # Verify task table was still updated
+        self.main_screen.refresh_tasks.assert_called_once()
+
+
+class TestTaskUIManagerWithoutErrorCallback:
+    """Test TaskUIManager behavior without error callback."""
+
+    def test_connection_error_without_callback(self):
+        """Test _fetch_task_data handles error gracefully without callback."""
+        state = TUIState()
+        task_data_loader = MagicMock(spec=TaskDataLoader)
+        main_screen = MagicMock()
+        main_screen.gantt_widget = MagicMock()
+        main_screen.gantt_widget.calculate_date_range.return_value = (
+            date.today(),
+            date.today() + timedelta(days=7),
+        )
+
+        # Setup - no error callback
+        manager = TaskUIManager(
+            state=state,
+            task_data_loader=task_data_loader,
+            main_screen_provider=lambda: main_screen,
+        )
+
+        original_error = ConnectionError("Connection refused")
+        task_data_loader.load_tasks.side_effect = ServerConnectionError(
+            base_url="http://localhost:8000",
+            original_error=original_error,
+        )
+
+        # Execute - should not raise
+        result = manager._fetch_task_data()
+
+        # Verify empty TaskData is returned
+        assert result.all_tasks == []

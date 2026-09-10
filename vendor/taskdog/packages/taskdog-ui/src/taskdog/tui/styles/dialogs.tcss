@@ -1,0 +1,181 @@
+/* Dialog Styles */
+
+/* =============================================================================
+   Base Dialog Styles - Common patterns for all dialogs
+   ============================================================================= */
+
+/* All dialog screens use center alignment */
+AlgorithmSelectionDialog,
+ConfirmationDialog,
+TaskFormDialog,
+TaskDetailDialog,
+FixActualDialog,
+HelpDialog {
+    align: center middle;
+}
+
+/* Base dialog style - inherited by all dialogs */
+.dialog-base {
+    height: auto;
+    background: $surface;
+    border: round $primary;
+    padding: 1;
+}
+
+/* Dialog size variants */
+.dialog-compact {
+    width: auto;  /* Auto-adjust width based on content */
+    min-width: 55;  /* Minimum width for simple yes/no confirmations */
+    max-width: 90;  /* Maximum width to prevent too-wide dialogs */
+    max-height: 40%;
+}
+
+.dialog-standard {
+    width: 70%;
+    min-width: 60;
+    max-width: 100;
+}
+
+.dialog-wide {
+    width: 80%;
+    min-width: 80;
+    max-width: 120;
+}
+
+/* =============================================================================
+   Common Dialog Components
+   ============================================================================= */
+
+/* Hint text shown in dialogs */
+#dialog-hint {
+    text-align: center;
+    padding-bottom: 1;
+    color: $text-muted;
+}
+
+/* Message text in confirmation dialogs */
+#dialog-message {
+    width: 100%;
+    text-align: center;
+    padding: 1 2;
+    margin: 1 0;
+}
+
+/* Form container */
+#form-container {
+    padding: 0;
+    margin: 0;
+}
+
+/* Field labels in forms */
+.field-label {
+    color: $text-muted;
+}
+
+/* Detail view components */
+#detail-tabs {
+    height: 1fr;
+}
+
+.detail-tab-scroll {
+    padding: 1;
+    margin: 0;
+    overflow-y: auto;
+}
+
+.detail-row {
+    padding: 0;
+}
+
+.notes-content {
+    width: 100%;
+    min-height: 10;
+}
+
+/* =============================================================================
+   Specific Dialog Configurations
+   ============================================================================= */
+
+/* Algorithm Selection Dialog */
+#algorithm-dialog {
+    max-height: 60%;
+}
+
+/* Confirmation Dialog */
+#confirmation-dialog {
+    border: round $error;  /* Colored border for emphasis on dangerous actions */
+}
+
+/* Fix Actual Dialog - special operation */
+#fix-actual-dialog {
+    border: round $error;  /* Colored border for emphasis on timestamp correction */
+    max-height: 60%;  /* 3 fields */
+}
+
+/* Warning message in fix actual dialog */
+#fix-actual-warning {
+    width: 100%;
+    text-align: center;
+    padding: 0 2;
+    margin-bottom: 1;
+}
+
+/* Task Form Dialog (Add/Edit) */
+#add-task-dialog,
+#edit-task-dialog {
+    max-height: 80%;  /* Accommodate planned_start/planned_end fields */
+}
+
+/* Task Detail Screen */
+#detail-screen {
+    max-height: 80%;
+}
+
+/* Audit log DataTable in detail dialog */
+#audit-log-table {
+    height: auto;
+    border: none;
+}
+
+/* Help Screen */
+#help-screen {
+    max-height: 80%;
+}
+
+#help-tabs {
+    height: 1fr;
+}
+
+.help-tab-scroll {
+    padding: 1;
+    margin: 0;
+    overflow-y: auto;
+}
+
+.help-wordmark {
+    color: $primary;
+    text-style: bold;
+    padding: 0 1;
+}
+
+.help-tagline {
+    color: $text-muted;
+    padding: 0 1;
+}
+
+.help-section {
+    padding: 0 1;
+}
+
+.help-tip {
+    padding: 0 2;
+}
+
+.help-spacer {
+    height: 1;
+}
+
+.help-footer {
+    text-align: center;
+    padding-top: 1;
+}

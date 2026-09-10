@@ -1,0 +1,793 @@
+"""Taskdog TUI application."""
+
+import logging
+from pathlib import PurePath
+from typing import TYPE_CHECKING, Any, ClassVar
+
+from textual.app import App, InvalidThemeError
+from textual.binding import Binding
+from textual.command import CommandPalette
+from textual.worker import get_current_worker
+
+if TYPE_CHECKING:
+    from taskdog_client import TaskdogApiClient
+    from textual.timer import Timer
+
+    from taskdog.infrastructure.cli_config_manager import CliConfig
+    from taskdog.services.task_data_loader import TaskData
+    from taskdog.tui.services.task_ui_manager import FetchParams, GanttFetchParams
+    from taskdog.view_models.gantt_view_model import GanttViewModel
+
+from taskdog_client import WebSocketClient
+
+from taskdog import __version__
+from taskdog.presenters.gantt_presenter import GanttPresenter
+from taskdog.presenters.table_presenter import TablePresenter
+from taskdog.services.task_data_loader import TaskDataLoader
+from taskdog.tui.commands.factory import CommandFactory
+from taskdog.tui.constants.command_mapping import ACTION_TO_COMMAND_MAP
+from taskdog.tui.constants.ui_settings import (
+    AUTO_REFRESH_INTERVAL_SECONDS,
+    GANTT_LOADING_DELAY_SECONDS,
+    RELOAD_DEBOUNCE_SECONDS,
+    SORT_KEY_LABELS,
+)
+from taskdog.tui.context import TUIContext
+from taskdog.tui.events import FilterChanged, GanttResizeRequested, TasksRefreshed
+from taskdog.tui.palette.providers import (
+    ArchiveCommandProvider,
+    AuditCommandProvider,
+    BackupCommandProvider,
+    ExportCommandProvider,
+    ExportFormatProvider,
+    GanttFilterCommandProvider,
+    HelpCommandProvider,
+    OptimizeCommandProvider,
+    SortCommandProvider,
+    SortOptionsProvider,
+    StatsCommandProvider,
+)
+from taskdog.tui.screens.main_screen import MainScreen
+from taskdog.tui.selection import AppSelectionProvider
+from taskdog.tui.services import ConnectionMonitor, TaskUIManager, WebSocketHandler
+from taskdog.tui.state import ConnectionStatusManager, TUIState
+from taskdog_core.domain.exceptions.task_exceptions import (
+    AuthenticationError,
+    ServerConnectionError,
+    ServerError,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def resolve_keymap(
+    config_keybindings: dict[str, str], valid_ids: set[str]
+) -> tuple[dict[str, str], list[str]]:
+    """Split user keybindings into a Textual keymap and unknown binding ids.
+
+    Entries whose id matches a real binding become a keymap (binding id -> key)
+    passed to ``App.set_keymap``; unrecognised ids are returned separately so the
+    caller can warn and fall back to the default keys.
+    """
+    keymap: dict[str, str] = {}
+    unknown: list[str] = []
+    for binding_id, key in config_keybindings.items():
+        if binding_id in valid_ids:
+            keymap[binding_id] = key
+        else:
+            unknown.append(binding_id)
+    return keymap, unknown
+
+
+class TaskdogTUI(App):  # type: ignore[type-arg]
+    """Taskdog TUI application."""
+
+    TITLE = f"Taskdog v{__version__}"
+
+    BINDINGS: ClassVar = [
+        Binding(
+            "q",
+            "quit",
+            "Quit",
+            show=True,
+            tooltip="Quit the app and return to the command prompt",
+            id="quit",
+        ),
+        Binding("a", "add", "Add", show=True, tooltip="Create a new task", id="add"),
+        Binding(
+            "s",
+            "start",
+            "Start",
+            show=False,
+            tooltip="Start the selected task",
+            id="start",
+        ),
+        Binding(
+            "P",
+            "pause",
+            "Pause",
+            show=False,
+            tooltip="Pause the selected task and reset to PENDING status",
+            id="pause",
+        ),
+        Binding(
+            "d",
+            "done",
+            "Done",
+            show=False,
+            tooltip="Mark the selected task as completed",
+            id="done",
+        ),
+        Binding(
+            "c",
+            "cancel",
+            "Cancel",
+            show=False,
+            tooltip="Cancel the selected task",
+            id="cancel",
+        ),
+        Binding(
+            "R",
+            "reopen",
+            "Reopen",
+            show=False,
+            tooltip="Reopen a completed or canceled task",
+            id="reopen",
+        ),
+        Binding(
+            "x",
+            "rm",
+            "Archive",
+            show=False,
+            tooltip="Archive the selected task (soft delete)",
+            id="rm",
+        ),
+        Binding(
+            "X",
+            "hard_delete",
+            "Delete",
+            show=False,
+            tooltip="Permanently delete the selected task",
+            id="hard_delete",
+        ),
+        Binding(
+            "r",
+            "refresh",
+            "Refresh",
+            show=True,
+            tooltip="Refresh the task list from the server",
+            id="refresh",
+        ),
+        Binding(
+            "i",
+            "show",
+            "Info",
+            show=False,
+            tooltip="Show detailed information about the selected task",
+            id="show",
+        ),
+        Binding(
+            "e",
+            "edit",
+            "Edit",
+            show=False,
+            tooltip="Edit the selected task's properties",
+            id="edit",
+        ),
+        Binding(
+            "f",
+            "fix_actual",
+            "Fix Time",
+            show=False,
+            tooltip="Fix actual start/end times or duration for the selected task",
+            id="fix_actual",
+        ),
+        Binding(
+            "v",
+            "note",
+            "Edit Note",
+            show=False,
+            tooltip="Edit markdown notes for the selected task",
+            id="note",
+        ),
+        Binding(
+            "/",
+            "show_search",
+            "Search",
+            show=False,
+            tooltip="Search for tasks by name",
+            id="show_search",
+        ),
+        # Fixed alias for show_search (not user-remappable; remap "show_search").
+        Binding(
+            "ctrl+r",
+            "show_search",
+            "Search",
+            show=False,
+            tooltip="Search for tasks by name",
+        ),
+        Binding(
+            "escape",
+            "hide_search",
+            "Clear Search",
+            show=False,
+            tooltip="Clear the search filter and show all tasks",
+            id="hide_search",
+        ),
+        Binding(
+            "ctrl+t",
+            "toggle_sort_reverse",
+            "Toggle Sort",
+            show=False,
+            tooltip="Toggle sort direction (ascending ⇔ descending)",
+            id="toggle_sort_reverse",
+        ),
+        Binding(
+            "?",
+            "show_help",
+            "Help",
+            show=True,
+            tooltip="Show help screen with keybindings and usage instructions",
+            id="show_help",
+        ),
+        Binding(
+            "S",
+            "stats",
+            "Stats",
+            show=True,
+            tooltip="Show task statistics dashboard",
+            id="stats",
+        ),
+        Binding(
+            "z",
+            "toggle_maximize",
+            "Zoom",
+            show=False,
+            tooltip="Zoom: Toggle maximize/minimize for the focused widget",
+            id="toggle_maximize",
+        ),
+        Binding(
+            "t",
+            "toggle_gantt_filter",
+            "Gantt Filter",
+            show=False,
+            tooltip="Toggle search filter for Gantt chart",
+            id="toggle_gantt_filter",
+        ),
+    ]
+
+    # Register custom command providers
+    COMMANDS = App.COMMANDS | {
+        ArchiveCommandProvider,
+        AuditCommandProvider,
+        SortCommandProvider,
+        OptimizeCommandProvider,
+        ExportCommandProvider,
+        BackupCommandProvider,
+        GanttFilterCommandProvider,
+        HelpCommandProvider,
+        StatsCommandProvider,
+    }
+
+    # CSS paths are resolved relative to this module's directory by Textual.
+    CSS_PATH: ClassVar[list[str | PurePath]] = [
+        "styles/theme.tcss",
+        "styles/components.tcss",
+        "styles/main.tcss",
+        "styles/dialogs.tcss",
+    ]
+
+    # Enable mouse support
+    ENABLE_MOUSE: ClassVar[bool] = True
+
+    def __init__(
+        self,
+        api_client: "TaskdogApiClient",
+        websocket_client: WebSocketClient,
+        cli_config: "CliConfig | None" = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        """Initialize the TUI application.
+
+        TUI operates through the API client for all task operations.
+        Notes are managed via API client as well.
+
+        Args:
+            api_client: API client for server communication (required)
+            websocket_client: WebSocket client for real-time updates (required)
+            cli_config: CLI configuration (optional, uses defaults if not provided)
+        """
+        super().__init__(*args, **kwargs)
+        from taskdog.infrastructure.cli_config_manager import CliConfig
+
+        self.api_client = api_client
+        self._cli_config = cli_config or CliConfig()
+        self._theme = self._cli_config.ui.theme
+        self.main_screen: MainScreen | None = None
+
+        # Initialize TUI state (Single Source of Truth for all app state)
+        self.state = TUIState()
+
+        # Initialize connection status manager (observer pattern)
+        self.connection_manager = ConnectionStatusManager()
+
+        # Initialize TUIContext with API client, state, selection, and config
+        self.context = TUIContext(
+            api_client=self.api_client,
+            state=self.state,  # Share same state instance
+            selection=AppSelectionProvider(self),
+            config=self._cli_config,
+        )
+
+        # Initialize presenters for view models
+        self.table_presenter = TablePresenter()
+        self.gantt_presenter = GanttPresenter()
+
+        # Initialize TaskDataLoader for data fetching
+        self.task_data_loader = TaskDataLoader(
+            api_client=self.api_client,
+            table_presenter=self.table_presenter,
+            gantt_presenter=self.gantt_presenter,
+        )
+
+        # Initialize CommandFactory for command execution
+        self.command_factory = CommandFactory(self, self.context)
+
+        # Initialize WebSocket handler for message processing
+        self.websocket_handler = WebSocketHandler(
+            notify=self.notify,
+            reload_tasks=self.request_reload,
+            set_client_id=self.api_client.set_client_id,
+            get_client_id=lambda: self.api_client.client_id,
+        )
+
+        # TaskUIManager will be initialized in on_mount (needs MainScreen)
+        self.task_ui_manager: TaskUIManager | None = None
+
+        # Debounce timer for the single reload funnel (request_reload)
+        self._reload_timer: Timer | None = None
+
+        # Delayed-loading-indicator timer for gantt zoom/pan
+        self._gantt_loading_timer: Timer | None = None
+
+        # Initialize WebSocket client for real-time updates
+        self.websocket_client = websocket_client
+        self.websocket_client.set_callback(self._handle_websocket_message)
+
+        # Initialize connection monitor (non-blocking health checks)
+        self.connection_monitor = ConnectionMonitor(
+            app=self,
+            api_client=self.api_client,
+            websocket_client=self.websocket_client,
+            connection_manager=self.connection_manager,
+        )
+
+    def _handle_websocket_message(self, message: dict[str, Any]) -> None:
+        """Handle incoming WebSocket messages.
+
+        Delegates message handling to WebSocketHandler for separation of concerns.
+
+        Args:
+            message: WebSocket message dictionary
+        """
+        self.websocket_handler.handle_message(message)
+
+    @property
+    def cli_config(self) -> "CliConfig":
+        """Public accessor for the CLI configuration."""
+        return self._cli_config
+
+    def __getattr__(self, name: str) -> Any:
+        """Dynamically handle action_* methods by delegating to command_factory.
+
+        This eliminates the need for 12 nearly-identical action methods.
+        When Textual calls action_foo(), this method intercepts it and
+        executes the corresponding "foo" command via command_factory.
+
+        Args:
+            name: Attribute name being accessed
+
+        Returns:
+            Callable that executes the corresponding command
+
+        Raises:
+            AttributeError: If the attribute doesn't match an action pattern
+        """
+        if name in ACTION_TO_COMMAND_MAP:
+            command_name = ACTION_TO_COMMAND_MAP[name]
+
+            def execute_command() -> None:
+                self.command_factory.execute(command_name)
+
+            return execute_command
+
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{name}'"
+        )
+
+    async def on_mount(self) -> None:
+        """Called when app is mounted."""
+        self._apply_custom_keybindings()
+
+        # Apply theme from config with fallback for invalid themes
+        try:
+            self.theme = self._theme
+        except InvalidThemeError:
+            self.notify(
+                f"Invalid theme '{self._theme}'. Using default.",
+                severity="warning",
+            )
+            self.theme = "textual-dark"
+
+        self.main_screen = MainScreen(state=self.state)
+        self.push_screen(self.main_screen)
+
+        # Initialize TaskUIManager (needs MainScreen to be available)
+        self.task_ui_manager = TaskUIManager(
+            state=self.state,
+            task_data_loader=self.task_data_loader,
+            main_screen_provider=lambda: self.main_screen,
+            on_error=self._handle_api_error,
+        )
+
+        # Load tasks after screen is fully mounted. Routed through the reload
+        # funnel so the initial fetch runs off the UI thread; the loading
+        # indicator set in MainScreen.on_mount is cleared when it completes.
+        self.call_after_refresh(self.request_reload)
+        # Start auto-refresh timer for elapsed time updates
+        self.set_interval(AUTO_REFRESH_INTERVAL_SECONDS, self._refresh_elapsed_time)
+        # Start connection monitoring timer (check every 3 seconds)
+        self.set_interval(3.0, self.connection_monitor.check)
+        # Connect to WebSocket for real-time updates
+        await self.websocket_client.connect()
+        # Initial connection status check (delayed to allow WebSocket connection to stabilize)
+        self.call_later(self.connection_monitor.check)
+
+    async def on_unmount(self) -> None:
+        """Called when app is unmounted."""
+        # Disconnect WebSocket
+        await self.websocket_client.disconnect()
+
+    def _apply_custom_keybindings(self) -> None:
+        """Override default keys from ``cli.toml [keybindings]`` (id -> key)."""
+        valid_ids = {b.id for b in self.BINDINGS if isinstance(b, Binding) and b.id}
+        keymap, unknown = resolve_keymap(self._cli_config.keybindings, valid_ids)
+        if unknown:
+            self.notify(
+                f"Unknown keybinding id(s) in cli.toml: {', '.join(sorted(unknown))}",
+                severity="warning",
+            )
+        if keymap:
+            self.set_keymap(keymap)
+
+    def handle_bindings_clash(self, clashed_bindings: set[Binding], node: Any) -> None:
+        """Warn when custom keybindings collide with existing ones."""
+        keys = sorted({b.key for b in clashed_bindings})
+        self.notify(
+            f"Keybinding clash on: {', '.join(keys)}. Check cli.toml [keybindings].",
+            severity="warning",
+        )
+
+    def _handle_api_error(
+        self, error: ServerConnectionError | AuthenticationError | ServerError
+    ) -> None:
+        """Handle API errors from TaskUIManager.
+
+        Args:
+            error: API error (connection, auth, or server error)
+        """
+        if isinstance(error, ServerConnectionError):
+            msg = f"Server connection failed: {error.original_error.__class__.__name__}. Press 'r' to retry."
+        elif isinstance(error, AuthenticationError):
+            msg = f"Authentication failed: {error}. Check your API key."
+        else:
+            msg = f"Server error: {error}. Press 'r' to retry."
+        self.notify(msg, severity="error", timeout=10)
+
+    def search_sort(self) -> None:
+        """Show a fuzzy search command palette containing all sort options.
+
+        Selecting a sort option will change the sort order.
+        """
+        self.push_screen(
+            CommandPalette(
+                providers=[SortOptionsProvider],
+                placeholder="Search for sort options…",
+            ),
+        )
+
+    def search_optimize(self) -> None:
+        """Show optimization algorithm selection dialog."""
+        # Execute optimize command which will show AlgorithmSelectionScreen
+        self.command_factory.execute("optimize")
+
+    def search_export(self) -> None:
+        """Show a fuzzy search command palette containing all export format options.
+
+        Selecting a format will trigger the export operation.
+        """
+        self.push_screen(
+            CommandPalette(
+                providers=[ExportFormatProvider],
+                placeholder="Select export format…",
+            ),
+        )
+
+    def run_backup(self) -> None:
+        """Back up the database to a file.
+
+        Called from the Command Palette via BackupCommandProvider.
+        """
+        self.command_factory.execute("backup")
+
+    def search_help(self) -> None:
+        """Show the help screen with keybindings and usage instructions."""
+        self.command_factory.execute("show_help")
+
+    def search_stats(self) -> None:
+        """Show the statistics dashboard."""
+        self.command_factory.execute("stats")
+
+    def _refresh_mode_badges(self) -> None:
+        """Refresh the footer mode badges to reflect current toggle/sort state."""
+        if self.main_screen and self.main_screen.custom_footer:
+            self.main_screen.custom_footer.update_mode_badges(self.state)
+
+    def set_sort_order(self, sort_key: str) -> None:
+        """Set the sort order for Gantt chart and task list.
+
+        Called when user selects a sort option from Command Palette.
+
+        Args:
+            sort_key: Sort key (deadline, planned_start, priority, id)
+        """
+        self.state.sort_by = sort_key
+
+        # Post TasksRefreshed event to trigger UI refresh with new sort order
+        self.post_message(TasksRefreshed())
+        self._refresh_mode_badges()
+
+        # Show notification message with current direction
+        sort_label = SORT_KEY_LABELS.get(sort_key, sort_key)
+        arrow = "↓" if self.state.sort_reverse else "↑"
+        direction = "descending" if self.state.sort_reverse else "ascending"
+        self.notify(f"Sorted by {sort_label} {arrow} ({direction})")
+
+    def action_show_search(self) -> None:
+        """Show the search input."""
+        if self.main_screen:
+            self.main_screen.show_search()
+
+    def action_hide_search(self) -> None:
+        """Hide the search input and clear the filter."""
+        if self.main_screen:
+            self.main_screen.hide_search()
+
+    def action_toggle_sort_reverse(self) -> None:
+        """Toggle sort direction (ascending ⇔ descending)."""
+        self.state.sort_reverse = not self.state.sort_reverse
+
+        # Reload tasks with new sort direction
+        self.request_reload()
+        self._refresh_mode_badges()
+
+        # Show notification with current direction
+        direction = "descending" if self.state.sort_reverse else "ascending"
+        sort_label = SORT_KEY_LABELS.get(self.state.sort_by, self.state.sort_by)
+        arrow = "↓" if self.state.sort_reverse else "↑"
+        self.notify(f"Sort direction toggled: {sort_label} {arrow} ({direction})")
+
+    def action_toggle_maximize(self) -> None:
+        """Toggle maximize/minimize for the focused widget."""
+        screen = self.screen
+        if screen.maximized:
+            screen.minimize()
+        else:
+            focused = self.focused
+            if focused and getattr(focused, "allow_maximize", False):
+                screen.maximize(focused)
+
+    def action_toggle_gantt_filter(self) -> None:
+        """Toggle search filter for Gantt chart."""
+        enabled = self.state.toggle_gantt_filter()
+        # Post to current screen so MainScreen's on_filter_changed handler receives it
+        self.screen.post_message(FilterChanged(gantt_filter_toggled=True))
+        self._refresh_mode_badges()
+        status = "enabled" if enabled else "disabled"
+        self.notify(f"Gantt filter {status}")
+
+    def action_command_palette(self) -> None:
+        """Show the command palette."""
+        self.push_screen(CommandPalette())
+
+    def toggle_archive(self) -> None:
+        """Toggle inclusion of archived tasks in the task list.
+
+        Called from Command Palette via ArchiveCommandProvider.
+        """
+        self.state.show_archived = not self.state.show_archived
+        self.request_reload()
+        self._refresh_mode_badges()
+        status = "shown" if self.state.show_archived else "hidden"
+        self.notify(f"Archived tasks {status}")
+
+    def show_audit_logs(self) -> None:
+        """Toggle the audit log screen.
+
+        Called from Command Palette via AuditCommandProvider.
+        """
+        from taskdog.tui.screens.audit_log_screen import AuditLogScreen
+
+        if isinstance(self.screen, AuditLogScreen):
+            self.pop_screen()
+        else:
+            self.push_screen(AuditLogScreen(api_client=self.api_client))
+
+    def _refresh_elapsed_time(self) -> None:
+        """Refresh elapsed time for IN_PROGRESS tasks only."""
+        if self.main_screen and self.main_screen.task_table:
+            self.main_screen.task_table.refresh_elapsed_only()
+
+    def request_reload(self) -> None:
+        """Single, debounced funnel for task-list reloads.
+
+        Every "data changed" trigger — local command events, WebSocket
+        broadcasts, batch completions — routes here. A change often fires both
+        a local event and its own WebSocket echo; debouncing collapses those
+        (and rapid batch events) into a single reload instead of several full
+        reloads.
+        """
+        if self._reload_timer is not None:
+            self._reload_timer.stop()
+        self._reload_timer = self.set_timer(RELOAD_DEBOUNCE_SECONDS, self._flush_reload)
+
+    def _flush_reload(self) -> None:
+        """Run the coalesced reload off the UI thread (debounce elapsed).
+
+        Fetch inputs are gathered here (UI thread), the blocking API fetch runs
+        in an exclusive thread worker, and results are applied back on the UI
+        thread — so reloads never freeze the interface. The exclusive group
+        means a newer reload supersedes an in-flight one.
+        """
+        self._reload_timer = None
+        mgr = self.task_ui_manager
+        if not mgr:
+            return
+        params = mgr.gather_fetch_params()
+        self.run_worker(
+            lambda: self._reload_in_thread(mgr, params),
+            group="reload",
+            exclusive=True,
+            thread=True,
+        )
+
+    def _reload_in_thread(self, mgr: TaskUIManager, params: "FetchParams") -> None:
+        """Worker body: fetch in a thread, apply on the UI thread."""
+        worker = get_current_worker()
+        try:
+            task_data = mgr.fetch_with_params(params)
+        except (ServerConnectionError, AuthenticationError, ServerError) as e:
+            if not worker.is_cancelled:
+                self.call_from_thread(self._finish_reload, mgr, None, e)
+            return
+        except Exception:
+            # Unexpected (non-API) error — a real bug. Log it instead of
+            # silently showing an empty list, then degrade to empty data.
+            logger.exception("Unexpected error during task reload")
+            task_data = mgr.empty_task_data()
+        if not worker.is_cancelled:
+            self.call_from_thread(self._finish_reload, mgr, task_data, None)
+
+    def _finish_reload(
+        self,
+        mgr: TaskUIManager,
+        task_data: "TaskData | None",
+        error: "ServerConnectionError | AuthenticationError | ServerError | None",
+    ) -> None:
+        """Apply reload result (or surface error), then drop the loading state."""
+        if error is not None:
+            mgr.handle_api_error(error)
+        elif task_data is not None:
+            mgr.apply_task_data(task_data, keep_scroll_position=True)
+        # Clear the startup loading indicator (no-op on later reloads).
+        if self.main_screen:
+            if self.main_screen.gantt_widget:
+                self.main_screen.gantt_widget.loading = False
+            if self.main_screen.task_table:
+                self.main_screen.task_table.loading = False
+
+    # Event handlers for task operations
+    def _handle_task_change_event(self, event: Any) -> None:
+        """Handle any task change event by requesting a reload.
+
+        This generic handler is used for all task modification events
+        (created, updated, deleted, refreshed) as they all require
+        the same response: reload tasks with scroll position preserved.
+
+        Args:
+            event: Task change event (TaskCreated/Updated/Deleted/Refreshed)
+        """
+        self.request_reload()
+
+    # Alias all task change event handlers to the generic handler
+    on_task_created = _handle_task_change_event
+    on_task_updated = _handle_task_change_event
+    on_task_deleted = _handle_task_change_event
+    on_tasks_refreshed = _handle_task_change_event
+
+    def on_gantt_resize_requested(self, event: GanttResizeRequested) -> None:
+        """Handle gantt resize/pan: recalculate gantt data off the UI thread.
+
+        The fetch runs in an exclusive thread worker so zooming/panning never
+        freezes the chart; a loading indicator is shown only if the fetch is
+        slow enough to notice.
+
+        Args:
+            event: GanttResizeRequested event containing display parameters
+        """
+        mgr = self.task_ui_manager
+        if not mgr:
+            return
+        params = mgr.gather_gantt_params(event.start_date, event.end_date)
+        self._schedule_gantt_loading()
+        self.run_worker(
+            lambda: self._gantt_reload_in_thread(mgr, params),
+            group="gantt",
+            exclusive=True,
+            thread=True,
+        )
+
+    def _gantt_reload_in_thread(
+        self, mgr: TaskUIManager, params: "GanttFetchParams"
+    ) -> None:
+        """Worker body: fetch gantt in a thread, apply on the UI thread."""
+        worker = get_current_worker()
+        try:
+            gantt_view_model = mgr.fetch_gantt(params)
+        except (ServerConnectionError, AuthenticationError, ServerError) as e:
+            if not worker.is_cancelled:
+                self.call_from_thread(self._finish_gantt_reload, mgr, None, e)
+            return
+        except Exception:
+            logger.exception("Unexpected error recalculating gantt")
+            if not worker.is_cancelled:
+                self.call_from_thread(self._clear_gantt_loading)
+            return
+        if not worker.is_cancelled:
+            self.call_from_thread(
+                self._finish_gantt_reload, mgr, gantt_view_model, None
+            )
+
+    def _finish_gantt_reload(
+        self,
+        mgr: TaskUIManager,
+        gantt_view_model: "GanttViewModel | None",
+        error: "ServerConnectionError | AuthenticationError | ServerError | None",
+    ) -> None:
+        """Apply gantt result (or surface error), then drop the loading state."""
+        if error is not None:
+            mgr.handle_api_error(error)
+        else:
+            mgr.apply_gantt(gantt_view_model)
+        self._clear_gantt_loading()
+
+    def _schedule_gantt_loading(self) -> None:
+        """Arm a delayed loading indicator for the gantt (avoids flicker)."""
+        if self._gantt_loading_timer is not None:
+            self._gantt_loading_timer.stop()
+        self._gantt_loading_timer = self.set_timer(
+            GANTT_LOADING_DELAY_SECONDS, self._show_gantt_loading
+        )
+
+    def _show_gantt_loading(self) -> None:
+        self._gantt_loading_timer = None
+        if self.main_screen and self.main_screen.gantt_widget:
+            self.main_screen.gantt_widget.loading = True
+
+    def _clear_gantt_loading(self) -> None:
+        if self._gantt_loading_timer is not None:
+            self._gantt_loading_timer.stop()
+            self._gantt_loading_timer = None
+        if self.main_screen and self.main_screen.gantt_widget:
+            self.main_screen.gantt_widget.loading = False

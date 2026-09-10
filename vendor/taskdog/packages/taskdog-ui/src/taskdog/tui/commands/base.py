@@ -1,0 +1,233 @@
+"""Base class for TUI commands."""
+
+from abc import ABC
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, cast
+
+from taskdog.tui.context import TUIContext
+from taskdog.tui.events import TasksRefreshed
+from taskdog_core.domain.exceptions.task_exceptions import TaskError
+
+if TYPE_CHECKING:
+    from taskdog.tui.app import TaskdogTUI
+
+
+class TUICommandBase(ABC):  # noqa: B024
+    """Base class for TUI commands.
+
+    Provides common functionality for command execution including:
+    - Access to TUIContext and API client
+    - Helper methods for task selection, reloading, and notifications
+    - Template Method pattern for consistent error handling
+
+    Subclasses should override execute_impl() instead of execute() to get
+    automatic error handling. Alternatively, override execute() directly
+    for commands that need custom error handling logic.
+    """
+
+    def __init__(self, app: "TaskdogTUI", context: TUIContext):
+        """Initialize the command.
+
+        Args:
+            app: The TaskdogTUI application instance (for UI operations)
+            context: TUI context with dependencies
+        """
+        self.app = app
+        self.context = context
+
+    def execute(self) -> None:
+        """Execute the command with error handling (Template Method).
+
+        This method provides consistent error handling across all commands.
+        Subclasses should override execute_impl() to define command logic.
+
+        For commands that need custom error handling (e.g., StatusChangeCommandBase),
+        or async callback patterns (e.g., dialog-based commands),
+        this method can be overridden directly.
+        """
+        try:
+            self.execute_impl()
+        except Exception as e:
+            action_name = self.get_action_name()
+            self.notify_error(f"Error {action_name}", e)
+
+    def execute_impl(self) -> None:  # noqa: B027
+        """Implement the command logic here.
+
+        Subclasses should override this method to define their specific behavior.
+        This method is called by execute() within a try-except block.
+
+        If not overridden, this will do nothing.
+        Commands that override execute() directly (like StatusChangeCommandBase
+        or dialog-based commands) don't need to implement this.
+        """
+        # Default: no-op
+        # Subclasses should override this method
+
+    def handle_error[F: Callable[..., Any]](self, callback_fn: F) -> F:
+        """Wrap a callback function with error handling.
+
+        This is useful for dialog callbacks or async operations where
+        exceptions can't be caught by the execute() method's try-except.
+
+        Args:
+            callback_fn: Function to wrap with error handling
+
+        Returns:
+            Wrapped function that catches exceptions and shows error notifications
+
+        Example:
+            def my_callback(data):
+                # Process data that might raise exceptions
+                ...
+
+            dialog.show(self.handle_error(my_callback))
+        """
+        from functools import wraps
+
+        @wraps(callback_fn)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return callback_fn(*args, **kwargs)
+            except Exception as e:
+                action_name = self.get_action_name()
+                self.notify_error(f"Error {action_name}", e)
+                return None
+
+        return cast("F", wrapper)
+
+    def get_action_name(self) -> str:
+        """Return the action name for error messages (e.g., "adding task").
+
+        Default implementation derives from class name (AddTaskCommand -> "adding task").
+        Subclasses can override for custom action names.
+
+        Returns:
+            Action name in present continuous form for error messages
+        """
+        # Convert "AddTaskCommand" to "adding task"
+        class_name = self.__class__.__name__
+        class_name = class_name.removesuffix("Command")  # Remove "Command" suffix
+
+        # Convert camel case to words: "AddTask" -> "Add Task"
+        import re
+
+        words = re.sub(r"([A-Z])", r" \1", class_name).strip().lower()
+        # Add "...ing" suffix if it doesn't already end with "ing"
+        if not words.endswith("ing"):
+            # Simple heuristic: if ends with 'e', drop it before adding 'ing'
+            words = words.removesuffix("e")
+            words += "ing"
+
+        return words
+
+    def get_selected_task_id(self) -> int | None:
+        """Get the ID of the currently selected task.
+
+        Returns:
+            The selected task ID, or None if no task is selected
+        """
+        return self.context.selection.get_selected_task_id()
+
+    def get_selected_task_ids(self) -> list[int]:
+        """Get all selected task IDs for batch operations.
+
+        Returns:
+            List of selected task IDs, or [current_task_id] if none selected
+        """
+        return self.context.selection.get_selected_task_ids()
+
+    def get_explicitly_selected_task_ids(self) -> list[int]:
+        """Get only explicitly selected task IDs (no cursor fallback).
+
+        Returns:
+            List of explicitly selected task IDs, or empty list if none selected
+        """
+        return self.context.selection.get_explicitly_selected_task_ids()
+
+    def clear_task_selection(self) -> None:
+        """Clear all task selections in the table."""
+        self.context.selection.clear_selection()
+
+    def reload_tasks(self) -> None:
+        """Reload the task list from the repository and refresh the UI.
+
+        Posts a TasksRefreshed event which will be handled by the app,
+        triggering a UI refresh. This decouples commands from direct UI manipulation.
+        """
+        self.app.post_message(TasksRefreshed())
+
+    def notify_success(self, message: str) -> None:
+        """Show a success notification.
+
+        Args:
+            message: Success message to display
+        """
+        self.app.notify(message)
+
+    def notify_error(self, message: str, exception: Exception) -> None:
+        """Show an error notification.
+
+        Args:
+            message: Error description
+            exception: The exception that occurred
+        """
+        self.app.notify(f"{message}: {exception}", severity="error")
+
+    def notify_warning(self, message: str) -> None:
+        """Show a warning notification.
+
+        Args:
+            message: Warning message to display
+        """
+        self.app.notify(message, severity="warning")
+
+    def fetch_existing_tags(self) -> list[str] | None:
+        """Fetch existing tags for auto-completion.
+
+        Gracefully degrades on failure by returning None.
+
+        Returns:
+            List of existing tag names, or None if fetch failed
+        """
+        try:
+            tag_stats = self.context.api_client.get_tag_statistics()
+            return list(tag_stats.tag_counts.keys())
+        except TaskError:
+            return None
+
+    def manage_dependencies(
+        self,
+        task_id: int,
+        add_deps: list[int] | None = None,
+        remove_deps: list[int] | None = None,
+    ) -> list[str]:
+        """Manage task dependencies with error handling.
+
+        Args:
+            task_id: ID of the task to manage dependencies for
+            add_deps: List of dependency IDs to add (optional)
+            remove_deps: List of dependency IDs to remove (optional)
+
+        Returns:
+            List of error messages for failed operations (empty if all succeeded)
+        """
+        failed_operations = []
+
+        # Remove dependencies
+        if remove_deps:
+            for dep_id in remove_deps:
+                try:
+                    self.context.api_client.remove_dependency(task_id, dep_id)
+                except TaskError as e:
+                    failed_operations.append(f"Remove {dep_id}: {e}")
+
+        # Add dependencies
+        if add_deps:
+            for dep_id in add_deps:
+                try:
+                    self.context.api_client.add_dependency(task_id, dep_id)
+                except TaskError as e:
+                    failed_operations.append(f"Add {dep_id}: {e}")
+
+        return failed_operations

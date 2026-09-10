@@ -1,0 +1,136 @@
+"""Task analytics controller for statistics and optimization operations.
+
+This controller handles read-heavy analytics and optimization operations:
+- calculate_statistics: Calculate comprehensive task statistics for different periods
+- optimize_schedule: Auto-schedule tasks using various optimization algorithms
+"""
+
+from datetime import datetime
+
+from taskdog_core.application.dto.optimization_output import OptimizationOutput
+from taskdog_core.application.dto.optimize_schedule_input import OptimizeScheduleInput
+from taskdog_core.application.dto.statistics_output import (
+    CalculateStatisticsInput,
+    StatisticsOutput,
+)
+from taskdog_core.application.use_cases.calculate_reschedule_statistics import (
+    CalculateRescheduleStatisticsUseCase,
+)
+from taskdog_core.application.use_cases.calculate_statistics import (
+    CalculateStatisticsUseCase,
+)
+from taskdog_core.application.use_cases.optimize_schedule import OptimizeScheduleUseCase
+from taskdog_core.controllers.base_controller import BaseTaskController
+from taskdog_core.domain.repositories.audit_log_repository import AuditLogRepository
+from taskdog_core.domain.repositories.task_repository import TaskRepository
+from taskdog_core.domain.services.holiday_checker import IHolidayChecker
+from taskdog_core.shared.config_manager import Config
+
+
+class TaskAnalyticsController(BaseTaskController):
+    """Controller for task analytics and optimization operations.
+
+    Handles read-heavy operations and schedule optimization:
+    - Calculate statistics for different time periods (7d, 30d, all)
+    - Optimize task schedules using various algorithms (greedy, balanced, etc.)
+
+    All operations are read-heavy or computational, minimizing database writes.
+
+    Attributes:
+        repository: Task repository (inherited from BaseTaskController)
+        config: Application configuration (inherited from BaseTaskController)
+        holiday_checker: Holiday checker for workday validation (optional)
+    """
+
+    def __init__(
+        self,
+        repository: TaskRepository,
+        config: Config,
+        holiday_checker: IHolidayChecker | None,
+        audit_log_repository: AuditLogRepository | None = None,
+    ):
+        """Initialize the analytics controller.
+
+        Args:
+            repository: Task repository
+            config: Application configuration
+            holiday_checker: Holiday checker for workday validation (optional)
+            audit_log_repository: Audit log repository for reschedule
+                statistics (optional; reschedule stats are omitted without it)
+        """
+        super().__init__(repository, config)
+        self.holiday_checker = holiday_checker
+        self.audit_log_repository = audit_log_repository
+
+    def calculate_statistics(self, period: str = "all") -> StatisticsOutput:
+        """Calculate task statistics.
+
+        Args:
+            period: Time period for filtering ('7d', '30d', or 'all')
+
+        Returns:
+            StatisticsOutput containing comprehensive task statistics,
+            including reschedule statistics when an audit log repository
+            is available
+
+        Raises:
+            ValueError: If period is invalid
+        """
+        if period not in ["all", "7d", "30d"]:
+            raise ValueError(f"Invalid period: {period}. Must be 'all', '7d', or '30d'")
+
+        use_case = CalculateStatisticsUseCase(self.repository)
+        request = CalculateStatisticsInput(period=period)
+        output = use_case.execute(request)
+
+        if self.audit_log_repository is not None:
+            reschedule_use_case = CalculateRescheduleStatisticsUseCase(
+                self.audit_log_repository
+            )
+            output = output.model_copy(
+                update={"reschedule_stats": reschedule_use_case.execute(request)}
+            )
+
+        return output
+
+    def optimize_schedule(
+        self,
+        algorithm: str,
+        start_date: datetime,
+        max_hours_per_day: float,
+        force_override: bool = True,
+        task_ids: list[int] | None = None,
+        include_all_days: bool = False,
+    ) -> OptimizationOutput:
+        """Optimize task schedules.
+
+        Args:
+            algorithm: Optimization algorithm name
+            start_date: Start date for optimization
+            max_hours_per_day: Maximum hours per day (required)
+            force_override: Force override existing schedules (default: True)
+            task_ids: Specific task IDs to optimize (None means all schedulable tasks)
+            include_all_days: If True, schedule tasks on weekends and holidays too (default: False)
+
+        Returns:
+            OptimizationOutput containing successful/failed tasks and summary
+
+        Raises:
+            ValidationError: If algorithm is invalid or parameters are invalid
+            TaskNotFoundException: If any specified task_id does not exist
+            NoSchedulableTasksError: If no tasks can be scheduled
+        """
+        optimize_input = OptimizeScheduleInput(
+            start_date=start_date,
+            max_hours_per_day=max_hours_per_day,
+            force_override=force_override,
+            algorithm_name=algorithm,
+            task_ids=task_ids,
+            include_all_days=include_all_days,
+        )
+
+        use_case = OptimizeScheduleUseCase(
+            self.repository,
+            self.holiday_checker,
+        )
+        return use_case.execute(optimize_input)

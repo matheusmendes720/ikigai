@@ -1,0 +1,211 @@
+# Taskdog CLI Configuration Example
+#
+# Copy this file to ~/.config/taskdog/cli.toml (or $XDG_CONFIG_HOME/taskdog/cli.toml)
+# to customize CLI/TUI settings.
+#
+# This config is for UI infrastructure only (API connection, appearance, input defaults).
+# Business logic settings (work hours, optimization) are in core.toml.
+
+# =============================================================================
+# API Connection Settings
+# =============================================================================
+#
+# Configure how CLI/TUI connects to the taskdog-server.
+# CLI/TUI always requires the API server to be running.
+
+[api]
+# API server hostname (default: "127.0.0.1")
+# Use "127.0.0.1" for localhost, or IP address for remote server
+host = "127.0.0.1"
+
+# API server port (default: 8000)
+# Must match the port used by taskdog-server
+port = 8000
+
+# API key for authentication (REQUIRED when auth is enabled on server)
+# This key must match one configured in server.toml's [[auth.api_keys]] section.
+# Generate a key with: python -c "import secrets; print(f'sk-{secrets.token_hex(24)}')"
+# Environment variable: TASKDOG_API_KEY
+api_key = "sk-your-api-key-here"
+
+# Examples:
+# - Default local server: host = "127.0.0.1", port = 8000
+# - Custom local port: host = "127.0.0.1", port = 3000
+# - Remote server: host = "192.168.1.100", port = 8000
+
+# =============================================================================
+# UI Appearance Settings
+# =============================================================================
+#
+# Configure TUI appearance (theme, colors).
+
+[ui]
+# TUI theme (default: "textual-dark")
+# Available themes:
+#   - textual-dark (default)
+#   - textual-light
+#   - nord
+#   - gruvbox
+#   - tokyo-night
+#   - solarized-light
+theme = "textual-dark"
+
+# Examples:
+# - Nord theme: theme = "nord"
+# - Light mode: theme = "textual-light"
+# - Gruvbox: theme = "gruvbox"
+
+# =============================================================================
+# UI Input Completion Defaults
+# =============================================================================
+#
+# Default times used when users enter date-only input in the TUI.
+# For example, entering "2025-12-31" gets converted to "2025-12-31 18:30:00".
+#
+# Note: These are separate from work hours (in core.toml) which are used for
+# schedule optimization. These settings only affect UI input convenience.
+
+[input_defaults]
+# Default time for deadline input (default: "18:30")
+# Format: "HH:MM" (24-hour format)
+# Example: "2025-12-31" -> "2025-12-31 18:30:00"
+deadline_time = "18:30"
+
+# Default time for planned_start input (default: "09:30")
+# Format: "HH:MM" (24-hour format)
+# Example: "2025-11-01" -> "2025-11-01 09:30:00"
+planned_start_time = "09:30"
+
+# Default time for planned_end input (default: "18:30")
+# Format: "HH:MM" (24-hour format)
+# Example: "2025-11-15" -> "2025-11-15 18:30:00"
+planned_end_time = "18:30"
+
+# =============================================================================
+# Notes Settings
+# =============================================================================
+#
+# Configure note template for new task notes.
+
+[notes]
+# Custom note template file path (default: none, uses system default)
+# Supports ~ expansion for home directory.
+# If the file doesn't exist, falls back to system default template.
+#
+# Template variables (use {{variable}} syntax):
+#   - {{task_id}}           - Task ID
+#   - {{task_name}}         - Task name
+#   - {{priority}}          - Priority value
+#   - {{status}}            - Task status (PENDING, IN_PROGRESS, etc.)
+#   - {{deadline}}          - Deadline date (empty if not set)
+#   - {{estimated_duration}} - Estimated hours (empty if not set)
+#   - {{tags}}              - Comma-separated tags (empty if none)
+#   - {{created_at}}        - Current datetime
+#
+# Example: template = "~/.config/taskdog/note_template.md"
+# template = "~/.config/taskdog/note_template.md"
+
+# =============================================================================
+# Gantt Chart Settings
+# =============================================================================
+#
+# Configure workload color thresholds for the Gantt chart's workload summary row.
+# The workload row shows daily total hours with color coding:
+#   - Green: at or below comfortable threshold
+#   - Yellow: above comfortable, at or below moderate threshold
+#   - Red: above moderate threshold
+
+[gantt]
+# Comfortable workload threshold in hours (default: 6.0)
+# Daily hours at or below this value are displayed in green.
+# Environment variable: TASKDOG_GANTT_WORKLOAD_COMFORTABLE_HOURS
+workload_comfortable_hours = 6.0
+
+# Moderate workload threshold in hours (default: 8.0)
+# Daily hours above comfortable but at or below this value are displayed in yellow.
+# Hours above this value are displayed in red.
+# Environment variable: TASKDOG_GANTT_WORKLOAD_MODERATE_HOURS
+workload_moderate_hours = 8.0
+
+# Minimum number of days to display in TUI Gantt chart (default: 56, ~2 months)
+# The chart will never show fewer days than this value, even on narrow terminals.
+# Environment variable: TASKDOG_GANTT_MIN_DISPLAY_DAYS
+# min_display_days = 56
+
+# Examples:
+# - Part-time schedule: workload_comfortable_hours = 4.0, workload_moderate_hours = 6.0
+# - Longer workday: workload_comfortable_hours = 7.0, workload_moderate_hours = 10.0
+# - Wider view: min_display_days = 91 (3 months)
+# - Compact view: min_display_days = 28 (4 weeks)
+
+# =============================================================================
+# TUI Keybindings
+# =============================================================================
+#
+# Remap TUI keys by mapping a binding id to a key string. Any id you omit
+# keeps its default key. Unknown ids are ignored with a warning on startup,
+# and a key that collides with another binding is reported at runtime.
+# Key strings follow Textual's syntax (e.g. "ctrl+s", "f5", "question_mark").
+#
+# Binding ids and their default keys:
+#   quit                "q"        add                  "a"
+#   start               "s"        pause                "P"
+#   done                "d"        cancel               "c"
+#   reopen              "R"        rm (archive)         "x"
+#   hard_delete         "X"        refresh              "r"
+#   show (info)         "i"        edit                 "e"
+#   fix_actual          "f"        note                 "v"
+#   show_search         "/"        hide_search          "escape"
+#   toggle_sort_reverse "ctrl+t"   show_help            "?"
+#   stats               "S"        toggle_maximize      "z"
+#   toggle_gantt_filter "t"
+
+[keybindings]
+# Example: remap "Start" from "s" to "ctrl+s".
+# start = "ctrl+s"
+
+# =============================================================================
+# Environment Variables
+# =============================================================================
+#
+# Environment variables override settings in this file:
+#
+# API Connection:
+# - TASKDOG_API_HOST: API server hostname
+# - TASKDOG_API_PORT: API server port
+# - TASKDOG_API_KEY: API key for authentication
+#
+# Input Defaults:
+# - TASKDOG_INPUT_DEADLINE_TIME: Default time for deadline input
+# - TASKDOG_INPUT_PLANNED_START_TIME: Default time for planned_start input
+# - TASKDOG_INPUT_PLANNED_END_TIME: Default time for planned_end input
+#
+# Gantt Chart:
+# - TASKDOG_GANTT_WORKLOAD_COMFORTABLE_HOURS: Comfortable workload threshold
+# - TASKDOG_GANTT_WORKLOAD_MODERATE_HOURS: Moderate workload threshold
+# - TASKDOG_GANTT_MIN_DISPLAY_DAYS: Minimum days to display in TUI Gantt chart
+#
+# Examples:
+#
+#   export TASKDOG_API_HOST=192.168.1.100
+#   export TASKDOG_API_PORT=3000
+#   export TASKDOG_API_KEY=sk-your-api-key
+#   export TASKDOG_INPUT_DEADLINE_TIME=17:00
+#   taskdog list
+#
+# Or inline:
+#
+#   TASKDOG_API_KEY=sk-your-key taskdog list
+
+# =============================================================================
+# Notes
+# =============================================================================
+#
+# 1. If this file doesn't exist, defaults are used (127.0.0.1:8000)
+# 2. Priority: environment variables > cli.toml > defaults
+# 3. Server must be running before using CLI/TUI
+# 4. Start server with: taskdog-server
+# 5. Check server status: systemctl --user status taskdog-server
+# 6. Test connection: curl http://127.0.0.1:8000/health
+#
+# For more details, see CLI_CONFIG.md

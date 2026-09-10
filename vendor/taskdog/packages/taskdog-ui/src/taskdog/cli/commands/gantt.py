@@ -1,0 +1,155 @@
+"""Gantt command - Display tasks in Gantt chart format."""
+
+from __future__ import annotations
+
+from datetime import date, datetime, timedelta
+from typing import TYPE_CHECKING
+
+import click
+
+from taskdog.cli.commands.common_options import filter_options, sort_options
+from taskdog.cli.error_handler import handle_command_errors
+
+if TYPE_CHECKING:
+    from taskdog.cli.context import CliContext
+from taskdog.constants.gantt import (
+    CHARS_PER_DAY,
+    GANTT_CLI_FIXED_COLUMNS_WIDTH,
+    MIN_TIMELINE_WIDTH,
+)
+from taskdog.presenters.gantt_presenter import GanttPresenter
+from taskdog.renderers.rich_gantt_renderer import RichGanttRenderer
+
+
+@click.command(
+    name="gantt",
+    help="""Display tasks in Gantt chart format with workload analysis.
+
+By default, shows non-archived tasks (all statuses except archived).
+Use -a/--all to include archived tasks.
+Use --status to filter by specific status (overrides --all).
+Use --tag to filter by tags (OR logic when multiple tags specified).
+
+\b
+WORKLOAD CALCULATION:
+  The chart displays a "Workload[h]" row at the bottom showing daily workload:
+  - Hours are calculated from task estimated_duration
+  - Workload is distributed across weekdays only (excludes weekends)
+  - Values are rounded up (e.g., 4.3h → 5h)
+
+\b
+COLOR CODING:
+  - Gray (0h): No workload scheduled
+  - Green (1-6h): Normal workload
+  - Yellow (6-8h): Near capacity
+  - Red (8h+): Overloaded, requires adjustment
+
+\b
+TIMELINE SYMBOLS:
+  - "░░░" (gray background): Planned period
+  - "◆" (colored): Actual progress (status-based color)
+  - "◆" (red): Deadline marker
+  - " · ": No activity
+
+\b
+EXAMPLE:
+  taskdog gantt                                  # Show non-archived tasks
+  taskdog gantt -a                              # Show all tasks (including archived)
+  taskdog gantt --status completed              # Show only completed tasks
+  taskdog gantt -t work -t urgent               # Tasks with tag "work" OR "urgent"
+  taskdog gantt --start-date 2025-10-01 --end-date 2025-10-31  # October tasks
+""",
+)
+@click.option(
+    "--tag",
+    "-t",
+    multiple=True,
+    type=str,
+    help="Filter by tags (can be specified multiple times, uses OR logic)",
+)
+@click.option(
+    "--start-date",
+    "-s",
+    type=click.DateTime(),
+    help="Start date for the chart (YYYY-MM-DD). Defaults to previous Monday.",
+)
+@click.option(
+    "--end-date",
+    "-e",
+    type=click.DateTime(),
+    help="End date for the chart (YYYY-MM-DD). Defaults to fit terminal width.",
+)
+@sort_options(default_sort="deadline")
+@filter_options()
+@click.pass_context
+@handle_command_errors("displaying Gantt chart")
+def gantt_command(
+    ctx: click.Context,
+    tag: tuple[str, ...],
+    start_date: datetime | None,
+    end_date: datetime | None,
+    include_archived: bool,
+    status: str | None,
+    sort: str,
+    reverse: bool,
+) -> None:
+    """Display tasks as a Gantt chart with workload analysis.
+
+    By default, shows non-archived tasks (all statuses except archived).
+    Use -a/--all to include all tasks (including archived).
+    Use --status to filter by specific status (overrides --all).
+    Use --tag to filter by tags (OR logic when multiple tags specified).
+
+    The Gantt chart visualizes task timelines and provides daily workload
+    analysis to help identify scheduling conflicts and overallocated days.
+    """
+    ctx_obj: CliContext = ctx.obj
+
+    # Prepare filter parameters (tags use OR logic by default)
+    tags = list(tag) if tag else None
+
+    # Convert datetime to date objects if provided
+    # Default to previous Monday if start_date not provided
+    if start_date:
+        start_date_obj = start_date.date()
+    else:
+        today = date.today()
+        start_date_obj = today - timedelta(days=today.weekday())
+
+    if end_date:
+        end_date_obj: date | None = end_date.date()
+    else:
+        # Auto-fit to terminal width when end_date not specified
+        terminal_width = ctx_obj.console_writer.get_width()
+        timeline_width = max(
+            terminal_width - GANTT_CLI_FIXED_COLUMNS_WIDTH, MIN_TIMELINE_WIDTH
+        )
+        max_days = timeline_width // CHARS_PER_DAY
+        end_date_obj = start_date_obj + timedelta(days=max_days - 1)
+
+    # Get Gantt data via API client
+    gantt_result = ctx_obj.api_client.get_gantt_data(
+        include_archived=include_archived,
+        status=status,
+        tags=tags,
+        sort_by=sort,
+        reverse=reverse,
+        start_date=start_date_obj,
+        end_date=end_date_obj,
+    )
+
+    # Build ViewModel by joining the shared task list with the Gantt overlay
+    # (the /gantt endpoint always returns the overlay)
+    assert gantt_result.gantt_data is not None
+    presenter = GanttPresenter()
+    gantt_view_model = presenter.present(gantt_result.tasks, gantt_result.gantt_data)
+
+    # Render using Presentation layer (display logic)
+    console_writer = ctx_obj.console_writer
+    gantt_config = ctx_obj.config.gantt
+    renderer = RichGanttRenderer(
+        console_writer,
+        comfortable_hours=gantt_config.workload_comfortable_hours,
+        moderate_hours=gantt_config.workload_moderate_hours,
+    )
+    renderer.render(gantt_view_model)

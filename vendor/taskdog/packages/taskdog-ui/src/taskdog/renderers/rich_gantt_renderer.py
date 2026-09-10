@@ -1,0 +1,356 @@
+from datetime import date, timedelta
+from typing import Any
+
+from rich.table import Table
+from rich.text import Text
+
+from taskdog.console.console_writer import ConsoleWriter
+from taskdog.constants.common import (
+    COLUMN_ID_STYLE,
+    COLUMN_NAME_STYLE,
+    HEADER_ESTIMATED,
+    HEADER_ID,
+    HEADER_NAME,
+    TABLE_BORDER_STYLE,
+    TABLE_HEADER_STYLE,
+    TABLE_PADDING,
+)
+from taskdog.constants.formatting import format_table_title
+from taskdog.constants.gantt import (
+    GANTT_COLUMN_EST_HOURS_COLOR,
+    GANTT_TABLE_EST_HOURS_WIDTH,
+    GANTT_TABLE_ID_WIDTH,
+    GANTT_WORKLOAD_LABEL,
+    HEADER_TIMELINE,
+)
+from taskdog.constants.task_table import TASK_NAME_COLUMN_WIDTH
+from taskdog.formatters.text_formatter import format_finished_name
+from taskdog.renderers.gantt_cell_formatter import GanttCellFormatter
+from taskdog.renderers.rich_renderer_base import RichRendererBase
+from taskdog.view_models.gantt_view_model import GanttViewModel, TaskGanttRowViewModel
+from taskdog_core.shared.constants import (
+    WORKLOAD_COMFORTABLE_HOURS,
+    WORKLOAD_MODERATE_HOURS,
+)
+
+
+class RichGanttRenderer(RichRendererBase):
+    """Renders GanttViewModel as a Rich table.
+
+    This renderer is responsible solely for presentation logic:
+    - Mapping GanttViewModel data to Rich Table format
+    - Applying colors, styles, and visual formatting
+    - Building the final table with legend
+
+    All business logic (date calculations, workload aggregation) is handled
+    by the Application layer. Presentation formatting (strikethrough, etc.)
+    is applied by GanttPresenter when building the GanttViewModel from the
+    shared task list and the Gantt overlay.
+    """
+
+    def __init__(
+        self,
+        console_writer: ConsoleWriter,
+        comfortable_hours: float = WORKLOAD_COMFORTABLE_HOURS,
+        moderate_hours: float = WORKLOAD_MODERATE_HOURS,
+    ):
+        """Initialize the renderer.
+
+        Args:
+            console_writer: Console writer for output
+            comfortable_hours: Workload threshold for green zone
+            moderate_hours: Workload threshold for yellow zone
+        """
+        self.console_writer = console_writer
+        self._comfortable_hours = comfortable_hours
+        self._moderate_hours = moderate_hours
+
+    def build_table(self, gantt_view_model: GanttViewModel) -> Table | None:
+        """Build and return a Gantt chart Table object from GanttViewModel.
+
+        Args:
+            gantt_view_model: Presentation-ready Gantt data
+
+        Returns:
+            Rich Table object or None if no tasks
+        """
+        if gantt_view_model.is_empty():
+            return None
+
+        table = self._create_table(gantt_view_model)
+        self._add_columns(table)
+        self._add_date_header_row(table, gantt_view_model)
+        self._add_task_rows(table, gantt_view_model)
+        self._add_summary_section(table, gantt_view_model)
+
+        return table
+
+    def _create_table(self, gantt_view_model: GanttViewModel) -> Table:
+        """Create and configure the base Table object.
+
+        Args:
+            gantt_view_model: Gantt data for title generation
+
+        Returns:
+            Configured Rich Table object
+        """
+        start_date = gantt_view_model.start_date
+        end_date = gantt_view_model.end_date
+
+        return Table(
+            title=format_table_title(f"Gantt Chart ({start_date} to {end_date})"),
+            show_header=True,
+            header_style=TABLE_HEADER_STYLE,
+            border_style=TABLE_BORDER_STYLE,
+            padding=TABLE_PADDING,
+        )
+
+    def _add_columns(self, table: Table) -> None:
+        """Add column definitions to the table.
+
+        Args:
+            table: Rich Table object to add columns to
+        """
+        table.add_column(
+            HEADER_ID,
+            justify="right",
+            style=COLUMN_ID_STYLE,
+            no_wrap=True,
+            width=GANTT_TABLE_ID_WIDTH,
+        )
+        table.add_column(
+            HEADER_NAME, style=COLUMN_NAME_STYLE, width=TASK_NAME_COLUMN_WIDTH
+        )
+        table.add_column(
+            HEADER_ESTIMATED.replace("[", "\\["),
+            justify="right",
+            style=GANTT_COLUMN_EST_HOURS_COLOR,
+            no_wrap=True,
+            width=GANTT_TABLE_EST_HOURS_WIDTH,
+        )
+        table.add_column(HEADER_TIMELINE, style=COLUMN_NAME_STYLE)
+
+    def _add_date_header_row(
+        self, table: Table, gantt_view_model: GanttViewModel
+    ) -> None:
+        """Add the date header row to the table.
+
+        Args:
+            table: Rich Table object
+            gantt_view_model: Gantt data containing date range and holidays
+        """
+        date_header = self._build_date_header(
+            gantt_view_model.start_date,
+            gantt_view_model.end_date,
+            gantt_view_model.holidays,
+        )
+        table.add_row("", "[dim]Date[/dim]", "", date_header)
+
+    def _add_task_rows(self, table: Table, gantt_view_model: GanttViewModel) -> None:
+        """Add all task rows to the table.
+
+        Args:
+            table: Rich Table object
+            gantt_view_model: Gantt data containing tasks and daily hours
+        """
+        for task_vm in gantt_view_model.tasks:
+            task_daily_hours = gantt_view_model.task_daily_hours.get(task_vm.id, {})
+            self._add_task_to_gantt(
+                task_vm,
+                task_daily_hours,
+                table,
+                gantt_view_model.start_date,
+                gantt_view_model.end_date,
+                gantt_view_model.holidays,
+            )
+
+    def _add_summary_section(
+        self, table: Table, gantt_view_model: GanttViewModel
+    ) -> None:
+        """Add section divider, workload row, and legend.
+
+        Args:
+            table: Rich Table object
+            gantt_view_model: Gantt data containing workload and totals
+        """
+        table.add_section()
+
+        workload_timeline = self._build_workload_summary_row(
+            gantt_view_model.daily_workload,
+            gantt_view_model.start_date,
+            gantt_view_model.end_date,
+        )
+        total_est_str = (
+            f"{gantt_view_model.total_estimated_duration:.1f}"
+            if gantt_view_model.total_estimated_duration > 0
+            else "-"
+        )
+        table.add_row(
+            "",
+            "[bold yellow]{}[/bold yellow]".format(
+                GANTT_WORKLOAD_LABEL.replace("[", "\\[")
+            ),
+            f"[bold yellow]{total_est_str}[/bold yellow]",
+            workload_timeline,
+        )
+
+        legend_text = self._build_legend()
+        table.caption = legend_text
+        table.caption_justify = "center"
+
+    def render(self, gantt_view_model: GanttViewModel) -> None:
+        """Render and print Gantt chart from GanttViewModel.
+
+        Args:
+            gantt_view_model: Presentation-ready Gantt data
+        """
+        if gantt_view_model.is_empty():
+            self.console_writer.warning("No tasks found.")
+            return
+
+        table = self.build_table(gantt_view_model)
+
+        if table is None:
+            self.console_writer.warning("No tasks found.")
+            return
+
+        # Print table (with caption as legend)
+        self.console_writer.print(table)
+
+    def _build_date_header(
+        self, start_date: date, end_date: date, holidays: set[date]
+    ) -> Text:
+        """Build date header row for the timeline.
+
+        Args:
+            start_date: Start date of the chart
+            end_date: End date of the chart
+            holidays: Set of holiday dates for styling
+
+        Returns:
+            Rich Text object with date labels (3 lines)
+        """
+        # Get the three header lines from the formatter
+        month_line, today_line, day_line = GanttCellFormatter.build_date_header_lines(
+            start_date, end_date, holidays
+        )
+
+        # Combine all three lines
+        header = Text()
+        header.append_text(month_line)
+        header.append("\n")
+        header.append_text(today_line)
+        header.append("\n")
+        header.append_text(day_line)
+
+        return header
+
+    def _add_task_to_gantt(
+        self,
+        task_vm: TaskGanttRowViewModel,
+        task_daily_hours: dict[date, float],
+        table: Table,
+        start_date: date,
+        end_date: date,
+        holidays: set[date],
+    ) -> None:
+        """Add a task to Gantt chart table.
+
+        Args:
+            task_vm: Task ViewModel to add
+            task_daily_hours: Daily hours allocation for this task
+            table: Rich Table object
+            start_date: Start date of the chart
+            end_date: End date of the chart
+            holidays: Set of holiday dates for styling
+        """
+        task_name = format_finished_name(task_vm.name, task_vm.is_finished)
+
+        # Use pre-formatted estimated duration
+        estimated_hours = task_vm.formatted_estimated_duration
+
+        # Build timeline
+        timeline = self._build_timeline(
+            task_vm, task_daily_hours, start_date, end_date, holidays
+        )
+
+        table.add_row(str(task_vm.id), task_name, estimated_hours, timeline)
+
+    def _build_timeline(
+        self,
+        task_vm: TaskGanttRowViewModel,
+        task_daily_hours: dict[date, float],
+        start_date: date,
+        end_date: date,
+        holidays: set[date],
+    ) -> Text:
+        """Build timeline visualization for a task using layered approach.
+
+        Args:
+            task_vm: Task ViewModel to build timeline for
+            task_daily_hours: Daily hours allocation for this task
+            start_date: Start date of the chart
+            end_date: End date of the chart
+            holidays: Set of holiday dates for styling
+
+        Returns:
+            Rich Text object with timeline visualization
+        """
+        days = (end_date - start_date).days + 1
+
+        # Create parsed_dates dict from ViewModel (dates are already converted)
+        parsed_dates: dict[str, Any] = {
+            "planned_start": task_vm.planned_start,
+            "planned_end": task_vm.planned_end,
+            "actual_start": task_vm.actual_start,
+            "actual_end": task_vm.actual_end,
+            "deadline": task_vm.deadline,
+        }
+
+        # If no dates at all, show message
+        if not any(parsed_dates.values()):
+            return Text("(no dates)", style="dim")
+
+        # Build timeline with daily hours displayed in each cell
+        timeline = Text()
+        for day_offset in range(days):
+            current_date = start_date + timedelta(days=day_offset)
+            hours = task_daily_hours.get(current_date, 0.0)
+
+            # Determine cell display and styling using the formatter
+            display, style = GanttCellFormatter.format_timeline_cell(
+                current_date, hours, parsed_dates, task_vm.status, holidays
+            )
+
+            timeline.append(display, style=style)
+
+        return timeline
+
+    def _build_legend(self) -> Text:
+        """Build the legend text for the Gantt chart.
+
+        Returns:
+            Rich Text object with legend
+        """
+        return GanttCellFormatter.build_legend()
+
+    def _build_workload_summary_row(
+        self, daily_workload: dict[date, float], start_date: date, end_date: date
+    ) -> Text:
+        """Build workload summary timeline showing daily total hours.
+
+        Args:
+            daily_workload: Pre-computed daily workload totals
+            start_date: Start date of the chart
+            end_date: End date of the chart
+
+        Returns:
+            Rich Text object with workload summary
+        """
+        return GanttCellFormatter.build_workload_timeline(
+            daily_workload,
+            start_date,
+            end_date,
+            comfortable_hours=self._comfortable_hours,
+            moderate_hours=self._moderate_hours,
+        )

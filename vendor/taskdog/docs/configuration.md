@@ -1,0 +1,467 @@
+# Configuration Guide
+
+Complete guide to configuring Taskdog.
+
+## Configuration File Location
+
+Taskdog looks for configuration in the following locations (in order):
+
+1. `$XDG_CONFIG_HOME/taskdog/core.toml`
+2. `~/.config/taskdog/core.toml` (fallback)
+
+Create the directory if it doesn't exist:
+
+```bash
+mkdir -p ~/.config/taskdog
+```
+
+## Configuration Priority
+
+Settings are resolved in the following order (highest to lowest priority):
+
+1. **Environment variables** (e.g., `TASKDOG_API_URL`)
+2. **CLI arguments** (e.g., `--max-hours-per-day`)
+3. **Configuration file** (`core.toml`)
+4. **Default values** (hardcoded in application)
+
+## Server Configuration
+
+The API server has its own configuration file: `server.toml`
+
+**Location:** `$XDG_CONFIG_HOME/taskdog/server.toml` (fallback: `~/.config/taskdog/server.toml`)
+
+See [examples/server.toml](https://github.com/Kohei-Wada/taskdog/blob/main/examples/server.toml) for a complete example.
+
+### Authentication
+
+The `[auth]` section configures API key authentication for the server.
+
+```toml
+[auth]
+enabled = true  # Enable/disable authentication (default: false)
+
+# Define API keys (can have multiple)
+[[auth.api_keys]]
+key = "your-secret-api-key-1"
+name = "my-laptop"  # Friendly name (shown in WebSocket broadcasts)
+
+[[auth.api_keys]]
+key = "your-secret-api-key-2"
+name = "my-desktop"
+```
+
+**Fields:**
+
+- `enabled` (boolean) - Enable or disable authentication. Default: `false`
+- `api_keys` (array) - List of valid API keys
+  - `key` (string) - The secret API key value
+  - `name` (string) - Friendly name for identifying the client
+
+**Behavior:**
+
+- When `enabled = true`: All HTTP endpoints require `X-Api-Key` header, WebSocket requires `?token=` query parameter
+- When `enabled = false`: No authentication required (for local development)
+- The `name` field is used as `source_user_name` in WebSocket broadcast payloads
+
+**CLI/TUI configuration:**
+
+Configure the API key in `cli.toml`:
+
+```toml
+# ~/.config/taskdog/cli.toml
+[api]
+api_key = "your-secret-api-key-1"
+```
+
+Or via environment variable:
+
+```bash
+export TASKDOG_API_KEY=your-secret-api-key-1
+```
+
+## Configuration Sections
+
+### UI Settings
+
+The `[ui]` section configures TUI appearance.
+
+```toml
+[ui]
+theme = "textual-dark"        # TUI theme (default: "textual-dark")
+```
+
+**Fields:**
+
+- `theme` (string) - TUI color theme. Available options:
+  - `textual-dark` - Default dark theme
+  - `textual-light` - Light theme
+  - `tokyo-night` - Tokyo Night color scheme
+  - `dracula` - Dracula color scheme
+  - `catppuccin-mocha` - Catppuccin Mocha color scheme
+  - `nord` - Nord color scheme
+  - `gruvbox` - Gruvbox color scheme
+  - `solarized-light` - Solarized Light color scheme
+
+### Region Settings
+
+The `[region]` section configures regional settings for holiday checking.
+
+```toml
+[region]
+country = "JP"                 # ISO 3166-1 alpha-2 country code
+```
+
+**Fields:**
+
+- `country` (string, optional) - ISO 3166-1 alpha-2 country code for holiday checking.
+  - Examples: `"JP"` (Japan), `"US"` (United States), `"GB"` (United Kingdom), `"DE"` (Germany)
+  - Default: `None` (no holiday checking)
+
+**Behavior:**
+
+- When set, the optimizer will avoid scheduling tasks on national holidays for the specified country.
+- Requires internet connection to fetch holiday data on first use (cached locally).
+
+### Storage Settings
+
+The `[storage]` section configures data persistence.
+
+```toml
+[storage]
+database_url = "~/.local/share/taskdog/tasks.db"  # SQLite database location
+backend = "sqlite"             # Storage backend (default: "sqlite")
+```
+
+**Fields:**
+
+- `database_url` (string) - Path to SQLite database file. Supports `~` expansion.
+- `backend` (string) - Storage backend type. Currently only `"sqlite"` is supported.
+
+**Default location:** `$XDG_DATA_HOME/taskdog/tasks.db` (fallback: `~/.local/share/taskdog/tasks.db`)
+
+## Data Storage
+
+### Database
+
+**Location:** `$XDG_DATA_HOME/taskdog/tasks.db` (fallback: `~/.local/share/taskdog/tasks.db`)
+
+**Features:**
+
+- Transactional writes with ACID guarantees
+- Automatic rollback on errors
+- Indexed queries for efficient filtering
+- Connection pooling and proper resource management
+
+**Backup:**
+
+```bash
+cp ~/.local/share/taskdog/tasks.db ~/.local/share/taskdog/tasks.db.backup
+```
+
+### Notes
+
+Task notes are stored as separate markdown files:
+
+**Location:** `$XDG_DATA_HOME/taskdog/notes/` (fallback: `~/.local/share/taskdog/notes/`)
+
+**Format:** One `.md` file per task, named by task ID: `1.md`, `2.md`, etc.
+
+## Environment Variables
+
+Environment variables take precedence over config file settings. This is useful for Docker/Kubernetes deployments where configuration is managed externally.
+
+### Server Configuration Variables
+
+These variables override core configuration (core.toml):
+
+| Variable | Type | Default | Description |
+| -------- | ---- | ------- | ----------- |
+| `TASKDOG_REGION_COUNTRY` | string | `None` | ISO 3166-1 alpha-2 country code |
+| `TASKDOG_STORAGE_BACKEND` | string | `"sqlite"` | Storage backend type |
+| `TASKDOG_STORAGE_DATABASE_URL` | string | XDG path | Database file location |
+
+**Example:**
+
+```bash
+# Production settings
+export TASKDOG_REGION_COUNTRY=US
+```
+
+**Note:** Invalid values are logged as warnings and fall back to defaults.
+
+### CLI/TUI Connection Variables
+
+These variables configure how CLI/TUI connect to the API server:
+
+| Variable | Type | Default | Description |
+| -------- | ---- | ------- | ----------- |
+| `TASKDOG_API_HOST` | string | `"127.0.0.1"` | API server host |
+| `TASKDOG_API_PORT` | int | `8000` | API server port |
+| `TASKDOG_API_KEY` | string | `None` | API key for authentication |
+| `TASKDOG_API_BASE_URL` | string | `None` | Full API base URL (overrides host/port) |
+| `TASKDOG_GANTT_MIN_DISPLAY_DAYS` | int | `56` | Minimum days in TUI Gantt chart |
+
+**Example:**
+
+```bash
+export TASKDOG_API_HOST=192.168.1.100
+export TASKDOG_API_PORT=8000
+export TASKDOG_API_KEY=your-api-key
+```
+
+### XDG_CONFIG_HOME
+
+Override config file location:
+
+```bash
+export XDG_CONFIG_HOME=/custom/path
+# Config file will be: /custom/path/taskdog/core.toml
+```
+
+### XDG_DATA_HOME
+
+Override data storage location:
+
+```bash
+export XDG_DATA_HOME=/custom/path
+# Database will be: /custom/path/taskdog/tasks.db
+# Notes will be: /custom/path/taskdog/notes/
+```
+
+### EDITOR
+
+Set default text editor for `taskdog note` command:
+
+```bash
+export EDITOR=vim
+# or
+export EDITOR=nano
+# or
+export EDITOR="code --wait"  # VS Code
+```
+
+## Examples
+
+### Minimal Configuration
+
+Bare minimum to get started (most settings have sensible defaults):
+
+```toml
+# No configuration needed for basic usage!
+# Server: taskdog-server (uses default 127.0.0.1:8000)
+# CLI/TUI: Connects to default server automatically
+```
+
+### Full Configuration
+
+Complete configuration with all options:
+
+```toml
+# UI Settings
+[ui]
+theme = "tokyo-night"
+
+# Region Settings
+[region]
+country = "JP"
+
+# Storage Settings
+[storage]
+database_url = "~/.local/share/taskdog/tasks.db"
+backend = "sqlite"
+```
+
+### Remote API Server
+
+Connect CLI/TUI to API server on different host. Configure in `cli.toml`:
+
+```toml
+# ~/.config/taskdog/cli.toml
+[api]
+host = "192.168.1.100"
+port = 8000
+```
+
+Or use environment variables:
+
+```bash
+export TASKDOG_API_HOST=192.168.1.100
+export TASKDOG_API_PORT=8000
+```
+
+### HTTPS / Reverse Proxy
+
+`host` and `port` always produce a plain `http://host:port` URL. To reach a
+server exposed over HTTPS, or served under a path prefix by a reverse proxy
+(Caddy, nginx, Traefik, ...), set `base_url` instead:
+
+```toml
+# ~/.config/taskdog/cli.toml
+[api]
+base_url = "https://tasks.example.com"
+```
+
+Or via environment variable / CLI option:
+
+```bash
+export TASKDOG_API_BASE_URL=https://tasks.example.com
+taskdog --base-url https://tasks.example.com table
+```
+
+The same setting is available in `mcp.toml` (`[api] base_url`). When `base_url`
+is set, `host`/`port` are ignored; the TUI derives its WebSocket URL from it, so
+an `https://` base URL connects over `wss://`.
+
+If the server uses a certificate that is not signed by a public CA, point
+`SSL_CERT_FILE` at the CA bundle that signed it:
+
+```bash
+export SSL_CERT_FILE=/path/to/ca.pem
+```
+
+**Priority order:** `--base-url` > `--host`/`--port` > `TASKDOG_API_BASE_URL` >
+`base_url` in the config file > `host`/`port`
+
+### Server Authentication
+
+Taskdog server supports API key authentication. Configure keys in `server.toml`:
+
+```toml
+# ~/.config/taskdog/server.toml
+[auth]
+enabled = true
+
+[[auth.api_keys]]
+key = "your-secret-key"
+name = "my-tui"
+```
+
+Configure CLI/TUI to use the key in `cli.toml`:
+
+```toml
+# ~/.config/taskdog/cli.toml
+[api]
+host = "127.0.0.1"
+port = 8000
+api_key = "your-secret-key"
+```
+
+Or use environment variables:
+
+```bash
+export TASKDOG_API_HOST=127.0.0.1
+export TASKDOG_API_PORT=8000
+export TASKDOG_API_KEY=your-secret-key
+```
+
+Or use CLI option (highest priority, useful for scripts):
+
+```bash
+taskdog --api-key "your-secret-key" table
+```
+
+**Priority order:** CLI option > environment variable > config file > None
+
+For local development, you can disable authentication:
+
+```toml
+# ~/.config/taskdog/server.toml
+[auth]
+enabled = false
+```
+
+### Work Schedule Configuration
+
+Configure for US holidays and optimization settings:
+
+```toml
+[region]
+country = "US"  # Avoid US holidays
+```
+
+Use `--max-hours-per-day` and `--algorithm` options when running the optimize command:
+
+```bash
+taskdog optimize --max-hours-per-day 8 --algorithm balanced
+```
+
+### Custom Theme
+
+Use a specific theme for TUI (configure in `cli.toml`):
+
+```toml
+# ~/.config/taskdog/cli.toml
+[ui]
+theme = "dracula"
+```
+
+### Custom Database Location
+
+Store database in custom location:
+
+```toml
+[storage]
+database_url = "~/Documents/taskdog/my-tasks.db"
+backend = "sqlite"
+```
+
+## Troubleshooting
+
+### CLI/TUI Commands Not Working
+
+**Error:** "API connection error" or "Cannot connect to server"
+
+**Solution:**
+
+1. Start the API server: `taskdog-server`
+2. Verify server is running: `curl http://localhost:8000/health`
+3. Check host and port in `cli.toml` match the running server
+4. If using non-default port: `taskdog-server --port 3000` and update `cli.toml`
+
+### Theme Not Applied
+
+**Error:** TUI still uses default theme
+
+**Solution:**
+
+1. Ensure `[ui]` section is present in `~/.config/taskdog/cli.toml`
+2. Restart TUI: `taskdog tui`
+3. Check theme name spelling (must match exactly)
+
+### Optimizer Not Respecting Hours Limit
+
+**Error:** Tasks scheduled for more hours than max_hours_per_day
+
+**Solution:**
+
+1. Fixed tasks (`is_fixed = true`) count towards daily limit but cannot be moved
+2. Check if multiple tasks overlap in schedule
+3. Increase `max_hours_per_day` if needed
+4. Use `--force` flag to re-optimize: `taskdog optimize --force`
+
+### Database Not Found
+
+**Error:** "Database file not found" or "No such file or directory"
+
+**Solution:**
+
+1. Database is created automatically on first use
+2. Ensure parent directory exists: `mkdir -p ~/.local/share/taskdog`
+3. Check `database_url` path in config file
+4. Verify permissions: `ls -la ~/.local/share/taskdog/`
+
+## Best Practices
+
+1. **Commit config to version control** - Track configuration changes (remove sensitive data if any)
+2. **Use environment variables for secrets** - If adding authentication in future
+3. **Backup database regularly** - `cp` database file before major changes
+4. **Start with defaults** - Only configure what you need to change
+5. **Document custom settings** - Add comments explaining why you changed defaults
+6. **Test configuration changes** - Run `taskdog list` after config changes to verify
+7. **Set region for accurate holidays** - Helps optimizer avoid scheduling on holidays
+
+## See Also
+
+- [CLI Commands Reference](reference/cli-guide.md) - Complete command reference
+- [API Reference](reference/api-guide.md) - REST API documentation
+- [README](index.md) - Main documentation

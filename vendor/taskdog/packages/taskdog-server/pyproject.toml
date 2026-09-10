@@ -1,0 +1,71 @@
+[project]
+name = "taskdog-server"
+version = "0.27.0"
+description = "FastAPI server for Taskdog task management system"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "Kohei Wada" }
+]
+license = { text = "MIT" }
+keywords = ["task", "management", "api", "fastapi"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    "taskdog-core==0.27.0",
+    "fastapi>=0.141.1",
+    "uvicorn[standard]>=0.52.3",
+    "pydantic>=2.10.0",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=1.0.0",
+    "httpx>=0.27.0",  # For testing API endpoints
+    "mypy>=1.0.0",
+    "ruff>=0.16.3",
+]
+
+[project.scripts]
+taskdog-server = "taskdog_server.main:main"
+
+[project.urls]
+Homepage = "https://github.com/Kohei-Wada/taskdog"
+Repository = "https://github.com/Kohei-Wada/taskdog"
+"Bug Tracker" = "https://github.com/Kohei-Wada/taskdog/issues"
+
+[build-system]
+requires = ["setuptools>=84.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["taskdog*"]
+
+[tool.setuptools.package-data]
+taskdog_server = ["py.typed"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+# Disable unused-ignore warnings (environment-dependent)
+warn_unused_ignores = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::ResourceWarning:holidays.*",
+]
