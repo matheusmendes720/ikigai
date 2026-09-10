@@ -1,0 +1,2068 @@
+"""Tests for MCP tools."""
+
+from datetime import datetime
+from typing import Any
+from unittest.mock import MagicMock
+
+import pytest
+
+from taskdog_core.application.dto.statistics_output import (
+    DeadlineComplianceStatistics,
+    PriorityDistributionStatistics,
+    StatisticsOutput,
+    TaskStatistics,
+    TimeStatistics,
+)
+from taskdog_core.application.dto.tag_statistics_output import TagStatisticsOutput
+from taskdog_core.application.dto.task_detail_output import TaskDetailOutput
+from taskdog_core.application.dto.task_dto import TaskDetailDto, TaskRowDto
+from taskdog_core.application.dto.task_list_output import TaskListOutput
+from taskdog_core.application.dto.task_operation_output import TaskOperationOutput
+from taskdog_core.domain.entities.task import TaskStatus
+
+
+def create_mock_task_row(
+    task_id: int = 1,
+    name: str = "Test Task",
+    status: TaskStatus = TaskStatus.PENDING,
+    priority: int = 50,
+    depends_on: list[int] | None = None,
+) -> TaskRowDto:
+    """Create a mock TaskRowDto for testing."""
+    return TaskRowDto(
+        id=task_id,
+        name=name,
+        priority=priority,
+        status=status,
+        planned_start=None,
+        planned_end=None,
+        deadline=None,
+        actual_start=None,
+        actual_end=None,
+        estimated_duration=2.0,
+        actual_duration_hours=None,
+        is_fixed=False,
+        depends_on=depends_on or [],
+        tags=["test"],
+        is_archived=False,
+        is_finished=False,
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+    )
+
+
+def create_mock_task_operation_output(
+    task_id: int = 1,
+    name: str = "Test Task",
+    status: TaskStatus = TaskStatus.PENDING,
+) -> TaskOperationOutput:
+    """Create a mock TaskOperationOutput for testing."""
+    return TaskOperationOutput(
+        id=task_id,
+        name=name,
+        status=status,
+        priority=50,
+        deadline=None,
+        estimated_duration=2.0,
+        planned_start=None,
+        planned_end=None,
+        actual_start=None,
+        actual_end=None,
+        actual_duration=None,
+        depends_on=[],
+        tags=["test"],
+        is_fixed=False,
+        is_archived=False,
+        actual_duration_hours=None,
+        daily_allocations={},
+    )
+
+
+def create_mock_task_detail_dto(
+    task_id: int = 1,
+    name: str = "Test Task",
+    status: TaskStatus = TaskStatus.PENDING,
+    priority: int = 50,
+) -> TaskDetailDto:
+    """Create a mock TaskDetailDto for testing."""
+    return TaskDetailDto(
+        id=task_id,
+        name=name,
+        priority=priority,
+        status=status,
+        planned_start=None,
+        planned_end=None,
+        deadline=None,
+        actual_start=None,
+        actual_end=None,
+        actual_duration=None,
+        estimated_duration=2.0,
+        daily_allocations={},
+        is_fixed=False,
+        depends_on=[],
+        tags=["test"],
+        is_archived=False,
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+        actual_duration_hours=None,
+        is_active=False,
+        is_finished=False,
+        can_be_modified=True,
+        is_schedulable=True,
+    )
+
+
+def create_mock_task_detail_output(
+    task_id: int = 1,
+    name: str = "Test Task",
+    status: TaskStatus = TaskStatus.PENDING,
+    notes_content: str | None = None,
+) -> TaskDetailOutput:
+    """Create a mock TaskDetailOutput for testing."""
+    return TaskDetailOutput(
+        task=create_mock_task_detail_dto(task_id, name, status),
+        notes_content=notes_content,
+        has_notes=notes_content is not None,
+    )
+
+
+def create_mock_client() -> MagicMock:
+    """Create a mock TaskdogApiClient with all required methods."""
+    client = MagicMock()
+    # TaskdogApiClient has flat methods (no nested clients)
+    # CRUD methods
+    client.list_tasks = MagicMock()
+    client.get_task_by_id = MagicMock()
+    client.get_tasks_by_ids = MagicMock()
+    client.create_task = MagicMock()
+    client.update_task = MagicMock()
+    client.archive_task = MagicMock()
+    client.restore_task = MagicMock()
+    client.remove_task = MagicMock()
+    # Lifecycle methods
+    client.start_task = MagicMock()
+    client.complete_task = MagicMock()
+    client.pause_task = MagicMock()
+    client.cancel_task = MagicMock()
+    client.reopen_task = MagicMock()
+    client.fix_actual_times = MagicMock()
+    # Query methods
+    client.get_tag_statistics = MagicMock()
+    client.calculate_statistics = MagicMock()
+    client.get_executable_tasks = MagicMock()
+    # Optimization methods
+    client.optimize_schedule = MagicMock()
+    client.get_algorithm_metadata = MagicMock()
+    # Relationship methods
+    client.add_dependency = MagicMock()
+    client.remove_dependency = MagicMock()
+    client.set_task_tags = MagicMock()
+    client.delete_tag = MagicMock()
+    # Notes methods
+    client.get_task_notes = MagicMock()
+    client.update_task_notes = MagicMock()
+    # Audit methods
+    client.list_audit_logs = MagicMock()
+    client.get_audit_log = MagicMock()
+    return client
+
+
+class TestTaskCrudTools:
+    """Test task CRUD MCP tools."""
+
+    def test_list_tasks_returns_formatted_response(self) -> None:
+        """Test list_tasks tool formats the response with default args."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_crud
+
+        client = create_mock_client()
+        client.list_tasks.return_value = TaskListOutput(
+            tasks=[create_mock_task_row()],
+            total_count=1,
+            filtered_count=1,
+        )
+
+        mcp = MCPServer("test")
+        task_crud.register_tools(mcp, client)
+
+        list_tasks_fn = mcp._tool_manager._tools["list_tasks"].fn
+        result = list_tasks_fn()
+
+        client.list_tasks.assert_called_once_with(
+            include_archived=False,
+            status=None,
+            tags=None,
+            sort_by="id",
+            reverse=False,
+        )
+        assert result["total"] == 1
+        assert len(result["tasks"]) == 1
+        task = result["tasks"][0]
+        assert task["id"] == 1
+        assert task["name"] == "Test Task"
+        assert task["status"] == "PENDING"
+        assert task["priority"] == 50
+        assert task["deadline"] is None
+        assert task["tags"] == ["test"]
+        assert task["estimated_duration"] == 2.0
+        assert task["is_archived"] is False
+
+    def test_create_task_formats_response(self) -> None:
+        """Test create_task tool formats the created-task response."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_crud
+
+        client = create_mock_client()
+        client.create_task.return_value = create_mock_task_operation_output(
+            name="New Task"
+        )
+
+        mcp = MCPServer("test")
+        task_crud.register_tools(mcp, client)
+
+        create_task_fn = mcp._tool_manager._tools["create_task"].fn
+        result = create_task_fn(name="New Task")
+
+        client.create_task.assert_called_once()
+        assert client.create_task.call_args.kwargs["name"] == "New Task"
+        assert result["id"] == 1
+        assert result["name"] == "New Task"
+        assert result["status"] == "PENDING"
+        assert result["priority"] == 50
+        assert result["message"] == "Task 'New Task' created successfully"
+
+    @pytest.mark.parametrize(
+        ("input_kwargs", "expected_kwargs"),
+        [
+            pytest.param(
+                {
+                    "planned_start": "2025-12-11T09:00:00",
+                    "planned_end": "2025-12-11T17:00:00",
+                },
+                {
+                    "planned_start": datetime(2025, 12, 11, 9, 0, 0),
+                    "planned_end": datetime(2025, 12, 11, 17, 0, 0),
+                },
+                id="planned_times",
+            ),
+            pytest.param(
+                {
+                    "deadline": "2025-12-11T18:30:00",
+                    "estimated_duration": 0.5,
+                },
+                {
+                    "deadline": datetime(2025, 12, 11, 18, 30, 0),
+                    "estimated_duration": 0.5,
+                },
+                id="deadline_and_duration",
+            ),
+        ],
+    )
+    def test_create_task_datetime_conversion(
+        self,
+        input_kwargs: dict[str, Any],
+        expected_kwargs: dict[str, Any],
+    ) -> None:
+        """Test create_task tool converts datetime strings correctly."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_crud
+
+        client = create_mock_client()
+        client.create_task.return_value = create_mock_task_operation_output()
+
+        mcp = MCPServer("test")
+        task_crud.register_tools(mcp, client)
+
+        create_task_fn = mcp._tool_manager._tools["create_task"].fn
+        result = create_task_fn(name="Test Task", **input_kwargs)
+
+        client.create_task.assert_called_once()
+        call_kwargs = client.create_task.call_args.kwargs
+        for key, expected_value in expected_kwargs.items():
+            assert call_kwargs[key] == expected_value
+        assert result["id"] == 1
+
+    @pytest.mark.parametrize(
+        ("input_kwargs", "expected_kwargs"),
+        [
+            pytest.param(
+                {
+                    "planned_start": "2025-12-12T10:00:00",
+                    "planned_end": "2025-12-12T16:00:00",
+                },
+                {
+                    "planned_start": datetime(2025, 12, 12, 10, 0, 0),
+                    "planned_end": datetime(2025, 12, 12, 16, 0, 0),
+                },
+                id="planned_times",
+            ),
+            pytest.param(
+                {
+                    "deadline": "2025-12-15T14:00:00",
+                    "estimated_duration": 1.5,
+                },
+                {
+                    "deadline": datetime(2025, 12, 15, 14, 0, 0),
+                    "estimated_duration": 1.5,
+                },
+                id="deadline_and_duration",
+            ),
+        ],
+    )
+    def test_update_task_datetime_conversion(
+        self,
+        input_kwargs: dict[str, Any],
+        expected_kwargs: dict[str, Any],
+    ) -> None:
+        """Test update_task tool converts datetime strings correctly."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_crud
+
+        from taskdog_core.application.dto.update_task_output import TaskUpdateOutput
+
+        client = create_mock_client()
+        client.update_task.return_value = TaskUpdateOutput(
+            task=create_mock_task_operation_output(),
+            updated_fields=list(expected_kwargs.keys()),
+        )
+
+        mcp = MCPServer("test")
+        task_crud.register_tools(mcp, client)
+
+        update_task_fn = mcp._tool_manager._tools["update_task"].fn
+        result = update_task_fn(task_id=1, **input_kwargs)
+
+        client.update_task.assert_called_once()
+        call_kwargs = client.update_task.call_args.kwargs
+        assert call_kwargs["task_id"] == 1
+        for key, expected_value in expected_kwargs.items():
+            assert call_kwargs[key] == expected_value
+        assert result["id"] == 1
+
+    @pytest.mark.parametrize(
+        "invalid_datetime",
+        [
+            pytest.param("invalid-date", id="invalid_format"),
+            pytest.param("2025-13-01T00:00:00", id="invalid_month"),
+            pytest.param("not-a-date", id="not_a_date"),
+        ],
+    )
+    def test_create_task_invalid_datetime_raises_error(
+        self, invalid_datetime: str
+    ) -> None:
+        """Test create_task raises ValueError for invalid datetime strings."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_crud
+
+        client = create_mock_client()
+        mcp = MCPServer("test")
+        task_crud.register_tools(mcp, client)
+
+        create_task_fn = mcp._tool_manager._tools["create_task"].fn
+
+        with pytest.raises(ValueError, match="Invalid datetime format"):
+            create_task_fn(name="Test Task", deadline=invalid_datetime)
+
+    @pytest.mark.parametrize(
+        "invalid_datetime",
+        [
+            pytest.param("invalid-date", id="invalid_format"),
+            pytest.param("2025-13-01T00:00:00", id="invalid_month"),
+            pytest.param("not-a-date", id="not_a_date"),
+        ],
+    )
+    def test_update_task_invalid_datetime_raises_error(
+        self, invalid_datetime: str
+    ) -> None:
+        """Test update_task raises ValueError for invalid datetime strings."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_crud
+
+        client = create_mock_client()
+        mcp = MCPServer("test")
+        task_crud.register_tools(mcp, client)
+
+        update_task_fn = mcp._tool_manager._tools["update_task"].fn
+
+        with pytest.raises(ValueError, match="Invalid datetime format"):
+            update_task_fn(task_id=1, planned_start=invalid_datetime)
+
+    def test_list_tasks_with_filters(self) -> None:
+        """Test list_tasks tool with various filters."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_crud
+
+        client = create_mock_client()
+        task1 = create_mock_task_row(task_id=1, name="Task 1")
+        task2 = create_mock_task_row(task_id=2, name="Task 2")
+        client.list_tasks.return_value = TaskListOutput(
+            tasks=[task1, task2],
+            total_count=2,
+            filtered_count=2,
+        )
+
+        mcp = MCPServer("test")
+        task_crud.register_tools(mcp, client)
+
+        list_tasks_fn = mcp._tool_manager._tools["list_tasks"].fn
+        result = list_tasks_fn(
+            include_archived=True,
+            status="PENDING",
+            tags=["test"],
+            sort_by="priority",
+            reverse=True,
+        )
+
+        client.list_tasks.assert_called_once_with(
+            include_archived=True,
+            status="PENDING",
+            tags=["test"],
+            sort_by="priority",
+            reverse=True,
+        )
+        assert len(result["tasks"]) == 2
+        assert result["total"] == 2
+        assert result["tasks"][0]["id"] == 1
+        assert result["tasks"][0]["name"] == "Task 1"
+        assert result["tasks"][0]["status"] == "PENDING"
+        assert result["tasks"][0]["tags"] == ["test"]
+
+    def test_get_task_returns_full_details(self) -> None:
+        """Test get_task tool returns full task details including notes."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_crud
+
+        client = create_mock_client()
+        client.get_task_by_id.return_value = create_mock_task_detail_output(
+            task_id=1,
+            name="Test Task",
+            notes_content="# Notes\nSome notes here",
+        )
+
+        mcp = MCPServer("test")
+        task_crud.register_tools(mcp, client)
+
+        get_task_fn = mcp._tool_manager._tools["get_task"].fn
+        result = get_task_fn(task_id=1)
+
+        client.get_task_by_id.assert_called_once_with(1)
+        assert result["id"] == 1
+        assert result["name"] == "Test Task"
+        assert result["notes"] == "# Notes\nSome notes here"
+        assert result["priority"] == 50
+        assert result["tags"] == ["test"]
+        assert result["depends_on"] == []
+
+    def test_delete_task_soft(self) -> None:
+        """Test delete_task tool with soft delete (archive)."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_crud
+
+        client = create_mock_client()
+        client.archive_task.return_value = create_mock_task_operation_output(
+            task_id=1, name="Archived Task"
+        )
+
+        mcp = MCPServer("test")
+        task_crud.register_tools(mcp, client)
+
+        delete_task_fn = mcp._tool_manager._tools["delete_task"].fn
+        result = delete_task_fn(task_id=1, hard=False)
+
+        client.archive_task.assert_called_once_with(1)
+        client.remove_task.assert_not_called()
+        assert result["id"] == 1
+        assert "archived" in result["message"]
+
+    def test_delete_task_hard(self) -> None:
+        """Test delete_task tool with hard delete (permanent)."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_crud
+
+        client = create_mock_client()
+
+        mcp = MCPServer("test")
+        task_crud.register_tools(mcp, client)
+
+        delete_task_fn = mcp._tool_manager._tools["delete_task"].fn
+        result = delete_task_fn(task_id=1, hard=True)
+
+        client.remove_task.assert_called_once_with(1)
+        client.archive_task.assert_not_called()
+        assert "permanently deleted" in result["message"]
+
+    def test_restore_task_returns_restored_data(self) -> None:
+        """Test restore_task tool returns restored task data."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_crud
+
+        client = create_mock_client()
+        client.restore_task.return_value = create_mock_task_operation_output(
+            task_id=1, name="Restored Task"
+        )
+
+        mcp = MCPServer("test")
+        task_crud.register_tools(mcp, client)
+
+        restore_task_fn = mcp._tool_manager._tools["restore_task"].fn
+        result = restore_task_fn(task_id=1)
+
+        client.restore_task.assert_called_once_with(1)
+        assert result["id"] == 1
+        assert result["name"] == "Restored Task"
+        assert result["status"] == "PENDING"
+        assert "restored" in result["message"]
+
+
+class TestTaskLifecycleTools:
+    """Test task lifecycle MCP tools."""
+
+    def test_start_task_formats_response(self) -> None:
+        """Test start_task tool formats response correctly."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_lifecycle
+
+        client = create_mock_client()
+        started_task = create_mock_task_operation_output(status=TaskStatus.IN_PROGRESS)
+        started_task.actual_start = datetime.now()
+        client.start_task.return_value = started_task
+
+        mcp = MCPServer("test")
+        task_lifecycle.register_tools(mcp, client)
+
+        assert mcp is not None
+
+    def test_start_task_returns_actual_start(self) -> None:
+        """Test start_task returns actual_start in ISO format."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_lifecycle
+
+        client = create_mock_client()
+        start_time = datetime(2025, 12, 11, 9, 0, 0)
+        started_task = create_mock_task_operation_output(
+            task_id=1, name="Started Task", status=TaskStatus.IN_PROGRESS
+        )
+        started_task.actual_start = start_time
+        client.start_task.return_value = started_task
+
+        mcp = MCPServer("test")
+        task_lifecycle.register_tools(mcp, client)
+
+        start_task_fn = mcp._tool_manager._tools["start_task"].fn
+        result = start_task_fn(task_id=1)
+
+        client.start_task.assert_called_once_with(1)
+        assert result["id"] == 1
+        assert result["name"] == "Started Task"
+        assert result["status"] == "IN_PROGRESS"
+        assert result["actual_start"] == "2025-12-11T09:00:00"
+        assert "started" in result["message"]
+
+    def test_complete_task_returns_duration(self) -> None:
+        """Test complete_task returns actual_end and actual_duration_hours."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_lifecycle
+
+        client = create_mock_client()
+        end_time = datetime(2025, 12, 11, 17, 0, 0)
+        completed_task = create_mock_task_operation_output(
+            task_id=1, name="Completed Task", status=TaskStatus.COMPLETED
+        )
+        completed_task.actual_end = end_time
+        completed_task.actual_duration_hours = 8.0
+        client.complete_task.return_value = completed_task
+
+        mcp = MCPServer("test")
+        task_lifecycle.register_tools(mcp, client)
+
+        complete_task_fn = mcp._tool_manager._tools["complete_task"].fn
+        result = complete_task_fn(task_id=1)
+
+        client.complete_task.assert_called_once_with(1)
+        assert result["id"] == 1
+        assert result["status"] == "COMPLETED"
+        assert result["actual_end"] == "2025-12-11T17:00:00"
+        assert result["actual_duration_hours"] == 8.0
+        assert "completed" in result["message"]
+
+    @pytest.mark.parametrize(
+        ("tool_name", "client_method", "expected_status", "message_keyword"),
+        [
+            pytest.param("pause_task", "pause_task", "PENDING", "paused", id="pause"),
+            pytest.param(
+                "cancel_task", "cancel_task", "CANCELED", "canceled", id="cancel"
+            ),
+            pytest.param(
+                "reopen_task", "reopen_task", "PENDING", "reopened", id="reopen"
+            ),
+        ],
+    )
+    def test_lifecycle_status_change_tools(
+        self,
+        tool_name: str,
+        client_method: str,
+        expected_status: str,
+        message_keyword: str,
+    ) -> None:
+        """Test lifecycle tools that change task status."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_lifecycle
+
+        client = create_mock_client()
+        status_enum = TaskStatus(expected_status)
+        task = create_mock_task_operation_output(
+            task_id=1, name="Test Task", status=status_enum
+        )
+        getattr(client, client_method).return_value = task
+
+        mcp = MCPServer("test")
+        task_lifecycle.register_tools(mcp, client)
+
+        tool_fn = mcp._tool_manager._tools[tool_name].fn
+        result = tool_fn(task_id=1)
+
+        getattr(client, client_method).assert_called_once_with(1)
+        assert result["id"] == 1
+        assert result["status"] == expected_status
+        assert message_keyword in result["message"]
+
+    def test_fix_actual_times_valid_datetime(self) -> None:
+        """Test fix_actual_times with valid ISO format datetimes."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_lifecycle
+
+        client = create_mock_client()
+        start_time = datetime(2025, 12, 13, 9, 0, 0)
+        end_time = datetime(2025, 12, 13, 17, 0, 0)
+        fixed_task = create_mock_task_operation_output(
+            task_id=1, name="Fixed Task", status=TaskStatus.COMPLETED
+        )
+        fixed_task.actual_start = start_time
+        fixed_task.actual_end = end_time
+        fixed_task.actual_duration_hours = 8.0
+        client.fix_actual_times.return_value = fixed_task
+
+        mcp = MCPServer("test")
+        task_lifecycle.register_tools(mcp, client)
+
+        fix_fn = mcp._tool_manager._tools["fix_actual_times"].fn
+        result = fix_fn(
+            task_id=1,
+            actual_start="2025-12-13T09:00:00",
+            actual_end="2025-12-13T17:00:00",
+        )
+
+        client.fix_actual_times.assert_called_once_with(
+            task_id=1,
+            actual_start=start_time,
+            actual_end=end_time,
+            actual_duration=None,
+            clear_start=False,
+            clear_end=False,
+            clear_duration=False,
+        )
+        assert result["id"] == 1
+        assert result["actual_start"] == "2025-12-13T09:00:00"
+        assert result["actual_end"] == "2025-12-13T17:00:00"
+        assert result["actual_duration_hours"] == 8.0
+        assert "Fixed actual times" in result["message"]
+
+    def test_fix_actual_times_with_clear_flags(self) -> None:
+        """Test fix_actual_times with clear_start and clear_end flags."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_lifecycle
+
+        client = create_mock_client()
+        cleared_task = create_mock_task_operation_output(
+            task_id=1, name="Cleared Task", status=TaskStatus.PENDING
+        )
+        cleared_task.actual_start = None
+        cleared_task.actual_end = None
+        cleared_task.actual_duration_hours = None
+        client.fix_actual_times.return_value = cleared_task
+
+        mcp = MCPServer("test")
+        task_lifecycle.register_tools(mcp, client)
+
+        fix_fn = mcp._tool_manager._tools["fix_actual_times"].fn
+        result = fix_fn(task_id=1, clear_start=True, clear_end=True)
+
+        client.fix_actual_times.assert_called_once_with(
+            task_id=1,
+            actual_start=None,
+            actual_end=None,
+            actual_duration=None,
+            clear_start=True,
+            clear_end=True,
+            clear_duration=False,
+        )
+        assert result["actual_start"] is None
+        assert result["actual_end"] is None
+        assert result["actual_duration_hours"] is None
+
+    def test_fix_actual_times_invalid_datetime(self) -> None:
+        """Test fix_actual_times raises ValueError for invalid datetime."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_lifecycle
+
+        client = create_mock_client()
+        mcp = MCPServer("test")
+        task_lifecycle.register_tools(mcp, client)
+
+        fix_fn = mcp._tool_manager._tools["fix_actual_times"].fn
+
+        with pytest.raises(ValueError, match="Invalid datetime format"):
+            fix_fn(task_id=1, actual_start="invalid-date")
+
+    def test_fix_actual_times_with_duration(self) -> None:
+        """Test fix_actual_times with actual_duration parameter."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_lifecycle
+
+        client = create_mock_client()
+        fixed_task = create_mock_task_operation_output(
+            task_id=1, name="Fixed Task", status=TaskStatus.COMPLETED
+        )
+        fixed_task.actual_start = None
+        fixed_task.actual_end = None
+        fixed_task.actual_duration_hours = 2.5
+        client.fix_actual_times.return_value = fixed_task
+
+        mcp = MCPServer("test")
+        task_lifecycle.register_tools(mcp, client)
+
+        fix_fn = mcp._tool_manager._tools["fix_actual_times"].fn
+        result = fix_fn(task_id=1, actual_duration=2.5)
+
+        client.fix_actual_times.assert_called_once_with(
+            task_id=1,
+            actual_start=None,
+            actual_end=None,
+            actual_duration=2.5,
+            clear_start=False,
+            clear_end=False,
+            clear_duration=False,
+        )
+        assert result["actual_duration_hours"] == 2.5
+
+    def test_fix_actual_times_with_clear_duration(self) -> None:
+        """Test fix_actual_times with clear_duration flag."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_lifecycle
+
+        client = create_mock_client()
+        fixed_task = create_mock_task_operation_output(
+            task_id=1, name="Fixed Task", status=TaskStatus.COMPLETED
+        )
+        fixed_task.actual_start = None
+        fixed_task.actual_end = None
+        fixed_task.actual_duration_hours = None
+        client.fix_actual_times.return_value = fixed_task
+
+        mcp = MCPServer("test")
+        task_lifecycle.register_tools(mcp, client)
+
+        fix_fn = mcp._tool_manager._tools["fix_actual_times"].fn
+        result = fix_fn(task_id=1, clear_duration=True)
+
+        client.fix_actual_times.assert_called_once_with(
+            task_id=1,
+            actual_start=None,
+            actual_end=None,
+            actual_duration=None,
+            clear_start=False,
+            clear_end=False,
+            clear_duration=True,
+        )
+        assert result["actual_duration_hours"] is None
+
+    @pytest.mark.parametrize(
+        "invalid_duration",
+        [
+            pytest.param(0, id="zero"),
+            pytest.param(-1.0, id="negative"),
+            pytest.param(-0.5, id="negative_float"),
+        ],
+    )
+    def test_fix_actual_times_invalid_duration(self, invalid_duration: float) -> None:
+        """Test fix_actual_times raises ValueError for invalid duration."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_lifecycle
+
+        client = create_mock_client()
+        mcp = MCPServer("test")
+        task_lifecycle.register_tools(mcp, client)
+
+        fix_fn = mcp._tool_manager._tools["fix_actual_times"].fn
+
+        with pytest.raises(ValueError, match="actual_duration must be greater than 0"):
+            fix_fn(task_id=1, actual_duration=invalid_duration)
+
+
+class TestTaskQueryTools:
+    """Test task query MCP tools."""
+
+    def test_get_statistics_formats_response(self) -> None:
+        """Test get_statistics tool formats response correctly."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_query
+
+        client = create_mock_client()
+        client.calculate_statistics.return_value = StatisticsOutput(
+            task_stats=TaskStatistics(
+                total_tasks=10,
+                pending_count=5,
+                in_progress_count=2,
+                completed_count=2,
+                canceled_count=1,
+                completion_rate=0.2,
+            ),
+            time_stats=TimeStatistics(
+                total_work_hours=20.0,
+                average_work_hours=2.0,
+                median_work_hours=1.5,
+                longest_task=None,
+                shortest_task=None,
+                tasks_with_time_tracking=5,
+            ),
+            estimation_stats=None,
+            deadline_stats=None,
+            priority_stats=PriorityDistributionStatistics(
+                high_priority_count=2,
+                medium_priority_count=5,
+                low_priority_count=3,
+                high_priority_completion_rate=0.5,
+                priority_completion_map={},
+            ),
+            trend_stats=None,
+        )
+
+        mcp = MCPServer("test")
+        task_query.register_tools(mcp, client)
+
+        assert mcp is not None
+
+    def test_get_tag_statistics_formats_response(self) -> None:
+        """Test get_tag_statistics tool formats response correctly."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_query
+
+        client = create_mock_client()
+        client.get_tag_statistics.return_value = TagStatisticsOutput(
+            tag_counts={"work": 5, "personal": 3},
+            total_tags=2,
+            total_tagged_tasks=8,
+        )
+
+        mcp = MCPServer("test")
+        task_query.register_tools(mcp, client)
+
+        assert mcp is not None
+
+    def test_get_statistics_returns_formatted_data(self) -> None:
+        """Test get_statistics returns properly formatted statistics."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_query
+
+        client = create_mock_client()
+        client.calculate_statistics.return_value = StatisticsOutput(
+            task_stats=TaskStatistics(
+                total_tasks=10,
+                pending_count=5,
+                in_progress_count=2,
+                completed_count=2,
+                canceled_count=1,
+                completion_rate=0.2,
+            ),
+            time_stats=TimeStatistics(
+                total_work_hours=20.0,
+                average_work_hours=2.0,
+                median_work_hours=1.5,
+                longest_task=None,
+                shortest_task=None,
+                tasks_with_time_tracking=5,
+            ),
+            estimation_stats=None,
+            deadline_stats=None,
+            priority_stats=PriorityDistributionStatistics(
+                high_priority_count=0,
+                medium_priority_count=0,
+                low_priority_count=0,
+                high_priority_completion_rate=0.0,
+                priority_completion_map={},
+            ),
+            trend_stats=None,
+        )
+
+        mcp = MCPServer("test")
+        task_query.register_tools(mcp, client)
+
+        get_statistics_fn = mcp._tool_manager._tools["get_statistics"].fn
+        result = get_statistics_fn(period="7d")
+
+        client.calculate_statistics.assert_called_once_with("7d")
+        assert result["period"] == "7d"
+        assert result["total_tasks"] == 10
+        assert result["pending"] == 5
+        assert result["in_progress"] == 2
+        assert result["completed"] == 2
+        assert result["canceled"] == 1
+        assert result["completion_rate"] == 0.2
+        assert result["average_completion_time_hours"] == 2.0
+
+    def test_get_statistics_without_time_stats(self) -> None:
+        """Test get_statistics when time_stats is None."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_query
+
+        client = create_mock_client()
+        client.calculate_statistics.return_value = StatisticsOutput(
+            task_stats=TaskStatistics(
+                total_tasks=5,
+                pending_count=3,
+                in_progress_count=2,
+                completed_count=0,
+                canceled_count=0,
+                completion_rate=0.0,
+            ),
+            time_stats=None,
+            estimation_stats=None,
+            deadline_stats=None,
+            priority_stats=PriorityDistributionStatistics(
+                high_priority_count=0,
+                medium_priority_count=0,
+                low_priority_count=0,
+                high_priority_completion_rate=0.0,
+                priority_completion_map={},
+            ),
+            trend_stats=None,
+        )
+
+        mcp = MCPServer("test")
+        task_query.register_tools(mcp, client)
+
+        get_statistics_fn = mcp._tool_manager._tools["get_statistics"].fn
+        result = get_statistics_fn(period="all")
+
+        assert result["average_completion_time_hours"] is None
+
+    def test_get_statistics_reports_all_sections(self) -> None:
+        """Test get_statistics exposes every StatisticsOutput section."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_query
+
+        client = create_mock_client()
+        client.calculate_statistics.return_value = StatisticsOutput(
+            task_stats=TaskStatistics(
+                total_tasks=5,
+                pending_count=2,
+                in_progress_count=1,
+                completed_count=2,
+                canceled_count=0,
+                completion_rate=0.4,
+            ),
+            time_stats=None,
+            estimation_stats=None,
+            deadline_stats=DeadlineComplianceStatistics(
+                total_tasks_with_deadline=3,
+                met_deadline_count=1,
+                missed_deadline_count=2,
+                compliance_rate=1 / 3,
+                average_delay_days=1.5,
+            ),
+            priority_stats=PriorityDistributionStatistics(
+                high_priority_count=1,
+                medium_priority_count=2,
+                low_priority_count=2,
+                high_priority_completion_rate=0.5,
+                priority_completion_map={},
+            ),
+            trend_stats=None,
+        )
+
+        mcp = MCPServer("test")
+        task_query.register_tools(mcp, client)
+
+        get_statistics_fn = mcp._tool_manager._tools["get_statistics"].fn
+        result = get_statistics_fn()
+
+        # The hardcoded overdue_count must not be reported as ground truth.
+        assert "overdue_count" not in result
+        for section in (
+            "time_stats",
+            "estimation_stats",
+            "deadline_stats",
+            "priority_stats",
+            "trend_stats",
+            "activity_stats",
+            "reschedule_stats",
+        ):
+            assert section in result
+        assert result["deadline_stats"]["missed_deadline_count"] == 2
+        assert result["priority_stats"]["high_priority_count"] == 1
+        assert result["time_stats"] is None
+
+    def test_get_tag_statistics_returns_formatted_data(self) -> None:
+        """Test get_tag_statistics returns properly formatted tag stats."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_query
+
+        client = create_mock_client()
+        client.get_tag_statistics.return_value = TagStatisticsOutput(
+            tag_counts={"work": 5, "personal": 3, "urgent": 2},
+            total_tags=3,
+            total_tagged_tasks=10,
+        )
+
+        mcp = MCPServer("test")
+        task_query.register_tools(mcp, client)
+
+        get_tag_stats_fn = mcp._tool_manager._tools["get_tag_statistics"].fn
+        result = get_tag_stats_fn()
+
+        client.get_tag_statistics.assert_called_once()
+        assert result["total_tags"] == 3
+        assert len(result["tags"]) == 3
+        # Check that tags are formatted as list of dicts
+        tag_names = [t["tag"] for t in result["tags"]]
+        assert "work" in tag_names
+        assert "personal" in tag_names
+
+    def test_get_executable_tasks(self) -> None:
+        """Test get_executable_tasks delegates to the client and shapes the result."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_query
+
+        from taskdog_core.application.dto.next_tasks_output import NextTasksOutput
+
+        client = create_mock_client()
+        client.get_executable_tasks = MagicMock()
+        in_progress_task = create_mock_task_row(
+            task_id=1, name="In Progress", status=TaskStatus.IN_PROGRESS
+        )
+        pending_task = create_mock_task_row(
+            task_id=2, name="Pending", status=TaskStatus.PENDING
+        )
+        client.get_executable_tasks.return_value = NextTasksOutput(
+            tasks=[in_progress_task, pending_task]
+        )
+
+        mcp = MCPServer("test")
+        task_query.register_tools(mcp, client)
+
+        get_executable_fn = mcp._tool_manager._tools["get_executable_tasks"].fn
+        result = get_executable_fn(tags=["coding"], limit=5)
+
+        client.get_executable_tasks.assert_called_once_with(tags=["coding"], limit=5)
+        assert len(result["tasks"]) == 2
+        assert result["total"] == 2
+        # Ordering from the client is preserved (IN_PROGRESS first).
+        assert result["tasks"][0]["id"] == 1
+        assert result["tasks"][0]["status"] == "IN_PROGRESS"
+        assert result["tasks"][1]["id"] == 2
+        assert result["tasks"][1]["status"] == "PENDING"
+        assert "executable tasks" in result["message"]
+
+    def test_get_executable_tasks_with_default_args(self) -> None:
+        """Test get_executable_tasks passes through default tags/limit."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_query
+
+        from taskdog_core.application.dto.next_tasks_output import NextTasksOutput
+
+        client = create_mock_client()
+        client.get_executable_tasks = MagicMock()
+        tasks = [create_mock_task_row(task_id=i, name=f"Task {i}") for i in range(1, 4)]
+        client.get_executable_tasks.return_value = NextTasksOutput(tasks=tasks)
+
+        mcp = MCPServer("test")
+        task_query.register_tools(mcp, client)
+
+        get_executable_fn = mcp._tool_manager._tools["get_executable_tasks"].fn
+        result = get_executable_fn()
+
+        client.get_executable_tasks.assert_called_once_with(tags=None, limit=10)
+        assert len(result["tasks"]) == 3
+        assert result["total"] == 3
+
+    def test_get_executable_tasks_empty_result(self) -> None:
+        """Test get_executable_tasks handles an empty ranked list."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_query
+
+        from taskdog_core.application.dto.next_tasks_output import NextTasksOutput
+
+        client = create_mock_client()
+        client.get_executable_tasks = MagicMock()
+        client.get_executable_tasks.return_value = NextTasksOutput(tasks=[])
+
+        mcp = MCPServer("test")
+        task_query.register_tools(mcp, client)
+
+        get_executable_fn = mcp._tool_manager._tools["get_executable_tasks"].fn
+        result = get_executable_fn(limit=5)
+
+        assert result["tasks"] == []
+        assert result["total"] == 0
+
+
+class TestTaskDecompositionTools:
+    """Test task decomposition MCP tools."""
+
+    def test_decompose_task_registers_without_error(self) -> None:
+        """Test decompose_task tool registration."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_decomposition
+
+        client = create_mock_client()
+
+        mcp = MCPServer("test")
+        task_decomposition.register_tools(mcp, client)
+
+        assert mcp is not None
+
+    def test_build_subtask_tags(self) -> None:
+        """Test _build_subtask_tags helper function."""
+        from taskdog_mcp.tools.task_decomposition import _build_subtask_tags
+
+        # Test with no tags
+        result = _build_subtask_tags({}, [], None)
+        assert result == []
+
+        # Test with subtask tags
+        result = _build_subtask_tags({"tags": ["a", "b"]}, [], None)
+        assert result == ["a", "b"]
+
+        # Test with original tags
+        result = _build_subtask_tags({}, ["orig1", "orig2"], None)
+        assert result == ["orig1", "orig2"]
+
+        # Test with group tag
+        result = _build_subtask_tags({}, [], "group")
+        assert result == ["group"]
+
+        # Test deduplication
+        result = _build_subtask_tags({"tags": ["a", "b"]}, ["b", "c"], "a")
+        assert result == ["a", "b", "c"]
+
+    def test_decompose_task_single_subtask(self) -> None:
+        """Test decompose_task with a single subtask."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_decomposition
+
+        client = create_mock_client()
+        client.get_task_by_id.return_value = create_mock_task_detail_output(
+            task_id=1, name="Original Task"
+        )
+        created_subtask = create_mock_task_operation_output(task_id=2, name="Subtask 1")
+        client.create_task.return_value = created_subtask
+        client.get_task_notes.return_value = ("", False)
+
+        mcp = MCPServer("test")
+        task_decomposition.register_tools(mcp, client)
+
+        decompose_fn = mcp._tool_manager._tools["decompose_task"].fn
+        result = decompose_fn(
+            task_id=1,
+            subtasks=[{"name": "Subtask 1", "estimated_duration": 2.0}],
+        )
+
+        assert result["original_task_id"] == 1
+        assert result["original_task_name"] == "Original Task"
+        assert result["total_created"] == 1
+        assert result["total_estimated_hours"] == 2.0
+        assert len(result["created_subtasks"]) == 1
+        assert result["created_subtasks"][0]["name"] == "Subtask 1"
+
+    def test_decompose_task_with_dependencies(self) -> None:
+        """Test decompose_task creates dependencies between subtasks."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_decomposition
+
+        client = create_mock_client()
+        client.get_task_by_id.return_value = create_mock_task_detail_output(
+            task_id=1, name="Original Task"
+        )
+        client.create_task.side_effect = [
+            create_mock_task_operation_output(task_id=2, name="Subtask 1"),
+            create_mock_task_operation_output(task_id=3, name="Subtask 2"),
+        ]
+        client.get_task_notes.return_value = ("", False)
+
+        mcp = MCPServer("test")
+        task_decomposition.register_tools(mcp, client)
+
+        decompose_fn = mcp._tool_manager._tools["decompose_task"].fn
+        result = decompose_fn(
+            task_id=1,
+            subtasks=[
+                {"name": "Subtask 1", "estimated_duration": 1.0},
+                {"name": "Subtask 2", "estimated_duration": 2.0},
+            ],
+            create_dependencies=True,
+        )
+
+        # Second subtask should depend on first
+        client.add_dependency.assert_called_once_with(3, 2)
+        assert result["dependencies_created"] is True
+        assert result["total_created"] == 2
+        assert result["total_estimated_hours"] == 3.0
+
+    def test_decompose_task_with_group_tag(self) -> None:
+        """Test decompose_task adds group_tag to all subtasks."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_decomposition
+
+        client = create_mock_client()
+        client.get_task_by_id.return_value = create_mock_task_detail_output(
+            task_id=1, name="Original Task"
+        )
+        client.create_task.return_value = create_mock_task_operation_output(
+            task_id=2, name="Subtask 1"
+        )
+        client.get_task_notes.return_value = ("", False)
+
+        mcp = MCPServer("test")
+        task_decomposition.register_tools(mcp, client)
+
+        decompose_fn = mcp._tool_manager._tools["decompose_task"].fn
+        result = decompose_fn(
+            task_id=1,
+            subtasks=[{"name": "Subtask 1", "estimated_duration": 1.0}],
+            group_tag="feature-x",
+        )
+
+        assert result["group_tag"] == "feature-x"
+        # Check that create_task was called with the group tag
+        call_kwargs = client.create_task.call_args.kwargs
+        assert "feature-x" in call_kwargs["tags"]
+
+    def test_decompose_task_archive_original(self) -> None:
+        """Test decompose_task archives original task when requested."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_decomposition
+
+        client = create_mock_client()
+        client.get_task_by_id.return_value = create_mock_task_detail_output(
+            task_id=1, name="Original Task"
+        )
+        client.create_task.return_value = create_mock_task_operation_output(
+            task_id=2, name="Subtask 1"
+        )
+        client.get_task_notes.return_value = ("", False)
+
+        mcp = MCPServer("test")
+        task_decomposition.register_tools(mcp, client)
+
+        decompose_fn = mcp._tool_manager._tools["decompose_task"].fn
+        result = decompose_fn(
+            task_id=1,
+            subtasks=[{"name": "Subtask 1", "estimated_duration": 1.0}],
+            archive_original=True,
+        )
+
+        client.archive_task.assert_called_once_with(1)
+        assert result["original_archived"] is True
+
+    def test_add_dependency_returns_formatted_response(self) -> None:
+        """Test add_dependency returns properly formatted response."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_decomposition
+
+        client = create_mock_client()
+        result_task = create_mock_task_operation_output(
+            task_id=1, name="Task with Dependency"
+        )
+        result_task.depends_on = [2]
+        client.add_dependency.return_value = result_task
+
+        mcp = MCPServer("test")
+        task_decomposition.register_tools(mcp, client)
+
+        add_dep_fn = mcp._tool_manager._tools["add_dependency"].fn
+        result = add_dep_fn(task_id=1, depends_on_id=2)
+
+        client.add_dependency.assert_called_once_with(1, 2)
+        assert result["id"] == 1
+        assert result["name"] == "Task with Dependency"
+        assert result["depends_on"] == [2]
+        assert "depends on" in result["message"]
+
+    def test_remove_dependency_returns_formatted_response(self) -> None:
+        """Test remove_dependency returns properly formatted response."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_decomposition
+
+        client = create_mock_client()
+        result_task = create_mock_task_operation_output(
+            task_id=1, name="Task without Dependency"
+        )
+        result_task.depends_on = []
+        client.remove_dependency.return_value = result_task
+
+        mcp = MCPServer("test")
+        task_decomposition.register_tools(mcp, client)
+
+        remove_dep_fn = mcp._tool_manager._tools["remove_dependency"].fn
+        result = remove_dep_fn(task_id=1, depends_on_id=2)
+
+        client.remove_dependency.assert_called_once_with(1, 2)
+        assert result["id"] == 1
+        assert result["depends_on"] == []
+        assert "no longer depends" in result["message"]
+
+    def test_set_task_tags_returns_formatted_response(self) -> None:
+        """Test set_task_tags returns properly formatted response."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_decomposition
+
+        client = create_mock_client()
+        result_task = create_mock_task_operation_output(task_id=1, name="Tagged Task")
+        result_task.tags = ["new-tag", "another-tag"]
+        client.set_task_tags.return_value = result_task
+
+        mcp = MCPServer("test")
+        task_decomposition.register_tools(mcp, client)
+
+        set_tags_fn = mcp._tool_manager._tools["set_task_tags"].fn
+        result = set_tags_fn(task_id=1, tags=["new-tag", "another-tag"])
+
+        client.set_task_tags.assert_called_once_with(1, ["new-tag", "another-tag"])
+        assert result["id"] == 1
+        assert result["tags"] == ["new-tag", "another-tag"]
+        assert "Tags updated" in result["message"]
+
+    def test_update_task_notes_returns_confirmation(self) -> None:
+        """Test update_task_notes returns confirmation message."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_decomposition
+
+        client = create_mock_client()
+
+        mcp = MCPServer("test")
+        task_decomposition.register_tools(mcp, client)
+
+        update_notes_fn = mcp._tool_manager._tools["update_task_notes"].fn
+        result = update_notes_fn(task_id=1, content="# New Notes\nContent here")
+
+        client.update_task_notes.assert_called_once_with(1, "# New Notes\nContent here")
+        assert result["id"] == 1
+        assert "Notes updated" in result["message"]
+
+    def test_get_task_notes_returns_content(self) -> None:
+        """Test get_task_notes returns notes content."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_decomposition
+
+        client = create_mock_client()
+        client.get_task_notes.return_value = ("# Notes\nSome content", True)
+
+        mcp = MCPServer("test")
+        task_decomposition.register_tools(mcp, client)
+
+        get_notes_fn = mcp._tool_manager._tools["get_task_notes"].fn
+        result = get_notes_fn(task_id=1)
+
+        client.get_task_notes.assert_called_once_with(1)
+        assert result["id"] == 1
+        assert result["has_notes"] is True
+        assert result["content"] == "# Notes\nSome content"
+
+    def test_get_task_notes_no_notes(self) -> None:
+        """Test get_task_notes when task has no notes."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_decomposition
+
+        client = create_mock_client()
+        client.get_task_notes.return_value = (None, False)
+
+        mcp = MCPServer("test")
+        task_decomposition.register_tools(mcp, client)
+
+        get_notes_fn = mcp._tool_manager._tools["get_task_notes"].fn
+        result = get_notes_fn(task_id=1)
+
+        assert result["has_notes"] is False
+        assert result["content"] is None
+
+    def test_decompose_task_handles_subtask_creation_error(self) -> None:
+        """Test decompose_task handles subtask creation errors gracefully."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_decomposition
+
+        client = create_mock_client()
+        client.get_task_by_id.return_value = create_mock_task_detail_output(
+            task_id=1, name="Original Task"
+        )
+        # First subtask succeeds, second fails
+        client.create_task.side_effect = [
+            create_mock_task_operation_output(task_id=2, name="Subtask 1"),
+            Exception("Failed to create subtask"),
+        ]
+        client.get_task_notes.return_value = ("", False)
+
+        mcp = MCPServer("test")
+        task_decomposition.register_tools(mcp, client)
+
+        decompose_fn = mcp._tool_manager._tools["decompose_task"].fn
+        result = decompose_fn(
+            task_id=1,
+            subtasks=[
+                {"name": "Subtask 1", "estimated_duration": 1.0},
+                {"name": "Subtask 2", "estimated_duration": 2.0},
+            ],
+        )
+
+        # First subtask should be created, second should have error
+        assert result["total_created"] == 1
+        assert len(result["errors"]) == 1
+        assert result["errors"][0]["subtask_index"] == 1
+        assert "Failed to create subtask" in result["errors"][0]["error"]
+
+    def test_decompose_task_handles_dependency_error(self) -> None:
+        """Test decompose_task handles dependency creation errors."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_decomposition
+
+        client = create_mock_client()
+        client.get_task_by_id.return_value = create_mock_task_detail_output(
+            task_id=1, name="Original Task"
+        )
+        client.create_task.side_effect = [
+            create_mock_task_operation_output(task_id=2, name="Subtask 1"),
+            create_mock_task_operation_output(task_id=3, name="Subtask 2"),
+        ]
+        client.add_dependency.side_effect = Exception("Dependency error")
+        client.get_task_notes.return_value = ("", False)
+
+        mcp = MCPServer("test")
+        task_decomposition.register_tools(mcp, client)
+
+        decompose_fn = mcp._tool_manager._tools["decompose_task"].fn
+        result = decompose_fn(
+            task_id=1,
+            subtasks=[
+                {"name": "Subtask 1", "estimated_duration": 1.0},
+                {"name": "Subtask 2", "estimated_duration": 2.0},
+            ],
+            create_dependencies=True,
+        )
+
+        # Both subtasks created but dependency failed
+        assert result["total_created"] == 2
+        assert len(result["errors"]) == 1
+        assert "Failed to create dependency" in result["errors"][0]["error"]
+
+    def test_decompose_task_handles_archive_error(self) -> None:
+        """Test decompose_task handles archive error gracefully."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_decomposition
+
+        client = create_mock_client()
+        client.get_task_by_id.return_value = create_mock_task_detail_output(
+            task_id=1, name="Original Task"
+        )
+        client.create_task.return_value = create_mock_task_operation_output(
+            task_id=2, name="Subtask 1"
+        )
+        client.archive_task.side_effect = Exception("Archive failed")
+        client.get_task_notes.return_value = ("", False)
+
+        mcp = MCPServer("test")
+        task_decomposition.register_tools(mcp, client)
+
+        decompose_fn = mcp._tool_manager._tools["decompose_task"].fn
+        result = decompose_fn(
+            task_id=1,
+            subtasks=[{"name": "Subtask 1", "estimated_duration": 1.0}],
+            archive_original=True,
+        )
+
+        # Subtask created but archive failed
+        assert result["total_created"] == 1
+        assert result["original_archived"] is False
+        assert len(result["errors"]) == 1
+        assert result["errors"][0]["action"] == "archive_original"
+
+    def test_update_decomposition_notes_handles_error(self) -> None:
+        """Test _update_decomposition_notes silently handles errors."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_decomposition
+
+        client = create_mock_client()
+        client.get_task_by_id.return_value = create_mock_task_detail_output(
+            task_id=1, name="Original Task"
+        )
+        client.create_task.return_value = create_mock_task_operation_output(
+            task_id=2, name="Subtask 1"
+        )
+        # Notes operations fail
+        client.get_task_notes.side_effect = Exception("Notes read failed")
+
+        mcp = MCPServer("test")
+        task_decomposition.register_tools(mcp, client)
+
+        decompose_fn = mcp._tool_manager._tools["decompose_task"].fn
+        # Should complete without raising, notes update is optional
+        result = decompose_fn(
+            task_id=1,
+            subtasks=[{"name": "Subtask 1", "estimated_duration": 1.0}],
+        )
+
+        # Decomposition succeeds even if notes update fails
+        assert result["total_created"] == 1
+        assert result["errors"] is None
+
+
+class TestTaskAuditTools:
+    """Test task audit log MCP tools."""
+
+    def test_list_audit_logs_returns_formatted_response(self) -> None:
+        """Test list_audit_logs tool formats response correctly."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_audit
+
+        from taskdog_core.application.dto.audit_log_dto import (
+            AuditLogListOutput,
+            AuditLogOutput,
+        )
+
+        client = create_mock_client()
+        client.list_audit_logs.return_value = AuditLogListOutput(
+            logs=[
+                AuditLogOutput(
+                    id=1,
+                    timestamp=datetime(2025, 12, 11, 10, 0, 0),
+                    client_name="claude-code",
+                    operation="create_task",
+                    resource_type="task",
+                    resource_id=42,
+                    resource_name="Test Task",
+                    old_values=None,
+                    new_values={"name": "Test Task"},
+                    success=True,
+                    error_message=None,
+                ),
+                AuditLogOutput(
+                    id=2,
+                    timestamp=datetime(2025, 12, 11, 11, 0, 0),
+                    client_name=None,
+                    operation="complete_task",
+                    resource_type="task",
+                    resource_id=42,
+                    resource_name="Test Task",
+                    old_values=None,
+                    new_values=None,
+                    success=True,
+                    error_message=None,
+                ),
+            ],
+            total_count=2,
+            limit=50,
+            offset=0,
+        )
+
+        mcp = MCPServer("test")
+        task_audit.register_tools(mcp, client)
+
+        list_fn = mcp._tool_manager._tools["list_audit_logs"].fn
+        result = list_fn()
+
+        client.list_audit_logs.assert_called_once_with(
+            client_filter=None,
+            operation=None,
+            resource_id=None,
+            success=None,
+            start_date=None,
+            end_date=None,
+            limit=50,
+        )
+        assert result["total_count"] == 2
+        assert len(result["logs"]) == 2
+        assert result["logs"][0]["id"] == 1
+        assert result["logs"][0]["operation"] == "create_task"
+        assert result["logs"][0]["resource_id"] == 42
+        assert result["logs"][0]["client_name"] == "claude-code"
+        assert result["logs"][1]["id"] == 2
+        assert "Found 2 audit log(s)" in result["message"]
+
+    def test_list_audit_logs_with_filters(self) -> None:
+        """Test list_audit_logs passes filters correctly."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_audit
+
+        from taskdog_core.application.dto.audit_log_dto import AuditLogListOutput
+
+        client = create_mock_client()
+        client.list_audit_logs.return_value = AuditLogListOutput(
+            logs=[],
+            total_count=0,
+            limit=10,
+            offset=0,
+        )
+
+        mcp = MCPServer("test")
+        task_audit.register_tools(mcp, client)
+
+        list_fn = mcp._tool_manager._tools["list_audit_logs"].fn
+        result = list_fn(
+            task_id=42,
+            operation="create_task",
+            client_name="cli",
+            since="2025-12-01T00:00:00",
+            until="2025-12-31T23:59:59",
+            failed=True,
+            limit=10,
+        )
+
+        client.list_audit_logs.assert_called_once_with(
+            client_filter="cli",
+            operation="create_task",
+            resource_id=42,
+            success=False,
+            start_date=datetime(2025, 12, 1, 0, 0, 0),
+            end_date=datetime(2025, 12, 31, 23, 59, 59),
+            limit=10,
+        )
+        assert result["total_count"] == 0
+        assert result["logs"] == []
+
+    def test_list_audit_logs_until_date_only_covers_whole_day(self) -> None:
+        """A bare `until` date must include logs recorded later that day."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_audit
+
+        from taskdog_core.application.dto.audit_log_dto import AuditLogListOutput
+
+        client = create_mock_client()
+        client.list_audit_logs.return_value = AuditLogListOutput(
+            logs=[],
+            total_count=0,
+            limit=50,
+            offset=0,
+        )
+
+        mcp = MCPServer("test")
+        task_audit.register_tools(mcp, client)
+
+        list_fn = mcp._tool_manager._tools["list_audit_logs"].fn
+        list_fn(since="2025-12-31", until="2025-12-31")
+
+        kwargs = client.list_audit_logs.call_args.kwargs
+        assert kwargs["start_date"] == datetime(2025, 12, 31, 0, 0, 0)
+        assert kwargs["end_date"] == datetime(2025, 12, 31, 23, 59, 59, 999999)
+
+    def test_get_audit_log_returns_formatted_response(self) -> None:
+        """Test get_audit_log tool returns all fields including old/new values."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_audit
+
+        from taskdog_core.application.dto.audit_log_dto import AuditLogOutput
+
+        client = create_mock_client()
+        client.get_audit_log.return_value = AuditLogOutput(
+            id=1,
+            timestamp=datetime(2025, 12, 11, 10, 0, 0),
+            client_name="claude-code",
+            operation="update_task",
+            resource_type="task",
+            resource_id=42,
+            resource_name="Test Task",
+            old_values={"priority": 50},
+            new_values={"priority": 80},
+            success=True,
+            error_message=None,
+        )
+
+        mcp = MCPServer("test")
+        task_audit.register_tools(mcp, client)
+
+        get_fn = mcp._tool_manager._tools["get_audit_log"].fn
+        result = get_fn(log_id=1)
+
+        client.get_audit_log.assert_called_once_with(1)
+        assert result["id"] == 1
+        assert result["timestamp"] == "2025-12-11T10:00:00"
+        assert result["operation"] == "update_task"
+        assert result["resource_type"] == "task"
+        assert result["resource_id"] == 42
+        assert result["resource_name"] == "Test Task"
+        assert result["client_name"] == "claude-code"
+        assert result["success"] is True
+        assert result["error_message"] is None
+        assert result["old_values"] == {"priority": 50}
+        assert result["new_values"] == {"priority": 80}
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            pytest.param("since", "garbage", id="since-garbage"),
+            pytest.param("since", "2025-13-01T00:00:00", id="since-invalid_month"),
+            pytest.param("until", "garbage", id="until-garbage"),
+            pytest.param("until", "2025-13-01T00:00:00", id="until-invalid_month"),
+        ],
+    )
+    def test_list_audit_logs_invalid_datetime(self, field: str, value: str) -> None:
+        """Test list_audit_logs raises ValueError for invalid since/until."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_audit
+
+        client = create_mock_client()
+        mcp = MCPServer("test")
+        task_audit.register_tools(mcp, client)
+
+        list_fn = mcp._tool_manager._tools["list_audit_logs"].fn
+
+        with pytest.raises(ValueError, match=f"Invalid datetime format for '{field}'"):
+            list_fn(**{field: value})
+
+
+class TestTaskTagTools:
+    """Test task tag MCP tools."""
+
+    def test_delete_tag_returns_formatted_response(self) -> None:
+        """Test delete_tag tool formats response correctly."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_tags
+
+        from taskdog_core.application.dto.delete_tag_output import DeleteTagOutput
+
+        client = create_mock_client()
+        client.delete_tag.return_value = DeleteTagOutput(
+            tag_name="bug", affected_task_count=3
+        )
+
+        mcp = MCPServer("test")
+        task_tags.register_tools(mcp, client)
+
+        delete_tag_fn = mcp._tool_manager._tools["delete_tag"].fn
+        result = delete_tag_fn(tag_name="bug")
+
+        assert result["tag_name"] == "bug"
+        assert result["affected_task_count"] == 3
+        assert "bug" in result["message"]
+        assert "3" in result["message"]
+
+    def test_delete_tag_with_zero_affected_tasks(self) -> None:
+        """Test delete_tag when tag exists but no tasks have it."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_tags
+
+        from taskdog_core.application.dto.delete_tag_output import DeleteTagOutput
+
+        client = create_mock_client()
+        client.delete_tag.return_value = DeleteTagOutput(
+            tag_name="unused", affected_task_count=0
+        )
+
+        mcp = MCPServer("test")
+        task_tags.register_tools(mcp, client)
+
+        delete_tag_fn = mcp._tool_manager._tools["delete_tag"].fn
+        result = delete_tag_fn(tag_name="unused")
+
+        assert result["tag_name"] == "unused"
+        assert result["affected_task_count"] == 0
+
+    def test_delete_tag_calls_client_with_correct_name(self) -> None:
+        """Test delete_tag passes tag name to client correctly."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_tags
+
+        from taskdog_core.application.dto.delete_tag_output import DeleteTagOutput
+
+        client = create_mock_client()
+        client.delete_tag.return_value = DeleteTagOutput(
+            tag_name="bug", affected_task_count=1
+        )
+
+        mcp = MCPServer("test")
+        task_tags.register_tools(mcp, client)
+
+        delete_tag_fn = mcp._tool_manager._tools["delete_tag"].fn
+        delete_tag_fn(tag_name="bug")
+
+        client.delete_tag.assert_called_once_with("bug")
+
+
+def _make_optimization_output(
+    successful: list[tuple[int, str]] | None = None,
+    failed: list[tuple[int, str, str]] | None = None,
+) -> Any:
+    """Build an OptimizationOutput with simple test data."""
+    from datetime import date
+
+    from taskdog_core.application.dto.optimization_output import (
+        OptimizationOutput,
+        SchedulingFailure,
+    )
+    from taskdog_core.application.dto.optimization_summary import OptimizationSummary
+    from taskdog_core.application.dto.task_dto import TaskSummaryDto
+
+    successful_tasks = [
+        TaskSummaryDto(id=tid, name=name) for tid, name in successful or []
+    ]
+    failed_tasks = [
+        SchedulingFailure(
+            task=TaskSummaryDto(id=tid, name=name),
+            reason=reason,
+        )
+        for tid, name, reason in failed or []
+    ]
+    return OptimizationOutput(
+        successful_tasks=successful_tasks,
+        failed_tasks=failed_tasks,
+        daily_allocations={date(2025, 12, 15): 6.0, date(2025, 12, 16): 4.0},
+        summary=OptimizationSummary(
+            new_count=len(successful_tasks),
+            rescheduled_count=0,
+            total_hours=10.0,
+            deadline_conflicts=0,
+            days_span=2,
+            unscheduled_tasks=[f.task for f in failed_tasks],
+            overloaded_days=[],
+        ),
+        task_states_before={},
+    )
+
+
+class TestTaskOptimizationTools:
+    """Test task optimization MCP tools."""
+
+    def test_optimize_schedule_returns_formatted_response(self) -> None:
+        """Test optimize_schedule returns successful_tasks, daily_allocations, summary."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_optimization
+
+        client = create_mock_client()
+        client.optimize_schedule.return_value = _make_optimization_output(
+            successful=[(1, "Task A"), (2, "Task B")],
+        )
+
+        mcp = MCPServer("test")
+        task_optimization.register_tools(mcp, client)
+
+        optimize_fn = mcp._tool_manager._tools["optimize_schedule"].fn
+        result = optimize_fn(algorithm="greedy", max_hours_per_day=8.0)
+
+        client.optimize_schedule.assert_called_once_with(
+            algorithm="greedy",
+            start_date=None,
+            max_hours_per_day=8.0,
+            force_override=False,
+            task_ids=None,
+            include_all_days=False,
+        )
+        assert result["algorithm"] == "greedy"
+        assert len(result["successful_tasks"]) == 2
+        assert result["successful_tasks"][0] == {"id": 1, "name": "Task A"}
+        assert result["failed_tasks"] == []
+        assert result["daily_allocations"] == {"2025-12-15": 6.0, "2025-12-16": 4.0}
+        assert result["summary"]["new_count"] == 2
+        assert result["summary"]["total_hours"] == 10.0
+        assert result["summary"]["days_span"] == 2
+        assert "Optimized 2 task(s)" in result["message"]
+
+    def test_optimize_schedule_with_failures(self) -> None:
+        """Test optimize_schedule reports partial failures."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_optimization
+
+        client = create_mock_client()
+        client.optimize_schedule.return_value = _make_optimization_output(
+            successful=[(1, "Task A")],
+            failed=[(2, "Task B", "deadline too tight")],
+        )
+
+        mcp = MCPServer("test")
+        task_optimization.register_tools(mcp, client)
+
+        optimize_fn = mcp._tool_manager._tools["optimize_schedule"].fn
+        result = optimize_fn(algorithm="balanced", max_hours_per_day=6.0)
+
+        assert len(result["successful_tasks"]) == 1
+        assert result["failed_tasks"] == [
+            {"id": 2, "name": "Task B", "reason": "deadline too tight"}
+        ]
+        assert "1 task(s)" in result["message"]
+        assert "1 could not be scheduled" in result["message"]
+
+    def test_optimize_schedule_all_failed(self) -> None:
+        """Test optimize_schedule when no tasks could be scheduled."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_optimization
+
+        client = create_mock_client()
+        client.optimize_schedule.return_value = _make_optimization_output(
+            successful=[],
+            failed=[
+                (1, "Task A", "missing estimated_duration"),
+                (2, "Task B", "circular dependency"),
+            ],
+        )
+
+        mcp = MCPServer("test")
+        task_optimization.register_tools(mcp, client)
+
+        optimize_fn = mcp._tool_manager._tools["optimize_schedule"].fn
+        result = optimize_fn(algorithm="greedy", max_hours_per_day=8.0)
+
+        assert result["successful_tasks"] == []
+        assert len(result["failed_tasks"]) == 2
+        assert "All 2 task(s) failed" in result["message"]
+
+    def test_optimize_schedule_no_tasks(self) -> None:
+        """Test optimize_schedule when there's nothing to optimize."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_optimization
+
+        client = create_mock_client()
+        client.optimize_schedule.return_value = _make_optimization_output()
+
+        mcp = MCPServer("test")
+        task_optimization.register_tools(mcp, client)
+
+        optimize_fn = mcp._tool_manager._tools["optimize_schedule"].fn
+        result = optimize_fn(algorithm="greedy", max_hours_per_day=8.0)
+
+        assert result["successful_tasks"] == []
+        assert result["failed_tasks"] == []
+        assert "No tasks were optimized" in result["message"]
+
+    def test_optimize_schedule_passes_all_arguments(self) -> None:
+        """Test optimize_schedule forwards all arguments to the client."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_optimization
+
+        client = create_mock_client()
+        client.optimize_schedule.return_value = _make_optimization_output(
+            successful=[(1, "Task A")],
+        )
+
+        mcp = MCPServer("test")
+        task_optimization.register_tools(mcp, client)
+
+        optimize_fn = mcp._tool_manager._tools["optimize_schedule"].fn
+        optimize_fn(
+            algorithm="dependency_aware",
+            max_hours_per_day=4.0,
+            start_date="2025-12-15T09:00:00",
+            task_ids=[1, 2, 3],
+            force_override=True,
+            include_all_days=True,
+        )
+
+        client.optimize_schedule.assert_called_once_with(
+            algorithm="dependency_aware",
+            start_date=datetime(2025, 12, 15, 9, 0, 0),
+            max_hours_per_day=4.0,
+            force_override=True,
+            task_ids=[1, 2, 3],
+            include_all_days=True,
+        )
+
+    @pytest.mark.parametrize(
+        "invalid_date",
+        [
+            pytest.param("not-a-date", id="garbage"),
+            pytest.param("2025-13-01", id="invalid_month"),
+        ],
+    )
+    def test_optimize_schedule_invalid_datetime(self, invalid_date: str) -> None:
+        """Test optimize_schedule raises ValueError for invalid datetime."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_optimization
+
+        client = create_mock_client()
+        mcp = MCPServer("test")
+        task_optimization.register_tools(mcp, client)
+
+        optimize_fn = mcp._tool_manager._tools["optimize_schedule"].fn
+
+        with pytest.raises(ValueError, match="Invalid datetime format"):
+            optimize_fn(
+                algorithm="greedy",
+                max_hours_per_day=8.0,
+                start_date=invalid_date,
+            )
+
+    @pytest.mark.parametrize(
+        "invalid_hours",
+        [
+            pytest.param(0, id="zero"),
+            pytest.param(-1.0, id="negative"),
+        ],
+    )
+    def test_optimize_schedule_invalid_max_hours(self, invalid_hours: float) -> None:
+        """Test optimize_schedule rejects non-positive max_hours_per_day."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_optimization
+
+        client = create_mock_client()
+        mcp = MCPServer("test")
+        task_optimization.register_tools(mcp, client)
+
+        optimize_fn = mcp._tool_manager._tools["optimize_schedule"].fn
+
+        with pytest.raises(
+            ValueError, match="max_hours_per_day must be greater than 0"
+        ):
+            optimize_fn(algorithm="greedy", max_hours_per_day=invalid_hours)
+
+    def test_list_algorithms_returns_metadata(self) -> None:
+        """Test list_algorithms returns formatted algorithm list."""
+        from mcp.server import MCPServer
+        from taskdog_mcp.tools import task_optimization
+
+        client = create_mock_client()
+        client.get_algorithm_metadata.return_value = [
+            ("greedy", "Greedy", "Front-load tasks by priority"),
+            ("balanced", "Balanced", "Distribute hours evenly across days"),
+        ]
+
+        mcp = MCPServer("test")
+        task_optimization.register_tools(mcp, client)
+
+        list_fn = mcp._tool_manager._tools["list_algorithms"].fn
+        result = list_fn()
+
+        client.get_algorithm_metadata.assert_called_once()
+        assert result["total"] == 2
+        assert len(result["algorithms"]) == 2
+        assert result["algorithms"][0] == {
+            "name": "greedy",
+            "display_name": "Greedy",
+            "description": "Front-load tasks by priority",
+        }
+
+
+class TestParseIsoDatetime:
+    """Tests for the shared parse_iso_datetime serializer helper."""
+
+    def test_parses_valid_iso_string(self) -> None:
+        from taskdog_mcp.tools.serializers import parse_iso_datetime
+
+        assert parse_iso_datetime("2025-12-11T09:00:00") == datetime(
+            2025, 12, 11, 9, 0, 0
+        )
+
+    @pytest.mark.parametrize("value", [None, ""])
+    def test_returns_none_for_empty(self, value: str | None) -> None:
+        from taskdog_mcp.tools.serializers import parse_iso_datetime
+
+        assert parse_iso_datetime(value) is None
+
+    def test_invalid_without_field_name(self) -> None:
+        from taskdog_mcp.tools.serializers import parse_iso_datetime
+
+        with pytest.raises(ValueError, match="Invalid datetime format: 'nope'"):
+            parse_iso_datetime("nope")
+
+    def test_invalid_with_field_name_preserves_field_and_value(self) -> None:
+        from taskdog_mcp.tools.serializers import parse_iso_datetime
+
+        with pytest.raises(
+            ValueError,
+            match="Invalid datetime format for 'since': 'nope'",
+        ):
+            parse_iso_datetime("nope", "since")

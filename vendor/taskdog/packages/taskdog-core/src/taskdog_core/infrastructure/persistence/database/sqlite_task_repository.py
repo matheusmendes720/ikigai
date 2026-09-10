@@ -1,0 +1,598 @@
+"""SQLite-based implementation of TaskRepository using SQLAlchemy.
+
+This repository provides database persistence for tasks using SQLite and
+SQLAlchemy 2.0 ORM. It implements the TaskRepository interface with full
+ACID transaction support.
+
+Phase 2 (Issue 228): Tags are now stored in normalized tables (tags/task_tags).
+The repository uses TagResolver to manage tag relationships when saving tasks.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+from sqlalchemy import func, select
+
+from taskdog_core.domain.entities.task import Task, TaskStatus
+from taskdog_core.domain.exceptions.tag_exceptions import TagNotFoundException
+from taskdog_core.domain.repositories.task_repository import TaskRepository
+from taskdog_core.infrastructure.persistence.database.base_repository import (
+    SqliteBaseRepository,
+)
+from taskdog_core.infrastructure.persistence.database.models import (
+    DailyAllocationModel,
+    TagModel,
+    TaskModel,
+    TaskTagModel,
+)
+from taskdog_core.infrastructure.persistence.database.mutation_builders import (
+    DailyAllocationBuilder,
+    TaskDeleteBuilder,
+    TaskInsertBuilder,
+    TaskTagRelationshipBuilder,
+    TaskUpdateBuilder,
+)
+from taskdog_core.infrastructure.persistence.database.query_builders import (
+    TaskQueryBuilder,
+)
+from taskdog_core.infrastructure.persistence.mappers.tag_resolver import TagResolver
+from taskdog_core.infrastructure.persistence.mappers.task_db_mapper import TaskDbMapper
+
+if TYPE_CHECKING:
+    from datetime import date
+
+    from sqlalchemy.engine import Engine
+
+    from taskdog_core.domain.services.time_provider import ITimeProvider
+
+
+class SqliteTaskRepository(SqliteBaseRepository, TaskRepository):
+    """SQLite implementation of TaskRepository using SQLAlchemy ORM.
+
+    This repository:
+    - Uses SQLite database for persistence
+    - Provides ACID transaction guarantees
+    - Implements connection pooling via SQLAlchemy engine
+    - Uses TaskDbMapper for entity-model conversion
+    """
+
+    def __init__(
+        self,
+        database_url: str,
+        mapper: TaskDbMapper | None = None,
+        time_provider: ITimeProvider | None = None,
+        engine: Engine | None = None,
+    ):
+        """Initialize the repository with a SQLite database.
+
+        Args:
+            database_url: SQLAlchemy database URL (e.g., "sqlite:///path/to/db.sqlite")
+            mapper: TaskDbMapper instance. If None, creates a new instance.
+            time_provider: Provider for current time. Defaults to SystemTimeProvider.
+            engine: SQLAlchemy Engine instance. If None, creates a new engine.
+                   Pass a shared engine to avoid redundant connection pools.
+        """
+        super().__init__(database_url, engine)
+        self.mapper = mapper or TaskDbMapper()
+        if time_provider is None:
+            from taskdog_core.infrastructure.time_provider import SystemTimeProvider
+
+            time_provider = SystemTimeProvider()
+        self._time_provider = time_provider
+
+    def get_all(self) -> list[Task]:
+        """Retrieve all tasks from database.
+
+        Returns:
+            List of all tasks
+        """
+        with self.Session() as session:
+            stmt = select(TaskModel)
+            models = session.scalars(stmt).all()
+            return [self.mapper.from_model(model) for model in models]
+
+    def get_by_id(self, task_id: int) -> Task | None:
+        """Retrieve a task by its ID.
+
+        Args:
+            task_id: The ID of the task to retrieve
+
+        Returns:
+            The task if found, None otherwise
+        """
+        with self.Session() as session:
+            model = session.get(TaskModel, task_id)
+            if model is None:
+                return None
+            return self.mapper.from_model(model)
+
+    def get_by_ids(self, task_ids: list[int]) -> dict[int, Task]:
+        """Retrieve multiple tasks by their IDs in a single query.
+
+        Args:
+            task_ids: List of task IDs to retrieve
+
+        Returns:
+            Dictionary mapping task IDs to Task objects
+        """
+        if not task_ids:
+            return {}
+
+        with self.Session() as session:
+            stmt = select(TaskModel).where(TaskModel.id.in_(task_ids))  # type: ignore[attr-defined]
+            models = session.scalars(stmt).all()
+            return {model.id: self.mapper.from_model(model) for model in models}
+
+    def get_filtered(
+        self,
+        include_archived: bool = True,
+        status: TaskStatus | None = None,
+        tags: list[str] | None = None,
+        match_all_tags: bool = False,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> list[Task]:
+        """Retrieve tasks with SQL WHERE clauses for efficient filtering.
+
+        This method applies filters at the database level using SQL WHERE clauses,
+        significantly improving performance compared to fetching all tasks and
+        filtering in Python.
+
+        Args:
+            include_archived: If False, exclude archived tasks (default: True)
+            status: Filter by task status (default: None, no status filter)
+            tags: Filter by tags with OR logic (default: None, no tag filter)
+            match_all_tags: If True, require all tags (AND logic); if False, any tag (OR logic)
+            start_date: Filter tasks with any date >= start_date (default: None)
+            end_date: Filter tasks with any date <= end_date (default: None)
+
+        Returns:
+            List of tasks matching the filter criteria
+
+        Note:
+            - Date filtering checks deadline, planned_start, planned_end, actual_start, actual_end
+            - Tag filtering uses SQL JOIN for efficiency (Phase 3)
+            - Archived filter uses indexed is_archived column
+            - Status filter uses indexed status column
+            - Uses TaskQueryBuilder to construct the SQL query
+        """
+        with self.Session() as session:
+            # Build query using TaskQueryBuilder (eliminates duplication with count_tasks)
+            stmt = (
+                TaskQueryBuilder(select(TaskModel))
+                .with_archived_filter(include_archived)
+                .with_status_filter(status)
+                .with_tag_filter(tags, match_all_tags)
+                .with_date_filter(start_date, end_date)
+                .build()
+            )
+
+            # Execute query
+            models = session.scalars(stmt).all()
+            return [self.mapper.from_model(model) for model in models]
+
+    def count_tasks(
+        self,
+        include_archived: bool = True,
+        status: TaskStatus | None = None,
+        tags: list[str] | None = None,
+        match_all_tags: bool = False,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> int:
+        """Count tasks matching filter criteria using SQL COUNT for efficiency.
+
+        This method uses SQL COUNT(*) instead of loading all tasks into memory,
+        providing significant performance improvements for large datasets.
+
+        Args:
+            include_archived: If False, exclude archived tasks (default: True)
+            status: Filter by task status (default: None, no status filter)
+            tags: Filter by tags (default: None, no tag filter)
+            match_all_tags: If True, require all tags (AND logic); if False, any tag (OR logic)
+            start_date: Filter tasks with any date >= start_date (default: None)
+            end_date: Filter tasks with any date <= end_date (default: None)
+
+        Returns:
+            Number of tasks matching the filter criteria
+
+        Note:
+            Uses the same filter logic as get_filtered() for consistency.
+            Performance: O(1) index lookups vs O(n) task loading + deserialization.
+            Uses TaskQueryBuilder to construct the SQL query (same as get_filtered).
+        """
+        with self.Session() as session:
+            # Build count query using TaskQueryBuilder (eliminates duplication with get_filtered)
+            stmt = (
+                TaskQueryBuilder(select(func.count(TaskModel.id)))
+                .with_archived_filter(include_archived)
+                .with_status_filter(status)
+                .with_tag_filter(tags, match_all_tags)
+                .with_date_filter(start_date, end_date)
+                .build()
+            )
+
+            # Execute count query
+            count = session.scalar(stmt)
+            return count or 0
+
+    def count_tasks_with_tags(self) -> int:
+        """Count tasks that have at least one tag using SQL COUNT.
+
+        This method uses SQL aggregation instead of loading all tasks into memory,
+        providing significant performance improvements.
+
+        Returns:
+            Number of tasks with at least one tag
+
+        Note:
+            Uses SQL COUNT(DISTINCT task_id) for efficiency.
+            Performance: O(1) aggregation vs O(n) task loading + iteration.
+        """
+        with self.Session() as session:
+            # SQL: SELECT COUNT(DISTINCT task_id) FROM task_tags
+            stmt = select(func.count(func.distinct(TaskTagModel.task_id)))
+            count = session.scalar(stmt)
+            return count or 0
+
+    def save(self, task: Task) -> None:
+        """Save a task (create new or update existing).
+
+        Delegates to save_all() for consistent behavior.
+
+        Args:
+            task: The task to save
+        """
+        self.save_all([task])
+
+    def _create_builders(
+        self, session: Any
+    ) -> tuple[TaskInsertBuilder, TaskTagRelationshipBuilder, DailyAllocationBuilder]:
+        """Create mutation builder instances for a session.
+
+        Returns:
+            Tuple of (insert_builder, tag_builder, allocation_builder)
+        """
+        tag_resolver = TagResolver(session)
+        insert_builder = TaskInsertBuilder(session, self.mapper)
+        tag_builder = TaskTagRelationshipBuilder(session, tag_resolver)
+        allocation_builder = DailyAllocationBuilder(session)
+        return insert_builder, tag_builder, allocation_builder
+
+    def save_all(self, tasks: list[Task]) -> None:
+        """Save multiple tasks in a single transaction.
+
+        Uses mutation builders to handle bulk INSERT/UPDATE operations,
+        tag relationship management, and daily allocation sync.
+
+        Args:
+            tasks: List of tasks to save
+        """
+        if not tasks:
+            return
+
+        with self.Session() as session:
+            insert_builder, tag_builder, allocation_builder = self._create_builders(
+                session
+            )
+            update_builder = TaskUpdateBuilder(session, self.mapper)
+
+            # Bulk fetch existing tasks to avoid N+1 queries
+            existing_ids = [t.id for t in tasks if t.id is not None]
+            existing_models = {}
+            if existing_ids:
+                stmt = select(TaskModel).where(TaskModel.id.in_(existing_ids))  # type: ignore[attr-defined]
+                existing_models = {m.id: m for m in session.scalars(stmt).all()}
+
+            for task in tasks:
+                # Check for existing task only if task has an ID
+                existing_model = (
+                    existing_models.get(task.id) if task.id is not None else None
+                )
+
+                if existing_model:
+                    # Update existing task
+                    update_builder.update_task(existing_model, task)
+                else:
+                    # Insert new task
+                    existing_model = insert_builder.insert_task(task)
+
+                # Sync tag relationships
+                tag_builder.sync_task_tags(existing_model, task.tags)
+
+                # Sync daily allocations to normalized table
+                allocation_builder.sync_daily_allocations(
+                    existing_model, task.daily_allocations
+                )
+
+            session.commit()
+
+    def delete(self, task_id: int) -> None:
+        """Delete a task by its ID.
+
+        Uses TaskDeleteBuilder to handle the DELETE operation. Associated
+        notes (and other child records like task_tags) are removed in the
+        same transaction by the ``ON DELETE CASCADE`` foreign keys.
+
+        Args:
+            task_id: The ID of the task to delete
+        """
+        with self.Session() as session:
+            delete_builder = TaskDeleteBuilder(session)
+            delete_builder.delete_task(task_id)
+            session.commit()
+
+    def create(self, name: str, priority: int | None = None, **kwargs: Any) -> Task:
+        """Create a new task with auto-generated ID and save it.
+
+        Uses SQLite AUTOINCREMENT to assign IDs atomically, avoiding race
+        conditions in concurrent scenarios (Issue #226).
+
+        Args:
+            name: Task name
+            priority: Task priority (optional, can be None)
+            **kwargs: Additional task fields
+
+        Returns:
+            Created task with database-assigned ID
+        """
+        now = self._time_provider.now()
+
+        # Create task without ID - database will assign via AUTOINCREMENT
+        task = Task(
+            id=None,
+            name=name,
+            priority=priority,
+            created_at=now,
+            updated_at=now,
+            **kwargs,
+        )
+
+        with self.Session() as session:
+            insert_builder, tag_builder, allocation_builder = self._create_builders(
+                session
+            )
+
+            # Insert task (flush assigns ID via AUTOINCREMENT)
+            model = insert_builder.insert_task(task)
+
+            # Sync tag relationships
+            tag_builder.sync_task_tags(model, task.tags)
+
+            # Sync daily allocations to normalized table
+            allocation_builder.sync_daily_allocations(model, task.daily_allocations)
+
+            session.commit()
+
+            # Return task with assigned ID
+            return self.mapper.from_model(model)
+
+    def delete_tag(self, tag_name: str) -> int:
+        """Delete a tag from the system by name.
+
+        Removes the tag record from the tags table. CASCADE delete
+        automatically removes all task_tags associations.
+
+        Args:
+            tag_name: Name of the tag to delete
+
+        Returns:
+            Number of tasks that were associated with the deleted tag
+
+        Raises:
+            TagNotFoundException: If tag with given name doesn't exist
+        """
+        with self.Session() as session:
+            # Find tag by name
+            stmt = select(TagModel).where(TagModel.name == tag_name)
+            tag = session.scalar(stmt)
+
+            if tag is None:
+                raise TagNotFoundException(tag_name)
+
+            # Count associated tasks before deletion
+            count_stmt = select(func.count(TaskTagModel.task_id)).where(
+                TaskTagModel.tag_id == tag.id
+            )
+            affected_count = session.scalar(count_stmt) or 0
+
+            # Delete tag (CASCADE removes task_tags)
+            session.delete(tag)
+            session.commit()
+
+            return affected_count
+
+    def get_tag_counts(self) -> dict[str, int]:
+        """Get all tags with their task counts using SQL aggregation.
+
+        Phase 3 (Issue 228): Optimized query using SQL COUNT() and GROUP BY
+        instead of loading all tasks into memory.
+
+        Returns:
+            Dictionary mapping tag names to task counts (non-zero counts only)
+
+        Example:
+            >>> repo.get_tag_counts()
+            {'urgent': 5, 'backend': 3, 'frontend': 2}
+        """
+        with self.Session() as session:
+            # SQL: SELECT tags.name, COUNT(task_tags.task_id)
+            #      FROM tags LEFT JOIN task_tags ON tags.id = task_tags.tag_id
+            #      GROUP BY tags.id, tags.name
+            stmt = (
+                select(TagModel.name, func.count(TaskTagModel.task_id))
+                .outerjoin(TaskTagModel, TagModel.id == TaskTagModel.tag_id)
+                .group_by(TagModel.id, TagModel.name)
+            )
+
+            results = session.execute(stmt).all()
+
+            # Filter out tags with zero tasks
+            return {name: count for name, count in results if count > 0}
+
+    def get_daily_workload_totals(
+        self,
+        start_date: date,
+        end_date: date,
+        task_ids: list[int] | None = None,
+    ) -> dict[date, float]:
+        """Get daily workload totals using SQL aggregation.
+
+        Uses SQL SUM/GROUP BY on the daily_allocations table for efficient
+        workload calculation, avoiding Python loops over all tasks.
+
+        Args:
+            start_date: Start date of the calculation period
+            end_date: End date of the calculation period
+            task_ids: Optional list of task IDs to include. If None, includes all tasks.
+
+        Returns:
+            Dictionary mapping date to total hours {date: hours}
+
+        Example:
+            >>> repo.get_daily_workload_totals(date(2025, 1, 20), date(2025, 1, 24))
+            {date(2025, 1, 20): 6.0, date(2025, 1, 21): 4.5, date(2025, 1, 22): 3.0}
+
+        Note:
+            - Only returns dates with non-zero hours
+            - Uses indexed date column for efficient range queries
+            - Task filtering uses indexed task_id column
+        """
+        with self.Session() as session:
+            # Build base query: SELECT date, SUM(hours) FROM daily_allocations
+            #                   WHERE date BETWEEN :start AND :end
+            #                   GROUP BY date
+            stmt = (
+                select(DailyAllocationModel.date, func.sum(DailyAllocationModel.hours))
+                .where(DailyAllocationModel.date >= start_date)  # type: ignore[operator]
+                .where(DailyAllocationModel.date <= end_date)  # type: ignore[operator]
+            )
+
+            # Add task_id filter if specified
+            if task_ids is not None:
+                if not task_ids:
+                    # Empty task_ids list means no tasks to aggregate
+                    return {}
+                stmt = stmt.where(
+                    DailyAllocationModel.task_id.in_(task_ids)  # type: ignore[attr-defined]
+                )
+
+            # Group by date
+            stmt = stmt.group_by(DailyAllocationModel.date)
+
+            # Execute query
+            results = session.execute(stmt).all()
+
+            # Convert to dictionary: Row objects have tuple-like access
+            return {
+                row[0]: float(row[1])  # type: ignore[misc, arg-type]
+                for row in results
+            }
+
+    def get_daily_allocations_for_tasks(
+        self,
+        task_ids: list[int],
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> dict[int, dict[date, float]]:
+        """Get daily allocations for multiple tasks in a single query.
+
+        Uses SQL to fetch daily allocations for multiple tasks efficiently,
+        avoiding N+1 query problems when displaying Gantt charts.
+
+        Args:
+            task_ids: List of task IDs to fetch allocations for
+            start_date: Optional start date filter (inclusive)
+            end_date: Optional end date filter (inclusive)
+
+        Returns:
+            Dictionary mapping task_id to {date: hours} allocations
+
+        Example:
+            >>> repo.get_daily_allocations_for_tasks([1, 2, 3])
+            {
+                1: {date(2025, 1, 20): 2.0, date(2025, 1, 21): 2.0},
+                2: {date(2025, 1, 20): 4.0},
+            }
+        """
+        if not task_ids:
+            return {}
+
+        with self.Session() as session:
+            # Build query: SELECT task_id, date, hours FROM daily_allocations
+            #              WHERE task_id IN (...)
+            stmt = select(
+                DailyAllocationModel.task_id,
+                DailyAllocationModel.date,
+                DailyAllocationModel.hours,
+            ).where(
+                DailyAllocationModel.task_id.in_(task_ids)  # type: ignore[attr-defined]
+            )
+
+            # Add date range filters if specified
+            if start_date is not None:
+                stmt = stmt.where(DailyAllocationModel.date >= start_date)  # type: ignore[operator]
+            if end_date is not None:
+                stmt = stmt.where(DailyAllocationModel.date <= end_date)  # type: ignore[operator]
+
+            # Execute query
+            results = session.execute(stmt).all()
+
+            # Build result dictionary
+            allocations: dict[int, dict[date, float]] = {}
+            for task_id, alloc_date, hours in results:
+                if task_id not in allocations:
+                    allocations[task_id] = {}
+                allocations[task_id][alloc_date] = float(hours)
+
+            return allocations
+
+    def get_aggregated_daily_allocations(
+        self,
+        task_ids: list[int],
+    ) -> dict[date, float]:
+        """Get aggregated daily allocations for specific tasks using SQL.
+
+        Uses SQL SUM/GROUP BY on the daily_allocations table for efficient
+        workload calculation, avoiding Python loops over all tasks.
+
+        Args:
+            task_ids: List of task IDs to aggregate allocations for
+
+        Returns:
+            Dictionary mapping date to total hours {date: hours}
+
+        Example:
+            >>> repo.get_aggregated_daily_allocations([1, 2, 3])
+            {date(2025, 1, 20): 6.0, date(2025, 1, 21): 4.5}
+
+        Note:
+            - Only returns dates with non-zero hours
+            - Returns empty dict if task_ids is empty
+            - Uses indexed task_id column for efficient filtering
+        """
+        if not task_ids:
+            return {}
+
+        with self.Session() as session:
+            # Build query: SELECT date, SUM(hours) FROM daily_allocations
+            #              WHERE task_id IN (...)
+            #              GROUP BY date
+            stmt = (
+                select(DailyAllocationModel.date, func.sum(DailyAllocationModel.hours))
+                .where(
+                    DailyAllocationModel.task_id.in_(task_ids)  # type: ignore[attr-defined]
+                )
+                .group_by(DailyAllocationModel.date)
+            )
+
+            # Execute query
+            results = session.execute(stmt).all()
+
+            # Convert to dictionary: Row objects have tuple-like access
+            # Note: row[1] could be None if SUM aggregates zero rows (defensive check)
+            return {
+                row[0]: float(row[1]) if row[1] is not None else 0.0  # type: ignore[misc, arg-type]
+                for row in results
+            }

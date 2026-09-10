@@ -1,0 +1,187 @@
+"""Unit tests for TaskSorter service."""
+
+from datetime import datetime, timedelta
+
+import pytest
+
+from taskdog_core.application.sorters.task_sorter import TaskSorter
+from taskdog_core.domain.entities.task import Task, TaskStatus
+
+
+class TestTaskSorter:
+    """Test cases for TaskSorter."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Initialize sorter for each test."""
+        self.sorter = TaskSorter()
+
+        # Calculate datetimes for testing
+        today = datetime.now().date()
+        yesterday = today - timedelta(days=1)
+        tomorrow = today + timedelta(days=1)
+
+        self.today_str = datetime.combine(today, datetime.min.time()).replace(hour=18)
+        self.yesterday_str = datetime.combine(yesterday, datetime.min.time()).replace(
+            hour=18
+        )
+        self.tomorrow_str = datetime.combine(tomorrow, datetime.min.time()).replace(
+            hour=18
+        )
+
+    @pytest.mark.parametrize(
+        "field,reverse,task_values,expected_order,attr_to_check",
+        [
+            ("id", False, [3, 1, 2], [1, 2, 3], "id"),
+            ("id", True, [3, 1, 2], [3, 2, 1], "id"),
+            ("priority", False, [1, 5, 3], [5, 3, 1], "priority"),  # Default descending
+            (
+                "priority",
+                True,
+                [1, 5, 3],
+                [1, 3, 5],
+                "priority",
+            ),  # Reverse to ascending
+        ],
+        ids=["id_asc", "id_desc", "priority_desc", "priority_asc"],
+    )
+    def test_sort_by_id_and_priority(
+        self, field, reverse, task_values, expected_order, attr_to_check
+    ):
+        """Test sorting by ID and priority with different directions."""
+        tasks = []
+        for i, value in enumerate(task_values, 1):
+            if field == "id":
+                task = Task(name=f"Task {value}", priority=1)
+                task.id = value
+            else:  # priority
+                task = Task(name=f"Task {i}", priority=value)
+                task.id = i
+            tasks.append(task)
+
+        sorted_tasks = self.sorter.sort(tasks, sort_by=field, reverse=reverse)
+
+        for i, expected in enumerate(expected_order):
+            assert getattr(sorted_tasks[i], attr_to_check) == expected
+
+    @pytest.mark.parametrize(
+        "field,expected_names",
+        [
+            ("deadline", ["Yesterday", "Today", "Tomorrow"]),
+            ("planned_start", ["Start Yesterday", "Start Today", "Start Tomorrow"]),
+        ],
+        ids=["deadline", "planned_start"],
+    )
+    def test_sort_by_date_fields(self, field, expected_names):
+        """Test sorting by date fields (deadline, planned_start)."""
+        task1 = Task(name=expected_names[2], priority=1, **{field: self.tomorrow_str})
+        task1.id = 1
+        task2 = Task(name=expected_names[0], priority=1, **{field: self.yesterday_str})
+        task2.id = 2
+        task3 = Task(name=expected_names[1], priority=1, **{field: self.today_str})
+        task3.id = 3
+
+        tasks = [task1, task2, task3]
+        sorted_tasks = self.sorter.sort(tasks, sort_by=field)
+
+        for i, expected_name in enumerate(expected_names):
+            assert sorted_tasks[i].name == expected_name
+
+    @pytest.mark.parametrize(
+        "field,none_name,value_name",
+        [
+            ("deadline", "No Deadline", "With Deadline"),
+            ("planned_start", "No Plan", "With Plan"),
+        ],
+        ids=["deadline", "planned_start"],
+    )
+    def test_sort_with_none_values_last(self, field, none_name, value_name):
+        """Test that tasks with None date values are sorted last."""
+        task1 = Task(name=none_name, priority=1, **{field: None})
+        task1.id = 1
+        task2 = Task(name=value_name, priority=1, **{field: self.today_str})
+        task2.id = 2
+
+        tasks = [task1, task2]
+        sorted_tasks = self.sorter.sort(tasks, sort_by=field)
+
+        assert sorted_tasks[0].name == value_name
+        assert sorted_tasks[1].name == none_name
+
+    @pytest.mark.parametrize(
+        "input_names,expected_names",
+        [
+            (["Zebra", "Apple", "Banana"], ["Apple", "Banana", "Zebra"]),
+            (["zebra", "Apple", "BANANA"], ["Apple", "BANANA", "zebra"]),
+        ],
+        ids=["alphabetical", "case_insensitive"],
+    )
+    def test_sort_by_name(self, input_names, expected_names):
+        """Test sorting by name (alphabetical and case-insensitive)."""
+        tasks = []
+        for i, name in enumerate(input_names, 1):
+            task = Task(name=name, priority=1)
+            task.id = i
+            tasks.append(task)
+
+        sorted_tasks = self.sorter.sort(tasks, sort_by="name")
+
+        for i, expected_name in enumerate(expected_names):
+            assert sorted_tasks[i].name == expected_name
+
+    @pytest.mark.parametrize(
+        "field",
+        ["created_at", "updated_at"],
+        ids=["created_at", "updated_at"],
+    )
+    def test_sort_by_timestamp_fields(self, field):
+        """Test sorting by timestamp fields (created_at, updated_at), oldest first."""
+        task_old = Task(name="Old", priority=1)
+        task_old.id = 1
+        setattr(task_old, field, self.yesterday_str)
+        task_mid = Task(name="Mid", priority=1)
+        task_mid.id = 2
+        setattr(task_mid, field, self.today_str)
+        task_new = Task(name="New", priority=1)
+        task_new.id = 3
+        setattr(task_new, field, self.tomorrow_str)
+
+        tasks = [task_new, task_old, task_mid]
+        sorted_tasks = self.sorter.sort(tasks, sort_by=field)
+
+        assert [t.name for t in sorted_tasks] == ["Old", "Mid", "New"]
+
+    def test_sort_by_status(self):
+        """Test sorting by status."""
+        task1 = Task(name="Task 1", priority=1, status=TaskStatus.PENDING)
+        task1.id = 1
+        task2 = Task(name="Task 2", priority=1, status=TaskStatus.COMPLETED)
+        task2.id = 2
+        task3 = Task(name="Task 3", priority=1, status=TaskStatus.IN_PROGRESS)
+        task3.id = 3
+
+        tasks = [task1, task2, task3]
+        sorted_tasks = self.sorter.sort(tasks, sort_by="status")
+
+        # Alphabetical by status value: COMPLETED, IN_PROGRESS, PENDING
+        assert sorted_tasks[0].status == TaskStatus.COMPLETED
+        assert sorted_tasks[1].status == TaskStatus.IN_PROGRESS
+        assert sorted_tasks[2].status == TaskStatus.PENDING
+
+    def test_sort_invalid_key_raises_error(self):
+        """Test that invalid sort key raises ValueError."""
+        task = Task(name="Task", priority=1)
+        task.id = 1
+        tasks = [task]
+
+        with pytest.raises(ValueError) as exc_info:
+            self.sorter.sort(tasks, sort_by="invalid_key")
+
+        assert "Invalid sort_by" in str(exc_info.value)
+
+    def test_sort_empty_list(self):
+        """Test sorting an empty list."""
+        tasks: list[Task] = []
+        sorted_tasks = self.sorter.sort(tasks, sort_by="id")
+
+        assert len(sorted_tasks) == 0

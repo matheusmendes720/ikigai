@@ -1,0 +1,80 @@
+[project]
+name = "taskdog-core"
+version = "0.27.0"
+description = "Core business logic and infrastructure for Taskdog"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "Kohei Wada" }
+]
+license = { text = "MIT" }
+keywords = ["task", "management", "scheduling"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    "alembic>=1.19.1",
+    "holidays>=0.101",
+    "pydantic>=2.10.0",
+    "sqlalchemy>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.16.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/Kohei-Wada/taskdog"
+Repository = "https://github.com/Kohei-Wada/taskdog"
+"Bug Tracker" = "https://github.com/Kohei-Wada/taskdog/issues"
+
+[build-system]
+requires = ["setuptools>=84.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["taskdog*"]
+
+[tool.setuptools.package-data]
+taskdog_core = ["py.typed"]
+"taskdog_core.infrastructure.persistence.database.migrations" = ["*.mako"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+# Disable unused-ignore warnings (SQLAlchemy attr-defined errors are environment-dependent)
+warn_unused_ignores = false
+
+[[tool.mypy.overrides]]
+module = "alembic.*"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.coverage.run]
+omit = [
+    "*/migrations/*",
+    "*/migrations/versions/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@abstractmethod",
+]

@@ -1,0 +1,181 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Check lock file is up to date
+        run: uv lock --check
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Run linter
+        run: make lint
+
+      - name: Run spell checker
+        run: uv tool run codespell
+
+      - name: Detect dead code
+        run: make deadcode
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras --dev
+          uv pip install -e packages/taskdog-core
+          uv pip install -e packages/taskdog-server
+          uv pip install -e packages/taskdog-ui
+
+      - name: Run type checker
+        run: make typecheck
+
+  test:
+    name: Test (${{ matrix.package }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: taskdog-core
+            deps: ""
+          - package: taskdog-client
+            deps: "uv pip install -e packages/taskdog-core[dev]"
+          - package: taskdog-server
+            deps: "uv pip install -e packages/taskdog-core[dev]"
+          - package: taskdog-ui
+            deps: "uv pip install -e packages/taskdog-core[dev] && uv pip install -e packages/taskdog-client[dev]"
+          - package: taskdog-mcp
+            deps: "uv pip install -e packages/taskdog-core[dev] && uv pip install -e packages/taskdog-client[dev]"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras --dev
+          ${{ matrix.deps }}
+          uv pip install -e "packages/${{ matrix.package }}[dev]"
+
+      - name: Run tests
+        run: make test-${{ matrix.package }}
+
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --all-packages --all-extras --dev
+
+      - name: Run E2E tests
+        run: make test-e2e
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Export locked dependencies
+        run: >-
+          uv export --all-packages --all-extras --frozen --no-emit-workspace
+          --no-hashes --format requirements-txt -o requirements-audit.txt
+
+      - name: Run security audit
+        run: uv tool run pip-audit -r requirements-audit.txt --no-deps --progress-spinner off
+
+  build:
+    name: Build (${{ matrix.package }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [taskdog-core, taskdog-client, taskdog-server, taskdog-ui, taskdog-mcp]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Build package
+        run: uv build packages/${{ matrix.package }}

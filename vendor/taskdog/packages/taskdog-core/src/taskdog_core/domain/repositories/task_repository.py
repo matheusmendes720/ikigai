@@ -1,0 +1,334 @@
+from abc import ABC, abstractmethod
+from datetime import date, datetime
+from typing import Any
+
+from taskdog_core.domain.entities.task import Task, TaskStatus
+
+
+class TaskRepository(ABC):
+    """Abstract interface for task data persistence."""
+
+    @abstractmethod
+    def get_all(self) -> list[Task]:
+        """Retrieve all tasks.
+
+        Returns:
+            List of all tasks
+        """
+
+    @abstractmethod
+    def get_by_id(self, task_id: int) -> Task | None:
+        """Retrieve a task by its ID.
+
+        Args:
+            task_id: The ID of the task to retrieve
+
+        Returns:
+            The task if found, None otherwise
+        """
+
+    @abstractmethod
+    def get_by_ids(self, task_ids: list[int]) -> dict[int, Task]:
+        """Retrieve multiple tasks by their IDs in a single operation.
+
+        Args:
+            task_ids: List of task IDs to retrieve
+
+        Returns:
+            Dictionary mapping task IDs to Task objects.
+            Missing IDs are not included in the result.
+
+        Notes:
+            - More efficient than multiple get_by_id() calls
+            - Prevents N+1 query problems in database implementations
+            - O(n) time complexity where n is len(task_ids)
+        """
+
+    def get_filtered(
+        self,
+        include_archived: bool = True,
+        status: TaskStatus | None = None,
+        tags: list[str] | None = None,
+        match_all_tags: bool = False,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> list[Task]:
+        """Retrieve tasks with SQL WHERE clauses for efficient filtering.
+
+        This is an optional optimization method. Repositories that don't override
+        this method will fall back to fetching all tasks and filtering in Python.
+
+        Args:
+            include_archived: If False, exclude archived tasks (default: True)
+            status: Filter by task status (default: None, no status filter)
+            tags: Filter by tags with OR logic (default: None, no tag filter)
+            match_all_tags: If True, require all tags (AND); if False, any tag (OR)
+            start_date: Filter tasks with any date >= start_date (default: None)
+            end_date: Filter tasks with any date <= end_date (default: None)
+
+        Returns:
+            List of tasks matching the filter criteria
+
+        Notes:
+            - Default implementation filters get_all() in Python (no optimization)
+            - Repositories should override this for SQL-level filtering
+            - Date filtering typically checks multiple date fields (deadline, planned dates, etc.)
+        """
+        # Default implementation: filter get_all() in Python (no optimization).
+        # Subclasses should override this method to provide SQL-level filtering.
+        result: list[Task] = []
+        for task in self.get_all():
+            if not include_archived and task.is_archived:
+                continue
+            if status is not None and task.status != status:
+                continue
+            if tags:
+                if match_all_tags:
+                    if not all(tag in task.tags for tag in tags):
+                        continue
+                elif not any(tag in task.tags for tag in tags):
+                    continue
+            if (
+                start_date is not None or end_date is not None
+            ) and not self._matches_date_filter(task, start_date, end_date):
+                continue
+            result.append(task)
+        return result
+
+    @staticmethod
+    def _matches_date_filter(
+        task: Task, start_date: date | None, end_date: date | None
+    ) -> bool:
+        """Check whether any of the task's date fields fall within the range.
+
+        Mirrors the SQL date filtering logic in
+        ``TaskQueryBuilder._build_date_filter_conditions``: deadline,
+        planned_start, planned_end, actual_start and actual_end are combined
+        with OR logic, and ``end_date`` is whole-day inclusive so a value that
+        carries a time on the boundary day still matches.
+
+        Args:
+            task: Task whose date fields are inspected
+            start_date: Minimum date (inclusive), or None
+            end_date: Maximum date (inclusive), or None
+
+        Returns:
+            True if any date field falls within the requested range
+        """
+        for value in (
+            task.deadline,
+            task.planned_start,
+            task.planned_end,
+            task.actual_start,
+            task.actual_end,
+        ):
+            if value is None:
+                continue
+            value_date = value.date() if isinstance(value, datetime) else value
+            if start_date is not None and value_date < start_date:
+                continue
+            if end_date is not None and value_date > end_date:
+                continue
+            return True
+        return False
+
+    def count_tasks(
+        self,
+        include_archived: bool = True,
+        status: TaskStatus | None = None,
+        tags: list[str] | None = None,
+        match_all_tags: bool = False,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> int:
+        """Count tasks matching filter criteria with SQL COUNT for efficiency.
+
+        This is an optional optimization method. Repositories that don't override
+        this method will fall back to counting tasks in Python.
+
+        Args:
+            include_archived: If False, exclude archived tasks (default: True)
+            status: Filter by task status (default: None, no status filter)
+            tags: Filter by tags (default: None, no tag filter)
+            match_all_tags: If True, require all tags (AND); if False, any tag (OR)
+            start_date: Filter tasks with any date >= start_date (default: None)
+            end_date: Filter tasks with any date <= end_date (default: None)
+
+        Returns:
+            Number of tasks matching the filter criteria
+
+        Notes:
+            - Default implementation uses len(get_filtered()) (no optimization)
+            - Repositories should override this for SQL COUNT optimization
+            - Uses same filter logic as get_filtered() for consistency
+        """
+        # Default implementation: fallback to counting filtered tasks
+        # Subclasses should override this method to use SQL COUNT
+        return len(
+            self.get_filtered(
+                include_archived, status, tags, match_all_tags, start_date, end_date
+            )
+        )
+
+    def count_tasks_with_tags(self) -> int:
+        """Count tasks that have at least one tag.
+
+        This is an optional optimization method. Repositories that don't override
+        this method will fall back to counting in Python.
+
+        Returns:
+            Number of tasks with at least one tag
+
+        Notes:
+            - Default implementation iterates all tasks (no optimization)
+            - Repositories should override this for SQL COUNT optimization
+            - Useful for tag statistics without loading all tasks
+        """
+        # Default implementation: fallback to Python iteration
+        # Subclasses should override this method to use SQL COUNT
+        return sum(1 for task in self.get_all() if task.tags)
+
+    @abstractmethod
+    def save(self, task: Task) -> None:
+        """Save a task (create new or update existing).
+
+        Args:
+            task: The task to save
+        """
+
+    @abstractmethod
+    def save_all(self, tasks: list[Task]) -> None:
+        """Save multiple tasks in a single transaction.
+
+        Args:
+            tasks: List of tasks to save
+
+        Notes:
+            - All saves succeed or all fail (atomicity)
+            - More efficient than multiple save() calls
+            - Implementation-specific optimization possible
+        """
+
+    @abstractmethod
+    def delete(self, task_id: int) -> None:
+        """Delete a task by its ID.
+
+        Args:
+            task_id: The ID of the task to delete
+        """
+
+    @abstractmethod
+    def create(self, name: str, priority: int | None = None, **kwargs: Any) -> Task:
+        """Create a new task with auto-generated ID and save it.
+
+        Args:
+            name: Task name
+            priority: Task priority (optional, can be None)
+            **kwargs: Additional task fields
+
+        Returns:
+            Created task with ID assigned
+        """
+
+    def delete_tag(self, tag_name: str) -> int:
+        """Delete a tag from the system by name.
+
+        Removes the tag record. CASCADE delete automatically removes
+        all task_tags associations.
+
+        Args:
+            tag_name: Name of the tag to delete
+
+        Returns:
+            Number of tasks that were associated with the deleted tag
+
+        Raises:
+            TagNotFoundException: If tag with given name doesn't exist
+
+        Notes:
+            - Default implementation raises NotImplementedError
+            - Repositories should override this for actual tag deletion
+        """
+        raise NotImplementedError("delete_tag not implemented")
+
+    def get_daily_workload_totals(
+        self,
+        start_date: date,
+        end_date: date,
+        task_ids: list[int] | None = None,
+    ) -> dict[date, float]:
+        """Get daily workload totals using SQL aggregation.
+
+        This method uses SQL SUM/GROUP BY on the daily_allocations table for
+        efficient workload calculation, avoiding Python loops.
+
+        Args:
+            start_date: Start date of the calculation period
+            end_date: End date of the calculation period
+            task_ids: Optional list of task IDs to include. If None, includes all tasks.
+
+        Returns:
+            Dictionary mapping date to total hours {date: hours}
+
+        Notes:
+            - Default implementation falls back to empty dict (no optimization)
+            - Repositories should override this for SQL-level aggregation
+            - Only includes dates with non-zero hours
+        """
+        # Default implementation: fallback to empty dict (no optimization)
+        # Subclasses should override this method to use SQL aggregation
+        return {}
+
+    def get_daily_allocations_for_tasks(
+        self,
+        task_ids: list[int],
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> dict[int, dict[date, float]]:
+        """Get daily allocations for multiple tasks in a single query.
+
+        This method uses SQL to fetch daily allocations for multiple tasks
+        efficiently, avoiding N+1 query problems.
+
+        Args:
+            task_ids: List of task IDs to fetch allocations for
+            start_date: Optional start date filter (inclusive)
+            end_date: Optional end date filter (inclusive)
+
+        Returns:
+            Dictionary mapping task_id to {date: hours} allocations
+
+        Notes:
+            - Default implementation returns empty dict (no optimization)
+            - Repositories should override this for SQL-level fetching
+            - More efficient than loading full Task entities when only
+              allocations are needed
+        """
+        # Default implementation: fallback to empty dict (no optimization)
+        # Subclasses should override this method to use SQL fetching
+        return {}
+
+    def get_aggregated_daily_allocations(
+        self,
+        task_ids: list[int],
+    ) -> dict[date, float]:
+        """Get aggregated daily allocations for specific tasks using SQL.
+
+        This method uses SQL SUM/GROUP BY to aggregate daily allocations
+        for the specified tasks, avoiding Python loops.
+
+        Args:
+            task_ids: List of task IDs to aggregate allocations for
+
+        Returns:
+            Dictionary mapping date to total hours {date: hours}
+
+        Notes:
+            - Default implementation returns empty dict (no optimization)
+            - Repositories should override this for SQL-level aggregation
+            - More efficient than loading Task entities and summing in Python
+            - Used by optimization strategies to get existing workload
+        """
+        # Default implementation: fallback to empty dict (no optimization)
+        # Subclasses should override this method to use SQL aggregation
+        return {}

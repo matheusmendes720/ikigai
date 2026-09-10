@@ -1,0 +1,68 @@
+# Taskdog Core Configuration Example
+#
+# Copy this file to ~/.config/taskdog/core.toml (or $XDG_CONFIG_HOME/taskdog/core.toml)
+# to customize business logic defaults.
+#
+# This config is for CORE BUSINESS LOGIC (region, storage).
+# For CLI/TUI infrastructure settings (API connection, input defaults), see cli.toml.
+# For server-specific settings (authentication), see server.toml.
+#
+# Note: Server host/port are configured via CLI arguments (taskdog-server --host --port),
+# not in this config file.
+
+# =============================================================================
+# Region Settings
+# =============================================================================
+#
+# Regional settings for holidays and calendars.
+
+[region]
+# Country code for holiday calendar (default: none)
+# Use ISO 3166-1 alpha-2 country codes: "JP", "US", "GB", "DE", etc.
+# Set to skip holidays in schedule optimization
+# Leave commented or set to "" to disable holiday checking
+country = "JP"
+
+# Examples:
+# country = "US"  # United States holidays
+# country = "GB"  # United Kingdom holidays
+# country = "DE"  # Germany holidays
+# country = ""    # No holiday checking
+
+# =============================================================================
+# Storage Backend Settings
+# =============================================================================
+#
+# Configure where and how task data is stored.
+
+[storage]
+# Storage backend type (default: "sqlite")
+# Currently only "sqlite" is supported
+backend = "sqlite"
+
+# Database file location (default: XDG data directory)
+# If not specified, uses: ~/.local/share/taskdog/tasks.db
+# Set custom path for database file:
+# database_url = "/path/to/custom/tasks.db"
+
+# =============================================================================
+# Environment Variables
+# =============================================================================
+#
+# Environment variables override settings in this file:
+#
+# - TASKDOG_REGION_COUNTRY: Country code for holidays
+# - TASKDOG_STORAGE_BACKEND: Storage backend type
+# - TASKDOG_STORAGE_DATABASE_URL: Database file path
+
+# =============================================================================
+# Notes
+# =============================================================================
+#
+# 1. If this file doesn't exist, defaults are used
+# 2. Only the server reads this config (CLI/TUI read cli.toml)
+# 3. Environment variables can override settings
+# 4. Changes require server restart: systemctl --user restart taskdog-server
+# 5. Optimization algorithms can be listed with: taskdog optimize --help
+#
+# For more details, see the main README.md

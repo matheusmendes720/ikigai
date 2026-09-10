@@ -1,0 +1,55 @@
+"""Tests for CompleteTaskUseCase."""
+
+from datetime import datetime
+
+import pytest
+
+from taskdog_core.application.dto.base import SingleTaskInput
+from taskdog_core.application.use_cases.complete_task import CompleteTaskUseCase
+from taskdog_core.domain.entities.task import TaskStatus
+from taskdog_core.domain.exceptions.task_exceptions import TaskNotStartedError
+from tests.application.use_cases.status_change_test_base import (
+    BaseStatusChangeUseCaseTest,
+)
+
+
+class TestCompleteTaskUseCase(BaseStatusChangeUseCaseTest):
+    """Test cases for CompleteTaskUseCase."""
+
+    use_case_class = CompleteTaskUseCase
+    request_class = SingleTaskInput
+    target_status = TaskStatus.COMPLETED
+    initial_status = TaskStatus.IN_PROGRESS
+
+    # CompleteTask sets actual_end timestamp
+    sets_actual_end = True
+
+    def test_execute_does_not_update_actual_start(self):
+        """Test execute does not modify actual_start when completing."""
+        task = self.repository.create(
+            name="Test Task",
+            priority=1,
+            status=TaskStatus.IN_PROGRESS,
+            # Set actual_start to simulate a started task
+            actual_start=datetime(2025, 10, 12, 10, 0, 0),
+        )
+
+        input_dto = SingleTaskInput(task_id=task.id)
+        result = self.use_case.execute(input_dto)
+
+        # actual_start should remain unchanged
+        assert result.task.actual_start == datetime(2025, 10, 12, 10, 0, 0)
+
+    def test_execute_with_pending_task_raises_error(self):
+        """Test execute with PENDING task raises TaskNotStartedError."""
+        # Create task with PENDING status
+        task = self.repository.create(
+            name="Test Task", priority=1, status=TaskStatus.PENDING
+        )
+
+        input_dto = SingleTaskInput(task_id=task.id)
+
+        with pytest.raises(TaskNotStartedError) as exc_info:
+            self.use_case.execute(input_dto)
+
+        assert exc_info.value.task_id == task.id

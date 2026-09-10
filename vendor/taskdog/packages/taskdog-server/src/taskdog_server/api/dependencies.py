@@ -1,0 +1,440 @@
+"""FastAPI dependency injection functions."""
+
+import secrets
+from contextlib import suppress
+from typing import Annotated
+
+from fastapi import BackgroundTasks, Depends, HTTPException, Request, WebSocket
+from fastapi.security import APIKeyHeader
+
+from taskdog_core.application.services.bulk_operation_service import (
+    BulkOperationService,
+)
+from taskdog_core.controllers.audit_log_controller import AuditLogController
+from taskdog_core.controllers.backup_controller import BackupController
+from taskdog_core.controllers.notes_controller import NotesController
+from taskdog_core.controllers.query_controller import QueryController
+from taskdog_core.controllers.task_analytics_controller import TaskAnalyticsController
+from taskdog_core.controllers.task_crud_controller import TaskCrudController
+from taskdog_core.controllers.task_lifecycle_controller import TaskLifecycleController
+from taskdog_core.controllers.task_relationship_controller import (
+    TaskRelationshipController,
+)
+from taskdog_core.domain.services.holiday_checker import IHolidayChecker
+from taskdog_core.domain.services.time_provider import ITimeProvider
+from taskdog_core.infrastructure.holiday_checker import HolidayChecker
+from taskdog_core.infrastructure.persistence.database.engine_factory import (
+    create_sqlite_engine,
+)
+from taskdog_core.infrastructure.persistence.database.sqlite_audit_log_repository import (
+    SqliteAuditLogRepository,
+)
+from taskdog_core.infrastructure.persistence.database.sqlite_backup_store import (
+    SqliteBackupStore,
+)
+from taskdog_core.infrastructure.persistence.database.sqlite_notes_repository import (
+    SqliteNotesRepository,
+)
+from taskdog_core.infrastructure.persistence.repository_factory import RepositoryFactory
+from taskdog_core.infrastructure.time_provider import SystemTimeProvider
+from taskdog_core.shared.config_manager import Config, ConfigManager
+from taskdog_core.shared.xdg_utils import XDGDirectories
+from taskdog_server.api.context import ApiContext
+from taskdog_server.config.server_config_manager import ServerConfig
+from taskdog_server.websocket.broadcaster import WebSocketEventBroadcaster
+from taskdog_server.websocket.connection_manager import ConnectionManager
+
+# API Key header definition
+api_key_header = APIKeyHeader(name="X-Api-Key", auto_error=False)
+
+
+def resolve_database_url(config: Config) -> str:
+    """Resolve the SQLite database URL from config, falling back to the XDG path.
+
+    Args:
+        config: Loaded application configuration.
+
+    Returns:
+        SQLAlchemy database URL.
+    """
+    if config.storage.database_url:
+        return config.storage.database_url
+    db_file = XDGDirectories.get_data_home() / "tasks.db"
+    return f"sqlite:///{db_file}"
+
+
+def initialize_api_context(
+    config: Config | None = None,
+    time_provider: ITimeProvider | None = None,
+) -> ApiContext:
+    """Initialize API context with all dependencies.
+
+    This should be called once during application startup.
+
+    Args:
+        config: Optional pre-loaded configuration. If None, loads from file.
+        time_provider: Optional time provider. If None, uses SystemTimeProvider.
+
+    Returns:
+        ApiContext: Initialized context with all controllers
+    """
+    # Load configuration if not provided
+    if config is None:
+        config = ConfigManager.load()
+
+    # Initialize time provider if not provided
+    if time_provider is None:
+        time_provider = SystemTimeProvider()
+
+    # Resolve database URL
+    db_url = resolve_database_url(config)
+
+    # Create a single shared engine for all repositories
+    engine = create_sqlite_engine(db_url)
+
+    # Initialize notes repository with database backend (shared engine)
+    notes_repository = SqliteNotesRepository(db_url, time_provider, engine=engine)
+
+    # Initialize HolidayChecker if country is configured
+    holiday_checker = None
+    if config.region.country:
+        with suppress(ImportError, NotImplementedError):
+            holiday_checker = HolidayChecker(config.region.country)
+
+    # Initialize repository using factory based on storage config (shared engine)
+    repository = RepositoryFactory.create(config.storage, engine=engine)
+
+    # Initialize audit log repository (shared engine)
+    audit_log_repository = SqliteAuditLogRepository(db_url, engine=engine)
+
+    # Initialize controllers
+    query_controller = QueryController(repository, notes_repository, time_provider)
+    lifecycle_controller = TaskLifecycleController(repository, config)
+    relationship_controller = TaskRelationshipController(repository, config)
+    analytics_controller = TaskAnalyticsController(
+        repository, config, holiday_checker, audit_log_repository
+    )
+    crud_controller = TaskCrudController(repository, config, holiday_checker)
+    audit_log_controller = AuditLogController(audit_log_repository, time_provider)
+    notes_controller = NotesController(repository, notes_repository)
+
+    bulk_service = BulkOperationService(repository)
+
+    # Backup/restore controller over a storage-neutral port
+    backup_controller = BackupController(SqliteBackupStore(db_url))
+
+    return ApiContext(
+        repository=repository,
+        config=config,
+        notes_repository=notes_repository,
+        query_controller=query_controller,
+        lifecycle_controller=lifecycle_controller,
+        relationship_controller=relationship_controller,
+        analytics_controller=analytics_controller,
+        crud_controller=crud_controller,
+        holiday_checker=holiday_checker,
+        time_provider=time_provider,
+        audit_log_controller=audit_log_controller,
+        notes_controller=notes_controller,
+        bulk_service=bulk_service,
+        backup_controller=backup_controller,
+        engine=engine,
+    )
+
+
+def get_api_context(request: Request) -> ApiContext:
+    """Get the API context from app.state.
+
+    This is the main dependency function used by FastAPI endpoints.
+
+    Args:
+        request: FastAPI request object (injected automatically)
+
+    Returns:
+        ApiContext: The API context instance from app.state
+
+    Raises:
+        RuntimeError: If context has not been initialized
+    """
+    context: ApiContext | None = getattr(request.app.state, "api_context", None)
+    if context is None:
+        raise RuntimeError(
+            "API context not initialized. Ensure lifespan sets app.state.api_context."
+        )
+    return context
+
+
+# Dependency type aliases for cleaner endpoint signatures
+ApiContextDep = Annotated[ApiContext, Depends(get_api_context)]
+
+
+# Individual controller dependencies
+def get_query_controller(context: ApiContextDep) -> QueryController:
+    """Get query controller from context."""
+    return context.query_controller
+
+
+def get_lifecycle_controller(context: ApiContextDep) -> TaskLifecycleController:
+    """Get lifecycle controller from context."""
+    return context.lifecycle_controller
+
+
+def get_relationship_controller(context: ApiContextDep) -> TaskRelationshipController:
+    """Get relationship controller from context."""
+    return context.relationship_controller
+
+
+def get_analytics_controller(context: ApiContextDep) -> TaskAnalyticsController:
+    """Get analytics controller from context."""
+    return context.analytics_controller
+
+
+def get_crud_controller(context: ApiContextDep) -> TaskCrudController:
+    """Get CRUD controller from context."""
+    return context.crud_controller
+
+
+def get_holiday_checker(context: ApiContextDep) -> IHolidayChecker | None:
+    """Get holiday checker from context (may be None)."""
+    return context.holiday_checker
+
+
+def get_time_provider(context: ApiContextDep) -> ITimeProvider:
+    """Get time provider from context."""
+    return context.time_provider
+
+
+def get_audit_log_controller(context: ApiContextDep) -> AuditLogController:
+    """Get audit log controller from context."""
+    return context.audit_log_controller
+
+
+def get_notes_controller(context: ApiContextDep) -> NotesController:
+    """Get notes controller from context."""
+    return context.notes_controller
+
+
+def get_bulk_service(context: ApiContextDep) -> BulkOperationService:
+    """Get bulk operation service from context."""
+    return context.bulk_service
+
+
+def get_backup_controller(context: ApiContextDep) -> BackupController:
+    """Get backup controller from context."""
+    return context.backup_controller
+
+
+def get_connection_manager(request: Request) -> ConnectionManager:
+    """Get the ConnectionManager instance from app.state for HTTP endpoints.
+
+    This function provides access to the ConnectionManager instance that manages
+    all active WebSocket connections and handles broadcasting events.
+
+    Args:
+        request: FastAPI request object (injected automatically)
+
+    Returns:
+        ConnectionManager: The connection manager instance from app.state
+
+    Note:
+        The instance is lazily initialized on first access if not already
+        set in app.state (e.g., by lifespan).
+    """
+    if not hasattr(request.app.state, "connection_manager"):
+        request.app.state.connection_manager = ConnectionManager()
+    manager: ConnectionManager = request.app.state.connection_manager
+    return manager
+
+
+def get_connection_manager_ws(websocket: WebSocket) -> ConnectionManager:
+    """Get the ConnectionManager instance from app.state for WebSocket endpoints.
+
+    This is the WebSocket-specific version of get_connection_manager.
+    WebSocket endpoints cannot use Request, so we access app.state via websocket.app.
+
+    Args:
+        websocket: FastAPI WebSocket object (injected automatically)
+
+    Returns:
+        ConnectionManager: The connection manager instance from app.state
+
+    Note:
+        The instance is lazily initialized on first access if not already
+        set in app.state (e.g., by lifespan).
+    """
+    if not hasattr(websocket.app.state, "connection_manager"):
+        websocket.app.state.connection_manager = ConnectionManager()
+    manager: ConnectionManager = websocket.app.state.connection_manager
+    return manager
+
+
+# Typed dependencies for endpoint signatures
+QueryControllerDep = Annotated[QueryController, Depends(get_query_controller)]
+LifecycleControllerDep = Annotated[
+    TaskLifecycleController, Depends(get_lifecycle_controller)
+]
+RelationshipControllerDep = Annotated[
+    TaskRelationshipController, Depends(get_relationship_controller)
+]
+AnalyticsControllerDep = Annotated[
+    TaskAnalyticsController, Depends(get_analytics_controller)
+]
+CrudControllerDep = Annotated[TaskCrudController, Depends(get_crud_controller)]
+HolidayCheckerDep = Annotated[IHolidayChecker | None, Depends(get_holiday_checker)]
+TimeProviderDep = Annotated[ITimeProvider, Depends(get_time_provider)]
+AuditLogControllerDep = Annotated[AuditLogController, Depends(get_audit_log_controller)]
+NotesControllerDep = Annotated[NotesController, Depends(get_notes_controller)]
+BulkOperationServiceDep = Annotated[BulkOperationService, Depends(get_bulk_service)]
+BackupControllerDep = Annotated[BackupController, Depends(get_backup_controller)]
+ConnectionManagerDep = Annotated[ConnectionManager, Depends(get_connection_manager)]
+ConnectionManagerWsDep = Annotated[
+    ConnectionManager, Depends(get_connection_manager_ws)
+]
+
+
+def get_event_broadcaster(
+    manager: ConnectionManagerDep,
+    background_tasks: BackgroundTasks,
+) -> WebSocketEventBroadcaster:
+    """Get a WebSocketEventBroadcaster instance for scheduling WebSocket broadcasts.
+
+    Args:
+        manager: ConnectionManager instance
+        background_tasks: FastAPI background tasks
+
+    Returns:
+        WebSocketEventBroadcaster: Broadcaster for scheduling WebSocket events
+    """
+    return WebSocketEventBroadcaster(manager, background_tasks)
+
+
+EventBroadcasterDep = Annotated[
+    WebSocketEventBroadcaster, Depends(get_event_broadcaster)
+]
+
+
+# Server config dependency
+def get_server_config(request: Request) -> ServerConfig:
+    """Get the server config from app.state.
+
+    Args:
+        request: FastAPI request object (injected automatically)
+
+    Returns:
+        ServerConfig: The server config instance from app.state
+
+    Raises:
+        RuntimeError: If server config has not been initialized
+    """
+    config: ServerConfig | None = getattr(request.app.state, "server_config", None)
+    if config is None:
+        raise RuntimeError(
+            "Server config not initialized. Ensure lifespan sets app.state.server_config."
+        )
+    return config
+
+
+def get_server_config_ws(websocket: WebSocket) -> ServerConfig:
+    """Get the server config from app.state for WebSocket endpoints.
+
+    Args:
+        websocket: FastAPI WebSocket object (injected automatically)
+
+    Returns:
+        ServerConfig: The server config instance from app.state
+
+    Raises:
+        RuntimeError: If server config has not been initialized
+    """
+    config: ServerConfig | None = getattr(websocket.app.state, "server_config", None)
+    if config is None:
+        raise RuntimeError(
+            "Server config not initialized. Ensure lifespan sets app.state.server_config."
+        )
+    return config
+
+
+ServerConfigDep = Annotated[ServerConfig, Depends(get_server_config)]
+ServerConfigWsDep = Annotated[ServerConfig, Depends(get_server_config_ws)]
+
+
+def _validate_api_key(
+    api_key: str | None,
+    server_config: ServerConfig,
+) -> str | None:
+    """Validate API key and return client name.
+
+    Shared validation logic for both HTTP and WebSocket authentication.
+
+    Args:
+        api_key: API key to validate
+        server_config: Server configuration with auth settings
+
+    Returns:
+        Client name if authenticated, None if auth is disabled
+
+    Raises:
+        ValueError: If authentication fails
+    """
+    if not server_config.auth.enabled:
+        return None
+
+    if not server_config.auth.api_keys:
+        raise ValueError("Authentication required but no API keys configured")
+
+    if api_key is None:
+        raise ValueError("API key required")
+
+    # Constant-time comparison to prevent timing attacks
+    for entry in server_config.auth.api_keys:
+        if secrets.compare_digest(entry.key, api_key):
+            return entry.name
+
+    raise ValueError("Invalid API key")
+
+
+def get_authenticated_client(
+    api_key: Annotated[str | None, Depends(api_key_header)],
+    server_config: ServerConfigDep,
+) -> str | None:
+    """Validate API key and return client name (FastAPI dependency for HTTP endpoints).
+
+    Args:
+        api_key: API key from X-Api-Key header
+        server_config: Server configuration with auth settings
+
+    Returns:
+        Client name if authenticated, None if auth is disabled
+
+    Raises:
+        HTTPException: 401 if authentication fails
+    """
+    try:
+        return _validate_api_key(api_key, server_config)
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e)) from e
+
+
+AuthenticatedClientDep = Annotated[str | None, Depends(get_authenticated_client)]
+
+
+def validate_api_key_for_websocket(
+    api_key: str | None,
+    server_config: ServerConfig,
+) -> str | None:
+    """Validate API key for WebSocket connections.
+
+    This is a helper function (not a FastAPI dependency) for WebSocket
+    authentication where we need to validate query parameters.
+
+    Args:
+        api_key: API key from query parameter
+        server_config: Server configuration with auth settings
+
+    Returns:
+        Client name if authenticated, None if auth is disabled
+
+    Raises:
+        ValueError: If authentication fails
+    """
+    return _validate_api_key(api_key, server_config)

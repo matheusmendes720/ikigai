@@ -1,0 +1,37 @@
+services:
+  taskdog-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${TASKDOG_PORT:-8000}:8000"
+    volumes:
+      - taskdog-data:/data
+    environment:
+      # ============================================
+      # Core Settings (taskdog-core)
+      # ============================================
+      # Database (default: /data/tasks.db in container)
+      - TASKDOG_STORAGE_DATABASE_URL=sqlite:////data/tasks.db
+      - TASKDOG_STORAGE_BACKEND=${TASKDOG_STORAGE_BACKEND:-sqlite}
+
+      # Region for holiday detection (ISO 3166-1 alpha-2, e.g., JP, US)
+      - TASKDOG_REGION_COUNTRY=${TASKDOG_REGION_COUNTRY:-}
+
+      # ============================================
+      # Server Settings (taskdog-server)
+      # ============================================
+      # Authentication (enable/disable via env var; API keys are configured in server.toml)
+      - TASKDOG_AUTH_ENABLED=${TASKDOG_AUTH_ENABLED:-false}
+
+      # ============================================
+      # CLI/TUI Settings (for docker exec usage)
+      # ============================================
+      # API connection (CLI inside container connects to localhost)
+      - TASKDOG_API_HOST=127.0.0.1
+      - TASKDOG_API_PORT=8000
+      - TASKDOG_API_KEY=${TASKDOG_API_KEY:-}
+    restart: unless-stopped
+
+volumes:
+  taskdog-data:

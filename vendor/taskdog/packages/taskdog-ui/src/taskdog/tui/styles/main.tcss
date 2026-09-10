@@ -1,0 +1,75 @@
+/* Main Screen Styles */
+
+MainScreen {
+    background: transparent;
+}
+
+#title {
+    padding: 1;
+    background: transparent;
+    text-align: center;
+}
+
+#table-title {
+    padding: 1 0;
+    text-align: left;
+    background: transparent;
+}
+
+/* Gantt chart - main display area */
+#gantt-widget {
+    width: 100%;
+    height: 2.5fr;
+    background: transparent;
+    border: round $primary;
+    margin-bottom: 1;
+}
+
+#gantt-widget:focus-within {
+    border: round $accent;
+}
+
+/* Gantt title - fixed at top */
+#gantt-title {
+    width: 100%;
+    height: auto;
+    text-align: center;
+    padding: 0 0 1 0;
+    dock: top;
+}
+
+/* Gantt legend - fixed at bottom */
+#gantt-legend {
+    width: 100%;
+    height: auto;
+    text-align: center;
+    padding: 1 0 0 0;
+    dock: bottom;
+}
+
+/* Gantt data table - takes remaining space, scrollable */
+#gantt-table {
+    width: 100%;
+    max-width: 100%;
+    height: 1fr;
+    border: round $primary;
+}
+
+/* Style for fixed header rows in Gantt table */
+#gantt-table > .datatable--fixed {
+    background: $surface;
+}
+
+/* Task table - main content */
+#task-table {
+    width: 100%;
+    height: 2fr;
+    background: transparent;
+    border: round $primary;
+    overflow-y: auto;
+}
+
+#task-table:focus {
+    border: round $accent;
+    background: $surface;
+}

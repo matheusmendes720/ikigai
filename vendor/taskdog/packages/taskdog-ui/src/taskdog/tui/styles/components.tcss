@@ -1,0 +1,211 @@
+/* Shared Component Styles */
+
+/* Connection Status Indicator */
+.connection-status {
+    width: auto;
+    height: auto;
+    padding: 0 2;
+    content-align: right middle;
+    text-style: bold;
+}
+
+.status-online {
+    color: $success;
+}
+
+.status-partial {
+    color: $warning;
+}
+
+.status-offline {
+    color: $error;
+}
+
+/* Custom Footer (2-row layout: status bar + search bar) */
+#custom-footer {
+    width: 100%;
+    height: auto;
+    dock: bottom;
+    background: $surface;
+    margin: 0;
+    padding: 0;
+    layout: vertical;
+}
+
+/* Row 1: Status bar */
+#footer-status-row {
+    width: 100%;
+    height: auto;
+    padding: 0 1;
+    background: $panel;
+}
+
+#footer-keybindings {
+    width: 1fr;
+    height: auto;
+    content-align: left middle;
+    padding: 0 1;
+}
+
+#footer-mode-badges {
+    width: auto;
+    height: auto;
+    content-align: right middle;
+    padding: 0 1;
+    color: $accent;
+    text-style: bold;
+}
+
+#footer-connection-status {
+    width: auto;
+    height: auto;
+    content-align: right middle;
+    padding: 0 2;
+    text-style: bold;
+}
+
+/* Row 2: Search bar container (full width) */
+#footer-search-container {
+    width: 100%;
+    height: 3;
+    border: round $primary;
+    margin: 0;
+    padding: 0;
+}
+
+#footer-filter-chain {
+    width: auto;
+    height: auto;
+    padding: 0 1;
+    content-align: left middle;
+    color: $accent;
+}
+
+#footer-search-container:focus-within {
+    border: round $accent;
+}
+
+#footer-search-input {
+    width: 1fr;
+    height: auto;
+    border: none;
+    padding: 0;
+}
+
+#footer-search-result {
+    width: auto;
+    height: auto;
+    padding: 0 1;
+    content-align: right middle;
+    color: $text-muted;
+}
+
+/* Dialog Components */
+#button-container {
+    height: auto;
+    align: center middle;
+    margin-top: 1;
+}
+
+#button-container Button {
+    margin: 0 1;
+}
+
+/* Form Components */
+Input {
+    margin: 0;
+}
+
+/* Filterable Task Table */
+#filterable-task-table {
+    width: 100%;
+    height: 1fr;
+    background: transparent;
+    border: round $primary;
+    margin-bottom: 1;
+    padding: 1 0;
+}
+
+#filterable-task-table:focus-within {
+    border: round $accent;
+}
+
+/* Root container for full-width layout */
+#root-container {
+    width: 100%;
+    height: 100%;
+}
+
+/* Audit Log Screen (full-page modal without dimming) */
+AuditLogScreen {
+    background: $surface;
+}
+
+/* Audit Log Table */
+#audit-log-table {
+    width: 100%;
+    height: 1fr;
+    background: transparent;
+    border: round $primary;
+}
+
+#audit-log-table:blur {
+    border: round $primary;
+}
+
+#audit-log-table:focus {
+    border: round $accent;
+}
+
+/* =============================================================================
+   Statistics Screen (full-page btop-style dashboard)
+   ============================================================================= */
+
+StatsScreen {
+    background: $surface;
+}
+
+#stats-columns {
+    height: 1fr;
+}
+
+#stats-left {
+    width: 1fr;
+    padding: 0 1;
+}
+
+#stats-right {
+    width: 1fr;
+    padding: 0 1;
+}
+
+.stats-panel {
+    border: round $primary;
+    border-title-color: $primary;
+    padding: 0 1;
+    width: 100%;
+    height: auto;
+    margin-bottom: 1;
+}
+
+.stats-subhead {
+    color: $text-muted;
+    margin-top: 1;
+}
+
+.stats-divider {
+    color: $primary-darken-3;
+    height: 1;
+    margin: 0;
+}
+
+.stats-sparkline {
+    height: 1;
+    margin: 0;
+}
+
+.stats-chart {
+    border: round $primary;
+    border-title-color: $primary;
+    height: 1fr;
+}

@@ -1,0 +1,166 @@
+"""Export command - Export tasks to various formats."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+import click
+
+from taskdog.cli.commands.common_options import date_range_options, filter_options
+
+if TYPE_CHECKING:
+    from datetime import datetime
+
+    from taskdog.cli.context import CliContext
+from taskdog.exporters import (
+    CsvTaskExporter,
+    JsonTaskExporter,
+    MarkdownTableExporter,
+    TaskExporter,
+)
+from taskdog.shared.click_types.field_list import FieldList
+
+# Valid fields for export. Mirrors the keys produced by
+# TaskRowDto.to_dict() so every format exposes the same field surface.
+VALID_FIELDS = {
+    "id",
+    "name",
+    "priority",
+    "status",
+    "created_at",
+    "updated_at",
+    "planned_start",
+    "planned_end",
+    "deadline",
+    "actual_start",
+    "actual_end",
+    "estimated_duration",
+    "actual_duration_hours",
+    "is_fixed",
+    "is_archived",
+    "is_finished",
+    "has_notes",
+    "depends_on",
+    "tags",
+    "daily_allocations",
+}
+
+
+@click.command(
+    name="export",
+    help="Export tasks to various formats (exports non-archived tasks by default).",
+)
+@click.option(
+    "--format",
+    "export_format",
+    type=click.Choice(["json", "csv", "markdown"]),
+    default="json",
+    help="Output format (default: json).",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    help="Output file path (default: stdout).",
+)
+@click.option(
+    "--fields",
+    "-f",
+    type=FieldList(valid_fields=VALID_FIELDS),
+    help="Comma-separated list of fields to export (e.g., 'id,name,priority,status'). "
+    "Available: id, name, priority, status, created_at, updated_at, planned_start, "
+    "planned_end, deadline, actual_start, actual_end, estimated_duration, "
+    "actual_duration_hours, is_fixed, is_archived, is_finished, has_notes, "
+    "depends_on, tags, daily_allocations",
+)
+@click.option(
+    "--tag",
+    "-t",
+    multiple=True,
+    type=str,
+    help="Filter by tags (can be specified multiple times, uses OR logic)",
+)
+@date_range_options()
+@filter_options()
+@click.pass_context
+def export_command(
+    ctx: click.Context,
+    export_format: str,
+    output: str | None,
+    fields: list[str] | None,
+    tag: tuple[str, ...],
+    include_archived: bool,
+    status: str | None,
+    start_date: datetime | None,
+    end_date: datetime | None,
+) -> None:
+    """Export tasks in the specified format.
+
+    By default, exports non-archived tasks (all statuses except archived).
+    Use -a/--all to export all tasks (including archived).
+    Use --status to filter by specific status.
+    Use --tag to filter by tags (OR logic when multiple tags specified).
+    Use --start-date and --end-date to filter by date range.
+
+    Supports JSON, CSV, and Markdown table formats.
+
+    Examples:
+        taskdog export                              # Export non-archived tasks as JSON
+        taskdog export -a                           # Export all tasks (including archived)
+        taskdog export --status completed           # Export only completed tasks
+        taskdog export -t work -t urgent            # Export tasks with tag "work" OR "urgent"
+        taskdog export -o tasks.json                # Save JSON to file
+        taskdog export --format csv -o tasks.csv    # Export to CSV
+        taskdog export --format markdown -o tasks.md  # Export to Markdown table
+        taskdog export --fields id,name,priority    # Export only specific fields
+        taskdog export -f id,name,status --format markdown  # Markdown with specific fields
+        taskdog export -a --status archived -o archived.json      # Export all archived tasks
+        taskdog export --start-date 2025-10-01 --end-date 2025-10-31  # October tasks
+    """
+    ctx_obj: CliContext = ctx.obj
+    console_writer = ctx_obj.console_writer
+    api_client = ctx_obj.api_client
+
+    try:
+        # Prepare filter parameters (tags use OR logic by default)
+        tags = list(tag) if tag else None
+
+        # Get filtered tasks via API client (export uses default id sorting)
+        result = api_client.list_tasks(
+            include_archived=include_archived,
+            status=status,
+            tags=tags,
+            start_date=start_date,
+            end_date=end_date,
+            sort_by="id",
+            reverse=False,
+        )
+        tasks = result.tasks
+
+        # fields is already parsed and validated by FieldList Click type
+        # Create appropriate exporter based on format
+        exporter: TaskExporter
+        if export_format == "json":
+            exporter = JsonTaskExporter(field_list=fields)
+        elif export_format == "csv":
+            exporter = CsvTaskExporter(field_list=fields)
+        elif export_format == "markdown":
+            exporter = MarkdownTableExporter(field_list=fields)
+        else:
+            raise ValueError(f"Unsupported format: {export_format}")
+
+        # Export tasks
+        tasks_data = exporter.export(tasks)
+
+        # Output to file or stdout
+        if output:
+            with Path(output).open("w", encoding="utf-8") as f:
+                f.write(tasks_data)
+            console_writer.success(f"Exported {len(tasks)} tasks to {output}")
+        else:
+            click.echo(tasks_data)
+
+    except Exception as e:
+        console_writer.error("exporting tasks", e)
+        raise click.Abort() from e

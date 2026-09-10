@@ -1,0 +1,51 @@
+"""Tests for CancelTaskUseCase."""
+
+from datetime import datetime
+
+from taskdog_core.application.dto.base import SingleTaskInput
+from taskdog_core.application.use_cases.cancel_task import CancelTaskUseCase
+from taskdog_core.domain.entities.task import TaskStatus
+from tests.application.use_cases.status_change_test_base import (
+    BaseStatusChangeUseCaseTest,
+)
+
+
+class TestCancelTaskUseCase(BaseStatusChangeUseCaseTest):
+    """Test cases for CancelTaskUseCase."""
+
+    use_case_class = CancelTaskUseCase
+    request_class = SingleTaskInput
+    target_status = TaskStatus.CANCELED
+    initial_status = TaskStatus.PENDING
+
+    # CancelTask sets actual_end timestamp
+    sets_actual_end = True
+
+    def test_execute_can_cancel_pending_task(self):
+        """Test execute can cancel PENDING task."""
+        task = self.repository.create(
+            name="Test Task", priority=1, status=TaskStatus.PENDING
+        )
+
+        input_dto = SingleTaskInput(task_id=task.id)
+        result = self.use_case.execute(input_dto)
+
+        assert result.task.status == TaskStatus.CANCELED
+        assert result.task.actual_end is not None
+        assert result.task.actual_start is None
+
+    def test_execute_can_cancel_in_progress_task(self):
+        """Test execute can cancel IN_PROGRESS task."""
+        task = self.repository.create(
+            name="Test Task",
+            priority=1,
+            status=TaskStatus.IN_PROGRESS,
+            actual_start=datetime(2024, 1, 1, 10, 0, 0),
+        )
+
+        input_dto = SingleTaskInput(task_id=task.id)
+        result = self.use_case.execute(input_dto)
+
+        assert result.task.status == TaskStatus.CANCELED
+        assert result.task.actual_start is not None
+        assert result.task.actual_end is not None

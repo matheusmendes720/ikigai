@@ -1,0 +1,69 @@
+[project]
+name = "taskdog-mcp"
+version = "0.27.0"
+description = "MCP server for Taskdog - enables Claude Desktop integration"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "Kohei Wada" }
+]
+license = { text = "MIT" }
+keywords = ["task", "management", "mcp", "claude"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    "taskdog-client==0.27.0",
+    "taskdog-core==0.27.0",
+    "mcp>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=1.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.16.3",
+]
+
+[project.scripts]
+taskdog-mcp = "taskdog_mcp.main:main"
+
+[project.urls]
+Homepage = "https://github.com/Kohei-Wada/taskdog"
+Repository = "https://github.com/Kohei-Wada/taskdog"
+"Bug Tracker" = "https://github.com/Kohei-Wada/taskdog/issues"
+
+[build-system]
+requires = ["setuptools>=84.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["taskdog*"]
+
+[tool.setuptools.package-data]
+taskdog_mcp = ["py.typed"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unused_ignores = false
+
+# Ignore mcp library (no type stubs available)
+[[tool.mypy.overrides]]
+module = "mcp.*"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"

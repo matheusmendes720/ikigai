@@ -1,0 +1,216 @@
+[project]
+name = "taskdog-workspace"
+version = "0.27.0"
+description = "Taskdog monorepo workspace"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "Kohei Wada" }
+]
+license = { text = "MIT" }
+
+# This is a workspace root - install individual packages from packages/ directory
+dependencies = []
+
+[project.optional-dependencies]
+docs = [
+  "mkdocs-material>=9.5",
+  "mkdocs-click>=0.8",
+]
+dev = [
+  "pre-commit>=4.6.2",
+  "ruff>=0.16.3",
+  "mypy>=2.3.0",
+  "types-python-dateutil>=2.9.0.20260807",
+  "pytest>=9.1.1",
+  "pytest-cov>=4.0.0",
+]
+
+# UV workspace configuration
+[tool.uv.workspace]
+members = [
+    "packages/taskdog-core",
+    "packages/taskdog-client",
+    "packages/taskdog-server",
+    "packages/taskdog-ui",
+    "packages/taskdog-mcp",
+]
+
+[tool.uv.sources]
+taskdog-core = { workspace = true }
+taskdog-client = { workspace = true }
+taskdog-server = { workspace = true }
+taskdog-ui = { workspace = true }
+taskdog-mcp = { workspace = true }
+
+# mypy configuration
+[tool.mypy]
+python_version = "3.13"
+mypy_path = "packages/*/src"
+# Progressive type checking - Phase 3: Moderate strictness
+warn_unused_configs = true
+warn_redundant_casts = true
+# Disabled: SQLAlchemy attr-defined errors are environment-dependent (CI vs local)
+warn_unused_ignores = false
+# Phase 3: Moderate checks enabled
+check_untyped_defs = true
+strict_equality = true
+warn_return_any = true
+warn_no_return = true
+# Phase 4: Full strictness enabled
+disallow_untyped_defs = true  # Phase 4 (enabled)
+disallow_any_generics = true  # Phase 4 (enabled)
+disallow_untyped_calls = true  # Phase 4 (enabled)
+show_error_context = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+# Ignore third-party library without type stubs
+[[tool.mypy.overrides]]
+module = "textual.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "dateutil.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "holidays.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "sqlalchemy.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "mcp.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "alembic.*"
+ignore_missing_imports = true
+
+
+# Ruff configuration
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+src = ["src", "tests"]
+# vulture whitelist is a list of bare names for vulture, not real Python.
+# force-exclude makes ruff honor this even when pre-commit passes the file explicitly.
+extend-exclude = ["scripts/vulture_whitelist.py"]
+force-exclude = true
+
+[tool.ruff.lint]
+select = [
+  "A",  # flake8-builtins
+  "E",  # pycodestyle errors
+  "W",  # pycodestyle warnings
+  "F",  # pyflakes
+  "I",  # isort
+  "ISC",  # flake8-implicit-str-concat
+  "UP",  # pyupgrade
+  "B",  # flake8-bugbear
+  "C90",  # mccabe
+  "N",  # pep8-naming
+  "SIM",  # simplify
+  "PIE",  # misc lints (unnecessary pass, etc.)
+  "RET",  # return statement simplification
+  "C4",  # flake8-comprehensions
+  "PERF",  # performance anti-patterns
+  "PTH",  # flake8-use-pathlib
+  "FURB",  # refurb modernization
+  "RUF",  # ruff-specific rules
+  "TC",  # flake8-type-checking
+]
+ignore = [
+  "E501",  # line too long (handled by formatter)
+  "RET504",  # unnecessary assignment before return (intentional for readability)
+]
+
+# Per-file ignores
+[tool.ruff.lint.per-file-ignores]
+"packages/taskdog-core/src/taskdog_core/domain/exceptions/task_exceptions.py" = [
+  "N818",
+]  # TaskNotFoundException is widely used
+"packages/taskdog-core/src/taskdog_core/domain/exceptions/tag_exceptions.py" = [
+  "N818",
+]  # TagNotFoundException matches TaskNotFoundException naming convention
+"packages/*/tests/**/*.py" = ["SIM115", "RUF015"]  # Test code patterns are acceptable
+"scripts/**/*.py" = ["B904", "C901"]  # Migration scripts: exception chaining and complexity acceptable
+"packages/taskdog-server/src/taskdog_server/api/error_handlers.py" = ["UP047"]  # Type parameters require Python 3.12+
+
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+known-first-party = [
+  "taskdog",
+  "taskdog_core",
+  "taskdog_server",
+]
+section-order = [
+  "future",
+  "standard-library",
+  "third-party",
+  "first-party",
+  "local-folder",
+]
+
+# Dead-code detection
+[tool.vulture]
+min_confidence = 60
+paths = ["packages", "scripts/vulture_whitelist.py"]
+exclude = ["*/migrations/*", "*/tests/*", "*/build/*", "*/.venv/*"]
+# Framework-registered callables are reached dynamically, not by direct call.
+ignore_decorators = [
+  "@router.*",
+  "@app.*",
+  "@*.tool",
+  "@*.command",
+  "@event.listens_for",
+  "@field_validator",
+  "@model_validator",
+  "@command_registry.register",
+]
+# Textual calls handlers/attributes by naming convention, not by reference.
+ignore_names = [
+  "on_*",
+  "action_*",
+  "watch_*",
+  "compose",
+  "search_*",
+  "discover",
+  "search",
+  "get_suggestion",
+  "border_title",
+  "BINDINGS",
+  "TITLE",
+  "CSS_PATH",
+  "ENABLE_MOUSE",
+  "ALLOW_IN_MAXIMIZED_VIEW",
+  "model_config",
+  # Textual widget configuration attributes (set on self, read by the framework)
+  "cursor_type",
+  "zebra_stripes",
+  "can_focus",
+  "cell_padding",
+  "fixed_rows",
+  "caption",
+  "caption_justify",
+  "bubble",
+]
+
+# Build system - workspace root doesn't build directly
+[build-system]
+requires = ["setuptools>=84.0.0"]
+build-backend = "setuptools.build_meta"
+
+# Workspace root has no packages (prevent auto-discovery of contrib/, packages/, etc.)
+[tool.setuptools]
+packages = []

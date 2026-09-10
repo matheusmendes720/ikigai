@@ -1,0 +1,100 @@
+"""SQLAlchemy ORM model for Task entity.
+
+This module defines the database schema for tasks using SQLAlchemy 2.0 ORM.
+Tags are stored in normalized tables (tags/task_tags).
+Daily allocations are stored in the normalized daily_allocations table.
+depends_on is stored as JSON TEXT.
+"""
+
+from datetime import datetime
+
+from sqlalchemy import Boolean, Float, Index, Integer, String, Text
+from sqlalchemy.orm import (  # type: ignore[attr-defined]
+    DeclarativeBase,
+    Mapped,
+    mapped_column,
+    relationship,
+)
+
+
+class Base(DeclarativeBase):
+    """Base class for all ORM models."""
+
+
+class TaskModel(Base):
+    """SQLAlchemy ORM model for Task entity.
+
+    Maps to the 'tasks' table in the database.
+    Tags are stored in normalized tables via tag_models relationship.
+    Daily allocations are stored in normalized table via allocation_models relationship.
+    depends_on is stored as JSON TEXT.
+
+    Schema corresponds to Task entity fields with SQLAlchemy types.
+    """
+
+    __tablename__ = "tasks"
+
+    # Primary key
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # Core task fields
+    name: Mapped[str] = mapped_column(String(500), nullable=False)
+    priority: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    status: Mapped[str] = mapped_column(String(50), nullable=False)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(nullable=False)
+
+    # Schedule fields (nullable)
+    planned_start: Mapped[datetime | None] = mapped_column(nullable=True)
+    planned_end: Mapped[datetime | None] = mapped_column(nullable=True)
+    deadline: Mapped[datetime | None] = mapped_column(nullable=True)
+
+    # Actual time tracking (nullable)
+    actual_start: Mapped[datetime | None] = mapped_column(nullable=True)
+    actual_end: Mapped[datetime | None] = mapped_column(nullable=True)
+    # Explicit actual duration in hours (takes priority over calculated value)
+    actual_duration: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # Duration and scheduling
+    estimated_duration: Mapped[float | None] = mapped_column(Float, nullable=True)
+    is_fixed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    # Complex fields stored as JSON TEXT
+    # Format: [2, 3, 5]
+    depends_on: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+
+    # Archive flag
+    is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    # Relationship to tags (many-to-many through task_tags)
+    # Phase 6: All tags are stored in normalized schema (tags/task_tags tables).
+    tag_models: Mapped[list["TagModel"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
+        "TagModel",
+        secondary="task_tags",
+        back_populates="tasks",
+        lazy="selectin",
+    )
+
+    # Relationship to daily allocations (one-to-many)
+    # Daily allocations are stored in normalized schema (daily_allocations table).
+    allocation_models: Mapped[list["DailyAllocationModel"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
+        "DailyAllocationModel",
+        back_populates="task",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )
+
+    # Database indexes for frequently queried columns
+    __table_args__ = (
+        Index("idx_status", "status"),
+        Index("idx_is_archived", "is_archived"),
+        Index("idx_deadline", "deadline"),
+        Index("idx_planned_start", "planned_start"),
+        Index("idx_priority", "priority"),
+    )
+
+    def __repr__(self) -> str:
+        """String representation for debugging."""
+        return f"<TaskModel(id={self.id}, name='{self.name}', status='{self.status}')>"
