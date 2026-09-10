@@ -81,3 +81,33 @@ Write-Host ""
 Write-Host "Quick test (no LLM):" -ForegroundColor Cyan
 Write-Host "  ikigai-chat --no-chat" -ForegroundColor White
 Write-Host ""
+
+# UX 2026-09-10: --install flag writes the wrapper path into $PROFILE
+# so every new PowerShell window opens with ikigai-chat available.
+# Idempotent — checks if line already exists before appending.
+if ($args -contains '--install') {
+    $wrapperPath = $MyInvocation.MyCommand.Definition
+    $profilePath = $PROFILE
+    $profileDir = Split-Path -Parent $profilePath
+    if (-not (Test-Path $profileDir)) {
+        New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
+    }
+    if (-not (Test-Path $profilePath)) {
+        New-Item -ItemType File -Path $profilePath -Force | Out-Null
+    }
+    $existing = Get-Content $profilePath -ErrorAction SilentlyContinue
+    $marker = "# ikigai-chat — IKIGAI v2 harness activation (UX 2026-09-10)"
+    if ($existing -and ($existing -match [regex]::Escape($marker))) {
+        Write-Host "[ikigai-shell] --install: already configured in \$PROFILE" -ForegroundColor Yellow
+        Write-Host "  $profilePath" -ForegroundColor Yellow
+    } else {
+        Add-Content -Path $profilePath -Value ""
+        Add-Content -Path $profilePath -Value $marker
+        Add-Content -Path $profilePath -Value ". `"$wrapperPath`""
+        Write-Host "[ikigai-shell] --install: added to \$PROFILE" -ForegroundColor Green
+        Write-Host "  $profilePath" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "Open a NEW PowerShell window and `ikigai-chat` will work globally." -ForegroundColor Cyan
+    }
+    return
+}
