@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-import subprocess
 from datetime import date
 from typing import Any
 
@@ -22,7 +20,7 @@ def observe_node(state: IKIGAiStateDict) -> dict[str, Any]:
 
 
 def _build_agent_response(state: IKIGAiStateDict) -> str:
-    """Build a readable agent response from current IKIGAi state."""
+    """Build a readable agent response from current IKIGAI state."""
     vs = state.get("vector_scores", {})
     lines = [
         f"Regime: {state.get('regime_state', '?')}  |  Q_HE: {state.get('q_he_score', 0):.4f}",
@@ -47,35 +45,3 @@ def _build_agent_response(state: IKIGAiStateDict) -> str:
         for p in prospective[-3:]:
             lines.append(f"   - {p}")
     return "\n".join(lines)
-
-
-def _read_workload_from_upi() -> float:
-    """Read today's task count from solverforge-calendar-mcp.
-
-    Returns hours/day estimate based on active UPI count.
-
-    TODO(Phase 8.4): remove _read_workload_from_upi — replaced by
-    ikigai_observe_pav_state via mcp_bridge.
-    """
-    try:
-        result = subprocess.run(
-            [
-                "solverforge-calendar-mcp",
-                "--json",
-                "upi_list",
-                "--limit",
-                "50",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        if result.returncode == 0:
-            data = json.loads(result.stdout)
-            items = data if isinstance(data, list) else []
-            # Estimate 1.5h per active task per day
-            active = [i for i in items if i.get("status") not in ("Done", "Cancelled")]
-            return len(active) * 1.5
-    except Exception:
-        pass
-    return 2.0

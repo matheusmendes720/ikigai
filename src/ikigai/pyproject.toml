@@ -42,6 +42,12 @@ deepagents = ">=0.7"
 # LangChain Anthropic provider — used by the deep agent chat path.
 langchain-anthropic = ">=0.3"
 
+# Click pinned to <8.2 — typer 0.12.x breaks with click >= 8.2 (Parameter.make_metavar()
+# signature change). Without this pin, `python -m interfaces.cli v2 --help` crashes with
+# "TypeError: Parameter.make_metavar() missing 1 required positional argument: 'ctx'".
+# B4 fix 2026-09-10 added `v2 chat` command; pin prevents regression.
+click = "<8.2"
+
 [tool.poetry.scripts]
 ikigai-maintainer-mcp = "run_mcp_server:main"
 ikigai-deep-agent = "agents.deepagents_harness:main"

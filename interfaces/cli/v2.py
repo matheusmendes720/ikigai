@@ -306,6 +306,77 @@ def register_skill(app: typer.Typer) -> None:
             regime = observe.get("regime_state", "unknown")
             typer.echo(f"Regime: {regime}")
 
+    @app.command(name="chat")
+    def chat_cmd(
+        prompt: str = typer.Option(..., "--prompt", "-p", help="Single prompt to send through the v2 graph"),
+        thread: str = typer.Option(
+            "default", "--thread", "-t", help="Thread ID for LangGraph checkpointing"
+        ),
+        cycle_id: str = typer.Option(
+            "cli-chat", "--cycle", help="Cycle ID for state routing"
+        ),
+        json_output: bool = typer.Option(False, "--json", help="Output raw JSON"),
+    ) -> None:
+        """One-shot v2 graph invocation (B4 fix 2026-09-10).
+
+        Compiles the v2 graph via make_v2_graph(), invokes it with a
+        realistic initial state carrying the user's prompt, and prints
+        the result. Unlike daily/weekly (scheduled skills), `chat` is
+        an ad-hoc single-prompt path useful for testing and CLI scripting.
+
+        Note: this is NOT the same as `dcode --chat` (the LangGraph
+        deepagent REPL). For conversational mode use `dcode.exe --chat`.
+        """
+        # Lazy imports — break circular imports with agents.v2.subgraph
+        from interfaces.cli import _v2_skills
+        from datetime import date as _date
+
+        _v2_skills.ensure_mcp_server_bound()
+
+        try:
+            from src.ikigai.src.agents.v2.graph import make_v2_graph
+
+            graph = make_v2_graph(checkpoint_db="data/v2-chat-checkpoints.db")
+        except Exception as e:
+            typer.echo(f"ERROR: failed to compile v2 graph: {e}", err=True)
+            raise typer.Exit(code=1)
+
+        # Realistic initial state. Required keys per IKIGAiStateDict.
+        state = {
+            "cycle_id": cycle_id,
+            "cycle_start": str(_date.today()),
+            "cycle_end": str(_date.today()),
+            "iteration": 1,
+            "date": str(_date.today()),
+            "user_input": prompt,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        config = {"configurable": {"thread_id": thread}}
+
+        try:
+            result = graph.invoke(state, config=config)
+        except Exception as e:
+            typer.echo(f"ERROR: graph.invoke failed: {e}", err=True)
+            raise typer.Exit(code=1)
+
+        if json_output:
+            typer.echo(json.dumps(result, indent=2, default=str))
+        else:
+            # Print key result fields if present
+            last_step = result.get("last_step", "unknown")
+            commit_summary = result.get("commit_summary", "")
+            error_msg = result.get("error_message", "")
+            typer.echo(f"last_step: {last_step}")
+            if commit_summary:
+                typer.echo(f"commit_summary: {commit_summary}")
+            if error_msg:
+                typer.echo(f"error: {error_msg}")
+            suggestions = result.get("user_suggestions", [])
+            if suggestions:
+                typer.echo(f"\nsuggestions ({len(suggestions)}):")
+                for i, s in enumerate(suggestions, 1):
+                    typer.echo(f"  {i}. {s}")
+
 
 # Wire the skill commands into the Typer app.
 register_skill(app)
