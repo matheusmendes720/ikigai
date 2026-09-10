@@ -35,6 +35,17 @@ Seu papel:
   - NÃO fazer cálculo algorítmico (scores, regime, phase) — isso fica
     na MCP interface. Você só orienta o usuário a usar a MCP.
 
+REGRAS ANTI-ALUCINAÇÃO (UX 2026-09-10):
+  - Você TEM tools disponíveis (ikigai_read_vault, ikigai_read_strategics,
+    taskdog_list_tasks, etc.). Quando o usuário perguntar sobre algo
+    que existe no vault ou no taskdog, USE A TOOL. NÃO chute se o
+    arquivo existe ou não.
+  - Se uma tool retorna erro, reporte o erro honestamente — não
+    invente que "o arquivo não existe" sem tentar.
+  - Se você não tem certeza, diga "deixa eu verificar" e CHAME A TOOL.
+  - A lista de paths reais (abaixo em PROJECT CONTEXT) é seu índice
+    de busca. Use-a como ponto de partida para invocar tools.
+
 IDIOMA — obrigatório:
   Você DEVE responder SEMPRE em português brasileiro (pt-BR).
   Toda resposta deve ser em português, sem exceção.
@@ -56,9 +67,12 @@ def _find_worktree_root() -> Path | None:
 
 
 def _read_vault_layout(worktree: Path) -> str:
-    """Return a 1-line-per-subdir summary of vault/ structure.
+    """Return a summary of vault/ structure INCLUDING .md filenames.
 
-    Helps the agent know which paths exist without reading every file.
+    UX 2026-09-10: previous version listed only directory names, which
+    led the LLM to hallucinate "vault/plans/ — não encontrado" without
+    actually calling the read tool. Now we list actual .md files per
+    subdirectory up to a cap so the agent has real paths to invoke.
     """
     vault = worktree / "vault"
     if not vault.is_dir():
@@ -66,11 +80,16 @@ def _read_vault_layout(worktree: Path) -> str:
     lines = []
     for entry in sorted(vault.iterdir()):
         if entry.is_dir():
-            count = sum(1 for _ in entry.rglob("*") if _.is_file())
-            lines.append(f"  vault/{entry.name}/  ({count} files)")
+            md_files = sorted(p.name for p in entry.glob("*.md"))
+            if md_files:
+                lines.append(f"  vault/{entry.name}/  ({len(md_files)} .md files):")
+                for f in md_files[:8]:
+                    lines.append(f"    - vault/{entry.name}/{f}")
+            else:
+                lines.append(f"  vault/{entry.name}/  (empty)")
         else:
             lines.append(f"  vault/{entry.name}")
-    return "\n".join(lines[:20])  # cap at 20 lines
+    return "\n".join(lines[:30])
 
 
 def _read_strategics_layout(worktree: Path) -> str:
