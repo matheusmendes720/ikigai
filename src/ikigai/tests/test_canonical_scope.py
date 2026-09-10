@@ -510,6 +510,72 @@ def test_ueid_canonical_regex_enforced() -> None:
     )
 
 
+def test_ueid_4part_in_sys_ikigai_entities() -> None:
+    """UEID in sys_ikigai/entities/ueid.py MUST also be 4-part (B1 fix 2026-09-10).
+
+    Prior to B1 fix, sys_ikigai/entities/ueid.py used a 5-part regex that
+    diverged from the canonical 4-part pattern in src/contracts/common.py.
+    This caused validation failures when the v2 graph (4-part) emitted
+    UEIDs that flowed into agent_consumer.py / tools_mesh.py — they
+    imported the 5-part type and rejected everything.
+
+    Per ADR-014 + ueid-5part-canonical-decision-2026-08-31, the canonical
+    format is 4-part. sys_ikigai/entities/ueid.py MUST match. This test
+    enforces that nobody silently regresses it back to 5-part.
+    """
+    sys_ueid_path = REPO_ROOT / "sys_ikigai" / "entities" / "ueid.py"
+    if not sys_ueid_path.exists():
+        pytest.skip(f"{sys_ueid_path} not present")
+    source = sys_ueid_path.read_text(encoding="utf-8")
+
+    canonical_pattern = r"^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$"
+    assert canonical_pattern in source, (
+        f"sys_ikigai/entities/ueid.py must use 4-part UEID regex per ADR-014. "
+        f"Expected pattern: {canonical_pattern!r}. "
+        f"Found in {sys_ueid_path}. "
+        "B1 fix 2026-09-10: see memory/ikigai-v2-deep-dive-bugs-2026-09-10.md"
+    )
+
+
+def test_v2_state_schema_has_b2_node_fields() -> None:
+    """IKIGAiStateDict must declare all v2 node input fields (B2 fix 2026-09-10).
+
+    Prior to B2 fix, the v2 graph nodes (observe, score_vectors,
+    heuristics, balance, decompose, tag_and_persist, error) read state
+    fields that didn't exist in the schema: `date`, `vectors`, `context`,
+    `load`, `task_id`, `ueid`, `error_channel`. `state.get(...)` returned
+    None or empty defaults, so the graph ran but produced no useful
+    output. This test enforces that the schema documents every field
+    nodes actually read.
+
+    If you add a new node that reads a state field, add the field here
+    to prevent silent regressions.
+    """
+    state_path = (
+        IKIGAI_SRC / "agents" / "v2" / "state.py"
+    )
+    if not state_path.exists():
+        pytest.skip(f"{state_path} not present")
+    source = state_path.read_text(encoding="utf-8")
+
+    required_fields = (
+        # v2 node input channels (B2 fix)
+        "date: NotRequired[str]",
+        "vectors: NotRequired[list[float]]",
+        "context: NotRequired[dict[str, Any]]",
+        "load: NotRequired[float]",
+        "task_id: NotRequired[str | None]",
+        "ueid: NotRequired[str | None]",
+        "error_channel: NotRequired[Annotated[list[str], operator.add]]",
+    )
+    missing = [f for f in required_fields if f not in source]
+    assert not missing, (
+        f"IKIGAiStateDict is missing node input fields added by B2 fix: {missing}. "
+        f"Found in {state_path}. "
+        "B2 fix 2026-09-10: see memory/ikigai-v2-deep-dive-bugs-2026-09-10.md"
+    )
+
+
 def test_fork_adapter_protocol_coverage() -> None:
     """Every concrete fork adapter in src/mesh/adapters/ must implement ForkAdapter.
 
