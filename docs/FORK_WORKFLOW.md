@@ -80,14 +80,22 @@ When upstream renames files, prefer to:
 2. Re-apply our customizations on top
 3. Update `pyproject.toml` [tool.poetry.scripts] to match new module paths
 
-## Current state (2026-09-10)
+## Current state (2026-09-10 — Phase 4 SHIPPED)
 
-- Local master: ahead of upstream by 545 commits (our 8-month work)
-- Upstream: ahead of local by 1136 commits (their development)
-- Last full sync: NONE (fresh fork setup)
+- **Vendored at `vendor/taskdog/`** (commit `2352f612`, upstream HEAD at vendoring time)
+- 5 packages vendored: taskdog-core (334), taskdog-server (67), taskdog-client (49), taskdog-ui (317), taskdog-mcp (23) = ~865 files, ~106k LOC
+- Vendored via `git subtree add --prefix=vendor/taskdog upstream/main` on branch `loop/phase-4-vendor-taskdog`
+- `.gitignore` already covers vendor caches via `**/__pycache__/` etc. (no edits needed)
+- Local master: ahead of upstream by 545 commits (our 8-month IKIGAI work)
+- Vendored tree: IS upstream at vendoring time, NO IKIGAI customizations yet
 
-**Recommendation:** Don't attempt full merge until Phase 1 (ikigai-taskdog expansion)
-is done. Merge in small batches:
-- 1. Sync just the taskdog-relevant files (src/mesh/, pyproject.toml)
-- 2. Skip our docs/scripts changes (they're IKIGAI-specific, won't conflict)
-- 3. Re-test integration after each sync
+### Sync strategy (post-Phase 4)
+1. `git fetch upstream`
+2. `git subtree pull --prefix=vendor/taskdog upstream main --squash` (squash keeps our history clean)
+3. Resolve conflicts (should be ZERO — `vendor/taskdog/` is upstream-only)
+4. Re-run smoke tests from `vibe-ops/` and `interfaces/`
+
+### Future phases (on `loop/phase-4-vendor-taskdog` branch)
+- Phase 4.1: Layer IKIGAI customizations as thin wrappers in `src/ikigai/` (NEVER edit `vendor/taskdog/*` in place — append-only)
+- Phase 4.2: Replace `src/mesh/__main__ikigai_taskdog*.py` gambiarra with `vendor.taskdog_client.TaskdogClient` calls
+- Phase 4.3: Wire upstream `taskdog-mcp` into UnifiedMCPGateway alongside `ikigai-taskdog-mcp`
