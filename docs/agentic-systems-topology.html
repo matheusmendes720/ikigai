@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agentic Systems Topology — life-oss/life</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;1,400&display=swap">
+<style>
+  /* ─── tokens (light = parchment) ─── */
+  :root {
+    --ground: #F5F1E8;
+    --ground-2: #EBE5D6;
+    --ground-3: #DDD4BD;
+    --ink: #1A1612;
+    --ink-2: #4A4239;
+    --ink-3: #6E6452;
+    --rule: #C9BFA4;
+    --accent: #C2410C;        /* burnt orange — primary */
+    --signal: #B45309;         /* amber — active flow */
+    --working: #4D7C5B;        /* sage — works */
+    --broken: #B33A3A;         /* coral red — broken */
+    --gated: #6E6452;          /* muted — gated */
+    --schematic: #2C5282;      /* schematic-blue */
+    --code-bg: #1A1612;
+    --code-fg: #E8DCC0;
+  }
+  /* ─── tokens (dark = navy void) ─── */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0E1729;
+      --ground-2: #182441;
+      --ground-3: #243358;
+      --ink: #E8DCC0;
+      --ink-2: #B8AC92;
+      --ink-3: #8C8270;
+      --rule: #2E3D5C;
+      --accent: #E8A33D;        /* amber now — pops on dark */
+      --signal: #E8A33D;
+      --working: #7BAA86;
+      --broken: #E66B5A;
+      --gated: #5B5468;
+      --schematic: #5B8FE8;
+      --code-bg: #060B17;
+      --code-fg: #E8DCC0;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0E1729;
+    --ground-2: #182441;
+    --ground-3: #243358;
+    --ink: #E8DCC0;
+    --ink-2: #B8AC92;
+    --ink-3: #8C8270;
+    --rule: #2E3D5C;
+    --accent: #E8A33D;
+    --signal: #E8A33D;
+    --working: #7BAA86;
+    --broken: #E66B5A;
+    --gated: #5B5468;
+    --schematic: #5B8FE8;
+    --code-bg: #060B17;
+    --code-fg: #E8DCC0;
+  }
+
+  /* ─── base ─── */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 64px 48px 96px; }
+
+  /* ─── typography ─── */
+  .eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-family: "JetBrains Mono", monospace;
+    font-size: clamp(36px, 5vw, 56px);
+    line-height: 1.05;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    margin: 0 0 24px;
+    color: var(--ink);
+  }
+  h1 .accent { color: var(--accent); }
+  .lede {
+    font-family: "IBM Plex Serif", serif;
+    font-size: 19px;
+    font-style: italic;
+    color: var(--ink-2);
+    max-width: 60ch;
+    margin: 0 0 56px;
+    line-height: 1.5;
+  }
+  h2 {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 64px 0 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--rule);
+  }
+  h2 .num {
+    color: var(--ink-3);
+    font-weight: 300;
+    margin-right: 12px;
+  }
+  h3 {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+    margin: 32px 0 12px;
+  }
+  p { margin: 0 0 16px; max-width: 72ch; }
+  p.tight { margin: 0; }
+  strong { font-weight: 600; color: var(--ink); }
+  code, .mono {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.88em;
+    background: var(--ground-2);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-fg);
+    padding: 24px 28px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    margin: 16px 0;
+    border: 1px solid var(--rule);
+  }
+  pre code { background: transparent; padding: 0; color: var(--code-fg); }
+
+  /* ─── hero status grid ─── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    margin: 32px 0 64px;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .stat {
+    padding: 28px 24px;
+    border-right: 1px solid var(--rule);
+  }
+  .stat:last-child { border-right: none; }
+  .stat .label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 8px;
+  }
+  .stat .value {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 36px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat .sub {
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .stat.working .value { color: var(--working); }
+  .stat.broken .value { color: var(--broken); }
+
+  /* ─── layer cake (the architecture) ─── */
+  .layers {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 24px 0 16px;
+  }
+  .layer {
+    background: var(--ground);
+    padding: 28px 32px;
+    display: grid;
+    grid-template-columns: 80px 1fr 1.2fr;
+    gap: 32px;
+    align-items: start;
+  }
+  .layer .tag {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    color: var(--ink-3);
+    padding-top: 4px;
+  }
+  .layer .name {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .layer .role {
+    font-size: 14px;
+    color: var(--ink-2);
+    margin-bottom: 12px;
+  }
+  .layer .where {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-3);
+    padding: 6px 10px;
+    background: var(--ground-2);
+    border-radius: 3px;
+    display: inline-block;
+    margin-top: 4px;
+  }
+  .layer .files {
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.7;
+  }
+  .layer .files .f {
+    display: block;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-3);
+    padding: 2px 0;
+  }
+  .layer .files .f b {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* layer state stripes */
+  .layer .badge {
+    display: inline-block;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    margin-left: 8px;
+    vertical-align: 2px;
+  }
+  .layer .badge.working { background: rgba(123,170,134,0.15); color: var(--working); }
+  .layer .badge.partial { background: rgba(232,163,61,0.15); color: var(--signal); }
+  .layer .badge.broken { background: rgba(230,107,90,0.18); color: var(--broken); }
+  .layer .badge.gated { background: rgba(110,100,82,0.15); color: var(--gated); }
+
+  /* ─── flow diagram ─── */
+  .flow {
+    background: var(--ground-2);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 32px;
+    margin: 24px 0;
+    overflow-x: auto;
+  }
+  .flow pre {
+    background: transparent;
+    color: var(--ink);
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.75;
+  }
+
+  /* ─── state table ─── */
+  .state {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 14px;
+  }
+  .state th, .state td {
+    text-align: left;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  .state th {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 500;
+    border-bottom: 2px solid var(--ink-3);
+  }
+  .state td.idx {
+    font-family: "JetBrains Mono", monospace;
+    color: var(--ink-3);
+    font-size: 13px;
+    width: 60px;
+  }
+  .state td.what {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .state td.how {
+    color: var(--ink-2);
+    font-size: 14px;
+  }
+  .state .pill {
+    display: inline-block;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+  .pill.works { background: rgba(123,170,134,0.18); color: var(--working); }
+  .pill.partial { background: rgba(232,163,61,0.18); color: var(--signal); }
+  .pill.broken { background: rgba(230,107,90,0.2); color: var(--broken); }
+  .pill.gated { background: rgba(110,100,82,0.2); color: var(--gated); }
+  .pill.untested { background: transparent; border: 1px dashed var(--ink-3); color: var(--ink-3); }
+
+  /* ─── callout ─── */
+  .callout {
+    background: var(--ground-2);
+    border-left: 4px solid var(--broken);
+    padding: 24px 28px;
+    margin: 32px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .callout h4 {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--broken);
+    margin: 0 0 12px;
+    font-weight: 500;
+  }
+  .callout p { color: var(--ink); margin: 0 0 12px; }
+  .callout ul { margin: 8px 0; padding-left: 20px; }
+  .callout li { margin-bottom: 6px; color: var(--ink); }
+  .callout li code { background: var(--ground); }
+
+  /* ─── footer ─── */
+  footer {
+    margin-top: 96px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+  }
+  footer .row {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  @media (max-width: 760px) {
+    .wrap { padding: 36px 22px 60px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stat { border-right: none; border-bottom: 1px solid var(--rule); }
+    .stat:nth-child(2n) { border-right: none; }
+    .layer { grid-template-columns: 1fr; gap: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">2026-09-09 · POST-PIVOT ARCHITECTURE · HONEST REVIEW</div>
+  <h1>Agentic Systems <span class="accent">Topology</span></h1>
+  <p class="lede">Uma revisão completa da engenharia de sistemas agenticos no <code style="background:var(--ground-2)">life-oss/life</code> depois do pivot de 2026-08-28. O que existe, como se conecta, e — honestamente — o que está pronto vs. quebrado.</p>
+
+  <!-- ─── status grid ─── -->
+  <div class="stats">
+    <div class="stat">
+      <div class="label">Architectural Layers</div>
+      <div class="value">3</div>
+      <div class="sub">interface · agent · data</div>
+    </div>
+    <div class="stat">
+      <div class="label">Tool Surface</div>
+      <div class="value">22</div>
+      <div class="sub">12 IKIGAI + 7 fork + 3 mesh</div>
+    </div>
+    <div class="stat working">
+      <div class="label">Smoke-Tested OK</div>
+      <div class="value">3</div>
+      <div class="sub">v2 daily · weekly · do_task_add</div>
+    </div>
+    <div class="stat broken">
+      <div class="label">End-to-End Broken</div>
+      <div class="value">5</div>
+      <div class="sub">dcode chat · MCP · OTel · sys_ikigai · uv</div>
+    </div>
+  </div>
+
+  <!-- ─── § 1 layer cake ─── -->
+  <h2><span class="num">§1</span>Three Architectural Layers</h2>
+  <p>O sistema pós-pivot é dividido em três camadas que se comunicam por contratos tipados (Pydantic v2) e contratos de fronteira (UEID 4-part, JSON-RPC sobre stdio). Cada camada é autônoma; vazamento entre elas é tratado como bug.</p>
+
+  <div class="layers">
+    <div class="layer">
+      <div class="tag">L4 · TOP</div>
+      <div>
+        <div class="name">Interface Layer <span class="badge partial">PARTIAL</span></div>
+        <div class="role">Consumidores que lêem <code style="background:var(--ground-2)">data/</code>, escrevem feedback humano. Não tocam <code style="background:var(--ground-2)">vault/</code>.</div>
+        <div class="where">interfaces/</div>
+      </div>
+      <div class="files">
+        <span class="f"><b>cli/</b> · Typer — <i>task-add, list, mesh-show, v2 daily/weekly</i></span>
+        <span class="f"><b>tui/operator/</b> · Textual 4-tab · <i>Chat / Tasks / State / KillSwitch</i></span>
+        <span class="f"><b>root CLI</b> · life.cli hub · <i>legacy, dual-layout</i></span>
+      </div>
+    </div>
+    <div class="layer">
+      <div class="tag">L3 · CORE</div>
+      <div>
+        <div class="name">Agent Layer <span class="badge partial">PARTIAL</span></div>
+        <div class="role">Deep Agent carro-chefe. Lê vault → aplica planning → escreve tasks. <strong>Planner-only</strong> — math/policy/scoring tools vivem no MCP (ADR-013).</div>
+        <div class="where">src/ikigai/src/agents/v2/ + src/contracts/</div>
+      </div>
+      <div class="files">
+        <span class="f"><b>graph.py</b> · LangGraph CompiledStateGraph (12 nodes)</span>
+        <span class="f"><b>mcp_bridge.py</b> · 9 ikigai_X() planner wrappers</span>
+        <span class="f"><b>mcp_client.py</b> · FastMcpClient stdio transport</span>
+        <span class="f"><b>deepagents_harness.py</b> · <code>dcode</code> entry point</span>
+      </div>
+    </div>
+    <div class="layer">
+      <div class="tag">L2 · BOTTOM</div>
+      <div>
+        <div class="name">Data Layer <span class="badge working">WORKING</span></div>
+        <div class="role">Fonte de verdade: vault markdown, runtime data, mesh queue + 3 fork adapters. Atomic append-only.</div>
+        <div class="where">vault/ · data/ · src/mesh/</div>
+      </div>
+      <div class="files">
+        <span class="f"><b>vault/</b> · Obsidian-style markdown (Deep Agent sole writer)</span>
+        <span class="f"><b>data/tasks.jsonl</b> · CLI adapter slice</span>
+        <span class="f"><b>data/review_queue/</b> · append-only TaskChange queue</span>
+        <span class="f"><b>src/mesh/adapters/</b> · <i>Cli · Taskdog · SolverforgeCalendar</i> — v1: <code>create</code> only</span>
+      </div>
+    </div>
+  </div>
+  <p style="color:var(--ink-3); font-size:13px; margin-top:8px;">Cross-cutting: <code style="background:var(--ground-2)">src/contracts/</code> (UEID, Task, TaskChange, PlanningCycle — Pydantic v2 <code>frozen=True</code>). Drift net tests in <code style="background:var(--ground-2)">src/ikigai/tests/test_drift_*.py</code> guard invariants.</p>
+
+  <!-- ─── § 2 flow schematic ─── -->
+  <h2><span class="num">§2</span>The Agentic Flow · How a Prompt Becomes an Effect</h2>
+  <p>Quando você digita algo no <code style="background:var(--ground-2)">dcode</code> REPL (ou chama um skill pelo CLI), o pedido atravessa seis saltos. Cada salto é uma barreira técnica que pode falhar.</p>
+
+  <div class="flow"><pre>┌──────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                  │
+│   user input ──► [TUI/CLI] ──► [Agent Harness] ──► [v2 LangGraph] ──► [MCP Server]    │
+│   "create a       Typer        dcode.exe          12-node             subprocess  │
+│    task"          Textual      --chat             Compiled-           (stdio       │
+│                   REPL                            StateGraph          JSON-RPC)   │
+│                       │             │                  │                   │       │
+│                       │             │                  │                   ▼       │
+│                       │             │                  │            ┌────────────┐  │
+│                       │             │                  └──────────► │  ikigai_   │  │
+│                       │             │                                 │  task_     │  │
+│                       │             │                                 │  create()  │  │
+│                       │             │                                 └─────┬──────┘  │
+│                       │             │                                       │        │
+│                       │             ▼                                       ▼        │
+│                       │       ┌──────────────┐                       ┌──────────┐  │
+│                       │       │ OTel spans   │                       │   mesh   │  │
+│                       │       │ (instrumented│                       │  queue   │  │
+│                       │       │  in-band)    │                       │  enqueue │  │
+│                       │       └──────┬───────┘                       └────┬─────┘  │
+│                       │              │                                     │        │
+│                       ▼              ▼                                     ▼        │
+│                ┌─────────────────────────────────────────────────────────────────┐  │
+│                │              data/review_queue/&lt;evt_id&gt;.json                      │  │
+│                │     append-only · atomic rename · Pydantic v2 validation        │  │
+│                └─────────────────────────────────────────────────────────────────┘  │
+│                                            │                                     │
+│                                            ▼ (NEEDS WORKER — currently OFFLINE)   │
+│                          ┌──────────────────────────────────┐                     │
+│                          │  agent_consumer.py (3 adapters)  │                     │
+│                          │  CliAdapter · TaskdogAdapter     │                     │
+│                          │  · SolverforgeCalendarAdapter    │                     │
+│                          └──────┬────────────────┬──────────┘                     │
+│                                 ▼                ▼                                │
+│                          data/tasks.jsonl   taskdog.exe                            │
+│                          (CLI slice)        (binary subprocess)                   │
+│                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────┘
+</pre></div>
+
+  <p>Os seis saltos onde pode quebrar:</p>
+  <ol style="max-width:72ch;">
+    <li><strong>CLI/TUI input</strong> — shell parsing (Windows quirks), typer args</li>
+    <li><strong>Agent Harness</strong> — Python imports, sys_ikigai path, OTel SDK</li>
+    <li><strong>v2 LangGraph</strong> — node wiring, OTel instrumentation</li>
+    <li><strong>MCP Server subprocess</strong> — stdio JSON-RPC handshake, PYTHONPATH, cwd shadow bug</li>
+    <li><strong>Tool handler</strong> — Pydantic validation, queue enqueue, action rejection (-32601)</li>
+    <li><strong>Mesh consumer worker</strong> — <strong>currently offline</strong>, so events never propagate to forks</li>
+  </ol>
+
+  <!-- ─── § 3 tools inventory ─── -->
+  <h2><span class="num">§3</span>Tool Surface · 22 Tools Across 3 Surfaces</h2>
+  <p>IKIGAI_TOOLS = 12 (canonical, drift-tested). Plus 7 fork MCP tools (Phase A SHIPPED 2026-08-30). Plus 3 mesh CRUD tools. Total 22 — all planner-side, no math/policy tools in the agent layer (ADR-013).</p>
+
+  <table class="state">
+    <thead>
+      <tr><th>Surface</th><th>Tool</th><th>Action</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="idx">12/12</td><td class="what">mcp_bridge.ikigai_X()</td><td>planner (9 tools)</td><td><span class="pill works">works</span></td></tr>
+      <tr><td class="idx">3/3</td><td class="what">tools_mesh.ikigai_task_create</td><td>CREATE</td><td><span class="pill works">works</span></td></tr>
+      <tr><td class="idx">0/3</td><td class="what">tools_mesh.ikigai_task_create</td><td>UPDATE</td><td><span class="pill gated">gated v1.2</span></td></tr>
+      <tr><td class="idx">0/3</td><td class="what">tools_mesh.ikigai_task_create</td><td>DELETE</td><td><span class="pill gated">gated v1.2</span></td></tr>
+      <tr><td class="idx">7/7</td><td class="what">tuiboard_create_task + 6 fork tools</td><td>MCP fork</td><td><span class="pill untested">untested</span></td></tr>
+      <tr><td class="idx">2/2</td><td class="what">investigation_enqueue/status/complete</td><td>MCP server</td><td><span class="pill partial">partial</span></td></tr>
+    </tbody>
+  </table>
+
+  <!-- ─── § 4 state of system ─── -->
+  <h2><span class="num">§4</span>State of the System · Honest Inventory</h2>
+  <p>O que foi <em>verificado funcionando</em> vs. <em>verificado quebrado</em> vs. <em>não testado</em>. Sem maquiagem.</p>
+
+  <table class="state">
+    <thead>
+      <tr><th>Index</th><th>What</th><th>How to invoke</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="idx">01</td>
+        <td class="what">v2 daily skill (1 LLM call)</td>
+        <td class="how"><code>python -m interfaces.cli v2 daily --json</code> · 32s with MiniMax proxy</td>
+        <td><span class="pill partial">partial</span></td>
+      </tr>
+      <tr>
+        <td class="idx">02</td>
+        <td class="what">v2 weekly skill (8 LLM calls)</td>
+        <td class="how">Same command, <code>weekly</code> · 3.6s · Regime: MAINTAIN</td>
+        <td><span class="pill partial">partial</span></td>
+      </tr>
+      <tr>
+        <td class="idx">03</td>
+        <td class="what">do_task_add (CLI slice)</td>
+        <td class="how">Writes to <code>data/tasks.jsonl</code> directly</td>
+        <td><span class="pill works">works</span></td>
+      </tr>
+      <tr>
+        <td class="idx">04</td>
+        <td class="what">mesh-show (cross-fork view)</td>
+        <td class="how">Reads from adapters · returns cli:null when worker offline</td>
+        <td><span class="pill partial">partial</span></td>
+      </tr>
+      <tr>
+        <td class="idx">05</td>
+        <td class="what">Agent consumer worker (queue drain)</td>
+        <td class="how">Async · NOT running by default</td>
+        <td><span class="pill broken">broken</span></td>
+      </tr>
+      <tr>
+        <td class="idx">06</td>
+        <td class="what">dcode --chat (interactive REPL)</td>
+        <td class="how">ModuleNotFoundError: sys_ikigai</td>
+        <td><span class="pill broken">broken</span></td>
+      </tr>
+      <tr>
+        <td class="idx">07</td>
+        <td class="what">ikigai.bat chat (canonical Windows entry)</td>
+        <td class="how">Same error + OTel missing</td>
+        <td><span class="pill broken">broken</span></td>
+      </tr>
+      <tr>
+        <td class="idx">08</td>
+        <td class="what">MCP server 'ikigai' in Claude Code</td>
+        <td class="how">Fixed to absolute python.exe · unverified</td>
+        <td><span class="pill partial">partial</span></td>
+      </tr>
+      <tr>
+        <td class="idx">09</td>
+        <td class="what">taskdog MCP (26 tools)</td>
+        <td class="how">Requires external :8000 server</td>
+        <td><span class="pill untested">untested</span></td>
+      </tr>
+      <tr>
+        <td class="idx">10</td>
+        <td class="what">vault_write (sole vault writer — ADR-012)</td>
+        <td class="how">MCP server · requires env-var override</td>
+        <td><span class="pill untested">untested</span></td>
+      </tr>
+      <tr>
+        <td class="idx">11</td>
+        <td class="what">Phase 3 v1.2 (update/delete/done actions)</td>
+        <td class="how">v1 scope = create only</td>
+        <td><span class="pill gated">gated</span></td>
+      </tr>
+      <tr>
+        <td class="idx">12</td>
+        <td class="what">v2 graph in langgraph.json</td>
+        <td class="how">Phase 8.1 added code · not registered as runtime</td>
+        <td><span class="pill gated">gated</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ─── § 5 root causes ─── -->
+  <h2><span class="num">§5</span>Root Causes · Why Nothing End-to-End Works</h2>
+  <p>O harness nunca foi exercitado como sistema completo. Cada smoke test isolado passou, mas a integração revela falhas estruturais que não são fix-by-tweak:</p>
+
+  <div class="callout">
+    <h4>Structural Blockers (need fixing, not tweaking)</h4>
+    <ul>
+      <li><strong>OTel version conflict in <code>pyproject.toml</code></strong> — <code>opentelemetry-instrumentation-langchain&gt;=0.42b0,&lt;0.43</code> vs. <code>opentelemetry-instrumentation-logging&gt;=0.48b0,&lt;0.49</code>. <code>uv sync</code> fails outright. The <code>--no-deps</code> workaround broke OTel observability → cascades into harness crash on import.</li>
+      <li><strong><code>src/ikigai/src/ikigai/</code> doesn't exist</strong> — package was renamed to <code>sys_ikigai/</code> in commit <code>685dec5</code>, but <code>pyproject.toml</code> still references <code>include = "ikigai"</code> in <code>packages</code>. Build fails on poetry, editable install skips the package.</li>
+      <li><strong>PYTHONPATH wrong in <code>ikigai.bat</code></strong> — assumes <code>src/ikigai/.venv</code> local; worktree layout has <code>.venv</code> at worktree root. Even after fixing, the bat doesn't include worktree root in PYTHONPATH so <code>from sys_ikigai.X</code> fails.</li>
+      <li><strong>Mesh consumer worker offline by default</strong> — no systemd / cron / daemon. Events pile up in <code>data/review_queue/</code> and never propagate to fork slices. <code>mesh-show</code> always returns null except for CLI.</li>
+      <li><strong>No integration tests</strong> — drift net (44/44 PASS) covers unit-level contracts only. No test exercises the path <code>user input → dcode → LLM → MCP tool → mesh → fork</code>.</li>
+    </ul>
+  </div>
+
+  <!-- ─── § 6 honest close ─── -->
+  <h2><span class="num">§6</span>Honest Close</h2>
+  <p>O trabalho de Phase 8.x + Phase 9.x + Phase 10.0 não foi em vão — cada subsystem individual é real. Mas "fully ready" foi vendido baseado em testes isolados, não em uso real. A promessa era integração; o que foi entregue foram peças.</p>
+
+  <p>Para chegar a um sistema de fato usável, três caminhos:</p>
+  <ol style="max-width:72ch;">
+    <li><strong>Consertar estruturalmente</strong> — resolver conflitos de versão OTel, atualizar <code>packages</code> list, corrigir bat, escrever um teste de integração end-to-end. Estimativa: meio dia.</li>
+    <li><strong>Rollback para estado conhecido-funcional</strong> — reverter os 3 commits desta sessão (Tier 5 wiring + dcode entry + .mcp.json fix) e voltar para o estado em <code>edc313e2</code>.</li>
+    <li><strong>Pausar</strong> — voltar amanhã com cabeça fria, ler este mapa antes de mexer.</li>
+  </ol>
+
+  <p style="margin-top:32px; padding:16px 20px; border-left:3px solid var(--accent); background:var(--ground-2); font-style:italic; color:var(--ink-2);">A lição mais importante: smoke test unitário não é prova de sistema funcionando. Cada vez que eu disse "shipped", eu deveria ter rodado o caminho completo primeiro. <strong>Não vou vender mais "fully ready" baseado em testes parciais.</strong></p>
+
+  <footer>
+    <div class="row">
+      <span>life-oss/life · loop/prod-ready @ 08dcd5b</span>
+      <span>2026-09-09 · pós-Tier 5 · honest review</span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
