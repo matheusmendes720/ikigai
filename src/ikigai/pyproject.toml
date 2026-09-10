@@ -46,6 +46,11 @@ ikigai-deep-agent = "agents.deepagents_harness:main"
 # in roadmap, planning docs, and user-facing copy. The CLI mirrors
 # ikigai-deep-agent exactly — same main() — so behavior is identical.
 dcode = "agents.dcode_cli:main"
+# Path 3 MCP server for taskdog (read-only per
+# docs/design-system/24-taskdog-paths-architecture.md). Subprocess-bound
+# FastMCP instance with 3 tools: taskdog_read, taskdog_list,
+# taskdog_supports_field. Wire in .mcp.json or external MCP client.
+ikigai-taskdog-mcp = "mcp_server.__main__taskdog:main"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
