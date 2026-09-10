@@ -390,6 +390,12 @@ _taskdog_cb_config = CircuitBreakerConfig(
 def taskdog_list_tasks(status: str | None = None, include_archived: bool = False) -> str:
     """List tasks from taskdog.
 
+    B5 fix 2026-09-10: reads SQLite DB directly via TaskdogAdapter.
+    The old subprocess path (taskdog.exe list) required an HTTP server
+    on :8000 that doesn't ship with taskdog binary. The MCP Path 3
+    server uses the same direct-DB read pattern — we adopt it here
+    so the agent tool works without an HTTP shim.
+
     Args:
         status: Filter by status (pending, done). Optional.
         include_archived: Include archived tasks. Defaults to False.
@@ -398,21 +404,16 @@ def taskdog_list_tasks(status: str | None = None, include_archived: bool = False
         Formatted task list or error message.
     """
     try:
-        args = [_TASKDOG_CLI, "list"]
+        # Lazy import to avoid load-time cycle (tools → mesh → agents)
+        from src.mesh.adapters.taskdog import TaskdogAdapter
+
+        adapter = TaskdogAdapter()
+        tasks = adapter.list_all()
         if status:
-            args.extend(["--status", status])
-        if include_archived:
-            args.append("--all")
-        result = subprocess.run(args, capture_output=True, text=True, timeout=30)
-        if result.returncode != 0:
-            raise ConnectionError(f"taskdog error: {result.stderr}")
-        return result.stdout
-    except FileNotFoundError as e:
-        # Binary missing — return friendly message instead of crashing agent.invoke().
-        return f"⚠️ taskdog unavailable (binary not found): {e}"
-    except (subprocess.TimeoutExpired, ConnectionError, OSError):
-        invalidate_session_cache("taskdog")
-        raise
+            tasks = [t for t in tasks if t.get("status") == status]
+        if not include_archived:
+            tasks = [t for t in tasks if t.get("status") != "archived"]
+        return json.dumps({"tasks": tasks, "total_count": len(tasks)}, default=str)
     except Exception as e:
         return f"⚠️ taskdog unavailable: {e}"
 

@@ -228,10 +228,44 @@ DEFAULT_PIDFILE = (
 
 def _build_adapters() -> list[ForkAdapter]:
     """Default adapter list for the worker (same as `interfaces/cli/server.py` registry)."""
+    # Lazy imports — these paths need the worktree root on sys.path.
+    # `python -m src.mesh.review_queue_worker run-once` should be invoked
+    # with PYTHONPATH=<worktree>;<worktree>/src set, or from the worktree
+    # root directory. The CLI wrapper in interfaces/cli/ handles this.
     from mesh.adapters import CliAdapter, TaskdogAdapter
     from mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
 
     return [CliAdapter(), TaskdogAdapter(), SolverforgeCalendarAdapter()]
+
+
+# === B5 fix 2026-09-10: CLI entrypoint path fix ===
+#
+# When invoked as `python -m src.mesh.review_queue_worker ...`, the
+# worker's import of `mesh.X` (bare namespace, no `src.` prefix)
+# requires the worktree ROOT on sys.path. Python's runpy puts the
+# current dir on sys.path by default, which is <worktree>/src/mesh/ —
+# wrong. This helper bootstraps sys.path before any mesh imports happen.
+def _bootstrap_sys_path() -> None:
+    """Ensure worktree root and src/ are on sys.path for bare-namespace imports.
+
+    Idempotent. Safe to call multiple times.
+    """
+    import sys
+    from pathlib import Path
+
+    module_path = Path(__file__).resolve()
+    # src/mesh/review_queue_worker.py → <worktree>/src/mesh/ → <worktree>/src/ → <worktree>/
+    worktree_src = module_path.parents[2]  # <worktree>/src/
+    worktree_root = module_path.parents[3]  # <worktree>/
+
+    for path in (str(worktree_root), str(worktree_src)):
+        if path not in sys.path:
+            sys.path.insert(0, path)
+
+
+# Bootstrap on import so `python -m src.mesh.review_queue_worker ...`
+# works regardless of cwd or explicit PYTHONPATH.
+_bootstrap_sys_path()
 
 
 def _cli() -> int:
