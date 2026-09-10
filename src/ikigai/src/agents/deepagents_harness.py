@@ -385,17 +385,63 @@ def _msg_content(msg: Any) -> Any:
 def _extract_assistant_text(result: dict[str, Any]) -> str:
     """Pull the last AI message content from a deepagents invoke result.
 
-    Returns the content of the last assistant-role message as a string.
-    If content is structured (a list of blocks), coerces via str() — the
-    detail of structured-content rendering is deferred (per spec B7.3).
+    UX 2026-09-10: previously returned raw str(content) which produced
+    the ugly [dict, dict, ...] output. Now handles structured content
+    (list of blocks): thinking blocks collapsed to a single line at
+    the top, text blocks rendered as-is. Production-quality output.
     """
     messages = result.get("messages", [])
     for msg in reversed(messages):
         role = _msg_role(msg)
         if role in ("assistant", "ai"):
             content = _msg_content(msg)
-            return content if isinstance(content, str) else str(content)
+            return _format_message_content(content)
     return ""
+
+
+def _format_message_content(content: Any) -> str:
+    """Format agent message content for production-quality REPL output.
+
+    - str: returned as-is.
+    - list of blocks: thinking collapsed to "[thinking: ...]" prefix line,
+      text blocks rendered as-is.
+    - dict: rendered as key: value lines.
+    - other: str(content).
+    """
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, list):
+        lines: list[str] = []
+        thinking_parts: list[str] = []
+        for block in content:
+            if not isinstance(block, dict):
+                lines.append(str(block))
+                continue
+            btype = block.get("type", "")
+            if btype == "thinking":
+                think_text = block.get("thinking", "") or block.get("text", "")
+                if think_text:
+                    thinking_parts.append(think_text)
+            elif btype == "text":
+                txt = block.get("text", "")
+                if txt:
+                    lines.append(txt)
+            else:
+                txt = block.get("text", "") or str(block)
+                if txt:
+                    lines.append(txt)
+        if thinking_parts:
+            joined = " ".join(p.strip() for p in thinking_parts)
+            if len(joined) > 200:
+                joined = joined[:197] + "..."
+            return f"[thinking: {joined}]\n\n" + "\n".join(lines) if lines else f"[thinking: {joined}]"
+        return "\n".join(lines)
+
+    if isinstance(content, dict):
+        return "\n".join(f"  {k}: {v}" for k, v in content.items())
+
+    return str(content)
 
 
 # Per docs/superpowers/specs/2026-08-29-algorithm-attribution-design.md:
