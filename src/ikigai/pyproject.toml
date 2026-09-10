@@ -78,13 +78,11 @@ build-backend = "poetry.core.masonry.api"
 [dependency-groups]
 dev = [
     "types-pyyaml>=6.0.12.20260815",
-    # Upstream LangChain Deep Agents Code CLI — pinned to v0.1.63
-    # (UX 2026-09-10). Installed in THIS worktree venv (NOT globally)
-    # so 'dcode' command in this project is bound to the known-working
-    # version. Our harness uses 'ikigai-chat' as the explicit name.
-    # The global Python user install (Python314) should NOT have
-    # deepagents-code — keep them separate.
-    "deepagents-code==0.1.63",
+    # NOTE (UX 2026-09-10): 'dcode' (LangChain Deep Agents CLI) was REMOVED
+    # from this project. User reported BlockingError on Windows and
+    # declared upstream integration too complex. Our IKIGAI v2 harness
+    # uses 'ikigai-chat' exclusively. To experiment with upstream dcode
+    # later: 'uvx --from deepagents-code@latest dcode' (separated).
 ]
 
 [tool.ruff]
