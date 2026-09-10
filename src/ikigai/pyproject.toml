@@ -52,14 +52,16 @@ click = "<8.2"
 ikigai-maintainer-mcp = "run_mcp_server:main"
 ikigai-deep-agent = "agents.deepagents_harness:main"
 ikigai-taskdog-mcp = "mcp_server.__main__taskdog:main"
-# `ikigai-chat` is the canonical CLI for the IKIGAi Deep Agent harness
-# (UX 2026-09-10: `dcode` belongs to the upstream LangChain deep agents
-# CLI per https://docs.langchain.com/oss/deepagents/code/overview. Our
-# harness uses `ikigai-chat` to avoid shadowing the canonical CLI.)
-# Per project convention, the harness is referred to as "dcode" (deep
-# code) in roadmap/planning docs — but the installable CLI is
-# `ikigai-chat` to avoid collisions with other agent runtimes.
-# Mirrors ikigai-deep-agent exactly — same main().
+# `dcode` is the canonical CLI name for the IKIGAI v2 deep agent harness.
+# UX 2026-09-10: re-added after global dcode collision debate. User wants
+# 'dcode' to invoke OUR harness (not upstream LangChain CLI). Upstream
+# `deepagents-code` is NOT a dependency of this project — install via
+# `uvx --from deepagents-code@latest dcode` if you want to test
+# upstream without affecting this project.
+#
+# `ikigai-chat` is a secondary alias (kept for scripts that prefer the
+# explicit name). Both invoke the same main().
+dcode = "agents.dcode_cli:main"
 ikigai-chat = "agents.dcode_cli:main"
 # Path 3 MCP server for taskdog (read-only per
 # docs/design-system/24-taskdog-paths-architecture.md). Subprocess-bound
@@ -81,15 +83,13 @@ build-backend = "poetry.core.masonry.api"
 [dependency-groups]
 dev = [
     "types-pyyaml>=6.0.12.20260815",
-    # Upstream LangChain Deep Agents Code CLI — pinned to v0.1.63 (UX
-    # 2026-09-10). The global Python user install carries the latest
-    # version for testing; our worktree venv pins v0.1.63 which was
-    # confirmed working on Windows before the BlockingError regression
-    # in v0.1.68 (https://github.com/langchain-ai/deepagents/issues/5801).
-    # Per https://docs.langchain.com/oss/deepagents/code/overview, this
-    # CLI loads AGENTS.md from cwd as project context. Our custom
-    # subagent lives at .deepagents/agents/ikigai-planner/AGENTS.md.
-    "deepagents-code==0.1.63",
+    # NOTE (UX 2026-09-10): 'dcode' here means OUR IKIGAI v2 harness
+    # (`agents.dcode_cli:main`), NOT the upstream LangChain CLI. We do NOT
+    # depend on `deepagents-code` directly — the upstream is installed
+    # globally via Python314 and shadows our `.venv/Scripts/dcode.exe`
+    # when PATH is in upstream-first order. Keep your PATH ordered so
+    # `.venv/Scripts/` is first (install.ps1 does this) and `dcode` will
+    # resolve to our harness.
 ]
 
 [tool.ruff]
