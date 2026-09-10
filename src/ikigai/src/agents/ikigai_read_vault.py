@@ -31,13 +31,15 @@ def ikigai_read_vault(vault_path: str) -> str:
     """Read a markdown file from vault. Returns JSON with frontmatter, body, sha256, mtime.
 
     Args:
-        vault_path: relative path within vault/, e.g. "plans/q3/task-x.md"
+        vault_path: relative path WITHIN vault/, ending in .md
+                    e.g. "plans/q3/task-x.md" or "ikigai/meta/index.md"
+                    NOT a directory path (e.g. "ikigai/meta" is WRONG).
 
     Read-only — never writes. Errors are returned as JSON for downstream parsing.
     """
     try:
         result = vault_read(_get_vault_dir(), vault_path)
-    except (ValueError, FileNotFoundError) as e:
+    except (ValueError, FileNotFoundError, IsADirectoryError) as e:
         return json.dumps({"error": str(e), "vault_path": vault_path})
     return json.dumps(result)
 
