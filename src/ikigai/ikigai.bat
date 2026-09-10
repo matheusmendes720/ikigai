@@ -2,15 +2,31 @@
 setlocal
 
 set "IKIGAI_ROOT=%~dp0"
-REM Both the poetry-src layout (ikigai/mcp_server/agents/...) AND the
-REM sibling packages (contracts, mesh) live at ..\..\src (life/src).
-set "PYTHONPATH=%IKIGAI_ROOT%..\..\..\;%IKIGAI_ROOT%src;%IKIGAI_ROOT%..\..\src"
+REM 3 entries for 3 import styles:
+REM   1. <worktree>/          — for `from src.contracts.X` (dotted-prefix)
+REM                              AND `from sys_ikigai.X` (bare-namespace,
+REM                              sys_ikigai/ lives at worktree root after the
+REM                              2026-09-05 rename per CLAUDE.md memory)
+REM   2. <worktree>/src/ikigai/src/ — for `from mcp_server.X`, `from agents.X`
+REM                                 (inner src dir where the packages live)
+REM   3. <worktree>/src/      — for bare `from contracts.X`, `from mesh.X`
+REM                              (legacy bare-namespace for sibling packages)
+REM P0-C 2026-09-10: simplified to drop the wrong entry #3 (was the same
+REM as #1 — duplicate). Now PYTHONPATH is just 2 entries.
+set "PYTHONPATH=%IKIGAI_ROOT%..\..\..\;%IKIGAI_ROOT%src"
 
 cd /d "%IKIGAI_ROOT%"
 
-REM Prefer project-local .venv; fall back to system python (if on PATH).
+REM Prefer project-local .venv; fall back to parent .venv (worktree root) then system python.
 set "PYTHON="
 if exist "%IKIGAI_ROOT%.venv\Scripts\python.exe" set "PYTHON=%IKIGAI_ROOT%.venv\Scripts\python.exe"
+if "%PYTHON%"=="" (
+    REM Phase 10.0: worktree layout has venv at <worktree>/.venv, not at src/ikigai/.venv.
+    REM Walk up from IKIGAI_ROOT (src/ikigai) to find a sibling .venv.
+    for %%P in ("%IKIGAI_ROOT%..\..\.venv\Scripts\python.exe") do (
+        if exist "%%~P" set "PYTHON=%%~P"
+    )
+)
 if "%PYTHON%"=="" (
     where python >nul 2>&1 && set "PYTHON=python"
 )
