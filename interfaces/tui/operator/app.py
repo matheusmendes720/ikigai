@@ -43,6 +43,9 @@ from interfaces.tui.operator._kill_switch_tab import (
     banner_widget,
 )
 
+# 2026-09-10 — Chat tab (was missing despite CLAUDE.md advertising it)
+from interfaces.tui.operator._chat_tab import ChatTab
+
 
 class SummaryPanel(Static):
     """Top-of-screen summary banner (one line per metric)."""
@@ -95,6 +98,7 @@ class OperatorApp(App):
         Binding("4", "show_queue", "Queue"),
         Binding("5", "show_kill_switch", "KillSwitch"),
         Binding("6", "show_skills", "Skills"),
+        Binding("7", "show_chat", "Chat"),
         Binding("d", "drilldown_queue", "Detail"),
         Binding("r", "refresh", "Refresh"),
         Binding("q", "quit", "Quit"),
@@ -145,6 +149,11 @@ class OperatorApp(App):
         self.active_tab = "skills"
         self._render_skills()
 
+    # 2026-09-10 — 7th tab (Chat) action
+    def action_show_chat(self) -> None:
+        self.active_tab = "chat"
+        self._render_chat()
+
     def _non_task_refresh(self) -> None:
         """Refresh non-task tabs (called every 5s)."""
         if self.active_tab == "adapters":
@@ -157,6 +166,9 @@ class OperatorApp(App):
             self._render_kill_switch()
         elif self.active_tab == "skills":
             self._render_skills()
+        # NOTE: chat tab is excluded from auto-refresh — re-rendering
+        # would destroy the user's in-progress conversation + input state.
+        # User explicitly switches with `7` key.
 
         # W5.3 — banner must update whenever the auto-refresh fires,
         # regardless of which tab is showing (per design §4.4).
@@ -506,6 +518,18 @@ class OperatorApp(App):
                 key=row.name,
             )
         content.mount(table)
+
+    # 2026-09-10 — 7th tab (Chat) — interactive agent invocation.
+    # Mounts the ChatTab widget inside the content area; the widget
+    # owns its own Input + RichLog and handles agent.invoke() on submit.
+    def _render_chat(self) -> None:
+        content = self.query_one("#content", Container)
+        content.remove_children()
+        self._mount_banner(content)
+
+        # Re-mount the ChatTab. Each tab switch destroys + recreates
+        # the widget so the input gets fresh focus + the log is clean.
+        content.mount(ChatTab())
 
 
 def _format_started_at(mtime: float) -> str:

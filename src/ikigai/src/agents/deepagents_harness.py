@@ -253,7 +253,9 @@ def _make_agent(
 def main() -> None:
     import argparse
 
-    parser = argparse.ArgumentParser(description="IKIGAi Deep Agent (deepagents-powered)")
+    parser = argparse.ArgumentParser(
+        description="IKIGAi Deep Agent (deepagents-powered). Run with no args to start chat REPL."
+    )
     parser.add_argument("--thread", default=_THREAD_ID, help="Thread ID for checkpointing")
     parser.add_argument("--checkpoint-db", default=_CHECKPOINT_DB, help="SQLite checkpoint DB path")
     parser.add_argument(
@@ -264,14 +266,36 @@ def main() -> None:
     parser.add_argument(
         "--chat",
         action="store_true",
-        help="Start interactive REPL chat mode",
+        default=True,  # UX 2026-09-10: `dcode` with no flags now starts chat (was print_help)
+        help="Start interactive REPL chat mode (default behavior when no flags given)",
+    )
+    parser.add_argument(
+        "--no-chat",
+        dest="chat",
+        action="store_false",
+        help="Print help and exit (suppress default chat REPL)",
+    )
+    parser.add_argument(
+        "--prompt", "-p",
+        help="Single prompt to send through the agent, then exit (non-interactive)",
     )
     args = parser.parse_args()
 
-    # Only --chat needs the full deepagents-backed LangGraph agent.
-    # Algorithm-execution CLI paths (--list-checkpoints, --run-cycle,
-    # default one-shot mode) were STRIPPED 2026-08-31 along with their
-    # @tool bindings in tools.py. Use the MCP interface instead.
+    # --prompt overrides --chat: one-shot mode for scripting/CI.
+    # UX 2026-09-10: `dcode --prompt "..."` runs a single agent invocation,
+    # prints the response, exits. Useful for shell pipelines + integration tests.
+    if args.prompt:
+        agent, agent_thread_id = _make_agent(
+            thread_id=args.thread,
+            checkpoint_db=args.checkpoint_db,
+            human_in_the_loop=args.human_in_the_loop,
+        )
+        _run_one_shot(agent, args.prompt)
+        return
+
+    # Default: chat REPL. Algorithm-execution CLI paths (--list-checkpoints,
+    # --run-cycle) were STRIPPED 2026-08-31 along with their @tool bindings
+    # in tools.py. Use the MCP interface instead.
     if not args.chat:
         parser.print_help()
         return
@@ -282,6 +306,53 @@ def main() -> None:
         human_in_the_loop=args.human_in_the_loop,
     )
     run_chat(agent, agent_thread_id)
+
+
+def _run_one_shot(agent: Any, prompt: str) -> None:
+    """Single agent invocation — UX 2026-09-10: enables `dcode --prompt "..."` one-shot mode.
+
+    Mirrors the inner half of run_chat (read → dispatch → invoke → render)
+    but exits after one turn instead of looping. Used for shell scripting
+    and integration tests where the agent should answer once and quit.
+
+    Reads the last AI message content from the invoke result and prints
+    it to stdout. Errors go to stderr with non-zero exit code so callers
+    can detect failure (`if dcode --prompt "..."; then ...`).
+    """
+    try:
+        result = agent.invoke({"messages": [{"role": "user", "content": prompt}]})
+    except Exception as e:
+        print(f"ERROR: agent.invoke failed: {type(e).__name__}: {e}", flush=True)
+        raise SystemExit(1) from e
+
+    # Extract last AI message (same logic as run_chat's _extract_assistant_text)
+    messages = result.get("messages", []) if isinstance(result, dict) else []
+    if not messages:
+        print("(no response)", flush=True)
+        return
+
+    last_ai = None
+    for msg in reversed(messages):
+        role = _msg_role(msg)
+        if role == "ai" or role == "assistant":
+            last_ai = msg
+            break
+
+    if last_ai is None:
+        print("(no AI response in thread)", flush=True)
+        return
+
+    content = _msg_content(last_ai)
+    if isinstance(content, list):
+        # Structured content — join text blocks
+        text_blocks = [
+            b.get("text", "")
+            for b in content
+            if isinstance(b, dict) and b.get("type") == "text"
+        ]
+        print("\n".join(text_blocks), flush=True)
+    else:
+        print(str(content), flush=True)
 
 
 # ---------------------------------------------------------------------------
