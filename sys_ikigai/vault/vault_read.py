@@ -50,6 +50,17 @@ def vault_read(vault_root: Path, vault_path: str) -> dict[str, Any]:
     if not target.exists():
         raise FileNotFoundError(f"vault file not found: {vault_path!r}")
 
+    # B7.3 UX fix 2026-09-10: detect directory case explicitly.
+    # LLM agents commonly pass directory paths (e.g. "ikigai/meta") thinking
+    # they list contents, but vault_read is file-only. Returning a
+    # PermissionError on a directory is confusing — surface it clearly.
+    if target.is_dir():
+        raise IsADirectoryError(
+            f"vault_path {vault_path!r} is a directory, not a markdown file. "
+            f"vault_read requires a file path ending in .md — e.g. "
+            f"'ikigai/meta/index.md', not 'ikigai/meta'."
+        )
+
     lock_path = vault_root / ".vault.lock"
     with VaultLock(lock_path):
         # frontmatter.loads() parses both frontmatter (YAML) and body
