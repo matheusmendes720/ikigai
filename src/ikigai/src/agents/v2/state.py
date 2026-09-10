@@ -124,6 +124,20 @@ class IKIGAiStateDict(TypedDict):
     # ---- Optional state --------------------------------------
     last_step: NotRequired[str]
 
+    # ---- v2 node input channels (B2 fix 2026-09-10) -----------------
+    # These fields are what individual nodes READ via state.get(...).
+    # They were missing from the schema before B2 fix, causing nodes
+    # to silently default to empty values (state.get() returns None
+    # or the default fallback) and the graph to produce no useful
+    # output. Adding them as NotRequired preserves the optional
+    # semantics while making the data flow explicit.
+    date: NotRequired[str]  # observe_node reads this; falls back to today
+    vectors: NotRequired[list[float]]  # score_vectors_node reads this
+    context: NotRequired[dict[str, Any]]  # heuristics_node reads this
+    load: NotRequired[float]  # balance_node reads this
+    task_id: NotRequired[str | None]  # decompose_node reads this
+    ueid: NotRequired[str | None]  # tag_and_persist_node reads this
+
     # Regime FSM (H1)
     regime_state: NotRequired[REGIME_STATES]
     q_he_score: NotRequired[float]
@@ -165,7 +179,8 @@ class IKIGAiStateDict(TypedDict):
     kill_switch_triggered: NotRequired[bool]
     terminated: NotRequired[bool]
 
-    # Error channel
+    # Error channel — B2 fix: nodes write errors here via operator.add
+    error_channel: NotRequired[Annotated[list[str], operator.add]]
     originating_node: NotRequired[str]
     error_type: NotRequired[str]
     error_message: NotRequired[str]
