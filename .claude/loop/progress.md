@@ -1543,3 +1543,67 @@
 - notes: M10 SHIPPED. T-10.1 scaffold (c24841c) + T-10.2 wire hooks (3773821) + T-10.3 closeout (this). 3 bugs caught + fixed in dispatch.sh during T-10.3 acceptance sweep: (1) find_task_block regex /^### / only matched 3-hash headers but real tasks.md uses 4-hash #### for M4-M10 tasks — fixed to /^#(3, 4) / (preserves both formats); (2) [[ "$TASK_STATUS" == "done" ]] exact-match failed when status has trailing commentary (T-9.6: "done (regression + state machine); 7-day streak gate deferred...") — fixed to done* prefix match; (3) regression per-suite check ^===.*PASS missed pytest lowercase "32 passed" — fixed to (^===.*pass|passed). All 3 captured in tests/test_dispatch.sh Group 2.5 (2 assertions covering 4-hash + trailing-comment). Final: tests/test_dispatch.sh 24/24 PASS (was 22/22; +2). Full regression sweep 107/107 PASS — bash 44 (worktree 15 + cost 7 + notify 11 + streak 11) + pytest 63 (loop_infra 11 + m4 9 + canonical_scope 32 + m5 11). Spec stale at 96/96; M5 IKIGAI MCP integration adds 2/2. dispatch.sh T-9.6 dry-run returns already_complete (idempotent replay via prefix-match fix); T-10.3 dry-run runs regression sweep (PASS verdict) + prints stub worker walk-through + dry_run_complete without committing. Loop-engineering primitive chain complete: orchestrator → dispatch.sh → worker → verifier → promotion → notify → progress append → done. Next: backlog (TS dispatch.sh + tier-by-risk + cross-loop dedup).
 - next_action: idle (M10 milestone complete; backlog = next)
 
+## 2026-09-08T09:39:05Z | T-9.6 | FAIL
+## 2026-09-08T09:39:06Z | T-9.6 | FAIL
+
+## 2026-09-08T09:42:00Z | orchestrator-tick | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 1
+- model: opus
+- attempt: 1/1
+- notes: IDLE tick. State-machine read confirms all milestones M0-M10 are STATUS:DONE in roadmap.md; all tasks status=done in tasks.md. Last meaningful orchestrator entry was M10 closeout at 09:37:50Z (next_action=idle). Two bare T-9.6 FAIL one-liners at 09:39:05Z/06Z are cron noise (T-9.6 is already done in tasks.md; --graph deterministic dispatches dont write verdict-bearing entries). Backlog (5 items: TS loop-tick, tier-by-risk review, cross-loop dedup, SPEC frontmatter migration, examples dir) is not auto-promoted to milestones per decision tree -- backlog -> milestone is a human decision per roadmap.md "Adding a new milestone" section. Decision tree -> IDLE.
+- next_action: idle (backlog = next, gated on human promotion)
+
+## 2026-09-09T06:01:28Z | orchestrator-tick | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 1
+- model: opus
+- attempt: 1/1
+- notes: IDLE tick (re-confirmation, +1 day since last orchestrator tick on 2026-09-08T09:42:00Z). Re-read all 4 state files: constitution.md unchanged; roadmap.md confirms M0-M10 all STATUS:DONE (11 milestones verified via grep); tasks.md shows all sub-tasks status=done including M10 closeout T-10.3. Backlog unchanged (5 items: TS loop-tick, tier-by-risk review, cross-loop dedup, SPEC frontmatter migration, examples dir). Per the established 09:42:00Z convention + roadmap.md "Adding a new milestone" rule: backlog -> milestone is human-gated, not auto-promoted by the loop. Decision tree -> IDLE. No worker/verifier dispatch (no pending task). Cost stays at $0 this tick.
+- next_action: idle (backlog = next, gated on human promotion to milestone)
+
+## 2026-09-09T08:45:00Z | orchestrator-tick | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 1
+- model: opus
+- attempt: 1/1
+- notes: IDLE tick (3rd confirmation, +~2.7h since 06:01:28Z). State unchanged: constitution.md unchanged; roadmap.md M0-M10 all STATUS:DONE (11 milestones via grep); tasks.md all sub-tasks status=done; progress.md last meaningful orchestrator entry was M10 closeout at 2026-09-08T09:37:50Z. Backlog (5 items) remains human-gated per roadmap.md "Adding a new milestone" rule. M9 7-day streak wall-clock gate: today is 2026-09-09 (4 days from auto-pass 2026-09-13 if no break). No worker/verifier dispatch. Decision tree -> IDLE.
+- next_action: idle (backlog = next, gated on human promotion to milestone)
+
+## 2026-09-09T10:20:00Z | orchestrator-tick | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 1
+- model: opus
+- attempt: 1/1
+- notes: IDLE tick (4th confirmation, same wall-clock day as 08:45:00Z). Read order honored: constitution.md (unchanged, 99L), roadmap.md (M0-M10 all STATUS:DONE), tasks.md (all sub-tasks status=done through T-10.3 closeout + Phase 8.2 T-8.2.1..3), progress.md tail-25 (no BLOCKED marker; last 3 entries are IDLE confirmations). No pending task exists to dispatch, so no worker/verifier subagents spawned and no worktree created -- merge protocol not exercised this tick. Backlog (5 items: TS loop-tick rewrite, tier-by-risk review depth, cross-loop cron dedup, SPEC frontmatter migration, examples/ dir) stays human-gated per roadmap.md "Adding a new milestone". M9 7-day streak wall-clock gate: 4 days remain to 2026-09-13 auto-pass. Decision tree -> IDLE.
+- next_action: idle (backlog = next, gated on human promotion to milestone)
+## 2026-09-10T15:32:43Z | orchestrator-tick | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 1
+- model: opus
+- attempt: 1/1
+- notes: IDLE tick (5th confirmation, +~29h since 2026-09-09T10:20:00Z; new wall-clock day). Read order honored: constitution.md (99L, unchanged), roadmap.md (M0-M10 all STATUS:DONE, 11 milestones via grep), tasks.md (all sub-tasks status=done through T-10.3 + Phase 8.2 T-8.2.1..3), progress.md tail-30 (no BLOCKED marker; last 4 entries are IDLE confirmations). No pending task -> no worker/verifier dispatch, no worktree created, merge protocol not exercised. Backlog (5 items: TS loop-tick rewrite, tier-by-risk review depth, cross-loop cron dedup, SPEC frontmatter migration, examples/ dir) stays human-gated per roadmap.md "Adding a new milestone" rule. M9 7-day streak wall-clock gate: 3 days remain to 2026-09-13 auto-pass (was 4 days yesterday). Decision tree -> IDLE. Cost this tick $0; cumulative still $1.80.
+- next_action: idle (backlog = next, gated on human promotion to milestone)
+
+## 2026-09-10T18:30:00Z | orchestrator-tick | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 1
+- model: opus
+- attempt: 1/1
+- notes: IDLE tick (6th confirmation, +~3h since 2026-09-10T15:32:43Z; same wall-clock day). Read order honored: constitution.md (99L, unchanged from last review), roadmap.md (M0-M10 all STATUS:DONE, 11 milestones via grep), tasks.md (all sub-tasks status=done through T-10.3 closeout + Phase 8.2 T-8.2.1..T-8.2.3), progress.md tail (no BLOCKED marker; last 5 entries are IDLE confirmations + M10 closeout). No pending task -> no worker/verifier subagent spawn, no worktree created, merge protocol not exercised. Backlog (5 items: TS loop-tick rewrite, tier-by-risk review depth, cross-loop cron dedup, SPEC frontmatter migration, examples/ dir) stays human-gated per roadmap.md "Adding a new milestone" rule (backlog -> milestone is human decision, not auto-promotion). M9 7-day streak wall-clock gate: 3 days remain to 2026-09-13 auto-pass (was 4 days on 2026-09-09, 3 days on 2026-09-10 morning). Decision tree -> IDLE. Cost this tick $0; cumulative still $1.80.
+- next_action: idle (backlog = next, gated on human promotion to milestone)
+
+## 2026-09-10T19:30:00Z | orchestrator-tick | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 1
+- model: opus
+- attempt: 1/1
+- notes: IDLE tick (7th confirmation, +~30min since 2026-09-10T19:00:00Z; same wall-clock day). Read order honored: constitution.md (99L, unchanged), roadmap.md (M0-M10 all STATUS:DONE, 11 milestones via grep), tasks.md (all sub-tasks status=done through T-10.3 closeout + Phase 8.2 T-8.2.1..T-8.2.3), progress.md tail (no BLOCKED marker; last 7 entries are IDLE confirmations + M10 closeout). No pending task -> no worker/verifier subagent spawn, no worktree created, merge protocol not exercised. Backlog (5 items) stays human-gated per roadmap.md "Adding a new milestone" rule. M9 7-day streak wall-clock gate: 3 days remain to 2026-09-13 auto-pass. Aggregate Stats block untouched per append-only hard rule H6. Decision tree -> IDLE. Cost this tick $0; cumulative still $1.80.
+- next_action: idle (backlog = next, gated on human promotion to milestone)

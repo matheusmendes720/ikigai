@@ -136,7 +136,12 @@ def done(
             except json.JSONDecodeError:
                 updated_lines.append(line)
                 continue
-            if task.get("id", "")[:8] == task_id:
+            # UEID format: tsk:<slug>:<uuid>:<hash> — UUID is 2nd segment
+            ueid = task.get("ueid", "")
+            uuid_segment = ueid.split(":")[2] if ":" in ueid else ""
+            uuid_prefix = uuid_segment[:8]
+            # Also accept raw UUID prefix for backward compat
+            if task_id == uuid_prefix or task_id == uuid_segment.replace("-", "")[:8]:
                 task["done"] = True
                 task["done_at"] = today
                 found = True

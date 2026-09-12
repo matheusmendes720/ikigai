@@ -26,6 +26,92 @@ Guidance for coding agents (Codex, Claude Code, Hermes, GitNexus) working in thi
 | `diagrams/` | — | Mermaid source + PNGs |
 | `langgraph.json` + root `Makefile` | — | Hosts 6 LangGraph graphs on `langgraph dev` (port 2024) |
 
+## `td` Alias Conflict — Investigation Report (2026-09-05)
+
+**Symptom (user side):** `td` alias global no PATH do terminal → `Server connection failed: ConnectError. Press 'r' to retry.` — o daemon/servidor não está rodando.
+
+**Critical finding:** O `td` no PATH do usuário **NÃO** vem deste repositório. É um binário independente (provavelmente em `~/bin/`, `~/.local/bin/`, ou instalado via package manager). Este projeto **não declara `td` em nenhum `pyproject.toml`** (`grep` por `"td"` em todos os manifests = 0 matches; nenhum `[project.scripts]` define entry point `td`).
+
+### Diferença arquitetural — `td` externo vs. taskdog deste projeto
+
+| Aspecto | `td` (PATH do terminal) | `taskdog` deste projeto |
+|---|---|---|
+| Tipo | Binário/servidor standalone (cliente ↔ daemon) | Biblioteca Python (`src/mesh/adapters/taskdog.py`) |
+| Conexão | Cliente → servidor MCP/daemon (precisa processo ativo) | Acesso direto a SQLite (sem rede, sem daemon) |
+| Persistência | DB interno do `td` (path desconhecido) | `data/taskdog/tasks.db` (caminho hard-coded no adapter) |
+| Erro típico | `ConnectError` quando daemon está down | `FileNotFoundError` quando DB não existe |
+| Estado no repo | Ausente | Adapter presente; DB **ausente em `master`**, **presente em `.worktrees/loop-prod-ready/data/taskdog/tasks.db`** (1 task seed) |
+| Submódulo git | — | `.git/modules/taskdog` (branch `main`) — check separadamente |
+
+### Estado atual incompleto do projeto
+
+1. **Master branch**: `data/taskdog/` não existe → adapter retorna `None` em `read()` e `[]` em `list_all()`. Não há DB bootstrap automático fora do `apply_change()` (que cria a tabela no momento de escrita).
+2. **Worktree `loop-prod-ready`**: DB existe com 1 task (`tsk:agent-bridge-crud-smoke:abcdef12-...`). É o "ambiente de verdade".
+3. **`centrals/task.py`** (Typer central): usa `TASK_BIN = "task"` (Taskwarrior) — **não** usa o taskdog adapter. O taskdog só é consumido via mesh layer (`src/mesh/`).
+4. **Não há wrapper `td` no projeto**: o `life` CLI é invocado via `python -m life.cli ...` ou console script `life`. Nenhum entry point `td` exposto.
+
+### Por que a duplicata existe
+
+O usuário instalou um `td` global (provavelmente um cliente/servidor de task management genérico, talvez de outro projeto, talvez via `cargo install`, `pip install`, ou `npm install -g`). Ele **não tem relação** com o adapter `TaskdogAdapter` deste projeto — só compartilha o nome.
+
+### Princípio (do usuário, explícito): "este projeto É o app de dia a dia"
+
+> "sempre que eu quiser chamar um alias global, deve ser aqui deste projeto, que estou desenvolvendo pra usar no dia a dia. Não um app genérico qualquer."
+
+**Implicação operacional para agentes neste repo:**
+- **Não instalar `td` global**, **não criar wrapper `td` que aponta para `life` CLI** a menos que o usuário peça explicitamente — o `td` global é decisão dele.
+- Quando o usuário quiser "chamar o taskdog daqui", o caminho é via **CLI do projeto**: `python -m life.cli mesh show <ueid>` (read) ou `python -m life.cli task add <ueid> ...` (write via mesh review queue).
+- Se o usuário quiser **resolver a duplicata** (desinstalar o `td` global e usar só este projeto), as opções são:
+  1. **Remover o `td` global** do PATH (uninstall via package manager ou `rm` do binário) e expor um shim `td` local que invoca `python -m life.cli` com sub-comandos apropriados.
+  2. **Wrapper em `~/bin/td`** com shebang que delega ao `life` CLI do repo (`python -m life.cli task ...` ou `python -m life.cli mesh show ...`). Cria o "alias" sem alterar o projeto.
+  3. **Adicionar console script `td` no pyproject.toml do root** — exporia `td` instalado via `pip install -e .` ou `uv tool install`. Requer adicionar `[project.scripts] td = "life.cli._td:main"` ou similar — **só fazer se o usuário aprovar**, pois é mudança permanente na interface pública.
+
+### Ação recomendada (a confirmar com usuário)
+
+Antes de qualquer mudança, perguntar:
+- O `td` global é **seu** (criado por você) ou veio de uma instalação externa?
+- Você quer (a) **remover** o `td` externo, (b) **substituí-lo por um wrapper** que delega ao `life` CLI, ou (c) **manter os dois separados** (externo para outras coisas, projeto para o Life OS)?
+
+**NÃO** mexer no PATH nem instalar wrappers sem aprovação explícita.
+
+## `dcode` Alias Conflict — Investigation Report (2026-09-05)
+
+**Sintoma secundário (suspeita do usuário):** o usuário desconfiou de conflito entre o `dcode` global no PATH e o harness que está construindo em `.worktrees\loop-prod-ready\src\ikigai` (comando de teste: `.\ikigai.bat chat`). A suspeita se confirmou.
+
+**Achado crítico:** `dcode` global e `dcode` do projeto IKIGAi **são o mesmo nome, duas implementações diferentes**.
+
+| Aspecto | `dcode` global (PATH) | `dcode` IKIGAi (projeto) |
+|---|---|---|
+| Path | `/home/flytwist/.local/bin/dcode` → symlink | console script declarado em `src/ikigai/pyproject.toml` [tool.poetry.scripts] |
+| Target real | `~/.local/share/uv/tools/deepagents-code/bin/dcode` (este agent runtime, instalado via `uv tool`) | `agents.dcode_cli:main` |
+| Comentário no pyproject | — | *"dcode é o short-form canônico do IKIGAi Deep Agent harness (deep code). Mirrors ikigai-deep-agent exatamente."* |
+| Quando resolve qual | Fora do venv ikigai (PATH puro) | Dentro do venv ikigai (priority over global) |
+| Quem é "dcode" conceitualmente | Agent runtime externo (esta sessão de conversa) | Harness interno do Life OS para chat/agentes |
+
+**Estado atual incompleto do projeto:**
+
+1. **`src/ikigai/pyproject.toml` declara 4 entry points** que disputam namespace global:
+   - `ikigai-maintainer-mcp` → `run_mcp_server:main` (servidor MCP)
+   - `ikigai-deep-agent` → `agents.deepagents_harness:main` (CLI principal)
+   - `ikigai-taskdog-mcp` → `mcp_server.__main__taskdog:main` (MCP server para taskdog)
+   - **``dcode`** → `agents.dcode_cli:main` (atalho, mesmo comportamento de `ikigai-deep-agent`)
+2. **Dependência upstream compartilhada:** `deepagents = ">=0.7"` (o pacote que ambos os runtimes consomem — o `dcode` global é um fork/wrapper do mesmo `deepagents`).
+3. **`ikigai.bat chat` força o venv local** (linha 13-21 do `.bat`): caminha acima para achar `.venv\Scripts\python.exe`, seta `PYTHONPATH` para worktree → quando o usuário roda `.\ikigai.bat chat`, o `dcode` interno do ikigai executa corretamente. **Mas se ele digitar `dcode` direto no shell sem ativar o venv, cai no runtime global** (esta sessão, que NÃO é o harness do projeto).
+4. **Não há documentação no projeto** de qual `dcode` é qual. O pyproject apenas comenta que `dcode` é o "short-form canônico" — sem warning explícito de conflito com o runtime global.
+
+**Por que a duplicata existe:** o `dcode` global é o runtime do agent CLI (DeepAgents Code) que serve para conversar comigo — é a infraestrutura do agente, não parte do Life OS. Já o `dcode` do IKIGAi é o harness interno do projeto, mesma família `deepagents`, mesmo namespace. É uma colisão de naming por **acidente histórico** — provavelmente o pyproject do ikigai foi escrito assumindo que o nome `dcode` estaria disponível no PATH do projeto, mas o agent runtime global o tomou primeiro.
+
+**Princípio (do usuário, explícito):** "este projeto É o app de dia a dia". Implicação: quando o usuário está dentro do worktree e quer "chamar o dcode", ele quer **o do projeto** — não esta sessão de agent.
+
+**Ação recomendada (a confirmar com usuário):**
+
+- **(a) Renomear** o entry point `dcode` no `src/ikigai/pyproject.toml` para algo sem colisão (ex: `ikigai-dcode` ou `ikigai-chat`). **Mudança permanente na interface pública** do projeto — só fazer se aprovado.
+- **(b) Manter como está** e confiar no `ikigai.bat chat` (que força o venv). Risco: usuário esquece de usar o `.bat` e cai no runtime global.
+- **(c) Adicionar aviso explícito** no pyproject.toml e/ou no `ikigai.bat` de que "dentro deste projeto, use `ikigai.bat chat` em vez de `dcode` direto".
+- **(d) Alias de shell** tipo `alias dcode='./ikigai.bat chat'` no `.bashrc` do worktree — só funciona dentro do worktree.
+
+**NÃO** modificar `pyproject.toml`, `ikigai.bat`, ou PATH sem aprovação explícita.
+
 ## Recent Major Changes
 
 ### Phase 3 v1 — Data Mesh (commits `d4d28f5`..`97d84c2`, on master, 8 ahead of origin)
