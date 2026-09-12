@@ -74,3 +74,19 @@ python -m pytest src/ikigai/tests/test_canonical_scope.py -v --no-header
 python -m pytest src/ikigai/tests/test_drift_invariants.py -v --no-header
 python -m pytest src/ikigai/tests/test_drift_extended_invariants.py -v --no-header
 ```
+
+## After Review (T-11.9)
+
+**Captured:** 2026-09-12T17:21:55Z
+**Branch:** master
+**HEAD commit:** 2429cf87 `chore(review): consolidated diagnosis — 41 gaps, 2 P0 attribution violations`
+**Review:** M11 — IKIGAI Agentic System Top-Down Review (T-11.9 final task)
+
+| Suite | PASS | BEFORE | AFTER | Delta |
+|---|---|---|---|---|
+| test_canonical_scope.py | 32 | 32 | 32 | +/-0 |
+| test_drift_invariants.py | 7 | 7 | 7 | +/-0 |
+| test_drift_extended_invariants.py | 4 | 4 | 4 | +/-0 |
+| **TOTAL** | **43** | **43** | **43** | **+/-0** |
+
+**Regression verdict:** NO REGRESSION (all counts match BEFORE). The M11 review process did NOT break the canonical contracts layer. The 41 gaps identified across 6 layers are documentation/attribution drift, not contract regression.
