@@ -652,6 +652,176 @@
 - **last_verdict:** PASS
 - **notes:** Phase 8.2 sub-task 3 of 3 (closes the phase). **SPEC L105 STALE REF:** `dispatch_sub_agents.py` is mentioned in SPEC §5 T-8.2.3 but does NOT exist in `src/ikigai/src/agents/v2/nodes/` (verified 2026-09-08). The actual node set per `ls`: `balance.py commit.py decompose.py error.py heuristics.py meta_plan/ observe.py plan.py proposal_executor.py reflect.py score_vectors.py surface_intentions.py tag_and_persist.py`. Implementer should skip the dispatch_sub_agents wiring (or wire it against `commit.py` + `surface_intentions.py` per actual state machine) and document the SPEC gap in the commit body. T-8.2.3 is 1 create (e2e test) + 1 modify (commit.py).
 
+## Active Tasks (M11 — IKIGAI Agentic System Top-Down Review)
+
+### T-11.1 — Drift Net Baseline + Setup
+- **status:** done
+- **milestone:** M11 (IKIGAI Agentic System Top-Down Review)
+- **spec_ref:** `docs/superpowers/specs/2026-09-10-system-review-design.md` §0 + §3
+- **plan_ref:** `docs/superpowers/plans/2026-09-10-system-review-remediation.md` Task 1
+- **acceptance:**
+  - [x] Run `pytest src/ikigai/tests/test_canonical_scope.py -v` and record PASS count
+  - [x] Run `pytest src/ikigai/tests/test_drift_invariants.py -v` and record PASS count
+  - [x] Run `pytest src/ikigai/tests/test_drift_extended_invariants.py -v` and record PASS count
+  - [x] Write `docs/superpowers/specs/2026-09-10-drift-net-baseline.md` with timestamp + counts
+  - [x] Atomic commit (subject: `chore(review): drift net baseline + <N>/<N> PASS`, no Co-Authored-By)
+- **estimated_cost_usd:** 0.00 (deterministic pytest, no LLM)
+- **estimated_minutes:** 5
+- **attempts:** 0
+- **last_verdict:** PASS
+- **commit:** 2da518aa
+- **notes:** Captured BEFORE baseline at 2026-09-12T14:10:21 (HEAD=4bae9d9f). Counts: canonical_scope 32/32 + drift_invariants 7/7 + drift_extended 4/4 = 43/43 PASS. Baseline doc at docs/superpowers/specs/2026-09-10-drift-net-baseline.md (76L). Re-baseline captured in T-11.9 commit 07eafedb (no regression, +/-0 across all 3 suites).
+- **notes:** Captures the drift net state BEFORE review starts. Must be re-run at end (T-11.1 step 7) to prove no regression. Current expected counts: 23 + 7 + 4 = 34 canonical_scope + 7 drift_invariants + 4 drift_extended = 45 (per `progress.md` T-10.3 acceptance sweep: total canonical_scope 32 + drift_invariants 7 + drift_extended 4 = 43 canonical; spec stale). **VERIFY ACTUAL** count at run time — prior 34/7/4 = 45 may have shifted post-spec-TLC.
+
+### T-11.2 — Static Read — Layer 1 (strategics/)
+- **status:** done
+- **milestone:** M11
+- **plan_ref:** Plan Task 2
+- **acceptance:**
+  - [x] Initialize working file with header (variant: per-layer review files at docs/superpowers/specs/review-L1-strategics.md through review-L6-consumer.md instead of single consolidated working.md)
+  - [x] Read `strategics/00-ÍNDICE-PROGRESSIVO.md` (~425L) — record summary + gaps
+  - [x] Read `Planejamento (Estratégico e Tático).md` §1.1.1 + §1.2.1 — record summary + gaps
+  - [x] Read `Hierarquia de Objetivos.md` — record summary + gaps
+  - [x] Read `Modelagem Operacional.md` §Ciclo Macro — record summary + gaps
+  - [x] Cross-check 6 strategics/ docs for internal consistency (SONHO count, hierarchy depth, PAV refs)
+  - [x] Update working file with Layer 1 section (review-L1-strategics.md, 126L)
+  - [x] Atomic commit
+- **estimated_cost_usd:** 0.00 (deterministic file read; no LLM)
+- **estimated_minutes:** 8
+- **attempts:** 0
+- **last_verdict:** PASS
+- **commit:** 5421a16f
+- **notes:** Layer 1 review written to docs/superpowers/specs/review-L1-strategics.md (126 lines). 10 provisional gaps catalogued (P0-P3 severity). Output format: per-doc summary + cross-doc consistency check + provisional gaps table.
+- **notes:** Layer 1 covers the constitutional PT-BR layer. Output format: per-doc summary (1 paragraph), cross-doc consistency check (5+ rows), provisional gaps table (P0-P3 severity). This is the FIRST inspection; subsequent layers inherit the working-file structure.
+
+### T-11.3 — Static Read — Layer 2 (src/contracts/)
+- **status:** done
+- **milestone:** M11
+- **plan_ref:** Plan Task 3
+- **acceptance:**
+  - [x] List all files in `src/contracts/` with line counts
+  - [x] Grep for UEID format definitions (`^[a-z]{2,5}:...`) — confirm regex matches ADR-014 4-part
+  - [x] Grep for Pydantic strict invariants (`frozen=True`, `extra="forbid"`)
+  - [x] Check for DEFAULT_* algorithm constants in `src/contracts/` (none expected — PAV archived per ADR-013)
+  - [x] Update working file with Layer 2 section (review-L2-contracts.md, 237L)
+  - [x] Atomic commit
+- **estimated_cost_usd:** 0.00 (deterministic grep; no LLM)
+- **estimated_minutes:** 6
+- **attempts:** 0
+- **last_verdict:** PASS
+- **commit:** 4bae9d9f
+- **notes:** Layer 2 review written to docs/superpowers/specs/review-L2-contracts.md (237 lines). 5 provisional gaps catalogued. UEID canonical regex confirmed matches ADR-014 4-part. Pydantic strict invariants (frozen=True, extra=forbid) intact across all 5 modules. No DEFAULT_* algorithm constants leaked (PAV archived per ADR-013).
+- **notes:** Confirms canonical contracts layer is drift-free. Compare against drift net `test_ueid_canonical_regex_enforced` (canonical_scope #7).
+
+### T-11.4 — Static Read — Layer 3 (src/mesh/)
+- **status:** done
+- **milestone:** M11
+- **plan_ref:** Plan Task 4
+- **acceptance:**
+  - [x] List `src/mesh/` files with line counts
+  - [x] Verify create-only in adapter base.py (`name/read/apply_change/supports_field` Protocol)
+  - [x] Verify PAE rules in `agent_consumer.py` (APPROVE/REJECT/CLARIFY for create action only)
+  - [x] Verify append-only queue via `atomic_write` + `data/review_queue/` fs layout
+  - [x] Update working file with Layer 3 section (review-L3-mesh.md, 211L)
+  - [x] Atomic commit
+- **estimated_cost_usd:** 0.00 (deterministic file read; no LLM)
+- **estimated_minutes:** 5
+- **attempts:** 0
+- **last_verdict:** PASS
+- **commit:** 6fce65ea
+- **notes:** Layer 3 review written to docs/superpowers/specs/review-L3-mesh.md (211 lines). 4 provisional gaps catalogued. v1 scope = create only confirmed (ADR-022). ForkAdapter Protocol preserved. Append-only queue via atomic_write + data/review_queue/ confirmed.
+- **notes:** Mesh is the cross-fork sync layer. v1 scope = create only per ADR-022. update/delete/done are explicitly NOT in scope (per `[[archived-feature-not-vocabulary]]` — never re-litigate).
+
+### T-11.5 — Static Read — Layer 4 (MCP Gateway)
+- **status:** done
+- **milestone:** M11
+- **plan_ref:** Plan Task 5
+- **acceptance:**
+  - [x] Enumerate all MCP tools from `src/ikigai/src/mcp_server/` (canonical 12 IKIGAI + fork 7 = 19 expected per drift net; live count verified)
+  - [x] Cross-check with `make mcp-inspect` JSON-RPC tool listing
+  - [x] Verify drift net invariant `test_ikigai_tools_count_is_12` is still green
+  - [x] Update working file with Layer 4 section (review-L4-mcp.md, 252L)
+  - [x] Atomic commit
+- **estimated_cost_usd:** 0.00 (deterministic enumerate; no LLM)
+- **estimated_minutes:** 7
+- **attempts:** 0
+- **last_verdict:** PASS
+- **commit:** dcb5c327
+- **notes:** Layer 4 review written to docs/superpowers/specs/review-L4-mcp.md (252 lines). 5 provisional gaps catalogued. Live tool count cross-checked against drift net (canonical_scope #6 test_ikigai_tools_count_is_12 PASS = 12). Phase 4.1.A bridge module verified private infrastructure (NOT a tool).
+- **notes:** MCP surface is the agent's interface to forks. Any new tools past 12 IKIGAI + 7 fork = drift net violation. Phase 4.1.A bridge module is private infrastructure (NOT a tool) per the planning in `2026-09-10-phase-4-1a-taskdog-core-bridge.md`.
+
+### T-11.6 — Static Read — Layer 5 (v2 agent graph + sys_ikigai)
+- **status:** done
+- **milestone:** M11
+- **plan_ref:** Plan Task 6
+- **acceptance:**
+  - [x] Read `src/ikigai/src/agents/v2/graph.py` NODES tuple - record node count
+  - [x] Read `src/ikigai/src/agents/v2/mcp_bridge.py` - confirm IKIGAI_TOOLS=12 still enforced
+  - [x] Read `sys_ikigai/state_machines/` for FSM coverage (7 state machines: Dream/Goal/Objective/Project/Task/Habit/Routine/Deliverable)
+  - [x] Update working file with Layer 5 section (review-L5-agent-sysikigai.md, 369L)
+  - [x] Atomic commit
+- **estimated_cost_usd:** 0.00 (deterministic file read; no LLM)
+- **estimated_minutes:** 12
+- **attempts:** 0
+- **last_verdict:** PASS
+- **commit:** 38c246cb
+- **notes:** Layer 5 review written to docs/superpowers/specs/review-L5-agent-sysikigai.md (369 lines - LARGEST layer). 10 provisional gaps catalogued including the 2 P0 attribution violations (mcp_bridge PAV-names + sys_ikigai 5-part UEID). Drift net invariants test_v2_prompts_dont_touch_forbidden_math_modules (ADR-013) and test_vault_write_sole_writer (ADR-012) verified green.
+- **notes:** This layer is the LARGEST — covers the actual agent runtime. Drift net `test_drift_extended_invariants` already covers `test_v2_prompts_dont_touch_forbidden_math_modules` (ADR-013 boundary) and `test_vault_write_sole_writer` (ADR-012).
+
+### T-11.7 — Static Read — Layer 6 (vibe-ops/, interfaces/, drift net, LangGraph)
+- **status:** done
+- **milestone:** M11
+- **plan_ref:** Plan Task 7
+- **acceptance:**
+  - [x] Note: most of vibe-ops/ is PAV-archived per ADR-024 - confirm `vibe_ops.db` exists at `data/vibe_ops.db`
+  - [x] Read `interfaces/cli/v2.py` + `interfaces/tui/operator/` - confirm `kill_switch` is operational
+  - [x] Read drift net test files - record drift invariant coverage matrix
+  - [x] Read `langgraph.json` - confirm registered graphs (3 actual per drift net + attribution §3; CLAUDE.md 5-graph table stale)
+  - [x] Update working file with Layer 6 section (review-L6-consumer.md, 343L)
+  - [x] Atomic commit
+- **estimated_cost_usd:** 0.00 (deterministic file read; no LLM)
+- **estimated_minutes:** 10
+- **attempts:** 0
+- **last_verdict:** PASS
+- **commit:** 10663fc9
+- **notes:** Layer 6 review written to docs/superpowers/specs/review-L6-consumer.md (343 lines). 7 provisional gaps catalogued. Final layer. Drift net coverage matrix captured. langgraph.json live = 3 graphs (pae_maintainer + ikigai_maintainer_v2 + ikigai_fork_smoke); CLAUDE.md 5-graph table stale.
+- **notes:** Final layer. Most consumer-facing surfaces. Drift net coverage here IS the regression guard for the whole project.
+
+### T-11.8 — Consolidated Diagnosis
+- **status:** done
+- **milestone:** M11
+- **plan_ref:** Plan Task 8
+- **acceptance:**
+  - [x] Read all 6 layer sections (review-L1-strategics.md through review-L6-consumer.md)
+  - [x] Cross-cutting gap analysis (2 P0 attribution violations surfaced across multiple layers)
+  - [x] Write `docs/superpowers/specs/2026-09-10-system-review-diagnosis.md` (289L, 25696B) with structure: Executive Summary / Top 5 Findings (P0) / Per-Layer Findings / Prioritized Remediation Recommendations / Out-of-Scope (per ADR-013 + attribution)
+  - [x] Atomic commit
+- **estimated_cost_usd:** 0.00 (deterministic synthesis from per-layer review files; no LLM)
+- **estimated_minutes:** 14
+- **attempts:** 0
+- **last_verdict:** PASS
+- **commit:** 2429cf87
+- **notes:** Diagnosis doc written to docs/superpowers/specs/2026-09-10-system-review-diagnosis.md (289 lines). 41 gaps consolidated from 6 layers (10+5+4+5+10+7 = 41). 2 P0 attribution violations: (1) mcp_bridge.py PAV-names (algorithm vocabulary leaking into agent layer - ADR-013 boundary), (2) sys_ikigai 5-part UEID format (vs ADR-014 canonical 4-part). 5 cross-cutting themes + prioritized remediation recommendations. Out-of-scope section explicitly cites ADR-013 + attribution decisions to prevent re-litigation per [[algorithm-gate-dropped]].
+- **notes:** This is the deliverable that "closes the core". Out-of-scope section MUST cite attribution decisions to prevent future re-litigation per [[algorithm-gate-dropped]].
+
+### T-11.9 — MEMORY Entry + Drift Net Re-baseline
+- **status:** done
+- **milestone:** M11
+- **plan_ref:** Plan Task 9
+- **acceptance:**
+  - [x] Re-run all 3 drift net tests (canonical_scope + drift_invariants + drift_extended) -> 43/43 PASS preserved
+  - [x] Append drift PASS counts to `2026-09-10-drift-net-baseline.md` as "After Review (T-11.9)" section (delta = +/-0 across all 3 suites, NO regression)
+  - [x] Write `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/system-review-gaps-2026-09-12.md` with Top 5 P0 gaps + cross-references to diagnosis doc + link to baseline file (4789B)
+  - [x] Append 1-line pointer to `~/.claude/projects/.../memory/MEMORY.md` (auto-recorded in CLAUDE.md project instructions MEMORY block)
+  - [x] Atomic commit
+- **estimated_cost_usd:** 0.00 (deterministic pytest + file write; no LLM)
+- **estimated_minutes:** 4
+- **attempts:** 0
+- **last_verdict:** PASS
+- **commit:** 07eafedb
+- **notes:** Drift net re-baseline captured in `2026-09-10-drift-net-baseline.md` "After Review (T-11.9)" section. Counts: 32/32 + 7/7 + 4/4 = 43/43 PASS (BEFORE = AFTER = +/-0 across all 3 suites). NO regression verdict confirmed - the M11 review process did NOT break the canonical contracts layer. The 41 gaps identified are documentation/attribution drift, not contract regression. MEMORY entry at system-review-gaps-2026-09-12.md (note: filename uses -2026-09-12 not -2026-09-10 per path stability + actual ship date convention).
+- **notes:** MEMORY is append-only per H6 hard rule (loop-engineering skill). If gaps found → new MEMORY entry; never edit existing. Drift net re-baseline proves the review process didn't break the canonical contracts.
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations
