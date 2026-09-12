@@ -44,8 +44,8 @@ def test_run_plan_happy_path():
 
     fake_compiled = MagicMock()
     fake_compiled.invoke.return_value = {"proposal": _dict_to_proposal(fake_proposal_dict)}
-    with patch("agents.v2.subgraph.make_meta_plan_subgraph") as mock_mksg, \
-         patch("agents.v2.nodes.proposal_executor.execute_proposal") as mock_exec:
+    with patch("src.ikigai.src.agents.v2.subgraph.make_meta_plan_subgraph") as mock_mksg, \
+         patch("src.ikigai.src.agents.v2.nodes.proposal_executor.execute_proposal") as mock_exec:
         mock_mksg.return_value = fake_compiled
         mock_exec.return_value = _fake_report()
 
@@ -60,7 +60,7 @@ def test_run_plan_no_proposal_for_low_intent():
     """Low-intent request → no Proposal → user gets hint message."""
     fake_compiled = MagicMock()
     fake_compiled.invoke.return_value = {"proposal": None}
-    with patch("agents.v2.subgraph.make_meta_plan_subgraph") as mock_mksg:
+    with patch("src.ikigai.src.agents.v2.subgraph.make_meta_plan_subgraph") as mock_mksg:
         mock_mksg.return_value = fake_compiled
 
         result = _run_plan("que horas são?")
@@ -72,7 +72,7 @@ def test_run_plan_reject_field():
     """--reject X.field → status='rejected_field'."""
     fake_compiled = MagicMock()
     fake_compiled.invoke.return_value = {"proposal": _fake_proposal()}
-    with patch("agents.v2.subgraph.make_meta_plan_subgraph") as mock_mksg:
+    with patch("src.ikigai.src.agents.v2.subgraph.make_meta_plan_subgraph") as mock_mksg:
         mock_mksg.return_value = fake_compiled
 
         result = _run_plan("x", reject_field="priority")

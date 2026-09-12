@@ -63,7 +63,7 @@ def _run_plan(
     """
     # Lazy imports — preserve verbatim from former _v2_plan.py.
     from src.ikigai.contracts.proposal import Proposal
-    from agents.v2.subgraph import make_meta_plan_subgraph
+    from src.ikigai.src.agents.v2.subgraph import make_meta_plan_subgraph
 
     compiled = make_meta_plan_subgraph()
     graph_result = compiled.invoke({"user_request": request})
@@ -80,7 +80,7 @@ def _run_plan(
 
     if approve:
         # Lazy import preserved for the same circular-import reason.
-        from agents.v2.nodes.proposal_executor import execute_proposal
+        from src.ikigai.src.agents.v2.nodes.proposal_executor import execute_proposal
 
         approved = proposal.model_copy(
             update={

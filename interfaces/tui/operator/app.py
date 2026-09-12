@@ -187,7 +187,7 @@ class OperatorApp(App):
         self.set_interval(2.0, self._poll_tasks_file)
 
     def _poll_tasks_file(self) -> None:
-        """Called on the worker thread every 2s. Bumps _watcher_mtime on change."""
+        """Called on the main thread every 2s via set_interval. Bumps _watcher_mtime on change."""
         if not TASKS_JSONL.exists():
             mtime: float | None = None
         else:
@@ -195,8 +195,8 @@ class OperatorApp(App):
                 mtime = os.path.getmtime(str(TASKS_JSONL))
             except OSError:
                 mtime = None
-        # Update reactive on main thread
-        self.call_from_thread(self._set_watcher_mtime, mtime)
+        # set_interval runs on the main thread, so call directly (call_from_thread would fail)
+        self._set_watcher_mtime(mtime)
 
     def _set_watcher_mtime(self, mtime: float | None) -> None:
         """Set mtime and trigger Tasks tab reload when file changes."""

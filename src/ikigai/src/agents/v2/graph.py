@@ -10,7 +10,7 @@ Phase 8.2 will wire actual MCP tool calls.
 from __future__ import annotations
 
 # ---------------------------------------------------------------------------
-# Observability stubs — replace with real observability in Phase 8.2
+# Observability — real OTel tracer (T-8.3.1 wires Phase 8.2 stubs)
 # ---------------------------------------------------------------------------
 import logging
 import traceback
@@ -20,35 +20,8 @@ from typing import Any, Literal
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, StateGraph
 
+from observability.otel_init import get_tracer, init_tracing
 
-# Stub observability — Phase 8.2 replaces these with real imports
-def _no_op_tracer(*args: Any, **kwargs: Any) -> Any:
-    class _NullSpan:
-        def __enter__(self) -> _NullSpan:
-            return self
-
-        def __exit__(self, *args: Any) -> None:
-            pass
-
-        def start_as_current_span(self, *args: Any, **kwargs: Any) -> _NullSpan:
-            return self
-
-        def set_attribute(self, *args: Any, **kwargs: Any) -> None:
-            pass
-
-    return _NullSpan()
-
-
-def _stub_init_tracing() -> None:
-    pass
-
-
-def _stub_get_tracer(*args: Any, **kwargs: Any) -> Any:
-    return _no_op_tracer()
-
-
-get_tracer = _stub_get_tracer
-init_tracing = _stub_init_tracing
 
 from .nodes.balance import balance_node  # noqa: E402
 from .nodes.commit import commit_node  # noqa: E402
