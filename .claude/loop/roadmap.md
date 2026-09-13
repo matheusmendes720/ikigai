@@ -228,6 +228,38 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Completed:** 2026-09-13 — 3 atomic commits `1fe6e9a4` (T-12.2 UEID fix + drift test) + `39f7ebea` (T-12.1 mcp_bridge fix) + `577cfddb` (T-12.3 collection-error guard + obsolete test cleanup from M12 reviewer NEEDS_FIX). Final review verdict: APPROVE, 4.8/5.0 avg code quality. Drift net 46/46 PASS (32 canonical_scope + 7 drift_invariants + 7 drift_extended_invariants — was 43/43 pre-M12, +3 new tests).
 - **Known architectural follow-up (NOT a blocker; future M13):** The 8 v2 graph nodes still call deleted wrappers via `mcp_bridge.<name>` — at call time AttributeError raises but try/except guards route to error_channel per Phase 8.2 SPEC §3. This creates a NEW drift class: v2-node ↔ bridge wrapper alignment is NOT drift-net guarded. Recommended M13 task: clean up 8 dead call sites (delete try/except + replace with planner-only stubs OR delete the nodes entirely).
 
+### M13 — Phase B: V2-Node/Bridge Alignment + Stale Test Cleanup (STATUS: DONE)
+- **What:** Address the 3 follow-up items from M12 final review: (1) clean up 8 dead v2-node call sites that silently degrade via try/except; (2) fix or delete 5 pre-existing broken tests; (3) add v2-node/bridge alignment drift test (the new drift class M12 introduced); plus (4) push 6 commits to origin/master.
+- **Why:** M12 closed the bridge/server drift + UEID schema drift. But the 8 v2 nodes still call deleted wrappers — they silently fail via try/except, surfacing as "degraded observations" in `error_channel`. This is the SAME class of silent drift M12 was supposed to eliminate, just shifted from bridge→server to node→bridge. Without an alignment drift test, future changes will silently break the same way.
+- **Acceptance:**
+  - [x] Push 6 M11+M12 commits to origin/master (T-13.1)
+  - [x] Delete (or fix) 5 pre-existing broken tests: `test_entities.py`, `test_heuristics.py`, `test_propagation.py`, `test_reliability.py`, `test_scoring.py` — all fail with `ModuleNotFoundError: sys_ikigai.core.scoring` from archived PAV kernel (T-13.2)
+  - [x] Clean up 8 dead v2-node call sites: replace `mcp_bridge.<deleted_wrapper>(...)` with `error_channel` write OR delete the entire v2 node if it serves no purpose (T-13.3)
+  - [x] Add `test_v2_node_bridge_alignment` drift test that walks all 8 v2 nodes (`observe.py`, `balance.py`, `commit.py`, `heuristics.py`, `plan.py`, `reflect.py`, `score_vectors.py`, `tag_and_persist.py`) and asserts each `mcp_bridge.<name>` call resolves to a real attribute (T-13.4)
+  - [x] Drift net 46/46 → 47+/47+ PASS (existing 46 + new alignment test)
+  - [x] No regression in existing invariants
+  - [x] All 12 prior milestones stable
+- **Dependencies:** M12
+- **Estimated ticks:** 4 (push + delete-broken + clean-v2-nodes + new-drift-test)
+- **Auto-promoted by:** M12 final review follow-up actions list
+- **Constitution gate:** All fixes preserve append-only, drift-net, Pydantic v2 strict invariants.
+- **Completed:** 2026-09-13 — 4 atomic commits `848193dc` (T-13.2 delete broken PAV tests) + `d4324856` (T-13.3 clean dead v2-node calls) + `cab47c5b` (T-13.4 alignment drift test). Plus bookkeeping `9bfc2238`. Drift net 47/47 PASS.
+
+### M14 — MCP v2 Migration / Pin `mcp<2` (STATUS: PENDING)
+- **What:** Fix 2 pre-existing broken tests that fail with `ModuleNotFoundError: No module named 'mcp.server.fastmcp'` (mcp 2.x renamed `FastMCP` → `MCPServer`) and verify the mcp package version is locked to < 2.x (the IKIGAI codebase was written against the mcp 1.x API).
+- **Why:** Without this fix, the 2 test files fail at collection time, masking whether they're testing real behavior or just confirming a broken import. The codebase has been developed against `mcp<2` per session memory `[[p0-fix-shipped-2026-09-09]]`, but the pin may not be applied uniformly across `pyproject.toml`s (root vs `src/ikigai/pyproject.toml`).
+- **Acceptance:**
+  - [ ] Investigate current mcp package version state across all `pyproject.toml` files (T-14.1)
+  - [ ] Decide fix strategy: Option A = pin `mcp<2` everywhere OR Option B = migrate to mcp 2.x API (`from mcp.server.mcpserver import MCPServer`) (T-14.2)
+  - [ ] Apply chosen fix to `test_server_fastmcp.py` + `test_taskdog_mcp_path3.py` (T-14.3)
+  - [ ] Verify `src/ikigai/tests/` collection succeeds with NO errors (after T-13.2 deleted 5 PAV tests, only these 2 remain)
+  - [ ] Drift net 47/47 PASS preserved
+  - [ ] All 13 prior milestones stable
+- **Dependencies:** M13 (must have shipped broken-test cleanup first; these are the only 2 remaining broken tests)
+- **Estimated ticks:** 2 (~30 min wall time; investigation + fix)
+- **Auto-promoted by:** M13 T-13.2 follow-up note (out-of-scope pre-existing failure discovered)
+- **Constitution gate:** All fixes preserve drift-net invariants; no PAV math re-introduction; no `mcp` 2.x API unless explicitly migrated.
+
 ## Backlog (not yet sequenced)
 
 - [ ] Replace bash `loop-tick.sh` with TypeScript version (cross-platform)
