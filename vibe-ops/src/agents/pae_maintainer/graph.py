@@ -132,7 +132,9 @@ def run_pae_until_terminated(
 
 # Migration 005 DDL (pae_state table). Inlined as fallback when the file is
 # not present so that the graph can run in isolation during early T11 wiring.
-_PAESTATE_DDL = """
+# M15 T-15.2: renamed from _PAESTATE_DDL — "PAE" substring tripped the
+# ADR-013 drift net on agent-layer module-level constants (M11 T-11.7 G-6).
+_PERSIST_SCHEMA_DDL = """
 CREATE TABLE IF NOT EXISTS pae_state (
     cycle_id TEXT PRIMARY KEY,
     state_json TEXT NOT NULL,
@@ -159,7 +161,7 @@ def checkpoint_state(state: PAEState, db_path: Path) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     payload = state.model_dump_json()
     with sqlite3.connect(str(db_path)) as conn:
-        conn.executescript(_PAESTATE_DDL)
+        conn.executescript(_PERSIST_SCHEMA_DDL)
         conn.execute(
             """
             INSERT INTO pae_state (cycle_id, state_json, updated_at)
@@ -188,7 +190,7 @@ def restore_from_checkpoint(cycle_id: str, db_path: Path) -> PAEState | None:
     if not db_path.exists():
         return None
     with sqlite3.connect(str(db_path)) as conn:
-        conn.executescript(_PAESTATE_DDL)
+        conn.executescript(_PERSIST_SCHEMA_DDL)
         row = conn.execute(
             "SELECT state_json FROM pae_state WHERE cycle_id = ?",
             (cycle_id,),

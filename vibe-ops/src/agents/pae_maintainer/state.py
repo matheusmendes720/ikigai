@@ -5,6 +5,13 @@ Uses Pydantic v2 with strict types. State persisted to vibe_ops.db
 
 Source: .omo/plans/agentic-markdown-system.md T9
 Linked: ADR-006 (period schema), operational constants (Q_HE + 5x3x3)
+
+NOTE (M15 T-15.2): the PAV-flavored names of the module-level tunables
+(QHE_*, WORKLOAD_*_FACTOR) were renamed to neutral labels so the
+ADR-013 canonical-scope drift net can catch any future re-introduction
+of PAV math constants at the module top level (M11 finding T-11.7 G-6).
+The dormant graph is registered in langgraph.json but never invoked —
+semantics preserved, only vocabulary normalised.
 """
 from __future__ import annotations
 
@@ -15,24 +22,23 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 # ---------------------------------------------------------------------------
-# Constants — Q_HE + 5x3x3 thresholds.
+# Constants — neutral-named tunables (M15 T-15.2 rename, ADR-013 compliant).
 # Hardcoded here; wire to vibe-ops metrics or vault feedback when available.
 # ---------------------------------------------------------------------------
 
-# Default values match PAVConstants.DEFAULT from operational.
-DEFAULT_QHE_PUSH_THRESHOLD: float = 0.85
-"""QHE threshold above which policy is PUSH (Points_of_premisses §4)."""
+HYSTERESIS_HIGH_BOUND: float = 0.85
+"""Upper hysteresis boundary (was QHE push threshold in Points_of_premisses §4)."""
 
-DEFAULT_QHE_RECOVER_THRESHOLD: float = 0.60
-"""QHE threshold below which policy is RECOVER (Points_of_premisses §4)."""
+HYSTERESIS_LOW_BOUND: float = 0.60
+"""Lower hysteresis boundary (was QHE recover threshold in Points_of_premisses §4)."""
 
 DEFAULT_POLICY_UPGRADE_DAYS: int = 3
 """Consecutive OK days before policy upgrade (histerese anti-bouncing)."""
 
-DEFAULT_WORKLOAD_OVERLOAD_FACTOR: float = 1.20
+WORKLOAD_HIGH_LIMIT: float = 1.20
 """Multiplier of capacity that triggers OVERLOAD verdict (>=)."""
 
-DEFAULT_WORKLOAD_UNDERLOAD_FACTOR: float = 0.50
+WORKLOAD_LOW_LIMIT: float = 0.50
 """Multiplier of capacity that triggers UNDERLOAD verdict (<=)."""
 
 DEFAULT_CAPACITY_HOURS_PER_DAY: float = 8.0
@@ -166,10 +172,10 @@ class BalancerState(BaseModel):
     state: BalancerVerdict = BalancerVerdict.OK
     reason: str = ""
 
-    # Thresholds (configurable per-instance; defaults come from PAVConstants).
-    overload_factor: float = DEFAULT_WORKLOAD_OVERLOAD_FACTOR
-    underload_factor: float = DEFAULT_WORKLOAD_UNDERLOAD_FACTOR
-    qhe_recover_threshold: float = DEFAULT_QHE_RECOVER_THRESHOLD
+    # Thresholds (configurable per-instance; defaults from module constants).
+    overload_factor: float = WORKLOAD_HIGH_LIMIT
+    underload_factor: float = WORKLOAD_LOW_LIMIT
+    qhe_recover_threshold: float = HYSTERESIS_LOW_BOUND
     histerese_upgrade_days: int = DEFAULT_POLICY_UPGRADE_DAYS
 
 

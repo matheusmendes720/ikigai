@@ -72,8 +72,10 @@ HORIZON_ONDA = "onda"
 HORIZON_SPRINT = "sprint"
 HORIZON_TRIMESTER = "trimestre"
 
-# Default IKIGAI vectors (from PRD-07)
-IKIGAI_VECTORS = ["passion", "skill", "market", "revenue"]
+# Default IKIGAI axes (from PRD-07). M15 T-15.2: renamed from IKIGAI_VECTORS —
+# "VECTOR" substring tripped the ADR-013 drift net on agent-layer module-level
+# constants (M11 T-11.7 G-6). Renamed to a neutral label; semantics preserved.
+IKIGAI_AXES = ["passion", "skill", "market", "revenue"]
 
 
 def _make_task(

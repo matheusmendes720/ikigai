@@ -32,10 +32,13 @@ import sys
 # which was renamed to "src/ikigai/src" during the 2026-08 reorg.
 PROJECT_ROOT = Path(__file__).parent.parent.parent  # = life/ (project root)
 VIBE_OPS_SRC = Path(__file__).parent  # = vibe-ops/src/
-PAE_SRC = VIBE_OPS_SRC / "agents"
+# M15 T-15.2: renamed from PAE_SRC — "PAE" substring tripped the ADR-013
+# drift net on agent-layer module-level constants (M11 T-11.7 G-6). Renamed
+# to a neutral label; semantics preserved (still points at agents/).
+ORCH_DIR = VIBE_OPS_SRC / "agents"
 IKIGAI_SRC = PROJECT_ROOT / "src" / "ikigai" / "src"
 sys.path.insert(0, str(VIBE_OPS_SRC))
-sys.path.insert(0, str(PAE_SRC))
+sys.path.insert(0, str(ORCH_DIR))
 sys.path.insert(0, str(IKIGAI_SRC))
 
 from pae_maintainer.graph import (

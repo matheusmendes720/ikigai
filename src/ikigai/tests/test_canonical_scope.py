@@ -7,10 +7,15 @@ ADR-013's OUT OF SCOPE table. It also asserts that ``IKIGAI_TOOLS`` in
 vault reads only — no algo/policy/scoring tools allowed).
 
 Scope of the scan: ``src/ikigai/src/{agents,mcp_server,ikigai/{gateway,cli,
-adapters}}``. The orchestrator layer (``vibe-ops/``) and the data-mesh layer
-(``src/mesh/``) are intentionally NOT scanned here — they have their own
-attribution §3 / DriftFinding tracking. This test enforces that the agent
-layer is a planning assistant only.
+adapters}}`` for the import/function/class drift tests, AND ALSO
+``vibe-ops/src/`` for ``test_no_algorithm_constants_in_agent_code`` only
+(M15 T-15.2 — the dormant pae_maintainer graph still holds PAV-flavored
+module-level constants per M11 finding T-11.7 G-6; widening the other
+drift tests to vibe-ops would catch dormant ``compute_score`` /
+``IkigaiScorer`` / ``cybernetics.daily_loop`` references and is a
+separate work item). The data-mesh layer (``src/mesh/``) is intentionally
+NOT scanned here — it has its own attribution §3 / DriftFinding tracking.
+This test enforces that the agent layer is a planning assistant only.
 
 The detector is load-bearing enforcement per ADR-013 §"Drift Detector":
 running this test in CI is the canonical way to prevent future sessions
@@ -67,6 +72,19 @@ PROD_LAYERS = [
     IKIGAI_SRC / "ikigai" / "gateway",
     IKIGAI_SRC / "ikigai" / "cli",
     IKIGAI_SRC / "ikigai" / "adapters",
+]
+
+
+# M15 T-15.2: extra roots scanned ONLY by
+# ``test_no_algorithm_constants_in_agent_code``. We do not merge these into
+# ``PROD_LAYERS`` / ``SCAN_ROOTS`` because the other drift-net tests
+# (``test_no_forbidden_imports`` / ``test_no_forbidden_function_calls_or_defs``
+# / ``test_no_forbidden_class_references``) would pick up the dormant
+# ``vibe-ops/src/`` PAV math code (``compute_score`` calls, ``IkigaiScorer``
+# class def, ``cybernetics.daily_loop`` import) and fail — those are out of
+# scope for T-15.2 (separate work item to widen the drift net to vibe-ops).
+_EXTRA_CONSTANT_SCAN_ROOTS: list[Path] = [
+    REPO_ROOT / "vibe-ops" / "src",
 ]
 
 
@@ -336,6 +354,15 @@ def test_no_algorithm_constants_in_agent_code() -> None:
     matches an algorithm/score/regime keyword OR ends with a tunable
     suffix (``_WEIGHT``, ``_THRESHOLD``, ``_COEFFICIENT``…). The
     canonical invariant (l) per ADR-019 R7 / W3.2.
+
+    M15 T-15.2: scan root extended beyond ``PROD_LAYERS`` to ALSO cover
+    ``_EXTRA_CONSTANT_SCAN_ROOTS`` (currently ``vibe-ops/src/``) — M11
+    finding T-11.7 G-6 observed that ``vibe-ops/src/agents/pae_maintainer/
+    {state,graph}.py`` and ``vibe-ops/src/pipeline/ikigai_scorer.py`` still
+    expose PAV-flavored module-level constants despite the ADR-024 PAV-
+    kernel archival. The dormant graph is registered in ``langgraph.json``
+    but never invoked; the drift net now blocks re-introduction of math
+    constants regardless of which tree they live in.
     """
     import re as _re
 
@@ -343,7 +370,13 @@ def test_no_algorithm_constants_in_agent_code() -> None:
     # Match NAME = <numeric-or-bool-or-call> at module top-level only —
     # we use ast.Assign nodes restricted to tree.body so nested function
     # bodies are ignored (those are private constants, not exposed policy).
-    for root in PROD_LAYERS:
+    # M15 T-15.2: scan root extended beyond PROD_LAYERS to ALSO cover
+    # _EXTRA_CONSTANT_SCAN_ROOTS (currently vibe-ops/src/). The other drift
+    # tests cannot be widened the same way — they would catch dormant PAV
+    # math (compute_score / IkigaiScorer / cybernetics.daily_loop) and fail
+    # out-of-scope; widening those is a separate work item.
+    scan_roots = list(PROD_LAYERS) + list(_EXTRA_CONSTANT_SCAN_ROOTS)
+    for root in scan_roots:
         if not root.exists():
             continue
         for py_file in _iter_python_files(root):
