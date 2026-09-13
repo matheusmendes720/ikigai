@@ -191,6 +191,43 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Owner:** loop-orchestrator (bash wrappers, no new orchestrator LLM per SPEC "What M10 does NOT do")
 - **Completed:** 2026-09-08 — T-10.1 scaffold (c24841c) + T-10.2 wire hooks (3773821) + T-10.3 closeout (this commit). 3 bugs caught during T-10.3 acceptance sweep: (1) `find_task_block` regex `/^### /` only matched 3-hash headers but real tasks.md uses 4-hash `#### ` for M4-M10 tasks → fixed to `/^#{3,4} /`; (2) `[[ "$TASK_STATUS" == "done" ]]` exact-match failed when status has trailing commentary (e.g. T-9.6: "done (regression + state machine); 7-day streak gate deferred...") → fixed to `done*` prefix match; (3) regression per-suite check `^===.*PASS` missed pytest lowercase "32 passed" → fixed to `(^===.*pass|passed)`. All 3 captured in tests/test_dispatch.sh Group 2.5 (2 assertions) + Groups 5-8 regression coverage. Final test suite 24/24 PASS (was 22/22; +2 from Group 2.5). Full regression sweep 107/107 PASS (bash 44 + pytest 63; spec 96/96 was stale — M5 IKIGAI MCP integration adds 2/2).
 
+### M11 — IKIGAI Agentic System Top-Down Review (STATUS: DONE)
+- **What:** Execute the 10-layer diagnostic across `strategics/`, `src/contracts/`, `src/mesh/`, MCP gateway, v2 agent, `sys_ikigai/`, `vibe-ops/`, `interfaces/`, drift net, LangGraph. Produces gap catalogue + prioritized remediation recommendations.
+- **Why:** "Closing the core of backend systems" — this is the auto-promoted phase that validates IKIGAI v2 actually works end-to-end after the spec TLC apply phase. Without it, our drift net ships clean but the system may still leak vocabulary / contradict docs (the same surface area that already failed in the 2026-09-09 `loop-prod-ready` broken-state session).
+- **Spec:** `docs/superpowers/specs/2026-09-10-system-review-design.md` (269L, ACCEPTED 2026-09-10)
+- **Plan:** `docs/superpowers/plans/2026-09-10-system-review-remediation.md` (1019L, 9-task diagnostic; **no code changes** — produces a diagnosis file + MEMORY entry)
+- **Acceptance:**
+  - [x] Drift net baseline captured before review starts (T-11.1 → `docs/superpowers/specs/2026-09-10-drift-net-baseline.md`) — 43/43 PASS
+  - [x] Layers 1-6 statically read + gaps catalogued (T-11.2..T-11.7 → 6 per-layer files in `docs/superpowers/specs/review-L[1-6]-*.md`)
+  - [x] Final consolidated diagnosis document (T-11.8 → `docs/superpowers/specs/2026-09-10-system-review-diagnosis.md`) with prioritized remediation recommendations
+  - [x] MEMORY entry for gaps discovered (T-11.9 → `~/.claude/projects/.../memory/system-review-gaps-2026-09-12.md`)
+  - [x] Drift net baseline captured after review (T-11.9 → 43/43 PASS, no regression)
+  - [x] All 10 prior milestones stable (drift net preserved through entire M11)
+  - [x] No code changes (per plan §"No code changes in this plan"; remediation is a future plan)
+- **Dependencies:** M10
+- **Estimated ticks:** 9 (1 task per tick — diagnostic work, not implementation)
+- **Owner:** loop-orchestrator + worker (Sonnet) + verifier (Haiku)
+- **Auto-promoted by:** human authorization per `[[algorithm-gate-dropped-2026-09-03]]` supersession — user explicitly requested "long running loop for an entire phase closing the core of this backend systems"
+- **Completed:** 2026-09-12 — 9 atomic `chore(review): *` commits ending at `07eafedb` (drift re-baseline). 41 gaps consolidated across 6 layers; 2 P0 attribution violations surfaced for M12 Priority 1. Drift net 43/43 preserved (BEFORE = AFTER, +/-0 across all 3 suites). MEMORY entry written + MEMORY.md pointer updated.
+
+### M12 — Phase A: P0 Attribution Violations Fix (STATUS: DONE)
+- **What:** Fix the 2 P0 attribution violations surfaced by M11 system review (Priority 1 in `docs/superpowers/specs/2026-09-10-system-review-diagnosis.md`). Add 2 drift tests to prevent regression.
+- **Why:** Without these fixes, `mcp_bridge.py` assumes 9 tool names that were deleted in V5-E (silent runtime failure) and `sys_ikigai/entities/ueid.py` accepts 5-part UEIDs that `src/contracts/common.py` rejects (silent schema drift). Both are silent failures waiting to happen.
+- **Acceptance:**
+  - [x] `src/ikigai/src/agents/v2/mcp_bridge.py:88-130` — 9 wrapped tool references that don't exist in `server.py` are removed or remapped to current IKIGAI_TOOLS (T-12.1)
+  - [x] `sys_ikigai/entities/ueid.py:16` — 5-part UEID regex changed to 4-part canonical per ADR-014 (T-12.2)
+  - [x] `test_mcp_bridge_wrapped_tool_count_matches_canonical` (NEW) added to `test_drift_extended_invariants.py` — bridge wrappers must match `server.py`'s tool registry (T-12.1)
+  - [x] `test_ueid_regex_canonical_across_modules` (NEW) added to `test_drift_extended_invariants.py` — all UEID regex definitions in `sys_ikigai/` + `src/contracts/` + any other must match 4-part canonical (T-12.2)
+  - [x] Drift net 46/46 PASS (43 existing + 3 new) — proves the fixes are locked in
+  - [x] All 10 prior milestones stable (no regression in existing 43 invariants)
+  - [x] Branch: master (continues M0-M11 sequence; 3 commits ahead of origin, push deferred)
+- **Dependencies:** M11 (must have shipped diagnosis first)
+- **Estimated ticks:** 3 (T-12.1 + T-12.2 + bonus T-12.3 fix from M12 reviewer NEEDS_FIX)
+- **Auto-promoted by:** M11 diagnosis Priority 1 list
+- **Constitution gate:** All fixes preserve append-only, drift-net, Pydantic v2 strict invariants.
+- **Completed:** 2026-09-13 — 3 atomic commits `1fe6e9a4` (T-12.2 UEID fix + drift test) + `39f7ebea` (T-12.1 mcp_bridge fix) + `577cfddb` (T-12.3 collection-error guard + obsolete test cleanup from M12 reviewer NEEDS_FIX). Final review verdict: APPROVE, 4.8/5.0 avg code quality. Drift net 46/46 PASS (32 canonical_scope + 7 drift_invariants + 7 drift_extended_invariants — was 43/43 pre-M12, +3 new tests).
+- **Known architectural follow-up (NOT a blocker; future M13):** The 8 v2 graph nodes still call deleted wrappers via `mcp_bridge.<name>` — at call time AttributeError raises but try/except guards route to error_channel per Phase 8.2 SPEC §3. This creates a NEW drift class: v2-node ↔ bridge wrapper alignment is NOT drift-net guarded. Recommended M13 task: clean up 8 dead call sites (delete try/except + replace with planner-only stubs OR delete the nodes entirely).
+
 ## Backlog (not yet sequenced)
 
 - [ ] Replace bash `loop-tick.sh` with TypeScript version (cross-platform)
