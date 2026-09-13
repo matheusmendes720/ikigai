@@ -245,20 +245,21 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** All fixes preserve append-only, drift-net, Pydantic v2 strict invariants.
 - **Completed:** 2026-09-13 — 4 atomic commits `848193dc` (T-13.2 delete broken PAV tests) + `d4324856` (T-13.3 clean dead v2-node calls) + `cab47c5b` (T-13.4 alignment drift test). Plus bookkeeping `9bfc2238`. Drift net 47/47 PASS.
 
-### M14 — MCP v2 Migration / Pin `mcp<2` (STATUS: PENDING)
+### M14 — MCP v2 Migration / Pin `mcp<2` (STATUS: DONE)
 - **What:** Fix 2 pre-existing broken tests that fail with `ModuleNotFoundError: No module named 'mcp.server.fastmcp'` (mcp 2.x renamed `FastMCP` → `MCPServer`) and verify the mcp package version is locked to < 2.x (the IKIGAI codebase was written against the mcp 1.x API).
 - **Why:** Without this fix, the 2 test files fail at collection time, masking whether they're testing real behavior or just confirming a broken import. The codebase has been developed against `mcp<2` per session memory `[[p0-fix-shipped-2026-09-09]]`, but the pin may not be applied uniformly across `pyproject.toml`s (root vs `src/ikigai/pyproject.toml`).
 - **Acceptance:**
-  - [ ] Investigate current mcp package version state across all `pyproject.toml` files (T-14.1)
-  - [ ] Decide fix strategy: Option A = pin `mcp<2` everywhere OR Option B = migrate to mcp 2.x API (`from mcp.server.mcpserver import MCPServer`) (T-14.2)
-  - [ ] Apply chosen fix to `test_server_fastmcp.py` + `test_taskdog_mcp_path3.py` (T-14.3)
-  - [ ] Verify `src/ikigai/tests/` collection succeeds with NO errors (after T-13.2 deleted 5 PAV tests, only these 2 remain)
-  - [ ] Drift net 47/47 PASS preserved
-  - [ ] All 13 prior milestones stable
+  - [x] Investigate current mcp package version state across all `pyproject.toml` files (T-14.1) — `src/ikigai/pyproject.toml:16` ALREADY pins `mcp = "^1.1"`; root has no pyproject.toml
+  - [x] Decide fix strategy: Option A = pin `mcp<2` everywhere (chosen — Option B rejected as out-of-scope migration)
+  - [x] Apply chosen fix: `pip install "mcp<2"` for env-level + root `constraints.txt` + CLAUDE.md note (T-14.3)
+  - [x] Verify `src/ikigai/tests/` collection succeeds with NO errors — 7 tests collected (was 0); 6 PASS, 1 unrelated fail
+  - [x] Drift net 47/47 PASS preserved
+  - [x] All 13 prior milestones stable
 - **Dependencies:** M13 (must have shipped broken-test cleanup first; these are the only 2 remaining broken tests)
 - **Estimated ticks:** 2 (~30 min wall time; investigation + fix)
 - **Auto-promoted by:** M13 T-13.2 follow-up note (out-of-scope pre-existing failure discovered)
 - **Constitution gate:** All fixes preserve drift-net invariants; no PAV math re-introduction; no `mcp` 2.x API unless explicitly migrated.
+- **Completed:** 2026-09-13 — env-level fix via `pip install "mcp<2>"` (applied to system Python) + durable fix via root `constraints.txt` pinning `mcp<2` + CLAUDE.md note explaining the constraint workflow. Drift net 47/47 PASS preserved. 2 atomic commits: `29eeb2b8` (durable constraints.txt + CLAUDE.md note). 1 unrelated pre-existing failure remains: `test_all_ten_tools_registered` has stale `expected_tools` list (cites defunct `ikigai_score`/`ikigai_regime`/`ikigai_phase`/etc. that V5-E removed; missing the 3 `investigation_*` tools added in Plan C) — out of scope for M14 (assertion data drift, not import path).
 
 ## Backlog (not yet sequenced)
 
