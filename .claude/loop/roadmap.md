@@ -236,6 +236,30 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - [ ] Migrate SPEC.md frontmatter to use `constitution.md` references
 - [ ] Add `examples/` directory with 3 working milestones (M0, M1, M5)
 
+### M13 — Phase B: V2-Node/Bridge Alignment + Stale Test Cleanup (STATUS: DONE)
+- **What:** Address the 3 follow-up items from M12 final review: (1) clean up 8 dead v2-node call sites that silently degrade via try/except; (2) fix or delete 5 pre-existing broken tests; (3) add v2-node/bridge alignment drift test (the new drift class M12 introduced); plus (4) push 6 commits to origin/master.
+- **Why:** M12 closed the bridge/server drift + UEID schema drift. But the 8 v2 nodes still call deleted wrappers — they silently fail via try/except, surfacing as "degraded observations" in `error_channel`. This is the SAME class of silent drift M12 was supposed to eliminate, just shifted from bridge→server to node→bridge. Without an alignment drift test, future changes will silently break the same way.
+- **Acceptance:**
+  - [ ] Push 6 M11+M12 commits to origin/master (T-13.1)
+  - [ ] Delete (or fix) 5 pre-existing broken tests: `test_entities.py`, `test_heuristics.py`, `test_propagation.py`, `test_reliability.py`, `test_scoring.py` — all fail with `ModuleNotFoundError: sys_ikigai.core.scoring` from archived PAV kernel (T-13.2)
+  - [ ] Clean up 8 dead v2-node call sites: replace `mcp_bridge.<deleted_wrapper>(...)` with `error_channel` write OR delete the entire v2 node if it serves no purpose (T-13.3)
+  - [ ] Add `test_v2_node_bridge_alignment` drift test that walks all 8 v2 nodes (`observe.py`, `balance.py`, `commit.py`, `heuristics.py`, `plan.py`, `reflect.py`, `score_vectors.py`, `tag_and_persist.py`) and asserts each `mcp_bridge.<name>` call resolves to a real attribute (T-13.4)
+  - [ ] Drift net 46/46 → 47+/47+ PASS (existing 46 + new alignment test)
+  - [ ] No regression in existing invariants
+  - [ ] All 12 prior milestones stable
+- **Dependencies:** M12
+- **Estimated ticks:** 4 (push + delete-broken + clean-v2-nodes + new-drift-test)
+- **Auto-promoted by:** M12 final review follow-up actions list
+- **Constitution gate:** All fixes preserve append-only, drift-net, Pydantic v2 strict invariants.
+
+## Backlog (not yet sequenced)
+
+- [ ] Replace bash `loop-tick.sh` with TypeScript version (cross-platform)
+- [ ] Add "tier by risk" review depth (per @addyosmani)
+- [ ] Cross-loop: Mavis cron + this daemon + Claude Code Schedule = 3 redundant systems — pick one
+- [ ] Migrate SPEC.md frontmatter to use `constitution.md` references
+- [ ] Add `examples/` directory with 3 working milestones (M0, M1, M5)
+
 ## Adding a new milestone
 
 ```markdown
