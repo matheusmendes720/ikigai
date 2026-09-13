@@ -436,3 +436,58 @@ def test_ueid_regex_canonical_across_modules() -> None:
         + "\n".join(f"  {p}: {r}" for p, r in violations)
         + "\n\nFix: change to canonical 4-part pattern OR delete the stale regex."
     )
+
+
+def test_v2_tests_collect_without_errors() -> None:
+    """M12 NEEDS_FIX regression guard: src/ikigai/src/agents/v2/tests/
+    must collect without ImportError after code changes to mcp_bridge.py.
+
+    Drift net (which only covers src/ikigai/tests/) cannot detect this
+    class of regression because v2-tests live in a parallel tree. When
+    wrappers are removed from mcp_bridge.py, downstream test files that
+    import them break at COLLECTION TIME (not at runtime), turning the
+    v2 tree red unless caught explicitly. This guard imports every
+    test_*.py module under v2/tests/ and fails if any raises ImportError
+    or ModuleNotFoundError at import time.
+
+    Background: M12 deleted 8 PAV-flavored wrappers from mcp_bridge.py
+    (kept only ikigai_decompose), but the dead test files
+    test_mcp_bridge.py and test_phase_8_2_wiring.py still imported the
+    deleted symbols. The drift net passed 45/45 because none of the
+    drift files touched v2/tests/. This guard now closes that hole.
+
+    Note: uses direct importlib.import_module (not subprocess pytest)
+    to avoid the asyncio plugin's Windows _overlapped WinError 10106 in
+    subprocess children. The collection-time import errors we want to
+    detect happen at module-load time, so importlib is sufficient.
+    """
+    import importlib
+    import sys
+
+    repo = _resolve_repo_root()
+    v2_tests_dir = repo / "src" / "ikigai" / "src" / "agents" / "v2" / "tests"
+    assert v2_tests_dir.is_dir(), f"v2 tests dir missing: {v2_tests_dir}"
+
+    # Ensure dotted-prefix imports resolve: <repo>/ must be on sys.path
+    # (per tests/conftest.py). Safe to append (idempotent).
+    repo_str = str(repo)
+    if repo_str not in sys.path:
+        sys.path.insert(0, repo_str)
+
+    failures: list[tuple[str, str, str]] = []
+    for test_file in sorted(v2_tests_dir.glob("test_*.py")):
+        # Convert filesystem path to module name using repo-relative
+        # dotted form: src/ikigai/src/agents/v2/tests/test_X.py
+        # -> src.ikigai.src.agents.v2.tests.test_X
+        rel = test_file.relative_to(repo).with_suffix("")
+        modname = ".".join(rel.parts)
+        try:
+            importlib.import_module(modname)
+        except (ImportError, ModuleNotFoundError) as exc:
+            failures.append((test_file.name, type(exc).__name__, str(exc)))
+
+    assert not failures, (
+        "src/ikigai/src/agents/v2/tests/ has module-level import errors "
+        "(M12 NEEDS_FIX class — drift net doesn't cover v2/tests/):\n"
+        + "\n".join(f"  {name}: {cls}: {msg}" for name, cls, msg in failures)
+    )
