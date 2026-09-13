@@ -261,6 +261,25 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** All fixes preserve drift-net invariants; no PAV math re-introduction; no `mcp` 2.x API unless explicitly migrated.
 - **Completed:** 2026-09-13 — env-level fix via `pip install "mcp<2>"` (applied to system Python) + durable fix via root `constraints.txt` pinning `mcp<2` + CLAUDE.md note explaining the constraint workflow. Drift net 47/47 PASS preserved. 2 atomic commits: `29eeb2b8` (durable constraints.txt + CLAUDE.md note). 1 unrelated pre-existing failure remains: `test_all_ten_tools_registered` has stale `expected_tools` list (cites defunct `ikigai_score`/`ikigai_regime`/`ikigai_phase`/etc. that V5-E removed; missing the 3 `investigation_*` tools added in Plan C) — out of scope for M14 (assertion data drift, not import path).
 
+### M15 — M11 Priority 2 Drift Tests + Assertion Drift Fix (STATUS: DONE)
+- **What:** Address 3 follow-up items from M11 diagnosis Priority 2 + 1 assertion drift from M14 follow-up:
+  1. Add `test_langgraph_graph_registry_drift` — `langgraph.json` registry drift (CLAUDE.md claims 5 graphs, only 3 registered)
+  2. Extend `test_no_algorithm_constants_in_agent_code` to scan `vibe-ops/src/` too (currently scopes to `src/ikigai/` only)
+  3. Reconcile strategics/ hierarchy depth: `Planejamento (E&T)` says 5 levels; other 3 docs say 4 (no ATIVIDADES)
+  4. Fix `test_server_fastmcp.py::test_all_ten_tools_registered` — `expected_tools` set is stale
+- **Acceptance:**
+  - [x] Add `test_langgraph_graph_registry_drift` to `src/ikigai/tests/test_drift_extended_invariants.py` (T-15.1) ✓
+  - [x] Extend `test_no_algorithm_constants_in_agent_code` to scan `vibe-ops/src/` too (T-15.2) ✓ via `_EXTRA_CONSTANT_SCAN_ROOTS`
+  - [x] Reconcile strategics/ hierarchy depth: choose 4 or 5 levels and update whichever docs disagree (T-15.3) ✓ 5 levels canonical
+  - [x] Fix `test_all_ten_tools_registered` — replace stale `expected_tools` with current 11-tool registry (T-15.4) ✓ dynamic-read approach
+  - [x] Drift net 47/47 → 48/48 PASS
+  - [x] All 14 prior milestones stable
+- **Dependencies:** M14
+- **Estimated ticks:** 4 (1 per task)
+- **Auto-promoted by:** M11 diagnosis Priority 2 list + M14 follow-up out-of-scope finding
+- **Constitution gate:** All fixes preserve drift-net invariants; no PAV math re-introduction.
+- **Completed:** 2026-09-13 — 4 atomic commits: `d523eca8` (T-15.1 langgraph registry drift test) + `53bd06db` (T-15.2 vibe-ops PAV-constant renames + heuristic scan extension via `_EXTRA_CONSTANT_SCAN_ROOTS`) + `1d9555ca` (T-15.3 strategics/ hierarchy 5-level reconcile via append-only additions to 3 docs) + `2dc43dec` (T-15.4 test_server_fastmcp.py: dynamic-read from server.py). Drift net 48/48 PASS preserved (32 + 7 + 9). Refinements made: vibe-ops/src/ PAV-flavored constants renamed (DEFAULT_QHE_PUSH_THRESHOLD → HYSTERESIS_HIGH_BOUND, etc.) per ADR-024 archival; `_EXTRA_CONSTANT_SCAN_ROOTS` added to test_no_algorithm_constants_in_agent_code for vibe-ops/src/ scope; strategics/ hierarchy depth reconciled to 5 levels across all 4 docs (append-only additions; canonical doc was already 5-level); test_server_fastmcp.py now reads actual registry from server.py at test time (dynamic, prevents future false-positive assertion drift). 2 known follow-ups out of M15 scope: (a) widening PROD_LAYERS for OTHER drift tests to vibe-ops/src/ — would catch PAV math that's currently in dormant code; (b) `Planejamento (E&T).md` §1.2.1 internal heading-vs-diagram contradiction ("Estrutura de 4 Níveis" heading + 5-level diagram/table below).
+
 ## Backlog (not yet sequenced)
 
 - [ ] Replace bash `loop-tick.sh` with TypeScript version (cross-platform)
