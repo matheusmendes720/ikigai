@@ -168,6 +168,20 @@ imports. It:
 `mypy.ini` lives at repo root with `mypy_path = src .. ../..` and
 `explicit_package_bases = True` (closes W6.X item 5 dup-source error).
 
+### Run root-level pytest (interactive only)
+
+Root-level pytest uses system Python, not the submodule venv. To make root
+pytest work after a fresh setup, install the root constraints:
+
+```bash
+pip install -c constraints.txt
+```
+
+This installs `mcp<2` (and any other root-only deps) before tests run. CI
+uses submodule `uv sync` which has its own pin in `src/ikigai/pyproject.toml`
+(`mcp = "^1.1"`), so `constraints.txt` is only needed for interactive
+root-level testing.
+
 ### PAV kernel — ARCHIVED 2026-08-31
 
 The Produtividade Algorítmica Visual (PAV) kernel — pure-arithmetic business
