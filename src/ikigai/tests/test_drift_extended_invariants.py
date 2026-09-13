@@ -493,6 +493,65 @@ def test_v2_tests_collect_without_errors() -> None:
     )
 
 
+def test_langgraph_graph_registry_drift() -> None:
+    """M11 finding T-11.7 G-3: langgraph.json graph registry must be
+    consistent with actual graph implementations.
+
+    Verifies each entry in langgraph.json's `graphs` map has a real
+    factory function at the declared path. Catches future registry
+    drift (broken factories, missing files) at CI time.
+
+    Schema: each entry value is a "module.py:factory_name" string.
+    Module path is relative to repo root (may start with `./`).
+    """
+    import json
+
+    repo = REPO_ROOT
+    langgraph_json = repo / "langgraph.json"
+    if not langgraph_json.exists():
+        pytest.skip(f"langgraph.json not found: {langgraph_json}")
+
+    config = json.loads(langgraph_json.read_text(encoding="utf-8"))
+    graphs = config.get("graphs", {})
+    assert isinstance(graphs, dict), (
+        f"langgraph.json 'graphs' must be a dict, got {type(graphs).__name__}"
+    )
+
+    missing_factories: list[tuple[str, str]] = []
+    for name, entry in graphs.items():
+        # Entry is a "module.py:factory_name" string (not a dict).
+        if not isinstance(entry, str) or ":" not in entry:
+            missing_factories.append((name, f"entry must be '<module>:<factory>', got {entry!r}"))
+            continue
+        file_rel, factory_name = entry.split(":", 1)
+        # Strip leading "./" to normalize
+        file_rel = file_rel.lstrip("./")
+        full_file = repo / file_rel
+        if not full_file.exists():
+            missing_factories.append((name, f"file not found: {full_file}"))
+            continue
+        try:
+            tree = ast.parse(full_file.read_text(encoding="utf-8"))
+        except SyntaxError as exc:
+            missing_factories.append((name, f"syntax error in {full_file}: {exc}"))
+            continue
+        factory_names = {
+            node.name
+            for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        if factory_name not in factory_names:
+            missing_factories.append(
+                (name, f"factory {factory_name} not found in {full_file.name}")
+            )
+
+    assert not missing_factories, (
+        "langgraph.json entries with missing/broken factories:\n"
+        + "\n".join(f"  {name}: {reason}" for name, reason in missing_factories)
+        + f"\n\nlanggraph.json graphs: {sorted(graphs.keys())}"
+    )
+
+
 def test_v2_node_bridge_alignment() -> None:
     """Drift net guard (M13): every mcp_bridge.<attr> call in v2 nodes
     must resolve to a real attribute in mcp_bridge.py. Catches both:
