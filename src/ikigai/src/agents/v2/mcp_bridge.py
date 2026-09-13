@@ -1,12 +1,30 @@
 """mcp_bridge — sync wrappers around async MCP Gateway calls.
 
 Architecture:
-    v2 Node → mcp_bridge.ikigai_X(**kwargs) → async mcp_client.call()
+    v2 Node → mcp_bridge.ikigai_decompose(**kwargs) → async mcp_client.call()
         → MCP Gateway stdio (production)
         → FakeMcpServer (tests via monkeypatch on _server)
 
-12 wrappers, one per canonical IKIGAI_TOOL. Adding a new tool
-requires editing this file AND the drift detector in
+1 graph-facing wrapper (``ikigai_decompose``). The 8 PAV-flavored
+wrappers that existed in earlier versions (``ikigai_observe_pav_state``,
+``ikigai_score_vectors``, ``ikigai_heuristics``, ``ikigai_balance``,
+``ikigai_plan``, ``ikigai_reflect``, ``ikigai_tag_and_persist``,
+``ikigai_commit_summary``) were REMOVED in M12 (T-12.1) per the M11
+diagnosis Priority 1, item 1 (L4 G-1): those names were registered in
+this bridge but absent from ``server.py``'s ``@MCP.tool`` registry after
+V5-E (``b960e852``) deleted the 7 PAV-math tools. Wrapping a
+non-existent server tool silently failed at runtime via dict-protocol
+detector — the bridge and server drifted apart silently.
+
+8 v2 nodes that previously called the deleted wrappers
+(observe/balance/heuristics/commit/plan/reflect/score_vectors/
+tag_and_persist) all guard their call with ``try/except`` per Phase 8.2
+SPEC §3 — they now route to ``error_channel`` and continue. The drift
+test ``test_mcp_bridge_wrapped_tool_count_matches_canonical`` (T-12.1)
+pins bridge/server alignment so future drift trips the detector instead
+of silently growing agent surface (T-11.5 G-2).
+
+Adding a new tool requires editing this file AND the drift detector in
 src/ikigai/tests/test_canonical_scope.py — do NOT add silently.
 
 Error policy: errors propagate. Caller catches and routes to
@@ -82,54 +100,13 @@ def _call(tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
             raise
 
 
-# --- 12 IKIGAI_TOOLS wrappers (canonical list) ---
-
-
-def ikigai_observe_pav_state(*, date: str) -> dict[str, Any]:
-    """Read Q_HE observation for a given date."""
-    return _call("ikigai_observe_pav_state", {"date": date})
-
-
-def ikigai_score_vectors(*, vectors: list[float]) -> dict[str, Any]:
-    """Score a list of priority vectors."""
-    return _call("ikigai_score_vectors", {"vectors": vectors})
-
-
-def ikigai_heuristics(*, context: dict[str, Any]) -> dict[str, Any]:
-    """Apply heuristics to a planning context."""
-    return _call("ikigai_heuristics", {"context": context})
-
-
-def ikigai_balance(*, load: float) -> dict[str, Any]:
-    """Compute load balance adjustment."""
-    return _call("ikigai_balance", {"load": load})
+# ---------------------------------------------------------------------------
+# Graph-facing wrappers — MUST be a subset of server.py's @MCP.tool registry.
+# Drift-detected by test_mcp_bridge_wrapped_tool_count_matches_canonical.
+# ---------------------------------------------------------------------------
 
 
 def ikigai_decompose(*, task_id: str) -> dict[str, Any]:
     """Decompose a task into subtasks."""
     return _call("ikigai_decompose", {"task_id": task_id})
 
-
-def ikigai_plan(*, cycle_id: str) -> dict[str, Any]:
-    """Build a plan for a planning cycle."""
-    return _call("ikigai_plan", {"cycle_id": cycle_id})
-
-
-def ikigai_reflect(*, cycle_id: str) -> dict[str, Any]:
-    """Reflect on a completed cycle."""
-    return _call("ikigai_reflect", {"cycle_id": cycle_id})
-
-
-def ikigai_tag_and_persist(*, ueid: str) -> dict[str, Any]:
-    """Read tags for a UEID (read-only — vault_write is separate work)."""
-    return _call("ikigai_tag_and_persist", {"ueid": ueid})
-
-
-def ikigai_commit_summary(*, cycle_id: str) -> dict[str, Any]:
-    """Build a commit summary for a cycle."""
-    return _call("ikigai_commit_summary", {"cycle_id": cycle_id})
-
-
-# The remaining 3 IKIGAI_TOOLS are infrastructure-level (vault_write,
-# investigation_enqueue, sync_vault) — not used by v2 graph nodes.
-# Phase 8.2 wires only the 9 graph-facing tools above. See SPEC §2.
