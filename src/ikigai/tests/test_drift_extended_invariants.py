@@ -491,3 +491,57 @@ def test_v2_tests_collect_without_errors() -> None:
         "(M12 NEEDS_FIX class — drift net doesn't cover v2/tests/):\n"
         + "\n".join(f"  {name}: {cls}: {msg}" for name, cls, msg in failures)
     )
+
+
+def test_v2_node_bridge_alignment() -> None:
+    """Drift net guard (M13): every mcp_bridge.<attr> call in v2 nodes
+    must resolve to a real attribute in mcp_bridge.py. Catches both:
+    - Wrapper deleted from mcp_bridge.py but still called by v2 node (silent
+      AttributeError → try/except → error_channel — the SAME drift class M13
+      just cleaned up)
+    - Wrapper added to mcp_bridge.py but no node uses it (orphaned code)
+
+    Walks each node in src/ikigai/src/agents/v2/nodes/, extracts every
+    `mcp_bridge.<attr>(...)` reference via AST, and cross-checks against
+    the live attribute set on the mcp_bridge module.
+    """
+    import importlib
+
+    repo = _resolve_repo_root()
+    nodes_dir = repo / "src" / "ikigai" / "src" / "agents" / "v2" / "nodes"
+    if not nodes_dir.exists():
+        pytest.skip(f"v2 nodes dir not found: {nodes_dir}")
+
+    # 1. Collect live mcp_bridge attributes
+    import src.ikigai.src.agents.v2.mcp_bridge as mcp_bridge  # noqa: E402
+    live_attrs = {
+        name for name in dir(mcp_bridge)
+        if not name.startswith("_")  # exclude dunder + private
+    }
+
+    # 2. Parse each node file via AST and extract mcp_bridge.<attr> attribute accesses
+    missing: list[tuple[str, str]] = []  # (file, attr) pairs where node references an attr that doesn't exist
+    for node_file in sorted(nodes_dir.glob("*.py")):
+        if node_file.name == "__init__.py":
+            continue
+        try:
+            tree = ast.parse(node_file.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+
+        # Walk all Attribute nodes; find ones whose value is Name("mcp_bridge")
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Attribute)
+                and isinstance(node.value, ast.Name)
+                and node.value.id == "mcp_bridge"
+            ):
+                attr = node.attr
+                if attr not in live_attrs:
+                    missing.append((str(node_file.relative_to(repo)), attr))
+
+    assert not missing, (
+        f"v2 nodes reference mcp_bridge.<attr> for attributes that don't exist:\n"
+        + "\n".join(f"  {file}: {attr}" for file, attr in missing)
+        + f"\n\nLive mcp_bridge attrs: {sorted(live_attrs)}"
+    )
