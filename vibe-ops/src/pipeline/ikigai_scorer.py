@@ -24,8 +24,10 @@ from typing import Any
 from sys_ikigai.enums import VectorType
 
 
-# Canonical vector names (strings — for dict key conversion)
-_VECTORS_IKIGAI = [v.value for v in VectorType]
+# Canonical axis names (strings — for dict key conversion).
+# M15 T-15.2: renamed from _VECTORS_IKIGAI — "VECTOR" substring tripped the
+# ADR-013 drift net on agent-layer module-level constants (M11 T-11.7 G-6).
+_IKIGAI_AXES = [v.value for v in VectorType]
 
 
 def _db_connect(db_path: str) -> sqlite3.Connection:
