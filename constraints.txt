@@ -1,0 +1,7 @@
+# IKIGAI dependencies that aren't pinned in any pyproject.toml.
+# Apply with: pip install -c constraints.txt <package>
+#
+# mcp: codebase was developed against mcp 1.x API (FastMCP at mcp.server.fastmcp).
+# mcp 2.x renamed FastMCP to MCPServer (mcp.server.mcpserver) — IKIGAI v2 graph
+# does NOT use the mcp 2.x API. Pin mcp<2 to prevent accidental upgrade.
+mcp<2
