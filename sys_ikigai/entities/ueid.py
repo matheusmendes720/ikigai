@@ -1,7 +1,9 @@
-"""UEID — 5-part canonical identifier per SPEC D10 + §3.1.
+"""UEID — 4-part canonical identifier per ADR-014.
 
-Format: <namespace>:<entity_type>:<slug>:<uuid_short>:<content_hash_short>
-Namespaces: ikigai | tw | obsidian | external
+Format: <namespace>:<slug>:<uuid>:<hash>
+Namespaces: 2-5 lowercase letters (ikigai, tw, obsidian, external, …).
+
+Canonical regex matches `src/contracts/common.py:34`.
 """
 
 from __future__ import annotations
@@ -13,7 +15,9 @@ from pydantic import StringConstraints
 UEID = Annotated[
     str,
     StringConstraints(
-        pattern=r"^(ikigai|tw|obsidian|external):[a-z_]+:[a-z0-9_-]+:[0-9a-f]{8}:[0-9a-f]{8}$",
+        # ADR-014 canonical: 4-part UEID regex (matches src/contracts/common.py:34)
+        # ^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$
+        pattern=r"^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$",
         min_length=1,
     ),
 ]

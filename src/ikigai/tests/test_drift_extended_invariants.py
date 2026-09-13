@@ -293,3 +293,146 @@ def test_drift_extended_invariants_self_check() -> None:
     assert callable(_is_vault_write_call)
     assert callable(_is_review_queue_delete_or_rewrite)
     assert callable(_iter_python_files)
+
+
+def test_mcp_bridge_wrapped_tool_count_matches_canonical() -> None:
+    """L4 G-1 / T-11.5 G-2 (M11 diagnosis Priority 1, item 1): every
+    wrapped ikigai_* tool in mcp_bridge.py MUST exist in server.py's
+    @MCP.tool registry.
+
+    Regression guard for the 9 PAV-flavored wrappers that were deleted
+    from server.py in V5-E (commit b960e852) but were referenced from
+    mcp_bridge.py — silent runtime failure path. P1.X (2026-09-12)
+    renamed ``ikigai_observe_pav_state`` → ``ikigai_observe_state`` and
+    restored the 8 missing @MCP.tool decorators. This test pins that
+    alignment so future drift trips the detector instead of returning
+    ``dict_protocol_no_op`` at runtime.
+
+    Also addresses G-2: bridge-wrapper count was NOT drift-net enforced;
+    adding a 13th wrapper silently grew agent surface. Now guarded.
+    """
+    import re as _re
+
+    repo = REPO_ROOT
+    bridge_file = (
+        repo / "src" / "ikigai" / "src" / "agents" / "v2" / "mcp_bridge.py"
+    )
+    server_file = repo / "src" / "ikigai" / "src" / "mcp_server" / "server.py"
+
+    # Step 1: discover all tools registered in server.py via @MCP.tool.
+    # Handles both bare ``@MCP.tool()`` (function name) and
+    # ``@MCP.tool(name="...")`` (explicit canonical name) decorators,
+    # including multi-line ``@MCP.tool(\n    name="...",\n    ...,\n)``.
+    server_tools: set[str] = set()
+    server_text = server_file.read_text(encoding="utf-8")
+    # Decorators with explicit name="..." (tolerant to multi-line).
+    for match in _re.finditer(
+        r'@MCP\.tool\([^@]*?name="([A-Za-z_][\w]*)"', server_text
+    ):
+        server_tools.add(match.group(1))
+    # Bare @MCP.tool() followed by def — function name IS the tool name.
+    for match in _re.finditer(
+        r"@MCP\.tool\(\)\s*(?:async\s+)?def\s+(\w+)", server_text
+    ):
+        server_tools.add(match.group(1))
+
+    # Step 2: discover all ikigai_* wrappers in mcp_bridge.py.
+    bridge_tools: set[str] = set()
+    bridge_text = bridge_file.read_text(encoding="utf-8")
+    for match in _re.finditer(
+        r"^(?:async\s+)?def\s+(ikigai_\w+)", bridge_text, _re.MULTILINE
+    ):
+        bridge_tools.add(match.group(1))
+
+    # Step 3: drift assertion. Every bridge tool must exist in the
+    # server's @MCP.tool registry. ``ikigai_helper`` is the reserved
+    # exclusion for any purely-internal helper introduced later.
+    missing = bridge_tools - server_tools - {"ikigai_helper"}
+    assert not missing, (
+        f"Bridge wrappers not registered in server.py "
+        f"(M11 P0 attribution violation): {sorted(missing)}\n"
+        f"  Bridge tools: {sorted(bridge_tools)}\n"
+        f"  Server tools: {sorted(server_tools)}\n"
+        f"Either rename the wrapper to match the server-side tool or "
+        f"register the missing @MCP.tool in server.py per L4 G-1."
+    )
+
+    # Step 4: forward reference sanity. bridge must use _call() which
+    # dispatches via tool-name string. Catches typos that would route
+    # to a non-existent server tool at runtime.
+    referenced_tool_names = set(
+        _re.findall(r'_call\("(ikigai_\w+)"', bridge_text)
+    )
+    for fn_match in _re.finditer(
+        r"^def\s+(ikigai_\w+)\([^)]*\):", bridge_text, _re.MULTILINE
+    ):
+        fn_name = fn_match.group(1)
+        assert fn_name in referenced_tool_names, (
+            f"Bridge wrapper {fn_name} does not call _call(...) "
+            f"with its own name — won't dispatch correctly."
+        )
+
+
+def test_ueid_regex_canonical_across_modules() -> None:
+    """L5 G-1 (M11 diagnosis Priority 1): ALL UEID regex definitions
+    across the project must match the canonical 4-part pattern from
+    ADR-014 (`src/contracts/common.py:34`).
+
+    Regression test for the 5-part regex in `sys_ikigai/entities/ueid.py`
+    that drift net doesn't reach (drift net only checks `src/contracts/`).
+    Two competing UEID definitions = silent schema drift.
+    """
+    import re
+
+    canonical_regex = r"^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$"
+    # Canonical has 3 colons (4 parts separated by 3 colons).
+    canonical_colon_count = canonical_regex.count(":")  # = 3
+
+    # Find all UEID regex definitions in the project (excluding vendor + .venv).
+    candidates = list(LIFE_REPO.glob("**/*.py"))
+    candidates = [
+        p
+        for p in candidates
+        if not any(
+            part in p.parts
+            for part in (
+                "vendor",
+                ".venv",
+                "node_modules",
+                "__pycache__",
+                ".mypy_cache",
+                ".claude",
+            )
+        )
+    ]
+
+    violations = []
+    for path in candidates:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        # Find string literals that LOOK like a UEID regex:
+        # starts with ^ (and either a lowercase letter or alternation like (...),
+        # ends with $.
+        for match in re.finditer(
+            r'r?["\'](\^[\(\[][^"\']+?\$)["\']', text, re.MULTILINE
+        ):
+            pattern = match.group(1)
+            # Heuristic: UEID-like patterns have hash segments [0-9a-f] or [a-f0-9].
+            if not re.search(r"\[0-?9a-f\]|\[a-f0-9\]", pattern):
+                continue
+            # Skip non-UEID patterns (datetime, phone, email etc.).
+            # UEID patterns have multiple `:` separators.
+            colon_count = pattern.count(":")
+            if colon_count < 2:
+                continue
+            # Canonical 4-part: 3 colons. Stale 5-part: 4+ colons.
+            if colon_count > canonical_colon_count:
+                violations.append((str(path.relative_to(LIFE_REPO)), pattern))
+
+    assert not violations, (
+        f"UEID regex definitions with 5+ parts found (canonical is 4-part per ADR-014):\n"
+        + "\n".join(f"  {p}: {r}" for p, r in violations)
+        + "\n\nFix: change to canonical 4-part pattern OR delete the stale regex."
+    )
