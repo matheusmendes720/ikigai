@@ -114,14 +114,15 @@ O nível estratégico define a **estrutura cíclica**, com foco no encadeamento 
 
 ##### 1. Organização em Níveis de Granularidade**
 
-O modelo é dividido em 4 níveis de granularidade: **Sonhos**, **Objetivos**, **Metas**, e **Tarefas**. Cada nível está vinculado a rotinas de registro, revisão e análise, além de estar conectado com o prazo e os ciclos definidos.
+O modelo é dividido em 5 níveis de granularidade: **Sonhos**, **Objetivos**, **Metas**, **Tarefas** e **Atividades**. Cada nível está vinculado a rotinas de registro, revisão e análise, além de estar conectado com o prazo e os ciclos definidos.
 
 | **Nível**     | **Escala Temporal** | **Rotina de Revisão**         | **Descrição**                                                                                           |
 | ------------- | ------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------- |
 | **Sonhos**    | 6 a 12 meses        | Mensal ( #supervisão)         | Resultados-alvo que representam mudanças significativas na sua vida.                                    |
 | **Objetivos** | 15 dias (quinzenal) | Quinzenal ( #revisão)         | Metas intermediárias que detalham passos concretos para a realização de cada sonho.                     |
 | **Metas**     | Semana              | Semanal ( #relatórios)        | Divisão prática de objetivos em etapas semanais, permitindo análise da execução por meio de relatórios. |
-| **Tarefas**   | Diário              | Diário ( #narrativa e #to-do) | Registros operacionais do dia: turnos, checklists, insights e produtividade.                            |
+| **Tarefas**   | 5 dias              | Semanal ( #relatórios)        | Microciclos de 5 dias úteis dentro de cada meta; subdivisão operacional de médio prazo.                 |
+| **Atividades**| Diário              | Diário ( #narrativa e #to-do) | Registros operacionais do dia: turnos, checklists, insights e produtividade.                            |
 
 8. **Base Temporal: Calendário X Dias Úteis**
     
@@ -273,3 +274,32 @@ O nível operacional se concentra nas **tarefas diárias** e no acompanhamento *
 -----
 ---
 --- ^tr-m3bl5yq1s
+
+---
+
+## Apêndice: Nível 5 — Atividades (Adicionado em Reconciliação T-15.3)
+
+> **Status:** Adicionado em 2026-09-13 conforme M15 T-15.3 (M11 Priority 2 Drift Tests).
+> Este nível foi acrescentado para reconciliar a inconsistência entre este documento
+> (que listava 4 níveis) e `Planejamento (Estratégico e Tático)` (que enumera 5 níveis
+> com `ATIVIDADES` como o nível mais granular — execução diária detalhada).
+
+#### **3.5. Nível 5: Atividades**
+
+- **Título:** Nome da atividade diária (unidade atômica de execução).
+- **Descrição:** Passo operacional específico executado dentro de uma Tarefa (microciclo de 5 dias úteis).
+- **Prazo:** 1 dia (revisão diária via #narrativa e #to-do).
+- **Granularidade:** Menor unidade de execução — cada atividade corresponde a um bloco de tempo (manhã/tarde/noite) dentro do dia.
+- **Vinculação:**
+    - Atividades → Tarefas (5 dias úteis) → Metas (semanais) → Objetivos (quinzenais) → Sonhos (6-12 meses).
+- **Rotina:**
+    - **Rotina Inicial:** Planejar quais atividades executar no dia (alinhamento com a Tarefa pai).
+    - **Rotina Final:** Registrar conclusão + produtividade via #narrativa e #to-do.
+- **Relação com outros documentos:**
+    - **Hierarquia canônica completa** (5 níveis): ver [[Planejamento (Estratégico e Tático)#1.2.1 Estrutura de 4 Níveis]] (nota: o heading do Planejamento E&T ainda diz "4 Níveis", mas a tabela/diagrama mostra 5; a contagem canônica é 5 conforme reconciliação M15).
+    - **Templates de revisão:** [[Hierarquia de Objetivos#1. Revisão Semanal]] (template Revisão Semanal preenche a planilha de Atividades).
+    - **Blocos diários detalhados:** [[Análise (Tático e Operacional)#2.3 Blocos de Tempo]] (rotinas manhã/tarde/noite para cada Atividade).
+- **Por que 5 e não 4?**
+    - `Planejamento (Estratégico e Tático)` (o documento mais detalhado da camada estratégica) declara a hierarquia de 5 níveis no diagrama `1.2.1` e na tabela `1.2.2`.
+    - 4 níveis permanecem válidos como **visão agregada** das Tarefas (microciclos de 5 dias) sem descer à granularidade diária.
+    - A reconciliação promove `ATIVIDADES` como nível canônico para uso operacional diário.
