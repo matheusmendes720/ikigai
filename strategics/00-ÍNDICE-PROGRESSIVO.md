@@ -79,7 +79,7 @@
 │     │  │ Modelagem           │◄──►│ Planejamento                ││        │
 │     │  │ Operacional         │    │ (Estratégico e Tático)      ││        │
 │     │  │ • Pirâmide E/T/O    │    │ • Dual-Frame PAE×Hierárquico││        │
-│     │  │ • 4 Níveis          │    │ • Proporção 5×3×3           ││        │
+│     │  │ • 5 Níveis (c/ ATIVIDADES) │    │ • Proporção 5×3×3           ││        │
 │     │  │ • Ciclo de 180 dias │    │ • Teste de Fogo             ││        │
 │     │  └─────────────────────┘    └─────────────────────────────┘│        │
 │     └─────────────────────────────────────────────────────────────┘        │
@@ -121,7 +121,7 @@
 ## 1. ESTRATÉGICO — Visão de Longo Prazo (6-12 meses)
 
 ### 1.1 Modelagem Operacional
-**Função:** *O DNA do sistema.* Define a pirâmide de desempenho, os 4 níveis de granularidade e a estrutura cíclica integrada (PAE + Hierárquica).
+**Função:** *O DNA do sistema.* Define a pirâmide de desempenho, os 5 níveis de granularidade (SONHOS, OBJETIVOS, METAS, TAREFAS, ATIVIDADES) e a estrutura cíclica integrada (PAE + Hierárquica).
 
 **Seções-chave e links de navegação:**
 - **Níveis da Pirâmide** → Se você chegou aqui vindo de uma revisão mensal, retorne para [[Planejamento (Estratégico e Tático)#3.1 Planejamento Trimestral]]
@@ -221,7 +221,7 @@ graph LR
 **Função:** *O sistema nervoso.* Conecta todos os níveis via labels, tags e fluxo de registro padronizado.
 
 **Seções-chave e links de navegação:**
-- **Organização em 4 Níveis** → Origem da tabela em [[Modelagem Operacional#1. Organização em Níveis de Granularidade]]
+- **Organização em 5 Níveis (c/ ATIVIDADES)** → Origem da tabela em [[Modelagem Operacional#1. Organização em Níveis de Granularidade]]
 - **Labels Gerais** → Implementação prática dos rótulos de [[Planejamento (Estratégico e Tático)#4.1 Sistema de Rótulos]]
 - **Formulário Diário** → Aplicado nas rotinas de [[Análise (Tático e Operacional)#Rotina inicial]]
 - **Interface Kanban/Pyplot** → Visualização dos dados de [[Hierarquia de Objetivos#Seção 2: Avaliação Detalhada das Metas]]
@@ -284,7 +284,7 @@ graph TB
     end
 
     MOD -->|define níveis e ciclos| PET
-    MOD -->|origem da tabela 4 níveis| INT
+    MOD -->|origem da tabela 5 níveis (c/ ATIVIDADES)| INT
     PET -->|fornece templates trimestrais| HIE
     PET -->|fornece métricas 5×3×3| DES
     PET -->|define rótulos avançados| INT
