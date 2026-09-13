@@ -12,27 +12,28 @@ def test_fastmcp_instance_exists() -> None:
     assert MCP.name == "ikigai-gateway"
 
 
-def test_all_ten_tools_registered() -> None:
-    expected_tools = {
-        "ikigai_score",
-        "ikigai_regime",
-        "ikigai_phase",
-        "ikigai_decompose",
-        "ikigai_corrections",
-        "ikigai_plan_cycle",
-        "ikigai_checkpoint",
-        "ikigai_sync_vault",
-        "ikigai_write_tasks",
-        "ikigai_read_tasks",
-        # Phase B3.2 additions
-        "ikigai_mesh_show",
-        "ikigai_task_create",
-        "ikigai_health",
-        # Phase B6.7 additions
-        "vault_write",
-        # Phase B7.1 additions
-        "vault_read",
-    }
+def test_all_tools_registered() -> None:
+    """Asserts that the MCP server registry matches what is actually wired in server.py.
+
+    The expected_tools set is read dynamically from the ``@MCP.tool(name=...)``
+    decorators in src/ikigai/src/mcp_server/server.py rather than hardcoded —
+    V5-E removed ikigai_score/regime/phase/corrections/plan_cycle/checkpoint/sync_vault
+    and Plan C added 3 investigation_* tools, so a static list would always drift.
+    """
+    import re
+    from pathlib import Path
+
+    server_path = (
+        Path(__file__).resolve().parents[2]
+        / "ikigai"
+        / "src"
+        / "mcp_server"
+        / "server.py"
+    )
+    text = server_path.read_text(encoding="utf-8")
+    expected_tools = set(
+        re.findall(r'@MCP\.tool\(\s*name="(\w+)"', text)
+    )
     registered = {tool.name for tool in TOOLS}
     assert registered == expected_tools, (
         f"Missing: {expected_tools - registered}; Extra: {registered - expected_tools}"
