@@ -342,6 +342,20 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** Doc changes preserve append-only rule; no code touched
 - **Completed:** 2026-09-14 — 2 atomic doc commits: `8a7b13f7` (T-18.2 Planejmento heading 4→5 Níveis) + `33fbcd09` (T-18.1 CLAUDE.md Application Status section added). Drift net 53/53 PASS preserved (doc-only). After this commit: (a) all 4 strategics/ docs internally consistent at 5 levels (T-15.3 + T-18.2); (b) CLAUDE.md Application Status reflects post-rebuild architecture.
 
+### M20 — Operational Hygiene — Gitignore + Submodule Dirty (STATUS: DONE)
+- **What:** Add gitignore patterns for 0-byte artifacts at repo root + document the strategics/planning-with-files submodule dirty state (NOT a real git submodule — vendored copy with local edits)
+- **Why:** CLAUDE.md "Pre-existing bugs" items 4 (4 zero-byte artifacts from bash redirect leaks) and `strategics/planning-with-files submodule dirty`. Both are operational hygiene: prevent future pollution + clarify what's expected behavior for the vendored copy.
+- **Acceptance:**
+  - [x] Add gitignore patterns for digit/Python-keyword/template-fragment leaks (T-20.1) ✓ 5 new patterns added (`/True`, `/False`, `/async`, `/await`, `/{*}`); 5 pre-existing patterns confirmed
+  - [x] Document submodule dirty state (T-20.2) ✓ case B (uncommitted local edits, NOT pointer drift) — vendored copy, NOT real git submodule; local edits are quote-normalization in third-party plugin (left dirty intentionally per "vendored third-party plugin" policy)
+  - [x] Drift net 53/53 PASS preserved
+  - [x] All 19 prior milestones stable
+- **Dependencies:** M19
+- **Estimated ticks:** 2 (1 per task)
+- **Auto-promoted by:** Post-M18 hygiene review of CLAUDE.md "Pre-existing bugs"
+- **Constitution gate:** Both changes are config-only or doc-only — no code touched; submodule contents NOT committed (preserves vendored-plugin policy)
+- **Completed:** 2026-09-14 — 2 atomic commits: `4c5fa9e2` (T-20.1 .gitignore +18/-0 lines; 5 new patterns; pre-existing patterns verified) + `934c3fde` (T-20.2 CLAUDE.md "Pre-existing bugs" expanded for submodule dirty state). Drift net 53/53 PASS preserved.
+
 ## Backlog (not yet sequenced)
 
 - [ ] Replace bash `loop-tick.sh` with TypeScript version (cross-platform)
