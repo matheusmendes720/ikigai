@@ -12,37 +12,24 @@ from src.ikigai.src.agents.v2.workers.investigation_dispatcher import (
     _has_crystallized,
     _is_stale,
     _should_emit_hint,
-    dispatch_once,
-)
-
-# Dual-module identity bug (see W6.X test-review-queue-worker-dual-module-fix
-# in MEMORY.md): dispatch_once uses bare-namespace imports
-# (`from mesh.investigation_queue import ...`), so the dispatcher reads QUEUE_DIR
-# from the `mesh.investigation_queue` module instance — but the test fixture
-# patches `src.mesh.investigation_queue.QUEUE_DIR`. The two modules are
-# separate sys.modules entries with separate globals, so the patch no-ops and
-# dispatch_once reads the real `data/investigation_queue/` (which carries
-# stale entries from prior integration tests). The pure-helper unit tests
-# above (_is_stale, _has_crystallized, _should_emit_hint) still pass; only the
-# dispatch_once integration tests below are gated. Fix path: rewire
-# dispatcher imports to dotted-prefix (`from src.mesh.investigation_queue ...`)
-# AND patch both module identities in the fixture (commit precedent:
-# test_review_queue_worker dual-module fix 2026-09-05).
-_DUAL_MODULE_REASON = (
-    "dispatch_once uses bare-namespace mesh.investigation_queue imports; "
-    "fixture patches src.mesh.investigation_queue only (dual-module identity "
-    "bug). See W6.X dual-module fix memory entry 2026-09-05."
-)
-# NOTE: pytestmark below applies only to dispatch_once integration tests,
-# not the pure-helper unit tests. Applied per-function below.
+    dispatch_once)
 
 
 @pytest.fixture
 def tmp_queue(monkeypatch, tmp_path):
-    """Redirect investigation queue dir to tmp_path."""
-    import src.mesh.investigation_queue as q
-    monkeypatch.setattr(q, "QUEUE_DIR", tmp_path)
-    monkeypatch.setattr(q, "audit_log_path", lambda: tmp_path / ".investigation_audit.log")
+    """Redirect investigation queue dir to tmp_path.
+
+    Dual-module-identity fix (2026-09-14, per [[dual-module-identity-bug-pattern]]):
+    the dispatcher imports the queue from bare ``mesh.investigation_queue`` while the
+    tests patch ``src.mesh.investigation_queue``. These are two separate
+    ``sys.modules`` entries with separate globals, so the patch must setattr on BOTH
+    identities or ``dispatch_once`` reads the real ``data/investigation_queue/``.
+    """
+    import src.mesh.investigation_queue as q_dotted
+    import mesh.investigation_queue as q_bare
+    for q in (q_dotted, q_bare):
+        monkeypatch.setattr(q, "QUEUE_DIR", tmp_path)
+        monkeypatch.setattr(q, "audit_log_path", lambda: tmp_path / ".investigation_audit.log")
     return tmp_path
 
 
@@ -126,7 +113,6 @@ def test_should_emit_hint_ready_tag_and_long_payload():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skip(reason=_DUAL_MODULE_REASON)
 def test_dispatch_once_empty_queue(tmp_queue):
     """Empty queue → all zeros."""
     summary = dispatch_once()
@@ -137,7 +123,6 @@ def test_dispatch_once_empty_queue(tmp_queue):
     assert summary["errors"] == []
 
 
-@pytest.mark.skip(reason=_DUAL_MODULE_REASON)
 def test_dispatch_once_archives_stale(tmp_queue):
     """Stale in_progress → archived."""
     old = datetime.now() - timedelta(days=STALE_THRESHOLD_DAYS + 5)
@@ -153,7 +138,6 @@ def test_dispatch_once_archives_stale(tmp_queue):
     assert get("inq-stale").status == "archived"
 
 
-@pytest.mark.skip(reason=_DUAL_MODULE_REASON)
 def test_dispatch_once_resolves_crystallized(tmp_queue):
     """Crystallized → resolved."""
     crystallized = _make_inv("inq-crystal", inq_ueid="abc:def:0123:4567")
@@ -183,7 +167,6 @@ def test_dispatch_once_emits_hint(tmp_queue):
     assert get("inq-ready").status == "open"
 
 
-@pytest.mark.skip(reason=_DUAL_MODULE_REASON)
 def test_dispatch_once_skips_terminal(tmp_queue):
     """Resolved/archived are NOT processed (already terminal)."""
     resolved = _make_inv("inq-done", status="resolved")
@@ -194,7 +177,6 @@ def test_dispatch_once_skips_terminal(tmp_queue):
     assert summary["processed"] == 0  # terminal skipped
 
 
-@pytest.mark.skip(reason=_DUAL_MODULE_REASON)
 def test_dispatch_once_logs_transitions(tmp_queue, caplog):
     """Stale + crystallized emit audit log entries."""
     import src.mesh.investigation_queue as q
@@ -212,7 +194,6 @@ def test_dispatch_once_logs_transitions(tmp_queue, caplog):
     assert "open->resolved" in log_text or "open->resolved" in log_text.replace(" ", "")
 
 
-@pytest.mark.skip(reason=_DUAL_MODULE_REASON)
 def test_dispatch_once_handles_malformed_gracefully(tmp_queue):
     """Malformed JSON files don't crash the dispatcher."""
     # Write a malformed file

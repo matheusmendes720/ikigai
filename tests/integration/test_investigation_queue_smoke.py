@@ -24,34 +24,24 @@ from src.ikigai.src.mcp_server.investigation_status import investigation_status
 from src.ikigai.src.mcp_server.investigation_complete import investigation_complete
 from src.ikigai.src.agents.v2.workers.investigation_dispatcher import dispatch_once
 
-# Dual-module identity bug (see W6.X test-review-queue-worker-dual-module-fix
-# in MEMORY.md): investigation_dispatcher.py uses bare-namespace imports
-# (`from contracts.investigation import Investigation; from mesh.investigation_queue import ...`),
-# so when the dispatcher runs it sees the bare `mesh.investigation_queue`
-# module globals — but the tests patch `src.mesh.investigation_queue.QUEUE_DIR`.
-# Two separate sys.modules entries = two separate globals. The patch no-ops,
-# dispatcher reads real `data/investigation_queue/`, and tests trip over
-# pre-existing entries (inq-smoke-001, inq-summary-*, inq-terminal, inq-idem)
-# committed by earlier smoke runs.
-#
-# Marked flaky/skip until the dispatcher imports are rewired to dotted-prefix
-# AND the fixture patches both identities.
-_DUAL_MODULE_REASON = (
-    "investigation_queue dual-module fixture bypass: dispatcher imports "
-    "from bare `mesh.*`; test patches `src.mesh.*` only. See W6.X dual-module "
-    "fix in MEMORY.md (2026-09-05)."
-)
-pytestmark = pytest.mark.skip(reason=_DUAL_MODULE_REASON)
-
 
 @pytest.fixture
 def fresh_queue(monkeypatch):
-    """Redirect all queue operations to a temp directory."""
+    """Redirect all queue operations to a temp directory.
+
+    Dual-module-identity fix (2026-09-14, per [[dual-module-identity-bug-pattern]]):
+    the dispatcher imports the queue from bare ``mesh.investigation_queue`` while the
+    tests patch ``src.mesh.investigation_queue``. These are two separate
+    ``sys.modules`` entries with separate globals, so the patch must setattr on BOTH
+    identities or ``dispatch_once`` reads the real ``data/investigation_queue/``.
+    """
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_path = Path(tmp_dir)
-        import src.mesh.investigation_queue as q
-        monkeypatch.setattr(q, "QUEUE_DIR", tmp_path)
-        monkeypatch.setattr(q, "audit_log_path", lambda: tmp_path / ".investigation_audit.log")
+        import src.mesh.investigation_queue as q_dotted
+        import mesh.investigation_queue as q_bare
+        for q in (q_dotted, q_bare):
+            monkeypatch.setattr(q, "QUEUE_DIR", tmp_path)
+            monkeypatch.setattr(q, "audit_log_path", lambda: tmp_path / ".investigation_audit.log")
         yield tmp_path
 
 
