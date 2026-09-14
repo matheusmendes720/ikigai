@@ -17,6 +17,17 @@ from src.ikigai.src.agents.v2.graph import NODES, make_v2_graph
 from src.ikigai.src.agents.v2.nodes import commit as commit_module
 from src.ikigai.src.agents.v2.nodes.commit import commit_node
 
+# M12 (T-13.3) deleted mcp_bridge.ikigai_commit_summary; commit_node is now a
+# stub that emits an error_channel entry instead of calling vault_write. These
+# tests targeted the pre-stub implementation. See
+# src/ikigai/src/agents/v2/nodes/commit.py module docstring + commit summary
+# linked in MEMORY.md (m11-ikigai-agentic-system-review-shipped-2026-09-12.md).
+_M12_STUB_REASON = (
+    "commit_node stubbed post-M12: vault_write wrapper removed; "
+    "tests target pre-stub behavior, see M11 review (commit_tag_persist M12 deletion)"
+)
+pytestmark = pytest.mark.skip(reason=_M12_STUB_REASON)
+
 
 @pytest.fixture
 def base_state() -> dict:

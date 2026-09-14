@@ -17,9 +17,22 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+import pytest
+
 from src.ikigai.src.agents.v2.nodes.tag_and_persist import tag_and_persist_node
 from src.ikigai.src.agents.v2.state import IKIGAiStateDict
 from src.contracts.sonho import Sonho
+
+# M12 (T-13.3) deleted mcp_bridge.ikigai_tag_and_persist; tag_and_persist_node
+# is now a stub that returns {"tags": None, "error_channel": [...]}. The tests
+# below assert result["persisted"] is True which is no longer produced.
+# Reactivation plan per the module docstring: wire a real MCP bridge wrapper
+# in mcp_bridge.py + server.py @MCP.tool registry BEFORE reintroducing the
+# call here.
+pytestmark = pytest.mark.skip(
+    reason="tag_and_persist_node stubbed post-M12: persisted state not produced; "
+    "tests target removed behavior, see M11 review (commit_tag_persist M12 deletion)"
+)
 
 
 _SONHO_UEID = "sn:life-os-v1:abc12345-1234-5678-9abc-def012345678:0123456789abcdef"
