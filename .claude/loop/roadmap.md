@@ -356,6 +356,38 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** Both changes are config-only or doc-only — no code touched; submodule contents NOT committed (preserves vendored-plugin policy)
 - **Completed:** 2026-09-14 — 2 atomic commits: `4c5fa9e2` (T-20.1 .gitignore +18/-0 lines; 5 new patterns; pre-existing patterns verified) + `934c3fde` (T-20.2 CLAUDE.md "Pre-existing bugs" expanded for submodule dirty state). Drift net 53/53 PASS preserved.
 
+### M21 — Drift Net Expansion — PROD_LAYERS Widening Hypothesis (STATUS: DONE — but hypothesis refuted)
+- **What:** Test whether `PROD_LAYERS` in `test_canonical_scope.py` could be widened to include `vibe-ops/src/` (eliminating the `_EXTRA_CONSTANT_SCAN_ROOTS` workaround)
+- **Why:** M15 T-15.2 noted this widening was blocked by 3 other drift tests catching legitimate PAV math in vibe-ops/src/. After M15's PAV-symbol renames (DEFAULT_QHE_PUSH_THRESHOLD → HYSTERESIS_HIGH_BOUND, etc.), hypothesis: dormant math code no longer matches FORBIDDEN regexes.
+- **Acceptance:**
+  - [x] Attempt widening PROD_LAYERS to include vibe-ops/src/ (T-21.1)
+  - [x] Verify all 4 PROD_LAYERS-dependent drift tests still PASS (T-21.2)
+- **Dependencies:** M15 (PAV renames) + M17
+- **Estimated ticks:** 1 (~10 min)
+- **Auto-promoted by:** M15 T-15.2 follow-up note (widening was out-of-scope at the time)
+- **Constitution gate:** Drift net invariant count unchanged (61/61); no PAV math re-introduction
+- **Outcome:** **HYPOTHESIS REFUTED.** Widening broke all 4 PROD_LAYERS-dependent drift tests because M15 only renamed *module-level constants* — the actual dormant math CODE (`compute_score`, `IkigaiScorer`, `cybernetics.daily_loop`) still existed in vibe-ops/src/ and matched FORBIDDEN regexes.
+- **Action taken:** Reverted widening (per task constraint that forbids weakening invariants without all tests passing). Kept `_EXTRA_CONSTANT_SCAN_ROOTS` workaround unchanged. Added 17-line M21 documentation comment to `test_canonical_scope.py` documenting the widening attempt, the 4 dormant symbols + their file:line locations, why widening failed, and the 2 paths forward (rename/remove dormant symbols OR per-test allowlists). Net effect: Drift net state preserved; future M21+ widening attempts can pick up from a documented known-state.
+- **Completed:** 2026-09-14 — 1 commit: `711695d7` (`chore(tests): document M21 PROD_LAYERS widening failure`). Drift net 61/61 PASS preserved. Sets up M22.
+
+### M22 — Delete Dormant PAV Files in vibe-ops/src/ (STATUS: DONE)
+- **What:** Complete ADR-024 PAV-kernel archival by removing 19 files (8 primary dormant PAV + 4 cascading callers + 7 PAE tests). After deletion, re-attempt M21 PROD_LAYERS widening — succeeds because the 4 dormant PAV symbols are now gone.
+- **Why:** Per ADR-024 (PAV-kernel archived 2026-08-31) + M11 T-11.7 G-1 follow-up + M21 failure diagnosis, dormant PAV files in `vibe-ops/src/` were blocking drift net expansion. M15 only renamed module-level constants; the actual dormant math code (compute_score, IkigaiScorer, cybernetics.daily_loop) still existed.
+- **Acceptance:**
+  - [x] Delete 8 dormant PAV files (cybernetics/daily_loop.py, pipeline/{ikigai_scorer,daily_consolidator}.py, agents/pae_maintainer/{state,nodes,graph,main}.py, langgraph_entry.py) (T-22.1)
+  - [x] Delete 4 cascading callers (vibe-ops/src/main.py, dry_run.py, pae_maintainer/{__init__,__main__}.py) (T-22.2)
+  - [x] Delete 7 PAE tests in vibe-ops/tests/ (test_pae_*.py) (T-22.3)
+  - [x] Remove pae_maintainer graph from langgraph.json (was registered but dormant) (T-22.4)
+  - [x] Re-attempt M21 PROD_LAYERS widening — NOW SUCCEEDS (all 4 forbidden symbols gone)
+  - [x] Remove `_EXTRA_CONSTANT_SCAN_ROOTS` workaround from `test_no_algorithm_constants_in_agent_code`
+  - [x] Drift net 61/61 PASS preserved (canonical_scope 35 + drift_invariants 7 + drift_extended_invariants 11 + chat_repl 8)
+  - [x] All 20 prior milestones stable
+- **Dependencies:** M21 (failure) → M22 (resolution)
+- **Estimated ticks:** 2 (delete files + widen PROD_LAYERS)
+- **Auto-promoted by:** M21 failure finding + M11 G-1 follow-up
+- **Constitution gate:** ADR-024 archival preserved; drift net invariant count unchanged (61/61); no PAV math re-introduction
+- **Completed:** 2026-09-14 — 1 atomic commit: `273637fb` (`fix(vibe-ops): delete dormant PAV files per ADR-024 archival (M22)`). 19 files deleted (`-4,354 / +23` lines). Drift net 61/61 PASS preserved. ADR-024 archival now COMPLETE in code (math surface deleted; vault + interface + lifecycle preserved). `langgraph.json` reduced from 3 graphs to 2. `_EXTRA_CONSTANT_SCAN_ROOTS` workaround eliminated. PROD_LAYERS widened to include `vibe-ops/src/`. Per M21 documentation comment in `test_canonical_scope.py`, this commit documents the path forward that was previously blocked.
+
 ## Backlog (not yet sequenced)
 
 - [ ] Replace bash `loop-tick.sh` with TypeScript version (cross-platform)
