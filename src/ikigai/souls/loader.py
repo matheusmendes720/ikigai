@@ -19,3 +19,6 @@ def load_soul(profile: str) -> str:
 
 def known_profiles() -> frozenset[str]:
     return _KNOWN_PROFILES
+
+
+__all__ = ["load_soul", "known_profiles", "_KNOWN_PROFILES", "_SOULS_DIR"]
