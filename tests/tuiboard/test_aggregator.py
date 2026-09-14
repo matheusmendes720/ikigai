@@ -34,15 +34,24 @@ def test_aggregator_reads_cli_adapter(tmp_path: Path):
 def test_aggregator_reads_taskdog_adapter(tmp_path: Path, monkeypatch):
     """TaskdogAdapter rows → AggregatedTask with source='taskdog'.
 
-    Monkeypatches TASKDOG_DB (module-level path) to a tmp SQLite file the
-    aggregator can read. Then writes 1 row directly via sqlite3 to verify
-    the end-to-end path: adapter.list_all() → AggregatedTask.
+    The aggregator's _read_taskdog derives its DB path from data_dir as
+    `<data_dir>/data/taskdog/tasks.db` and OVERWRITES `td_module.TASKDOG_DB`
+    before constructing the adapter (see src/tuiboard/aggregator.py
+    `_read_taskdog`). The fixture must place the SQLite file at that exact
+    derived path — not at the bare `<data_dir>/tasks.db` that the
+    aggregator ignores — otherwise it silently reads from elsewhere.
+
+    Seed a minimal taskdog row directly via SQL at the aggregator's
+    derived DB path. Then verify end-to-end: adapter.list_all() →
+    AggregatedTask.
     """
     import sqlite3
     from src.mesh.adapters import taskdog as td_module
 
-    # Override the module-level DB path BEFORE the adapter is constructed
-    test_db = tmp_path / "tasks.db"
+    # The aggregator derives `<data_dir>/data/taskdog/tasks.db` and overrides
+    # the module global before opening the adapter. Seed the DB there.
+    test_db = tmp_path / "data" / "taskdog" / "tasks.db"
+    test_db.parent.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(td_module, "TASKDOG_DB", test_db)
 
     # Seed a minimal taskdog row directly via SQL
@@ -71,8 +80,8 @@ def test_aggregator_reads_taskdog_adapter(tmp_path: Path, monkeypatch):
     finally:
         conn.close()
 
-    # Aggregator uses real project root for data_dir, but in this test
-    # only taskdog matters — cli reader will see no tasks.jsonl.
+    # Aggregator uses the same data_dir; cli reader will see no tasks.jsonl
+    # at <data_dir>/data/tasks.jsonl so only the taskdog row is returned.
     agg = TaskAggregator(data_dir=tmp_path)
     tasks = agg.aggregate()
 
@@ -90,11 +99,15 @@ def test_aggregator_3fork_precedence_taskdog_over_cli(tmp_path: Path, monkeypatc
 
     Sets up cli fork with 1 row and taskdog fork with the same ueid + different title.
     Aggregator should return the taskdog slice.
+
+    Same DB-path caveat as `test_aggregator_reads_taskdog_adapter`:
+    aggregator reads from `<data_dir>/data/taskdog/tasks.db` (NOT
+    `<data_dir>/tasks.db`). Place the SQLite fixture there.
     """
     import sqlite3
     from src.mesh.adapters import taskdog as td_module
 
-    # Seed CLI adapter (jsonl)
+    # Seed CLI adapter (jsonl) at aggregator's expected cli path
     (tmp_path / "data").mkdir(parents=True, exist_ok=True)
     (tmp_path / "data" / "tasks.jsonl").write_text(
         '{"ueid": "sc:task:11111111-1111-1111-1111-111111111111:bbb", '
@@ -102,8 +115,9 @@ def test_aggregator_3fork_precedence_taskdog_over_cli(tmp_path: Path, monkeypatc
         encoding="utf-8",
     )
 
-    # Seed taskdog with same ueid, different title
-    test_db = tmp_path / "tasks.db"
+    # Seed taskdog with same ueid, different title at aggregator's derived path
+    test_db = tmp_path / "data" / "taskdog" / "tasks.db"
+    test_db.parent.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(td_module, "TASKDOG_DB", test_db)
     conn = sqlite3.connect(test_db)
     try:
