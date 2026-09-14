@@ -23,10 +23,11 @@ from src.ikigai.src.agents.v2.nodes.commit import commit_node
 # src/ikigai/src/agents/v2/nodes/commit.py module docstring + commit summary
 # linked in MEMORY.md (m11-ikigai-agentic-system-review-shipped-2026-09-12.md).
 _M12_STUB_REASON = (
-    "commit_node stubbed post-M12: vault_write wrapper removed; "
-    "tests target pre-stub behavior, see M11 review (commit_tag_persist M12 deletion)"
+    "X behavior removed in M12; restore if needed per MEMORY M12 entry "
+    "(commit_node stubbed post-M12: vault_write wrapper removed; "
+    "tests target pre-stub behavior, see M11 review commit_tag_persist M12 deletion)"
 )
-pytestmark = pytest.mark.skip(reason=_M12_STUB_REASON)
+pytestmark = pytest.mark.xfail(reason=_M12_STUB_REASON, strict=False)
 
 
 @pytest.fixture
