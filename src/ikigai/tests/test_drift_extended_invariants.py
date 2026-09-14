@@ -604,3 +604,127 @@ def test_v2_node_bridge_alignment() -> None:
         + "\n".join(f"  {file}: {attr}" for file, attr in missing)
         + f"\n\nLive mcp_bridge attrs: {sorted(live_attrs)}"
     )
+
+
+class TestInvestigationQueueTools:
+    """Drift guard for the 3 Plan-C investigation_queue tools registered in
+    ``src/ikigai/src/mcp_server/server.py``.
+
+    Per M11 finding L5 G-5: drift net does NOT separately verify that the 3
+    ``investigation_*`` tools added in Plan C are present in ``server.py``.
+    Without this test, a future change that drops these tools would break
+    the investigation queue silently.
+
+    Tools asserted:
+    - ``investigation_enqueue``  (data/investigation_queue/<id>.json)
+    - ``investigation_status``   (read by id)
+    - ``investigation_complete`` (atomic state transition)
+    """
+
+    def test_investigation_queue_tools_present(self) -> None:
+        """M11 finding L5 G-5 + T-17.2: the 3 Plan-C investigation_queue
+        tools must be registered in ``src/ikigai/src/mcp_server/server.py``.
+
+        Without this test, a future change that drops these tools would
+        break the investigation queue silently.
+        """
+        import re
+
+        repo = _resolve_repo_root()
+        server = repo / "src" / "ikigai" / "src" / "mcp_server" / "server.py"
+        if not server.exists():
+            pytest.skip(f"server.py not found: {server}")
+
+        text = server.read_text(encoding="utf-8")
+
+        REQUIRED = {
+            "investigation_enqueue",
+            "investigation_status",
+            "investigation_complete",
+        }
+
+        # The MCP tools in server.py use a multi-line
+        # `@MCP.tool(name="<tool_name>", ...)` decorator where the
+        # ``name=`` kwarg carries the public tool name (the function
+        # itself is prefixed ``_tool_<name>``). Extract the registered
+        # tool names from the ``name=`` kwarg of each @MCP.tool(...)
+        # decorator — this catches both multi-line and single-line forms.
+        declared_tools: set[str] = set()
+        for match in re.finditer(
+            r'@MCP\.tool\s*\(([^)]*)\)',
+            text,
+            flags=re.DOTALL,
+        ):
+            decorator_body = match.group(1)
+            name_match = re.search(r'name\s*=\s*"([^"]+)"', decorator_body)
+            if name_match:
+                declared_tools.add(name_match.group(1))
+
+        missing = REQUIRED - declared_tools
+
+        assert not missing, (
+            "Required Plan-C investigation_queue tools missing from server.py:\n"
+            + "\n".join(f"  - {tool}" for tool in sorted(missing))
+            + f"\n\nDeclared tools in server.py: {sorted(declared_tools)}"
+        )
+
+
+def test_taskdog_tools_read_only_contract() -> None:
+    """Drift net guard (M17 T-17.1): taskdog_tools.py MCP surface must be
+    READ-ONLY per ADR-024 (PAV archival) + Path 3 taskdog architecture.
+
+    Per docs/design-system/24-taskdog-paths-architecture.md, Path 3 is the
+    read-only MCP surface. The canonical write path is Path 1 (harness
+    subprocess → taskdog_cli.py); Path 2 is the operator CLI. Adding any
+    write operation to taskdog_tools.py would silently break the
+    read-only contract because MCP-tool consumers (Claude agents,
+    external MCP clients) call @mcp.tool directly without going through
+    the review queue.
+
+    Only these 3 tools are permitted:
+    - taskdog_read
+    - taskdog_list
+    - taskdog_supports_field
+
+    Any write operation (create, update, delete, archive) here would
+    silently leak writes out of the canonical Path 1 surface — drift net
+    catches this.
+    """
+    import re
+
+    repo = REPO_ROOT
+    taskdog_tools = repo / "src" / "ikigai" / "src" / "mcp_server" / "taskdog_tools.py"
+    if not taskdog_tools.exists():
+        pytest.skip(f"taskdog_tools.py not found: {taskdog_tools}")
+
+    text = taskdog_tools.read_text(encoding="utf-8")
+
+    # Extract all @mcp.tool-decorated function names (decorator uses
+    # lowercase `mcp` — the local FastMCP instance — not @MCP.tool).
+    declared_tools: set[str] = set()
+    for match in re.finditer(
+        r"@mcp\.tool\(?[^)]*?\)?\s*(?:async\s+)?def\s+(\w+)",
+        text,
+    ):
+        declared_tools.add(match.group(1))
+
+    # Permitted set per Path 3 read-only contract.
+    ALLOWED: frozenset[str] = frozenset(
+        {
+            "taskdog_read",
+            "taskdog_list",
+            "taskdog_supports_field",
+        }
+    )
+
+    unexpected = declared_tools - ALLOWED
+    # Note: not asserting missing == set() — Path 3 contract allows
+    # for missing tools during transitions (we only enforce that
+    # nothing extra has been added).
+
+    assert not unexpected, (
+        f"taskdog_tools.py exposes WRITE operations (forbidden per Path 3 contract):\n"
+        + "\n".join(f"  - {tool}" for tool in sorted(unexpected))
+        + f"\n\nDeclared tools: {sorted(declared_tools)}\n"
+        + f"Allowed tools (Path 3 read-only): {sorted(ALLOWED)}"
+    )
