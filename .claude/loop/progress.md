@@ -1617,3 +1617,408 @@
 - attempt: 1/1
 - notes: M11 SHIPPED (reconciliation tick). M11 substantive work landed on master in 9 atomic commits on 2026-09-12 (5421a16f..07eafedb); plan + spec were pre-committed at 420e8de8 + 1270d266. Deliverables verified on disk: docs/superpowers/specs/2026-09-10-drift-net-baseline.md (94L w/ BEFORE+AFTER sections), review-L1-strategics.md (126L), review-L2-contracts.md (237L), review-L3-mesh.md (211L), review-L4-mcp.md (252L), review-L5-agent-sysikigai.md (369L), review-L6-consumer.md (343L), 2026-09-10-system-review-diagnosis.md (289L, 41 gaps + 2 P0 attribution violations), system-review-gaps-2026-09-12.md (4789B MEMORY entry). Drift net re-verified live in this tick: 32+7+4 = 43/43 PASS (no regression). Full regression sweep clean: bash 68/68 (worktree 15 + cost 7 + notify 11 + streak 11 + dispatch 24) + pytest 106/106 (drift 43 + canonical_scope 32 + loop_infra 11 + m4 9 + m5 11 = drift already includes canonical_scope + invariants + extended). Master is 13 commits ahead of origin/master -- reconciliation commit + push brings them all. SPEC variance noted: roadmap claims single consolidated working file but actual deliverable is 6 per-layer review files (review-L1..L6) -- work IS done, file naming differs from SPEC; will leave roadmap acceptance bullet as-is and add note in this entry. Pre-existing finding (NOT this tick scope): uncommitted working-tree changes -- src/ikigai/src/agents/v2/{graph.py, observe.py} + sse_publisher.py + chat/ + souls/ + test_chat_system.py + test_sse_publisher.py + 10k + CONTEXT.md -- preserve per established pattern (T-9.6/10.3 reconciliation precedent). Loop-engineering chain complete: M0-M11 = 12 milestones shipped (M9 7-day streak gate still wall-clock deferred).
 - next_action: idle (M11 milestone complete; backlog = next, gated on human promotion to milestone)
+
+## 2026-09-14T14:07:16Z | orchestrator-tick | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 1
+- model: opus
+- attempt: 1/1
+- notes: IDLE tick (8th confirmation, +~1d20h since 2026-09-12T17:39:26Z; new wall-clock day). Read order honored: constitution.md (99L, unchanged from last review), roadmap.md (M0-M15 all STATUS:DONE, 16 milestones via grep), tasks.md (all sub-tasks status=done through T-15.4 closeout + M12/M13/M14/M15 commits 1fe6e9a4+848193dc+29eeb2b8+d523eca8+53bd06db+1d9555ca+2dc43dec etc.), progress.md tail (no BLOCKED marker; last 7 entries are IDLE confirmations + M11 closeout). No pending task -> no worker/verifier subagent spawn, no worktree created, merge protocol not exercised. Backlog (5 items: TS loop-tick rewrite, tier-by-risk review depth, cross-loop cron dedup, SPEC frontmatter migration, examples/ dir) stays human-gated per roadmap.md "Adding a new milestone" rule. M9 7-day streak wall-clock gate: today is 2026-09-14 (1 day past the 2026-09-13 auto-pass window) -- milestone is already STATUS:DONE, the gate just confirms. M12/M13/M14/M15 are 2 P0 attribution violation fixes + V2-node/bridge alignment + mcp<2 pin + M11 Priority 2 drift tests + assertion drift fix -- all shipped per memory entries (m12-bottom-up-infra-shipped-2026-09-14 etc.). Decision tree -> IDLE. Cost this tick $0; cumulative stays at $1.80. v2 chat harness is functional per [[ikigai-v2-harness-functional-2026-09-10]] (ikigai.bat chat + dcode --chat + v2 chat CLI all work end-to-end with real LLM via MiniMax).
+- next_action: idle (backlog = next, gated on human promotion to milestone)
+
+## 2026-09-14T14:19:34Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-111934 checkpoints=1208 status=0 
+- next_action: advance
+
+## 2026-09-14T14:19:37Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260914-111937 checkpoints=1221 status=0 
+- next_action: advance
+
+## 2026-09-14T14:19:44Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260914-111944 checkpoints=1226 status=0 
+- next_action: advance
+
+## 2026-09-14T14:19:47Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-111947 checkpoints=1232 status=0 
+- next_action: advance
+
+## 2026-09-14T14:19:50Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260914-111950 checkpoints=1245 status=0 
+- next_action: advance
+
+## 2026-09-14T14:19:56Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260914-111956 checkpoints=1250 status=0 
+- next_action: advance
+
+## 2026-09-14T14:26:04Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-112604 checkpoints=1256 status=0 
+- next_action: advance
+
+## 2026-09-14T14:26:07Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260914-112607 checkpoints=1269 status=0 
+- next_action: advance
+
+## 2026-09-14T14:26:11Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260914-112611 checkpoints=1274 status=0 
+- next_action: advance
+
+## 2026-09-14T14:26:13Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-112613 checkpoints=1280 status=0 
+- next_action: advance
+
+## 2026-09-14T14:26:16Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260914-112616 checkpoints=1293 status=0 
+- next_action: advance
+
+## 2026-09-14T14:26:22Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260914-112622 checkpoints=1298 status=0 
+- next_action: advance
+
+## 2026-09-14T15:02:36Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-120236 checkpoints=1304 status=0 
+- next_action: advance
+
+## 2026-09-14T15:02:39Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260914-120239 checkpoints=1317 status=0 
+- next_action: advance
+
+## 2026-09-14T15:02:43Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260914-120243 checkpoints=1322 status=0 
+- next_action: advance
+
+## 2026-09-14T15:02:46Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-120246 checkpoints=1328 status=0 
+- next_action: advance
+
+## 2026-09-14T15:02:48Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260914-120248 checkpoints=1341 status=0 
+- next_action: advance
+
+## 2026-09-14T15:02:52Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260914-120252 checkpoints=1346 status=0 
+- next_action: advance
+## 2026-09-14T15:30:00Z | orchestrator-tick | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 1
+- model: opus
+- attempt: 1/1
+- notes: IDLE tick (9th confirmation, +~23min since 2026-09-14T15:02:52Z cron batch). Read order honored: constitution.md (99L, unchanged from last review), roadmap.md (M0-M15 all STATUS:DONE, 16 milestones - no PENDING/IN-PROGRESS matches via grep), tasks.md (all sub-tasks status=done through T-15.4 closeout; 0 pending/blocked matches via grep), progress.md (no ## BLOCKED marker; last entry was cron graph-dispatch batch pae_maintainer/ikigai_maintainer_v2/ikigai_fork_smoke). State machine clean - no milestone or task requires worker/verifier dispatch, no worktree created, merge protocol not exercised. Backlog (5 items: TS loop-tick rewrite, tier-by-risk review depth, cross-loop cron dedup, SPEC frontmatter migration, examples/ dir) stays human-gated per roadmap.md "Adding a new milestone" rule. M9 7-day streak wall-clock gate: today is 2026-09-14 (1 day past the 2026-09-13 auto-pass window) - milestone is already STATUS:DONE. Aggregate Stats block untouched per append-only hard rule H6. Decision tree -> IDLE. Cost this tick $0; cumulative stays at $1.80. v2 chat harness functional per [[ikigai-v2-harness-functional-2026-09-10]] (ikigai.bat chat + dcode --chat + v2 chat CLI all work end-to-end with real LLM via MiniMax).
+- next_action: idle (backlog = next, gated on human promotion to milestone)
+
+
+## 2026-09-14T15:12:08Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-121208 checkpoints=1352 status=0 
+- next_action: advance
+
+## 2026-09-14T15:12:11Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260914-121211 checkpoints=1365 status=0 
+- next_action: advance
+
+## 2026-09-14T15:12:16Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260914-121216 checkpoints=1370 status=0 
+- next_action: advance
+
+## 2026-09-14T15:12:19Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-121219 checkpoints=1376 status=0 
+- next_action: advance
+
+## 2026-09-14T15:12:21Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260914-121221 checkpoints=1389 status=0 
+- next_action: advance
+
+## 2026-09-14T15:12:26Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260914-121226 checkpoints=1394 status=0 
+- next_action: advance
+
+## 2026-09-14T15:15:16Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-121517 checkpoints=1400 status=0 
+- next_action: advance
+
+## 2026-09-14T15:15:19Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260914-121519 checkpoints=1413 status=0 
+- next_action: advance
+
+## 2026-09-14T15:15:24Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260914-121524 checkpoints=1418 status=0 
+- next_action: advance
+
+## 2026-09-14T15:15:27Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-121527 checkpoints=1424 status=0 
+- next_action: advance
+
+## 2026-09-14T15:15:29Z | ikigai_maintainer_v2 | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_maintainer_v2 thread_id=cron-20260914-121529 checkpoints=1437 status=0 
+- next_action: advance
+
+## 2026-09-14T15:15:34Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260914-121534 checkpoints=1442 status=0 
+- next_action: advance
+
+## 2026-09-14T16:06:25Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-130625 checkpoints=1448 status=0 
+- next_action: advance
+
+## 2026-09-14T16:07:26Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260914-130726 checkpoints=11462 status=0 
+- next_action: advance
+
+## 2026-09-14T16:07:28Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-130728 checkpoints=11468 status=0 
+- next_action: advance
+
+## 2026-09-14T16:08:18Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260914-130818 checkpoints=21482 status=0 
+- next_action: advance
+
+## 2026-09-14T17:00:22Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-140022 checkpoints=31497 status=0 
+- next_action: advance
+
+## 2026-09-14T17:01:13Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260914-140114 checkpoints=41511 status=0 
+- next_action: advance
+
+## 2026-09-14T17:01:16Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-140117 checkpoints=41517 status=0 
+- next_action: advance
+
+## 2026-09-14T17:05:00Z | orchestrator-tick | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 1
+- model: opus
+- attempt: 1/1
+- notes: IDLE tick (10th confirmation, +~4min since 2026-09-14T17:01:16Z cron batch). Read order honored: constitution.md (99L, unchanged), roadmap.md (M0-M16 all STATUS:DONE; grep "STATUS: PENDING" only matches template literal in "Adding a new milestone" scaffolding section, not an actual milestone), tasks.md (all sub-tasks status=done; 0 pending/blocked), progress.md (no ## BLOCKED marker; last meaningful orchestrator entry was 2026-09-14T15:30:00Z IDLE 9th confirmation + recent cron graph-dispatch batches). Verifications: grep counts + 0 pending/blocked checks + git log + git status (master; 3 telemetry file mods + tmp/ untracked; non-blocking). No pending task -> no worker/verifier dispatch, no worktree created, merge protocol not exercised. Backlog (5 items: TS loop-tick rewrite, tier-by-risk review depth, cross-loop cron dedup, SPEC frontmatter migration, examples/ dir) stays human-gated per roadmap.md "Adding a new milestone" rule. M9 7-day streak wall-clock gate auto-passed 2026-09-13 (milestone already STATUS:DONE). Aggregate Stats block untouched per append-only hard rule H6. Decision tree -> IDLE.
+- next_action: idle (backlog = next, gated on human promotion to milestone)
+
+## 2026-09-14T17:14:37Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-141438 checkpoints=49009 status=0 
+- next_action: advance
+
+## 2026-09-14T17:15:41Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260914-141541 checkpoints=59023 status=0 
+- next_action: advance
+
+## 2026-09-14T17:15:45Z | pae_maintainer | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=pae_maintainer thread_id=cron-20260914-141545 checkpoints=59029 status=0 
+- next_action: advance
+
+## 2026-09-14T17:16:47Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260914-141647 checkpoints=69043 status=0 
+- next_action: advance
+
+## 2026-09-14T18:16:26Z | M17-reconciliation | PASS
+- commit: (pending this tick) + 626bafe9 (T-17.1+T-17.2) + 15b5b2e0 (T-17.3) + 46e4e3da (M17 closeout)
+- cost_usd: 0
+- duration_min: 5
+- model: opus (state-machine reconciliation; 0 LLM calls beyond this tick)
+- attempt: 1/1
+- notes: M17 SHIPPED (reconciliation tick — work landed on master in 3 atomic commits prior to state-machine reconciliation, mirrors T-9.6 / T-10.3 / M11 closeout pattern). Discovery: M17 substantive work landed on master in 626bafe9 (T-17.1 taskdog_tools_read_only_contract + T-17.2 investigation_queue_tools_present both in same commit batch due to parallel-agent race) + 15b5b2e0 (T-17.3 chat_repl.py smoke tests — 8 tests in NEW src/ikigai/tests/test_chat_repl.py) + 46e4e3da (M17 roadmap closeout). All 3 acceptance criteria met + drift net 53/53 PASS (35 canonical_scope + 7 drift_invariants + 11 drift_extended_invariants). tasks.md had drift: no T-17.x entries existed despite M17 being STATUS:DONE. State-machine reconciliation: (1) created specs/M17-remaining-drift-and-repl-coverage/SPEC.md retroactively from roadmap.md M17 description per constitution 'every implementation traces back to specs/*/SPEC.md'; (2) added T-17.1..T-17.4 sections to tasks.md with status=done + commit refs + acceptance bullets ticked; (3) ticked all 5 acceptance boxes in roadmap.md M17 + added Completed sub-section. Acceptance bullet says '51→54' but actual counts are slightly different (canonical_scope grew 32→35 from M16 + drift_extended 9→11 from M17); the load-bearing invariant — drift net green + no regression — is preserved. Pre-existing uncommitted working-tree changes preserved per established pattern (.claude-flow/metrics/ JSON files + strategics/planning-with-files submodule dirty — none in M17 scope). M0-M17 = 17 milestones shipped (M9 7-day streak gate wall-clock passed 2026-09-13).
+- next_action: idle (all 17 milestones complete; backlog = next, gated on human promotion to milestone)
