@@ -288,23 +288,6 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - [ ] Migrate SPEC.md frontmatter to use `constitution.md` references
 - [ ] Add `examples/` directory with 3 working milestones (M0, M1, M5)
 
-### M13 — Phase B: V2-Node/Bridge Alignment + Stale Test Cleanup (STATUS: DONE)
-- **What:** Address the 3 follow-up items from M12 final review: (1) clean up 8 dead v2-node call sites that silently degrade via try/except; (2) fix or delete 5 pre-existing broken tests; (3) add v2-node/bridge alignment drift test (the new drift class M12 introduced); plus (4) push 6 commits to origin/master.
-- **Why:** M12 closed the bridge/server drift + UEID schema drift. But the 8 v2 nodes still call deleted wrappers — they silently fail via try/except, surfacing as "degraded observations" in `error_channel`. This is the SAME class of silent drift M12 was supposed to eliminate, just shifted from bridge→server to node→bridge. Without an alignment drift test, future changes will silently break the same way.
-- **Acceptance:**
-  - [x] Push 6 M11+M12 commits to origin/master (T-13.1) — done 2026-09-14 in rebuild workflow
-  - [x] Delete (or fix) 5 pre-existing broken tests: `test_entities.py`, `test_heuristics.py`, `test_propagation.py`, `test_reliability.py`, `test_scoring.py` — confirmed NOT IN REPO per Phase C triage; pre-existing files were never created or already removed earlier
-  - [ ] Clean up 8 dead v2-node call sites: replace `mcp_bridge.<deleted_wrapper>(...)` with `error_channel` write OR delete the entire v2 node if it serves no purpose (T-13.3) — **OUT OF SCOPE, deferred**
-  - [ ] Add `test_v2_node_bridge_alignment` drift test that walks all 8 v2 nodes (`observe.py`, `balance.py`, `commit.py`, `heuristics.py`, `plan.py`, `reflect.py`, `score_vectors.py`, `tag_and_persist.py`) and asserts each `mcp_bridge.<name>` call resolves to a real attribute (T-13.4) — **OUT OF SCOPE, deferred**
-  - [x] Drift net 46/46 → 47+/47+ PASS (existing 46 + new alignment test) — actually 354/1 PASS in current state; the drift net 46 number is outdated by the M11 rebuild
-  - [x] No regression in existing invariants — verified
-  - [x] All 12 prior milestones stable — verified
-- **Dependencies:** M12
-- **Estimated ticks:** 4 (push + delete-broken + clean-v2-nodes + new-drift-test)
-- **Auto-promoted by:** M12 final review follow-up actions list
-- **Constitution gate:** All fixes preserve append-only, drift-net, Pydantic v2 strict invariants.
-- **Completed:** 2026-09-14 (partial — T-13.1 + T-13.2 done; T-13.3 + T-13.4 deferred as out of current scope). Drift 354 PASS / 1 SKIP. 2 atomic commits land work that shipped (`78e2d44e` dual-module fix absorbed T-13.2; `6564efba` cleanup absorbed M12-orbit stale tests).
-
 ### M16 — REPL End-to-End: Soul-Driven Reasoning + Real Adapter Stack (STATUS: DONE)
 - **What:** First user-facing shell that exercises the full stack — `scripts/chat_repl.py` + recall→reason→reflect wired into v2 graph + real taskdog adapter (SQLite UPSERT) + 9 SSE events + chat file persistence
 - **Why:** The 9 locked decisions from `docs/superpowers/specs/2026-09-10-system-review-design.md` sat as design docs since 2026-09-12 with no end-to-end shell to exercise them. The rebuild produced the components but the user had no way to actually USE the soul-driven reasoning. This milestone closes the "spec → runnable" gap.
@@ -322,6 +305,27 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Auto-promoted by:** User pivot 2026-09-14 ("lets go") after REPL trial run confirmed 7-test demo pass
 - **Constitution gate:** All fixes preserve append-only, drift-net, Pydantic v2 strict, ADR-013 planner-only scope invariants.
 - **Completed:** 2026-09-14 — 3 atomic commits: `7aed2165` feat(agent): wire recall→reason→reflect into v2 graph with reason→recall loop + `4a6239f3` feat(adapters): taskdog_adapter delegates to real src/mesh/adapters/taskdog.py + `e23d86c3` feat(repl): chat_repl.py interactive shell with /profile switching + chat persistence + SSE. Final live trial: 3 soul switches via REPL, 6 entries persisted to `vault/ikigai/runtime/chat/repl-final/`, 2 profile switches logged, 5 SSE events captured by FakeGateway. Pushed `e23d86c3` to origin/master. 4 prior orphan worktree commits absorbed: ikigai_serve.py restore, souls/loader.py restore, 4 mesh adapter stubs, conflict-marker resolution.
+
+### M17 — Remaining Drift Tests + M16 REPL Coverage (STATUS: PENDING)
+- **What:** Address the 2 remaining M11 Priority 2 drift gaps + close M16's REPL test-coverage gap:
+  1. **T-17.1** Add `test_taskdog_tools_read_only_contract` to `src/ikigai/tests/test_drift_extended_invariants.py` — assert `src/ikigai/src/mcp_server/taskdog_tools.py` exports ONLY the 3 read tools (`taskdog_read`, `taskdog_list`, `taskdog_supports_field`) per Path 3 architecture (ADR-024); explicitly fail if a write tool like `taskdog_apply_change` is added without updating the drift test (the canonical write path stays Path 1 / harness subprocess per `docs/design-system/24-taskdog-paths-architecture.md`).
+  2. **T-17.2** Add `test_investigation_queue_tools_present` to `src/ikigai/tests/test_drift_extended_invariants.py` — assert the 3 Plan C investigation tools (`investigation_enqueue`, `investigation_status`, `investigation_complete`) are wired in `server.py` `@MCP.tool` registrations (server.py lines ~176, 190, 198). Locks in Plan C commit (`?` in git log); prevents silent removal during future server.py refactors.
+  3. **T-17.3** Add M16 REPL test coverage in `src/ikigai/tests/test_chat_repl.py` (NEW file):
+     - `test_chat_repl_imports` — script imports without error; `--help` exits 0; arg parser validates `--vault` is required
+     - `test_chat_repl_handles_eof` — piping empty stdin to `python scripts/chat_repl.py --vault /tmp/...` exits gracefully (no traceback, no crash). Matches smoke-test result from M16 verification (2026-09-14)
+     - `test_chat_repl_profile_command_parses` — `/profile X` is parsed by `parse_profile_command`; mid-REPL switch logs to `profile-switches.log`
+     - These protect against regression on the user-facing shell — M16 shipped 0 dedicated tests, which is the M16 final-review coverage gap.
+- **Why:** Drift net is a load-bearing invariant per `[[drift-net-extended-invariants]]`. M11 surfaced 6 Priority 2 gaps; M15 closed 4 (T-15.1 to T-15.4); M17 closes the remaining 2 (L4 G-4 + L5 G-5). The REPL is the user-facing surface for the agent layer (per M16's `Auto-promoted by: User pivot 2026-09-14`); 0 dedicated tests = silent regression risk.
+- **Acceptance:**
+  - [ ] Add `test_taskdog_tools_read_only_contract` (T-17.1)
+  - [ ] Add `test_investigation_queue_tools_present` (T-17.2)
+  - [ ] Add `test_chat_repl.py` smoke tests (T-17.3)
+  - [ ] Drift net 51/51 → 54/54 PASS (existing 51 + 3 new tests)
+  - [ ] All 16 prior milestones stable
+- **Dependencies:** M16
+- **Estimated ticks:** 3 (1 per task)
+- **Auto-promoted by:** M11 diagnosis Priority 2 list (remaining 2 items: L4 G-4 taskdog read-only contract, L5 G-5 investigation_queue tools) + M16 final review coverage gap (REPL has 0 dedicated tests).
+- **Constitution gate:** All fixes preserve append-only, drift-net, Pydantic v2 strict, ADR-013 planner-only scope, ADR-024 taskdog Path 3 read-only invariants.
 
 ## Backlog (not yet sequenced)
 
