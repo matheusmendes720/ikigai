@@ -83,6 +83,23 @@ PROD_LAYERS = [
 # ``vibe-ops/src/`` PAV math code (``compute_score`` calls, ``IkigaiScorer``
 # class def, ``cybernetics.daily_loop`` import) and fail — those are out of
 # scope for T-15.2 (separate work item to widen the drift net to vibe-ops).
+#
+# M21 attempt: widening PROD_LAYERS to include ``vibe-ops/src/`` was tested
+# and FAILED — M15 renamed only PAV-flavored module-level CONSTANTS
+# (HYSTERESIS_HIGH_BOUND, WORKLOAD_HIGH_LIMIT, etc.) but NOT the dormant
+# math CODE in vibe-ops/src/:
+#   - ``vibe-ops/src/main.py:6`` still does ``from cybernetics.daily_loop import CyberneticDailyLoop``
+#     → matches FORBIDDEN_IMPORTS (test_no_forbidden_imports)
+#   - ``vibe-ops/src/cybernetics/daily_loop.py:76`` still calls ``self.ikigai.compute_score()``
+#   - ``vibe-ops/src/pipeline/ikigai_scorer.py:130`` still defines ``def compute_score``
+#     → matches FORBIDDEN_FUNCTIONS (test_no_forbidden_function_calls_or_defs)
+#   - ``vibe-ops/src/pipeline/ikigai_scorer.py:119`` still defines ``class IkigaiScorer``
+#     → matches FORBIDDEN_CLASSES (test_no_forbidden_class_references)
+# Conclusion: 4/4 PROD_LAYERS-dependent tests fail with widening, so the
+# extra-roots workaround must STAY. Widening PROD_LAYERS requires either
+# (a) renaming/removing the dormant PAV math symbols in vibe-ops/src/,
+# or (b) creating per-test allowlists for vibe-ops/src/ — both are
+# separate work items.
 _EXTRA_CONSTANT_SCAN_ROOTS: list[Path] = [
     REPO_ROOT / "vibe-ops" / "src",
 ]
