@@ -328,6 +328,20 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** All fixes preserve append-only, drift-net, Pydantic v2 strict, ADR-013 planner-only scope, ADR-024 taskdog Path 3 read-only invariants.
 - **Completed:** 2026-09-14 — 3 atomic commits: `626bafe9` (T-17.1 taskdog read-only contract drift test + T-17.2 investigation_queue tools present drift test — both landed in same commit batch due to parallel-agent race; net +2 tests) + `15b5b2e0` (T-17.3 chat_repl.py smoke tests — 8 tests in `src/ikigai/tests/test_chat_repl.py`) + `46e4e3da` (M17 closeout — roadmap STATUS flip + drift count update). Drift net 53/53 PASS verified live (19/19 in M17 test files alone). Note: original acceptance bullet stated "51→54" but actual counts are slightly different (canonical_scope grew 32→35 from M16 + drift_extended 9→11 from M17); the important invariant — drift net green + no regression — is preserved. State-machine reconciliation tick (this entry) added SPEC.md retroactively + T-17.1..T-17.4 entries in tasks.md to satisfy constitution gate ("every implementation traces back to specs/*/SPEC.md").
 
+### M18 — Doc Updates — Apply M11-M17 State to CLAUDE.md (STATUS: DONE)
+- **What:** Update `CLAUDE.md` "Application Status" section to reflect post-M11-M17 state + fix internal contradiction in `Planejamento (E&T).md` §1.2.1 heading
+- **Why:** Two stale docs surfaced after M17 SHIPPED: (1) CLAUDE.md Application Status section predated M11 (or didn't exist at all in post-rebuild CLAUDE.md) — user couldn't tell what was actually working; (2) Planejmento (E&T).md §1.2.1 heading said "Estrutura de 4 Níveis" but the diagram immediately below showed 5 levels — internal contradiction
+- **Acceptance:**
+  - [x] Update CLAUDE.md "Application Status" section (T-18.1) — added new section with working/partial/deferred/bugs subsections reflecting M0-M17 state ✓
+  - [x] Fix Planejamento (E&T).md heading-vs-diagram contradiction (T-18.2) ✓ "4 Níveis" → "5 Níveis (SONHOS → OBJETIVOS → METAS → TAREFAS → ATIVIDADES)"
+  - [x] Drift net 53/53 PASS preserved (doc-only changes)
+  - [x] All 17 prior milestones stable
+- **Dependencies:** M17
+- **Estimated ticks:** 2 (1 per task)
+- **Auto-promoted by:** M11 final review follow-up actions list (P3 inconsistency item) + M17 closure (CLAUDE.md Application Status needed)
+- **Constitution gate:** Doc changes preserve append-only rule; no code touched
+- **Completed:** 2026-09-14 — 2 atomic doc commits: `8a7b13f7` (T-18.2 Planejmento heading 4→5 Níveis) + `33fbcd09` (T-18.1 CLAUDE.md Application Status section added). Drift net 53/53 PASS preserved (doc-only). After this commit: (a) all 4 strategics/ docs internally consistent at 5 levels (T-15.3 + T-18.2); (b) CLAUDE.md Application Status reflects post-rebuild architecture.
+
 ## Backlog (not yet sequenced)
 
 - [ ] Replace bash `loop-tick.sh` with TypeScript version (cross-platform)
