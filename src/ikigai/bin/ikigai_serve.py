@@ -30,7 +30,6 @@ DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 DEFAULT_LOG_LEVEL = "INFO"
 
-<<<<<<< HEAD
 __all__ = (
     "ServeOptions",
     "ServeRuntime",
@@ -42,9 +41,6 @@ __all__ = (
     "DEFAULT_LOG_LEVEL",
 )
 
-=======
->>>>>>> e2978a56 (fix(serve): restore ikigai_serve.py entry point (was missing from rebuild merge))
-
 # ---------------------------------------------------------------------------
 # Options / Runtime containers
 # ---------------------------------------------------------------------------
@@ -52,7 +48,6 @@ __all__ = (
 
 @dataclass(frozen=True)
 class ServeOptions:
-<<<<<<< HEAD
     """Resolved CLI options for the orchestrator.
 
     Default host is ``"127.0.0.1"`` (dev-mode safe bind; not ``0.0.0.0``).
@@ -61,12 +56,6 @@ class ServeOptions:
 
     host: str = "127.0.0.1"
     port: int = 8765
-=======
-    """Resolved CLI options for the orchestrator."""
-
-    host: str = DEFAULT_HOST
-    port: int = DEFAULT_PORT
->>>>>>> e2978a56 (fix(serve): restore ikigai_serve.py entry point (was missing from rebuild merge))
     with_cli: bool = True
     with_tui: bool = False
     log_level: str = DEFAULT_LOG_LEVEL
