@@ -391,3 +391,39 @@ archive/legacy-pav/src-operational/medic/bin/
 /c'
 /word`
 /.worktrees/
+
+# ─── Bash heredoc-leak patterns (2026-09-14) ────────────────────
+# Five stray root-level zero-byte files from earlier shell redirects
+# per CLAUDE.md Root Layout section (originally cited as /0 /IN /int
+# /None /agent('Execute). On 2026-09-14 audit, three of the five
+# had also leaked into git's index: `IN` from M10 T-10.1 dispatch.sh
+# scaffold (commit b9c9278d), `src/0` from spec-tlc drill-down
+# (commit 0ba1820e), plus IDLE / inline / new / src/- / src/80%
+# from the same redirect class — all removed via `git rm --cached`
+# in the matching closeout commit. Anchored patterns below lock
+# recurrence out at the gitignore level for both root and src/.
+# Cleanup at file level is `rm <name>` for each.
+/0
+/IN
+/int
+/None
+/agent('Execute
+/cygpath
+/{to_profile}
+/mkdir()'
+/recall
+/commit
+# `$(cygpath` (70-byte fragment from `> $(cygpath ...)` redirect leak)
+/$(cygpath
+# `reflect` (additional zero-byte stray from 2026-09-14 session)
+/reflect
+# Same root-cause class tracked in M10 / spec-tlc — add coverage for
+# the broader identifier-leak set so future occurrences don't track.
+/IDLE
+/inline
+/new
+# Mirror coverage at src/ — same redirect-class pattern leaked one
+# level deep into src/ during M10 dispatch.sh scaffold.
+/src/-
+/src/0
+/src/80%
