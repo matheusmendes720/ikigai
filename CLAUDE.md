@@ -318,6 +318,57 @@ PolicyEngine states (PUSH / MAINTAIN / REDUCE / RECOVER) with hysteresis.
 
 ---
 
+## Application Status
+
+What the Algorithmic Life OS **does today** — separate from the loop engineering infrastructure (M0–M17 below) that operates the system.
+
+### ✅ Working end-to-end
+
+- **CLI consumer** (`python -m interfaces.cli.main ...`): `v2 daily/weekly/plan`, `task add`, `mesh show <ueid>`, `kill_switch status|pause|resume`
+- **TUI operator** (`python -m interfaces.tui.operator.main`): Textual 4 tabs (Chat / Tasks / State / KillSwitch)
+- **Data mesh read**: `life mesh show <ueid>` joins CLI / taskdog / solverforge_calendar forks via 3 adapters (`ForkAdapter` Protocol)
+- **Data mesh write** (Phase 3 v1, `create` only): fork → CLI enqueues `TaskChange` to `data/review_queue/` → Agent validates → `PropagationEvent` to all forks
+- **MCP Gateway** (`ikigai.bat mcp`): 11 IKIGAI tools + 7 fork tools (`sf_*` + `tuiboard_*`) + 6 resources = 18 tools + 6 resources
+- **Drift net**: 53 invariants across 3 test files (`test_canonical_scope.py` 35 + `test_drift_invariants.py` 7 + `test_drift_extended_invariants.py` 11); 8 chat_repl smoke tests + 354+ total tests passing
+- **Kill switch**: pause/resume cybernetic engine without killing daemon (CLI subcommand + 5th TUI tab)
+- **Investigation queue**: `enqueue/status/complete` MCP tools + drift 42/42 + TUI read-only browse
+- **REPL end-to-end** (`scripts/chat_repl.py`): soul-aware agent shell with /profile switching + chat persistence + SSE events
+- **Phase 9 Option A** (2026-09-03): operator TUI + drift detector + Path 3 taskdog MCP (read-only)
+- **V5 bundle** (2026-09-07): CLI inlined (4 files deleted, v2.py split into 6 modules)
+- **Phase A** (2026-08-30): 7 fork MCP tools live (sf_create_event etc.)
+- **Phase 8.2 — v2 graph MCP wiring** (2026-09-08): 8/11 v2 graph nodes wired to real MCP tool calls via `mcp_bridge.py` (9 PAV-flavored wrappers removed in M12; only `ikigai_decompose` survives)
+- **M11 IKIGAI System Review** (2026-09-12): 41 gaps across 10 layers consolidated in `docs/superpowers/specs/2026-09-10-system-review-diagnosis.md`
+- **M12 P0 Attribution Fixes** (2026-09-13): mcp_bridge.py wrappers 9→1; sys_ikigai/entities/ueid.py 5-part → 4-part canonical
+- **M13 V2-Node/Bridge Alignment** (2026-09-13): 8 dead v2-node call sites → explicit error_channel writes; 5 PAV-importer tests deleted
+- **M14 MCP v2 Migration** (2026-09-13): durable `constraints.txt` pins mcp<2
+- **M15 M11 Priority 2 Drift Tests** (2026-09-13): langgraph registry drift test + vibe-ops PAV-constant renames + strategics hierarchy reconcile
+- **M16 REPL End-to-End** (2026-09-14): `scripts/chat_repl.py` soul-aware agent shell
+- **M17 REPL Coverage + Remaining Drift Tests** (2026-09-14): chat_repl.py smoke tests + taskdog_tools read-only contract + investigation_queue presence
+
+### ⚠️ Stubs / partial
+
+- **Deep Agent v2 graph** (`ikigai_maintainer_v2` in `langgraph.json`): 11-node graph (1 added since M0, recall_node). 8/11 nodes wire to real MCP calls via `mcp_bridge`; remaining partials: `surface_intentions` still prompt-chain stub (PAV-written state); `tag_and_persist` READ-ONLY (vault_write is separate work)
+- **Path 1 taskdog write** (canonical): `harness @tool → subprocess → taskdog_cli.py` exists but harness isn't wired to call it
+- **Path 3 taskdog MCP**: 3 read-only tools — zero write surface (drift net enforces via `test_taskdog_tools_read_only_contract`)
+- **Phase 8.3 backlog**: real observability/OTel tracing on top of `mcp_bridge`; production binding of `_server` to FastMCP client
+
+### ❌ Not started / deferred
+
+- **Phase 3 v1.2-v1.4**: `update`/`delete`/`done` mesh actions (gated on user adjudication)
+- **Deep Agent fills interfaces**: explicitly NOT priority per 2026-09-06 user pivot
+- **LLM-driven mesh validation**: gated
+- **PAV math in agent layer**: PAV archived 2026-08-31; agent is planner-only per ADR-013
+- **M9 (Production mode)**: 7-day unattended streak target — gated on user authorization
+
+### 🐛 Pre-existing bugs (flagged, non-blocking)
+
+- `scripts/mcp_inspect.py` PYTHONPATH bug (Windows parity)
+- `tests/test_tui_operator` rglob false-flake
+- 4 zero-byte artifacts no repo root (bash redirect pattern)
+- `strategics/planning-with-files` submodule dirty (modified content, no commit)
+
+---
+
 ## Current Mode
 
 **Data-first methodology** — IKIGAi está pausado para *novas decisões de
