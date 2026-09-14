@@ -65,44 +65,46 @@ def _resolve_repo_root() -> Path:
 
 REPO_ROOT = _resolve_repo_root()
 # Scope: IKIGAI agent layer + MCP server + gateway + CLI + adapters.
-# Excludes vibe-ops/ (orchestrator, attribution §3) and src/mesh/ (data plane).
+# Also covers vibe-ops/src/ since M22 (2026-09-14) deleted the dormant
+# PAV math files (cybernetics/daily_loop.py, pipeline/ikigai_scorer.py,
+# pipeline/daily_consolidator.py, agents/pae_maintainer/{state,nodes,graph,main}.py,
+# langgraph_entry.py) — ADR-024 archival completion + M21 failure resolution.
+# Excludes src/mesh/ (data plane).
 PROD_LAYERS = [
     IKIGAI_SRC / "agents",
     IKIGAI_SRC / "mcp_server",
     IKIGAI_SRC / "ikigai" / "gateway",
     IKIGAI_SRC / "ikigai" / "cli",
     IKIGAI_SRC / "ikigai" / "adapters",
+    REPO_ROOT / "vibe-ops" / "src",
 ]
 
 
-# M15 T-15.2: extra roots scanned ONLY by
-# ``test_no_algorithm_constants_in_agent_code``. We do not merge these into
-# ``PROD_LAYERS`` / ``SCAN_ROOTS`` because the other drift-net tests
-# (``test_no_forbidden_imports`` / ``test_no_forbidden_function_calls_or_defs``
-# / ``test_no_forbidden_class_references``) would pick up the dormant
-# ``vibe-ops/src/`` PAV math code (``compute_score`` calls, ``IkigaiScorer``
-# class def, ``cybernetics.daily_loop`` import) and fail — those are out of
-# scope for T-15.2 (separate work item to widen the drift net to vibe-ops).
+# M15 T-15.2 history: extra roots were scanned ONLY by
+# ``test_no_algorithm_constants_in_agent_code`` because the other
+# drift-net tests would pick up dormant PAV math code in vibe-ops/src/
+# (``compute_score`` calls, ``IkigaiScorer`` class def,
+# ``cybernetics.daily_loop`` import) and fail.
 #
 # M21 attempt: widening PROD_LAYERS to include ``vibe-ops/src/`` was tested
 # and FAILED — M15 renamed only PAV-flavored module-level CONSTANTS
 # (HYSTERESIS_HIGH_BOUND, WORKLOAD_HIGH_LIMIT, etc.) but NOT the dormant
 # math CODE in vibe-ops/src/:
-#   - ``vibe-ops/src/main.py:6`` still does ``from cybernetics.daily_loop import CyberneticDailyLoop``
+#   - ``vibe-ops/src/main.py:6`` still did ``from cybernetics.daily_loop import CyberneticDailyLoop``
 #     → matches FORBIDDEN_IMPORTS (test_no_forbidden_imports)
-#   - ``vibe-ops/src/cybernetics/daily_loop.py:76`` still calls ``self.ikigai.compute_score()``
-#   - ``vibe-ops/src/pipeline/ikigai_scorer.py:130`` still defines ``def compute_score``
+#   - ``vibe-ops/src/cybernetics/daily_loop.py:76`` still called ``self.ikigai.compute_score()``
+#   - ``vibe-ops/src/pipeline/ikigai_scorer.py:130`` still defined ``def compute_score``
 #     → matches FORBIDDEN_FUNCTIONS (test_no_forbidden_function_calls_or_defs)
-#   - ``vibe-ops/src/pipeline/ikigai_scorer.py:119`` still defines ``class IkigaiScorer``
+#   - ``vibe-ops/src/pipeline/ikigai_scorer.py:119`` still defined ``class IkigaiScorer``
 #     → matches FORBIDDEN_CLASSES (test_no_forbidden_class_references)
-# Conclusion: 4/4 PROD_LAYERS-dependent tests fail with widening, so the
-# extra-roots workaround must STAY. Widening PROD_LAYERS requires either
-# (a) renaming/removing the dormant PAV math symbols in vibe-ops/src/,
-# or (b) creating per-test allowlists for vibe-ops/src/ — both are
-# separate work items.
-_EXTRA_CONSTANT_SCAN_ROOTS: list[Path] = [
-    REPO_ROOT / "vibe-ops" / "src",
-]
+#
+# M22 (2026-09-14) closed this: deleted all 4 dormant PAV math files
+# (cybernetics/daily_loop.py, pipeline/ikigai_scorer.py,
+# pipeline/daily_consolidator.py, agents/pae_maintainer/{state,nodes,graph,main}.py)
+# plus langgraph_entry.py. Widened PROD_LAYERS to include ``vibe-ops/src/``;
+# the 4/4 PROD_LAYERS-dependent tests now PASS without the workaround.
+# The _EXTRA_CONSTANT_SCAN_ROOTS workaround is no longer needed.
+_EXTRA_CONSTANT_SCAN_ROOTS: list[Path] = []
 
 
 # ---------------------------------------------------------------------------
