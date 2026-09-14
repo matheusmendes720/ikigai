@@ -208,6 +208,84 @@ def _tool_investigation_complete(
 
 
 # ---------------------------------------------------------------------------
+# Phase 6: 8 PAV-flavored stub tools (decisions #5, #6)
+#
+# These 8 names were registered in the prior mcp_bridge but absent from
+# server.py's @MCP.tool registry after V5-E — causing silent drift where
+# the bridge wrapped non-existent server tools (M11 diagnosis Priority 1,
+# item 1, L4 G-1). Per ADR-013 (planner-only), the underlying math is
+# stripped from the agent layer. These stubs register the wire surface so:
+#   - bridge/server stay aligned (drift detector passes)
+#   - v2 nodes that route through these names get a defined dict back
+#   - actual implementations land in their owning layer (cycle/state)
+# ---------------------------------------------------------------------------
+
+
+@MCP.tool(
+    name="ikigai_observe_state",
+    description="Observe QHE / regime snapshot for a given date (planner-only stub per ADR-013).",
+)
+def ikigai_observe_state(date: str) -> dict[str, Any]:
+    return {"stub": True, "tool": "ikigai_observe_state", "date": date}
+
+
+@MCP.tool(
+    name="ikigai_score_vectors",
+    description="Score a list of priority vectors (planner-only stub per ADR-013).",
+)
+def ikigai_score_vectors(vectors: list[float]) -> dict[str, Any]:
+    return {"stub": True, "tool": "ikigai_score_vectors", "count": len(vectors)}
+
+
+@MCP.tool(
+    name="ikigai_heuristics",
+    description="Apply heuristics to a planning context (planner-only stub per ADR-013).",
+)
+def ikigai_heuristics(context: dict[str, Any]) -> dict[str, Any]:
+    return {"stub": True, "tool": "ikigai_heuristics", "context_keys": sorted(context.keys())}
+
+
+@MCP.tool(
+    name="ikigai_balance",
+    description="Compute load-balance adjustment (planner-only stub per ADR-013).",
+)
+def ikigai_balance(load: float) -> dict[str, Any]:
+    return {"stub": True, "tool": "ikigai_balance", "load": load}
+
+
+@MCP.tool(
+    name="ikigai_plan",
+    description="Build a plan for a planning cycle (planner-only stub per ADR-013).",
+)
+def ikigai_plan(cycle_id: str) -> dict[str, Any]:
+    return {"stub": True, "tool": "ikigai_plan", "cycle_id": cycle_id}
+
+
+@MCP.tool(
+    name="ikigai_reflect",
+    description="Reflect on a completed cycle (planner-only stub per ADR-013).",
+)
+def ikigai_reflect(cycle_id: str) -> dict[str, Any]:
+    return {"stub": True, "tool": "ikigai_reflect", "cycle_id": cycle_id}
+
+
+@MCP.tool(
+    name="ikigai_tag_and_persist",
+    description="Read tags for a UEID (read-only — vault_write is separate work, planner-only stub per ADR-013).",
+)
+def ikigai_tag_and_persist(ueid: str) -> dict[str, Any]:
+    return {"stub": True, "tool": "ikigai_tag_and_persist", "ueid": ueid}
+
+
+@MCP.tool(
+    name="ikigai_commit_summary",
+    description="Build a commit summary for a cycle (planner-only stub per ADR-013).",
+)
+def ikigai_commit_summary(cycle_id: str) -> dict[str, Any]:
+    return {"stub": True, "tool": "ikigai_commit_summary", "cycle_id": cycle_id}
+
+
+# ---------------------------------------------------------------------------
 # Phase B3.3: 6 MCP resources
 # ---------------------------------------------------------------------------
 from mcp_server.resources import (  # noqa: E402
