@@ -26,10 +26,13 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
 import uuid
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import List
 
 # Ensure repo root is on sys.path so ``from src.ikigai...`` resolves both when
 # invoked directly and when piped through a shell.
@@ -60,6 +63,9 @@ DEFAULT_SCOPE = (
     "Heuristic response is sufficient for shell demo."
 )
 
+# Cap response bullet count per the soul's # Constraints convention.
+MAX_RESPONSE_BULLETS = 5
+
 
 # ---------------------------------------------------------------------------
 # Fake SSE gateway — mirrors the shape of the test fixture but lives here
@@ -78,6 +84,92 @@ class FakeGateway:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class SoulView:
+    """Parsed view of an IKIGAI soul markdown file.
+
+    Cached once per (profile, switch) so we never load the same soul twice
+    and never re-parse the same markdown twice.
+    """
+
+    profile: str
+    markdown: str
+    title: str
+    voice_signature: str
+    constraints: List[str] = field(default_factory=list)
+
+
+_SECTION_RE = re.compile(r"^##\s+(?P<name>[^\n]+?)\s*$", re.MULTILINE)
+_PARENS_RE = re.compile(r"\s*\([^)]*\)\s*$")
+
+
+def _normalize_section_name(name: str) -> str:
+    """Strip trailing parentheticals so ``Voice`` and ``Voice (foo)`` collide."""
+    return _PARENS_RE.sub("", name.strip().lower()).strip()
+
+
+def _split_sections(markdown: str) -> dict[str, str]:
+    """Return ``{section_name_lower: body}`` for every ``## Heading`` block.
+
+    Section names are normalized via :func:`_normalize_section_name` so that
+    ``## Constraints (7 never-do rules)`` and ``## Constraints`` map to the
+    same lookup key.
+    """
+    matches = list(_SECTION_RE.finditer(markdown))
+    sections: dict[str, str] = {}
+    for i, m in enumerate(matches):
+        name = _normalize_section_name(m.group("name"))
+        start = m.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(markdown)
+        sections[name] = markdown[start:end].strip()
+    return sections
+
+
+def _first_line_or_bullet(text: str) -> str:
+    """Return the first bullet or first non-empty paragraph line of ``text``."""
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        # Strip leading bullet markers like "- " or "* " or "1. "
+        cleaned = re.sub(r"^([-*]|\d+\.)\s+", "", line)
+        return cleaned
+    return ""
+
+
+def _extract_bullets(text: str) -> List[str]:
+    """Return the never-do rules (or any bullet lines) from a section body."""
+    bullets: List[str] = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        m = re.match(r"^([-*]|\d+\.)\s+(.*)$", line)
+        if m:
+            cleaned = m.group(2).strip()
+            # Skip section-level headers like "Constraints (7 never-do rules)"
+            if cleaned and not cleaned.endswith(":"):
+                bullets.append(cleaned)
+    return bullets
+
+
+def _parse_soul(profile: str) -> SoulView:
+    """Load + parse a soul into a reusable SoulView."""
+    markdown = load_soul(profile)
+    sections = _split_sections(markdown)
+    title_match = re.search(r"^#\s+(?P<title>[^\n]+)$", markdown, re.MULTILINE)
+    title = title_match.group("title").strip() if title_match else profile
+    voice = _first_line_or_bullet(sections.get("voice", ""))
+    constraints = _extract_bullets(sections.get("constraints", ""))
+    return SoulView(
+        profile=profile,
+        markdown=markdown,
+        title=title,
+        voice_signature=voice,
+        constraints=constraints,
+    )
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -92,20 +184,89 @@ def _resolve_profile_or_die(name: str) -> str:
     return name
 
 
-def _build_system_prompt(profile: str) -> str:
-    return assemble(profile, DEFAULT_CAPABILITIES, DEFAULT_SCOPE)
-
-
-def _heuristic_respond(profile: str, user_message: str) -> str:
-    """Deterministic offline response — no LLM call, prints the active soul
-    summary plus a one-line heuristic reply."""
-    soul = load_soul(profile)
-    first_line = soul.strip().splitlines()[0] if soul.strip() else "(empty soul)"
-    snippet = user_message.strip().splitlines()[0] if user_message.strip() else ""
-    return (
-        f"[{profile}] {first_line}\n"
-        f"  echo: {snippet[:200]}"
+def _build_system_prompt(soul: SoulView) -> str:
+    """Render the system prompt from a parsed SoulView (single soul load)."""
+    return assemble(
+        soul.profile,
+        DEFAULT_CAPABILITIES,
+        DEFAULT_SCOPE,
+        soul_content=soul.markdown,
     )
+
+
+def _voice_excerpt(soul: SoulView, max_chars: int = 90) -> str:
+    """Trim a voice signature to a single display line."""
+    sig = soul.voice_signature
+    if len(sig) <= max_chars:
+        return sig
+    return sig[: max_chars - 1].rstrip() + "…"
+
+
+def _truncate_to_bullet_cap(text: str, cap: int) -> str:
+    """Enforce the soul's # Constraints bullet cap (default 5).
+
+    Keeps non-bullet lines intact, then keeps the first ``cap`` bullet lines
+    (across ``-`` / ``*`` / numbered lists). Trailing bullet lines are dropped.
+    """
+    if cap <= 0:
+        return text
+    kept: List[str] = []
+    bullet_count = 0
+    for line in text.splitlines():
+        if bullet_count >= cap and re.match(r"^\s*([-*]|\d+\.)\s+", line):
+            continue
+        if re.match(r"^\s*([-*]|\d+\.)\s+", line):
+            bullet_count += 1
+        kept.append(line)
+    return "\n".join(kept)
+
+
+def _agent_respond(soul: SoulView, user_message: str) -> str:
+    """Soul-aware heuristic response — no LLM call.
+
+    Output shape::
+
+        [<profile>] <voice signature excerpt>...
+          <response to user message>
+
+    Heuristic:
+      * ``plan`` keyword  →  propose a 5-step Q-by-Q sketch
+      * contains ``?``     →  ask exactly one clarifying question
+      * default            →  reflect back in 1-2 sentences
+
+    The response is capped at ``MAX_RESPONSE_BULLETS`` bullets per the
+    soul's # Constraints convention (enforced via ``_truncate_to_bullet_cap``).
+    """
+    msg = user_message.strip()
+    msg_lower = msg.lower()
+    tokens = re.findall(r"[a-z0-9]+", msg_lower)
+    first_word = tokens[0] if tokens else ""
+    contains_question = "?" in msg
+
+    if first_word == "plan" or "plan" in tokens[:3]:
+        response_body = (
+            "Q-by-Q sketch:\n"
+            f"  - Q3 close: audit the last 2 shipped waves, log blockers.\n"
+            f"  - Q4 open: pick 2-3 active projects, defer the rest.\n"
+            f"  - Decision: which one to sequence first, and why?\n"
+            f"  - Risk: 1 failure mode the user hasn't named yet.\n"
+            f"  - Next checkpoint: by end of this week."
+        )
+    elif contains_question:
+        response_body = (
+            "One clarifying question before I respond: "
+            "what would success look like for you in the next 7 days?"
+        )
+    else:
+        response_body = (
+            f"Reflecting back: I heard the signal in your message. "
+            f"Two threads worth surfacing — the immediate ask and the underlying "
+            f"intent. Tell me which one to dig into first."
+        )
+
+    response_body = _truncate_to_bullet_cap(response_body, MAX_RESPONSE_BULLETS)
+    excerpt = _voice_excerpt(soul)
+    return f"[{soul.profile}] {excerpt}\n  {response_body}"
 
 
 def _print_banner(profile: str, thread_id: str) -> None:
@@ -126,7 +287,10 @@ def run(
     publisher: AgentSSEPublisher,
 ) -> int:
     profile = _resolve_profile_or_die(initial_profile)
-    system_prompt = _build_system_prompt(profile)
+    # Load + parse the soul exactly once. Reuse for system prompt AND for
+    # every subsequent response (no double-load via load_soul()).
+    soul = _parse_soul(profile)
+    system_prompt = _build_system_prompt(soul)
     print()
     print(system_prompt)
     _print_banner(profile, thread_id)
@@ -172,7 +336,8 @@ def run(
                     continue
                 prev = profile
                 profile = target
-                system_prompt = _build_system_prompt(profile)
+                soul = _parse_soul(profile)  # ONE load per switch
+                system_prompt = _build_system_prompt(soul)
                 log_switch(
                     vault_root,
                     thread_id,
@@ -212,7 +377,7 @@ def run(
                 content=text,
             )
 
-            response = _heuristic_respond(profile, text)
+            response = _agent_respond(soul, text)
             print()
             print(response)
             print()
