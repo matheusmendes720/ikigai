@@ -75,30 +75,41 @@ def _stub_spec(**overrides) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def test_make_v2_graph_has_11_nodes() -> None:
-    """make_v2_graph returns an 11-node graph (10 → 11 after W4.4)."""
+def test_make_v2_graph_has_13_nodes() -> None:
+    """make_v2_graph returns a 13-node graph (11 → 13 after recall+reason wiring).
+
+    W4.4 brought the graph to 11 nodes (dispatch_sub_agents as the 11th).
+    The new observe -> recall -> reason -> reflect -> commit chain adds
+    recall and reason at tuple positions 1 and 2.
+    """
     from agents.v2.graph import NODES, make_v2_graph
 
-    assert len(NODES) == 11, f"Expected 11 nodes, got {len(NODES)}"
+    assert len(NODES) == 13, f"Expected 13 nodes, got {len(NODES)}"
     assert "dispatch_sub_agents" in NODES
-    # Verify ordering — dispatch_sub_agents is the 11th node in tuple position 10
-    assert NODES.index("dispatch_sub_agents") == 9
+    assert "recall" in NODES
+    assert "reason" in NODES
+    # Verify ordering — dispatch_sub_agents now sits after commit (12th, index 11).
+    assert NODES.index("dispatch_sub_agents") == 11
+    assert NODES.index("recall") == 1
+    assert NODES.index("reason") == 2
 
     graph = make_v2_graph(checkpoint_db=":memory:")
     # LangGraph compiled graph has a `.nodes` mapping (dict of name → runnable)
-    # of the nodes added to the builder. The `error` node + 11 named nodes = 12.
+    # of the nodes added to the builder. The `error` node + 13 named nodes = 14.
     assert "dispatch_sub_agents" in graph.nodes
     # Confirm both surface_intentions and commit remain reachable.
     assert "commit" in graph.nodes
     assert "surface_intentions" in graph.nodes
 
 
-def test_nodes_tuple_includes_dispatch_in_correct_position() -> None:
-    """NODES tuple is exactly 11 elements with dispatch_sub_agents as the 10th."""
+def test_nodes_tuple_includes_recall_reason_in_correct_position() -> None:
+    """NODES tuple is exactly 13 elements; recall+reason at positions 1, 2; dispatch at 11."""
     from agents.v2.graph import NODES
 
     expected = (
         "observe",
+        "recall",
+        "reason",
         "score_vectors",
         "heuristics",
         "balance",

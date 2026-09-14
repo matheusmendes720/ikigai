@@ -30,6 +30,8 @@ from .nodes.error import error_node  # noqa: E402
 from .nodes.heuristics import heuristics_node  # noqa: E402
 from .nodes.observe import observe_node  # noqa: E402
 from .nodes.plan import plan_node  # noqa: E402
+from .nodes.reason_node import reason_node  # noqa: E402
+from .nodes.recall_node import recall_node  # noqa: E402
 from .nodes.reflect import reflect_node  # noqa: E402
 from .nodes.score_vectors import score_vectors_node  # noqa: E402
 from .nodes.surface_intentions import surface_intentions_node  # noqa: E402
@@ -56,6 +58,8 @@ _graph_tracer = get_tracer("ikigai.graph")
 # ---------------------------------------------------------------------------
 NODES = (
     "observe",
+    "recall",
+    "reason",
     "score_vectors",
     "heuristics",
     "balance",
@@ -103,13 +107,36 @@ def _safe_node(name: str, fn: Callable[[IKIGAiStateDict], dict[str, Any]]) -> An
 # ---------------------------------------------------------------------------
 def _route_after_observe(
     state: IKIGAiStateDict,
-) -> Literal["score_vectors", "balance", "commit", "error"]:
-    """After observe: always score vectors, unless kill_switch or upstream error."""
+) -> Literal["recall", "balance", "commit", "error"]:
+    """After observe: recall context (per decision #9 — observe -> recall -> reason
+    -> reflect -> commit chain), unless kill_switch or upstream error."""
     if state.get("error_type"):
         return "error"
     if state.get("kill_switch_triggered"):
         return "commit"
-    return "score_vectors"
+    return "recall"
+
+
+def _route_after_recall(
+    state: IKIGAiStateDict,
+) -> Literal["reason", "error"]:
+    """After recall: always proceed to reason unless upstream error fired."""
+    if state.get("error_type"):
+        return "error"
+    return "reason"
+
+
+def _route_after_reason(
+    state: IKIGAiStateDict,
+) -> Literal["reflect", "recall", "error"]:
+    """After reason: proceed to reflect on validated proposal, otherwise loop back
+    to recall to gather more context (reason->recall validation-failure loop)."""
+    if state.get("error_type"):
+        return "error"
+    draft = state.get("draft_proposal")
+    if not draft:
+        return "recall"
+    return "reflect"
 
 
 def _route_after_score_vectors(
@@ -242,6 +269,8 @@ def make_v2_graph(
 
         # Add nodes — wrapped in safe_node so exceptions populate error state
         builder.add_node("observe", _safe_node("observe", observe_node))
+        builder.add_node("recall", _safe_node("recall", recall_node))
+        builder.add_node("reason", _safe_node("reason", reason_node))
         builder.add_node("score_vectors", _safe_node("score_vectors", score_vectors_node))
         builder.add_node("heuristics", _safe_node("heuristics", heuristics_node))
         builder.add_node("balance", _safe_node("balance", balance_node))
@@ -266,11 +295,21 @@ def make_v2_graph(
             "observe",
             _route_after_observe,
             {
-                "score_vectors": "score_vectors",
+                "recall": "recall",
                 "balance": "balance",
                 "commit": "commit",
                 "error": "error",
             },
+        )
+        builder.add_conditional_edges(
+            "recall",
+            _route_after_recall,
+            {"reason": "reason", "error": "error"},
+        )
+        builder.add_conditional_edges(
+            "reason",
+            _route_after_reason,
+            {"reflect": "reflect", "recall": "recall", "error": "error"},
         )
         builder.add_conditional_edges(
             "score_vectors",

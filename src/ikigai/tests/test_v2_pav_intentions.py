@@ -25,18 +25,21 @@ def test_node_imports():
     assert surface_intentions_node is not None
 
 
-def test_graph_has_11_nodes():
-    """v2 graph now has 11 nodes (was 9 pre-W4.4; +1 for dispatch_sub_agents).
+def test_graph_has_13_nodes():
+    """v2 graph now has 13 nodes (was 11 pre-recall-wiring; +1 recall +1 reason).
 
     Phase history: 8 (pre-8.4) -> 9 (added surface_intentions) -> 10 (added
-    tag_and_persist via Plan A) -> 11 (added dispatch_sub_agents via W4.4).
+    tag_and_persist via Plan A) -> 11 (added dispatch_sub_agents via W4.4) ->
+    13 (added recall + reason via decision #9 wiring).
     """
     # graph.py lives in agents/v2/ so it resolves via the sys.path entry
     from agents.v2.graph import NODES
 
-    assert len(NODES) == 11
+    assert len(NODES) == 13
     assert "surface_intentions" in NODES
     assert "dispatch_sub_agents" in NODES
+    assert "recall" in NODES
+    assert "reason" in NODES
 
 
 def test_fake_llm_emits_suggestions(monkeypatch):
