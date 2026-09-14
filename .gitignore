@@ -427,3 +427,21 @@ archive/legacy-pav/src-operational/medic/bin/
 /src/-
 /src/0
 /src/80%
+
+# ─── M20 T-20.1 — Bare Python keywords + template fragments ─────
+# Stray root-level files from bash redirect leaks
+# (`> True`, `> False`, `> async`, `> await`, `> {var}`).
+# Each listed individually because gitignore lacks alternation.
+# Sibling Python keywords (`None`, `int`, `float`, `bool`, `list`,
+# `dict`, `str`, `tuple`, `set`, `frozenset`) and `inline` were
+# already covered in earlier sections — only the ones below are new.
+/True
+/False
+/async
+/await
+# Template fragments — `> {var}` redirects from Python f-string /
+# format() leakage create literal `{anything}` filenames. gitignore
+# treats `{` and `}` as literal chars; `*` matches the content
+# between them, so `/{*}` matches `{anything}` including
+# `{len(lf_data)}` and `{test}`.
+/{*}
