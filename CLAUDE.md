@@ -365,7 +365,7 @@ What the Algorithmic Life OS **does today** — separate from the loop engineeri
 - `scripts/mcp_inspect.py` PYTHONPATH bug (Windows parity)
 - `tests/test_tui_operator` rglob false-flake
 - 4 zero-byte artifacts no repo root (bash redirect pattern)
-- `strategics/planning-with-files` submodule dirty (modified content, no commit)
+- `strategics/planning-with-files` submodule dirty (modified content, no commit) — M20 T-20.2 diagnosis (2026-09-14): HEAD = `8f5a3c2`, parent-recorded = `8f5a3c2` (NO pointer drift). 55 files with uncommitted local edits (~2928+, 2117-, mostly quote-style normalization across IDE adapters + tests). Treated as **vendored third-party skill plugin** (remote = `https://github.com/matheusmendes720/planning-with-files.git`, user's own fork). **Do not commit** submodule contents — leave dirty. Drift net 53/53 PASS preserved.
 
 ---
 
