@@ -29,9 +29,11 @@ from src.contracts.sonho import Sonho
 # Reactivation plan per the module docstring: wire a real MCP bridge wrapper
 # in mcp_bridge.py + server.py @MCP.tool registry BEFORE reintroducing the
 # call here.
-pytestmark = pytest.mark.skip(
-    reason="tag_and_persist_node stubbed post-M12: persisted state not produced; "
-    "tests target removed behavior, see M11 review (commit_tag_persist M12 deletion)"
+pytestmark = pytest.mark.xfail(
+    reason="X behavior removed in M12; restore if needed per MEMORY M12 entry "
+    "(tag_and_persist_node stubbed post-M12: persisted state not produced; "
+    "tests target removed behavior, see M11 review commit_tag_persist M12 deletion)",
+    strict=False,
 )
 
 
