@@ -1,0 +1,1 @@
+"""IKIGAI soul profiles."""
