@@ -1160,3 +1160,247 @@ def _extract_tool_name_from_decorator(decorator: ast.AST) -> str | None:
         if keyword.arg == "name" and isinstance(keyword.value, ast.Constant):
             return keyword.value.value
     return None
+
+# ---------------------------------------------------------------------------
+# Phase 2 — ikigai_serve CLI + souls loader drift invariants
+# ---------------------------------------------------------------------------
+#
+# Phase 2 of the rebuild plan ships the ``ikigai_serve`` CLI (which boots
+# the ``UnifiedMCPGateway`` on a daemon thread) and the ``souls/loader``
+# module (which exposes ``load_soul`` / ``known_profiles`` for persona
+# conditioning). These three tests guard the load-bearing surface area:
+#
+# - ``test_ikigai_serve_module_exists`` — the bin module + canonical
+#   public symbols (``ServeOptions``, ``ServeRuntime``, ``main``,
+#   ``register_mesh_adapters``).
+# - ``test_ikigai_serve_imports`` — the module imports cleanly with
+#   side-effect-free package init and ``python -m`` delegation through
+#   ``bin/__main__.py``.
+# - ``test_ikigai_serve_soul_loader_chain`` — ``souls/loader.py``
+#   exports the two public primitives AND ``known_profiles()`` matches
+#   the on-disk ``<profile>.md`` files exactly (the chain — discovered
+#   set ⇔ filesystem source of truth).
+#
+# Drift invariants here are append-only: do NOT weaken the assertions
+# below without an explicit ADR amendment.
+
+
+def test_ikigai_serve_module_exists() -> None:
+    """bin/ikigai_serve.py MUST exist and export the canonical public surface.
+
+    Phase 2 of the rebuild plan (commit 2026-09-14) ships the CLI that
+    boots ``UnifiedMCPGateway`` on a daemon thread. The canonical public
+    surface is the four symbols pinned in the module docstring:
+
+    - ``ServeOptions`` — argparse-mirroring dataclass
+    - ``ServeRuntime`` — live-handles dataclass
+    - ``main(argv) -> int`` — CLI entry-point
+    - ``register_mesh_adapters(gateway) -> list[str]`` — extension hook
+
+    Removing any of these without an ADR amendment breaks the Phase 2
+    contract used by ``scripts/ikigai-serve.{sh,bat}``.
+    """
+    serve_path = IKIGAI_PKG / "bin" / "ikigai_serve.py"
+    bin_init = IKIGAI_PKG / "bin" / "__init__.py"
+    bin_main = IKIGAI_PKG / "bin" / "__main__.py"
+
+    assert serve_path.is_file(), (
+        f"ikigai_serve module missing at {serve_path}. "
+        "Phase 2 of the rebuild plan mandates this CLI entry-point."
+    )
+    assert bin_init.is_file(), (
+        f"bin/__init__.py missing at {bin_init}. "
+        "Importing src.ikigai.bin must resolve as a package."
+    )
+    assert bin_main.is_file(), (
+        f"bin/__main__.py missing at {bin_main}. "
+        "`python -m src.ikigai.bin.ikigai_serve` must work via the "
+        "standard ``python -m`` protocol."
+    )
+
+    source = serve_path.read_text(encoding="utf-8")
+    for required_symbol in (
+        "class ServeOptions",
+        "class ServeRuntime",
+        "def main",
+        "def register_mesh_adapters",
+        '__all__',
+    ):
+        assert required_symbol in source, (
+            f"ikigai_serve.py missing required symbol: {required_symbol}"
+        )
+
+    # The bin/__init__.py docstring pins "Importing this package must remain
+    # side-effect free" — guard against accidental top-level work.
+    init_source = bin_init.read_text(encoding="utf-8")
+    assert "side-effect free" in init_source, (
+        "bin/__init__.py docstring must document the side-effect-free "
+        "invariant for the bin package."
+    )
+
+    # __main__.py must delegate to ikigai_serve.main — this is the
+    # ``python -m`` path used by the helper scripts.
+    main_source = bin_main.read_text(encoding="utf-8")
+    assert "from src.ikigai.bin.ikigai_serve import main" in main_source, (
+        "bin/__main__.py must import main from src.ikigai.bin.ikigai_serve "
+        "so `python -m src.ikigai.bin.ikigai_serve` resolves."
+    )
+    assert "__name__" in main_source and "__main__" in main_source, (
+        "bin/__main__.py must guard the entry-point with the "
+        "standard `if __name__ == \"__main__\":` pattern."
+    )
+
+
+def test_ikigai_serve_imports() -> None:
+    """src.ikigai.bin.ikigai_serve must import cleanly with the canonical surface.
+
+    Side-effect-free import is the Phase 2 contract — argparse + logging
+    must NOT execute at import time, only inside ``main()``. This test
+    imports the module via ``importlib`` (so the import is explicit) and
+    pins the canonical public surface as the importable contract.
+    """
+    import importlib
+
+    try:
+        module = importlib.import_module("src.ikigai.bin.ikigai_serve")
+    except Exception as exc:  # noqa: BLE001 — drift detector
+        pytest.fail(
+            f"src.ikigai.bin.ikigai_serve failed to import: {exc!r}. "
+            "Phase 2 ships a side-effect-free CLI module — fix the "
+            "top-level statement ordering."
+        )
+
+    # Canonical public surface — pinned in the module docstring AND
+    # the rebuild plan §2 "Public surface" section.
+    expected_names = {"ServeOptions", "ServeRuntime", "main", "register_mesh_adapters"}
+    missing = expected_names - set(dir(module))
+    assert not missing, (
+        f"ikigai_serve.py missing expected public names: {sorted(missing)}. "
+        f"Found: {sorted(n for n in dir(module) if not n.startswith('_'))[:20]}"
+    )
+
+    # __all__ must match the expected surface (or be a superset of the
+    # required names — drift detector rejects accidental removals).
+    all_attr = getattr(module, "__all__", None)
+    assert all_attr is not None, (
+        "ikigai_serve.py must define __all__ to pin the public API."
+    )
+    missing_from_all = expected_names - set(all_attr)
+    assert not missing_from_all, (
+        f"ikigai_serve.__all__ missing required names: {sorted(missing_from_all)}. "
+        f"Got __all__={list(all_attr)}"
+    )
+
+    # Canonical CLI defaults — guard against silent regressions on the
+    # port / with-cli / with-tui defaults that the helper scripts depend on.
+    serve_path = IKIGAI_PKG / "bin" / "ikigai_serve.py"
+    source = serve_path.read_text(encoding="utf-8")
+    assert 'host: str = "127.0.0.1"' in source, (
+        "ServeOptions.host default must be '127.0.0.1' (dev-mode safe bind)."
+    )
+    assert "port: int = 8765" in source, (
+        "ServeOptions.port default must be 8765 per the rebuild plan "
+        "(default-playbook port)."
+    )
+
+
+def test_ikigai_serve_soul_loader_chain() -> None:
+    """souls/loader.py MUST export the loader chain (load_soul + known_profiles).
+
+    Phase 2 also ships the persona document loader at ``souls/loader.py``.
+    The "chain" invariant is two-sided:
+
+    1. The module exports ``load_soul(profile) -> str`` and
+       ``known_profiles() -> FrozenSet[str]`` (canonical public surface).
+    2. ``known_profiles()`` exactly equals the on-disk set of
+       ``<profile>.md`` regular files in the souls directory. Hidden
+       files (starting with ``.``) and non-``.md`` files must NOT leak
+       into the discovered profile set.
+
+    This guards against (a) accidental edits to the loader that break
+    the public API and (b) filesystem drift where an ``.md`` file gets
+    added without registering it in the loader (or vice-versa).
+    """
+    loader_path = IKIGAI_PKG / "souls" / "loader.py"
+    souls_dir = IKIGAI_PKG / "souls"
+
+    assert loader_path.is_file(), (
+        f"souls/loader.py missing at {loader_path}. "
+        "Phase 2 ships the persona document loader here."
+    )
+    assert souls_dir.is_dir(), (
+        f"souls directory missing at {souls_dir}."
+    )
+
+    loader_source = loader_path.read_text(encoding="utf-8")
+
+    # Public surface — pinned in the module docstring.
+    for required_symbol in (
+        "def load_soul",
+        "def known_profiles",
+        "__all__",
+    ):
+        assert required_symbol in loader_source, (
+            f"souls/loader.py missing required symbol: {required_symbol}"
+        )
+
+    # Defense-in-depth: profile name validation MUST happen before the
+    # filesystem is touched (the module docstring pins this contract).
+    assert "_reject_unsafe_profile" in loader_source, (
+        "souls/loader.py must define the internal _reject_unsafe_profile "
+        "guard that rejects empty / whitespace / path-separator profile names."
+    )
+    assert "FileNotFoundError" in loader_source, (
+        "souls/loader.py must raise FileNotFoundError for missing profiles."
+    )
+
+    # Import the loader and verify the chain end-to-end.
+    import importlib
+
+    loader = importlib.import_module("src.ikigai.souls.loader")
+
+    # __all__ pins the public surface.
+    assert set(getattr(loader, "__all__", [])) == {"load_soul", "known_profiles"}, (
+        f"souls/loader.__all__ must equal {{'load_soul', 'known_profiles'}}. "
+        f"Got {list(getattr(loader, '__all__', []))}"
+    )
+
+    # known_profiles() must equal the on-disk .md file set (the chain).
+    discovered = set(loader.known_profiles())
+    expected = {
+        entry.name[: -len(".md")]
+        for entry in souls_dir.iterdir()
+        if entry.is_file()
+        and not entry.name.startswith(".")
+        and entry.name.endswith(".md")
+    }
+    assert discovered == expected, (
+        f"souls/loader.known_profiles() chain mismatch.\n"
+        f"  discovered: {sorted(discovered)}\n"
+        f"  expected (from filesystem): {sorted(expected)}\n"
+        f"  difference -discovered: {sorted(expected - discovered)}\n"
+        f"  difference +discovered: {sorted(discovered - expected)}"
+    )
+
+    # For each discovered profile, load_soul must return a non-empty
+    # UTF-8 string (the persona document itself).
+    assert discovered, (
+        "No soul profiles discovered — the souls/ directory must contain "
+        "at least one <name>.md persona document."
+    )
+    for profile in sorted(discovered):
+        body = loader.load_soul(profile)
+        assert isinstance(body, str) and body.strip(), (
+            f"load_soul({profile!r}) returned empty / non-string content."
+        )
+
+    # Negative tests — load_soul rejects bad inputs.
+    import pytest as _pytest
+
+    with _pytest.raises((TypeError, ValueError)):
+        loader.load_soul("")  # empty
+    with _pytest.raises((TypeError, ValueError)):
+        loader.load_soul("../etc/passwd")  # path traversal
+    with _pytest.raises(FileNotFoundError):
+        loader.load_soul("definitely-not-a-real-profile-xyz")
+
