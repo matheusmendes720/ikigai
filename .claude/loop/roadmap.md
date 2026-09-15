@@ -614,6 +614,22 @@ Both kept here for audit trail.
   - **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
   - **Completed:** 2026-09-15 — atomic commits `9c77fa09` (M41 unlink) + `a5a4ab30` (M41 cleanup); pushed to origin master
 
+### M53 — Pin mcp<2 in hermes-agent venv (STATUS: DONE)
+- **What:** `pip install 'mcp<2'` in the hermes-agent venv — installed `mcp 1.30.0` (was `mcp 2.0.0`). Aligns the runtime venv with the project's `src/ikigai/pyproject.toml` pin (`mcp = "^1.1"`).
+- **Why:** `mcp.server.fastmcp` was removed in mcp 2.0+, breaking 3 test files (test_chat_system.py, test_server_fastmcp.py, test_taskdog_mcp_path3.py) with collection errors. 7 tests now run (3 + 4). 1 collection error remains (separate issue — see SPEC).
+- **Spec:** `specs/M53-pin-mcp-1.x-in-hermes-venv/SPEC.md` (created 2026-09-15)
+- **Acceptance:**
+  - [x] `mcp<2` installed in hermes-agent venv (`mcp 1.30.0`) (T-53.1)
+  - [x] `test_server_fastmcp.py` passes — 3/3 (T-53.2)
+  - [x] `test_taskdog_mcp_path3.py` passes — 4/4 (T-53.3)
+  - [x] Drift net preserved: 69/69 + 11/11 (T-53.4)
+  - [x] No repo files modified (env-only change) (T-53.5)
+- **Dependencies:** None (env setup)
+- **Estimated ticks:** 1
+- **Constitution gate:** tests_are_the_contract (7 tests unblocked); state_on_disk_not_in_conversation (env state documented)
+- **Launched:** 2026-09-15 (loop-orchestrator session, user "go ahead")
+- **Completed:** 2026-09-15 — `mcp 2.0.0 → 1.30.0`; 882 tests now collect (up from 875); 7 previously-blocked tests now run
+
 ### M52 — Fix src/ikigai/src/mcp_server/ import paths (STATUS: DONE)
 - **What:** Remove `src.` prefix from `src/ikigai/src/mcp_server/` import paths (3 files, 10 imports). Same bug class as M47 (src/contracts/) and M48 (src/mesh/) but in the THIRD package I missed.
 - **Why:** Same `from src.contracts.X` vs canonical `from contracts.X` pattern as M47/M48. The 3 test files with collection errors (test_chat_system.py, test_server_fastmcp.py, test_taskdog_mcp_path3.py) are blocked by the separate `mcp.server.fastmcp` dep gap (mcp 2.0 removed it); M52 doesn't fix that but removes the import-path noise so the dep gap is the only remaining blocker.
