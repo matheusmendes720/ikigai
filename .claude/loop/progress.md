@@ -2267,6 +2267,14 @@
 - attempt: 1/1
 - notes: M36 SHIPPED. hill-climb v2 daemon activated (PID 46880, 168h interval, $10 cap). ALL 4 DAEMONS NOW RUNNING: loop-tick (1147), hill-climb (46880), cost-dashboard (7998), streak-tracker (8052). First v2 run completed immediately on activation — proposed M-CAND-1 (drift coverage) and M-CAND-2 (M29 followup) again (idempotency verified — only 2 M-CAND entries in roadmap, not 4). Drift net 65/65 PASS preserved. No code modified (state in .claude-flow/ gitignored). Master branch, not pushed.
 - next_action: dispatch M35 (drift coverage for 13 unconstitutioned principles per M-CAND-1)
+## 2026-09-15T16:30:00Z | M35-constitution-coverage | PASS
+- commit: cc509ac3
+- cost_usd: 0.00
+- duration_min: 3
+- model: opus (state-machine + bash verification; sub-agent was Sonnet)
+- attempt: 1/1
+- notes: M35 SHIPPED. Closed M-CAND-1 finding: all 7 VALID_PRINCIPLE_KEYS now covered by ≥1 SPEC. Added 2 missing principles: multi_package_boundaries_are_sacred → M6-worktree-isolation SPEC (genuine — worktree isolation IS a multi-package boundary); spec_driven_not_vibe_driven → M17-remaining-drift SPEC (genuine — closes the spec-driven drift work). Added 1 new drift test test_constitution_principles_all_referenced. Coverage: correctness_over_speed=1, reversibility=4, composition=3, tests=9, state_on_disk=7, multi_package=1, spec_driven=1. Drift net: 65/65 → 66/66 PASS (+1 invariant). 3 files changed: 2 SPECs (+3 each), 1 test (+49). Master branch, not pushed.
+- next_action: retire M-CAND-1 (now addressed by M35) + refresh signal-discovery with 350+ tick dataset (M37); OR idle for next direction
 
 
 ## 2026-09-15T14:36:32Z | orchestrator-tick | IDLE
