@@ -614,6 +614,21 @@ Both kept here for audit trail.
   - **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
   - **Completed:** 2026-09-15 — atomic commits `9c77fa09` (M41 unlink) + `a5a4ab30` (M41 cleanup); pushed to origin master
 
+### M54 — Fix daemon-watchdog.sh heartbeat path (STATUS: DONE)
+- **What:** Two stacked bugs in `.claude/loop/scripts/daemon-watchdog.sh`: (1) PROJECT_ROOT off-by-one (script is 3 levels deep but went up only 2); (2) **actual bug** — Windows-native Python can't read Cygwin-style paths (`/c/Users/...`), need `cygpath -m` translation.
+- **Why:** M39 ship-time review ran watchdog once and saw exit 0 (silent skip when heartbeat missing), missing that the watchdog has been UNABLE to read heartbeats since ship date. After M53 (mcp install), I ran watchdog self-test and caught the silent failure.
+- **Spec:** `specs/M54-fix-daemon-watchdog-heartbeat-path/SPEC.md` (created 2026-09-15 by daemon during my session)
+- **Acceptance:**
+  - [x] `bash .claude/loop/scripts/daemon-watchdog.sh` exits 0 with `OK: daemon heartbeat fresh (Ns < 5400s)` (T-54.1)
+  - [x] Verified: 3 consecutive runs show monotonic N increasing 527s → 531s → 534s (T-54.2)
+  - [x] Drift net preserved: 69/69 + 11/11 (T-54.3)
+  - [x] 1 atomic commit + push to origin master (T-54.4)
+- **Dependencies:** M39 (shipped the broken watchdog); M53 (mcp install enabled self-test that surfaced the bug)
+- **Estimated ticks:** 1 (became ~6 due to deep investigation of bash/python path semantics)
+- **Constitution gate:** correctness_over_speed (real bug fix); reversibility_over_cleverness (single-file change); tests_are_the_contract (drift 69/69); state_on_disk_not_conversation (path state documented)
+- **Launched:** 2026-09-15 (loop-orchestrator session, user "CONTINUE")
+- **Completed:** 2026-09-15 — 2-line change: PROJECT_ROOT off-by-one fix + cygpath -m translation; watchdog now reads real heartbeat correctly
+
 ### M53 — Pin mcp<2 in hermes-agent venv (STATUS: DONE)
 - **What:** `pip install 'mcp<2'` in the hermes-agent venv — installed `mcp 1.30.0` (was `mcp 2.0.0`). Aligns the runtime venv with the project's `src/ikigai/pyproject.toml` pin (`mcp = "^1.1"`).
 - **Why:** `mcp.server.fastmcp` was removed in mcp 2.0+, breaking 3 test files (test_chat_system.py, test_server_fastmcp.py, test_taskdog_mcp_path3.py) with collection errors. 7 tests now run (3 + 4). 1 collection error remains (separate issue — see SPEC).
