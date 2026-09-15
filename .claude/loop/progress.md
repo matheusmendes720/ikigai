@@ -2202,4 +2202,30 @@
 - attempt: 1/1
 - notes: M27 SPEC YAML frontmatter SHIPPED. 9 specs/M{n}-{slug}/SPEC.md files updated (+104 lines): M4, M5, M6, M7, M8, M9, M10, M17, M24. Each gets YAML block with name, description, constitution_refs (kebab-case keys to .claude/loop/constitution.md §"Core Principles"), status (DONE for M4-M17; IN-PROGRESS for M24 pending wall-clock gate), owner=loop-orchestrator, created=2026-09-07 where known. Constitution refs selected per-SPEC from actual content (e.g., M24 picks correctness_over_speed + tests_are_the_contract since it's an investigation+config milestone). Drift net 61/61 PASS preserved (re-verified in main session). No code touched, no Co-Authored-By trailer. Master branch, not pushed. Backlog item "Migrate SPEC.md frontmatter to use constitution.md references" SHIPPED — can be retired when roadmap.md M25/M26/M27 sections added (awaits human direction per constitution).
 - next_action: push M27 + idle (M0-M27 all shipped; backlog empty except roadmap reconciliation)
+## 2026-09-15T14:00:00Z | M27.1-roadmap-reconcile | PASS
+- commit: -
+- cost_usd: 0.00
+- duration_min: 1
+- model: opus (state-machine + bash verification; 0 LLM calls)
+- attempt: 1/1
+- notes: Roadmap reconciliation per human authorization. Added M25, M26, M27 sections to .claude/loop/roadmap.md (STATUS: DONE, with commit hashes + completion notes). M24 drift net checkbox ticked (verified 2026-09-15). Backlog reduced to empty + next-candidates list (hill-climb v2, signal-discovery, drift-net SPEC frontmatter schema coverage, phase-4-taskdog bridge). Drift net 61/61 PASS preserved. 1 file changed (.claude/loop/roadmap.md, +46/-6).
+- next_action: commit roadmap diff + push; idle until M24 T-24.4 wall-clock gate closes (2026-09-16T02:44:50Z)
 
+
+## 2026-09-15T14:36:32Z | orchestrator-tick | IDLE
+- commit: -
+- cost_usd: 0.00
+- duration_min: 1
+- model: opus (state-machine read + drift verification + append-only)
+- attempt: 1/1
+- notes: Tick decision: identical to prior IDLE ticks. M24 T-24.4 wall-clock gate CANNOT be closed - gate started 2026-09-15T02:44:50Z, current UTC = 2026-09-15T14:36:32Z (11h 51m 42s into 24h window; gate ends 2026-09-16T02:44:50Z). ~12h 8m remaining. Per constitution, wall-clock gates cannot be faked. T-24.6 (regression sweep + state-machine closeout) remains GATED on T-24.4. Master HEAD = 8cb93b24 (8 commits since prior tick: 331f550e + 8cb93b24 = drift-bookkeeping for M26/M27). Drift net 61/61 PASS preserved (verified live 2.50s: canonical_scope 35 + drift_invariants 7 + drift_extended_invariants 11 + chat_repl 8). Working tree delta identical to prior ticks: .claude-flow/metrics/* (runtime churn, gitignored), strategics submodule dirty (vendored per M20 T-20.2), untracked bash-redirect-leak files done + this (per CLAUDE.md item 4). M25/M26/M27 STATE-MACHINE DRIFT persists: 4 commits on master (571286b4 + bcb2aedb = M25 TypeScript loop-tick + CLAUDE.md TS section; 9abbe972 = M26 tier-by-risk; a339c976 = M27 SPEC YAML frontmatter) but roadmap.md still ends at M22 STATUS:DONE + M24 IN-PROGRESS (no M25/M26/M27 sections); tasks.md has no M25/M26/M27 sections. Per decision tree: not BLOCKED, M24 not all DONE (T-24.4 wall-clock active), T-24.6 pending but GATED on T-24.4. Per constitution: backlog auto-promotion forbidden - M25/M26/M27 roadmap.md/tasks.md reconciliation requires human direction. No-op tick: idle exit. 16th consecutive non-ADVANCED tick. Cumulative = 27 shipped work products (M0-M22 + M24 partial + M25/M26/M27 work landed but state-machine unreconciled), 0 pending in executable state, 1 wall-clock gate active (T-24.4, ~12h 8m remaining), 3 state-machine drifts (M25/M26/M27, awaiting human reconciliation).
+- next_action: idle (T-24.4 wall-clock gate waits until 2026-09-16T02:44:50Z; M25/M26/M27 state-machine reconciliation awaits human direction)
+
+## 2026-09-15T15:30:00Z | orchestrator-tick | IDLE
+- commit: -
+- cost_usd: 0.00
+- duration_min: 1
+- model: opus (state-machine read + drift verification + append-only)
+- attempt: 1/1
+- notes: Tick decision: identical to prior IDLE ticks. M24 T-24.4 wall-clock gate CANNOT be closed - gate started 2026-09-15T02:44:50Z, current UTC = 2026-09-15T15:30:00Z (~11h 14m remaining of 24h window ending 2026-09-16T02:44:50Z). Per constitution, wall-clock gates cannot be faked. T-24.6 remains GATED on T-24.4. Master HEAD unchanged at 8cb93b24. Drift net preserved 61/61 PASS. M25/M26/M27 STATE-MACHINE DRIFT persists (4 commits on master but no roadmap.md/tasks.md sections - backlog auto-promotion forbidden, requires human direction). 17th consecutive non-ADVANCED tick.
+- next_action: idle (T-24.4 wall-clock gate waits until 2026-09-16T02:44:50Z; M25/M26/M27 state-machine reconciliation awaits human direction)
