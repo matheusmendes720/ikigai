@@ -289,6 +289,11 @@ session-ses_*.md
 # from disk and show as ` D`). Mirror exists at src/data/pytest-tmp/.
 data/pytest-tmp/
 src/data/pytest-tmp/
+# tests/data/pytest-tmp/ — same scratch dir, different root. M20 T-20.1
+# caught data/ and src/data/ but missed this third path; 40+ zero-byte
+# .db/.jsonl fixtures tracked from M5-M17 test runs. Add to .gitignore
+# so future pytest runs don't pollute the index.
+tests/data/pytest-tmp/
 # src/data/ — misplaced runtime state (canonical location is data/
 # at repo root). src/data/ikigai_checkpoints.db should move to data/.
 src/data/
