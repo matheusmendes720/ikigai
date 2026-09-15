@@ -2604,3 +2604,46 @@
 - attempt: 1/1
 - notes: M43 SHIPPED. loop-tick daemon restarted (PID 1147 -> 444552) so heartbeat writer activates. Heartbeat NOW BEING WRITTEN: `{"last_heartbeat":"2026-09-15T18:22:52Z","tick_id":"20260915-152252"}`. Path bug fixed (was checking repo root `.daemon-heartbeat.json`; actual location `.claude/loop/.daemon-heartbeat.json`). Test_daemon_health_infrastructure tightened from soft-skip to hard-fail. Drift net 67+1skip -> 68+0skip PASS. Watchdog infrastructure NOW ACTIVE end-to-end. Skill validated: subagent-driven-development review loop (M39) + parallel orchestrator tick execution (M40-M46). Master branch, not pushed.
 - next_action: commit + push M43 + MEMORY.md update; idle until next user direction. M24 wall-clock gate closes 2026-09-16T02:44:50Z (~8h). Per orchestrator: only remaining work is M47 candidates (e.g., contracts/base.py) — user-pick required.
+
+## 2026-09-15T18:42:00Z | M47+M48+M49 chained fixes | PASS
+- commit: bf360264 (M49) + 149e801a (daemon's M47 partial) + 1859bf94 (M48) + a052f881 (M47)
+- cost_usd: 0.00
+- duration_min: 22
+- model: opus (loop-orchestrator autonomous run, daemon-shipped partial fix in 149e801a)
+- attempt: 1/1 (drift gate iterations in single commit chain)
+- notes: User authorized 'keep going all the way up' after M46 closeout. Executed 3 chained fixes:
+
+  M47 (src/contracts/ import paths):
+  - Replaced 'from src.contracts.X import Y' with 'from .X import Y' in 7 files (base, entrega, meta, objetivo, projeto, sonho, tarefa)
+  - Fixed `scripts/mcp_inspect.py` first blocker: `ModuleNotFoundError: No module named 'src'` is GONE after this
+  - Daemon independently shipped commit `149e801a` (same fix for base.py only); the two fixes complemented without conflict
+  - My commit (a052f881) is a superset — adds the 6 other files
+
+  M48 (src/mesh/ import paths):
+  - Same bug class as M47, in src/mesh/ package
+  - Replaced 'from src.contracts.X' → 'from contracts.X' (15 imports)
+  - Replaced 'from src.mesh.X' → 'from mesh.X' (28 imports, including indented function-internal variants)
+  - Used sed for both module-level and indented (preceded by whitespace) variants
+  - Result: `python -c "import mesh; from mesh.agent_consumer import ValidationResult"` succeeds
+  - Verified: zero `from src.*` imports remain in src/mesh/
+
+  M49 (scripts/mcp_inspect.py PYTHONPATH):
+  - After M47+M48, next failure was `ModuleNotFoundError: No module named 'sys_ikigai'` (different package, different fix)
+  - Added `<repo>` as first PYTHONPATH entry in `build_pythonpath()`, mirroring `src/ikigai/tests/conftest.py:_REPO_ROOT` pattern
+  - Verified: `python -c "import sys_ikigai"` succeeds with the new PYTHONPATH
+
+  OUT OF SCOPE (M50 candidate, requires porting):
+  - `mcp.server.fastmcp` removed in mcp 2.0; project pins mcp<2; the hermes-agent venv has mcp 2.0.0 installed
+  - 2 source sites reference `mcp.server.fastmcp`: src/ikigai/src/mcp_server/server.py:31 + taskdog_tools.py:24
+  - Port would require API rewrite (`FastMCP` → `MCPServer` with different method signatures) — not mechanical
+  - 3 test files have collection errors because of this: test_chat_system.py, test_server_fastmcp.py, test_taskdog_mcp_path3.py
+  - Drift net (which only runs 5 specific files) doesn't catch these; only full pytest collection does
+
+  FINAL STATE:
+  - Master: `bf360264` (pushed, no ahead/behind)
+  - Drift net: 69/69 PASS + 11/11 PASS (the 5 canonical drift files all pass)
+  - Full test suite: 875 collected, 3 collection errors (mcp dep gap, NOT a code issue)
+  - Roadmap: 49 milestones DONE, 1 IN-PROGRESS (M24 wall-clock)
+  - Memory consolidation attempted; tool failed (headroom issues); session proceeding without memory update
+
+- next_action: STOP. Mechanical work exhausted. M50 (mcp 2.0 port) requires code rewrite — out of autonomous scope. M24 wall-clock gate is the only remaining autonomous-compatible milestone (~8h away).
