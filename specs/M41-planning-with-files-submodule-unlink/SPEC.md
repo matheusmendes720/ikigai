@@ -1,7 +1,7 @@
 ---
 name: M41-planning-with-files-submodule-unlink
 description: Strip phantom submodule gitlink at strategics/planning-with-files; keep directory as self-contained vendored fork.
-status: IN_PROGRESS
+status: DONE
 owner: loop-orchestrator
 constitution_refs:
   - state_on_disk_not_conversation
