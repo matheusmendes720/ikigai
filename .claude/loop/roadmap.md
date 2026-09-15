@@ -614,6 +614,21 @@ Both kept here for audit trail.
   - **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
   - **Completed:** 2026-09-15 — atomic commits `9c77fa09` (M41 unlink) + `a5a4ab30` (M41 cleanup); pushed to origin master
 
+### M51 — gitignore .swarm/state.json (followup to M50) (STATUS: DONE)
+- **What:** Add explicit `/.swarm/state.json` to `.gitignore`. Discovered during M50 disk sweep: daemon runtime state file missed by the existing `.swarm/*.db / *.sql / backups / model-router-state.json` pattern block.
+- **Why:** `git status` was showing `.swarm/state.json` as untracked; this is daemon state that should never enter the index.
+- **Spec:** implicit (1-line followup to M50; same constitution gate)
+- **Acceptance:**
+  - [x] `.gitignore` extended: `+/.swarm/state.json` (T-51.1)
+  - [x] `git status` clean of `.swarm/state.json` (T-51.2)
+  - [x] Drift net preserved: 69/69 + 11/11 (T-51.3)
+  - [x] 1 atomic commit + push
+- **Dependencies:** M50 (discovered during the sweep)
+- **Estimated ticks:** 1
+- **Constitution gate:** state_on_disk_not_in_conversation; spec_driven_not_vibe_driven (single-line followup; documented in commit message)
+- **Launched:** 2026-09-15 (loop-orchestrator session, user "continue.. just keep pushing!")
+- **Completed:** 2026-09-15 — `.swarm/state.json` no longer shows in `git status`
+
 ### M50 — Disk hygiene sweep (STATUS: DONE)
 - **What:** Clear accumulated pytest fixture artifacts from `tests/data/pytest-tmp/` (13MB, 2,345 files, 867 subdirs). The directory was already gitignored (M46 added the pattern) — this is a pure filesystem reclaim.
 - **Why:** Disk pressure from accumulated pytest fixtures. Already gitignored; not tracked. No code change.
