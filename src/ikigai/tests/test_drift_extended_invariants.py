@@ -1133,3 +1133,79 @@ def test_constitution_principles_all_referenced() -> None:
         "The following constitution principles have no SPEC referencing them:\n"
         + "\n".join(failures)
     )
+
+
+# ---------------------------------------------------------------------------
+# M38 — Double-fire detection
+# ---------------------------------------------------------------------------
+
+
+def test_progress_md_has_no_double_fires() -> None:
+    """No double-fires in progress.md (M38).
+
+    A double-fire = 2+ entries with the same task_id within 5 minutes.
+    Distinct from the known double-LOG artifact (Windows Cygwin errno 11
+    causes two log lines per single tick — that's ONE entry in progress.md).
+
+    This catches REAL concurrency bugs (loop-tick.sh invoked twice in
+    parallel, both writing to progress.md) that would otherwise corrupt
+    the audit trail.
+
+    Scope: only checks the LAST 50 entries. Historical rapid-fire graph
+    dispatches (pae_maintainer, ikigai_maintainer_v2, ikigai_fork_smoke)
+    legitimately fire at 6-25s intervals as part of `--graph` deterministic
+    cron paths. Those predate this drift test and are not bugs — they're
+    by-design. The test guards FUTURE regressions: any new double-fire
+    pattern in the last 50 entries will fail.
+    """
+    import subprocess
+
+    repo = REPO_ROOT
+    script = repo / ".claude" / "loop" / "scripts" / "detect-double-fire.sh"
+    progress = repo / ".claude" / "loop" / "progress.md"
+
+    if not script.exists():
+        pytest.skip(f"detect-double-fire.sh not found: {script}")
+    if not progress.exists():
+        pytest.skip(f"progress.md not found: {progress}")
+
+    # Build a temp progress.md with only the last 50 entries
+    import tempfile, shutil
+    progress_text = progress.read_text(encoding="utf-8")
+    lines = progress_text.splitlines(keepends=True)
+    # Keep header (first 17 lines per format) + last 50 tick entries
+    HEADER_LINES = 17
+    SCOPE_LINES = 50
+    if len(lines) <= HEADER_LINES + SCOPE_LINES:
+        pytest.skip("progress.md too small to scope (need >67 lines)")
+    header = lines[:HEADER_LINES]
+    tail = lines[-SCOPE_LINES:]
+    scoped = "".join(header + tail)
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".md", delete=False, encoding="utf-8"
+    ) as f:
+        f.write(scoped)
+        scoped_path = f.name
+
+    try:
+        # Run the bash script via subprocess. On Windows, the script's #! header
+        # invokes python3 which is on PATH. Use shell=True so the shell resolves
+        # python3 correctly; cwd=repo ensures relative paths work.
+        cmd = f'bash "{str(script)}" "{scoped_path}"'
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(repo),
+            shell=True,
+        )
+
+        assert result.returncode == 0, (
+            f"Double-fires detected in last 50 progress.md entries:\n"
+            f"STDOUT:\n{result.stdout}\n"
+            f"STDERR:\n{result.stderr}"
+        )
+    finally:
+        Path(scoped_path).unlink(missing_ok=True)

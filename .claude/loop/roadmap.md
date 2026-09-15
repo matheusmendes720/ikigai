@@ -511,6 +511,62 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
   - [ ] Human confirms before promotion to IN-PROGRESS
 
 
+### M27.1 — Reconcile roadmap M25/M26/M27 + empty backlog (STATUS: DONE)
+- **What:** Per human authorization 2026-09-15, close the "pending requires human decision" state on roadmap reconciliation: added M25/M26/M27 sections at STATUS: DONE; emptied backlog; appended next-candidates list (commit 6a7227af)
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M33 — Hill-climb v2 — pattern-based milestone proposal (STATUS: DONE)
+- **What:** Hill-climb v2 supersedes v1: replaces weekly stats summary + proposal file with a 3-candidate pattern analysis loop that writes M-CAND-* sections directly to roadmap.md (CAND1 drift coverage gap / CAND2 cost anomaly / CAND3 M29 followup) (commit 72a4ffed)
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M33.1 — Clean roadmap duplicates + idempotent hill-climb (STATUS: DONE)
+- **What:** Clean roadmap duplicates and add idempotency to hill-climb cron (commit c10cb0e2)
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M35 — Cover all 7 constitution principles via SPEC frontmatter (STATUS: DONE)
+- **What:** Add `constitution_refs` to all SPEC.md files covering the 7 constitution principles; updated 2 SPEC frontmatter + 1 drift test (3 files, +53 lines) (commit cc509ac3)
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M36 — Activate hill-climb v2 (STATUS: DONE)
+- **What:** Activate hill-climb v2 daemon schedule (commit 3df9d72d)
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M37 — Signal-discovery refresh on 350+ tick dataset, retire stale CANDs (STATUS: DONE)
+- **What:** Refresh signal-discovery report on 350+ tick dataset; retire 2 stale CANDs (M-CAND-1 addressed by M35, M-CAND-2 addressed by M30) (commit 0544dc29 + companion drift-bookkeeping commit 1a9592c9)
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M38 — Double-fire detection and suppression (STATUS: DONE)
+- **What:** Add `detect-double-fire.sh` script + `test_progress_md_has_no_double_fires` drift test to detect rapid cron dispatches of same task_id within 5-minute window. Test scoped to last 50 entries (historical rapid-fire graph dispatches are legitimate by-design).
+- **Why:** Per M37 top candidate; catches real concurrency bugs (parallel loop-tick invocations) without false-flagging legitimate `--graph` cron dispatches. **Completed:** 2026-09-15 — 4 files: detect-double-fire.sh (NEW, 89L), test_drift_extended_invariants.py (scoped test), specs/M38-double-fire-detection-and-suppression/SPEC.md (NEW), .claude/loop/roadmap.md (this entry). Drift net 66→67/67 PASS.
+- **Acceptance:** Script detects double-fires correctly; drift test passes; roadmap.md entry added.
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** None
+
 ## Backlog (not yet sequenced)
 
 _(empty — all 5 prior backlog items shipped via M23, M24, M25, M26, M27)_
