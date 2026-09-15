@@ -1017,3 +1017,66 @@ def test_no_orphan_milestone_specs() -> None:
         "Orphan milestone entries detected:\n"
         + "\n".join(failures)
     )
+
+
+# ---------------------------------------------------------------------------
+# M34 — Orchestrator auto-reconcile roadmap section
+# ---------------------------------------------------------------------------
+
+
+def test_orchestrator_has_auto_reconcile_section() -> None:
+    """The orchestrator agent file must contain an Auto-Reconcile Roadmap section
+    and reference auto-reconciled milestones in its DECISION TREE (M34).
+
+    This prevents the IDLE-loop pattern where commits land with milestone work
+    but no roadmap entry, causing the orchestrator to wait indefinitely for
+    human direction.
+    """
+    orchestrator_path = REPO_ROOT / ".claude" / "agents" / "loop" / "orchestrator.md"
+    if not orchestrator_path.exists():
+        pytest.fail(f"Orchestrator not found at {orchestrator_path}")
+
+    text = orchestrator_path.read_text(encoding="utf-8")
+
+    # Check for Auto-Reconcile section heading within 5 lines of "auto-reconcil"
+    lines = text.splitlines()
+    has_auto_reconcile_heading = False
+    for i, line in enumerate(lines):
+        stripped = line.strip().lower()
+        if "auto-reconcile" in stripped and "roadmap" in stripped:
+            # Must be a heading (## or ###)
+            if stripped.startswith("##"):
+                has_auto_reconcile_heading = True
+                break
+        # Also accept "auto-reconcile roadmap" split across lines within 5-line window
+        if i > 0:
+            window = " ".join(lines[max(0, i - 5):i + 1]).lower()
+            if "auto-reconcil" in window and "roadmap" in window:
+                has_auto_reconcile_heading = True
+                break
+
+    assert has_auto_reconcile_heading, (
+        f"orchestrator.md is missing '## Auto-Reconcile Roadmap' heading.\n"
+        f"Expected to find a heading containing 'auto-reconcile' and 'roadmap' within a 5-line window.\n"
+        f"File content (first 2000 chars):\n{text[:2000]!r}"
+    )
+
+    # Check that DECISION TREE mentions "auto-reconciled"
+    decision_tree_found = False
+    in_decision_tree = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped == "## DECISION TREE":
+            in_decision_tree = True
+        elif in_decision_tree and stripped.startswith("## ") and stripped != "## DECISION TREE":
+            # Left the decision tree section
+            break
+        elif in_decision_tree and "auto-reconciled" in stripped.lower():
+            decision_tree_found = True
+            break
+
+    assert decision_tree_found, (
+        f"DECISION TREE section in orchestrator.md does not mention 'auto-reconciled'.\n"
+        f"Expected the DECISION TREE to handle STATUS: PENDING auto-reconciled milestones.\n"
+        f"File content (first 2000 chars):\n{text[:2000]!r}"
+    )
