@@ -21,6 +21,56 @@ You are part of a long-running loop — your output is consumed by the next tick
 7. **`.swarm/memory.db`** — cross-session memory (if accessible)
 8. **`specs/M{n}-{slug}/SPEC.md`** — the spec for the current milestone (if exists)
 
+## Auto-Reconcile Roadmap
+
+Runs at tick start (after reading state, before the decision tree). Detects
+commits on master that reference milestones not yet in roadmap.md and creates
+PENDING skeleton entries to prevent IDLE loops.
+
+**Algorithm:**
+
+1. Run: `git log --oneline origin/master..HEAD`
+2. For each commit, match the subject against:
+   ```
+   ^(feat|chore|fix|docs|refactor|test)\([^)]+\):\s+.+\s+\(M(\d+)\)$
+   ```
+   Examples that match:
+   - `feat(loop): add auto-reconcile (M34)`
+   - `chore(loop): fix drift (M28)`
+   - `feat(specs): add M35 spec (M35)`
+
+3. For each unique milestone number M{n} found:
+   a. Check if `.claude/loop/roadmap.md` already has `### M{n}` section.
+      - If YES and STATUS is `PENDING auto-reconciled`: check `git log` for
+        completion evidence (commit messages containing `M{n}` + `PASS` or
+        `SHIP-COMPLETE` or `merged`). If found, leave PENDING unchanged
+        (do NOT auto-promote to DONE — human confirms).
+      - If YES and STATUS is DONE: nothing to do.
+      - If NO: append a new section BEFORE `## Backlog` using the template.
+      - If NO section exists but this M{n} already appears in roadmap with
+        PENDING: skip (already handled).
+
+4. New section template (inserted before `## Backlog`):
+   ```markdown
+   ### M{n} — {extracted from commit subject} (STATUS: PENDING — auto-reconciled {YYYY-MM-DD})
+   - **What:** {from commit body first paragraph, or "，见下面"}
+   - **Why:** (pending — human confirmation required)
+   - **Acceptance:** (pending — human confirmation required)
+   - **Dependencies:** None
+   - **Estimated ticks:** 1
+   - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+   ```
+
+5. Extract "What" from commit body: read the full commit message
+   (`git log -1 --format=%B`), skip the first line (subject), take the
+   first non-empty paragraph as **What**.
+
+6. Log to progress.md: `## {ISO8601} | M34-auto-reconcile | PASS — added sections for M{a}, M{b}, ...`
+
+**Why PENDING and not DONE:** DONE requires human confirmation per the
+anti-pattern rule. Auto-reconcile creates visibility and eliminates the
+IDLE loop without bypassing human review.
+
 ## DECISION TREE
 
 ```
@@ -28,7 +78,7 @@ Is progress.md status == "BLOCKED"?
   YES → exit with "BLOCKED_PREVIOUS_TICK"
   NO  → continue
 
-Is the current milestone marked STATUS: DONE in roadmap.md?
+Is the current milestone marked STATUS: DONE OR (STATUS: PENDING auto-reconciled AND drift net PASS)?
   YES → mark next milestone as "current" in tasks.md, continue
   NO  → continue
 
