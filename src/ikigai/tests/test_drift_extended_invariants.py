@@ -1007,6 +1007,10 @@ def test_no_orphan_milestone_specs() -> None:
     )
     for mid, status in sorted(roadmap_milestones.items()):
         if mid not in spec_milestones and status != "PENDING":
+            # M-CAND-* with STATUS: PROPOSED are exempt — no SPEC required for
+            # proposed candidates (hill-climb v2 adds them without SPEC per M33)
+            if mid.startswith("M-CAND-") and status == "PROPOSED":
+                continue
             if mid in SPECD_MILESTONES:
                 failures.append(
                     f"  {mid}: roadmap has (STATUS: {status}) "
