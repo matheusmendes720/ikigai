@@ -51,3 +51,41 @@ The claim of "3 redundant systems" in roadmap.md line 426 and the backlog item a
 - Changing schedule frequency
 - Cost-cap modifications
 - Mavis cron (not present in this codebase)
+
+## Canonical Scheduler Decision (T-24.2)
+
+**Decision:** claude-flow daemon (`.claude/helpers/daemon-manager.sh`) is the **canonical** scheduler for all loop-engineering tasks.
+
+**Decision criteria (4 dimensions):**
+
+| Criterion | claude-flow daemon | crontab | Claude Code Schedule |
+|---|---|---|---|
+| Cost-cap enforcement | YES (per-schedule `cost_cap_usd`) | NO | NO |
+| Crash recovery | YES (nohup daemon + PID file) | NO (manual) | NO |
+| Notification integration | YES (M8 notify.sh on EXIT trap) | NO | NO |
+| Cross-platform | YES (bash + WSL2) | POSIX only | YES (Claude Code only) |
+
+**Rationale:** claude-flow daemon wins on all 4 criteria. The M1 milestone (2026-09-07) shipped daemon integration; M8 (2026-09-08) added notification wiring on the daemon's EXIT trap. No other scheduler has cost caps or recovery, both load-bearing properties per `[[loop-brittleness]]` and `[[runaway-cost]]` risks in MEMORY.
+
+**Reconciliation with T-24.1 findings:** Only 1.5 systems actually exist (daemon + SessionStart guardian). The "3 redundant systems" premise in roadmap.md line 426 was refuted. No retirement needed (nothing to retire). The auto-start-loop-tick.sh SessionStart hook is **retained** as a safety net — it delegates to daemon-manager.sh (idempotent `start-schedule loop-tick`), so it is not a competing scheduler, just a crash-recovery trigger.
+
+## CLAUDE.md Update Proposal (T-24.2 — proposed, not applied)
+
+Per orchestrator hard rule "Never modify AGENTS.md or CLAUDE.md (propose, don't write)", the CLAUDE.md update is **proposed** in `code-docs/proposals/m24-claude-md-update.md` rather than applied directly. Human review + manual merge required.
+
+**Proposed addition (after line ~50 of CLAUDE.md — "Global Conventions" section):**
+
+```markdown
+## Cross-Loop Cron (canonical scheduler)
+
+The **claude-flow daemon** (`.claude/helpers/daemon-manager.sh`) is the canonical scheduler for all loop-engineering tasks. It wins on cost-cap enforcement, crash recovery, M8 notification integration, and cross-platform support.
+
+The SessionStart `auto-start-loop-tick.sh` hook is a **safety net** that delegates to daemon-manager.sh (`start-schedule loop-tick`) — not a competing scheduler.
+
+**No crontab, Mavis cron, or Windows Task Scheduler entries are required.** If you find any, they are stale and should be removed.
+
+Schedules registered: `loop-tick` (60m), `hill-climb` (168h), `cost-dashboard` (1440m), `streak-tracker` (1440m). Add new schedules via: `bash .claude/helpers/daemon-manager.sh add --name <X> --interval <dur> --command <cmd> --cost-cap-usd <N>`.
+```
+
+This proposal will be applied by human review of `code-docs/proposals/m24-claude-md-update.md` (no orchestrator auto-edit per constitution).
+
