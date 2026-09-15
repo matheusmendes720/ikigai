@@ -614,6 +614,21 @@ Both kept here for audit trail.
   - **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
   - **Completed:** 2026-09-15 — atomic commits `9c77fa09` (M41 unlink) + `a5a4ab30` (M41 cleanup); pushed to origin master
 
+### M49 — Fix scripts/mcp_inspect.py PYTHONPATH (STATUS: DONE)
+- **What:** Add `<repo>` as the first path in `scripts/mcp_inspect.py:build_pythonpath()` so the renamed `sys_ikigai` package (at repo root) is importable.
+- **Why:** After M47 + M48 cleared the `src.*` prefix issues, the next blocker was `ModuleNotFoundError: No module named 'sys_ikigai'` from `src/ikigai/src/mcp_server/server.py:46`. Mirrors `src/ikigai/tests/conftest.py` pattern.
+- **Spec:** `specs/M49-fix-mcp-inspect-pythonpath/SPEC.md` (created 2026-09-15)
+- **Acceptance:**
+  - [x] `build_pythonpath()` adds `<repo>` as first path (T-49.1)
+  - [x] `sys_ikigai` imports successfully with new PYTHONPATH (T-49.2)
+  - [x] Drift net preserved: 69/69 + 11/11 (T-49.3)
+  - [x] 1 atomic commit + push
+- **Dependencies:** M47 + M48 (cleared the prefix issues blocking this)
+- **Estimated ticks:** 1
+- **Constitution gate:** correctness_over_speed; tests_are_the_contract
+- **Launched:** 2026-09-15 (loop-orchestrator session)
+- **Completed:** 2026-09-15 — single-file change; `python -c "import sys_ikigai"` now succeeds with the script's PYTHONPATH
+
 ### M48 — Fix src/mesh/ import paths (STATUS: DONE)
 - **What:** Remove `src.` prefix from `src/mesh/` import paths (16 files, 43 imports). Same bug class as M47 but in the mesh package.
 - **Why:** M47 fixed `src/contracts/` but the mesh package had the identical pattern. `scripts/mcp_inspect.py` after M47 hits `ModuleNotFoundError: No module named 'src'` (gone) → `ModuleNotFoundError: No module named 'mcp.server.fastmcp'` (separate dep gap) → mesh imports still broken for any direct importer. Phase 3 v1 mesh layer (the user-facing API per AGENTS.md) was technically broken.
