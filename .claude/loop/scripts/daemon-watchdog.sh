@@ -19,7 +19,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 LOOP_DIR="$PROJECT_ROOT/.claude/loop"
 HEARTBEAT_FILE="$LOOP_DIR/.daemon-heartbeat.json"
 SCHEDULES_DIR="$PROJECT_ROOT/.claude-flow/schedules"
@@ -41,10 +41,11 @@ if [ ! -f "$HEARTBEAT_FILE" ]; then
   exit 0
 fi
 
+HEARTBEAT_FILE_WIN=$(cygpath -m "$HEARTBEAT_FILE" 2>/dev/null || echo "$HEARTBEAT_FILE")
 LAST_TS=$(python3 -c "
 import json, sys
 from datetime import datetime, timezone
-with open('$HEARTBEAT_FILE') as f:
+with open('$HEARTBEAT_FILE_WIN') as f:
     d = json.load(f)
 ts_str = d['last_heartbeat'].replace('Z','+00:00')
 ts = datetime.fromisoformat(ts_str)
