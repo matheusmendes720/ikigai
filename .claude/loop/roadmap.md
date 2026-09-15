@@ -614,6 +614,23 @@ Both kept here for audit trail.
   - **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
   - **Completed:** 2026-09-15 — atomic commits `9c77fa09` (M41 unlink) + `a5a4ab30` (M41 cleanup); pushed to origin master
 
+### M55 — Zero-byte .claude/n cleanup (STATUS: DONE)
+- **What:** Add explicit `/.claude/n` to `.gitignore` (also `/n` for root-level variant); delete the existing 0-byte `.claude/n` artifact (created 2026-09-15 18:55 by a daemon loop-tick bash redirect leak — exact command not recovered).
+- **Why:** M20 T-20.1 + M46 extended `.gitignore` patterns for root-level leaks but did NOT cover paths inside subdirectories like `.claude/n`.
+- **Spec:** `specs/M55-zero-byte-claude-n-cleanup/SPEC.md` (created 2026-09-15)
+- **Acceptance:**
+  - [x] `.gitignore` extended: `+/.claude/n` (T-55.1)
+  - [x] `rm .claude/n` (T-55.2)
+  - [x] `git status -s` clean of `.claude/n` (T-55.3)
+  - [x] `git check-ignore -v .claude/n` confirms the rule (T-55.4)
+  - [x] Drift net preserved: 69/69 + 11/11 (T-55.5)
+  - [x] 1 atomic commit + push (T-55.6)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Constitution gate:** state_on_disk_not_in_conversation (visible-only); tests_are_the_contract (drift 69/69)
+- **Launched:** 2026-09-15 (loop-orchestrator session, user "CONTINUE")
+- **Completed:** 2026-09-15 — `.claude/n` deleted; `git status` clean of this artifact
+
 ### M54 — Fix daemon-watchdog.sh heartbeat path (STATUS: DONE)
 - **What:** Two stacked bugs in `.claude/loop/scripts/daemon-watchdog.sh`: (1) PROJECT_ROOT off-by-one (script is 3 levels deep but went up only 2); (2) **actual bug** — Windows-native Python can't read Cygwin-style paths (`/c/Users/...`), need `cygpath -m` translation.
 - **Why:** M39 ship-time review ran watchdog once and saw exit 0 (silent skip when heartbeat missing), missing that the watchdog has been UNABLE to read heartbeats since ship date. After M53 (mcp install), I ran watchdog self-test and caught the silent failure.

@@ -474,3 +474,8 @@ archive/legacy-pav/src-operational/medic/bin/
 #   {len(lf_data)} — bash heredoc leaked Python f-string fragment
 /\$10
 /{len(lf_data)}
+# M55 zero-byte artifact cleanup: more bash redirect leaks that survived
+# M20 + M46. Single-character / very short filenames from `> N` redirects:
+#   .claude/n       — bash `> .claude/n` (created 2026-09-15 18:55 by daemon loop-tick)
+/n
+/.claude/n
