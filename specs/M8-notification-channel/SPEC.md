@@ -1,3 +1,14 @@
+---
+name: M8-notification-channel
+description: HTTP webhook notification channel with idempotency and deduplication to prevent alert storms
+constitution_refs:
+  - tests_are_the_contract
+  - state_on_disk_not_conversation
+status: DONE
+owner: loop-orchestrator
+created: 2026-09-07
+---
+
 # M8 — Notification Channel
 
 > **Created:** 2026-09-07

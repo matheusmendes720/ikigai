@@ -1,3 +1,14 @@
+---
+name: M7-cost-dashboard
+description: Daily aggregation of tick costs with idempotent report and spike alarm (>$10/day)
+constitution_refs:
+  - tests_are_the_contract
+  - state_on_disk_not_conversation
+status: DONE
+owner: loop-orchestrator
+created: 2026-09-08
+---
+
 # M7 — Cost Dashboard
 
 > **Created:** 2026-09-08
