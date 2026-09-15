@@ -72,6 +72,16 @@ TICK_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 TICK_ID=$(date +%Y%m%d-%H%M%S)
 LOG_FILE="$LOG_DIR/tick-$TICK_ID.log"
 
+# --- HEARTBEAT (M39) ---
+# Write a heartbeat timestamp so the daemon-watchdog can detect extended
+# daemon death (22h+ silent gap observed 2026-09-07→08). Watchdog alerts
+# when the last heartbeat is older than WATCHDOG_THRESHOLD_SEC (default 5400s
+# = 90min, 1.5x the 60min tick interval). Exits 0 always — heartbeat
+# write failures must not abort the tick.
+HEARTBEAT_FILE="$LOOP_DIR/.daemon-heartbeat.json"
+mkdir -p "$(dirname "$HEARTBEAT_FILE")"
+echo "{\"last_heartbeat\":\"$TICK_TS\",\"tick_id\":\"$TICK_ID\"}" > "$HEARTBEAT_FILE" 2>/dev/null || true
+
 # --- AUTO-CLEANUP HOOK (M6 acceptance criterion #4) ---
 # When --auto-cleanup is set, run worktree-helper.sh cleanup-all at tick end
 # IF tasks.md has zero `status: pending` lines. Otherwise log skip reason.
