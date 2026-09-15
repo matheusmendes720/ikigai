@@ -1,3 +1,16 @@
+---
+name: M4-langgraph-integration
+description: Wrap 3 LangGraph graphs as orchestrator sub-agent tools reachable from loop-tick with state persistence
+constitution_refs:
+  - composition_over_inheritance
+  - tests_are_the_contract
+  - state_on_disk_not_conversation
+  - reversibility_over_cleverness
+status: DONE
+owner: loop-orchestrator
+created: 2026-09-07
+---
+
 # M4 — LangGraph Integration
 
 **Status:** DRAFT (2026-09-07)

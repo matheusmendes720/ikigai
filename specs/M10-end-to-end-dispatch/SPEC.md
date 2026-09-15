@@ -1,3 +1,15 @@
+---
+name: M10-end-to-end-dispatch
+description: Atomic dispatch primitive wiring M0-M9 into single idempotent command with regression gate
+constitution_refs:
+  - reversibility_over_cleverness
+  - tests_are_the_contract
+  - state_on_disk_not_conversation
+status: DONE
+owner: loop-orchestrator
+created: 2026-09-08
+---
+
 # M10 — End-to-End Loop Dispatch
 
 > **Created:** 2026-09-08

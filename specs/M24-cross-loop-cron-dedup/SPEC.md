@@ -1,3 +1,13 @@
+---
+name: M24-cross-loop-cron-dedup
+description: Consolidate 3 cron systems into 1 canonical scheduler based on T-24.1 investigation findings
+constitution_refs:
+  - correctness_over_speed
+  - tests_are_the_contract
+status: IN_PROGRESS
+owner: loop-orchestrator
+---
+
 # M24 — Cross-Loop Cron Dedup
 
 ## Goal

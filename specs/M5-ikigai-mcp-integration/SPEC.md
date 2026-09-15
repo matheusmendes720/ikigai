@@ -1,3 +1,15 @@
+---
+name: M5-ikigai-mcp-integration
+description: Wire 14 IKIGAI MCP tools into orchestrator prompt so loop can delegate research/task work to Deep Agent
+constitution_refs:
+  - composition_over_inheritance
+  - tests_are_the_contract
+  - state_on_disk_not_conversation
+status: DONE
+owner: loop-orchestrator
+created: 2026-09-08
+---
+
 # M5 — IKIGAI MCP Integration
 
 > **What:** Wire the orchestrator prompt to IKIGAI MCP tools (14 total) so the loop can delegate "research / knowledge / task" work to the Deep Agent layer.

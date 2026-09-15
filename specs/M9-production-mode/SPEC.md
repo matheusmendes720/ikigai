@@ -1,3 +1,15 @@
+---
+name: M9-production-mode
+description: Auto-resume on session start, 7-day streak tracker, and sustained unattended loop operation
+constitution_refs:
+  - tests_are_the_contract
+  - state_on_disk_not_conversation
+  - reversibility_over_cleverness
+status: DONE
+owner: loop-orchestrator
+created: 2026-09-07
+---
+
 # M9 — Production Mode
 
 > **Created:** 2026-09-07

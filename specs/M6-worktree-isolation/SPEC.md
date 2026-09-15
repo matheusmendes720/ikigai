@@ -1,3 +1,15 @@
+---
+name: M6-worktree-isolation
+description: Add contract, tests, and auto-cleanup hooks to worktree-helper.sh for safe parallel sub-agent dispatch
+constitution_refs:
+  - reversibility_over_cleverness
+  - tests_are_the_contract
+  - state_on_disk_not_conversation
+status: DONE
+owner: loop-orchestrator
+created: 2026-09-07
+---
+
 # M6 — Worktree Isolation Helper
 
 > **What:** Make `scripts/worktree-helper.sh` the canonical gate for parallel sub-agent dispatch. Today the script exists (96 lines, commit `91fb7d4`) but lacks (a) a documented contract, (b) end-to-end tests proving parallel safety, (c) auto-cleanup hooks tied to milestone closeout.
