@@ -614,6 +614,20 @@ Both kept here for audit trail.
   - **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
   - **Completed:** 2026-09-15 — atomic commits `9c77fa09` (M41 unlink) + `a5a4ab30` (M41 cleanup); pushed to origin master
 
+### M52 — Fix src/ikigai/src/mcp_server/ import paths (STATUS: DONE)
+- **What:** Remove `src.` prefix from `src/ikigai/src/mcp_server/` import paths (3 files, 10 imports). Same bug class as M47 (src/contracts/) and M48 (src/mesh/) but in the THIRD package I missed.
+- **Why:** Same `from src.contracts.X` vs canonical `from contracts.X` pattern as M47/M48. The 3 test files with collection errors (test_chat_system.py, test_server_fastmcp.py, test_taskdog_mcp_path3.py) are blocked by the separate `mcp.server.fastmcp` dep gap (mcp 2.0 removed it); M52 doesn't fix that but removes the import-path noise so the dep gap is the only remaining blocker.
+- **Spec:** `specs/M52-fix-mcp-server-import-paths/SPEC.md` (created 2026-09-15)
+- **Acceptance:**
+  - [x] Zero `from src.*` imports remain in `src/ikigai/src/mcp_server/` (T-52.1)
+  - [x] Drift net preserved: 69/69 + 11/11 (T-52.2)
+  - [x] 1 atomic commit + push (T-52.3)
+- **Dependencies:** M47 + M48 (established the canonical pattern)
+- **Estimated ticks:** 1
+- **Constitution gate:** correctness_over_speed (real bug fix); reversibility_over_cleverness (mechanical, revert-safe); tests_are_the_contract (drift 69/69)
+- **Launched:** 2026-09-15 (loop-orchestrator session, user "continue")
+- **Completed:** 2026-09-15 — 3 file changes (resources.py + taskdog_tools.py + tools_mesh.py); +10/-10 lines; mechanical sed for both `from src.X.Y` (dotted) and `from src.X` (bare-module) patterns
+
 ### M51 — gitignore .swarm/state.json (followup to M50) (STATUS: DONE)
 - **What:** Add explicit `/.swarm/state.json` to `.gitignore`. Discovered during M50 disk sweep: daemon runtime state file missed by the existing `.swarm/*.db / *.sql / backups / model-router-state.json` pattern block.
 - **Why:** `git status` was showing `.swarm/state.json` as untracked; this is daemon state that should never enter the index.
