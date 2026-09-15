@@ -464,3 +464,9 @@ archive/legacy-pav/src-operational/medic/bin/
 # M45 loop-status-card scaffolding: OMH metadata files are kept local;
 # the canonical state lives in .claude/loop/{roadmap,tasks,progress}.md.
 /.omh/goals/
+# M46 zero-byte artifact cleanup: missing patterns for bash-redirect leaks
+# that slipped through M20 T-20.1. Both are 0-byte files at repo root:
+#   $10            — bash `> $10` redirect to a $variable reference
+#   {len(lf_data)} — bash heredoc leaked Python f-string fragment
+/\$10
+/{len(lf_data)}
