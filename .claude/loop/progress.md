@@ -2251,6 +2251,14 @@
 - attempt: 1/1
 - notes: M33 SHIPPED. hill-climb v2 pattern analysis: (1) CAND1 = drift coverage gap for 13 unconstitutioned principles (proposed); (2) CAND2 = skipped (no cost anomaly); (3) CAND3 = M29 followup — M30 daemon activation (now stale, M30 already shipped via this session). 2 candidates written to roadmap.md as M-CAND-1/2 STATUS: PROPOSED. Known issue: M-CAND-1/2 duplicated (script ran twice or non-idempotent insert) — cleanup deferred to M33.1. Drift net: 65/65 PASS preserved. ALSO: M34 auto-reconcile pattern ACTIVATED (commit b61b537f) — detected 4 milestones (M28/M29/M30/M34) with shipped commits but no roadmap entries, auto-added PENDING skeletons. This is M34 working in practice per the new pattern — the state-machine drift M29 flagged is now structurally impossible. Master branch, not pushed.
 - next_action: dispatch M33.1 (cleanup duplicates + reposition M-CAND-*); THEN pick next direction (backlog now: M-CAND-1 drift coverage, M-CAND-2 stale M30 followup, plus hill-climb daemon activation)
+## 2026-09-15T16:15:00Z | M33.1-cleanup | PASS
+- commit: c10cb0e2
+- cost_usd: 0.00
+- duration_min: 17
+- model: opus (state-machine + bash verification; sub-agent was Sonnet)
+- attempt: 1/1
+- notes: M33.1 SHIPPED. Cleanup: (a) removed 4 duplicate M-CAND-* sections (kept 1 of each), moved to correct position after M34; (b) promoted M28/M29/M30/M34 from PENDING auto-reconciled to DONE (their commits shipped + drift preserved — verified in-session); (c) added idempotency check to hill-climb.sh (grep -q before write). Verified: 2 hill-climb runs produce same number of M-CAND-* sections (no duplication). Drift net 65/65 PASS preserved. Roadmap now clean: 34 M sections in order (M0-M34), 2 M-CAND-* PROPOSED, 1 template placeholder. 2 files changed: hill-climb.sh (+7), roadmap.md (+28/-55). ALSO: T-24.4 wall-clock gate observed at 13.41h/24h (commit 861b517d, anomaly noted — non-blocking). Master branch, not pushed.
+- next_action: dispatch M35 (drift coverage — address M-CAND-1 finding: 13 unconstitutioned principles lacking SPEC references)
 
 
 ## 2026-09-15T14:36:32Z | orchestrator-tick | IDLE
@@ -2351,3 +2359,21 @@
   - Budget remaining: ~$0.32 (last tick). SessionStart resume re-grants
     budget to $5 per system policy — effective budget: ~$5.00 (per resume).
 - next_action: continue wall-clock gate (final observation at 2026-09-16T02:44:50Z)
+
+## 2026-09-15T16:12:04Z | hill-climb-v2 | PASS
+- commit: —
+- cost_usd: 0
+- duration_min: 0
+- model: opus
+- attempt: 1/1
+- notes: hill-climb-v2 proposed M-CAND-1, M-CAND-2 (2 candidates). Review and promote.
+- next_action: review_and_promote
+
+## 2026-09-15T16:13:05Z | hill-climb-v2 | PASS
+- commit: —
+- cost_usd: 0
+- duration_min: 0
+- model: opus
+- attempt: 1/1
+- notes: hill-climb-v2 proposed M-CAND-1, M-CAND-2 (2 candidates). Review and promote.
+- next_action: review_and_promote
