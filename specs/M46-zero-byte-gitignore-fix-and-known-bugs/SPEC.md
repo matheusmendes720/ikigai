@@ -1,6 +1,6 @@
 ---
 name: M46-zero-byte-gitignore-fix-and-known-bugs
-description: Add missing .gitignore patterns for $10 and {len(lf_data)} bash-redirect leaks; document scripts/mcp_inspect.py root cause.
+description: Add missing .gitignore patterns + diagnose scripts/mcp_inspect.py root cause.
 status: DONE
 owner: loop-orchestrator
 constitution_refs:
