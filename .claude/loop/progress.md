@@ -2259,6 +2259,14 @@
 - attempt: 1/1
 - notes: M33.1 SHIPPED. Cleanup: (a) removed 4 duplicate M-CAND-* sections (kept 1 of each), moved to correct position after M34; (b) promoted M28/M29/M30/M34 from PENDING auto-reconciled to DONE (their commits shipped + drift preserved — verified in-session); (c) added idempotency check to hill-climb.sh (grep -q before write). Verified: 2 hill-climb runs produce same number of M-CAND-* sections (no duplication). Drift net 65/65 PASS preserved. Roadmap now clean: 34 M sections in order (M0-M34), 2 M-CAND-* PROPOSED, 1 template placeholder. 2 files changed: hill-climb.sh (+7), roadmap.md (+28/-55). ALSO: T-24.4 wall-clock gate observed at 13.41h/24h (commit 861b517d, anomaly noted — non-blocking). Master branch, not pushed.
 - next_action: dispatch M35 (drift coverage — address M-CAND-1 finding: 13 unconstitutioned principles lacking SPEC references)
+## 2026-09-15T16:25:00Z | M36-hill-climb-activate | PASS
+- commit: 3df9d72d (also a2f4c461 — prod-readiness drilldown doc from prior hill-climb cycle, NOT mine)
+- cost_usd: 0.00
+- duration_min: 4
+- model: opus (state-machine + bash verification; sub-agent was Sonnet)
+- attempt: 1/1
+- notes: M36 SHIPPED. hill-climb v2 daemon activated (PID 46880, 168h interval, $10 cap). ALL 4 DAEMONS NOW RUNNING: loop-tick (1147), hill-climb (46880), cost-dashboard (7998), streak-tracker (8052). First v2 run completed immediately on activation — proposed M-CAND-1 (drift coverage) and M-CAND-2 (M29 followup) again (idempotency verified — only 2 M-CAND entries in roadmap, not 4). Drift net 65/65 PASS preserved. No code modified (state in .claude-flow/ gitignored). Master branch, not pushed.
+- next_action: dispatch M35 (drift coverage for 13 unconstitutioned principles per M-CAND-1)
 
 
 ## 2026-09-15T14:36:32Z | orchestrator-tick | IDLE
