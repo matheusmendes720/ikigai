@@ -2501,3 +2501,12 @@
 
 - next_action: BLOCKED on user — pick Option A/B/C/D + answer 3 questions to complete M39. Push will resume after user commits to a direction (the 87b6a214 commit + 2 follow-up log commits still need pushing).
 
+
+## $(date -u +%Y-%m-%dT%H:%M:%SZ) | M39 daemon-watchdog | PASS
+- commit: —
+- cost_usd: 0
+- duration_min: 0
+- model: opus
+- attempt: 1/1
+- notes: M39 daemon watchdog — heartbeat writer in loop-tick.sh + daemon-watchdog.sh script + 30m schedule added. Detects when daemon silent >90min and alerts via ntfy.sh.
+- next_action: commit
