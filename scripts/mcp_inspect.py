@@ -71,21 +71,24 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 def build_pythonpath(repo_root: Path) -> str:
     """Build PYTHONPATH string for gateway subprocess.
 
-    Gateway requires two paths (post 2026-08-30 import-path refactor — no `src.` prefix):
-      - src/ikigai/src — for `mcp_server`, `ikigai`, `agents` (poetry src-layout)
-      - src            — for `contracts`, `mesh` (sibling packages at life/src/)
+    Gateway requires three paths (post 2026-08-30 import-path refactor + 2026-09-05
+    namespace rename partial completion — see src/ikigai/tests/conftest.py):
+      - <repo>             — for `sys_ikigai` (renamed ikigai package at repo root)
+      - src                — for `contracts`, `mesh` (sibling packages at life/src/)
+      - src/ikigai/src    — for `mcp_server` imports that haven't been migrated
 
     Cross-platform separator:
       - POSIX (Linux, macOS, Git Bash): ':'
       - Native Windows: ';'
     """
+    repo = str(repo_root)
     src_dir = str(repo_root / "src")
     mcp_src = str(repo_root / "src" / "ikigai" / "src")
     sep = ";" if platform.system() == "Windows" else ":"
     existing = os.environ.get("PYTHONPATH", "")
     if existing:
-        return f"{existing}{sep}{src_dir}{sep}{mcp_src}"
-    return f"{src_dir}{sep}{mcp_src}"
+        return f"{existing}{sep}{repo}{sep}{src_dir}{sep}{mcp_src}"
+    return f"{repo}{sep}{src_dir}{sep}{mcp_src}"
 
 
 def check_ikigai_tools_drift(repo_root: Path) -> tuple[bool, str]:
