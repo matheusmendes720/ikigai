@@ -173,6 +173,13 @@ add_cand() {
   local title=$2
   local what=$3
   local why=$4
+
+  # Idempotency check: skip if M-CAND-${num} already exists in roadmap
+  if grep -q "^### M-CAND-${num} — " "$ROADMAP_FILE" 2>/dev/null; then
+    log "M-CAND-${num} already exists in roadmap, skipping"
+    return
+  fi
+
   CAND_SECTIONS="${CAND_SECTIONS}
 
 ### M-CAND-${num} — ${title} (STATUS: PROPOSED)
