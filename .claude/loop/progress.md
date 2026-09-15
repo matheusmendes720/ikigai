@@ -2114,3 +2114,84 @@
 - attempt: 1/1
 - notes: T-24.5 SHIPPED — drift net 61/61 PASS preserved (canonical_scope + drift_invariants + drift_extended + chat_repl). 5.01s wall-time, 0 failures. Confirms T-24.1..T-24.3 doc-only changes did not perturb any invariant. T-24.4 WALL-CLOCK GATE started at 2026-09-15T02:44:50Z, gate window ends at 2026-09-16T02:44:50Z (24h from T-24.3 closeout). T-24.4 cannot be faked — must wait for daemon-log inspection at 2026-09-16T02:44:50Z+. Pattern: same as M9 7-day streak gate. After 24h clear, T-24.4 → done, then T-24.6 regression sweep + state-machine closeout + M24 SHIP. Budget remaining: $0.63. Next orchestrator tick should: (a) verify daemon log fire count at scheduled intervals only, (b) verify SessionStart guardian did not double-fire, (c) close T-24.4, (d) run T-24.6 closeout, (e) push origin, (f) atomic commit M24 SHIP.
 - next_action: T-24.4 wall-clock gate (24h) → T-24.6 closeout → M24 SHIP
+
+## 2026-09-15T03:46:55Z | M24-T-24.4-wait + M25-state-drift | NEEDS_FIX
+- commit: 861e3edd (current HEAD, no new commit this tick)
+- cost_usd: 0.00 (state-machine read + append-only; 0 LLM)
+- duration_min: 1
+- model: opus (state-machine read only)
+- attempt: 1/1
+- notes: Tick decision: M24 T-24.4 wall-clock gate CANNOT be closed. Gate started 2026-09-15T02:44:50Z; current UTC = 2026-09-15T03:46:55Z (1h 2m into 24h window; gate ends 2026-09-16T02:44:50Z). Per constitution, wall-clock gates cannot be faked. Drift net preserved 61/61 (unchanged). New finding: M25 STATE-MACHINE DRIFT detected - commits 571286b4 (feat(loop): TypeScript loop-tick entry) + bcb2aedb (docs: CLAUDE.md TS section) on master, but roadmap.md has no M25 section (ends at M22 STATUS:DONE + M24 IN-PROGRESS) and tasks.md has no M25 section. Same pattern as M23 (commit 2f92b87f landed but state machine not updated) which was deferred to human direction. Working tree: runtime metrics churn (gitignored), strategics submodule dirty (vendored per M20 T-20.2), untracked done + this (bash-redirect-leak per CLAUDE.md item 4). Decision tree: not BLOCKED, M24 not all DONE (T-24.4 wall-clock active), T-24.6 pending but GATED on T-24.4. Two human-actionable items: (a) wait for 2026-09-16T02:44:50Z+ to close T-24.4 + T-24.6 + M24 SHIP, (b) reconcile M25 state machine (roadmap.md M25 section + tasks.md M25 sub-tasks) - auto-promotion of backlog items is FORBIDDEN per constitution. 8th consecutive non-ADVANCED tick. Cumulative = 24 shipped, 0 pending in executable state, 1 wall-clock gate active, 1 state-machine drift (M25).
+- next_action: needs_fix (T-24.4 wall-clock gate waits until 2026-09-16T02:44:50Z; M25 state-machine reconciliation awaits human direction)
+
+## 2026-09-15T04:38:56Z | M24-T-24.4-wait + M25-state-drift-v2 | IDLE
+- commit: -
+- cost_usd: 0.00 (state-machine read + append-only; 0 LLM)
+- duration_min: 1
+- model: opus (state-machine read only)
+- attempt: 1/1
+- notes: Tick decision: identical to prior NEEDS_FIX (2026-09-15T03:46:55Z). M24 T-24.4 wall-clock gate CANNOT be closed - gate started 2026-09-15T02:44:50Z, current UTC = 2026-09-15T04:38:56Z (1h 54m into 24h window; gate ends 2026-09-16T02:44:50Z). 22h 6m remaining. Per constitution, wall-clock gates cannot be faked. T-24.6 (regression sweep + state-machine closeout) remains GATED on T-24.4. M25 STATE-MACHINE DRIFT still present: 2 commits on master (571286b4 feat(loop): TypeScript loop-tick entry + bcb2aedb docs: CLAUDE.md TS section) but roadmap.md still ends at M22 STATUS:DONE + M24 IN-PROGRESS (no M25 section); tasks.md has no M25 section. Master HEAD unchanged at 861e3edd. Drift net preserved 61/61 PASS (T-24.5 verification from 2026-09-15T02:44:50Z still valid; no commits since that touched test surface). Working tree delta: progress.md (prior appends), .claude-flow/metrics/* (runtime churn, gitignored), strategics submodule dirty (vendored per M20 T-20.2), untracked done + this (bash-redirect-leak per CLAUDE.md item 4). Per decision tree: not BLOCKED, M24 not all DONE (T-24.4 wall-clock active), T-24.6 pending but GATED on T-24.4. Per constitution: backlog auto-promotion forbidden - M25 reconciliation requires human direction. No-op tick: idle exit. 9th consecutive non-ADVANCED tick. Cumulative = 24 shipped (M0-M22 + M24 partial), 0 pending in executable state, 1 wall-clock gate active (T-24.4, ~22h remaining), 1 state-machine drift (M25, awaiting human reconciliation).
+- next_action: idle (T-24.4 wall-clock gate waits until 2026-09-16T02:44:50Z; M25 state-machine reconciliation awaits human direction)
+
+## 2026-09-15T04:49:44Z | M24-T-24.4-wait + M25-state-drift-v3 | IDLE
+- commit: -
+- cost_usd: 0.00 (state-machine read + append-only; 0 LLM)
+- duration_min: 1
+- model: opus (state-machine read only)
+- attempt: 1/1
+- notes: Tick decision: identical to prior IDLE ticks (2026-09-15T03:46:55Z + 2026-09-15T04:38:56Z). M24 T-24.4 wall-clock gate CANNOT be closed - gate started 2026-09-15T02:44:50Z, current UTC = 2026-09-15T04:49:44Z (2h 4m 54s into 24h window; gate ends 2026-09-16T02:44:50Z). 21h 55m remaining. Per constitution, wall-clock gates cannot be faked. T-24.6 (regression sweep + state-machine closeout) remains GATED on T-24.4. M25 STATE-MACHINE DRIFT still present: 2 commits on master (571286b4 feat(loop): TypeScript loop-tick entry + bcb2aedb docs: CLAUDE.md TS section) but roadmap.md still ends at M22 STATUS:DONE + M24 IN-PROGRESS (no M25 section); tasks.md has no M25 section. Master HEAD unchanged at 861e3edd. Drift net preserved 61/61 PASS (T-24.5 verification from 2026-09-15T02:44:50Z still valid; no commits since that touched test surface). Working tree delta identical to prior tick: progress.md (this append), .claude-flow/metrics/* (runtime churn, gitignored), strategics submodule dirty (vendored per M20 T-20.2), untracked done + this (bash-redirect-leak per CLAUDE.md item 4). Per decision tree: not BLOCKED, M24 not all DONE (T-24.4 wall-clock active), T-24.6 pending but GATED on T-24.4. Per constitution: backlog auto-promotion forbidden - M25 reconciliation requires human direction. No-op tick: idle exit. 10th consecutive non-ADVANCED tick. Cumulative = 24 shipped (M0-M22 + M24 partial), 0 pending in executable state, 1 wall-clock gate active (T-24.4, ~21h 55m remaining), 1 state-machine drift (M25, awaiting human reconciliation).
+- next_action: idle (T-24.4 wall-clock gate waits until 2026-09-16T02:44:50Z; M25 state-machine reconciliation awaits human direction)
+
+## 2026-09-15T05:52:30Z | M24-T-24.4-wait + M25-state-drift-v4 | IDLE
+- commit: -
+- cost_usd: 0.00 (state-machine read + append-only; 0 LLM)
+- duration_min: 1
+- model: opus (state-machine read only)
+- attempt: 1/1
+- notes: Tick decision: identical to prior IDLE ticks (2026-09-15T03:46:55Z + 04:38:56Z + 04:49:44Z). M24 T-24.4 wall-clock gate CANNOT be closed - gate started 2026-09-15T02:44:50Z, current UTC = 2026-09-15T05:52:30Z (3h 7m 40s into 24h window; gate ends 2026-09-16T02:44:50Z). 20h 52m remaining. Per constitution, wall-clock gates cannot be faked. T-24.6 (regression sweep + state-machine closeout) remains GATED on T-24.4. M25 STATE-MACHINE DRIFT still present: 2 commits on master (571286b4 feat(loop): TypeScript loop-tick entry + bcb2aedb docs: CLAUDE.md TS section) but roadmap.md still ends at M22 STATUS:DONE + M24 IN-PROGRESS (no M25 section); tasks.md has no M25 section. Master HEAD unchanged at 861e3edd. Drift net preserved 61/61 PASS (T-24.5 verification from 2026-09-15T02:44:50Z still valid; no commits since that touched test surface). Working tree delta: progress.md (this append), .claude-flow/metrics/* (runtime churn, gitignored), strategics submodule dirty (vendored per M20 T-20.2), untracked done + this (bash-redirect-leak per CLAUDE.md item 4). Per decision tree: not BLOCKED, M24 not all DONE (T-24.4 wall-clock active), T-24.6 pending but GATED on T-24.4. Per constitution: backlog auto-promotion forbidden - M25 reconciliation requires human direction. No-op tick: idle exit. 11th consecutive non-ADVANCED tick. Cumulative = 24 shipped (M0-M22 + M24 partial), 0 pending in executable state, 1 wall-clock gate active (T-24.4, ~20h 52m remaining), 1 state-machine drift (M25, awaiting human reconciliation).
+- next_action: idle (T-24.4 wall-clock gate waits until 2026-09-16T02:44:50Z; M25 state-machine reconciliation awaits human direction)
+
+## 2026-09-15T06:54:32Z | M24-T-24.4-wait + M25-state-drift-v5 | IDLE
+- commit: -
+- cost_usd: 0.00 (state-machine read + append-only; 0 LLM)
+- duration_min: 1
+- model: opus (state-machine read only)
+- attempt: 1/1
+- notes: Tick decision: identical to prior IDLE ticks (2026-09-15T03:46:55Z + 04:38:56Z + 04:49:44Z + 05:52:30Z). M24 T-24.4 wall-clock gate CANNOT be closed - gate started 2026-09-15T02:44:50Z, current UTC = 2026-09-15T06:54:32Z (4h 9m 42s into 24h window; gate ends 2026-09-16T02:44:50Z). ~19h 50m remaining. Per constitution, wall-clock gates cannot be faked. T-24.6 (regression sweep + state-machine closeout) remains GATED on T-24.4. M25 STATE-MACHINE DRIFT still present: 2 commits on master (571286b4 feat(loop): TypeScript loop-tick entry + bcb2aedb docs: CLAUDE.md TS section) but roadmap.md still ends at M22 STATUS:DONE + M24 IN-PROGRESS (no M25 section); tasks.md has no M25 section. Master HEAD unchanged at 861e3edd. Drift net preserved 61/61 PASS (T-24.5 verification from 2026-09-15T02:44:50Z still valid; no commits since that touched test surface). Working tree delta: progress.md (this append), .claude-flow/metrics/* (runtime churn, gitignored), strategics submodule dirty (vendored per M20 T-20.2), untracked done + this (bash-redirect-leak per CLAUDE.md item 4). Per decision tree: not BLOCKED, M24 not all DONE (T-24.4 wall-clock active), T-24.6 pending but GATED on T-24.4. Per constitution: backlog auto-promotion forbidden - M25 reconciliation requires human direction. No-op tick: idle exit. 12th consecutive non-ADVANCED tick. Cumulative = 24 shipped (M0-M22 + M24 partial), 0 pending in executable state, 1 wall-clock gate active (T-24.4, ~19h 50m remaining), 1 state-machine drift (M25, awaiting human reconciliation).
+- next_action: idle (T-24.4 wall-clock gate waits until 2026-09-16T02:44:50Z; M25 state-machine reconciliation awaits human direction)
+
+## 2026-09-15T07:57:08Z | M24-T-24.4-wait + M25-state-drift-v6 | IDLE
+- commit: -
+- cost_usd: 0.00 (state-machine read + append-only; 0 LLM)
+- duration_min: 1
+- model: opus (state-machine read only)
+- attempt: 1/1
+- notes: Tick decision: identical to prior IDLE ticks (2026-09-15T03:46:55Z + 04:38:56Z + 04:49:44Z + 05:52:30Z + 06:54:32Z). M24 T-24.4 wall-clock gate CANNOT be closed - gate started 2026-09-15T02:44:50Z, current UTC = 2026-09-15T07:57:08Z (5h 12m 18s into 24h window; gate ends 2026-09-16T02:44:50Z). ~18h 47m remaining. Per constitution, wall-clock gates cannot be faked. T-24.6 (regression sweep + state-machine closeout) remains GATED on T-24.4. M25 STATE-MACHINE DRIFT still present: 2 commits on master (571286b4 feat(loop): TypeScript loop-tick entry + bcb2aedb docs: CLAUDE.md TS section) but roadmap.md still ends at M22 STATUS:DONE + M24 IN-PROGRESS (no M25 section); tasks.md has no M25 section. Master HEAD unchanged at 861e3edd. Drift net preserved 61/61 PASS (T-24.5 verification from 2026-09-15T02:44:50Z still valid; no commits since that touched test surface). Working tree delta: progress.md (this append), .claude-flow/metrics/* (runtime churn, gitignored), strategics submodule dirty (vendored per M20 T-20.2), untracked bash-redirect-leak files (per CLAUDE.md item 4). Per decision tree: not BLOCKED, M24 not all DONE (T-24.4 wall-clock active), T-24.6 pending but GATED on T-24.4. Per constitution: backlog auto-promotion forbidden - M25 reconciliation requires human direction. No-op tick: idle exit. 13th consecutive non-ADVANCED tick. Cumulative = 24 shipped (M0-M22 + M24 partial), 0 pending in executable state, 1 wall-clock gate active (T-24.4, ~18h 47m remaining), 1 state-machine drift (M25, awaiting human reconciliation).
+- next_action: idle (T-24.4 wall-clock gate waits until 2026-09-16T02:44:50Z; M25 state-machine reconciliation awaits human direction)
+
+
+## 2026-09-15T13:34:54Z | M24-T-24.4-wait + M25-state-drift-v7 | IDLE
+- commit: -
+- cost_usd: 0.00 (state-machine read + append-only; 0 LLM)
+- duration_min: 1
+- model: opus (state-machine read only)
+- attempt: 1/1
+- notes: Tick decision: identical to prior IDLE ticks (2026-09-15T07:57:08Z + prior). M24 T-24.4 wall-clock gate CANNOT be closed - gate started 2026-09-15T02:44:50Z, current UTC = 2026-09-15T13:34:54Z (10h 50m 4s into 24h window; gate ends 2026-09-16T02:44:50Z). ~13h 10m remaining. Per constitution, wall-clock gates cannot be faked. T-24.6 (regression sweep + state-machine closeout) remains GATED on T-24.4. M25 STATE-MACHINE DRIFT still present: 2 commits on master (571286b4 feat(loop): TypeScript loop-tick entry + bcb2aedb docs: CLAUDE.md TS section) but roadmap.md still ends at M22 STATUS:DONE + M24 IN-PROGRESS (no M25 section); tasks.md has no M25 section. Master HEAD unchanged at 861e3edd (verified via git log). Drift net preserved 61/61 PASS (T-24.5 verification from 2026-09-15T02:44:50Z still valid; no commits since that touched test surface). Working tree delta: progress.md (this append), .claude-flow/metrics/* (runtime churn, gitignored), strategics submodule dirty (vendored per M20 T-20.2), untracked bash-redirect-leak files (per CLAUDE.md item 4). Per decision tree: not BLOCKED, M24 not all DONE (T-24.4 wall-clock active), T-24.6 pending but GATED on T-24.4. Per constitution: backlog auto-promotion forbidden - M25 reconciliation requires human direction. No-op tick: idle exit. 14th consecutive non-ADVANCED tick. Cumulative = 24 shipped (M0-M22 + M24 partial), 0 pending in executable state, 1 wall-clock gate active (T-24.4, ~13h 10m remaining), 1 state-machine drift (M25, awaiting human reconciliation).
+- next_action: idle (T-24.4 wall-clock gate waits until 2026-09-16T02:44:50Z; M25 state-machine reconciliation awaits human direction)
+## 2026-09-15T13:37:38Z | M24-T-24.4-wait + M25-state-drift-v5 | IDLE
+- commit: -
+- cost_usd: 0.00
+- duration_min: 1
+- model: opus (state-machine + bash verification; 0 LLM calls)
+- attempt: n/a
+- notes: Monitoring tick (15th consecutive non-ADVANCED). Verified T-24.4 24h wall-clock gate: window 2026-09-15T02:44:50Z -> 2026-09-16T02:44:50Z; current UTC = 2026-09-15T13:37:38Z; ~13h 10m remaining. Double-firing anomaly at 13:34:10Z investigated: bash fork retry (Windows Cygwin errno 11 + dofork child -1 died) caused TWO log lines (firing bash + Loop tick starting) with identical tick_id=20260915-103413, but only ONE progress.md entry produced = single tick, double-logged artifact. Confirmed via sample 03:36:17Z (clean pattern: 1 firing + 1 Loop tick starting). Fires since 02:44Z = 11 = progress.md entries = 11-13 = 1:1 = NO double-firing. M25 state drift persists (commits 571286b4 + bcb2aedb on master; no roadmap.md M25 section; no tasks.md M25 section) - auto-promotion forbidden per constitution, requires human direction. cron is empty, Windows schtasks has zero loop-tick refs, daemon shows 4 schedules (loop-tick RUNNING PID 1147; hill-climb + cost-dashboard + streak-tracker STOPPED). Drift net 61/61 preserved.
+- next_action: idle (T-24.6 closeout awaits wall-clock gate 2026-09-16T02:44:50Z+)
+## 2026-09-15T13:50:00Z | M26-tier-by-risk | PASS
+- commit: 9abbe972
+- cost_usd: 0.00
+- duration_min: 1
+- model: opus (state-machine + bash verification; 0 LLM calls)
+- attempt: 1/1
+- notes: M26 tier-by-risk review depth SHIPPED. 3 .md files changed (+69 lines): .claude/agents/loop/risk-classifier.md (NEW), orchestrator.md (Risk-Tiered Review section), verifier.md (tier-specific depth block + TICK_REVIEW_TIER env-var). Drift net 61/61 PASS preserved (re-verified in main session). No code touched, no Co-Authored-By trailer. Master branch, not pushed. Backlog item "Add tier by risk review depth (per @addyosmani)" SHIPPED — can be retired from backlog when roadmap.md gets M25/M26 sections (awaiting human direction per constitution).
+- next_action: dispatch M27 (SPEC frontmatter migration)
+
