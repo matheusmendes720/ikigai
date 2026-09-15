@@ -465,6 +465,38 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** Doc-only; `constitution.md` itself untouched (human-only per orchestrator hard rules)
 - **Completed:** 2026-09-15 — 2 atomic commits: `a339c976` (`feat(specs): add YAML frontmatter with constitution_refs to M4-M24 SPECs (M27)`) + `8cb93b24` (`chore(loop): M27 SPEC frontmatter shipped — drift 61/61 (drift-bookkeeping)`). Drift net 61/61 PASS preserved.
 
+### M28 — Drift-net SPEC frontmatter enforcement (STATUS: PENDING — auto-reconciled 2026-09-15)
+- **What:** Add `test_spec_frontmatter_schema` to drift net that asserts all specs/M{n}-*/SPEC.md files have YAML frontmatter with name/description/constitution_refs/status/owner/created keys (commit ab813e4f)
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M29 — Signal-discovery from progress.md tick log (STATUS: PENDING — auto-reconciled 2026-09-15)
+- **What:** Aggregate progress.md tick log + emit candidate recommendations to next tick (commit 1fed10a9)
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M30 — Daemon reactivation (cost-dashboard + streak-tracker) (STATUS: PENDING — auto-reconciled 2026-09-15)
+- **What:** Reactivate cost-dashboard + streak-tracker daemon schedules after daemon pause (commits 64cc3315 + 65b8d062)
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M34 — Anti-idle auto-reconcile of roadmap.md on tick start (STATUS: PENDING — auto-reconciled 2026-09-15)
+- **What:** Orchestrator scans recent commits for milestone references and creates PENDING skeleton entries in roadmap.md to prevent IDLE loops (commit b0f4cb08)
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
 ## Backlog (not yet sequenced)
 
 _(empty — all 5 prior backlog items shipped via M23, M24, M25, M26, M27)_
