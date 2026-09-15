@@ -1,7 +1,7 @@
 ---
 name: M42-prune-orphan-submodule-gitdirs
 description: Reclaim 13.7MB by removing .git/modules/{taskdog,solverforge-calendar,tuiboard}/ which have no parent gitlink on master.
-status: IN_PROGRESS
+status: DONE
 owner: loop-orchestrator
 constitution_refs:
   - state_on_disk_not_conversation
