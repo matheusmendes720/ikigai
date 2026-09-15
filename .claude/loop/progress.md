@@ -2275,6 +2275,14 @@
 - attempt: 1/1
 - notes: M35 SHIPPED. Closed M-CAND-1 finding: all 7 VALID_PRINCIPLE_KEYS now covered by ≥1 SPEC. Added 2 missing principles: multi_package_boundaries_are_sacred → M6-worktree-isolation SPEC (genuine — worktree isolation IS a multi-package boundary); spec_driven_not_vibe_driven → M17-remaining-drift SPEC (genuine — closes the spec-driven drift work). Added 1 new drift test test_constitution_principles_all_referenced. Coverage: correctness_over_speed=1, reversibility=4, composition=3, tests=9, state_on_disk=7, multi_package=1, spec_driven=1. Drift net: 65/65 → 66/66 PASS (+1 invariant). 3 files changed: 2 SPECs (+3 each), 1 test (+49). Master branch, not pushed.
 - next_action: retire M-CAND-1 (now addressed by M35) + refresh signal-discovery with 350+ tick dataset (M37); OR idle for next direction
+## 2026-09-15T16:40:00Z | M37-signal-discovery-refresh | PASS
+- commit: 0544dc29
+- cost_usd: 0.00
+- duration_min: 5
+- model: opus (state-machine + bash verification; sub-agent was Sonnet)
+- attempt: 1/1
+- notes: M37 SHIPPED. Signal-discovery refresh on 276-tick dataset (M29 had 260). Drift net 64→66 since M29. All 4 daemons RUNNING. Retired 2 stale CANDs: M-CAND-1 (addressed by M35), M-CAND-2 (addressed by M30) — preserved in "Retired CANDs" section for audit trail. 2026-09-08 FAIL burst fully resolved (no recurrence). New patterns detected: (a) redundant invocations wasting budget; (b) 11min daemon cadence; (c) 5.6h downtime gap. Top candidate: M38-A — Double-Fire Detection and Suppression. 2 files changed: roadmap.md (+13/-1), signal-discovery-refresh report (+115). Drift net 66/66 PASS preserved. Doc-only. Master branch, not pushed.
+- next_action: dispatch M38-A (Double-Fire Detection and Suppression — top candidate from M37 refresh)
 
 
 ## 2026-09-15T14:36:32Z | orchestrator-tick | IDLE
