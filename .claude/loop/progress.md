@@ -2519,3 +2519,34 @@
 - attempt: 1/1
 - notes: M39 SHIPPED. Daemon watchdog pattern: heartbeat writer in loop-tick.sh + daemon-watchdog.sh + 30m schedule. Detects silent daemon >90min and alerts via ntfy.sh (M8 infra). Investigation: pattern 1 (redundancy) = by design (M38); pattern 2 (11min cadence) = false alarm (misread); pattern 3 (downtime gap) = REAL bug, now fixed. Review (Haiku): PASS on all 5 spec criteria + 5-dim quality scores 5/5/5/4/5 (safety 4 due to Python-unavailable fallback). Drift net 67/67 PASS preserved. 4 files in main commit. Master branch, not pushed.
 - next_action: push M39 + idle; M-CAND-3+ candidates from next hill-climb cycle (168h wait); user picks next direction
+
+## 2026-09-15T18:08:00Z | M40+M41 closeout | PASS
+- commit: a5a4ab30 (M41 cleanup) + 9c77fa09 (M41 unlink) + 7b3c2012 (M40 drift test)
+- cost_usd: 0.00
+- duration_min: 18
+- model: opus (subagent investigation + state-machine reconciliation + atomic commit hygiene)
+- attempt: 2/3 (first attempt conflated M40 + M41 work; reset --soft + recomposed into 3 atomic commits)
+- notes: User authorized 'lets go'. Three-phase work:
+
+  PHASE 1 — INVESTIGATION (3 sub-agents in parallel, 8m41s):
+  - sa-0: Confirmed `.gitmodules` was DELETED at `248e359` (not just missing — actively removed 18 days ago). 3 working submodules lived at `interfaces/<name>`, were removed from tree at `ec6d9cec` same day. NO submodule registration pattern exists on master today. M39 SPEC's claim "taskdog/solverforge-calendar/tuiboard all in apps/" was wrong — they were never in `apps/`.
+  - sa-1: Audited the 429KB 55-file local diff. **100% Black/Ruff formatter output** against upstream v3.1.3. Zero functional changes. Verified by reading every non-trivial file end-to-end. 49 files disposable (IDE-mirror / locale / test formatter outputs), 6 deferred-to-upstream, 0 ship, 0 extract.
+  - sa-2: Broken-state census. Found `data/taskdog/` doesn't exist at master (AGENTS.md claim is stale). Found `src/operational/` doesn't exist (PAV entirely removed in `604d6af`, AGENTS.md sections describe fiction). Master is 126 commits + 2426 files BEHIND `origin/main` (much worse than "14+ stale" claim).
+
+  PHASE 2 — DAEMON DISCOVERY:
+  - Loop daemon shipped M39 daemon-watchdog (`b431a649` + `e24182a4`) AND M40 daemon-health-drift-test (SPEC + test uncommitted) in parallel during this session. **Number collision**: my M39 SPEC was actually M41. Renumbered.
+  - Drift net caught M40 as orphan (no roadmap entry) → added M40 entry to roadmap, closed M40 by committing the daemon's drift test.
+  - 1st commit `392476ea` conflated M40 (drift test) + M41 (submodule unlink) into single commit → reset --soft + re-composed into 3 atomic commits.
+
+  PHASE 3 — EXECUTION (3 atomic commits, all pushed):
+  - `7b3c2012` feat(loop): M40 daemon-health drift test (drift net 67→68, +1 PASS)
+  - `9c77fa09` fix(loop): M41 unlink phantom planning-with-files submodule (was M39 — renumbered). Includes `.gitignore` extension: `/[0-9]*` catches 16 multi-digit numerics, `/WATCHDOG_THRESHOLD_SEC` catches M39 daemon bash leak, `/strategics/planning-with-files/` silences the now-untracked vendored copy
+  - `a5a4ab30` fix(loop): M41 cleanup — delete old M39 SPEC + snapshot patch (10092 lines removed from index)
+
+  STATE-MACHINE RECOVERY:
+  - Started with: master at `0f7ef74c`, `git status` clean except `strategics/planning-with-files` dirty submodule
+  - Ended with: master at `a5a4ab30`, `git status` clean, inner repo `strategics/planning-with-files/.git/` (10.29MB) still functional as self-contained fork (verified: `git -C strategics/planning-with-files rev-parse HEAD` = `8f5a3c2e`, working tree clean at v3.1.3)
+  - Drift net: 68/68 PASS (ikigai) + 11/11 PASS (test_loop_infra)
+  - Master fully synced with origin (`9c77fa09..a5a4ab30` pushed, no ahead/behind)
+
+- next_action: idle; awaiting user direction on (a) next M-number after M41, (b) M24 wall-clock gate closeout at 2026-09-16T02:44Z (~9h away), (c) prune orphan .git/modules/{solverforge-calendar,taskdog,tuiboard}/ (14.05MB reclaimable — not committed since they're not on master)
