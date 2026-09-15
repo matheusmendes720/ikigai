@@ -21,10 +21,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from src.mesh import queue
-from src.mesh.adapters.base import ForkAdapter
-from src.mesh.agent_consumer import Decision, validate
-from src.mesh.agent_propagator import propagate
+from mesh import queue
+from mesh.adapters.base import ForkAdapter
+from mesh.agent_consumer import Decision, validate
+from mesh.agent_propagator import propagate
 
 
 @dataclass(frozen=True)
