@@ -388,6 +388,37 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** ADR-024 archival preserved; drift net invariant count unchanged (61/61); no PAV math re-introduction
 - **Completed:** 2026-09-14 — 1 atomic commit: `273637fb` (`fix(vibe-ops): delete dormant PAV files per ADR-024 archival (M22)`). 19 files deleted (`-4,354 / +23` lines). Drift net 61/61 PASS preserved. ADR-024 archival now COMPLETE in code (math surface deleted; vault + interface + lifecycle preserved). `langgraph.json` reduced from 3 graphs to 2. `_EXTRA_CONSTANT_SCAN_ROOTS` workaround eliminated. PROD_LAYERS widened to include `vibe-ops/src/`. Per M21 documentation comment in `test_canonical_scope.py`, this commit documents the path forward that was previously blocked.
 
+### M23 — Add `examples/` Directory with 3 Working Milestones (STATUS: DONE)
+- **What:** Create `examples/` directory with 3 self-contained, runnable demonstrations of loop-engineering milestones (M0 Bootstrap + M1 Cron Tick + M5 MCP Integration)
+- **Why:** Per backlog item 5 + CLAUDE.md "How is the loop infrastructure actually used?" — new contributors need concrete examples to understand the pattern
+- **Acceptance:**
+  - [x] `examples/m0-bootstrap/README.md` — describes the 9 file artifacts + how to run loop tick (T-23.1)
+  - [x] `examples/m1-cron-tick/README.md` — describes daemon registration + cost cap pattern (T-23.2)
+  - [x] `examples/m5-mcp-integration/README.md` — TDD pattern for adding MCP tools + drift net (T-23.3)
+  - [x] `examples/README.md` — top-level index (T-23.4)
+  - [x] Drift net 61/61 PASS preserved (doc-only addition)
+  - [x] All 22 prior milestones stable
+- **Dependencies:** None (independent of prior work; closes last housekeeping backlog item)
+- **Estimated ticks:** 1 (single atomic commit for all 4 READMEs)
+- **Auto-promoted by:** User "keep going" authorization 2026-09-14
+- **Constitution gate:** Doc-only change; no code touched
+- **Completed:** 2026-09-14 — 1 atomic commit: `2f92b87f` (`docs(examples): add 3 working milestone demonstrations (M23)`). 4 files created (1 top-level + 3 sub-READMEs, all under `examples/`). Drift net 61/61 PASS preserved.
+
+### M24 — Cross-Loop Cron Dedup (STATUS: PENDING)
+- **What:** Consolidate 3 redundant cron systems (Mavis cron + claude-flow daemon + Claude Code Schedule) into 1 canonical scheduler
+- **Why:** Per backlog item 3 — having 3 parallel scheduling systems is a latent risk (each fires its own tick, drift between them, maintenance burden). M1 SHIPPED claude-flow integration 2026-09-07 but didn't retire the other systems.
+- **Acceptance:**
+  - [ ] Investigate current state: which crons fire loop-tick.sh? (T-24.1)
+  - [ ] Pick canonical scheduler (recommended: claude-flow daemon — has cost-cap + recovery support) (T-24.2)
+  - [ ] Retire the other 2 systems (delete their entries, document the canonical choice in CLAUDE.md) (T-24.3)
+  - [ ] Verify no double-firing for 24h after change (T-24.4)
+  - [ ] Drift net 61/61 PASS preserved (config-only change)
+  - [ ] All 23 prior milestones stable
+- **Dependencies:** M23
+- **Estimated ticks:** 2 (investigation + retirement)
+- **Auto-promoted by:** User "keep going" authorization 2026-09-14 (highest-impact backlog item)
+- **Constitution gate:** Config-only changes; no code touched; cron schedule documented in CLAUDE.md
+
 ## Backlog (not yet sequenced)
 
 - [ ] Replace bash `loop-tick.sh` with TypeScript version (cross-platform)
