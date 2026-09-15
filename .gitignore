@@ -366,6 +366,10 @@ archive/legacy-pav/src-operational/medic/bin/
 # data/*.db + data/chroma_db/ + data/review_queue/ above.
 .swarm/*.db-shm
 .swarm/*.db-wal
+# M50 disk-hygiene follow-up: .swarm/state.json was missed by the
+# .swarm/*.db / .swarm/*.sql / .swarm/backups/ / .swarm/model-router-state.json
+# pattern block. Generic catch-all for daemon runtime state below.
+.swarm/state.json
 # Stray root-level zero-byte file from bash heredoc leak (same root
 # cause as /Static /empty /None /str above; cleanup via `rm word`).
 # Recurrence prevention: pattern locks it out if the redirect recurs.
