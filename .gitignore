@@ -440,13 +440,24 @@ archive/legacy-pav/src-operational/medic/bin/
 # Sibling Python keywords (`None`, `int`, `float`, `bool`, `list`,
 # `dict`, `str`, `tuple`, `set`, `frozenset`) and `inline` were
 # already covered in earlier sections — only the ones below are new.
+# Extension M41: also catch multi-digit numerics that the `/[0-9]`
+# rule missed (10, 14, 60, 65, 66, 67, 70, 100, 200, 411 ...).
 /True
 /False
 /async
 /await
+/[0-9]*
 # Template fragments — `> {var}` redirects from Python f-string /
 # format() leakage create literal `{anything}` filenames. gitignore
 # treats `{` and `}` as literal chars; `*` matches the content
 # between them, so `/{*}` matches `{anything}` including
 # `{len(lf_data)}` and `{test}`.
 /{*}
+# M39 daemon watchdog artifact: empty file leaked when shell tried
+# `> WATCHDOG_THRESHOLD_SEC` thinking it was a variable assignment.
+/WATCHDOG_THRESHOLD_SEC
+# M41 planning-with-files submodule unlink: the directory is a
+# self-contained third-party fork with its own .git/; we don't
+# track it in the parent repo (was a phantom mode-160000 gitlink
+# with no .gitmodules entry — see M41 SPEC).
+/strategics/planning-with-files/

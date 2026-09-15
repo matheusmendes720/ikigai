@@ -565,20 +565,37 @@ Next backlog candidates: M24 T-24.4 closeout (wall-clock gate 2026-09-16T02:44Z)
 
 Both kept here for audit trail.
 
-### M39 — planning-with-files submodule disposition (STATUS: IN-PROGRESS)
-- **What:** Resolve the broken-gitlink state at `strategics/planning-with-files/` — mode 160000 gitlink without `.gitmodules` registration. Snapshot the 55-file local diff, choose Option A (proper submodule registration) vs B (unlink + vendored) vs C (track all files in parent) vs D (defer).
-- **Why:** M20 flagged the dirty submodule state but only deferred it. Three real costs today: (1) `git submodule status` fatal errors break CI submodule-aware steps; (2) 55 modified files were committed nowhere — `git submodule update --force` would silently destroy them; (3) governance violation — append-only rule + state-on-disk principle say every change needs a milestone SPEC, none existed.
-- **Spec:** `specs/M39-planning-with-files-submodule-disposition/SPEC.md` (created 2026-09-15; 4 disposition options + recommendation + acceptance + 3 open questions for user)
+### M40 — Daemon-Health Drift Test (STATUS: DONE)
+- **What:** Drift test asserting the M39 daemon-watchdog infrastructure stays healthy. Locks in: `daemon-watchdog.sh` exists + executable; `schedules.json` registers it with sane thresholds (interval ≤1800s, cost cap ≤$0.50); heartbeat file existence is a soft check.
+- **Why:** M39 shipped a watchdog pattern that the drift net doesn't yet guard. Without this test, a future refactor could silently break the watchdog (e.g. chmod -x, schedule removed) and the next 22h daemon death would go unobserved.
+- **Spec:** `specs/M40-daemon-health-drift-test/SPEC.md` (created 2026-09-15 by daemon M39 daemon-watchdog followup)
 - **Acceptance:**
-  - [x] Local diff preserved: `strategics/_local-snapshots/planning-with-files-local-edits-2026-09-15.patch` (429KB, 55 files +2928/-2117) (T-39.1)
-  - [x] Submodule working tree restored to clean (T-39.1 — `git -C strategics/planning-with-files restore .`)
-  - [x] SPEC created with 4 disposition options + recommendation (T-39.2 — this SPEC.md)
-  - [ ] User picks Option A/B/C/D + answers 3 open questions (T-39.3 — requires human input)
-  - [ ] Apply chosen option (T-39.4 — gated on T-39.3)
-  - [ ] Drift net 68/68 PASS preserved
-- **Dependencies:** M20
-- **Estimated ticks:** 1-2 (snapshot done in 1; decision + apply requires user)
-- **Constitution gate:** state_on_disk_not_in_conversation (snapshot); spec_driven (SPEC); reversibility_over_cleverness (recommend reversible Option A)
+  - [x] SPEC created (T-40.1 — daemon, 2026-09-15)
+  - [x] `test_daemon_health_infrastructure` added to `src/ikigai/tests/test_drift_extended_invariants.py` (T-40.2 — daemon)
+  - [x] Drift net 68/68 PASS preserved with the new test (T-40.3 — user-facing session committed 9cc14f87, +1 PASS)
+  - [x] Roadmap entry created (T-40.4 — user-facing session 2026-09-15)
+- **Dependencies:** M39 (daemon-watchdog)
+- **Estimated ticks:** 1
+- **Constitution gate:** tests_are_the_contract (drift test itself); state_on_disk_not_in_conversation (script + schedule + heartbeat all on disk, not in conversation); spec_driven_not_vibe_driven (SPEC)
+- **Launched:** 2026-09-15 by daemon (M39 followup); committed 2026-09-15 in `9cc14f87` after drift net flagged M40 as orphan
+- **Completed:** 2026-09-15
+
+### M41 — planning-with-files submodule unlink (STATUS: IN-PROGRESS)
+- **What:** Strip the phantom submodule gitlink at `strategics/planning-with-files/` — mode 160000 without `.gitmodules` registration. Keep the directory as a self-contained vendored third-party fork (Matheus's fork of OthmanAdi's `planning-with-files` v3.1.3, HEAD `8f5a3c2e`).
+- **Why:** 3 real costs today: (1) `git submodule status` fatal errors break CI submodule-aware steps; (2) the 55-file working-tree diff was never committed — `git submodule update --force` would silently destroy it; (3) governance violation — append-only rule + state-on-disk principle say every change needs a milestone SPEC, none existed.
+- **Spec:** `specs/M41-planning-with-files-submodule-unlink/SPEC.md` (created 2026-09-15; **renumbered from M39** because daemon shipped "daemon-watchdog" at same M-number in parallel — commit `b431a649`; investigation: 3 sub-agents found 100% of the diff is Black/Ruff formatter output against upstream v3.1.3, no functional changes, regenerable; disposition: Option B = unlink + keep as vendored copy; no path relocation; formatter patch discarded)
+- **Acceptance:**
+  - [x] Local diff classified: 49 disposable + 6 deferred-to-upstream, 0 ship, 0 extract (T-41.1 — subagent audit, 2026-09-15)
+  - [x] Working tree in submodule restored to v3.1.3 byte-for-byte (T-41.2 — `git -C strategics/planning-with-files restore .`)
+  - [x] Snapshot patch deleted; `strategics/_local-snapshots/` directory removed (T-41.3)
+  - [ ] Phantom gitlink removed from parent index: `git rm --cached strategics/planning-with-files` (T-41.4)
+  - [ ] `strategics/planning-with-files/` added to parent `.gitignore` (T-41.4)
+  - [ ] Drift net preserved: 68/68 (ikigai drift) + 11/11 (test_loop_infra)
+  - [ ] `git status` clean (no phantom submodule state, no leaked .patch file)
+  - [ ] Inner repo `strategics/planning-with-files/.git/` still functional
+- **Dependencies:** M20 (operational hygiene — flagged the dirty state); M39 (daemon-watchdog — shipped in parallel by daemon; this milestone renumbered from M39 to M41 to avoid collision)
+- **Estimated ticks:** 1 (4 tasks above)
+- **Constitution gate:** state_on_disk_not_in_conversation (snapshot then discarded); tests_are_the_contract (drift 68/68); spec_driven_not_vibe_driven (this SPEC); reversibility_over_cleverness (Option B trivially reversible via `git submodule add`)
 - **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
 
 ## Adding a new milestone
