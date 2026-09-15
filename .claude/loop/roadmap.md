@@ -614,6 +614,22 @@ Both kept here for audit trail.
   - **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
   - **Completed:** 2026-09-15 — atomic commits `9c77fa09` (M41 unlink) + `a5a4ab30` (M41 cleanup); pushed to origin master
 
+### M46 — Zero-byte gitignore fix + known-bug triage (STATUS: DONE)
+- **What:** Add missing `.gitignore` patterns for `$10` and `{len(lf_data)}` bash-redirect leaks that slipped through M20 T-20.1. Document the actual root cause of the `scripts/mcp_inspect.py` "PYTHONPATH bug" (it's in `src/contracts/base.py:11` using the OLD `src.` prefix, not in the script).
+- **Why:** AGENTS.md §🐛 had 5 flagged bugs; 2 of them were mechanical and trivially fixable (M46); the other 3 were either already resolved (M41), false positives (1 stale PAV test that was actually active), or required deep domain work (`src/contracts/base.py`).
+- **Spec:** `specs/M46-zero-byte-gitignore-fix-and-known-bugs/SPEC.md` (created 2026-09-15; root-cause diagnosis for the PYTHONPATH bug)
+- **Acceptance:**
+  - [x] `.gitignore` extended: `+/\$10` + `+/{len(lf_data)}` (T-46.1)
+  - [x] `git status` clean of `$10`, `{len(lf_data)}` (T-46.2)
+  - [x] `scripts/mcp_inspect.py` root cause documented (T-46.3 — diagnosis, not fix)
+  - [x] Items 2, 3, 5 documented with current state (T-46.3)
+  - [x] Drift net preserved: 69/69 PASS + 11/11 PASS
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Constitution gate:** state_on_disk_not_in_conversation (root cause documented); spec_driven_not_vibe_driven
+- **Launched:** 2026-09-15 (loop-orchestrator session)
+- **Completed:** 2026-09-15
+
 ### M43 — AGENTS.md cleanup (STATUS: DONE)
 - **What:** Strip or annotate fictional paths (`src/operational/`, `apps/`, `data/taskdog/`, `life-ops/`) in AGENTS.md (41744 bytes) that described paths which don't exist at master HEAD.
 - **Why:** Every future coding agent reading AGENTS.md would otherwise be misled into trying paths that don't exist (PAV removed in `604d6af`; `apps/` only on unmerged `origin/gitbutler/target`).
