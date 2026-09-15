@@ -1216,8 +1216,6 @@ def test_daemon_health_infrastructure() -> None:
 
     Locks in the watchdog pattern: file exists + executable, schedule
     registered with sane thresholds, script contains the alert path.
-    Skips cleanly on fresh clones where the heartbeat file doesn't exist
-    yet (the heartbeat is written on first tick).
     """
     import json
     import os
@@ -1227,7 +1225,7 @@ def test_daemon_health_infrastructure() -> None:
     repo = REPO_ROOT
     script = repo / ".claude" / "loop" / "scripts" / "daemon-watchdog.sh"
     schedules_file = repo / ".claude" / "loop" / "schedules.json"
-    heartbeat = repo / ".daemon-heartbeat.json"
+    heartbeat = repo / ".claude" / "loop" / ".daemon-heartbeat.json"
 
     # a. Script exists + executable
     if not script.exists():
@@ -1259,12 +1257,11 @@ def test_daemon_health_infrastructure() -> None:
         f"{watchdog_sched.get('cost_cap_usd')} (expected <=$0.50)"
     )
 
-    # c. Heartbeat file existence (soft check — skip on fresh clones)
-    if not heartbeat.exists():
-        pytest.skip(
-            f"daemon heartbeat not yet written: {heartbeat}. "
-            "Will be created on next loop-tick. (Re-run after first tick.)"
-        )
+    # c. Heartbeat file existence (hard check — fail if missing)
+    assert heartbeat.exists(), (
+        f"Heartbeat missing: {heartbeat}. "
+        "Daemon hasn't written one yet — restart loop-tick to activate."
+    )
 
     # d. Watchdog script contains threshold + alert path
     script_text = script.read_text(encoding="utf-8")
