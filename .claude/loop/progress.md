@@ -2478,3 +2478,26 @@
 
 - next_action: idle; awaiting user direction on (a) push all 6 unpushed master commits (e8d92637, bb1ab225, d88a15b1, 66cb7756, cb55a477, 0f1758f0), (b) strategics/planning-with-files disposition (embed/vendor/remove), (c) M24 wall-clock gate closeout at 2026-09-16T02:44Z
 
+## 2026-09-15T17:50:00Z | push-and-m39-launch | PASS
+- commit: 87b6a214
+- cost_usd: 0.00
+- duration_min: 12
+- model: opus (filesystem investigation + SPEC authoring + drift gate iteration)
+- attempt: 1/2 (first attempt failed drift on SPEC frontmatter; second attempt passed)
+- notes: User authorized push + continue working all the way up. Two phases:
+
+  PHASE 1 — PUSH (cleared by user 'push and continue...'):
+  - Pushed 6 unpushed commits (`cb55a477..825e39ba`): roadmap cleanup, worktree cleanup, gitignore fix, backlog correction, tasks-md audit log.
+  - `git status` clean post-push (only `strategics/planning-with-files` submodule dirty).
+
+  PHASE 2 — M39 LAUNCH (resolved the last backlog candidate):
+  - Investigation: `strategics/planning-with-files/` is mode 160000 gitlink (submodule metadata) BUT no `.gitmodules` at parent root, no `.git/modules/strategics/planning-with-files/` registration. Internal `.git/` is complete (remote `matheusmendes720/planning-with-files.git`, branch `master`, HEAD `8f5a3c2e` v3.1.3, 23MB, 545 files). Working tree: **55 modified files, +2928/-2117 lines** (IDE integrations, hooks, version-test scripts) committed NOWHERE. `git submodule update --force` would silently destroy that work.
+  - 3 other submodules (taskdog, solverforge-calendar, tuiboard) live in `apps/dev-tools/`, `apps/calendar/`, `apps/kanban/` — `strategics/` is the odd one out. Path inconsistency, not just metadata gap.
+  - T-39.1 DONE: snapshot diff to `strategics/_local-snapshots/planning-with-files-local-edits-2026-09-15.patch` (429KB) + `git -C strategics/planning-with-files restore .` for clean working tree.
+  - T-39.2 DONE: `specs/M39-planning-with-files-submodule-disposition/SPEC.md` with 4 disposition options (A=proper submodule registration, B=unlink+vendored, C=track all in parent, D=defer) + recommendation (A, aligns with other 3 submodules in `apps/`) + 3 open questions for user.
+  - T-39.3 BLOCKED: needs user to pick A/B/C/D + answer 3 questions (path relocation? where to ship 55 local edits? commit to inner remote or vendor patch?).
+  - T-39.4 BLOCKED on T-39.3.
+  - Drift gate caught my first SPEC draft: `description 152 chars > 120 limit` + invalid `constitution_refs` key `spec_driven` (must be `spec_driven_not_vibe_driven`). Fixed in single iteration; 68/68 PASS preserved.
+
+- next_action: BLOCKED on user — pick Option A/B/C/D + answer 3 questions to complete M39. Push will resume after user commits to a direction (the 87b6a214 commit + 2 follow-up log commits still need pushing).
+
