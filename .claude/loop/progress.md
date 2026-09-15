@@ -2410,3 +2410,31 @@
 - attempt: 1/1
 - notes: hill-climb-v2 proposed M-CAND-1, M-CAND-2 (2 candidates). Review and promote.
 - next_action: review_and_promote
+
+## 2026-09-15T16:49:22Z | M34-auto-reconcile | NEEDS_FIX (drift gate failing pre-existing)
+- commit: (NOT COMMITTED — drift gate blocked commit)
+- cost_usd: 0
+- duration_min: 1
+- model: opus (deterministic grep + file edit + drift verification)
+- attempt: 1/1
+- notes: Auto-reconcile ran at tick start per M34 protocol (second pass — first pass at 15:42:30Z added M28/M29/M30/M34). Detected 6 NEW missing milestone sections in roadmap.md for milestones with implementation commits on master: M27.1 (reconcile roadmap, commit 6a7227af), M33 (hill-climb v2, commit 72a4ffed), M33.1 (idempotent hill-climb fix, commit c10cb0e2), M35 (constitution coverage, commit cc509ac3), M36 (activate hill-climb v2, commit 3df9d72d), M37 (signal-discovery refresh, commit 0544dc29). Created 6 PENDING auto-reconciled skeleton entries per M34 algorithm template. Inserted before ## Backlog (file 524→599 lines, +75 net). Per protocol: PENDING status (NOT DONE) — human confirmation required for promotion.
+
+  - **DRIFT GATE BLOCKER (PRE-EXISTING, NOT CAUSED BY M34):** Drift net 2 FAILURES detected on UNCOMMITTED working-tree changes:
+    1. test_milestone_specs_have_valid_frontmatter FAIL — specs/M38-double-fire-detection-and-suppression/SPEC.md has 4 invalid frontmatter fields (name uses em-dash not hyphen, description 221 chars > 120, invalid constitution_refs key state_on_disk_not_in_conversation, status IN-PROGRESS with hyphen vs allowed IN_PROGRESS). Verified: failures pre-existed M34 edit (re-ran with roadmap.md stashed, same failures).
+    2. test_no_orphan_milestone_specs FAIL — M38 SPEC.md exists but no roadmap.md entry. (Note: M38 was detected by my grep but excluded from auto-reconcile because the SPEC has uncommitted working-tree state — M38 was started in this session but not finished; promoting it would conflict with the unfinished work.)
+
+  - **ROOT CAUSE:** M38 was started (SPEC.md + drift test added to test_drift_extended_invariants.py) but never committed. Master HEAD = 1a9592c9 (drift 66/66 PASS). Working tree delta from HEAD: roadmap.md (M34 edit, +49 lines, NOT YET COMMITTED), drift test (M38 attempt, uncommitted), M38 SPEC (untracked).
+
+  - **ACTION:** Per orchestrator hard rule "Never skip deterministic gates" — NOT committing M34 work because drift gate is failing on PRE-EXISTING uncommitted M38 work (independent of M34). M34 reconciliation content is correct and ready for commit once M38 drift gate is resolved (either fix M38 SPEC frontmatter + add M38 to roadmap.md, OR revert M38 working-tree changes).
+
+  - **NOT BLOCKED:** Wall-clock gate T-24.4 still active (8h 55m remaining until 2026-09-16T02:44:50Z). T-24.6 closeout remains GATED on T-24.4. M-CAND-1/M-CAND-2 PROPOSED awaiting human review (per M34 protocol). State-machine drift on M38 needs human adjudication: complete M38 OR revert.
+- next_action: NEEDS_FIX — next tick must either (a) fix M38 SPEC frontmatter + add M38 roadmap.md entry, OR (b) revert M38 working-tree changes, BEFORE M34 reconciliation can be committed
+## 2026-09-15T17:10:00Z | M38-double-fire-detect | PASS
+- commit: 0f1758f0
+- cost_usd: 0.00
+- duration_min: 30
+- model: opus (state-machine + bash verification; sub-agent was Sonnet)
+- attempt: 1/1
+- notes: M38 SHIPPED (RECOVERED from partial-fail state). detect-double-fire.sh (NEW, 89L) + scoped drift test (last 50 entries to avoid false-flagging legitimate graph dispatches). 4 files: script + SPEC + test + roadmap entry. Also fixed 6 auto-reconciled milestones (M27.1/M33/M33.1/M35/M36/M37) PENDING → DONE per human authorization (orchestrator's M34 second pass had added them as PENDING; promotion requires explicit action). Drift net 66/66 → 67/67 PASS preserved. The orchestrator's prior NEEDS_FIX entry is now superseded by this PASS entry. Master branch, not pushed.
+- next_action: push M38 + idle until next user direction; backlog now empty (all CANDs retired)
+
