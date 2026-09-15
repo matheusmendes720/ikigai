@@ -614,6 +614,21 @@ Both kept here for audit trail.
   - **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
   - **Completed:** 2026-09-15 — atomic commits `9c77fa09` (M41 unlink) + `a5a4ab30` (M41 cleanup); pushed to origin master
 
+### M48 — Fix src/mesh/ import paths (STATUS: DONE)
+- **What:** Remove `src.` prefix from `src/mesh/` import paths (16 files, 43 imports). Same bug class as M47 but in the mesh package.
+- **Why:** M47 fixed `src/contracts/` but the mesh package had the identical pattern. `scripts/mcp_inspect.py` after M47 hits `ModuleNotFoundError: No module named 'src'` (gone) → `ModuleNotFoundError: No module named 'mcp.server.fastmcp'` (separate dep gap) → mesh imports still broken for any direct importer. Phase 3 v1 mesh layer (the user-facing API per AGENTS.md) was technically broken.
+- **Spec:** `specs/M48-fix-mesh-import-paths/SPEC.md` (created 2026-09-15)
+- **Acceptance:**
+  - [x] Zero `from src.*` imports remain in `src/mesh/` (T-48.1)
+  - [x] `python -c "import mesh; from mesh.agent_consumer import ..."` succeeds (T-48.2)
+  - [x] Drift net preserved: 69/69 + 11/11 (T-48.3)
+  - [x] 1 atomic commit + push (T-48.4)
+- **Dependencies:** M47 (established the canonical pattern)
+- **Estimated ticks:** 1
+- **Constitution gate:** correctness_over_speed (real bug fix); reversibility_over_cleverness (mechanical, revert-safe); tests_are_the_contract (drift 69/69)
+- **Launched:** 2026-09-15 (loop-orchestrator session)
+- **Completed:** 2026-09-15 — 16 files changed, mechanical sed across `from src.contracts.X` → `from contracts.X` + `from src.mesh.X` → `from mesh.X` (both module-level and indented function-internal variants)
+
 ### M47 — Fix src/contracts/ import paths (STATUS: DONE)
 - **What:** Replace `from src.contracts.X import ...` with relative imports (`from .X import ...`) across `src/contracts/{base,entrega,meta,objetivo,projeto,sonho,tarefa}.py` (7 files). Removes the `src.` prefix that was left over from the pre-refactor import paths.
 - **Why:** Discovered in M46: `scripts/mcp_inspect.py` fails with `ModuleNotFoundError: No module named 'src'` because `src/contracts/__init__.py` imports `src/contracts/base.py`, which had `from src.contracts.common import ...`. Fixing this unblocks: the MCP gateway contract test, any script that imports `contracts.*`, and the IKIGAI MCP server's `investigation_*` tools.

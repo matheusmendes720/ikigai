@@ -13,7 +13,7 @@ from typing import Any, TypeVar
 
 from pydantic import ValidationError
 
-from src.contracts.task_change import TaskChange, TaskStatus
+from contracts.task_change import TaskChange, TaskStatus
 
 logger = logging.getLogger(__name__)
 
