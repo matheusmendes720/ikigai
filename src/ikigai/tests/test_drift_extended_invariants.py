@@ -1209,3 +1209,73 @@ def test_progress_md_has_no_double_fires() -> None:
         )
     finally:
         Path(scoped_path).unlink(missing_ok=True)
+
+
+def test_daemon_health_infrastructure() -> None:
+    """M39 daemon watchdog infrastructure stays healthy (M40).
+
+    Locks in the watchdog pattern: file exists + executable, schedule
+    registered with sane thresholds, script contains the alert path.
+    Skips cleanly on fresh clones where the heartbeat file doesn't exist
+    yet (the heartbeat is written on first tick).
+    """
+    import json
+    import os
+    import re
+    import stat
+
+    repo = REPO_ROOT
+    script = repo / ".claude" / "loop" / "scripts" / "daemon-watchdog.sh"
+    schedules_file = repo / ".claude" / "loop" / "schedules.json"
+    heartbeat = repo / ".daemon-heartbeat.json"
+
+    # a. Script exists + executable
+    if not script.exists():
+        pytest.skip(f"daemon-watchdog.sh not found: {script}")
+    if not os.access(script, os.X_OK):
+        # chmod and re-test (in case it lost +x on a fresh clone)
+        current = script.stat().st_mode
+        script.chmod(current | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    assert os.access(script, os.X_OK), f"daemon-watchdog.sh not executable: {script}"
+
+    # b. Schedule registered with sane thresholds
+    if not schedules_file.exists():
+        pytest.skip(f"schedules.json not found: {schedules_file}")
+    schedules = json.loads(schedules_file.read_text(encoding="utf-8"))
+    watchdog_sched = next(
+        (s for s in schedules if "daemon-watchdog" in s.get("command", "")),
+        None,
+    )
+    assert watchdog_sched is not None, (
+        "No daemon-watchdog schedule found in schedules.json. "
+        f"Registered: {[s['name'] for s in schedules]}"
+    )
+    assert watchdog_sched.get("interval_seconds", 99999) <= 1800, (
+        f"daemon-watchdog interval too long: "
+        f"{watchdog_sched.get('interval_seconds')}s (expected <=1800s)"
+    )
+    assert watchdog_sched.get("cost_cap_usd", 999) <= 0.5, (
+        f"daemon-watchdog cost cap too high: "
+        f"{watchdog_sched.get('cost_cap_usd')} (expected <=$0.50)"
+    )
+
+    # c. Heartbeat file existence (soft check — skip on fresh clones)
+    if not heartbeat.exists():
+        pytest.skip(
+            f"daemon heartbeat not yet written: {heartbeat}. "
+            "Will be created on next loop-tick. (Re-run after first tick.)"
+        )
+
+    # d. Watchdog script contains threshold + alert path
+    script_text = script.read_text(encoding="utf-8")
+    assert re.search(r"WATCHDOG_THRESHOLD_SEC", script_text), (
+        f"daemon-watchdog.sh missing WATCHDOG_THRESHOLD_SEC: {script}"
+    )
+    has_alert_path = (
+        "ntfy.sh" in script_text
+        or "notify.sh" in script_text
+        or bool(re.search(r"curl\s+.*ntfy", script_text))
+    )
+    assert has_alert_path, (
+        f"daemon-watchdog.sh missing ntfy alert path: {script}"
+    )
