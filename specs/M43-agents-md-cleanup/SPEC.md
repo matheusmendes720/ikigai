@@ -4,7 +4,7 @@ description: Strip fictional paths (src/operational/, apps/, data/taskdog/) from
 status: DONE
 owner: loop-orchestrator
 constitution_refs:
-  - state_on_disk_not_in_conversation
+  - state_on_disk_not_conversation
   - spec_driven_not_vibe_driven
 estimated_ticks: 1
 ---
