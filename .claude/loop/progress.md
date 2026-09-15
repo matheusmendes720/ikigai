@@ -2234,6 +2234,14 @@
 - attempt: 1/1
 - notes: M30 SHIPPED. cost-dashboard (PID 7998) + streak-tracker (PID 8052) reactivated. Both had died after machine restart (not killed). First run: cost-dashboard rc=0 (report generated ticks=70 usd=$0.80); streak-tracker rc=2 (streak-break signal = healthy=no, 5 passes/2 breaks since Sep 7 — per spec this is the expected signal, not an error). loop-tick (PID 1147) untouched; hill-climb STOPPED and out of scope (M33). No code modified — runtime state only in .claude-flow/ (gitignored). Drift net 64/64 PASS preserved. M29 top-2 candidates shipped. Master branch, not pushed.
 - next_action: dispatch M34 (anti-idle auto-reconciliation — eliminates the state-machine drift pattern M29 flagged)
+## 2026-09-15T15:40:00Z | M34-anti-idle-auto-reconcile | PASS
+- commit: b0f4cb08
+- cost_usd: 0.00
+- duration_min: 2
+- model: opus (state-machine + bash verification; sub-agent was Sonnet)
+- attempt: 1/1
+- notes: M34 SHIPPED. Orchestrator now auto-reconciles roadmap.md on tick start: scans git log for M{n} commit subjects; if missing roadmap section, appends template with STATUS: PENDING auto-reconciled (not DONE — promotion is still human-confirmed). Decision tree updated: orchestrator advances past PENDING auto-reconciled milestones when drift net passes. Drift net: 64/64 -> 65/65 PASS (+1 new test test_orchestrator_has_auto_reconcile_section). 2 files changed: orchestrator.md (+52/-1), test_drift_extended_invariants.py (+63). Eliminates the 7+ consecutive IDLE-tick pattern M29 flagged (M25-state-drift). Master branch, not pushed.
+- next_action: dispatch M33 (hill-climb v2 — last remaining M29 top-5 candidate)
 
 
 ## 2026-09-15T14:36:32Z | orchestrator-tick | IDLE
