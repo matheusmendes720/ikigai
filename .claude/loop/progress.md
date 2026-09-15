@@ -2510,3 +2510,12 @@
 - attempt: 1/1
 - notes: M39 daemon watchdog — heartbeat writer in loop-tick.sh + daemon-watchdog.sh script + 30m schedule added. Detects when daemon silent >90min and alerts via ntfy.sh.
 - next_action: commit
+
+## 2026-09-15T18:00:00Z | M39-daemon-watchdog | PASS (review clean)
+- commit: b431a649 (also 87b6a214 + 0f7ef74c from parallel orchestrator ticks)
+- cost_usd: 0.00
+- duration_min: 16
+- model: opus (state-machine + bash verification; implementer was Sonnet; reviewer was Haiku)
+- attempt: 1/1
+- notes: M39 SHIPPED. Daemon watchdog pattern: heartbeat writer in loop-tick.sh + daemon-watchdog.sh + 30m schedule. Detects silent daemon >90min and alerts via ntfy.sh (M8 infra). Investigation: pattern 1 (redundancy) = by design (M38); pattern 2 (11min cadence) = false alarm (misread); pattern 3 (downtime gap) = REAL bug, now fixed. Review (Haiku): PASS on all 5 spec criteria + 5-dim quality scores 5/5/5/4/5 (safety 4 due to Python-unavailable fallback). Drift net 67/67 PASS preserved. 4 files in main commit. Master branch, not pushed.
+- next_action: push M39 + idle; M-CAND-3+ candidates from next hill-climb cycle (168h wait); user picks next direction
