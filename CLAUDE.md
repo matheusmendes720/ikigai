@@ -182,6 +182,30 @@ uses submodule `uv sync` which has its own pin in `src/ikigai/pyproject.toml`
 (`mcp = "^1.1"`), so `constraints.txt` is only needed for interactive
 root-level testing.
 
+### Cross-platform loop tick (Windows + macOS + Linux)
+
+The loop tick has a **Deno TypeScript entry point** that works on all three
+operating systems without WSL or git-bash (M25, shipped 2026-09-14):
+
+- **Bash version** (Linux/macOS native, canonical): `bash .claude/loop/loop-tick.sh`
+- **TypeScript version** (cross-platform, all 3 OSes): `deno run --allow-all .claude/loop/loop-tick.ts`
+- **Windows .bat** (legacy, Git Bash required): `.claude/loop/loop-tick.bat`
+
+The TypeScript version is a **thin wrapper** — it parses flags, then
+delegates to `loop-tick.sh` for the inner orchestrator/worker/verifier
+logic (the proven ~19.5 KB bash implementation stays unchanged). The TS
+entry exists so Windows + macOS-native users don't need WSL/git-bash.
+
+Deno 1.40+ is required for the TS entry. Install via:
+
+- Windows (PowerShell): `irm https://deno.land/install.ps1 | iex`
+- macOS / Linux: `curl -fsSL https://deno.land/install.sh | sh`
+
+Both versions accept the same flags (`--dry-run`, `--cost-cap`,
+`--max-runtime`, `--graph <name>`, `--auto-cleanup`). On Windows the TS
+entry falls back to `C:\Program Files\Git\bin\bash.exe` when no `bash` is
+on `PATH`.
+
 ### PAV kernel — ARCHIVED 2026-08-31
 
 The Produtividade Algorítmica Visual (PAV) kernel — pure-arithmetic business
