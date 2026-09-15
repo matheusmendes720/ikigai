@@ -2447,3 +2447,16 @@
 - notes: User-facing session (not a daemon tick): fixed state-machine drift that the drift net was structurally unable to catch. Roadmap had 2 STALE PROPOSED M-CAND-1/M-CAND-2 sections (L494/L504) that were already RETIRED at L578/L582 by M37 (commit 0544dc29) — drift net reported 67/67 PASS but the duplicate IDs in different status buckets slipped through. Also: Backlog candidates line recommended "M38 (double-fire suppression), M38 (streak-tracker 7-day gate verification), M38 (signal-discovery automation)" 3× — but M38 is already DONE at L562. Surgical patch: removed 2 PROPOSED CAND entries (-20 lines) + replaced Backlog candidates with 3 real next candidates (T-24.4 wall-clock gate, orphan worktree cleanup, tasks.md drift audit). Drift net BEFORE patch: 67/67. AFTER patch + `pip install frontmatter` to unblock pre-existing dep gap: **68/68 PASS** (1 new PASS from unblocked vault_write_actor_agent_bypasses_validator test). Single atomic commit (e8d92637). Master not pushed. M24 wall-clock gate T-24.4 still active (~9h15m remaining). Backlog re-populated with real candidates.
 - next_action: idle; awaiting user direction on (a) push M38 + roadmap cleanup, (b) M24 wall-clock gate closeout, (c) orphan-worktree cleanup milestone
 
+## 2026-09-15T17:30:00Z | worktree-cleanup | PASS
+- commit: — (no git change; pure filesystem hygiene — 9 dirs removed)
+- cost_usd: 0.00
+- duration_min: 3
+- model: opus (filesystem inspection + git state-machine verification)
+- attempt: 1/1
+- notes: User-facing session: cleaned 9 orphan worktree directories that the M6 auto-cleanup hook missed. Categorized as:
+  - 7 unregistered empty dirs (.worktrees/{m-0-T-0.1,m4-T-4.1,m9-t9.4,m9-t9-3,m10-t10.1,m24-t24.1,phase-4}) — no `.git` linkage, all 0-byte contents (37-91KB each = empty metadata). Pure `rm -rf` safe. Predate M6 hook; hook didn't fire because they weren't registered worktrees.
+  - 1 unregistered full-repo dump (.worktrees/loop-prod-ready, 63MB, 4463 files, mostly `.pyc` cache) — backup of entire root from `afaf2223` "backup entire root and submodule pointers" commit. No `.git` linkage, last modified 2026-09-14. First `rm -rf` hit Windows Device-or-resource-busy lock; succeeded on retry.
+  - 1 registered stale worktree (.worktrees/m38-double-fire, on `loop/m38-double-fire` branch @ `1a9592c9`, 3 commits behind master) — `git worktree remove --force` + `git branch -D loop/m38-double-fire`. Branch was unreachable from master (M38 work landed via fast-forward in commits `cb55a477` + `0f1758f0`).
+  Result: `.worktrees/` is now empty (13KB), `git worktree list` shows only master + 3 external worktrees (eager-engine, quiet-comet, agent-aa2ecb0e379c2241c — all opencode/session-owned, NOT project-owned, left alone). Disk freed: ~63.3MB. Drift net preserved: 68/68 (ikigai drift) + 11/11 (test_loop_infra). No code change; no commit. M6 auto-cleanup hook can now fire cleanly on the next milestone since there are no orphaned entries to grandfather.
+- next_action: idle; awaiting user direction on push M38+roadmap-cleanup OR proceeding to tasks.md drift audit
+
