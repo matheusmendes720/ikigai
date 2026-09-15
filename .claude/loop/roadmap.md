@@ -416,20 +416,60 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
   - [x] Pick canonical scheduler (recommended: claude-flow daemon — has cost-cap + recovery support) (T-24.2) — decided: claude-flow daemon, decision table in SPEC.md §T-24.2
   - [x] Retire the other 2 systems (delete their entries, document the canonical choice in CLAUDE.md) (T-24.3) — NO-OP branch: only 1.5 systems exist, none to retire
   - [ ] Verify no double-firing for 24h after change (T-24.4) — WALL-CLOCK GATE in-progress (window 2026-09-15T02:44Z → 2026-09-16T02:44Z)
-  - [ ] Drift net 61/61 PASS preserved (config-only change)
+  - [x] Drift net 61/61 PASS preserved (config-only change) — verified 2026-09-15
   - [ ] All 23 prior milestones stable
 - **Dependencies:** M23
 - **Estimated ticks:** 2 (investigation + retirement)
 - **Auto-promoted by:** User "keep going" authorization 2026-09-14 (highest-impact backlog item)
 - **Constitution gate:** Config-only changes; no code touched; cron schedule documented in CLAUDE.md
 
+### M25 — Cross-Platform TypeScript Loop-Tick (STATUS: DONE)
+- **What:** Add TypeScript entry point (`.claude/loop/loop-tick.ts`) that delegates to the canonical bash version, so Windows + macOS-native users don't need WSL/git-bash
+- **Why:** Per backlog item 1 — the bash `loop-tick.sh` only runs natively on POSIX. The `.bat` shim required Git Bash on Windows (latent dependency). Deno gives a single TS runtime that works on all 3 OSes
+- **Acceptance:**
+  - [x] `.claude/loop/loop-tick.ts` exists (212 lines) — Deno runtime, parses same flags as bash version
+  - [x] Delegates to bash via `Deno.Command.spawn(["bash", script, ...args])` — bash version stays canonical
+  - [x] Falls back to `C:\Program Files\Git\bin\bash.exe` when no `bash` on Windows PATH
+  - [x] CLAUDE.md "Cross-platform loop tick" section documents Windows/macOS/Linux install commands
+  - [x] Drift net 61/61 PASS preserved (doc + thin shim only)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** User manually pushed (5 commits unpushed from previous sequence)
+- **Constitution gate:** Doc + shim only; bash version unchanged
+- **Completed:** 2026-09-14 — 2 atomic commits: `571286b4` (`feat(loop): add TypeScript loop-tick entry for cross-platform parity (M25)`) + `bcb2aedb` (`docs: add TypeScript loop-tick cross-platform section to CLAUDE.md (M25)`). Drift net 61/61 PASS preserved.
+
+### M26 — Tier-by-Risk Review Depth (STATUS: DONE)
+- **What:** Add risk classifier + tier-aware verifier review depth, so trivial commits get a linter+glance and infra/contract changes get a security audit + rollback review
+- **Why:** Per backlog item 2 — current verifier applies the same 5-dim review to everything. Per Addy Osmani (jun 2026, "Agentic Code Review"): "Tier by risk, not by author." One-size review wastes tokens on doc-only changes
+- **Acceptance:**
+  - [x] `.claude/agents/loop/risk-classifier.md` exists — LOW (tests/docs) / MEDIUM (single prod file) / HIGH (multi-file prod / infra / contracts) tiers
+  - [x] `.claude/agents/loop/orchestrator.md` invokes risk classifier before verifier, passes `TICK_REVIEW_TIER` env var
+  - [x] `.claude/agents/loop/verifier.md` has tier-specific depth blocks (LOW=5min 5-dim, MEDIUM=+sanity check 10min, HIGH=+security+rollback 30min)
+  - [x] Drift net 61/61 PASS preserved (3 .md files, +69 lines)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Constitution gate:** Doc-only (3 agent .md files); orchestrator pattern already supports env vars
+- **Completed:** 2026-09-15 — 2 atomic commits: `9abbe972` (`feat(loop): add tier-by-risk review depth (M26)`) + `331f550e` (`chore(loop): M26 tier-by-risk shipped — drift 61/61 (drift-bookkeeping)`). Drift net 61/61 PASS preserved.
+
+### M27 — SPEC Frontmatter Migration (STATUS: DONE)
+- **What:** Add YAML frontmatter to all 9 milestone SPEC.md files, declaring identity (`name`, `description`), constitution_refs (kebab-case keys to `.claude/loop/constitution.md` §"Core Principles"), status, owner, and created date
+- **Why:** Per backlog item 4 — SPEC.md is the loop's read entry point. Frontmatter makes specs machine-parseable (drift net, RFC checkers, future cross-spec analyzers) and forces every milestone to declare which constitution principles it implements
+- **Acceptance:**
+  - [x] All 9 `specs/M{n}-{slug}/SPEC.md` files have YAML frontmatter: M4, M5, M6, M7, M8, M9, M10, M17, M24
+  - [x] `constitution_refs` selected per-SPEC from actual content (2-4 principles per file, NOT all 5 listed by default)
+  - [x] `status` reflects reality (DONE for M4-M17; IN-PROGRESS for M24 pending T-24.4 wall-clock gate)
+  - [x] `owner: loop-orchestrator` consistent across all 9
+  - [x] Drift net 61/61 PASS preserved — markdown-only change
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Constitution gate:** Doc-only; `constitution.md` itself untouched (human-only per orchestrator hard rules)
+- **Completed:** 2026-09-15 — 2 atomic commits: `a339c976` (`feat(specs): add YAML frontmatter with constitution_refs to M4-M24 SPECs (M27)`) + `8cb93b24` (`chore(loop): M27 SPEC frontmatter shipped — drift 61/61 (drift-bookkeeping)`). Drift net 61/61 PASS preserved.
+
 ## Backlog (not yet sequenced)
 
-- [ ] Replace bash `loop-tick.sh` with TypeScript version (cross-platform)
-- [ ] Add "tier by risk" review depth (per @addyosmani)
-- [ ] Cross-loop: Mavis cron + this daemon + Claude Code Schedule = 3 redundant systems — pick one
-- [ ] Migrate SPEC.md frontmatter to use `constitution.md` references
-- [ ] Add `examples/` directory with 3 working milestones (M0, M1, M5)
+_(empty — all 5 prior backlog items shipped via M23, M24, M25, M26, M27)_
+
+Next backlog candidates: hill-climb v2, signal-discovery, drift-net coverage of SPEC frontmatter schema (closes the loop M27 opened), phase-4-taskdog bridge.
 
 ## Adding a new milestone
 
