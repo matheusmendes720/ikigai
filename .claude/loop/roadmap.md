@@ -551,7 +551,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 
 _(empty — all 5 prior backlog items shipped via M23, M24, M25, M26, M27)_
 
-Next backlog candidates: M24 T-24.4 closeout (wall-clock gate 2026-09-16T02:44Z); orphan-worktree cleanup (M6 auto-cleanup didn't fire because the worktrees predate the hook); state-machine drift audit on tasks.md (3 status=in-progress entries vs roadmap's 1).
+Next backlog candidates: M24 T-24.4 closeout (wall-clock gate 2026-09-16T02:44Z); strategics/planning-with-files submodule dirty (modified content, M20 deferred); zero-byte artifacts at repo root (bash redirect pattern leaking to filesystem, M20 deferred).
 
 ## Retired CANDs
 
