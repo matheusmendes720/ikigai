@@ -614,6 +614,36 @@ Both kept here for audit trail.
   - **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
   - **Completed:** 2026-09-15 — atomic commits `9c77fa09` (M41 unlink) + `a5a4ab30` (M41 cleanup); pushed to origin master
 
+### M43 — AGENTS.md cleanup (STATUS: DONE)
+- **What:** Strip or annotate fictional paths (`src/operational/`, `apps/`, `data/taskdog/`, `life-ops/`) in AGENTS.md (41744 bytes) that described paths which don't exist at master HEAD.
+- **Why:** Every future coding agent reading AGENTS.md would otherwise be misled into trying paths that don't exist (PAV removed in `604d6af`; `apps/` only on unmerged `origin/gitbutler/target`).
+- **Spec:** `specs/M43-agents-md-cleanup/SPEC.md` (created 2026-09-15; strategy = strike-through + archive annotation, not deletion, to preserve historical context)
+- **Acceptance:**
+  - [x] Fictional paths annotated or struck-through (no orphan live references) (T-43.1)
+  - [x] Drift net preserved: 68/68 + 11/11 (T-43.2)
+  - [x] 1 atomic commit + push (T-43.2 — commit `44619941`)
+  - [x] AGENTS.md remains readable as a historical reference
+- **Dependencies:** M41 (submodule unlink precedent)
+- **Estimated ticks:** 1
+- **Constitution gate:** state_on_disk_not_in_conversation; spec_driven_not_vibe_driven
+- **Launched:** 2026-09-15 (loop-orchestrator session)
+- **Completed:** 2026-09-15 — 10 sections touched (top-of-file status banner, Project Overview table, PAV command section, uv workspace layout, Recent Major Changes, Observability sprint, make test target, Testing section, Important Rules, Pitfalls, File Roles Quick Reference); +145/-45 lines; commit `44619941`
+
+### M45 — Loop status card scaffolding (STATUS: DONE)
+- **What:** Initialize the OMH `ulw-loop` metadata artifacts at `.omh/goals/`: `goal_ledger/v1.md`, `loop_status_card/v1.md`, `loop_cycle/v1.md`, `loop_engineering/v1.md`. Mirror the canonical state in `.claude/loop/roadmap.md`.
+- **Why:** Without these artifacts, future `ulw-loop` skill invocations will report "goal_status_card/v1 not found" instead of resuming the loop.
+- **Spec:** `specs/M45-loop-status-card-scaffolding/SPEC.md` (created 2026-09-15)
+- **Acceptance:**
+  - [x] `.omh/goals/` directory created with 4 v1.md files (T-45.1)
+  - [x] `.omh/goals/` added to `.gitignore` — metadata local, regen from canonical state (T-45.2)
+  - [x] Drift net preserved: 68/68 + 11/11 (T-45.3)
+  - [x] 1 atomic commit + push (T-45.3 — commit `f77876f3`)
+- **Dependencies:** None (foundational)
+- **Estimated ticks:** 1
+- **Constitution gate:** state_on_disk_not_in_conversation; spec_driven_not_vibe_driven; reversibility_over_cleverness (delete `.omh/goals/` to undo)
+- **Launched:** 2026-09-15 (loop-orchestrator session)
+- **Completed:** 2026-09-15 — note: `.omh/goals/` is gitignored, so the metadata files are NOT in the commit; only the .gitignore entry + SPEC.md are committed. Metadata regenerated locally each session from canonical state.
+
 ## Adding a new milestone
 
 ```markdown

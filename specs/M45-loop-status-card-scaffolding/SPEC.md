@@ -1,10 +1,10 @@
 ---
 name: M45-loop-status-card-scaffolding
-description: Initialize the OMH loop metadata (loop_status_card/v1 + loop_cycle/v1 + goal_ledger/v1) under .omh/goals/ so the autonomous loop has a persistent state machine independent of progress.md.
+description: Initialize OMH loop metadata under .omh/goals/ for ulw-loop skill compat.
 status: DONE
 owner: loop-orchestrator
 constitution_refs:
-  - state_on_disk_not_in_conversation
+  - state_on_disk_not_conversation
   - spec_driven_not_vibe_driven
   - reversibility_over_cleverness
 estimated_ticks: 1
