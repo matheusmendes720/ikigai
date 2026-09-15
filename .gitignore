@@ -461,3 +461,6 @@ archive/legacy-pav/src-operational/medic/bin/
 # track it in the parent repo (was a phantom mode-160000 gitlink
 # with no .gitmodules entry — see M41 SPEC).
 /strategics/planning-with-files/
+# M45 loop-status-card scaffolding: OMH metadata files are kept local;
+# the canonical state lives in .claude/loop/{roadmap,tasks,progress}.md.
+/.omh/goals/
