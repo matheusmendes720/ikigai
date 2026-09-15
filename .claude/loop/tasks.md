@@ -887,6 +887,85 @@
 - **last_verdict:** PASS
 - **notes:** Reconciliation tick (mirrors T-9.6 / T-10.3 / M11 closeout pattern). M17 substantive work landed on master in 3 atomic commits (`626bafe9` + `15b5b2e0` + `46e4e3da`); state-machine files (tasks.md sub-tasks, roadmap.md acceptance bullets, progress.md entry) needed reconciliation. SPEC.md authored retroactively to satisfy constitution gate. Drift net actual count = 53/53 (was 48/48 at M15 close; +3 canonical_scope tests from M16 + +2 M17 drift_extended tests). Roadmap acceptance bullet says "51→54" — slightly stale counts but the IMPORTANT thing is drift net green + no regression.
 
+### M24 — Cross-Loop Cron Dedup (IN PROGRESS — 2026-09-15)
+- **Spec:** `specs/M24-cross-loop-cron-dedup/SPEC.md` (created 2026-09-15; 6 acceptance criteria + 6 sub-tasks + conditional retirement logic if <3 systems exist)
+- **Goal:** Consolidate 3 alleged redundant cron systems (Mavis cron + claude-flow daemon + Claude Code Schedule) into 1 canonical scheduler. Backlog item 3.
+- **Preliminary finding (2026-09-15 orchestrator pre-check):** Only 1 scheduler is active (claude-flow daemon with 4 schedules: loop-tick / hill-climb / cost-dashboard / streak-tracker). No crontab entries (`crontab -l` empty). No Mavis references found. No Claude Code Schedule API. "3 systems" claim may be partially refuted like M21 PROD_LAYERS widening.
+
+#### T-24.1 — Investigation: enumerate all scheduling systems firing loop-tick.sh
+- **status:** pending (worker dispatch in this tick)
+- **spec_ref:** `specs/M24-cross-loop-cron-dedup/SPEC.md` (T-24.1 acceptance)
+- **acceptance:**
+  - [ ] `crontab -l` checked on host (POSIX + Git Bash WSL)
+  - [ ] `Get-ScheduledTask` checked on Windows (scheduled tasks filtering for loop-tick)
+  - [ ] `.claude/loop/schedules.json` + `daemon-manager.sh list` output captured
+  - [ ] `grep -r "loop-tick" .claude/ scripts/ src/` enumeration complete
+  - [ ] `.claude/settings.json` SessionStart hooks reviewed for any scheduler-triggering logic
+  - [ ] Mavis cron search (may not exist — verify)
+  - [ ] Deliverable: `docs/superpowers/specs/2026-09-15-m24-cron-inventory.md` with table of systems + cadence + what they fire
+- **estimated_cost_usd:** 0.50 (worker in worktree)
+- **estimated_minutes:** 10
+- **attempts:** 0
+
+#### T-24.2 — Canonical scheduler selection + CLAUDE.md update
+- **status:** pending
+- **spec_ref:** SPEC.md (T-24.2)
+- **acceptance:**
+  - [ ] Decision documented in SPEC.md §"Canonical Scheduler"
+  - [ ] Rationale: cost-cap enforcement + recovery + M8 notification integration
+  - [ ] CLAUDE.md updated to declare canonical scheduler (claude-flow daemon)
+- **estimated_cost_usd:** 0.30
+- **estimated_minutes:** 8
+
+#### T-24.3 — Retirement phase (conditional)
+- **status:** pending
+- **spec_ref:** SPEC.md (T-24.3)
+- **acceptance:**
+  - [ ] If T-24.1 found 3 systems: delete 2 non-canonical entries (crontab / Claude Code Schedule)
+  - [ ] If T-24.1 found <3 systems: document actual count in CLAUDE.md + skip retirement (with evidence file)
+  - [ ] CLAUDE.md "Cross-Loop Cron" section added with canonical-only statement
+- **estimated_cost_usd:** 0.20
+- **estimated_minutes:** 6
+
+#### T-24.4 — Verify no double-firing for 24h
+- **status:** pending
+- **spec_ref:** SPEC.md (T-24.4)
+- **acceptance:**
+  - [ ] Monitor progress.md for 24h post-T-24.3
+  - [ ] Count `loop-tick` entries per 60-minute UTC window
+  - [ ] Acceptable: ≤1 entry per window
+  - [ ] Failure: ≥2 entries = retired system still firing
+- **estimated_cost_usd:** 0.00 (passive monitoring)
+- **estimated_minutes:** 1 (after 24h wall-clock)
+
+#### T-24.5 — Drift net 61/61 PASS preserved
+- **status:** pending
+- **spec_ref:** SPEC.md (T-24.5)
+- **acceptance:**
+  - [ ] `pytest src/ikigai/tests/test_canonical_scope.py src/ikigai/tests/test_drift_invariants.py src/ikigai/tests/test_drift_extended_invariants.py src/ikigai/tests/test_chat_repl.py` → 61/61 PASS
+- **estimated_cost_usd:** 0.00
+- **estimated_minutes:** 2
+
+#### T-24.6 — Regression sweep + state-machine closeout
+- **status:** pending
+- **spec_ref:** SPEC.md (T-24.6)
+- **acceptance:**
+  - [ ] `bash tests/test_worktree_helper.sh` 15/15 PASS
+  - [ ] `bash tests/test_cost_dashboard.sh` 7/7 PASS
+  - [ ] `bash tests/test_notify.sh` 11/11 PASS
+  - [ ] `bash tests/test_streak_tracker.sh` 11/11 PASS
+  - [ ] `bash tests/test_dispatch.sh` 24/24 PASS
+  - [ ] `pytest tests/test_loop_infra.py` 11/11 PASS
+  - [ ] `pytest tests/test_m4_langgraph_integration.py` 9/9 PASS
+  - [ ] `pytest src/ikigai/tests/test_canonical_scope.py` 35/35 PASS
+  - [ ] `pytest src/ikigai/tests/test_m5_ikigai_mcp_integration.py` 2/2 PASS
+  - [ ] `roadmap.md` M24 → STATUS: DONE
+  - [ ] `tasks.md` M24 section + T-24.1..T-24.6 status=done + commit refs
+  - [ ] `progress.md` M24 closeout entry appended
+  - [ ] Atomic commit + push to origin master
+- **estimated_cost_usd:** 0.20
+- **estimated_minutes:** 8
+
 ## Notes for Orchestrator
 
 - **Atomic:** each task completable in 1-2 sub-agent invocations

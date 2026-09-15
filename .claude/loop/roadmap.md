@@ -280,6 +280,10 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** All fixes preserve drift-net invariants; no PAV math re-introduction.
 - **Completed:** 2026-09-13 — 4 atomic commits: `d523eca8` (T-15.1 langgraph registry drift test) + `53bd06db` (T-15.2 vibe-ops PAV-constant renames + heuristic scan extension via `_EXTRA_CONSTANT_SCAN_ROOTS`) + `1d9555ca` (T-15.3 strategics/ hierarchy 5-level reconcile via append-only additions to 3 docs) + `2dc43dec` (T-15.4 test_server_fastmcp.py: dynamic-read from server.py). Drift net 48/48 PASS preserved (32 + 7 + 9). Refinements made: vibe-ops/src/ PAV-flavored constants renamed (DEFAULT_QHE_PUSH_THRESHOLD → HYSTERESIS_HIGH_BOUND, etc.) per ADR-024 archival; `_EXTRA_CONSTANT_SCAN_ROOTS` added to test_no_algorithm_constants_in_agent_code for vibe-ops/src/ scope; strategics/ hierarchy depth reconciled to 5 levels across all 4 docs (append-only additions; canonical doc was already 5-level); test_server_fastmcp.py now reads actual registry from server.py at test time (dynamic, prevents future false-positive assertion drift). 2 known follow-ups out of M15 scope: (a) widening PROD_LAYERS for OTHER drift tests to vibe-ops/src/ — would catch PAV math that's currently in dormant code; (b) `Planejamento (E&T).md` §1.2.1 internal heading-vs-diagram contradiction ("Estrutura de 4 Níveis" heading + 5-level diagram/table below).
 
+
+- **Spec:** `specs/M24-cross-loop-cron-dedup/SPEC.md` (created 2026-09-15; 6 acceptance criteria + 6 sub-tasks + conditional retirement logic if <3 systems exist)
+- **Launched:** 2026-09-15 (T-24.1 worker dispatch pending; preliminary check shows only 1 scheduler active — claude-flow daemon with 4 schedules; "3 systems" claim may be partially refuted like M21 PROD_LAYERS widening)
+
 ## Backlog (not yet sequenced)
 
 - [ ] Replace bash `loop-tick.sh` with TypeScript version (cross-platform)
@@ -404,7 +408,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** Doc-only change; no code touched
 - **Completed:** 2026-09-14 — 1 atomic commit: `2f92b87f` (`docs(examples): add 3 working milestone demonstrations (M23)`). 4 files created (1 top-level + 3 sub-READMEs, all under `examples/`). Drift net 61/61 PASS preserved.
 
-### M24 — Cross-Loop Cron Dedup (STATUS: PENDING)
+### M24 — Cross-Loop Cron Dedup (STATUS: IN-PROGRESS)
 - **What:** Consolidate 3 redundant cron systems (Mavis cron + claude-flow daemon + Claude Code Schedule) into 1 canonical scheduler
 - **Why:** Per backlog item 3 — having 3 parallel scheduling systems is a latent risk (each fires its own tick, drift between them, maintenance burden). M1 SHIPPED claude-flow integration 2026-09-07 but didn't retire the other systems.
 - **Acceptance:**
