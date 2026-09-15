@@ -614,6 +614,22 @@ Both kept here for audit trail.
   - **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
   - **Completed:** 2026-09-15 — atomic commits `9c77fa09` (M41 unlink) + `a5a4ab30` (M41 cleanup); pushed to origin master
 
+### M47 — Fix src/contracts/ import paths (STATUS: DONE)
+- **What:** Replace `from src.contracts.X import ...` with relative imports (`from .X import ...`) across `src/contracts/{base,entrega,meta,objetivo,projeto,sonho,tarefa}.py` (7 files). Removes the `src.` prefix that was left over from the pre-refactor import paths.
+- **Why:** Discovered in M46: `scripts/mcp_inspect.py` fails with `ModuleNotFoundError: No module named 'src'` because `src/contracts/__init__.py` imports `src/contracts/base.py`, which had `from src.contracts.common import ...`. Fixing this unblocks: the MCP gateway contract test, any script that imports `contracts.*`, and the IKIGAI MCP server's `investigation_*` tools.
+- **Spec:** `specs/M47-fix-contracts-base-import-path/SPEC.md` (created 2026-09-15; rationale: relative imports survive package moves + match existing `__init__.py` style)
+- **Acceptance:**
+  - [x] `src/contracts/base.py:11` uses relative import (T-47.1)
+  - [x] `src/contracts/{entrega,meta,objetivo,projeto,sonho,tarefa}.py` use relative imports (T-47.1 — found during fix: the bug was systematic across 7 files, not just base.py)
+  - [x] `python -c "import contracts; from contracts.entrega import Entrega; ..."` succeeds (T-47.2)
+  - [x] Drift net preserved: 69/69 + 11/11 (T-47.3)
+  - [x] 1 atomic commit + push
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Constitution gate:** correctness_over_speed (fix real bug); reversibility_over_cleverness (one-line diffs per file, revert-safe); tests_are_the_contract (drift 69/69)
+- **Launched:** 2026-09-15 (loop-orchestrator session, after M46 closeout + user's "keep going" followup)
+- **Completed:** 2026-09-15 — 7 file changes, +7/-7 lines; `src/contracts/` package now imports cleanly
+
 ### M46 — Zero-byte gitignore fix + known-bug triage (STATUS: DONE)
 - **What:** Add missing `.gitignore` patterns for `$10` and `{len(lf_data)}` bash-redirect leaks that slipped through M20 T-20.1. Document the actual root cause of the `scripts/mcp_inspect.py` "PYTHONPATH bug" (it's in `src/contracts/base.py:11` using the OLD `src.` prefix, not in the script).
 - **Why:** AGENTS.md §🐛 had 5 flagged bugs; 2 of them were mechanical and trivially fixable (M46); the other 3 were either already resolved (M41), false positives (1 stale PAV test that was actually active), or required deep domain work (`src/contracts/base.py`).
