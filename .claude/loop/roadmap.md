@@ -285,53 +285,6 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Launched:** 2026-09-15 (T-24.1 worker dispatch pending; preliminary check shows only 1 scheduler active — claude-flow daemon with 4 schedules; "3 systems" claim may be partially refuted like M21 PROD_LAYERS widening)
 
 
-### M-CAND-1 — Drift Coverage — unconstitutioned principle (STATUS: PROPOSED)
-- **What:** Audit unconstitutioned principles (1. Correctness > Speed, 2. Reversibility > Cleverness, 3. Composition > Inheritance, 4. Tests are the contract, 5. State on disk, 6. Multi-package boundaries are sacred, 7. Spec-driven, Anti-Patterns (FORBIDDEN), Core Principles (in order of priority), Gate Process (every tick), How to amend this file, not in conversation, not vibe-driven). Add constitution_refs to SPEC.md files that exercise these principles, or create a new milestone to cover the gap.
-- **Why:** Constitution principles without SPEC coverage create drift risk — the invariant is invisible to the drift net.
-- **Acceptance:**
-  - [ ] Proposed milestone section added to roadmap.md
-  - [ ] SPEC.md created with What/Why/Acceptance filled in
-  - [ ] Drift net 65/65 PASS preserved
-  - [ ] Human confirms before promotion to IN-PROGRESS
-
-
-### M-CAND-2 — M29 Followup — cost-dashboard daemon activation (M30) (STATUS: PROPOSED)
-- **What:** Restore cost-dashboard cron (scripts/cost-dashboard.sh) to active schedule. M7 shipped a working dashboard ($0.5/day cap, spike detection); cron is STOPPED. Reactivating enables automated daily cost reports.
-- **Why:** M7 identified cost observability as top risk; restoring the dashboard provides automated overrun detection before they accumulate.
-- **Acceptance:**
-  - [ ] Proposed milestone section added to roadmap.md
-  - [ ] SPEC.md created with What/Why/Acceptance filled in
-  - [ ] Drift net 65/65 PASS preserved
-  - [ ] Human confirms before promotion to IN-PROGRESS
-
-
-### M-CAND-1 — Drift Coverage — unconstitutioned principle (STATUS: PROPOSED)
-- **What:** Audit unconstitutioned principles (1. Correctness > Speed, 2. Reversibility > Cleverness, 3. Composition > Inheritance, 4. Tests are the contract, 5. State on disk, 6. Multi-package boundaries are sacred, 7. Spec-driven, Anti-Patterns (FORBIDDEN), Core Principles (in order of priority), Gate Process (every tick), How to amend this file, not in conversation, not vibe-driven). Add constitution_refs to SPEC.md files that exercise these principles, or create a new milestone to cover the gap.
-- **Why:** Constitution principles without SPEC coverage create drift risk — the invariant is invisible to the drift net.
-- **Acceptance:**
-  - [ ] Proposed milestone section added to roadmap.md
-  - [ ] SPEC.md created with What/Why/Acceptance filled in
-  - [ ] Drift net 65/65 PASS preserved
-  - [ ] Human confirms before promotion to IN-PROGRESS
-
-
-### M-CAND-2 — M29 Followup — cost-dashboard daemon activation (M30) (STATUS: PROPOSED)
-- **What:** Restore cost-dashboard cron (scripts/cost-dashboard.sh) to active schedule. M7 shipped a working dashboard ($0.5/day cap, spike detection); cron is STOPPED. Reactivating enables automated daily cost reports.
-- **Why:** M7 identified cost observability as top risk; restoring the dashboard provides automated overrun detection before they accumulate.
-- **Acceptance:**
-  - [ ] Proposed milestone section added to roadmap.md
-  - [ ] SPEC.md created with What/Why/Acceptance filled in
-  - [ ] Drift net 65/65 PASS preserved
-  - [ ] Human confirms before promotion to IN-PROGRESS
-
-
-## Backlog (not yet sequenced)
-
-- [ ] Replace bash `loop-tick.sh` with TypeScript version (cross-platform)
-- [ ] Add "tier by risk" review depth (per @addyosmani)
-- [ ] Cross-loop: Mavis cron + this daemon + Claude Code Schedule = 3 redundant systems — pick one
-- [ ] Migrate SPEC.md frontmatter to use `constitution.md` references
-- [ ] Add `examples/` directory with 3 working milestones (M0, M1, M5)
 
 ### M16 — REPL End-to-End: Soul-Driven Reasoning + Real Adapter Stack (STATUS: DONE)
 - **What:** First user-facing shell that exercises the full stack — `scripts/chat_repl.py` + recall→reason→reflect wired into v2 graph + real taskdog adapter (SQLite UPSERT) + 9 SSE events + chat file persistence
@@ -506,37 +459,57 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** Doc-only; `constitution.md` itself untouched (human-only per orchestrator hard rules)
 - **Completed:** 2026-09-15 — 2 atomic commits: `a339c976` (`feat(specs): add YAML frontmatter with constitution_refs to M4-M24 SPECs (M27)`) + `8cb93b24` (`chore(loop): M27 SPEC frontmatter shipped — drift 61/61 (drift-bookkeeping)`). Drift net 61/61 PASS preserved.
 
-### M28 — Drift-net SPEC frontmatter enforcement (STATUS: PENDING — auto-reconciled 2026-09-15)
+### M28 — Drift-net SPEC frontmatter enforcement (STATUS: DONE)
 - **What:** Add `test_spec_frontmatter_schema` to drift net that asserts all specs/M{n}-*/SPEC.md files have YAML frontmatter with name/description/constitution_refs/status/owner/created keys (commit ab813e4f)
 - **Why:** (pending — human confirmation required)
 - **Acceptance:** (pending — human confirmation required)
 - **Dependencies:** None
 - **Estimated ticks:** 1
-- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+- **Completed:** 2026-09-15 — 1 commit (ab813e4f), drift 65/65 PASS preserved
 
-### M29 — Signal-discovery from progress.md tick log (STATUS: PENDING — auto-reconciled 2026-09-15)
+### M29 — Signal-discovery from progress.md tick log (STATUS: DONE)
 - **What:** Aggregate progress.md tick log + emit candidate recommendations to next tick (commit 1fed10a9)
 - **Why:** (pending — human confirmation required)
 - **Acceptance:** (pending — human confirmation required)
 - **Dependencies:** None
 - **Estimated ticks:** 1
-- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+- **Completed:** 2026-09-15 — 1 commit (1fed10a9), drift 65/65 PASS preserved
 
-### M30 — Daemon reactivation (cost-dashboard + streak-tracker) (STATUS: PENDING — auto-reconciled 2026-09-15)
+### M30 — Daemon reactivation (cost-dashboard + streak-tracker) (STATUS: DONE)
 - **What:** Reactivate cost-dashboard + streak-tracker daemon schedules after daemon pause (commits 64cc3315 + 65b8d062)
 - **Why:** (pending — human confirmation required)
 - **Acceptance:** (pending — human confirmation required)
 - **Dependencies:** None
 - **Estimated ticks:** 1
-- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+- **Completed:** 2026-09-15 — 2 commits (64cc3315 + 65b8d062), drift 65/65 PASS preserved
 
-### M34 — Anti-idle auto-reconcile of roadmap.md on tick start (STATUS: PENDING — auto-reconciled 2026-09-15)
+### M34 — Anti-idle auto-reconcile of roadmap.md on tick start (STATUS: DONE)
 - **What:** Orchestrator scans recent commits for milestone references and creates PENDING skeleton entries in roadmap.md to prevent IDLE loops (commit b0f4cb08)
 - **Why:** (pending — human confirmation required)
 - **Acceptance:** (pending — human confirmation required)
 - **Dependencies:** None
 - **Estimated ticks:** 1
-- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+- **Completed:** 2026-09-15 — 1 commit (b0f4cb08), drift 65/65 PASS preserved
+
+### M-CAND-1 — Drift Coverage — unconstitutioned principle (STATUS: PROPOSED)
+- **What:** Audit unconstitutioned principles (1. Correctness > Speed, 2. Reversibility > Cleverness, 3. Composition > Inheritance, 4. Tests are the contract, 5. State on disk, 6. Multi-package boundaries are sacred, 7. Spec-driven, Anti-Patterns (FORBIDDEN), Core Principles (in order of priority), Gate Process (every tick), How to amend this file, not in conversation, not vibe-driven). Add constitution_refs to SPEC.md files that exercise these principles, or create a new milestone to cover the gap.
+- **Why:** Constitution principles without SPEC coverage create drift risk — the invariant is invisible to the drift net.
+- **Acceptance:**
+  - [ ] Proposed milestone section added to roadmap.md
+  - [ ] SPEC.md created with What/Why/Acceptance filled in
+  - [ ] Drift net 65/65 PASS preserved
+  - [ ] Human confirms before promotion to IN-PROGRESS
+
+
+### M-CAND-2 — M29 Followup — cost-dashboard daemon activation (M30) (STATUS: PROPOSED)
+- **What:** Restore cost-dashboard cron (scripts/cost-dashboard.sh) to active schedule. M7 shipped a working dashboard ($0.5/day cap, spike detection); cron is STOPPED. Reactivating enables automated daily cost reports.
+- **Why:** M7 identified cost observability as top risk; restoring the dashboard provides automated overrun detection before they accumulate.
+- **Acceptance:**
+  - [ ] Proposed milestone section added to roadmap.md
+  - [ ] SPEC.md created with What/Why/Acceptance filled in
+  - [ ] Drift net 65/65 PASS preserved
+  - [ ] Human confirms before promotion to IN-PROGRESS
+
 
 ## Backlog (not yet sequenced)
 
