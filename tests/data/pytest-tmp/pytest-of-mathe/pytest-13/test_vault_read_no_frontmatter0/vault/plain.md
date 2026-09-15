@@ -1,3 +1,0 @@
-# Plain markdown
-
-No frontmatter.
