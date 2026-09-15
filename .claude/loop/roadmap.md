@@ -614,6 +614,21 @@ Both kept here for audit trail.
   - **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
   - **Completed:** 2026-09-15 — atomic commits `9c77fa09` (M41 unlink) + `a5a4ab30` (M41 cleanup); pushed to origin master
 
+### M50 — Disk hygiene sweep (STATUS: DONE)
+- **What:** Clear accumulated pytest fixture artifacts from `tests/data/pytest-tmp/` (13MB, 2,345 files, 867 subdirs). The directory was already gitignored (M46 added the pattern) — this is a pure filesystem reclaim.
+- **Why:** Disk pressure from accumulated pytest fixtures. Already gitignored; not tracked. No code change.
+- **Spec:** `specs/M50-disk-hygiene-sweep/SPEC.md` (created 2026-09-15)
+- **Acceptance:**
+  - [x] `rm -rf tests/data/pytest-tmp/` (T-50.1)
+  - [x] `du -sh tests/data/` reports 0 after cleanup (T-50.2)
+  - [x] Drift net preserved: 69/69 + 11/11 (T-50.3)
+  - [x] `.gitignore` confirmed covering the path (T-50.4)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Constitution gate:** state_on_disk_not_in_conversation (visible-only); tests_are_the_contract (drift 69/69)
+- **Launched:** 2026-09-15 (loop-orchestrator session, user "continue.. just keep pushing!")
+- **Completed:** 2026-09-15 — 13MB reclaimed, no git commit needed (files were gitignored)
+
 ### M49 — Fix scripts/mcp_inspect.py PYTHONPATH (STATUS: DONE)
 - **What:** Add `<repo>` as the first path in `scripts/mcp_inspect.py:build_pythonpath()` so the renamed `sys_ikigai` package (at repo root) is importable.
 - **Why:** After M47 + M48 cleared the `src.*` prefix issues, the next blocker was `ModuleNotFoundError: No module named 'sys_ikigai'` from `src/ikigai/src/mcp_server/server.py:46`. Mirrors `src/ikigai/tests/conftest.py` pattern.
