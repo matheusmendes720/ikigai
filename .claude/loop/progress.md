@@ -2460,3 +2460,21 @@
   Result: `.worktrees/` is now empty (13KB), `git worktree list` shows only master + 3 external worktrees (eager-engine, quiet-comet, agent-aa2ecb0e379c2241c — all opencode/session-owned, NOT project-owned, left alone). Disk freed: ~63.3MB. Drift net preserved: 68/68 (ikigai drift) + 11/11 (test_loop_infra). No code change; no commit. M6 auto-cleanup hook can now fire cleanly on the next milestone since there are no orphaned entries to grandfather.
 - next_action: idle; awaiting user direction on push M38+roadmap-cleanup OR proceeding to tasks.md drift audit
 
+## 2026-09-15T17:40:00Z | tasks-md-audit + gitignore-fix | PASS
+- commit: 66cb7756
+- cost_usd: 0.00
+- duration_min: 8
+- model: opus (filesystem audit + git state-machine verification)
+- attempt: 1/1
+- notes: User-facing session: completed the third backlog candidate and discovered a bigger-than-expected gap. Two findings:
+
+  1. **tasks.md drift audit (negative result):** tasks.md is consistent with roadmap. 59 explicit status lines: 54 done, 1 in_progress (T-24.4 wall-clock), 1 pending (T-24.6 closeout). All milestone IDs cross-reference cleanly. The "state-machine drift audit" backlog candidate was unnecessary — removed it from `## Backlog` next-candidates line; replaced with 2 real candidates (submodule dirty + zero-byte artifacts).
+
+  2. **Zero-byte artifact gitignore gap (POSITIVE result):** M20 T-20.1 caught `data/pytest-tmp/` and `src/data/pytest-tmp/` but missed the third mirror at `tests/data/pytest-tmp/`. Result: 2280 fixture files (.db/.jsonl/.md/.pyc) tracked across 4 M5-M17 test runs. Added `tests/data/pytest-tmp/` to `.gitignore` + one-time `git rm -rf --cached` to clear existing tracking. Result: 2281 files changed, +5/-4095 lines from index, 0 files affected on disk. Future pytest runs won't pollute the git index.
+
+  3. **strategics/planning-with-files "submodule" finding (escalation, NOT fixed):** `git submodule status` returns `fatal: no submodule mapping found in .gitmodules for path 'strategics/planning-with-files'`. So this isn't actually a submodule — it's an EMBEDDED third-party repo (OthmanAdi's `planning-with-files` v3.1.3, with its own AGENTS.md, 19-file version bump process, em-dash ban, ClawHub distribution). Someone has been editing it locally — 10+ modified files in the `M` state (`M .codebuddy/`, `M .codex/`, `M .continue/`, etc.). This is a **governance** question: embed permanently? Vendor it? Remove? Not fixing without user direction.
+
+  Drift net preserved: 68/68 (ikigai drift) + 11/11 (test_loop_infra) + 2280 file index cleanup.
+
+- next_action: idle; awaiting user direction on (a) push all 6 unpushed master commits (e8d92637, bb1ab225, d88a15b1, 66cb7756, cb55a477, 0f1758f0), (b) strategics/planning-with-files disposition (embed/vendor/remove), (c) M24 wall-clock gate closeout at 2026-09-16T02:44Z
+
