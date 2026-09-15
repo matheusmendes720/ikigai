@@ -565,6 +565,22 @@ Next backlog candidates: M24 T-24.4 closeout (wall-clock gate 2026-09-16T02:44Z)
 
 Both kept here for audit trail.
 
+### M39 — planning-with-files submodule disposition (STATUS: IN-PROGRESS)
+- **What:** Resolve the broken-gitlink state at `strategics/planning-with-files/` — mode 160000 gitlink without `.gitmodules` registration. Snapshot the 55-file local diff, choose Option A (proper submodule registration) vs B (unlink + vendored) vs C (track all files in parent) vs D (defer).
+- **Why:** M20 flagged the dirty submodule state but only deferred it. Three real costs today: (1) `git submodule status` fatal errors break CI submodule-aware steps; (2) 55 modified files were committed nowhere — `git submodule update --force` would silently destroy them; (3) governance violation — append-only rule + state-on-disk principle say every change needs a milestone SPEC, none existed.
+- **Spec:** `specs/M39-planning-with-files-submodule-disposition/SPEC.md` (created 2026-09-15; 4 disposition options + recommendation + acceptance + 3 open questions for user)
+- **Acceptance:**
+  - [x] Local diff preserved: `strategics/_local-snapshots/planning-with-files-local-edits-2026-09-15.patch` (429KB, 55 files +2928/-2117) (T-39.1)
+  - [x] Submodule working tree restored to clean (T-39.1 — `git -C strategics/planning-with-files restore .`)
+  - [x] SPEC created with 4 disposition options + recommendation (T-39.2 — this SPEC.md)
+  - [ ] User picks Option A/B/C/D + answers 3 open questions (T-39.3 — requires human input)
+  - [ ] Apply chosen option (T-39.4 — gated on T-39.3)
+  - [ ] Drift net 68/68 PASS preserved
+- **Dependencies:** M20
+- **Estimated ticks:** 1-2 (snapshot done in 1; decision + apply requires user)
+- **Constitution gate:** state_on_disk_not_in_conversation (snapshot); spec_driven (SPEC); reversibility_over_cleverness (recommend reversible Option A)
+- **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
+
 ## Adding a new milestone
 
 ```markdown
