@@ -580,6 +580,22 @@ Both kept here for audit trail.
 - **Launched:** 2026-09-15 by daemon (M39 followup); committed 2026-09-15 in `9cc14f87` after drift net flagged M40 as orphan
 - **Completed:** 2026-09-15
 
+### M42 — Prune orphan submodule gitdirs (STATUS: IN_PROGRESS)
+- **What:** Remove `.git/modules/{taskdog,solverforge-calendar,tuiboard}/` — 13.7MB of submodule backing stores that have no parent gitlink on master (the 3 submodules were originally at `interfaces/<name>` via `.gitmodules` at `7fafc31c`; `.gitmodules` deleted at `248e359`, gitlinks removed at `ec6d9cec`, but backing stores were never cleaned up).
+- **Why:** 13.7MB on every clone + mental overhead (future agents seeing `.git/modules/taskdog/` will assume it's a registered submodule).
+- **Spec:** `specs/M42-prune-orphan-submodule-gitdirs/SPEC.md` (created 2026-09-15; reversibility recipe included — `git submodule add <url> interfaces/<name>` from each recorded SHA restores if needed)
+- **Acceptance:**
+  - [x] `rm -rf .git/modules/{taskdog,solverforge-calendar,tuiboard}/` (T-42.1)
+  - [x] `du -sh .git/modules/` reports 0 (T-42.1)
+  - [ ] Drift net preserved: 68/68 (ikigai drift) + 11/11 (test_loop_infra)
+  - [x] `git submodule status` returns clean (no fatal errors) (T-42.2)
+  - [ ] `git status` clean
+  - [ ] 1 atomic commit + push to origin
+- **Dependencies:** M41 (planning-with-files submodule unlink — established the precedent)
+- **Estimated ticks:** 1
+- **Constitution gate:** state_on_disk_not_conversation (orphan state was invisible until this SPEC); reversibility_over_cleverness (recorded SHAs + URLs in SPEC for restoration); tests_are_the_contract (drift 68/68)
+- **Launched:** 2026-09-15 (loop-orchestrator session)
+
 ### M41 — planning-with-files submodule unlink (STATUS: DONE)
 - **What:** Strip the phantom submodule gitlink at `strategics/planning-with-files/` — mode 160000 without `.gitmodules` registration. Keep the directory as a self-contained vendored third-party fork (Matheus's fork of OthmanAdi's `planning-with-files` v3.1.3, HEAD `8f5a3c2e`).
 - **Why:** 3 real costs today: (1) `git submodule status` fatal errors break CI submodule-aware steps; (2) the 55-file working-tree diff was never committed — `git submodule update --force` would silently destroy it; (3) governance violation — append-only rule + state-on-disk principle say every change needs a milestone SPEC, none existed.
