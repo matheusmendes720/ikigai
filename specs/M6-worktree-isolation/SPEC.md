@@ -2,9 +2,10 @@
 name: M6-worktree-isolation
 description: Add contract, tests, and auto-cleanup hooks to worktree-helper.sh for safe parallel sub-agent dispatch
 constitution_refs:
+  - multi_package_boundaries_are_sacred
   - reversibility_over_cleverness
-  - tests_are_the_contract
   - state_on_disk_not_conversation
+  - tests_are_the_contract
 status: DONE
 owner: loop-orchestrator
 created: 2026-09-07

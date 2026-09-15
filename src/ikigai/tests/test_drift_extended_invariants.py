@@ -1084,3 +1084,52 @@ def test_orchestrator_has_auto_reconcile_section() -> None:
         f"Expected the DECISION TREE to handle STATUS: PENDING auto-reconciled milestones.\n"
         f"File content (first 2000 chars):\n{text[:2000]!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# M35 — Constitution principle coverage
+# ---------------------------------------------------------------------------
+
+
+def test_constitution_principles_all_referenced() -> None:
+    """Every constitution principle key must be referenced by at least one SPEC.
+
+    This invariant ensures the constitution is not just a declaration — each
+    principle is exercised by a real specification. Uncovered principles
+    indicate a gap between stated values and actual implementation.
+    """
+    import re
+
+    specs_dir = REPO_ROOT / "specs"
+    if not specs_dir.exists():
+        pytest.skip(f"specs/ directory not found at {specs_dir}")
+
+    spec_files: list[Path] = []
+    for item in specs_dir.iterdir():
+        if item.is_dir() and re.match(r"^M\d+-", item.name):
+            spec_file = item / "SPEC.md"
+            if spec_file.is_file():
+                spec_files.append(spec_file)
+
+    # Collect all constitution_refs from all SPECs
+    key_to_specs: dict[str, list[str]] = {key: [] for key in VALID_PRINCIPLE_KEYS}
+    for spec_file in sorted(spec_files):
+        text = spec_file.read_text(encoding="utf-8")
+        fm = _parse_frontmatter(text)
+        refs = fm.get("constitution_refs", []) if fm else []
+        for key in refs:
+            if key in key_to_specs:
+                key_to_specs[key].append(spec_file.parent.name)
+
+    failures: list[str] = []
+    for key, spec_names in sorted(key_to_specs.items()):
+        if not spec_names:
+            failures.append(
+                f"  {key}: no SPEC references it (checked {len(spec_files)} SPECs: "
+                f"{', '.join(sorted(s.parent.name for s in spec_files))})"
+            )
+
+    assert not failures, (
+        "The following constitution principles have no SPEC referencing them:\n"
+        + "\n".join(failures)
+    )

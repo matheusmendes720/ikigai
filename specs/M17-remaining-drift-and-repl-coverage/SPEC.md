@@ -2,8 +2,9 @@
 name: M17-remaining-drift-and-repl-coverage
 description: Close M11 Priority 2 drift gaps and add REPL smoke tests to drift net
 constitution_refs:
-  - tests_are_the_contract
   - composition_over_inheritance
+  - spec_driven_not_vibe_driven
+  - tests_are_the_contract
 status: DONE
 owner: loop-orchestrator
 created: 2026-09-14
