@@ -1,15 +1,30 @@
 # AGENTS.md
 
+> **Status (2026-09-15):** AGENTS.md was 14+ commits stale and described
+> removed paths (`src/operational/`, `apps/`, `data/taskdog/`) as if they
+> still existed. M43 (loop-orchestrator) stripped the highest-confidence
+> fictional references. **For ground truth on the live state of any
+> subsystem, query `git ls-files <path>` + `git log --` and verify against
+> the live filesystem.** The autonomous loop at `.claude/loop/` is the
+> project's actual source of truth for what's done / in-progress /
+> planned (see `roadmap.md`).
+
 Guidance for coding agents (Codex, Claude Code, Hermes, GitNexus) working in this repository.
 
 ## Project Overview
 
 **Algorithmic Life OS** — Python productivity orchestration. Root `cli/` + `centrals/` + `handlers/` + `plugins/` is the CLI hub that integrates domain "centrals" (task / knowledge / research) with daily / weekly handlers and a plugin system. Three independent Python packages live under `src/`; each is a separate project with its own manifest and lockfile — don't mix their tooling. (Previous `life-ops/*` paths were reorged to `src/*`; old paths are noted where still relevant in `Makefile` / `.pre-commit-config.yaml` / etc. — see Pitfalls.)
 
+> **PAV kernel removed in `604d6af`.** `src/operational/` does NOT exist
+> at master HEAD. AGENTS.md sections that previously described
+> `src/operational/{packages/core,tests,agents,workflows}` describe a
+> deleted tree. Reference docs are archived at
+> `archive/legacy-pav/src-operational/` if you need historical context.
+
 | Path | Tooling | Role |
 |------|---------|------|
 | `cli/`, `centrals/`, `handlers/`, `plugins/`, `__init__.py` (root) | Python | Root `life` CLI hub (Typer). Imports `from life import __version__` — repo root must be on `PYTHONPATH`. |
-| `src/operational/` | uv workspace | PAV productivity kernel — `pyproject.toml` declares `members = ["packages/core"]` only; `apps/cli` + `apps/tui` were deleted in `604d6af` (CLI scripts still broken) |
+| ~~`src/operational/`~~ | (removed `604d6af`) | PAV productivity kernel was deleted; archived at `archive/legacy-pav/src-operational/`. **Do not expect this directory to exist.** |
 | `src/ikigai/` | Poetry | IKIGAi meta-brain — MCP server, deep-agent harness, OpenTelemetry wiring. `ikigai_maintainer` graph was stripped from `langgraph.json` per attribution §3; v2 graph code lives at `src/ikigai/src/agents/v2/` but is not registered. |
 | `src/life_tatics/` | none (no `pyproject.toml`) | Standalone `life-tatics` time-block planner — runs as a module: `python -m life_tatics.cli` |
 | `src/mesh/` | uv (root) | Phase 3 v1 data mesh — `ForkAdapter` Protocol, `CliAdapter` / `TaskdogAdapter` / `SolverforgeCalendarAdapter`, append-only review queue, Deep Agent consumer + propagator. **v1 scope: `create` action only.** |
@@ -38,10 +53,10 @@ Guidance for coding agents (Codex, Claude Code, Hermes, GitNexus) working in thi
 |---|---|---|
 | Tipo | Binário/servidor standalone (cliente ↔ daemon) | Biblioteca Python (`src/mesh/adapters/taskdog.py`) |
 | Conexão | Cliente → servidor MCP/daemon (precisa processo ativo) | Acesso direto a SQLite (sem rede, sem daemon) |
-| Persistência | DB interno do `td` (path desconhecido) | `data/taskdog/tasks.db` (caminho hard-coded no adapter) |
+| Persistência | DB interno do `td` (path desconhecido) | `data/taskdog/tasks.db` (caminho hard-coded no adapter; **diretório `data/taskdog/` NÃO existe em master**, então adapter retorna `None` em `read()`) |
 | Erro típico | `ConnectError` quando daemon está down | `FileNotFoundError` quando DB não existe |
-| Estado no repo | Ausente | Adapter presente; DB **ausente em `master`**, **presente em `.worktrees/loop-prod-ready/data/taskdog/tasks.db`** (1 task seed) |
-| Submódulo git | — | `.git/modules/taskdog` (branch `main`) — check separadamente |
+| Estado no repo | Ausente | Adapter presente; DB **ausente em `master`**, **presente em `.worktrees/loop-prod-ready/data/taskdog/tasks.db`** (1 task seed, worktree órfão removido em M38) |
+| Submódulo git | — | `.git/modules/taskdog` removido em M42 (era branch `main`, órfão desde `ec6d9cec` quando interfaces/taskdog foi retirado da árvore) |
 
 ### Estado atual incompleto do projeto
 
@@ -146,14 +161,14 @@ Antes de qualquer mudança, perguntar:
 - **`20f1e72`** — chore(observability): wire OpenTelemetry to LangSmith + Langfuse (single SDK, two OTLP exporters).
 - **`ea97ea9` / `b3f9977`** — docs(ikigai): SPEC.md §14 constitutional references; cycle bootstrap analysis.
 - **`604d6af`** — **chore: delete PAV UI** — `apps/cli`, `apps/tui`, `home_v2`, `dataset_selector`, TUI widgets, theme tokens removed. Console scripts `operational` / `pav` / `pav-os` and `python -m operational` are still **broken** (editable-install `.pth` still points at deleted `apps/cli/src`).
-- **`8077bda`** — test suite: **49 pytest files** under `src/operational/tests/{core,e2e,integration,unit,property/,tui/,ui/}` (the last three dirs are empty scaffolding post-`d4d28f5`).
+- **`8077bda`** — ~~test suite: **49 pytest files** under `src/operational/tests/...`~~ — `src/operational/` was removed in `604d6af` (PAV archival per ADR-024). 49 test files now live under `archive/legacy-pav/src-operational/tests/`. The Makefile's `make test` target still references `src/operational/tests/` (stale); comment it out or use the archive path.
 - **`b484795` / `ac4177f` / `66aa517`** — IKIGAi deep-agent harness + `ikigai-maintainer-mcp` (8 tools pre-Phase A, now 12 IKIGAI tools + 7 fork tools = 19 total) + LangGraph `ikigai_maintainer` graph with `SqliteSaver` checkpointing. **Note:** `ikigai_maintainer` LangGraph graph was later stripped per attribution §3 / commit `56cf9d7`; `make_ikigai_graph` factory removed from `vibe-ops/src/langgraph_entry.py`. Phase 8.1 (`fb41578`) recovered IKIGAI architecture under `src/ikigai/src/agents/v2/` (parallel, not registered).
 
 **Observability sprint — 4 repos in worktrees (status post-reorg):**
 - `src/ikigai` (IKIGAI) — `feat/mcp-observability` branch, 8 commits, awaiting merge to `gitbutler/workspace` (see spec `src/ikigai/docs/observability/03-merge-plan.md`).
-- `apps/kanban/tuiboard-otel-worktree` — `feat/otel-tracing`, 2 commits (`590ea60` + `2c39867`), unmerged.
-- `apps/dev-tools/taskdog-otel-worktree` — `feat/otel-tracing`, 2 commits (`5a8b1bb2` + `600c92b9` uv.lock), unmerged.
-- `apps/calendar/solverforge-calendar` — `feat/otel-tracing` + `feat/rust-build-fix`, 3 commits (`1716b16` build-fix + `cfbf12b` + `064b8c9` OTel fix), unmerged. Build-fix must merge to main BEFORE OTel rebases on it.
+- ~~`apps/kanban/tuiboard-otel-worktree`~~ — `feat/otel-tracing`, 2 commits (`590ea60` + `2c39867`), unmerged. **`apps/` directory does NOT exist at master HEAD** — these branches exist on unmerged `origin/gitbutler/target` only.
+- ~~`apps/dev-tools/taskdog-otel-worktree`~~ — `feat/otel-tracing`, 2 commits (`5a8b1bb2` + `600c92b9` uv.lock), unmerged. **Same — `apps/dev-tools/` is on unmerged branch only.**
+- ~~`apps/calendar/solverforge-calendar`~~ — `feat/otel-tracing` + `feat/rust-build-fix`, 3 commits (`1716b16` build-fix + `cfbf12b` + `064b8c9` OTel fix), unmerged. **`apps/calendar/` is on unmerged branch only.** Build-fix must merge to main BEFORE OTel rebases on it.
 
 ## Build & Test
 
@@ -183,23 +198,29 @@ bash scripts/smoke/phase3_v1.sh
 scripts\smoke\phase3_v1.bat                    # Windows
 ```
 
-### `src/operational/` — PAV kernel (uv workspace)
+### ~~`src/operational/` — PAV kernel (uv workspace)~~ (REMOVED in `604d6af`)
 
-`pyproject.toml` declares `members = ["packages/core"]` only. Real source lives at `src/operational/packages/core/src/operational/`.
+> **This section describes a removed package.** `src/operational/` does NOT
+> exist at master HEAD (deleted in `604d6af`). The full PAV kernel tree is
+> preserved for historical reference at
+> `archive/legacy-pav/src-operational/`. If you are looking for the
+> productivity kernel, it has been **archived per ADR-024** — no active
+> work happens there. Skip the `cd src/operational && uv ...` commands;
+> they will fail with "No such file or directory".
 
 ```bash
-cd src/operational
-uv sync                                                       # install (uv, not poetry)
-uv run pytest                                                 # full suite (49 test files in src/operational/tests)
-uv run pytest -m "not e2e"                                    # CI matrix
-uv run pytest tests/unit -v                                   # narrow by directory
-uv run pytest -k "test_qhe" -v                                # narrow by name
-uv run pytest --collect-only -q | tail -1                     # count check after refactor
-uv run ruff check src/
-uv run ruff format --check src/
-uv run mypy src/
-uv run pre-commit run --all-files                             # gating hooks (hooked from root .pre-commit-config.yaml)
-# `uv run verify_sprint` is referenced in CI but scripts/verify_sprint.py is .sh-only —
+# Archived — DO NOT RUN (would fail with "No such file or directory")
+# cd src/operational
+# uv sync                                                       # install (uv, not poetry)
+# uv run pytest                                                 # full suite (49 test files in src/operational/tests)
+# uv run pytest -m "not e2e"                                    # CI matrix
+# uv run pytest tests/unit -v                                   # narrow by directory
+# uv run pytest -k "test_qhe" -v                                # narrow by name
+# uv run pytest --collect-only -q | tail -1                     # count check after refactor
+# uv run ruff check src/
+# uv run ruff format --check src/
+# uv run mypy src/
+# uv run pre-commit run --all-files                             # gating hooks (hooked from root .pre-commit-config.yaml)
 # use scripts/verify_sprint.sh or `bash scripts/verify_sprint.sh` until it's ported.
 ```
 
@@ -260,7 +281,7 @@ make help           # list targets
 make install        # uv add langgraph + langgraph-checkpoint (+ optional pae-maintainer)
 make dev            # langgraph dev (port 2024)
 make dev-graph NAME=pae_maintainer
-make test           # runs vibe-ops/tests/, src/operational/tests/ (via stale poetry shim — see Pitfalls), and langgraph_tests/
+make test           # STALE — was: runs vibe-ops/tests/, src/operational/tests/ (via stale poetry shim), and langgraph_tests/. **Currently broken**: src/operational/ removed, langgraph_tests/ removed. Use `pytest tests/ -v` from repo root with src/ on PYTHONPATH for the Phase 3 test suite.
 make logs           # tail .langgraph/logs/dev.log
 make status         # list registered graphs + last 5 commits
 make clean          # rm .langgraph/state.db + .langgraph/checkpoints/ (NOT the running server)
@@ -281,11 +302,26 @@ cli/  centrals/  handlers/  plugins/   (all at repo root, NOT under life/)
 - `cli/config.py` — `LifeConfig` / `load_config()` loads `config/life.yaml` if present; key fields: `root`, `log_dir`, `plugin_dirs`, `submodules`, `task_scripts`, `notes_store`. `get_submodule_path(name)` returns `{"ok": False, "error": ...}` for unknown submodules (never raises).
 - `cli/test_runner.py` discovers `tests/` dirs from `cfg.submodules` and runs `pytest -v` per submodule.
 
-### `src/operational/` — uv workspace layout
+### ~~`src/operational/` — uv workspace layout~~ (REMOVED in `604d6af`)
 
-`pyproject.toml` declares `members = ["packages/core"]` only. Real source lives at `src/operational/packages/core/src/operational/` with modules: `constants.py` (PAVConstants, 22 frozen fields), `enums.py`, `types.py`, `exceptions.py` (10 codes), `entities/` (15 Pydantic v2 frozen models, `extra=forbid`, no cross-entity imports), `core/` (habit_engine, policy_engine, pomodoro_machine, sleep_calculator, scenario_classifier, consolidator, budget, routine_logger, weekly_aggregator, insights, break_calculator, context_switch, journal_segmenter, next_step, time_validator, analytics), `persistence/` (Repository Protocol + InMemory + SQLite + migrations), `parsers/` (YAML/frontmatter → Pydantic), `reports/` (Markdown daily/weekly), `analytics/`, `meta/` (EntityRegistry, validators, factories), `input_validation.py`. `agents/` (harness, orchestrator, workflows — incl. `agents/orchestrator/state.py` which owns `reload_stale_repos()`; the old `apps/cli/state.py` path is gone). `medic/` is a Go diagnostic CLI binary (with `medic.exe` already built). `workflows/` holds `daily_pipeline.yaml` + `pav_qa_pipeline.yaml`. `tests/` has 49 test files across `tests/{core,e2e,integration,unit,property/,tui/,ui/}` (the last three dirs are empty scaffolding from before `d4d28f5`).
+> **This section describes a removed package.** `src/operational/` does NOT
+> exist at master HEAD. The full PAV kernel tree (PAV math, Q_HE
+> algorithms, PolicyEngine FSM, Pomodoro state machine, scenario
+> classifier) was archived per **ADR-024** at
+> `archive/legacy-pav/src-operational/`. No active work happens there.
+> If you need to understand the historical architecture, read
+> `archive/legacy-pav/SUPERSEDED.md` for the rationale.
 
-Core algorithms (pure arithmetic, zero LLM): `H(t) = 1 − e^(−λ·streak)`, `E = R·(1 − H(t))`, Q_HE composite, 4-state PolicyEngine FSM (PUSH → MAINTAIN → REDUCE → RECOVER with hysteresis), 8-state Pomodoro SM + scenario classifier.
+The PAV kernel had ~49 test files across `tests/{core,e2e,integration,unit,property/,tui,ui}/`
+(the latter three were empty scaffolding post-`d4d28f5`) and used the
+following stack: Pydantic v2 frozen entities (`extra=forbid`, no
+cross-entity imports), Python `core/` algorithms (habit_engine,
+policy_engine, pomodoro_machine, etc.), `persistence/` (Repository
+Protocol + InMemory + SQLite), `parsers/` (YAML/frontmatter → Pydantic),
+`reports/` (Markdown daily/weekly). Pure-arithmetic algorithms
+(no LLM): `H(t) = 1 − e^(−λ·streak)`, `E = R·(1 − H(t))`, Q_HE composite,
+4-state PolicyEngine FSM, 8-state Pomodoro SM. **All archived — see
+`archive/legacy-pav/src-operational/`.**
 
 ### `src/ikigai/` — MCP meta-brain
 
@@ -306,7 +342,7 @@ Shared across all layers; **never duplicate contract models elsewhere**. Frozen 
 ## Testing
 
 - **Root `tests/`** (9 files) is Phase 3 only: `tests/{contracts,mesh,integration}/`. Run with `pytest tests/ -v` from repo root with `src/` on `PYTHONPATH`. **`langgraph_tests/` no longer exists** — the Makefile still references it and breaks `make test` (see Pitfalls).
-- **`src/operational/tests/`** — 49 test files. Markers in `pytest.ini`. CI runs `pytest -m "not e2e"` per package + a dedicated `pytest -m e2e` job. Scaffolding dirs `tests/{property,tui,ui}/` exist but are empty post-`d4d28f5`.
+- ~~**`src/operational/tests/`** — 49 test files~~ — archived in `604d6af`. Reference tests live at `archive/legacy-pav/src-operational/tests/` for historical context.
 - **`src/ikigai/tests/`** — 34 files. Poetry-managed. The Makefile claims 250+ tests; current count is 34.
 - **`vibe-ops/tests/`** — in-memory SQLite fixtures + mocked ChromaDB. `vibe-ops/scratch/` has informal `test_*.py` exploration scripts — **not** part of the official suite.
 - **`scripts/smoke/phase3_v1.{sh,bat}`** — Phase 3 v1 8-step happy path; isolated temp dir; the canonical end-to-end driver for the mesh layer.
@@ -314,27 +350,27 @@ Shared across all layers; **never duplicate contract models elsewhere**. Frozen 
 
 ## Important Rules
 
-- **`src/operational/` — standalone**: no imports from root `life/` or `vibe-ops/`. New CLI commands must support `--json`. Domain logic / CLI changes → update `src/operational/SPEC.md`. Quality gates: 49 pytest files, ruff ALL rules (extended in `src/operational/ruff.toml`), mypy --strict, pre-commit.
-- **`src/ikigai/` — decoupling**: no imports from `src/operational/` (the kernel is consumed via MCP contracts, not Python imports). Contracts come from `src/contracts/` only.
+- ~~**`src/operational/` — standalone**~~ — REMOVED in `604d6af`. Archive at `archive/legacy-pav/src-operational/` for historical reference. No active code or rules apply here.
+- **`src/ikigai/` — decoupling**: no imports from ~~`src/operational/`~~ (removed `604d6af`). All IKIGAI MCP server dependencies come from `src/contracts/` only.
 - **`src/contracts/` — single source**: all Pydantic models shared across layers live here; never re-define `UEID`, `Task`, `TaskChange`, etc. elsewhere.
 - **`src/mesh/` — Phase 3 v1 scope**: `create` action only. Don't add `update`/`delete`/`done` until Phase 3 v1.2 spec (gated on data-first methodology). PAE validation is the only sanctioned gate before propagation.
 - **`vault/`, `vibe-ops/`, `strategics/` — append-only**: never delete / prune / rewrite existing sessions, topics, sub-topics, or paragraphs. Re-organisation is allowed only if every pre-existing string survives byte-for-byte. Refactor protocol: stop → propose Action Plan → wait for explicit "go" → only then mutate.
 - **`data/` — runtime only**: never hand-edit `vibe_ops.db`, `vibe_mesh.db`, `boulder.json`, or `review_queue/`. Regenerate via the canonical CLI or smoke script.
 - **General**: prefer Typer for new `life/` CLI surfaces. `--json` everywhere feasible. Centrals stay thin — delegate to submodules or scripts. `from __future__ import annotations` at the top of every Python file. Handlers collect errors and report at end (no short-circuit).
-- **Two CLAUDE.md files** (`CLAUDE.md` root + `src/operational/CLAUDE.md`) describe overlapping scopes; trust neither blindly, verify against `git log` + filesystem. The root `CLAUDE.md` is more up-to-date on the `src/*` reorg + Phase 3 mesh layer.
+- **Two CLAUDE.md files** (root + ~~`src/operational/CLAUDE.md`~~ `archive/legacy-pav/src-operational/CLAUDE.md` if it exists) describe overlapping scopes; trust neither blindly, verify against `git log` + filesystem. The root `CLAUDE.md` is more up-to-date on the `src/*` reorg + Phase 3 mesh layer.
 
 ## Pitfalls
 
 - **Operational CLI is broken.** `uv run operational`, `uv run pav`, `uv run pav-os`, `python -m operational` all fail post-`604d6af`. Editable-install `.pth` files under `.venv/Lib/site-packages/` still point at the deleted `apps/cli/src` and `apps/tui/src`; don't take absence of an immediate ImportError as proof it works. Verify whether restoration is in scope before recommending.
-- **Stale `life-ops/*` paths in tool config.** Both the root `Makefile` (`cd life-ops/operational && poetry run pytest`) and `.pre-commit-config.yaml` header comment still reference `life-ops/operational/`. Real paths are `src/operational/`. The Makefile `test` target works only when a Poetry shim happens to exist; prefer `cd src/operational && uv run pytest`. **The Makefile's third `test` invocation `pytest langgraph_tests/` is broken** — that dir was removed; comment it out or skip the target.
+- **Stale `life-ops/*` paths in tool config.** Both the root `Makefile` (`cd life-ops/operational && poetry run pytest`) and `.pre-commit-config.yaml` header comment still reference `life-ops/operational/`. Real paths ~~are `src/operational/`~~ WERE `src/operational/` (PAV archival per ADR-024 / commit `604d6af`) — **neither `life-ops/operational/` NOR `src/operational/` exists at master HEAD**; both are pre-archival paths. Use `archive/legacy-pav/src-operational/` for historical reference. The Makefile `test` target works only when a Poetry shim happens to exist; both `make test` invocations are broken. **The Makefile's third `test` invocation `pytest langgraph_tests/` is broken** — that dir was removed; comment it out or skip the target.
 - **`langgraph_tests/` is gone.** Root `tests/` is Phase 3 only (mesh + contracts + integration). The Makefile's `make test` calls into a dead dir.
-- **Stray 0-byte files at repo root.** Names like `'`, `0`, `14`, `None`, `int`, `agent('Execute`, ``` ``1`` ```, and (in `src/operational/`) `'`, `1\``, `3`, `4.0\``, `6.0`, `60`, `None`, `Path`, `Severity\`,-`, `TimeSeriesSlice`, `tuple[date`, `tuple[str` are untracked crash/typo artifacts. Don't `read_file` them. Use `search_files pattern` if a real file with that name exists elsewhere.
-- **Orphaned test dirs.** `src/operational/tests/{tui,ui,property}/` survive but their source was deleted in `604d6af`/`d4d28f5` — empty dirs, no collection impact, but `pytest --collect-only` may warn.
-- **Don't expand the uv workspace casually.** CI matrix is `operational-core` + `ikigai` + `vibe-ops` (paths `src/operational/packages/core`, `src/ikigai`, `vibe-ops`). Adding a new member requires updating `.github/workflows/ci.yml` `matrix.include` and `members = [...]` in `src/operational/pyproject.toml`.
-- **Tooling split.** `uv sync` for `src/operational/` and `vibe-ops/`. `poetry install` for `src/ikigai/`. No `pyproject.toml` for `src/life_tatics/` or `src/mesh/` — run as plain Python modules with `PYTHONPATH=$REPO/src`. Never mix.
-- **Mtime reload moved.** `apps/cli/state.py` `reload_stale_repos()` now lives at `src/operational/agents/orchestrator/state.py`.
+- **Stray 0-byte files at repo root.** Names like `'`, `0`, `14`, `None`, `int`, `agent('Execute`, ``` ``1`` ```, and (in ~~`src/operational/`~~ `archive/legacy-pav/src-operational/`) `'`, `1\``, `3`, `4.0\``, `6.0`, `60`, `None`, `Path`, `Severity\`,-`, `TimeSeriesSlice`, `tuple[date`, `tuple[str` are untracked crash/typo artifacts. Don't `read_file` them. Use `search_files pattern` if a real file with that name exists elsewhere.
+- **Orphaned test dirs.** ~~`src/operational/tests/{tui,ui,property}/`~~ `archive/legacy-pav/src-operational/tests/{tui,ui,property}/` survive but their source was deleted in `604d6af`/`d4d28f5` — empty dirs, no collection impact, but `pytest --collect-only` may warn.
+- **Don't expand the uv workspace casually.** ~~CI matrix is `operational-core` + `ikigai` + `vibe-ops`~~ — currently CI matrix is `ikigai` + `vibe-ops` (the `operational-core` entry is stale; `src/operational/` was removed). If you want to add a new uv member, update `.github/workflows/ci.yml` `matrix.include` for the new path.
+- **Tooling split.** ~~`uv sync` for `src/operational/`~~ + `vibe-ops/`. `poetry install` for `src/ikigai/`. No `pyproject.toml` for `src/life_tatics/` or `src/mesh/` — run as plain Python modules with `PYTHONPATH=$REPO/src`. Never mix.
+- **Mtime reload moved.** `apps/cli/state.py` `reload_stale_repos()` ~~now lives at `src/operational/agents/orchestrator/state.py`~~ was relocated to `archive/legacy-pav/src-operational/agents/orchestrator/state.py` when PAV was archived in `604d6af`.
 - **LangGraph dev holds port 2024.** `make clean` wipes state + checkpoints only — kill the server before re-running.
-- **Throwaway files at `src/operational/` root** (`output.txt`, `CheckResult`, `not`, etc.) are not source — don't open or add new ones there. Same pattern of stray tokens is now leaking into `src/ikigai/` (`$null`, `dict`, `str`, `int`, etc.).
+- **Throwaway files at ~~`src/operational/`~~ `archive/legacy-pav/src-operational/` root** (`output.txt`, `CheckResult`, `not`, etc.) are not source — don't open or add new ones there. Same pattern of stray tokens is now leaking into `src/ikigai/` (`$null`, `dict`, `str`, `int`, etc.).
 - **`ikigai.bat` venv path.** The launcher hard-codes `.venv\Scripts\python.exe`; if you ever recreate the venv with `poetry env remove` + `poetry install`, the .bat still finds it — but renaming `.venv/` breaks it silently.
 - **Observability worktrees pending merge.** 4 OTel branches are sitting on disk (IKIGAI `feat/mcp-observability` worktree + 3 external `feat/otel-tracing` branches in `apps/{kanban,dev-tools,calendar}/`). Merge procedure in `src/ikigai/docs/observability/03-merge-plan.md`. Don't rebase or rewrite their history without reading the merge plan first — order matters (solverforge build-fix first).
 - **`scripts/verify_sprint.sh` vs `uv run verify_sprint`.** Only `.sh` exists; `uv run verify_sprint` fails. Use `bash scripts/verify_sprint.sh` until it's ported.
@@ -360,12 +396,12 @@ Shared across all layers; **never duplicate contract models elsewhere**. Frozen 
 | `src/mesh/agent_consumer.py` | Deep Agent validation (`Decision.APPROVE|REJECT|CLARIFY`) |
 | `src/mesh/agent_propagator.py` | Deep Agent propagation (per-adapter failure isolation) |
 | `src/mesh/adapters/{base,cli,taskdog,solverforge_calendar}.py` | Phase 3 v1 `ForkAdapter` Protocol + 3 implementations |
-| `src/operational/{pyproject.toml,pytest.ini,ruff.toml,SPEC.md}` | uv workspace + gates |
-| `src/operational/scripts/{verify_sprint,lint,test,typecheck}.sh` | Local gate scripts |
-| `src/operational/packages/core/src/operational/{core,entities,persistence,parsers,reports,analytics,meta}/` | Pure PAV logic |
-| `src/operational/agents/{harness,orchestrator,workflows}/` | Agentic systems (engine, scheduler, monitor, state, task_types, qa_swarm.yaml) |
-| `src/operational/medic/` | Go diagnostic CLI (has prebuilt `medic.exe`) |
-| `src/operational/workflows/{daily_pipeline,pav_qa_pipeline}.yaml` | Workflow specs |
+| ~~`src/operational/{pyproject.toml,pytest.ini,ruff.toml,SPEC.md}`~~ | (REMOVED `604d6af`; archived at `archive/legacy-pav/`) |
+| ~~`src/operational/scripts/{verify_sprint,lint,test,typecheck}.sh`~~ | (REMOVED `604d6af`; archived at `archive/legacy-pav/`) |
+| ~~`src/operational/packages/core/src/operational/{core,entities,persistence,parsers,reports,analytics,meta}/`~~ | (REMOVED `604d6af`; archived at `archive/legacy-pav/`) |
+| ~~`src/operational/agents/{harness,orchestrator,workflows}/`~~ | (REMOVED `604d6af`; archived at `archive/legacy-pav/`) |
+| ~~`src/operational/medic/`~~ | (REMOVED `604d6af`; archived at `archive/legacy-pav/`; prebuilt `medic.exe` may still exist in archive) |
+| ~~`src/operational/workflows/{daily_pipeline,pav_qa_pipeline}.yaml`~~ | (REMOVED `604d6af`; archived at `archive/legacy-pav/`) |
 | `src/ikigai/{SPEC.md,MCP_GATEWAY.md,ikigai.bat,run_mcp_server.py,start_mcp_gateway.sh,langgraph.json,pyproject.toml}` | IKIGAi entry + manifest |
 | `src/ikigai/src/{agents,mcp_server,ikigai,observability}/` | Deep-agent harness, MCP server, IKIGAi core, OTel init |
 | `src/ikigai/data/matheus/{dreams,objectives,projects,deliverables,ikigai_state}/` | BYD case-study vault (PT-BR deliverables) |
