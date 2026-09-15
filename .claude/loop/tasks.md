@@ -911,30 +911,47 @@
 - **notes:** Investigation found only 1.5 systems, not 3 — refutes the roadmap premise (similar to M21 PROD_LAYERS widening). Canonical = claude-flow daemon; auto-start-loop-tick.sh retained as session-start guardian per T-9.2 design. Mavis cron was never live. Windows Task Scheduler: 30+ tasks, zero loop-tick. Drift net 61/61 PASS preserved.
 
 #### T-24.2 — Canonical scheduler selection + CLAUDE.md update
-- **status:** pending
+- **status:** done
+- **commit:** 48e49154 (T-24.2 canonical scheduler decision + CLAUDE.md proposal)
 - **spec_ref:** SPEC.md (T-24.2)
 - **acceptance:**
-  - [ ] Decision documented in SPEC.md §"Canonical Scheduler"
-  - [ ] Rationale: cost-cap enforcement + recovery + M8 notification integration
-  - [ ] CLAUDE.md updated to declare canonical scheduler (claude-flow daemon)
+  - [x] Decision documented in SPEC.md §"Canonical Scheduler Decision (T-24.2)" with 4-criterion table (cost-cap, recovery, notification, cross-platform)
+  - [x] Rationale: claude-flow daemon wins on all 4 criteria; M1 + M8 milestones already integrated
+  - [ ] CLAUDE.md updated — **PROPOSED, NOT APPLIED** (per orchestrator hard rule "Never modify AGENTS.md or CLAUDE.md — propose, don't write"). Proposal at `code-docs/proposals/m24-claude-md-update.md` awaiting human review and manual merge.
 - **estimated_cost_usd:** 0.30
-- **estimated_minutes:** 8
+- **estimated_minutes:** 6
+- **attempts:** 1
+- **last_verdict:** PASS (with human-merge pending for CLAUDE.md)
+- **notes:** SPEC.md extended with "Canonical Scheduler Decision (T-24.2)" section. CLAUDE.md proposal at code-docs/proposals/m24-claude-md-update.md (proposed text + rationale + verification-of-non-edit + references). Stray loop-tick.ts (backlog item 1, TypeScript port) caught and excluded from commit via `git rm --cached` + amend.
 
 #### T-24.3 — Retirement phase (conditional)
-- **status:** pending
+- **status:** done (no-op — conditional skip branch applied)
+- **commit:** (no code changes; documented in 48e49154 + 7c3dd0c4)
 - **spec_ref:** SPEC.md (T-24.3)
 - **acceptance:**
-  - [ ] If T-24.1 found 3 systems: delete 2 non-canonical entries (crontab / Claude Code Schedule)
-  - [ ] If T-24.1 found <3 systems: document actual count in CLAUDE.md + skip retirement (with evidence file)
-  - [ ] CLAUDE.md "Cross-Loop Cron" section added with canonical-only statement
-- **estimated_cost_usd:** 0.20
-- **estimated_minutes:** 6
+  - [x] T-24.1 found 1.5 systems (daemon + SessionStart guardian), NOT 3 → **conditional skip branch applied** per SPEC §"Conditional retirement logic if <3 systems exist"
+  - [x] Actual count documented in SPEC.md §"Canonical Scheduler Decision (T-24.2)" + CLAUDE.md proposal
+  - [x] CLAUDE.md "Cross-Loop Cron" section PROPOSED (not applied per orchestrator hard rule) — same proposal at `code-docs/proposals/m24-claude-md-update.md`
+- **estimated_cost_usd:** 0.00 (no-op branch)
+- **estimated_minutes:** 1
+- **attempts:** 0
+- **last_verdict:** PASS (conditional no-op branch — investigation already covered by T-24.1 + T-24.2)
+- **notes:** T-24.3 conditional branch: T-24.1 found <3 systems → retirement step is no-op. Evidence: SPEC.md investigation table (System 2 Mavis = NOT FOUND, System 4 Windows Task Scheduler = NOT FOUND, System 3 Claude Code = session-start guardian only). The "3 redundant systems" claim in roadmap.md line 426 was stale/inaccurate. Documented actual count = 1.5 systems (daemon canonical + SessionStart guardian).
 
 #### T-24.4 — Verify no double-firing for 24h
-- **status:** pending
+- **status:** in_progress (wall-clock gate, $0 LLM cost)
 - **spec_ref:** SPEC.md (T-24.4)
+- **window_start:** 2026-09-15T02:44:50Z
+- **window_end_expected:** 2026-09-16T02:44:50Z
 - **acceptance:**
-  - [ ] Monitor progress.md for 24h post-T-24.3
+  - [ ] Monitor progress.md for 24h post-T-24.3 — **WALL-CLOCK GATE**, cannot fake completion
+  - [ ] Daemon log shows exactly 1 loop-tick.sh invocation per scheduled interval (no double-fire)
+  - [ ] No Mavis cron / Windows Task Scheduler / Claude Code Schedule entries fire loop-tick.sh
+  - [ ] cost-dashboard (`$0.5/d`) and streak-tracker (`$0.1/d`) remain single-fire
+- **gate_type:** wall-clock (24h from T-24.3 closeout)
+- **verification_method:** `grep "loop-tick.sh" ~/.claude/daemon-manager.log` + `crontab -l` + schtasks.exe /Query
+- **expected_closeout:** next orchestrator tick at 2026-09-16T02:44:50Z+ validates log fire count = scheduled intervals
+- **notes:** Similar pattern to M9 7-day streak gate. The 1.5-systems reconciliation (T-24.1) makes this gate essentially trivial — only daemon can fire; guardian hook re-starts daemon but doesn't fire independently.
   - [ ] Count `loop-tick` entries per 60-minute UTC window
   - [ ] Acceptable: ≤1 entry per window
   - [ ] Failure: ≥2 entries = retired system still firing
@@ -942,8 +959,17 @@
 - **estimated_minutes:** 1 (after 24h wall-clock)
 
 #### T-24.5 — Drift net 61/61 PASS preserved
-- **status:** pending
+- **status:** done
+- **ts:** 2026-09-15T02:44:50Z
 - **spec_ref:** SPEC.md (T-24.5)
+- **result:** 61 passed in 5.01s — 0 failures, 0 errors, 0 skips, 0 xfails
+- **test_files:** test_canonical_scope.py + test_drift_invariants.py + test_drift_extended_invariants.py + test_chat_repl.py
+- **cost_usd:** 0.00 (LLM-free; pure pytest)
+- **duration_sec:** 5.01
+- **attempt:** 1/1
+- **last_verdict:** PASS — 61/61 preserved (no regressions from M24 doc-only changes)
+- **notes:** Confirms T-24.1 + T-24.2 + T-24.3 (doc-only + proposal) did not perturb canonical scope, drift invariants, langgraph registry, investigation queue, taskdog read-only contract, or chat_repl surface.
+
 - **acceptance:**
   - [ ] `pytest src/ikigai/tests/test_canonical_scope.py src/ikigai/tests/test_drift_invariants.py src/ikigai/tests/test_drift_extended_invariants.py src/ikigai/tests/test_chat_repl.py` → 61/61 PASS
 - **estimated_cost_usd:** 0.00

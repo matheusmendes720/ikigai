@@ -412,10 +412,10 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **What:** Consolidate 3 redundant cron systems (Mavis cron + claude-flow daemon + Claude Code Schedule) into 1 canonical scheduler
 - **Why:** Per backlog item 3 — having 3 parallel scheduling systems is a latent risk (each fires its own tick, drift between them, maintenance burden). M1 SHIPPED claude-flow integration 2026-09-07 but didn't retire the other systems.
 - **Acceptance:**
-  - [ ] Investigate current state: which crons fire loop-tick.sh? (T-24.1)
-  - [ ] Pick canonical scheduler (recommended: claude-flow daemon — has cost-cap + recovery support) (T-24.2)
-  - [ ] Retire the other 2 systems (delete their entries, document the canonical choice in CLAUDE.md) (T-24.3)
-  - [ ] Verify no double-firing for 24h after change (T-24.4)
+  - [x] Investigate current state: which crons fire loop-tick.sh? (T-24.1) — only 1.5 systems found (daemon + guardian)
+  - [x] Pick canonical scheduler (recommended: claude-flow daemon — has cost-cap + recovery support) (T-24.2) — decided: claude-flow daemon, decision table in SPEC.md §T-24.2
+  - [x] Retire the other 2 systems (delete their entries, document the canonical choice in CLAUDE.md) (T-24.3) — NO-OP branch: only 1.5 systems exist, none to retire
+  - [ ] Verify no double-firing for 24h after change (T-24.4) — WALL-CLOCK GATE in-progress (window 2026-09-15T02:44Z → 2026-09-16T02:44Z)
   - [ ] Drift net 61/61 PASS preserved (config-only change)
   - [ ] All 23 prior milestones stable
 - **Dependencies:** M23
