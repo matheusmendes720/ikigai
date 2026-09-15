@@ -580,7 +580,7 @@ Both kept here for audit trail.
 - **Launched:** 2026-09-15 by daemon (M39 followup); committed 2026-09-15 in `9cc14f87` after drift net flagged M40 as orphan
 - **Completed:** 2026-09-15
 
-### M41 — planning-with-files submodule unlink (STATUS: IN-PROGRESS)
+### M41 — planning-with-files submodule unlink (STATUS: DONE)
 - **What:** Strip the phantom submodule gitlink at `strategics/planning-with-files/` — mode 160000 without `.gitmodules` registration. Keep the directory as a self-contained vendored third-party fork (Matheus's fork of OthmanAdi's `planning-with-files` v3.1.3, HEAD `8f5a3c2e`).
 - **Why:** 3 real costs today: (1) `git submodule status` fatal errors break CI submodule-aware steps; (2) the 55-file working-tree diff was never committed — `git submodule update --force` would silently destroy it; (3) governance violation — append-only rule + state-on-disk principle say every change needs a milestone SPEC, none existed.
 - **Spec:** `specs/M41-planning-with-files-submodule-unlink/SPEC.md` (created 2026-09-15; **renumbered from M39** because daemon shipped "daemon-watchdog" at same M-number in parallel — commit `b431a649`; investigation: 3 sub-agents found 100% of the diff is Black/Ruff formatter output against upstream v3.1.3, no functional changes, regenerable; disposition: Option B = unlink + keep as vendored copy; no path relocation; formatter patch discarded)
@@ -588,15 +588,14 @@ Both kept here for audit trail.
   - [x] Local diff classified: 49 disposable + 6 deferred-to-upstream, 0 ship, 0 extract (T-41.1 — subagent audit, 2026-09-15)
   - [x] Working tree in submodule restored to v3.1.3 byte-for-byte (T-41.2 — `git -C strategics/planning-with-files restore .`)
   - [x] Snapshot patch deleted; `strategics/_local-snapshots/` directory removed (T-41.3)
-  - [ ] Phantom gitlink removed from parent index: `git rm --cached strategics/planning-with-files` (T-41.4)
-  - [ ] `strategics/planning-with-files/` added to parent `.gitignore` (T-41.4)
-  - [ ] Drift net preserved: 68/68 (ikigai drift) + 11/11 (test_loop_infra)
-  - [ ] `git status` clean (no phantom submodule state, no leaked .patch file)
-  - [ ] Inner repo `strategics/planning-with-files/.git/` still functional
-- **Dependencies:** M20 (operational hygiene — flagged the dirty state); M39 (daemon-watchdog — shipped in parallel by daemon; this milestone renumbered from M39 to M41 to avoid collision)
-- **Estimated ticks:** 1 (4 tasks above)
-- **Constitution gate:** state_on_disk_not_in_conversation (snapshot then discarded); tests_are_the_contract (drift 68/68); spec_driven_not_vibe_driven (this SPEC); reversibility_over_cleverness (Option B trivially reversible via `git submodule add`)
-- **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
+  - [x] Drift net preserved: 68/68 (ikigai drift) + 11/11 (test_loop_infra)
+    - [x] `git status` clean (no phantom submodule state, no leaked .patch file)
+    - [x] Inner repo `strategics/planning-with-files/.git/` still functional
+  - **Dependencies:** M20 (operational hygiene — flagged the dirty state); M39 (daemon-watchdog — shipped in parallel by daemon; this milestone renumbered from M39 to M41 to avoid collision)
+  - **Estimated ticks:** 1 (4 tasks above)
+  - **Constitution gate:** state_on_disk_not_in_conversation (snapshot then discarded); tests_are_the_contract (drift 68/68); spec_driven_not_vibe_driven (this SPEC); reversibility_over_cleverness (Option B trivially reversible via `git submodule add`)
+  - **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
+  - **Completed:** 2026-09-15 — atomic commits `9c77fa09` (M41 unlink) + `a5a4ab30` (M41 cleanup); pushed to origin master
 
 ## Adding a new milestone
 
