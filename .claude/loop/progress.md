@@ -2316,3 +2316,38 @@
 - attempt: 1/1
 - notes: hill-climb-v2 proposed M-CAND-1, M-CAND-2 (2 candidates). Review and promote.
 - next_action: review_and_promote
+## 2026-09-15T16:10:47Z | T-24.4 partial observation | IDLE (wall-clock gate 13.41h/24h)
+- commit: (state-machine note, no commit needed for partial observation)
+- cost_usd: 0.00 (LLM-free; pure Python + bash)
+- duration_min: 2
+- model: bash-only
+- attempt: 1/2 (partial)
+- notes: T-24.4 wall-clock gate at 13.41h of 24h. Loop-tick fires since 2026-09-15T02:44:50Z:
+    - Total fires: 15 (all loop-tick schedule, cost_cap=$5)
+    - Distinct minutes: 12
+    - Expected @ 60min: ~13 fires (close — 12 distinct minutes)
+    - Inter-fire cadence: 51min/11min/51min/11min/338min/61min/60min/...
+        - The 11min pair pattern (e.g., 03:42+03:53) suggests either daemon
+          triggering a "missed tick catchup" OR cost-dashboard firing loop-tick
+          as a side-effect. Investigation pending.
+    - **ANOMALY: 2026-09-15T12:43:00Z x4 fires in 4 seconds** — 4 parallel
+      loop-tick invocations within same minute (12:43:00, :01, :02, :04).
+      Likely cause: SessionStart guardian re-firing when daemon-restart detected,
+      or daemon restart burst when cost-cap hit. Pre-existing behavior (not
+      introduced by M24 doc-only changes).
+    - **5.6h gap: 2026-09-15T04:56Z → 10:34Z** — daemon downtime (likely
+      machine sleep or daemon-manager script error).
+  - **NOT A REGRESSION FROM M24**: M24 was doc-only + proposal. Pre-T-24.4
+    fires (Sep 7-14) show similar pattern (multi-fire bursts, gaps). The
+    "1.5 systems" finding from T-24.1 was based on configuration files,
+    not observed fire patterns. Real-world behavior has the daemon firing
+    more often than the 60min schedule suggests — but this is pre-existing.
+  - Next orchestrator tick at window_end_expected=2026-09-16T02:44:50Z should:
+    (a) re-run this analysis on full 24h, (b) compare cadence to schedules.json
+    (60m/168h/1440m/1440m), (c) verify cost-dashboard and streak-tracker
+    fired ~1x each, (d) decide PASS if total fire count is plausible for
+    the schedule set; FAIL if evidence of true double-fire from cron/Task
+    Scheduler independent of daemon.
+  - Budget remaining: ~$0.32 (last tick). SessionStart resume re-grants
+    budget to $5 per system policy — effective budget: ~$5.00 (per resume).
+- next_action: continue wall-clock gate (final observation at 2026-09-16T02:44:50Z)
