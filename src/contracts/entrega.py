@@ -6,7 +6,7 @@ Per spec 2026-09-03-sonho-tree-hybrid-design §Schema Additions.
 
 from pydantic import Field
 
-from src.contracts.base import BasePlanContract
+from .base import BasePlanContract
 
 
 class Entrega(BasePlanContract):
