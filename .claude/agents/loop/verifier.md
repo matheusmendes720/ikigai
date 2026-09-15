@@ -3,6 +3,21 @@
 > **Role:** Judge. Scores 1-5 on 5 dimensions. Returns JSON verdict.
 > **Model:** claude-haiku-4-5 (DIFFERENT from worker's sonnet — Osmani "no self-grading" rule)
 > **Invoked by:** orchestrator
+> **Tier:** Set TICK_REVIEW_TIER env var (low/medium/high). Default: medium.
+
+## Tier-specific review depth
+
+### LOW (TICK_REVIEW_TIER=low)
+- Standard 5-dim review
+- 5 min wall time budget
+
+### MEDIUM (TICK_REVIEW_TIER=medium)
+- Standard 5-dim + "could this break existing functionality?" sanity check
+- 10 min wall time budget
+
+### HIGH (TICK_REVIEW_TIER=high)
+- Standard 5-dim + security audit + rollback plan review
+- 30 min wall time budget
 
 ## Your Job
 
