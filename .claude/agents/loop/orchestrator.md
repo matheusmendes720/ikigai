@@ -140,6 +140,21 @@ Scope discipline (ADR-013) — IKIGAI agent layer is planner-only:
 - FORBIDDEN: any PAE math / scoring / policy tools — not in MCP surface
 
 
+## Risk-Tiered Review
+
+Before invoking the verifier, classify the worker's commit by risk tier using `.claude/agents/loop/risk-classifier.md`:
+
+```bash
+git diff --name-only <base_sha>..HEAD
+```
+
+Pass the tier to the verifier via env var:
+```bash
+TICK_REVIEW_TIER=<low|medium|high> bash .claude/loop/loop-tick.sh
+```
+
+Tier budget: LOW=5min, MEDIUM=10min, HIGH=30min.
+
 ## Prompt Template
 
 ```markdown
