@@ -2210,6 +2210,14 @@
 - attempt: 1/1
 - notes: Roadmap reconciliation per human authorization. Added M25, M26, M27 sections to .claude/loop/roadmap.md (STATUS: DONE, with commit hashes + completion notes). M24 drift net checkbox ticked (verified 2026-09-15). Backlog reduced to empty + next-candidates list (hill-climb v2, signal-discovery, drift-net SPEC frontmatter schema coverage, phase-4-taskdog bridge). Drift net 61/61 PASS preserved. 1 file changed (.claude/loop/roadmap.md, +46/-6).
 - next_action: commit roadmap diff + push; idle until M24 T-24.4 wall-clock gate closes (2026-09-16T02:44:50Z)
+## 2026-09-15T14:10:00Z | M28-drift-spec-frontmatter | PASS
+- commit: ab813e4f
+- cost_usd: 0.00
+- duration_min: 10
+- model: opus (state-machine + bash verification; sub-agent was Sonnet)
+- attempt: 1/1
+- notes: M28 SHIPPED. 3 new drift tests appended to test_drift_extended_invariants.py: (1) test_milestone_specs_have_valid_frontmatter — asserts name/description/constitution_refs/status/owner schema; (2) test_milestone_specs_status_matches_roadmap — parses roadmap.md STATUS: tags + compares; (3) test_no_orphan_milestone_specs — catches SPECs without roadmap entries AND roadmap milestones without SPECs. Drift net: 61/61 -> 64/64 PASS (+3 invariants, +5% growth). 1 file changed, +289 lines. Closes the loop M27 opened: if anyone adds an M29 SPEC without valid frontmatter, CI fails. Master branch, not pushed.
+- next_action: dispatch M29 (signal-discovery sweep)
 
 
 ## 2026-09-15T14:36:32Z | orchestrator-tick | IDLE
