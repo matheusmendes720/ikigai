@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-06-26T16:47:23.644Z",
+  "timestamp": "2026-09-15T13:16:58-03:00",
   "processes": {
     "agentic_flow": 0,
     "mcp_server": 0,
@@ -13,6 +13,5 @@
   "integration": {
     "agentic_flow_active": false,
     "mcp_active": false
-  },
-  "_initialized": true
+  }
 }
