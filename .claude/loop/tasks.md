@@ -893,19 +893,22 @@
 - **Preliminary finding (2026-09-15 orchestrator pre-check):** Only 1 scheduler is active (claude-flow daemon with 4 schedules: loop-tick / hill-climb / cost-dashboard / streak-tracker). No crontab entries (`crontab -l` empty). No Mavis references found. No Claude Code Schedule API. "3 systems" claim may be partially refuted like M21 PROD_LAYERS widening.
 
 #### T-24.1 — Investigation: enumerate all scheduling systems firing loop-tick.sh
-- **status:** pending (worker dispatch in this tick)
+- **status:** done
+- **commit:** 7c3dd0c4 (T-24.1 + state machine reconciliation; SPEC.md from worktree commit a72ff6d0)
 - **spec_ref:** `specs/M24-cross-loop-cron-dedup/SPEC.md` (T-24.1 acceptance)
 - **acceptance:**
-  - [ ] `crontab -l` checked on host (POSIX + Git Bash WSL)
-  - [ ] `Get-ScheduledTask` checked on Windows (scheduled tasks filtering for loop-tick)
-  - [ ] `.claude/loop/schedules.json` + `daemon-manager.sh list` output captured
-  - [ ] `grep -r "loop-tick" .claude/ scripts/ src/` enumeration complete
-  - [ ] `.claude/settings.json` SessionStart hooks reviewed for any scheduler-triggering logic
-  - [ ] Mavis cron search (may not exist — verify)
-  - [ ] Deliverable: `docs/superpowers/specs/2026-09-15-m24-cron-inventory.md` with table of systems + cadence + what they fire
-- **estimated_cost_usd:** 0.50 (worker in worktree)
-- **estimated_minutes:** 10
-- **attempts:** 0
+  - [x] `crontab -l` checked on host — empty (no cron entries)
+  - [x] `Get-ScheduledTask` / `schtasks /query` checked on Windows — 30+ tasks, zero loop-tick refs
+  - [x] `.claude/loop/schedules.json` + `daemon-manager.sh list` captured — 4 schedules, loop-tick RUNNING PID 1802
+  - [x] `grep -r "loop-tick" .claude/ scripts/ src/` enumeration complete — only daemon + SessionStart guardian
+  - [x] `.claude/settings.json` SessionStart hooks reviewed — auto-start-loop-tick.sh is one-shot safety net
+  - [x] Mavis cron search — NOT FOUND (zero live entries, only backlog mentions)
+  - [x] Deliverable: SPEC.md (53L) at `specs/M24-cross-loop-cron-dedup/SPEC.md` with table of 4 systems + recommendation
+- **estimated_cost_usd:** 0.50
+- **estimated_minutes:** 8
+- **attempts:** 1
+- **last_verdict:** PASS
+- **notes:** Investigation found only 1.5 systems, not 3 — refutes the roadmap premise (similar to M21 PROD_LAYERS widening). Canonical = claude-flow daemon; auto-start-loop-tick.sh retained as session-start guardian per T-9.2 design. Mavis cron was never live. Windows Task Scheduler: 30+ tasks, zero loop-tick. Drift net 61/61 PASS preserved.
 
 #### T-24.2 — Canonical scheduler selection + CLAUDE.md update
 - **status:** pending
