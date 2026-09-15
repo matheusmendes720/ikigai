@@ -515,7 +515,19 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 
 _(empty — all 5 prior backlog items shipped via M23, M24, M25, M26, M27)_
 
-Next backlog candidates: hill-climb v2, signal-discovery, drift-net coverage of SPEC frontmatter schema (closes the loop M27 opened), phase-4-taskdog bridge.
+Next backlog candidates: M38 (double-fire suppression), M38 (streak-tracker 7-day gate verification), M38 (signal-discovery automation), M24 T-24.4 closeout.
+
+## Retired CANDs
+
+### M-CAND-1 — Drift Coverage — unconstitutioned principle (RETIRED)
+- **Addressed by:** M35 (constitution coverage — 7 principles now enforced via SPEC frontmatter)
+- **Status:** Stale — no longer a gap
+
+### M-CAND-2 — M29 Followup — cost-dashboard daemon activation (RETIRED)
+- **Addressed by:** M30 (daemon reactivation — cost-dashboard + streak-tracker restored)
+- **Status:** Stale — no longer a gap
+
+Both kept here for audit trail.
 
 ## Adding a new milestone
 
