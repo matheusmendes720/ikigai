@@ -2218,6 +2218,14 @@
 - attempt: 1/1
 - notes: M28 SHIPPED. 3 new drift tests appended to test_drift_extended_invariants.py: (1) test_milestone_specs_have_valid_frontmatter — asserts name/description/constitution_refs/status/owner schema; (2) test_milestone_specs_status_matches_roadmap — parses roadmap.md STATUS: tags + compares; (3) test_no_orphan_milestone_specs — catches SPECs without roadmap entries AND roadmap milestones without SPECs. Drift net: 61/61 -> 64/64 PASS (+3 invariants, +5% growth). 1 file changed, +289 lines. Closes the loop M27 opened: if anyone adds an M29 SPEC without valid frontmatter, CI fails. Master branch, not pushed.
 - next_action: dispatch M29 (signal-discovery sweep)
+## 2026-09-15T14:15:00Z | M29-signal-discovery | PASS
+- commit: 1fed10a9
+- cost_usd: 0.00
+- duration_min: 6
+- model: opus (state-machine + bash verification; sub-agent was Sonnet)
+- attempt: 1/1
+- notes: M29 SHIPPED. Signal-discovery report at docs/superpowers/specs/signal-discovery-2026-09-15.md (143 lines). Aggregated 260 ticks: 87% PASS, 4.6% FAIL (all 2026-09-08 burst), 5.8% IDLE (mostly wall-clock gate), $2.60 total observed cost, $0.01 avg/tick. Top failure pattern: state-machine drift (M25 not in roadmap) — now resolved by M27.1 reconciliation. Top-5 next-candidate ranking from evidence: (1) M30 cost-dashboard daemon reactivation; (2) M31 streak-tracker reactivation; (3) M32 M25 state-machine reconciliation [DONE via M27.1]; (4) M33 hill-climb v2; (5) M34 anti-idle auto-reconciliation. Drift net 64/64 PASS preserved. Doc-only change. Master branch, not pushed. Stays in data-first mode (no algorithm changes).
+- next_action: idle; user picks next direction from M29 top-5 ranking (M30/M31/M33/M34 are real options; M32 superseded by M27.1)
 
 
 ## 2026-09-15T14:36:32Z | orchestrator-tick | IDLE
