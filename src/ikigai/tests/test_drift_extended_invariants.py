@@ -728,3 +728,292 @@ def test_taskdog_tools_read_only_contract() -> None:
         + f"\n\nDeclared tools: {sorted(declared_tools)}\n"
         + f"Allowed tools (Path 3 read-only): {sorted(ALLOWED)}"
     )
+
+
+# ---------------------------------------------------------------------------
+# M28 — SPEC frontmatter schema drift net
+# ---------------------------------------------------------------------------
+
+VALID_PRINCIPLE_KEYS: frozenset[str] = frozenset({
+    "correctness_over_speed",
+    "reversibility_over_cleverness",
+    "composition_over_inheritance",
+    "tests_are_the_contract",
+    "state_on_disk_not_conversation",
+    "multi_package_boundaries_are_sacred",
+    "spec_driven_not_vibe_driven",
+})
+
+VALID_STATUSES: frozenset[str] = frozenset({"DONE", "IN_PROGRESS", "PENDING"})
+
+
+def _parse_frontmatter(text: str) -> dict[str, object]:
+    """Parse YAML frontmatter from a markdown file.
+
+    Extracts the block between the first two ``---`` lines and parses
+    it with ``yaml.safe_load``. Returns the parsed dict, or an empty
+    dict if no frontmatter is found.
+    """
+    lines = text.splitlines()
+    if len(lines) < 3 or lines[0] != "---":
+        return {}
+    fence_idx = None
+    for i, line in enumerate(lines[1:], start=1):
+        if line == "---":
+            fence_idx = i
+            break
+    if fence_idx is None:
+        return {}
+    frontmatter_text = "\n".join(lines[1:fence_idx])
+    try:
+        import yaml as _yaml
+
+        return _yaml.safe_load(frontmatter_text) or {}
+    except Exception:
+        # Fallback: simple key: value parser for minimal recovery
+        result: dict[str, object] = {}
+        for line in frontmatter_text.splitlines():
+            line = line.strip()
+            if ":" not in line:
+                continue
+            key, _, val = line.partition(":")
+            val = val.strip()
+            if val.startswith("[") and val.endswith("]"):
+                # Parse as YAML-ish list
+                items = [s.strip().strip(",").strip('"').strip("'") for s in val[1:-1].split()]
+                result[key.strip()] = items
+            else:
+                result[key.strip()] = val.strip('"').strip("'")
+        return result
+
+
+def _spec_file_to_milestone_id(spec_path: Path) -> str | None:
+    """Derive milestone id like 'M4' from a spec path like specs/M4-langgraph-integration/SPEC.md."""
+    import re
+
+    parts = spec_path.parent.name  # e.g. "M4-langgraph-integration"
+    m = re.match(r"^(M\d+)-", parts)
+    return m.group(1) if m else None
+
+
+def _parse_roadmap_statuses() -> dict[str, str]:
+    """Parse milestone statuses from roadmap.md.
+
+    Returns a dict mapping milestone id (e.g. 'M4') to its STATUS value
+    (e.g. 'DONE') by matching the ``### M{n} ... (STATUS: STATUS)`` pattern.
+    """
+    import re
+
+    roadmap = REPO_ROOT / ".claude" / "loop" / "roadmap.md"
+    if not roadmap.exists():
+        return {}
+    text = roadmap.read_text(encoding="utf-8")
+    pattern = re.compile(r"^###\s+(M\d+)[^(]*\(STATUS:\s*([\w-]+)\)", re.MULTILINE)
+    return {m.group(1): m.group(2) for m in pattern.finditer(text)}
+
+
+def test_milestone_specs_have_valid_frontmatter() -> None:
+    """Frontmatter on every SPEC.md is machine-parseable and declares its
+    constitution contract (M28 T-28.1).
+
+    Without this, a future milestone author can add ``specs/M99-foo/SPEC.md``
+    with no frontmatter and CI silently passes. This invariant makes the
+    frontmatter schema a hard requirement.
+    """
+    import re
+
+    specs_dir = REPO_ROOT / "specs"
+    if not specs_dir.exists():
+        pytest.skip(f"specs/ directory not found at {specs_dir}")
+
+    # Collect all specs/M{n}-*/SPEC.md files
+    spec_files: list[Path] = []
+    for item in specs_dir.iterdir():
+        if item.is_dir() and re.match(r"^M\d+-", item.name):
+            spec_file = item / "SPEC.md"
+            if spec_file.is_file():
+                spec_files.append(spec_file)
+
+    if not spec_files:
+        pytest.skip("No milestone spec files found in specs/")
+
+    failures: list[str] = []
+    for spec_file in sorted(spec_files):
+        milestone = _spec_file_to_milestone_id(spec_file) or spec_file.parent.name
+        text = spec_file.read_text(encoding="utf-8")
+        fm = _parse_frontmatter(text)
+
+        if not fm:
+            failures.append(
+                f"  {spec_file.parent.name}/SPEC.md: no YAML frontmatter found"
+            )
+            continue
+
+        missing: list[str] = []
+        # name
+        name_val = fm.get("name")
+        if not isinstance(name_val, str) or not name_val:
+            missing.append("name (str, non-empty)")
+        elif not re.match(r"^M\d+-.+$", name_val):
+            missing.append(f"name must match ^M\\d+-.+$, got {name_val!r}")
+
+        # description
+        desc_val = fm.get("description")
+        if not isinstance(desc_val, str):
+            missing.append("description (str)")
+        elif len(desc_val) > 120:
+            missing.append(f"description must be <=120 chars, got {len(desc_val)}")
+
+        # constitution_refs
+        refs_val = fm.get("constitution_refs")
+        if not isinstance(refs_val, list):
+            missing.append("constitution_refs (list[str])")
+        elif len(refs_val) == 0:
+            missing.append("constitution_refs must have >=1 entry")
+        else:
+            invalid_refs = [r for r in refs_val if not isinstance(r, str) or r not in VALID_PRINCIPLE_KEYS]
+            if invalid_refs:
+                missing.append(
+                    f"constitution_refs contains invalid keys: {invalid_refs} "
+                    f"(valid: {sorted(VALID_PRINCIPLE_KEYS)})"
+                )
+
+        # status
+        status_val = fm.get("status")
+        if not isinstance(status_val, str) or status_val not in VALID_STATUSES:
+            missing.append(
+                f"status must be one of {sorted(VALID_STATUSES)}, got {status_val!r}"
+            )
+
+        # owner
+        owner_val = fm.get("owner")
+        if not isinstance(owner_val, str) or not owner_val:
+            missing.append("owner (str, non-empty)")
+
+        if missing:
+            failures.append(
+                f"  {spec_file.parent.name}/SPEC.md: "
+                + "; ".join(missing)
+            )
+
+    assert not failures, (
+        "The following milestone SPEC files have invalid frontmatter:\n"
+        + "\n".join(failures)
+    )
+
+
+def test_milestone_specs_status_matches_roadmap() -> None:
+    """The status declared in a SPEC frontmatter must match the roadmap's
+    own STATUS declaration for that milestone (M28 T-28.2).
+
+    A SPEC that says ``status: DONE`` while the roadmap says
+    ``(STATUS: PENDING)`` indicates a desynchronised milestone — someone
+    updated one but not the other. This invariant keeps them in sync.
+    """
+    import re
+
+    specs_dir = REPO_ROOT / "specs"
+    if not specs_dir.exists():
+        pytest.skip(f"specs/ directory not found at {specs_dir}")
+
+    roadmap_statuses = _parse_roadmap_statuses()
+    if not roadmap_statuses:
+        pytest.skip("Could not parse statuses from roadmap.md")
+
+    spec_files: list[Path] = []
+    for item in specs_dir.iterdir():
+        if item.is_dir() and re.match(r"^M\d+-", item.name):
+            spec_file = item / "SPEC.md"
+            if spec_file.is_file():
+                spec_files.append(spec_file)
+
+    failures: list[str] = []
+    for spec_file in sorted(spec_files):
+        milestone = _spec_file_to_milestone_id(spec_file)
+        if not milestone:
+            continue
+
+        text = spec_file.read_text(encoding="utf-8")
+        fm = _parse_frontmatter(text)
+        spec_status = fm.get("status") if fm else None
+
+        roadmap_status = roadmap_statuses.get(milestone)
+        # Normalize: roadmap uses IN-PROGRESS, SPEC frontmatter uses IN_PROGRESS
+        spec_status_norm = spec_status.replace("-", "_") if spec_status else None
+        roadmap_status_norm = roadmap_status.replace("-", "_") if roadmap_status else None
+        if roadmap_status_norm and spec_status_norm and spec_status_norm != roadmap_status_norm:
+            failures.append(
+                f"  {spec_file.parent.name}: SPEC says {spec_status!r} "
+                f"but roadmap says {roadmap_status!r}"
+            )
+
+    assert not failures, (
+        "Milestone SPEC status mismatches roadmap STATUS:\n"
+        + "\n".join(failures)
+    )
+
+
+def test_no_orphan_milestone_specs() -> None:
+    """No orphan SPEC files and no orphan roadmap entries (M28 T-28.3).
+
+    Catch both directions: (a) a SPEC.md exists for a milestone not in
+    the roadmap, and (b) a roadmap section declares a non-PENDING milestone
+    that has no corresponding SPEC.md. Keeps milestone spec and roadmap
+    in one-to-one correspondence.
+    """
+    import re
+
+    specs_dir = REPO_ROOT / "specs"
+    roadmap_file = REPO_ROOT / ".claude" / "loop" / "roadmap.md"
+
+    # Collect milestone IDs from SPEC files
+    spec_milestones: set[str] = set()
+    if specs_dir.exists():
+        for item in specs_dir.iterdir():
+            if item.is_dir() and re.match(r"^M\d+-", item.name):
+                spec_file = item / "SPEC.md"
+                if spec_file.is_file():
+                    mid = _spec_file_to_milestone_id(spec_file)
+                    if mid:
+                        spec_milestones.add(mid)
+
+    # Collect milestone IDs from roadmap with non-PENDING status
+    roadmap_text = ""
+    if roadmap_file.exists():
+        roadmap_text = roadmap_file.read_text(encoding="utf-8")
+
+    roadmap_pattern = re.compile(
+        r"^#{3,4}\s+(M\d+)[^(]*\(STATUS:\s*([\w-]+)\)", re.MULTILINE
+    )
+    roadmap_milestones: dict[str, str] = {}
+    for m in roadmap_pattern.finditer(roadmap_text):
+        roadmap_milestones[m.group(1)] = m.group(2)
+
+    failures: list[str] = []
+
+    # (a) SPEC without roadmap entry
+    for mid in sorted(spec_milestones):
+        if mid not in roadmap_milestones:
+            failures.append(
+                f"  {mid}: SPEC.md exists but no entry in roadmap.md"
+            )
+
+    # (b) Roadmap non-PENDING entry without SPEC — only enforce for the
+    # 9 milestones that M27 explicitly required SPECs for (per M27
+    # acceptance criteria: M4, M5, M6, M7, M8, M9, M10, M17, M24).
+    # All other milestones predate the SPEC.md convention and are exempt.
+    SPECD_MILESTONES: frozenset[str] = frozenset(
+        {"M4", "M5", "M6", "M7", "M8", "M9", "M10", "M17", "M24"}
+    )
+    for mid, status in sorted(roadmap_milestones.items()):
+        if mid not in spec_milestones and status != "PENDING":
+            if mid in SPECD_MILESTONES:
+                failures.append(
+                    f"  {mid}: roadmap has (STATUS: {status}) "
+                    f"but no specs/{mid}-*/SPEC.md file"
+                )
+
+    assert not failures, (
+        "Orphan milestone entries detected:\n"
+        + "\n".join(failures)
+    )
