@@ -2194,4 +2194,12 @@
 - attempt: 1/1
 - notes: M26 tier-by-risk review depth SHIPPED. 3 .md files changed (+69 lines): .claude/agents/loop/risk-classifier.md (NEW), orchestrator.md (Risk-Tiered Review section), verifier.md (tier-specific depth block + TICK_REVIEW_TIER env-var). Drift net 61/61 PASS preserved (re-verified in main session). No code touched, no Co-Authored-By trailer. Master branch, not pushed. Backlog item "Add tier by risk review depth (per @addyosmani)" SHIPPED — can be retired from backlog when roadmap.md gets M25/M26 sections (awaiting human direction per constitution).
 - next_action: dispatch M27 (SPEC frontmatter migration)
+## 2026-09-15T13:55:00Z | M27-spec-frontmatter | PASS
+- commit: a339c976
+- cost_usd: 0.00
+- duration_min: 2
+- model: opus (state-machine + bash verification; sub-agent was Sonnet)
+- attempt: 1/1
+- notes: M27 SPEC YAML frontmatter SHIPPED. 9 specs/M{n}-{slug}/SPEC.md files updated (+104 lines): M4, M5, M6, M7, M8, M9, M10, M17, M24. Each gets YAML block with name, description, constitution_refs (kebab-case keys to .claude/loop/constitution.md §"Core Principles"), status (DONE for M4-M17; IN-PROGRESS for M24 pending wall-clock gate), owner=loop-orchestrator, created=2026-09-07 where known. Constitution refs selected per-SPEC from actual content (e.g., M24 picks correctness_over_speed + tests_are_the_contract since it's an investigation+config milestone). Drift net 61/61 PASS preserved (re-verified in main session). No code touched, no Co-Authored-By trailer. Master branch, not pushed. Backlog item "Migrate SPEC.md frontmatter to use constitution.md references" SHIPPED — can be retired when roadmap.md M25/M26/M27 sections added (awaits human direction per constitution).
+- next_action: push M27 + idle (M0-M27 all shipped; backlog empty except roadmap reconciliation)
 
