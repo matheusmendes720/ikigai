@@ -2435,6 +2435,15 @@
 - duration_min: 30
 - model: opus (state-machine + bash verification; sub-agent was Sonnet)
 - attempt: 1/1
-- notes: M38 SHIPPED (RECOVERED from partial-fail state). detect-double-fire.sh (NEW, 89L) + scoped drift test (last 50 entries to avoid false-flagging legitimate graph dispatches). 4 files: script + SPEC + test + roadmap entry. Also fixed 6 auto-reconciled milestones (M27.1/M33/M33.1/M35/M36/M37) PENDING → DONE per human authorization (orchestrator's M34 second pass had added them as PENDING; promotion requires explicit action). Drift net 66/66 → 67/67 PASS preserved. The orchestrator's prior NEEDS_FIX entry is now superseded by this PASS entry. Master branch, not pushed.
+- notes: M38 SHIPPED (RECOVERED from partial-fail state). detect-double-fire.sh (NEW, 89L) + scoped drift test (last 50 entries to avoid false-flagging legitimate `--graph` cron dispatches). 4 files: script + SPEC + test + roadmap entry. Also fixed 6 auto-reconciled milestones (M27.1/M33/M33.1/M35/M36/M37) PENDING → DONE per human authorization (orchestrator's M34 second pass had added them as PENDING; promotion requires explicit action). Drift net 66/66 → 67/67 PASS preserved. The orchestrator's prior NEEDS_FIX entry is now superseded by this PASS entry. Master branch, not pushed.
 - next_action: push M38 + idle until next user direction; backlog now empty (all CANDs retired)
+
+## 2026-09-15T17:25:00Z | roadmap-state-machine-cleanup | PASS
+- commit: e8d92637
+- cost_usd: 0.00
+- duration_min: 4
+- model: opus (state-machine + drift verification; no sub-agent)
+- attempt: 1/1
+- notes: User-facing session (not a daemon tick): fixed state-machine drift that the drift net was structurally unable to catch. Roadmap had 2 STALE PROPOSED M-CAND-1/M-CAND-2 sections (L494/L504) that were already RETIRED at L578/L582 by M37 (commit 0544dc29) — drift net reported 67/67 PASS but the duplicate IDs in different status buckets slipped through. Also: Backlog candidates line recommended "M38 (double-fire suppression), M38 (streak-tracker 7-day gate verification), M38 (signal-discovery automation)" 3× — but M38 is already DONE at L562. Surgical patch: removed 2 PROPOSED CAND entries (-20 lines) + replaced Backlog candidates with 3 real next candidates (T-24.4 wall-clock gate, orphan worktree cleanup, tasks.md drift audit). Drift net BEFORE patch: 67/67. AFTER patch + `pip install frontmatter` to unblock pre-existing dep gap: **68/68 PASS** (1 new PASS from unblocked vault_write_actor_agent_bypasses_validator test). Single atomic commit (e8d92637). Master not pushed. M24 wall-clock gate T-24.4 still active (~9h15m remaining). Backlog re-populated with real candidates.
+- next_action: idle; awaiting user direction on (a) push M38 + roadmap cleanup, (b) M24 wall-clock gate closeout, (c) orphan-worktree cleanup milestone
 
