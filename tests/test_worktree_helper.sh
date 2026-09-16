@@ -20,16 +20,20 @@ set -euo pipefail
 # Resolve paths relative to this script (works on POSIX + Git Bash)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# M24.1: Translate Cygwin mount path (/c/Users/...) to Windows path (C:/Users/...)
+# so that `git -C` works on Windows + Git Bash. See scripts/worktree-helper.sh
+# for the full rationale; both scripts share the same pattern.
+PROJECT_ROOT_WIN="$(cygpath -m "$PROJECT_ROOT" 2>/dev/null || echo "$PROJECT_ROOT")"
 HELPER="$PROJECT_ROOT/scripts/worktree-helper.sh"
 WORKTREE_BASE="$PROJECT_ROOT/.worktrees"
 
 # Pre-clean any leftover m6-test-* state from prior runs
 for name in m6-test-a m6-test-b m6-test-c; do
   if [ -d "$WORKTREE_BASE/$name" ]; then
-    git -C "$PROJECT_ROOT" worktree remove --force "$WORKTREE_BASE/$name" 2>/dev/null || true
+    git -C "$PROJECT_ROOT_WIN" worktree remove --force "$WORKTREE_BASE/$name" 2>/dev/null || true
   fi
-  if git -C "$PROJECT_ROOT" show-ref --verify --quiet "refs/heads/loop/$name"; then
-    git -C "$PROJECT_ROOT" branch -D "loop/$name" 2>/dev/null || true
+  if git -C "$PROJECT_ROOT_WIN" show-ref --verify --quiet "refs/heads/loop/$name"; then
+    git -C "$PROJECT_ROOT_WIN" branch -D "loop/$name" 2>/dev/null || true
   fi
 done
 
@@ -77,7 +81,7 @@ done
 # ---------- Test 4: branches exist + diverge ----------
 echo "=== Test 4: each branch carries its marker ==="
 for name in m6-test-a m6-test-b m6-test-c; do
-  if git -C "$PROJECT_ROOT" show "loop/$name:tmp/marker.txt" 2>/dev/null | grep -q "marker-$name"; then
+  if git -C "$PROJECT_ROOT_WIN" show "loop/$name:tmp/marker.txt" 2>/dev/null | grep -q "marker-$name"; then
     ok "branch loop/$name carries marker-$name"
   else
     fail "branch loop/$name missing or wrong marker"
@@ -89,7 +93,7 @@ echo "=== Test 5: cleanup-all + empty .worktrees/ ==="
 bash "$HELPER" cleanup-all >/dev/null 2>&1
 
 REMAINING_DIRS=$(find "$WORKTREE_BASE" -maxdepth 1 -mindepth 1 -name "m6-test-*" 2>/dev/null | wc -l)
-REMAINING_BRANCHES=$(git -C "$PROJECT_ROOT" branch 2>/dev/null | grep -c "loop/m6-test-" || true)
+REMAINING_BRANCHES=$(git -C "$PROJECT_ROOT_WIN" branch 2>/dev/null | grep -c "loop/m6-test-" || true)
 
 if [ "$REMAINING_DIRS" -eq 0 ]; then
   ok "0 m6-test-* worktree dirs remain"
