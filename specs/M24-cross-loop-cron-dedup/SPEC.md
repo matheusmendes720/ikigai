@@ -4,7 +4,7 @@ description: Consolidate 3 cron systems into 1 canonical scheduler based on T-24
 constitution_refs:
   - correctness_over_speed
   - tests_are_the_contract
-status: IN_PROGRESS
+status: DONE
 owner: loop-orchestrator
 ---
 
