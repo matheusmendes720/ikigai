@@ -402,6 +402,21 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** Doc-only change; no code touched
 - **Completed:** 2026-09-14 — 1 atomic commit: `2f92b87f` (`docs(examples): add 3 working milestone demonstrations (M23)`). 4 files created (1 top-level + 3 sub-READMEs, all under `examples/`). Drift net 61/61 PASS preserved.
 
+### M24.1 — Fix worktree-helper.sh Windows path handling (STATUS: DONE)
+- **What:** Apply M54's `cygpath -m` pattern to `scripts/worktree-helper.sh` + `tests/test_worktree_helper.sh`. The `git -C "$PROJECT_ROOT"` calls were using Cygwin mount paths (`/c/Users/...`) which fail with "fatal: cannot change to ... No such file or directory" on Windows + Git Bash.
+- **Why:** Documented as out-of-M24-scope pre-existing failure during M24 closeout (2026-09-16T01:00Z). Tests have been silently failing since M6 ship date (commit `fcb0d9e0`, 2026-09-08).
+- **Spec:** `specs/M24.1-fix-worktree-helper-windows-paths/SPEC.md` (created 2026-09-16)
+- **Acceptance:**
+  - [x] `bash tests/test_worktree_helper.sh` 15/15 PASS (T-24.1.1)
+  - [x] Drift net preserved: 69/69 PASS + 11/11 PASS (T-24.1.2)
+  - [x] Pattern matches M54 (daemon-watchdog.sh) — reusable template (T-24.1.3)
+  - [x] 1 atomic commit + push (T-24.1.4)
+- **Dependencies:** None
+- **Estimated ticks:** 1 (actual: 1, with one re-run after discovering WT_PATH also needed Windows path translation)
+- **Constitution gate:** correctness_over_speed (real bug fix); reversibility_over_cleverness (single-file changes, same pattern as M54)
+- **Launched:** 2026-09-16 (loop-orchestrator session, user "go ahead")
+- **Completed:** 2026-09-16 — `PROJECT_ROOT_WIN` + `WT_PATH_WIN` added to both helper + test; 11 + 5 `git -C "$PROJECT_ROOT"` calls replaced with `git -C "$PROJECT_ROOT_WIN"`
+
 ### M24 — Cross-Loop Cron Dedup (STATUS: DONE)
 - **What:** Consolidate 3 redundant cron systems (Mavis cron + claude-flow daemon + Claude Code Schedule) into 1 canonical scheduler
 - **Why:** Per backlog item 3 — having 3 parallel scheduling systems is a latent risk (each fires its own tick, drift between them, maintenance burden). M1 SHIPPED claude-flow integration 2026-09-07 but didn't retire the other systems.

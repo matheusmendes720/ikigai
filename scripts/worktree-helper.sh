@@ -13,7 +13,14 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# M24.1: Translate Cygwin mount path (/c/Users/...) to Windows path (C:/Users/...)
+# so that `git -C "$PROJECT_ROOT"` works on Windows + Git Bash. Without this,
+# `git -C /c/Users/...` fails with "fatal: cannot change to ... No such file or
+# directory" even though bash sees the path. PROJECT_ROOT must be set BEFORE
+# running cygpath so the script can fall back cleanly on Linux/macOS where
+# cygpath is not installed (PROJECT_ROOT stays as Cygwin/Unix-style absolute).
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT_WIN="$(cygpath -m "$PROJECT_ROOT" 2>/dev/null || echo "$PROJECT_ROOT")"
 WORKTREE_BASE="$PROJECT_ROOT/.worktrees"
 
 mkdir -p "$WORKTREE_BASE"
@@ -29,20 +36,21 @@ case "$cmd" in
       exit 1
     fi
     WT_PATH="$WORKTREE_BASE/$name"
+    WT_PATH_WIN="$(cygpath -m "$WT_PATH" 2>/dev/null || echo "$WT_PATH")"
     if [ -d "$WT_PATH" ]; then
       echo "Worktree already exists: $WT_PATH"
       exit 1
     fi
     # Get current branch
-    BASE_BRANCH=$(git -C "$PROJECT_ROOT" rev-parse --abbrev-ref HEAD)
+    BASE_BRANCH=$(git -C "$PROJECT_ROOT_WIN" rev-parse --abbrev-ref HEAD)
     NEW_BRANCH="loop/$name"
     echo "Creating worktree: $WT_PATH (branch: $NEW_BRANCH, base: $BASE_BRANCH)"
-    git -C "$PROJECT_ROOT" worktree add -b "$NEW_BRANCH" "$WT_PATH" "$BASE_BRANCH"
+    git -C "$PROJECT_ROOT_WIN" worktree add -b "$NEW_BRANCH" "$WT_PATH_WIN" "$BASE_BRANCH"
     echo "Done. Worktree at: $WT_PATH"
     echo "To use: cd $WT_PATH"
     ;;
   list)
-    git -C "$PROJECT_ROOT" worktree list
+    git -C "$PROJECT_ROOT_WIN" worktree list
     echo ""
     echo "Loop worktrees:"
     if [ -d "$WORKTREE_BASE" ]; then
@@ -55,15 +63,16 @@ case "$cmd" in
       exit 1
     fi
     WT_PATH="$WORKTREE_BASE/$name"
+    WT_PATH_WIN="$(cygpath -m "$WT_PATH" 2>/dev/null || echo "$WT_PATH")"
     if [ ! -d "$WT_PATH" ]; then
       echo "Worktree not found: $WT_PATH"
       exit 1
     fi
     echo "Removing worktree: $WT_PATH"
-    git -C "$PROJECT_ROOT" worktree remove --force "$WT_PATH"
+    git -C "$PROJECT_ROOT_WIN" worktree remove --force "$WT_PATH_WIN"
     BRANCH="loop/$name"
-    if git -C "$PROJECT_ROOT" show-ref --verify --quiet "refs/heads/$BRANCH"; then
-      git -C "$PROJECT_ROOT" branch -D "$BRANCH"
+    if git -C "$PROJECT_ROOT_WIN" show-ref --verify --quiet "refs/heads/$BRANCH"; then
+      git -C "$PROJECT_ROOT_WIN" branch -D "$BRANCH"
     fi
     echo "Done."
     ;;
@@ -75,18 +84,18 @@ case "$cmd" in
     # POSIX/Git Bash (forward vs backslash separators), but branch names
     # are canonical. This fixes the cleanup-all regex mismatch bug where
     # the path-based grep never matched on Windows Git Bash.
-    git -C "$PROJECT_ROOT" worktree list --porcelain | \
+    git -C "$PROJECT_ROOT_WIN" worktree list --porcelain | \
       awk '/^worktree / {wt=$2; branch=""; next} /^branch / {branch=$2; if (branch ~ /^refs\/heads\/loop\//) print wt}' | \
       while read -r WT_PATH; do
         if [ -d "$WT_PATH" ]; then
           echo "  Removing: $WT_PATH"
-          git -C "$PROJECT_ROOT" worktree remove --force "$WT_PATH" || true
+          git -C "$PROJECT_ROOT_WIN" worktree remove --force "$WT_PATH" || true
         fi
       done
     # Remove loop/* branches
-    git -C "$PROJECT_ROOT" branch | grep "^  loop/" | while read -r branch; do
+    git -C "$PROJECT_ROOT_WIN" branch | grep "^  loop/" | while read -r branch; do
       branch=$(echo "$branch" | tr -d ' ')
-      git -C "$PROJECT_ROOT" branch -D "$branch" || true
+      git -C "$PROJECT_ROOT_WIN" branch -D "$branch" || true
     done
     echo "Done."
     ;;
