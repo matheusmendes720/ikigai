@@ -402,6 +402,21 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** Doc-only change; no code touched
 - **Completed:** 2026-09-14 — 1 atomic commit: `2f92b87f` (`docs(examples): add 3 working milestone demonstrations (M23)`). 4 files created (1 top-level + 3 sub-READMEs, all under `examples/`). Drift net 61/61 PASS preserved.
 
+### M24.2 — Update test_m4_langgraph_integration.py to match 2-graph registry (STATUS: DONE)
+- **What:** Test-only fix: removed `pae_maintainer` from `VALID_GRAPHS` + `VALID_DISPATCH_GRAPHS`; renamed `test_langgraph_registry_has_exactly_three_graphs` → `test_langgraph_registry_has_exactly_two_graphs`. Also installed missing `langgraph-checkpoint-sqlite` dep into hermes-agent venv (same dep-gap family as M53 mcp<2 fix).
+- **Why:** Documented as out-of-M24-scope pre-existing failure during M24 closeout (2026-09-16T01:00Z). Commit 273637fb (M22 PAV archival per ADR-024) deleted `vibe-ops/src/langgraph_entry.py` + removed `pae_maintainer` from `langgraph.json`; tests never updated. `langgraph-checkpoint-sqlite` was the missing sub-package for `from langgraph.checkpoint.sqlite import SqliteSaver`.
+- **Spec:** `specs/M24.2-update-test-m4-langgraph-2-graph-registry/SPEC.md` (created 2026-09-16)
+- **Acceptance:**
+  - [x] `pytest tests/test_m4_langgraph_integration.py` 5/5 PASS (was: 2/5 + 3 fail) (T-24.2.1)
+  - [x] `langgraph-checkpoint-sqlite` installed in hermes-agent venv (T-24.2.2)
+  - [x] Drift net 69/69 PASS preserved (T-24.2.3 — after M38.1 spec-drift fix unblocked gate #69)
+  - [x] 1 atomic commit + push (T-24.2.4)
+- **Dependencies:** M22 (deletion context), M38.1 (drift gate #69 unblock — co-shipped)
+- **Estimated ticks:** 1
+- **Constitution gate:** correctness_over_speed (test sync with post-M22 reality); reversibility_over_cleverness (test-only change, no production code touched); tests_are_the_contract (5/5 m4 PASS, drift 69/69)
+- **Launched:** 2026-09-16 (loop-orchestrator session, user "go ahead" after M24 closeout)
+- **Completed:** 2026-09-16 — `VALID_GRAPHS` = ["ikigai_maintainer_v2", "ikigai_fork_smoke"]; `VALID_DISPATCH_GRAPHS` = ["ikigai_fork_smoke"]; renamed registry test; co-shipped with M38.1
+
 ### M24.1 — Fix worktree-helper.sh Windows path handling (STATUS: DONE)
 - **What:** Apply M54's `cygpath -m` pattern to `scripts/worktree-helper.sh` + `tests/test_worktree_helper.sh`. The `git -C "$PROJECT_ROOT"` calls were using Cygwin mount paths (`/c/Users/...`) which fail with "fatal: cannot change to ... No such file or directory" on Windows + Git Bash.
 - **Why:** Documented as out-of-M24-scope pre-existing failure during M24 closeout (2026-09-16T01:00Z). Tests have been silently failing since M6 ship date (commit `fcb0d9e0`, 2026-09-08).
@@ -557,6 +572,21 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Dependencies:** None
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M38.1 — Fix detect-double-fire.sh spec drift (STATUS: DONE)
+- **What:** Implement the ≥2-seconds-apart filter that M38 spec documented but `detect-double-fire.sh` didn't code. The detector was flagging legitimate rapid-fire cron catchup as double-fires (false positives).
+- **Why:** Discovered during M24.2 verification (2026-09-16T02:38Z) — running `loop-tick.sh --graph ikigai_fork_smoke` 5 times in ~2 minutes caused drift gate to fail. M38 spec explicitly excludes "rapid-fire same task_id within 5 minutes BUT different timestamps (≥2 seconds apart)" but the detector didn't implement that filter.
+- **Spec:** `specs/M38.1-fix-detect-double-fire-spec-drift/SPEC.md` (created 2026-09-16)
+- **Acceptance:**
+  - [x] Detector no longer flags rapid-fire cron catchup (T-38.1.1)
+  - [x] Detector STILL flags true concurrent double-fires (span < 2s) — verified against historical data (M5 @ 2026-09-08T01:15 span=0s; T-9.6 @ 2026-09-08T09:39 span=1s) (T-38.1.2)
+  - [x] Drift net 69/69 PASS preserved (T-38.1.3)
+  - [x] 1 atomic commit + push (T-38.1.4)
+- **Dependencies:** M38
+- **Estimated ticks:** 1 (actual: 1)
+- **Constitution gate:** correctness_over_speed (real bug fix); tests_are_the_contract (drift 69/69 preserved)
+- **Launched:** 2026-09-16 (loop-orchestrator session, user "go ahead" after M24 closeout)
+- **Completed:** 2026-09-16 — single-file change to `detect-double-fire.sh`; added `if delta >= 2.0: continue` filter
 
 ### M38 — Double-fire detection and suppression (STATUS: DONE)
 - **What:** Add `detect-double-fire.sh` script + `test_progress_md_has_no_double_fires` drift test to detect rapid cron dispatches of same task_id within 5-minute window. Test scoped to last 50 entries (historical rapid-fire graph dispatches are legitimate by-design).

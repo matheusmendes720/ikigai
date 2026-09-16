@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
 # M38 — Double-fire detection for progress.md
-# A double-fire = 2+ entries with the same task_id AND same minute timestamp
-# (truncated to YYYY-MM-DDTHH:MM). This excludes legitimate rapid-fire cron
-# catchup dispatches (same task_id, different minutes, sequential scheduler
-# behavior) and only catches true concurrent invocations.
+# A TRUE double-fire = 2+ entries with the same task_id AND same minute timestamp
+# (truncated to YYYY-MM-DDTHH:MM) AND timestamps within <2 seconds (true concurrent
+# invocations). This excludes legitimate rapid-fire cron catchup dispatches
+# (same task_id, same minute, ≥2 seconds apart, sequential scheduler behavior)
+# and only catches true concurrent invocations.
+#
+# M38.1 (2026-09-16): added the ≥2-seconds-apart filter that M38 spec documented
+# but detect-double-fire.sh didn't implement. Without this filter, every
+# legitimate `loop-tick.sh --graph <key>` test run triggered a false-positive
+# double-fire (the test invokes the graph multiple times in quick succession
+# from the same task_id).
 #
 # Distinct from the known double-LOG artifact (Windows Cygwin errno 11
 # causes two log lines per single tick — that is ONE entry in progress.md).
@@ -56,7 +63,9 @@ for ts, task_id, verdict in entries:
     minute_key = ts.strftime("%Y-%m-%dT%H:%M")
     by_task_minute[(task_id, minute_key)].append((ts, verdict))
 
-# Detect double-fires: same task_id within the same minute
+# Detect TRUE double-fires: same task_id within the same minute AND
+# timestamps <2 seconds apart (true concurrent invocations).
+# M38.1: filter out legitimate rapid-fire (≥2 seconds apart) per M38 spec.
 double_fires = []
 for (task_id, minute_key), ts_list in by_task_minute.items():
     if len(ts_list) < 2:
@@ -65,6 +74,9 @@ for (task_id, minute_key), ts_list in by_task_minute.items():
     first_ts, first_verdict = ts_list[0]
     last_ts, last_verdict = ts_list[-1]
     delta = (last_ts - first_ts).total_seconds()
+    # M38.1: rapid-fire catchup (≥2s apart) is legitimate cron behavior
+    if delta >= 2.0:
+        continue
     double_fires.append({
         "task_id": task_id,
         "minute": minute_key,

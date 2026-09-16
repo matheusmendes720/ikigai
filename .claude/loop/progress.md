@@ -2782,3 +2782,131 @@
   - M24.2: Update test_m4_langgraph_integration.py to match current 2-graph langgraph.json registry
          OR restore vibe-ops/src/langgraph_entry.py + pae_maintainer to langgraph.json
 - next_action: STOP. All autonomously-actionable milestones complete. Roadmap fully DONE. Awaiting user direction for new work or M24.1/M24.2 followups.
+
+## 2026-09-16T02:16:47Z | orchestrator-tick | IDLE
+- commit: —
+- cost_usd: 0.00
+- duration_min: 1
+- model: opus (orchestrator tick, no sub-agent dispatch)
+- attempt: 1/1
+- notes: IDLE TICK. Loop state inspected at 2026-09-16T02:16:47Z (1h16m after M24 closeout at 2026-09-16T01:00:00Z).
+
+  STATE SNAPSHOT:
+  - Master: c76f1ba7 (M24 closeout), fully synced with origin/master
+  - Roadmap: 56 milestones DONE, 0 IN-PROGRESS, 0 PENDING, 0 PROPOSED
+  - Backlog: empty
+  - tasks.md: 0 non-done tasks
+  - Drift net: 69/69 PASS (ikigai) + 11/11 PASS (loop_infra)
+  - All 5 daemons RUNNING (loop-tick / hill-climb / cost-dashboard / streak-tracker / daemon-watchdog)
+
+  M24 WALL-CLOCK GATE: 2026-09-16T02:44:50Z (~28m). Already passed in practice (22h05m/24h observed at 01:00Z = 92%).
+  AUTO-RECONCILE (M34): Last 20 commits reference milestones already in roadmap.md. No orphan sections.
+  FOLLOW-UP CANDIDATES (in progress.md only, not roadmap.md): M24.1 (worktree-helper Windows path) / M24.2 (test_m4 update).
+
+  DECISION: IDLE — per decision tree (roadmap has all DONE → exit IDLE).
+
+- next_action: IDLE. Awaiting user direction for new work or M24.1/M24.2 promotion.
+
+## 2026-09-16T02:36:01Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260915-233601 checkpoints=109094 status=0 
+- next_action: advance
+
+## 2026-09-16T02:36:08Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260915-233608 checkpoints=109099 status=0 
+- next_action: advance
+
+## 2026-09-16T02:36:38Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260915-233638 checkpoints=109104 status=0 
+- next_action: advance
+
+## 2026-09-16T02:36:43Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260915-233643 checkpoints=109109 status=0 
+- next_action: advance
+
+## 2026-09-16T02:38:37Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260915-233837 checkpoints=109114 status=0 
+- next_action: advance
+
+## 2026-09-16T02:38:43Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260915-233843 checkpoints=109119 status=0 
+- next_action: advance
+
+## 2026-09-16T02:38:00Z | M24.2 closeout + state-machine sweep | PASS
+- commit: (M24.2 closeout commit)
+- cost_usd: 0.00
+- duration_min: 5
+- model: opus (verification + dep install + test edits; no LLM dispatch)
+- attempt: 1/1 (single cycle)
+- notes: M24.2 SHIPPED. test_m4_langgraph_integration.py updated from "exactly 3 graphs" to "exactly 2 graphs" (pae_maintainer removed per M22 ADR-024 archival); VALID_DISPATCH_GRAPHS trimmed to ["ikigai_fork_smoke"] (the only remaining graph that --graph dispatch works for; ikigai_maintainer_v2 still excluded due to v2 parallel code path issue). langgraph-checkpoint-sqlite installed in hermes-agent venv (was missing — same dep-gap family as M53 mcp<2 fix). 5/5 m4 tests now PASS.
+
+  VERIFICATION ARTIFACTS:
+  - bash tests/test_worktree_helper.sh: 15/15 PASS (M24.1 fix verified)
+  - bash tests/test_cost_dashboard.sh: 7/7 PASS
+  - bash tests/test_notify.sh: 11/11 PASS
+  - bash tests/test_streak_tracker.sh: 11/11 PASS
+  - bash tests/test_dispatch.sh: 24/24 PASS
+  - pytest tests/test_loop_infra.py: 11/11 PASS
+  - pytest tests/test_m4_langgraph_integration.py: 5/5 PASS (was: 4/9)
+
+  STATE: 58 milestones DONE, 0 IN-PROGRESS, 0 PROPOSED, 0 RETIRED.
+
+  KNOWN ISSUE: test_progress_md_has_no_double_fires (drift gate #69) FAILS because:
+  - M24.2 verification ran `loop-tick.sh --graph ikigai_fork_smoke` 5 times in quick succession
+  - Each invocation appends to progress.md
+  - 5 entries within ~2 minutes from same task_id triggers M38's double-fire detector (rc=1)
+  - M38 spec explicitly excludes "rapid-fire same task_id within 5 minutes BUT different timestamps (≥2 seconds apart)" as legitimate cron catchup
+  - BUT M38's detect-double-fire.sh doesn't implement the ≥2 seconds-apart filter — it counts ANY 2+ same-task_id same-minute entries as double-fires
+  - This is a real M38 detection-script bug (out of M24.2 scope; would be M38.1)
+  - M24.2 verification noise (5 entries in last 50) will roll off as real daemon ticks accumulate
+
+  FOLLOWUP: M38.1 candidate — fix detect-double-fire.sh to implement its own spec's ≥2-seconds-apart filter. Current detector counts legitimate cron catchup as double-fires.
+
+- next_action: STOP. M24.2 shipped (test_m4 langgraph 5/5 PASS). Drift gate #69 (test_progress_md_has_no_double_fires) FAILS due to M24.2 verification noise + M38 detector bug; documented for M38.1. Awaiting user direction.
+
+## 2026-09-16T02:41:34Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260915-234134 checkpoints=109124 status=0 
+- next_action: advance
+
+## 2026-09-16T02:41:41Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260915-234141 checkpoints=109129 status=0 
+- next_action: advance
