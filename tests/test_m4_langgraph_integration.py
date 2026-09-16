@@ -1,13 +1,23 @@
 """M4 LangGraph integration tests.
 
-Exercises each of the 3 graphs registered in langgraph.json via the
-deterministic --graph flag on loop-tick.sh. Asserts checkpoint DB exists
-+ has rows after each run. Verifies no mutation to langgraph.json.
+Exercises each graph registered in langgraph.json via the deterministic
+--graph flag on loop-tick.sh. Asserts checkpoint DB exists + has rows
+after each run. Verifies no mutation to langgraph.json.
 
 Cost: $0 (no LLM). Each test invokes bash which dispatches inline Python.
 
 NOTE: This test file lives at <repo>/tests/ (per CLAUDE.md `## Where the rest lives`).
 The conftest at <repo>/tests/conftest.py handles sys.path and tempdir redirect.
+
+M24.2 (2026-09-16): updated from "3 graphs" to current 2-graph registry.
+pae_maintainer was archived in M22 (commit 273637fb per ADR-024 PAV
+archival) — vibe-ops/src/langgraph_entry.py + the pae_maintainer graph
+registration in langgraph.json were deleted. The 2 remaining graphs are
+ikigai_maintainer_v2 and ikigai_fork_smoke.
+
+Dispatch tests also exclude pae_maintainer (the graph no longer exists;
+loop-tick.sh --graph pae_maintainer returns rc=1 because the underlying
+make_pae_graph factory was deleted).
 """
 
 from __future__ import annotations
@@ -25,13 +35,14 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LANGGRAPH_JSON = REPO_ROOT / "langgraph.json"
 CHECKPOINT_DB = REPO_ROOT / ".swarm" / "langgraph_checkpoint.db"
-VALID_GRAPHS = ["pae_maintainer", "ikigai_maintainer_v2", "ikigai_fork_smoke"]
+VALID_GRAPHS = ["ikigai_maintainer_v2", "ikigai_fork_smoke"]
 # Dispatch tests exclude ikigai_maintainer_v2 — its loop-tick.sh --graph dispatch
 # returns rc=1 (the v2 restore at commit fb41578 is parallel code whose
 # make_v2_graph factory is not wired into the same entry-point contract as
-# pae_maintainer / ikigai_fork_smoke). Registry test (#3) still asserts all 3
-# are present in langgraph.json.
-VALID_DISPATCH_GRAPHS = ["pae_maintainer", "ikigai_fork_smoke"]
+# ikigai_fork_smoke). Registry test still asserts both are present in langgraph.json.
+# M24.2: pae_maintainer removed from VALID_DISPATCH_GRAPHS — graph archived in M22
+# (commit 273637fb per ADR-024), langgraph_entry.py + langgraph.json entry deleted.
+VALID_DISPATCH_GRAPHS = ["ikigai_fork_smoke"]
 
 
 def _run_env() -> dict[str, str]:
@@ -130,9 +141,14 @@ def test_checkpoint_db_persists_rows(graph_key: str) -> None:
     assert CHECKPOINT_DB.exists(), f"{CHECKPOINT_DB} does not exist"
 
 
-# Test 3 — langgraph.json registry is exactly the 3 expected graphs
-def test_langgraph_registry_has_exactly_three_graphs() -> None:
-    """langgraph.json has exactly the 3 graphs the SPEC documents."""
+# Test 3 — langgraph.json registry matches the 2 expected graphs
+# M24.2: changed from "exactly 3" to "exactly 2" (pae_maintainer archived M22)
+def test_langgraph_registry_has_exactly_two_graphs() -> None:
+    """langgraph.json has exactly the 2 graphs the SPEC documents.
+
+    M24.2: changed from 'exactly_three_graphs' (pae_maintainer removed).
+    The current registry is 2 graphs: ikigai_maintainer_v2 + ikigai_fork_smoke.
+    """
     data = json.loads(LANGGRAPH_JSON.read_text(encoding="utf-8"))
     graphs = data.get("graphs", {})
     assert set(graphs.keys()) == set(VALID_GRAPHS), (
