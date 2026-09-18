@@ -681,7 +681,7 @@ Both kept here for audit trail.
   - **Completed:** 2026-09-15 — atomic commits `9c77fa09` (M41 unlink) + `a5a4ab30` (M41 cleanup); pushed to origin master
 
 ### M55 — Zero-byte .claude/n cleanup (STATUS: DONE)
-### M58 — Restore chat Entry/EntryRole + ProposalStatus.OPEN (a5b1146c regression)
+### M58 — Restore chat Entry + EntryRole + ProposalStatus.OPEN after a5b1146c (STATUS: DONE)
 - **What:** Restore chat-package API that commit `a5b1146c` (2026-09-14) had trimmed out, while `tests/test_chat_system.py` kept depending on it. Add Entry + EntryRole(StrEnum) + ProposalStatus(StrEnum alias), dual-signature writer for `scripts/chat_repl.py`, sidecar JSON for proposal round-trip, atomic tempfile writes.
 - **Spec:** `specs/M58-chat-regression-fix/SPEC.md`
 - **Acceptance:**
