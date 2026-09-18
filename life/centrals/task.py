@@ -71,7 +71,9 @@ def daily_review(
         typer.echo(f"Script not found: {script}", err=True)
         raise typer.Exit(1)
     try:
-        subprocess.run(["bash", str(script)], cwd=scripts, check=False)
+        # M66: Windows path → git-bash path; backslashes confuse bash.
+        bash_script = str(script).replace("\\", "/")
+        subprocess.run(["bash", bash_script], cwd=scripts, check=False)
     except Exception as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(1)
@@ -89,7 +91,9 @@ def weekly_review(
         typer.echo(f"Script not found: {script}", err=True)
         raise typer.Exit(1)
     try:
-        subprocess.run(["bash", str(script)], cwd=scripts, check=False)
+        # M66: Windows path → git-bash path; backslashes confuse bash.
+        bash_script = str(script).replace("\\", "/")
+        subprocess.run(["bash", bash_script], cwd=scripts, check=False)
     except Exception as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(1)
