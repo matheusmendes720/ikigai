@@ -686,6 +686,17 @@ Both kept here for audit trail.
 ### M60 — Establish life meta-package as a real directory + root pyproject.toml (STATUS: DONE)
 ### M62 — IKIGAI observability dual-identity swap, narrow scope (STATUS: DONE)
 ### M63 — AGENTS.md + CLAUDE.md sync to post-M60 reality (STATUS: DONE)
+### M64 — Validate pip install -e . + life console script (STATUS: DONE)
+- **What:** Validation-only milestone. `uv venv` + `uv pip install -e .` succeeds in 2.7s in an isolated `.venv-test-install/`. Console script `life.exe` is exposed, RC=0 for `life --help` / `version` / `submodules` / `config-show` / `log --path`. Even from `C:\Windows\Temp` (foreign cwd) the script runs. No source changes — confirms M60's pyproject.toml works end-to-end.
+- **Spec:** `specs/M64-pip-install-validate/SPEC.md`
+- **Acceptance:**
+  - [x] `pip install -e .` RC=0, prints `Installed 1 package: life==0.1.0`
+  - [x] `life.exe` exists and works from any cwd
+  - [x] 5 subcommands all RC=0
+  - [x] Drift + chat preserved 39/39 PASS
+- **Discovered (M65 candidate):** `LifeConfig` defaults hardcode `life/system/raise_data/...` (pre-M60 era). Doesn't break commands; just makes submodules look stale. Out of M64.
+
+
 - **What:** Docs synced: file roles table, `cli/cli.py → life/cli/cli.py`, `python -m life.cli` description, root layout section rewritten. Drift net + chat invariants preserved (61/61 tests still green).
 - **Spec:** `specs/M63-docs-sync-post-m60/SPEC.md`
 - **Acceptance:**
