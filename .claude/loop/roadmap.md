@@ -689,6 +689,17 @@ Both kept here for audit trail.
 ### M64 — Validate pip install -e . + life console script (STATUS: DONE)
 ### M65 — LifeConfig defaults point at real repo paths (STATUS: DONE)
 ### M66 — Fix bash path arguments in task daily-review / weekly-review (STATUS: DONE)
+### M67 — Taskdog tools return JSON structured data + de-duplicate (STATUS: DONE)
+- **What:** All 4 IKIGAI taskdog tools (`list/create/complete/get`) now invoke `taskdog export --format json`, parse with json.loads, return structured `{"ok": True, ...}` envelopes. Plus removed 148-line inline duplicate definitions in `tools.py` that shadowed the canonical `tools_taskdog.py` — now `tools.py` imports the canonical symbols.
+- **Spec:** `specs/M67-taskdog-structured-data/SPEC.md`
+- **Acceptance:**
+  - [x] LIST/Create/Get/Complete all return JSON strings (not raw stdout)
+  - [x] End-to-end smoke: 5 operations (list/create/get/list-filtered/get-missing) all return expected envelopes
+  - [x] Drift net + chat + canonical_scope + taskdog_mcp tests: 82/82 PASS
+- **Quick win:** Deep agent can now operate taskdog with structured data — first end-to-end capability unlocked.
+- **Completed:** 2026-09-18
+
+
 - **What:** `subprocess.run(["bash", str(script)])` in task.py was passing Windows backslash paths to git-bash, which mangled them to `C:Usersmathecode_space...`. Patched 2 sites to convert `\\` → `/` before invoking bash. `metrics()` left for M67 (needs Taskwarrior integration).
 - **Spec:** `specs/M66-task-windows-paths/SPEC.md`
 - **Acceptance:**

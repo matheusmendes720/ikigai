@@ -1,28 +1,37 @@
 """Taskdog CLI fork tools (Python subprocess wrapper).
 
-Per user scope (ADR-013): 4 fork tools that wrap taskdog.exe (Rust
-binary). These are the canonical Path-1 tools for taskdog MCP — the
-canonical path per taskdog-3-paths-architecture-canonical-2026-08-31.
+Per ADR-013: 4 fork tools that wrap `taskdog.exe` (Rust binary). These are
+the canonical Path-1 tools for taskdog MCP — the canonical path per
+taskdog-3-paths-architecture-canonical-2026-08-31.
 
-Path 3 (taskdog MCP gateway) was DEFERRED until taskdog_mcp.server
-module exists. The Path 1 subprocess tools in this module are the
-canonical interface.
+Path 3 (taskdog MCP gateway) was DEFERRED until taskdog-mcp 0.23.0 venv
+bug is fixed (MissingModuleError: taskdog_client — pipx-injection bug,
+NOT in scope for this repo). The Path 1 subprocess tools in this module
+are the canonical interface.
+
+M67 (2026-09-18) — STRUCTURED-DATA REWRITE:
+- All four tools now invoke `taskdog export --format json` (single
+  JSON-encoded array of task dicts), parse with `json.loads`, and
+  return `json.dumps(...)` — never raw stdout. LangChain deep-agents
+  require structured data per the JSON tool-call contract.
+- `taskdog_get_task(id)` filters the export list in-process (taskdog
+  0.23.0 CLI has a known `show` bug — `'TaskdogApiClient' object has no
+  attribute 'get_task_detail'`. We work around it via export+filter).
+- `taskdog_create_task(name)` still uses `add` (only available verb).
+- All four keep the retry + circuit-breaker on ConnectionError /
+  Timeout / FileNotFoundError / OSError (drop on taskdog not installed).
 
 Exposes (re-exported by tools.py):
-- ``taskdog_list_tasks`` — list tasks (optionally filtered by status)
-- ``taskdog_create_task`` — create new task (W3.6 side-effect — gated
-  by invoke_skill() outputs check)
-- ``taskdog_complete_task`` — mark task done
-- ``taskdog_get_task`` — fetch full task details
+- taskdog_list_tasks — list tasks (optionally filtered by status)
+- taskdog_create_task — create new task (W3.6 side-effect — gated by
+  invoke_skill outputs check)
+- taskdog_complete_task — mark task done
+- taskdog_get_task — fetch full task details (filter-from-export)
 
 Companion modules:
-- ``tools_sf`` — Solverforge Calendar fork (2 tools)
-- ``tools_tuiboard`` — tuiboard Kanban fork (4 tools)
-- ``tools`` — IKIGAI_TOOLS list (12 entries) + re-exports
-
-Architectural reference:
-- ADR-013 — planner-only; 4 of 10 external data tools
-- taskdog-3-paths-architecture-canonical-2026-08-31 — Path 1 is CANONICAL
+- tools_sf — Solverforge Calendar fork (2 tools)
+- tools_tuiboard — tuiboard Kanban fork (4 tools)
+- tools — IKIGAI_TOOLS list (12 entries) + re-exports
 
 Drift invariants enforced:
 - test_canonical_scope :: test_ikigai_tools_count_is_12
@@ -32,6 +41,7 @@ Drift invariants enforced:
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 
@@ -63,47 +73,67 @@ _taskdog_cb_config = CircuitBreakerConfig(
 )
 
 
+def _run_export(status_filter: str | None = None, include_archived: bool = False) -> list[dict]:
+    """Run `taskdog export --format json` and parse to list[dict].
+
+    Returns [] when taskdog is unavailable (binary not installed / server
+    not reachable). Caller is responsible for translating to a tool result.
+    """
+    args = [_TASKDOG_CLI, "export", "--format", "json"]
+    if status_filter:
+        args.extend(["--status", status_filter])
+    if include_archived:
+        args.append("--all")
+    proc = subprocess.run(args, capture_output=True, text=True, timeout=30)
+    if proc.returncode != 0:
+        raise ConnectionError(f"taskdog error: {(proc.stderr or proc.stdout).strip()}")
+    if not proc.stdout.strip():
+        return []
+    return json.loads(proc.stdout)
+
+
+def _missing_taskdog_msg(err: Exception) -> str:
+    """Stable error envelope when taskdog binary / server unreachable."""
+    return json.dumps({"ok": False, "error": f"taskdog unavailable: {err!s}"})
+
+
 @tool
 @circuit_breaker("taskdog", _taskdog_cb_config)
 @retry_with_backoff(
     name="taskdog_list_tasks",
-    retryable_exceptions=(subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError),
+    retryable_exceptions=(subprocess.TimeoutExpired, ConnectionError, OSError),
     config=_taskdog_retry_config,
 )
-def taskdog_list_tasks(status: str | None = None, include_archived: bool = False) -> str:
-    """List tasks from taskdog.
+def taskdog_list_tasks(
+    status: str | None = None, include_archived: bool = False
+) -> str:
+    """List tasks from taskdog. Returns a JSON envelope with `tasks` array.
 
     Args:
-        status: Filter by status (pending, done). Optional.
+        status: Filter by status (pending, in_progress, completed, canceled). Optional.
         include_archived: Include archived tasks. Defaults to False.
 
     Returns:
-        Formatted task list or error message.
+        JSON string: {"ok": true, "count": N, "tasks": [{...}, ...]}
+        or        {"ok": false, "error": "..."} on infrastructure failure.
     """
     try:
-        args = [_TASKDOG_CLI, "list"]
-        if status:
-            args.extend(["--status", status])
-        if include_archived:
-            args.append("--all")
-        result = subprocess.run(args, capture_output=True, text=True, timeout=30)
-        if result.returncode != 0:
-            raise ConnectionError(f"taskdog error: {result.stderr}")
-        return result.stdout
+        tasks = _run_export(status_filter=status, include_archived=include_archived)
+        return json.dumps({"ok": True, "count": len(tasks), "tasks": tasks})
     except FileNotFoundError as e:
-        return f"⚠️ taskdog unavailable (binary not found): {e}"
+        return _missing_taskdog_msg(e)
     except (subprocess.TimeoutExpired, ConnectionError, OSError):
         invalidate_session_cache("taskdog")
         raise
     except Exception as e:
-        return f"⚠️ taskdog unavailable: {e}"
+        return _missing_taskdog_msg(e)
 
 
 @tool
 @circuit_breaker("taskdog", _taskdog_cb_config)
 @retry_with_backoff(
     name="taskdog_create_task",
-    retryable_exceptions=(subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError),
+    retryable_exceptions=(subprocess.TimeoutExpired, ConnectionError, OSError),
     config=_taskdog_retry_config,
 )
 def taskdog_create_task(name: str) -> str:
@@ -113,36 +143,47 @@ def taskdog_create_task(name: str) -> str:
         name: Task name.
 
     Returns:
-        Confirmation message or error.
+        JSON string: {"ok": true, "id": <int>, "name": "...", "raw": "stdout"} on success;
+        or          {"ok": false, "error": "..."} on failure.
 
-    Side-effect note: gated by invoke_skill() outputs check (W3.6) —
-    deepagents_harness / proposal_executor.py lazy-proxy this tool
-    and consults the skill manifest's outputs list before invoking it.
+    Side-effect note: gated by invoke_skill outputs check (W3.6). The
+    deepagents_harness / proposal_executor.py lazy-proxy this tool.
     """
     try:
-        result = subprocess.run(
+        proc = subprocess.run(
             [_TASKDOG_CLI, "add", name],
             capture_output=True,
             text=True,
             timeout=30,
         )
-        if result.returncode != 0:
-            raise ConnectionError(f"taskdog error: {result.stderr}")
-        return result.stdout
+        if proc.returncode != 0:
+            raise ConnectionError(f"taskdog error: {(proc.stderr or proc.stdout).strip()}")
+        # Extract ID from the success line — taskdog prints "(ID: <int>)".
+        task_id = None
+        import re as _re
+        m = _re.search(r"\(\s*ID\s*:\s*(\d+)\s*\)", proc.stdout)
+        if m:
+            task_id = int(m.group(1))
+        return json.dumps({
+            "ok": True,
+            "id": task_id,
+            "name": name,
+            "raw": proc.stdout.strip(),
+        })
     except FileNotFoundError as e:
-        return f"⚠️ taskdog unavailable (binary not found): {e}"
+        return _missing_taskdog_msg(e)
     except (subprocess.TimeoutExpired, ConnectionError, OSError):
         invalidate_session_cache("taskdog")
         raise
     except Exception as e:
-        return f"⚠️ taskdog unavailable: {e}"
+        return _missing_taskdog_msg(e)
 
 
 @tool
 @circuit_breaker("taskdog", _taskdog_cb_config)
 @retry_with_backoff(
     name="taskdog_complete_task",
-    retryable_exceptions=(subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError),
+    retryable_exceptions=(subprocess.TimeoutExpired, ConnectionError, OSError),
     config=_taskdog_retry_config,
 )
 def taskdog_complete_task(task_id: int) -> str:
@@ -152,65 +193,66 @@ def taskdog_complete_task(task_id: int) -> str:
         task_id: Task ID to complete.
 
     Returns:
-        Confirmation message or error.
+        JSON string: {"ok": true, "task_id": <int>, "raw": "stdout"} on success;
+        or          {"ok": false, "error": "..."} on failure.
     """
     try:
-        result = subprocess.run(
+        proc = subprocess.run(
             [_TASKDOG_CLI, "done", str(task_id)],
             capture_output=True,
             text=True,
             timeout=30,
         )
-        if result.returncode != 0:
-            raise ConnectionError(f"taskdog error: {result.stderr}")
-        return result.stdout
+        if proc.returncode != 0:
+            raise ConnectionError(f"taskdog error: {(proc.stderr or proc.stdout).strip()}")
+        return json.dumps({
+            "ok": True,
+            "task_id": task_id,
+            "raw": proc.stdout.strip(),
+        })
     except FileNotFoundError as e:
-        return f"⚠️ taskdog unavailable (binary not found): {e}"
+        return _missing_taskdog_msg(e)
     except (subprocess.TimeoutExpired, ConnectionError, OSError):
         invalidate_session_cache("taskdog")
         raise
     except Exception as e:
-        return f"⚠️ taskdog unavailable: {e}"
+        return _missing_taskdog_msg(e)
 
 
 @tool
 @circuit_breaker("taskdog", _taskdog_cb_config)
 @retry_with_backoff(
     name="taskdog_get_task",
-    retryable_exceptions=(subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError),
+    retryable_exceptions=(subprocess.TimeoutExpired, ConnectionError, OSError),
     config=_taskdog_retry_config,
 )
 def taskdog_get_task(task_id: int) -> str:
-    """Get full task details from taskdog.
+    """Get full task details from taskdog (via export + in-process filter).
 
     Args:
         task_id: Task ID to retrieve.
 
     Returns:
-        Task details or error message.
+        JSON string: {"ok": true, "task": {...}} if found;
+        or          {"ok": false, "error": "not found"} if not.
+        or          {"ok": false, "error": "..."} on infrastructure failure.
+
+    Note: taskdog 0.23.0 `show` command has a bug ('TaskdogApiClient has
+    no attribute get_task_detail'); we filter the export list instead.
     """
     try:
-        result = subprocess.run(
-            [_TASKDOG_CLI, "show", str(task_id)],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        # Note: taskdog 0.23.0 'show' has a known bug ('TaskdogApiClient has no attribute get_task_detail').
-        # The error surfaces in stdout with non-zero returncode. Surface it as a string instead of
-        # raising ConnectionError, which would trip the retry decorator + invoke-fallback path.
-        if result.returncode != 0:
-            return (
-                f"⚠️ taskdog show {task_id} unavailable: {(result.stderr or result.stdout).strip()}"
-            )
-        return result.stdout
+        tasks = _run_export()
+        match = next((t for t in tasks if t.get("id") == task_id), None)
+        if match is None:
+            return json.dumps({"ok": False, "error": f"task {task_id} not found"})
+        return json.dumps({"ok": True, "task": match})
     except FileNotFoundError as e:
-        return f"⚠️ taskdog unavailable (binary not found): {e}"
+        return _missing_taskdog_msg(e)
     except (subprocess.TimeoutExpired, ConnectionError, OSError):
         invalidate_session_cache("taskdog")
         raise
     except Exception as e:
-        return f"⚠️ taskdog unavailable: {e}"
+        return _missing_taskdog_msg(e)
 
 
 __all__ = [

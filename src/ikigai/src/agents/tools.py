@@ -27,6 +27,14 @@ from .reliability import (
     retry_with_backoff,
 )
 
+from .tools_taskdog import (
+    taskdog_list_tasks,
+    taskdog_create_task,
+    taskdog_complete_task,
+    taskdog_get_task,
+)
+
+
 # ---------------------------------------------------------------------------
 # MCP Session Cache (for connection state tracking)
 # ---------------------------------------------------------------------------
@@ -380,154 +388,8 @@ _taskdog_cb_config = CircuitBreakerConfig(
 )
 
 
-@tool
-@circuit_breaker("taskdog", _taskdog_cb_config)
-@retry_with_backoff(
-    name="taskdog_list_tasks",
-    retryable_exceptions=(subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError),
-    config=_taskdog_retry_config,
-)
-def taskdog_list_tasks(status: str | None = None, include_archived: bool = False) -> str:
-    """List tasks from taskdog.
-
-    Args:
-        status: Filter by status (pending, done). Optional.
-        include_archived: Include archived tasks. Defaults to False.
-
-    Returns:
-        Formatted task list or error message.
-    """
-    try:
-        args = [_TASKDOG_CLI, "list"]
-        if status:
-            args.extend(["--status", status])
-        if include_archived:
-            args.append("--all")
-        result = subprocess.run(args, capture_output=True, text=True, timeout=30)
-        if result.returncode != 0:
-            raise ConnectionError(f"taskdog error: {result.stderr}")
-        return result.stdout
-    except FileNotFoundError as e:
-        # Binary missing — return friendly message instead of crashing agent.invoke().
-        return f"⚠️ taskdog unavailable (binary not found): {e}"
-    except (subprocess.TimeoutExpired, ConnectionError, OSError):
-        invalidate_session_cache("taskdog")
-        raise
-    except Exception as e:
-        return f"⚠️ taskdog unavailable: {e}"
-
-
-@tool
-@circuit_breaker("taskdog", _taskdog_cb_config)
-@retry_with_backoff(
-    name="taskdog_create_task",
-    retryable_exceptions=(subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError),
-    config=_taskdog_retry_config,
-)
-def taskdog_create_task(name: str) -> str:
-    """Create a new task in taskdog.
-
-    Args:
-        name: Task name.
-
-    Returns:
-        Confirmation message or error.
-    """
-    try:
-        result = subprocess.run(
-            [_TASKDOG_CLI, "add", name],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        if result.returncode != 0:
-            raise ConnectionError(f"taskdog error: {result.stderr}")
-        return result.stdout
-    except FileNotFoundError as e:
-        # Binary missing — return friendly message instead of crashing agent.invoke().
-        return f"⚠️ taskdog unavailable (binary not found): {e}"
-    except (subprocess.TimeoutExpired, ConnectionError, OSError):
-        invalidate_session_cache("taskdog")
-        raise
-    except Exception as e:
-        return f"⚠️ taskdog unavailable: {e}"
-
-
-@tool
-@circuit_breaker("taskdog", _taskdog_cb_config)
-@retry_with_backoff(
-    name="taskdog_complete_task",
-    retryable_exceptions=(subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError),
-    config=_taskdog_retry_config,
-)
-def taskdog_complete_task(task_id: int) -> str:
-    """Mark a task as completed in taskdog.
-
-    Args:
-        task_id: Task ID to complete.
-
-    Returns:
-        Confirmation message or error.
-    """
-    try:
-        result = subprocess.run(
-            [_TASKDOG_CLI, "done", str(task_id)],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        if result.returncode != 0:
-            raise ConnectionError(f"taskdog error: {result.stderr}")
-        return result.stdout
-    except FileNotFoundError as e:
-        # Binary missing — return friendly message instead of crashing agent.invoke().
-        return f"⚠️ taskdog unavailable (binary not found): {e}"
-    except (subprocess.TimeoutExpired, ConnectionError, OSError):
-        invalidate_session_cache("taskdog")
-        raise
-    except Exception as e:
-        return f"⚠️ taskdog unavailable: {e}"
-
-
-@tool
-@circuit_breaker("taskdog", _taskdog_cb_config)
-@retry_with_backoff(
-    name="taskdog_get_task",
-    retryable_exceptions=(subprocess.TimeoutExpired, FileNotFoundError, ConnectionError, OSError),
-    config=_taskdog_retry_config,
-)
-def taskdog_get_task(task_id: int) -> str:
-    """Get full task details from taskdog.
-
-    Args:
-        task_id: Task ID to retrieve.
-
-    Returns:
-        Task details or error message.
-    """
-    try:
-        result = subprocess.run(
-            [_TASKDOG_CLI, "show", str(task_id)],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        # Note: taskdog 0.23.0 'show' has a known bug ('TaskdogApiClient has no attribute get_task_detail').
-        # The error surfaces in stdout with non-zero returncode. Surface it as a string instead of
-        # raising ConnectionError, which would trip the retry decorator + invoke-fallback path.
-        if result.returncode != 0:
-            return (
-                f"⚠️ taskdog show {task_id} unavailable: {(result.stderr or result.stdout).strip()}"
-            )
-        return result.stdout
-    except FileNotFoundError as e:
-        # Binary missing — return friendly message instead of crashing agent.invoke().
-        return f"⚠️ taskdog unavailable (binary not found): {e}"
-    except (subprocess.TimeoutExpired, ConnectionError, OSError):
-        invalidate_session_cache("taskdog")
-        raise
-    except Exception as e:
-        return f"⚠️ taskdog unavailable: {e}"
+# Taskdog tools — canonical implementations live in tools_taskdog.py.
+# (Local duplicates removed in M67 — the imports above are the canonical surface.)
 
 
 # ---------------------------------------------------------------------------
