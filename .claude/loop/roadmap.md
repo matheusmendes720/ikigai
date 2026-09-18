@@ -691,6 +691,17 @@ Both kept here for audit trail.
 ### M66 — Fix bash path arguments in task daily-review / weekly-review (STATUS: DONE)
 ### M67 — Taskdog tools return JSON structured data + de-duplicate (STATUS: DONE)
 ### M68 — taskdog-server daemon schedule + daemon-manager CRLF cleanup (STATUS: DONE)
+### M69 — taskdog_complete_task auto-starts PENDING tasks (STATUS: DONE)
+- **What:** `taskdog 0.23.0` enforces PENDING→IN_PROGRESS→COMPLETED. Called `complete` on a PENDING task failed every time. Refactored `taskdog_complete_task` to detect the PENDING-guard error message and auto-fire `taskdog start <id>` before retrying `done`. Returns `{ok, auto_started: True}` envelope.
+- **Spec:** `specs/M69-taskdog-complete-auto-start/SPEC.md`
+- **Acceptance:**
+  - [x] PENDING tasks complete in 1 call
+  - [x] Returns structured `auto_started: bool` flag
+  - [x] Idempotent on already-IN_PROGRESS tasks
+  - [x] End-to-end 7-step deep-agent daily-review workflow verified
+  - [x] Drift + chat + taskdog tests: 91/91 + 1 SKIP
+
+
 - **What:** Stripped CRLF from `.claude/helpers/{daemon-manager, daemon-manager-schedules}.sh` (Windows-edit contamination — same pattern as M62.2). Switched `_py_schedules` from `python` to `python3` (git-bash's PATH-available). Added taskdog-server schedule at 5min interval, PID 14776 RUNNING. Manual `taskdog-server &` no longer required.
 - **Spec:** `specs/M68-taskdog-server-daemon/SPEC.md`
 - **Acceptance:**

@@ -193,23 +193,58 @@ def taskdog_complete_task(task_id: int) -> str:
         task_id: Task ID to complete.
 
     Returns:
-        JSON string: {"ok": true, "task_id": <int>, "raw": "stdout"} on success;
+        JSON string: {"ok": true, "task_id": <int>, "started": <bool>, "raw": "stdout"} on success;
         or          {"ok": false, "error": "..."} on failure.
+
+    M69 (2026-09-18): AUTO-START WORKAROUND
+        taskdog 0.23.0 enforces a PENDING -> IN_PROGRESS -> COMPLETED state
+        machine. Calling `done` on a PENDING task returns "task is PENDING.
+        Start the task first with 'taskdog start <id>'". To make the deep-agent
+        workflow ergonomic, we detect the PENDING error and transparently
+        call `start` first, then retry `done`. Idempotent — if the task is
+        already IN_PROGRESS, the start call is a no-op (or surfaces "task is
+        IN_PROGRESS" which we ignore on the second attempt).
     """
-    try:
+    # Helper: 1-shot run for the `done` or `start` subcommand
+    def _run(subcmd: str) -> tuple[int, str, str]:
         proc = subprocess.run(
-            [_TASKDOG_CLI, "done", str(task_id)],
+            [_TASKDOG_CLI, subcmd, str(task_id)],
             capture_output=True,
             text=True,
             timeout=30,
         )
-        if proc.returncode != 0:
-            raise ConnectionError(f"taskdog error: {(proc.stderr or proc.stdout).strip()}")
-        return json.dumps({
-            "ok": True,
-            "task_id": task_id,
-            "raw": proc.stdout.strip(),
-        })
+        return proc.returncode, proc.stdout, proc.stderr
+
+    try:
+        # First attempt: `done`
+        rc, out, err = _run("done")
+        if rc == 0:
+            return json.dumps({"ok": True, "task_id": task_id, "started": False, "raw": out.strip()})
+
+        # Detect the PENDING guard
+        err_msg = (err or out or "").strip()
+        if "PENDING" in err_msg and "Start" in err_msg:
+            # Auto-start: PENDING -> IN_PROGRESS
+            start_rc, start_out, start_err = _run("start")
+            if start_rc != 0:
+                raise ConnectionError(
+                    f"taskdog auto-start failed for task {task_id}: "
+                    f"{(start_err or start_out).strip()}"
+                )
+            # Retry the done
+            rc, out, err = _run("done")
+            if rc == 0:
+                return json.dumps({
+                    "ok": True, "task_id": task_id,
+                    "started": True, "raw": out.strip(),
+                    "auto_started": True,
+                })
+            # Still failed — surface the new error
+            err_msg = (err or out or "").strip()
+            raise ConnectionError(f"taskdog error after auto-start: {err_msg}")
+
+        # Other terminal error (already-done, archived, etc.)
+        raise ConnectionError(f"taskdog error: {err_msg}")
     except FileNotFoundError as e:
         return _missing_taskdog_msg(e)
     except (subprocess.TimeoutExpired, ConnectionError, OSError):
