@@ -682,6 +682,16 @@ Both kept here for audit trail.
 
 ### M55 — Zero-byte .claude/n cleanup (STATUS: DONE)
 ### M58 — Restore chat Entry + EntryRole + ProposalStatus.OPEN after a5b1146c (STATUS: DONE)
+### M59 — Resolve mesh module dual-identity bug + delete stale chat_system duplicate (STATUS: DONE)
+- **What:** 8 src/mesh/*.py files used `from mesh.X import Y` while the conftest used `from src.mesh.X import Y` — Python loaded both as distinct module instances, so test monkeypatches on TASKS_JSONL/QUEUE_DIR silently no-op'd. Fixed by switching source-code absolute imports to `from src.mesh.X` everywhere. Removed stale `tests/test_chat_system.py` (pre-M58 API duplicate).
+- **Spec:** `specs/M59-mesh-dual-identity-fix/SPEC.md`
+- **Acceptance:**
+  - [x] `tests/mesh/` 136/136 PASS (was 27 failing)
+  - [x] `tests/` Phase 3 full 323 passed, 1 skipped (was 31 failing)
+  - [x] Phase 3 v1 smoke SMOKE TEST PASSED
+  - [x] `tests/test_chat_system.py` (root) deleted; canonical lives at `src/ikigai/tests/test_chat_system.py`
+- **Completed:** 2026-09-18 — 27→0 failures on mesh layer
+
 - **What:** Restore chat-package API that commit `a5b1146c` (2026-09-14) had trimmed out, while `tests/test_chat_system.py` kept depending on it. Add Entry + EntryRole(StrEnum) + ProposalStatus(StrEnum alias), dual-signature writer for `scripts/chat_repl.py`, sidecar JSON for proposal round-trip, atomic tempfile writes.
 - **Spec:** `specs/M58-chat-regression-fix/SPEC.md`
 - **Acceptance:**
