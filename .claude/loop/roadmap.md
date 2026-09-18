@@ -684,7 +684,7 @@ Both kept here for audit trail.
 ### M58 — Restore chat Entry + EntryRole + ProposalStatus.OPEN after a5b1146c (STATUS: DONE)
 ### M59 — Resolve mesh module dual-identity bug + delete stale chat_system duplicate (STATUS: DONE)
 ### M60 — Establish life meta-package as a real directory + root pyproject.toml (STATUS: DONE)
-### M62 — IKIGAI observability dual-identity swap (narrow) (STATUS: DONE)
+### M62 — IKIGAI observability dual-identity swap, narrow scope (STATUS: DONE)
 - **What:** Same pattern as M59 but inside src/ikigai/. 5 files now import `from src.ikigai.src.observability.X` instead of `from observability.X`. Unblocks `tests/test_reasoning_chain.py` (was collection-error). Deliberately narrow — leaves the 8 dangling `from sys_ikigai.*` imports for a follow-up because re-creating the missing modules is a multi-hour ADR-012 effort that should be its own milestone.
 - **Spec:** `specs/M62-ikigai-observability-dual-identity/SPEC.md`
 - **Acceptance:**
