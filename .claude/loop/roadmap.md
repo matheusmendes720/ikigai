@@ -684,6 +684,17 @@ Both kept here for audit trail.
 ### M58 — Restore chat Entry + EntryRole + ProposalStatus.OPEN after a5b1146c (STATUS: DONE)
 ### M59 — Resolve mesh module dual-identity bug + delete stale chat_system duplicate (STATUS: DONE)
 ### M60 — Establish life meta-package as a real directory + root pyproject.toml (STATUS: DONE)
+### M62 — IKIGAI observability dual-identity swap (narrow) (STATUS: DONE)
+- **What:** Same pattern as M59 but inside src/ikigai/. 5 files now import `from src.ikigai.src.observability.X` instead of `from observability.X`. Unblocks `tests/test_reasoning_chain.py` (was collection-error). Deliberately narrow — leaves the 8 dangling `from sys_ikigai.*` imports for a follow-up because re-creating the missing modules is a multi-hour ADR-012 effort that should be its own milestone.
+- **Spec:** `specs/M62-ikigai-observability-dual-identity/SPEC.md`
+- **Acceptance:**
+  - [x] tests/test_reasoning_chain.py 3/3 PASS (was collection-error)
+  - [x] tests/test_v2_imports_safely.py 8/8 PASS
+  - [x] Phase 3 full tests/ 316 passed (was 308)
+  - [x] Drift net 69/69 PASS
+- **Completed:** 2026-09-18 — 3 tests recovered
+
+
 - **What:** The repo had `__init__.py` + `cli/` + `centrals/` + `handlers/` + `plugins/` at root intending to be the `life` meta-package. But a regular Python package needs a directory, not a lone `__init__.py`. Moved everything into a new `./life/` directory, added root `pyproject.toml` + `.python-version` + a `life` console script entry point. `python -m life.cli --help` now works (was ModuleNotFoundError for months).
 - **Spec:** `specs/M60-life-meta-package/SPEC.md`
 - **Acceptance:**
