@@ -47,7 +47,7 @@ from typing import Any
 
 from opentelemetry.trace import Status, StatusCode
 
-from observability.otel_init import get_tracer
+from src.ikigai.src.observability.otel_init import get_tracer
 
 # Module-level server handle. Production binds this to the
 # FastMCP gateway client. Tests monkeypatch it to FakeMcpServer.

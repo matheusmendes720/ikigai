@@ -21,7 +21,7 @@ if False:
     from typing import Any, cast
 
     # Observability — NOT a real package; stubbed at v2/graph.py level
-    from observability import get_tracer, init_tracing, shutdown_tracing
+    from src.ikigai.src.observability import get_tracer, init_tracing, shutdown_tracing
 
     init_tracing()
     _tracer = get_tracer("ikigai.harness")

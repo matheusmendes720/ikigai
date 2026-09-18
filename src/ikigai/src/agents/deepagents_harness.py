@@ -31,7 +31,7 @@ from typing import Any, cast
 # init_tracing() is idempotent and best-effort: missing OTel libs or empty
 # env vars mean no exporters are added, but the host code still runs.
 # ---------------------------------------------------------------------------
-from observability import get_tracer, init_tracing, shutdown_tracing
+from src.ikigai.src.observability import get_tracer, init_tracing, shutdown_tracing
 
 init_tracing()
 _tracer = get_tracer("ikigai.harness")

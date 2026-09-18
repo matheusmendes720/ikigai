@@ -18,7 +18,7 @@ from typing import Any
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
-from observability.otel_init import init_tracing
+from src.ikigai.src.observability.otel_init import init_tracing
 
 _tracer = trace.get_tracer("ikigai.mcp_server")
 
