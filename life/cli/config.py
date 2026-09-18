@@ -12,19 +12,26 @@ try:
 except ImportError:
     yaml = None
 
-# Repo root: life/ is inside produtividade/
-ROOT = Path(__file__).resolve().parent.parent
+# Repo root: life/cli/config.py → parent (life/cli/) → parent (life/) → parent (root).
+# After M60 restructure, this resolves to the actual repo root regardless of
+# whether `cfg` was loaded from a packaged install or a `python -m life.cli` run.
+ROOT = Path(__file__).resolve().parents[2]
 
 # Default dirs relative to ROOT
 DEFAULT_CONFIG_DIR = ROOT / "config"
 DEFAULT_LOG_DIR = Path(os.environ.get("LIFE_LOG_DIR", str(ROOT / ".life" / "logs")))
+# Plugins: discover both the canonical packaged location and a user-extensions dir
 DEFAULT_PLUGIN_DIRS = [ROOT / "life" / "plugins" / "builtin", ROOT / "plugins"]
+# Submodules: pre-M60 defaults pointed at `ROOT/system/raise_data/...` paths that
+# never existed in the repo. After M65, the defaults point at directories that
+# actually exist in the live tree so `life submodules` is informative out of the box.
+# (Operators can still override via config/life.yaml or env.)
 DEFAULT_SUBMODULES = {
-    "job_offers": ROOT / "system" / "raise_data" / "job-offers",
-    "leitura": ROOT / "system" / "knowledge" / "leitura",
-    "mindmaps": ROOT / "system" / "knowledge" / "mindmaps",
-    "notes": ROOT / "system" / "knowledge" / "notes",
-    "research": ROOT / "system" / "raise_data" / "research",
+    "interfaces_cli":   ROOT / "interfaces" / "cli",          # Phase 3 mesh CLI consumer
+    "interfaces_tui":   ROOT / "interfaces" / "tui",          # Phase 3 mesh TUI consumer (operator)
+    "taskwarrior":      ROOT / "taskwarrior",                 # task central scripts
+    "strategics":       ROOT / "strategics",                  # PT-BR strategy / operational notes
+    "specs":            ROOT / "specs",                       # canonical milestone SPECs
 }
 # Taskwarrior scripts (not a submodule, but a central)
 TASK_SCRIPTS = ROOT / "taskwarrior" / "scripts"
