@@ -429,18 +429,30 @@ from `MEMORY.md`.
 
 ## Root Layout (não-`src/`)
 
-O Typer CLI raiz (`python -m life.cli …`) vive em diretórios paralelos a `src/`:
+Post-M60 (2026-09-18) the `life` Typer CLI lives as a meta-package in
+a real directory at the repo root:
 
-- `centrals/` — registradores (top-level handlers)
-- `cli/` — entrypoints do CLI raiz
-- `handlers/` — consumidores de plugins
-- `plugins/` — extensões carregadas pelo CLI hub
-- `tests/` — testes de integração top-level
+- `life/__init__.py` — `__version__ = "0.1.0"`. Makes `import life` work.
+- `life/cli/` — entrypoints do CLI raiz (`cli.py`, `config.py`, `log.py`,
+  `test_runner.py`, plus a `_main_console()` for the `life` console script)
+- `life/cli/__main__.py` — entry point for `python -m life.cli`.
+- `life/centrals/` — registradores top-level (task / knowledge / research)
+- `life/handlers/` — orquestram centrals via re-invoke
+- `life/plugins/` — extensões carregadas pelo plugin loader
+- `pyproject.toml` — declares `life` package + `life` console script
+- `.python-version` — pins Python 3.11
+- `pytest.ini` — sets `pythonpath = src` so `from src.mesh.X import Y` works
+- `tests/` — root-level integration tests (Phase 3 mesh + contracts + adapters)
 - `openwiki/` — workspace parasita (≠ `.openwiki/` que é cache/config)
 
-Pastas `.` de tooling também no root (não interferem no runtime, ignore):
+Pastas `.` de tooling no root (não interferem no runtime, ignore):
 `.agents`, `.atl`, `.claude-flow`, `.codex`, `.gitnexus`, `.hermes`,
 `.hypothesis`, `.life`, `.openwiki`, `.pi`.
+
+A legacy `__init__.py` at the repo root survives as a 2-line stub kept
+for git-blame continuity — it is NOT a valid Python package (regular
+packages require a directory, not a lone file). `python -m life.cli`
+resolves through `life/`, not through this stub.
 
 **Zero-byte artifacts untracked** (5): `0`, `14`, `agent('Execute`, `int`,
 `None`. Causa provável: redirecionamento bash malformado
