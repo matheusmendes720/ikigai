@@ -685,6 +685,14 @@ Both kept here for audit trail.
 ### M59 — Resolve mesh module dual-identity bug + delete stale chat_system duplicate (STATUS: DONE)
 ### M60 — Establish life meta-package as a real directory + root pyproject.toml (STATUS: DONE)
 ### M62 — IKIGAI observability dual-identity swap, narrow scope (STATUS: DONE)
+### M63 — AGENTS.md + CLAUDE.md sync to post-M60 reality (STATUS: DONE)
+- **What:** Docs synced: file roles table, `cli/cli.py → life/cli/cli.py`, `python -m life.cli` description, root layout section rewritten. Drift net + chat invariants preserved (61/61 tests still green).
+- **Spec:** `specs/M63-docs-sync-post-m60/SPEC.md`
+- **Acceptance:**
+  - [x] 8 stale references to bare-root cli/, centrals/, handlers/, plugins/ removed
+  - [x] Drift net canônico 26/26 + chat 13/13 = 39/39 PASS after edits
+  - [x] `python -m life.cli --help` still works (regression-tested)
+
 - **What:** Same pattern as M59 but inside src/ikigai/. 5 files now import `from src.ikigai.src.observability.X` instead of `from observability.X`. Unblocks `tests/test_reasoning_chain.py` (was collection-error). Deliberately narrow — leaves the 8 dangling `from sys_ikigai.*` imports for a follow-up because re-creating the missing modules is a multi-hour ADR-012 effort that should be its own milestone.
 - **Spec:** `specs/M62-ikigai-observability-dual-identity/SPEC.md`
 - **Acceptance:**

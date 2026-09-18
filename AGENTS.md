@@ -23,7 +23,7 @@ Guidance for coding agents (Codex, Claude Code, Hermes, GitNexus) working in thi
 
 | Path | Tooling | Role |
 |------|---------|------|
-| `cli/`, `centrals/`, `handlers/`, `plugins/`, `__init__.py` (root) | Python | Root `life` CLI hub (Typer). Imports `from life import __version__` — repo root must be on `PYTHONPATH`. |
+| `life/__init__.py` + `life/cli/`, `life/centrals/`, `life/handlers/`, `life/plugins/` | Python | Root `life` CLI hub (Typer). `python -m life.cli --help` works (post-M60 meta-package restructure). |
 | ~~`src/operational/`~~ | (removed `604d6af`) | PAV productivity kernel was deleted; archived at `archive/legacy-pav/src-operational/`. **Do not expect this directory to exist.** |
 | `src/ikigai/` | Poetry | IKIGAi meta-brain — MCP server, deep-agent harness, OpenTelemetry wiring. `ikigai_maintainer` graph was stripped from `langgraph.json` per attribution §3; v2 graph code lives at `src/ikigai/src/agents/v2/` but is not registered. |
 | `src/life_tatics/` | none (no `pyproject.toml`) | Standalone `life-tatics` time-block planner — runs as a module: `python -m life_tatics.cli` |
@@ -172,9 +172,9 @@ Antes de qualquer mudança, perguntar:
 
 ## Build & Test
 
-### Root CLI hub (`life` package — `cli/` + `centrals/` + `handlers/` + `plugins/`)
+### Root CLI hub (`life` package — `life/cli/` + `life/centrals/` + `life/handlers/` + `life/plugins/`)
 
-Root `__init__.py` enables `python -m life.cli`; **repo root must be on `PYTHONPATH`** for the `from life import __version__` import in `cli/cli.py`. The Phase 3 v1 commands also import `from src.mesh.adapters import …` (via `PYTHONPATH=$REPO/src`).
+The `life/` directory IS the meta-package (post-M60, 2026-09-18). `python -m life.cli --help` works from any cwd if `src/` is on `PYTHONPATH` (use repo's pytest.ini setting `pythonpath = src` to inherit). The Phase 3 v1 commands import `from src.mesh.adapters import …`. Source layout is now `life/cli/cli.py` (NOT `cli/cli.py`). Historical `cli/__init__.py` in root was a non-functioning fake package (regular Python requires a directory, not a lone __init__.py) — M60 moved everything into `life/`.
 
 ```bash
 # Daily / weekly from the repo root
@@ -297,7 +297,7 @@ cli/  centrals/  handlers/  plugins/   (all at repo root, NOT under life/)
 
 - `cli/cli.py` is the Typer entry; imports `from life import __version__` (from repo-root `__init__.py`).
 - `centrals/` expose `typer.Typer` sub-apps mounted by `cli/cli.py`. Delegates: `task` → Taskwarrior binary; `knowledge` → `leitura` / `mindmaps` / `notes`; `research` → `research` CLI. `BaseCentral.run_cli()` returns `{ok, stdout, stderr, data, error?}`.
-- `handlers/daily.py`, `handlers/weekly.py` re-invoke the CLI via `python -m life.cli <central> <cmd> --json` (handlers double as integration tests).
+- `life/handlers/daily.py`, `life/handlers/weekly.py` re-invoke the CLI via `python -m life.cli <central> <cmd> --json` (handlers double as integration tests).
 - `plugins/protocol.py` defines `register()` + `before/after_{daily,weekly}()` lifecycle hooks. `plugins/loader.py` discovers via `cfg.plugin_dirs` looking for a module-level `PLUGIN` / `plugin` / `Plugin` attr. `plugins/builtin/health_check.py` is the only built-in.
 - `cli/config.py` — `LifeConfig` / `load_config()` loads `config/life.yaml` if present; key fields: `root`, `log_dir`, `plugin_dirs`, `submodules`, `task_scripts`, `notes_store`. `get_submodule_path(name)` returns `{"ok": False, "error": ...}` for unknown submodules (never raises).
 - `cli/test_runner.py` discovers `tests/` dirs from `cfg.submodules` and runs `pytest -v` per submodule.
@@ -374,21 +374,21 @@ Shared across all layers; **never duplicate contract models elsewhere**. Frozen 
 - **`ikigai.bat` venv path.** The launcher hard-codes `.venv\Scripts\python.exe`; if you ever recreate the venv with `poetry env remove` + `poetry install`, the .bat still finds it — but renaming `.venv/` breaks it silently.
 - **Observability worktrees pending merge.** 4 OTel branches are sitting on disk (IKIGAI `feat/mcp-observability` worktree + 3 external `feat/otel-tracing` branches in `apps/{kanban,dev-tools,calendar}/`). Merge procedure in `src/ikigai/docs/observability/03-merge-plan.md`. Don't rebase or rewrite their history without reading the merge plan first — order matters (solverforge build-fix first).
 - **`scripts/verify_sprint.sh` vs `uv run verify_sprint`.** Only `.sh` exists; `uv run verify_sprint` fails. Use `bash scripts/verify_sprint.sh` until it's ported.
-- **PYTHONPATH for root CLI.** `cli/cli.py` does `from life import __version__`. The root `__init__.py` defines it, but only if repo root is on `PYTHONPATH`. Either `cd` to repo root or export `PYTHONPATH=.` before invoking `python -m life.cli`.
+- **PYTHONPATH for root CLI (post-M60).** `life/cli/__init__.py` defines `_main_console`, `life/cli/cli.py` does `from life import __version__`. The repo's `pytest.ini` sets `pythonpath = src` automatically; for ad-hoc CLI use, either `cd` to repo root + `export PYTHONPATH=.` or install editable (`pip install -e .`) which adds `life = "life.cli:_main_console"` to PATH.
 - **Phase 3 mesh smoke is the canonical driver.** `scripts/smoke/phase3_v1.{sh,bat}` runs in an isolated temp dir; if you change the mesh layer's public surface, update both the smoke script and the contracts in `src/contracts/task_change.py`. The Python driver inside the smoke script redirects module-level path constants (`cli.TASKS_JSONL`, `taskdog.TASKDOG_DB`, `solverforge_calendar.UPI_DB`, `queue.QUEUE_DIR`) before exercising the flow.
 
 ## File Roles Quick Reference
 
 | File / Dir | Purpose |
 |---|---|
-| `__init__.py` (root) | `__version__ = "0.1.0"`; makes root a `life` package when on PYTHONPATH |
+| `__init__.py` (root) | NOT a package anymore (post-M60). 2-line stub kept for git blame continuity. The real `life` package moved to `life/__init__.py`. |
 | `cli/cli.py` | Main Typer app; registers centrals, handlers, plugins |
 | `cli/config.py` | `LifeConfig` + YAML/env loading |
 | `cli/log.py` | Structured logging (plain or JSON) |
 | `cli/test_runner.py` | Discovers submodules' `tests/` dirs and runs `pytest -v` per dir |
 | `centrals/base.py` | `BaseCentral.run_cli()` subprocess helper |
 | `centrals/{task,knowledge,research}.py` | Central sub-apps |
-| `handlers/daily.py`, `handlers/weekly.py` | Orchestrate centrals via `python -m life.cli` |
+| `life/handlers/daily.py`, `life/handlers/weekly.py` | Orchestrate centrals via `python -m life.cli` |
 | `plugins/{protocol,loader}.py` + `plugins/builtin/health_check.py` | Plugin discovery + lifecycle |
 | `interfaces/cli/read_tasks.py` | Phase 3 v1 reader for `CliAdapter` slice |
 | `src/contracts/{common,task,task_change,planning,metrics}.py` | Canonical Pydantic v2 contracts (frozen, `extra="forbid"`) |
