@@ -460,6 +460,11 @@ archive/legacy-pav/src-operational/medic/bin/
 # M39 daemon watchdog artifact: empty file leaked when shell tried
 # `> WATCHDOG_THRESHOLD_SEC` thinking it was a variable assignment.
 /WATCHDOG_THRESHOLD_SEC
+# M58 taskdog_mcp_stdio scratch cleanup: tests/test_taskdog_mcp_stdio_smoke.py
+# spawns per-test UUID subdirs under .tmp/taskdog_mcp_stdio/ for isolated
+# stdio servers. They were never added to .gitignore and accumulated to 38 dirs.
+# Adding .tmp/ broadly (was only .tmp_test/) captures all future scratch.
+/.tmp/
 # M41 planning-with-files submodule unlink: the directory is a
 # self-contained third-party fork with its own .git/; we don't
 # track it in the parent repo (was a phantom mode-160000 gitlink
