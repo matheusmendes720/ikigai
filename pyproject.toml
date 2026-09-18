@@ -1,0 +1,46 @@
+[project]
+name = "life"
+version = "0.1.0"
+description = "Algorithmic Life OS — CLI hub for personal productivity orchestration (daily/weekly handlers + task/knowledge/research centrals + plugin system)."
+requires-python = ">=3.11"
+readme = "README.md"
+authors = [{ name = "Matheus Mendes", email = "matheusmendes720@proton.me" }]
+license = { text = "MIT" }]
+dependencies = [
+    "typer>=0.12",
+    "pydantic>=2.0",
+    "ruamel-yaml>=0.18",
+]
+
+# The `life` meta-package physically lives under ./life/ in the repo root.
+# setuptools builds it as-is via setuptools auto-discovery.
+[tool.setuptools]
+packages = ["life", "life.cli", "life.centrals", "life.handlers", "life.plugins", "life.plugins.builtin"]
+include-package-data = true
+
+# Console script — `pip install -e .` then `life --help` works.
+[project.scripts]
+life = "life.cli:_main_console"
+
+[project.optional-dependencies]
+mesh = [
+    "pydantic>=2.0",
+]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.6",
+    "mypy>=1.7",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "unit: unit tests",
+    "integration: integration tests (cross-fork)",
+    "smoke: end-to-end smoke (Phase 3 driver)",
+    "e2e: full-stack end-to-end (slow)",
+]
