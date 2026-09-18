@@ -1,7 +1,9 @@
 ---
-milestone: M58
-title: Chat regression fix — restore Entry/EntryRole lost in a5b1146c
+name: M58-chat-regression-fix
+description: Restore Entry/EntryRole + dual-signature writer after a5b1146c regression
+owner: matheus-mendes
 status: DONE
+milestone: M58
 estimated_cost_usd: 0.50
 constitution_refs:
   - tests_are_the_contract
