@@ -479,3 +479,35 @@ archive/legacy-pav/src-operational/medic/bin/
 #   .claude/n       — bash `> .claude/n` (created 2026-09-15 18:55 by daemon loop-tick)
 /n
 /.claude/n
+# M57 zero-byte artifact sweep: aggregate patterns covering the remaining
+# 54 unignored bash-redirect leaks at repo root (verified 2026-09-18 via
+# `find . -maxdepth 1 -type f -size 0`). Two cluster classes:
+#   (a) Python identifier / type-annotation fragments from heredoc-broken
+#       multi-line strings (`> None`, `> str`, `> dict[str`, etc.)
+#   (b) Numeric-only / quote / shell-var tokens (`> 100`, `> '`, ``> ` ``, etc.)
+#
+# Pattern 1: repo-root files whose names contain '[', ']', '(', ')' or
+# start with '$'/'`' — bash redirect targets with no .ext.
+/*[\[\(\)]*
+/$*
+/`*
+# Pattern 2: short filenames at root (≤4 chars) consisting only of
+# letters OR only of digits (collapses 27 individual entries into 2).
+/[a-zA-Z]
+/[0-9]
+/[a-zA-Z][a-zA-Z]
+/[a-zA-Z][a-zA-Z][a-zA-Z]
+/[a-zA-Z][a-zA-Z][a-zA-Z][a-zA-Z]
+/[0-9][0-9]
+/[0-9][0-9][0-9]
+/[0-9][0-9][0-9][0-9]
+# Pattern 3: scattered survivors (M57 spotted them, branchy gitignore)
+/80%
+/100
+/200
+/2x
+/$10
+/{len(lf_data)}
+/Deep-Agent-as-canonical
+/console.log(i
+/done
