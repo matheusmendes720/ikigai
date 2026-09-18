@@ -596,6 +596,23 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Critical-path bypass:** None
 
+
+### M56 — Fix daemon-manager-schedules.sh save() Windows tmp bug (STATUS: PENDING — auto-reconciled 2026-09-18)
+- **What:** save() in `daemon-manager-schedules.sh` was using `open(path+".tmp","w")` which intermittently fails on Windows git-bash stale-globbed paths (FileNotFoundError raised silently — every save() appended nothing while printing SUCCESS). Replaced with `tempfile.mkstemp(prefix=".schedules-", suffix=".tmp", dir=...)` + `os.makedirs(d, exist_ok=True)` + atomic `os.replace` + BaseException rollback. Re-add verified: 5/5 schedules RUNNING with live PIDs (loop-tick 3626, hill-climb 4647, cost-dashboard 4723, streak-tracker 4816, daemon-watchdog 4909).
+- **Why:** M30 (daemon reactivation) was claimed-DONE but `daemon-manager list` showed 0 schedules because save() silently failed. M57-M60 cannot plan against a live tick if the daemon is parked. Loop was effectively idle at the daemon layer.
+- **Acceptance:** (pending — human confirmation required; commit `ff1330f6` exists with verification)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M57 — gitignore aggregate patterns for 54 zero-byte bash-redirect leaks (STATUS: PENDING — auto-reconciled 2026-09-18)
+- **What:** 54 zero-byte files at repo root remained visible to `git status` despite M20/M46/M55 each adding individual entry-by-entry rules. Bursty nature of bash `> N` redirect typos is combinatorial, not enumerable. FIX: aggregate patterns (`/[[\(\)]*`, `/$*`, ``/``*``, short 1-4 char alpha + digit, + scattered survivors `/80% /100 /200 /2x /$10 /done /Deep-Agent-as-canonical /console.log(i /{len(lf_data)}`). VERIFIED: `git ls-files --others --exclude-standard` shows 0 leaks among 54 ZB at root.
+- **Why:** Per-tick noise in `git status` obscures real untracked work. Reduce false-positive drift surface.
+- **Acceptance:** (pending — human confirmation required; commit `7be30cdf` exists with verification)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
 ## Backlog (not yet sequenced)
 
 _(empty — all 5 prior backlog items shipped via M23, M24, M25, M26, M27)_
@@ -664,6 +681,17 @@ Both kept here for audit trail.
   - **Completed:** 2026-09-15 — atomic commits `9c77fa09` (M41 unlink) + `a5a4ab30` (M41 cleanup); pushed to origin master
 
 ### M55 — Zero-byte .claude/n cleanup (STATUS: DONE)
+### M58 — Restore chat Entry/EntryRole + ProposalStatus.OPEN (a5b1146c regression)
+- **What:** Restore chat-package API that commit `a5b1146c` (2026-09-14) had trimmed out, while `tests/test_chat_system.py` kept depending on it. Add Entry + EntryRole(StrEnum) + ProposalStatus(StrEnum alias), dual-signature writer for `scripts/chat_repl.py`, sidecar JSON for proposal round-trip, atomic tempfile writes.
+- **Spec:** `specs/M58-chat-regression-fix/SPEC.md`
+- **Acceptance:**
+  - [x] `tests/test_chat_system.py` 5/5 PASS (was 0/5 collection)
+  - [x] `tests/test_chat_repl.py` 8/8 PASS (was 1 fail at first input)
+  - [x] Drift net 69/69 PASS (5 files / 69 tests, was 68/69 after partial fix)
+  - [x] `tests/test_server_fastmcp.py` 3/3 PASS
+  - [x] `tests/test_taskdog_mcp_path3.py` 4/4 PASS
+- **Completed:** 2026-09-18
+
 - **What:** Add explicit `/.claude/n` to `.gitignore` (also `/n` for root-level variant); delete the existing 0-byte `.claude/n` artifact (created 2026-09-15 18:55 by a daemon loop-tick bash redirect leak — exact command not recovered).
 - **Why:** M20 T-20.1 + M46 extended `.gitignore` patterns for root-level leaks but did NOT cover paths inside subdirectories like `.claude/n`.
 - **Spec:** `specs/M55-zero-byte-claude-n-cleanup/SPEC.md` (created 2026-09-15)
