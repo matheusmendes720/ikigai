@@ -1,6 +1,6 @@
 ---
 name: M67-taskdog-structured-data
-description: All 4 IKIGAI tools_taskdog tools return JSON structured data (not raw stdout); remove duplicate inline definitions in tools.py
+description: IKIGAI taskdog tools return JSON structured data + remove duplicate inline definitions in tools.py
 owner: matheus-mendes
 status: DONE
 milestone: M67
