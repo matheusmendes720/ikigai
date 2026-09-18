@@ -688,6 +688,15 @@ Both kept here for audit trail.
 ### M63 — AGENTS.md + CLAUDE.md sync to post-M60 reality (STATUS: DONE)
 ### M64 — Validate pip install -e . + life console script (STATUS: DONE)
 ### M65 — LifeConfig defaults point at real repo paths (STATUS: DONE)
+### M66 — Fix bash path arguments in task daily-review / weekly-review (STATUS: DONE)
+- **What:** `subprocess.run(["bash", str(script)])` in task.py was passing Windows backslash paths to git-bash, which mangled them to `C:Usersmathecode_space...`. Patched 2 sites to convert `\\` → `/` before invoking bash. `metrics()` left for M67 (needs Taskwarrior integration).
+- **Spec:** `specs/M66-task-windows-paths/SPEC.md`
+- **Acceptance:**
+  - [x] bash receives forward-slash paths in daily-review / weekly-review
+  - [x] Drift + chat 39/39 PASS preserved
+- **Result:** On Windows-without-Taskwarrior, daily-review script now runs (downstream "task: command not found" is expected — Taskwarrior is a host-install concern, not a project bug).
+
+
 - **What:** Fixes the pre-existing bug surfaced by M64: `life submodules` listed 5 fictitious paths under `ROOT/system/raise_data/...` that don't exist on disk. Rewrote `DEFAULT_SUBMODULES` in `life/cli/config.py` to point at 5 real dirs (interfaces/cli, interfaces/tui, taskwarrior, strategics, specs). Also fixed `ROOT = parents[2]` (was `.parent.parent` — too few levels after M60).
 - **Spec:** `specs/M65-lifeconfig-defaults-real-paths/SPEC.md`
 - **Acceptance:**
