@@ -59,10 +59,20 @@ def load():
 
 
 def save(schedules):
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(schedules, f, indent=2)
-    os.replace(tmp, path)
+    # Use NamedTemporaryFile next to target — Windows git-bash choked on
+    # `path + ".tmp"` when the parent dir wasn't pre-created in the same call.
+    import tempfile
+    d = os.path.dirname(path) or "."
+    os.makedirs(d, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=".schedules-", suffix=".tmp", dir=d)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(schedules, f, indent=2)
+        os.replace(tmp, path)
+    except BaseException:
+        try: os.unlink(tmp)
+        except OSError: pass
+        raise
 
 
 if op == "exists":
