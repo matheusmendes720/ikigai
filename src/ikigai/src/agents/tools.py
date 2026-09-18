@@ -425,11 +425,11 @@ IKIGAI_TOOLS = [
     tuiboard_update_task,
     tuiboard_create_task,
     # Taskdog task management
-    taskdog_list_tasks,
-    taskdog_create_task,
-    taskdog_complete_task,
-    taskdog_get_task,
-]
+        taskdog_list_tasks,
+        taskdog_create_task,
+        taskdog_complete_task,
+        taskdog_get_task,
+    ]
 
 
 # ---------------------------------------------------------------------------

@@ -692,6 +692,15 @@ Both kept here for audit trail.
 ### M67 — Taskdog tools return JSON structured data + de-duplicate (STATUS: DONE)
 ### M68 — taskdog-server daemon schedule + daemon-manager CRLF cleanup (STATUS: DONE)
 ### M69 — taskdog_complete_task auto-starts PENDING tasks (STATUS: DONE)
+### M70 — ADR-013 enforcement applied (STATUS: REVERTED)
+- **What:** Attempted to add `taskdog_start_task/pause_task/cancel_task` standalone tools (M70). Tests for `IKIGAI_TOOLS count == 12` failed at 15. ADR-013 explicitly forbids new taskdog tools. Reverted cleanly.
+- **Spec:** `specs/M70-adr013-taskdog-scope/SPEC.md`
+- **Outcome:**
+  - [x] IKIGAI_TOOLS count back to 12
+  - [x] All 91+1 SKIP tests green
+  - [x] Deep agent ops unchanged: list/get/create/complete only
+
+
 - **What:** `taskdog 0.23.0` enforces PENDING→IN_PROGRESS→COMPLETED. Called `complete` on a PENDING task failed every time. Refactored `taskdog_complete_task` to detect the PENDING-guard error message and auto-fire `taskdog start <id>` before retrying `done`. Returns `{ok, auto_started: True}` envelope.
 - **Spec:** `specs/M69-taskdog-complete-auto-start/SPEC.md`
 - **Acceptance:**
