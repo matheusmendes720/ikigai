@@ -690,6 +690,15 @@ Both kept here for audit trail.
 ### M65 — LifeConfig defaults point at real repo paths (STATUS: DONE)
 ### M66 — Fix bash path arguments in task daily-review / weekly-review (STATUS: DONE)
 ### M67 — Taskdog tools return JSON structured data + de-duplicate (STATUS: DONE)
+### M68 — taskdog-server daemon schedule + daemon-manager CRLF cleanup (STATUS: DONE)
+- **What:** Stripped CRLF from `.claude/helpers/{daemon-manager, daemon-manager-schedules}.sh` (Windows-edit contamination — same pattern as M62.2). Switched `_py_schedules` from `python` to `python3` (git-bash's PATH-available). Added taskdog-server schedule at 5min interval, PID 14776 RUNNING. Manual `taskdog-server &` no longer required.
+- **Spec:** `specs/M68-taskdog-server-daemon/SPEC.md`
+- **Acceptance:**
+  - [x] daemon-manager list shows 6/6 schedules including taskdog-server
+  - [x] taskdog-server binds :8000 when daemon fires
+  - [x] Drift invariants preserved
+
+
 - **What:** All 4 IKIGAI taskdog tools (`list/create/complete/get`) now invoke `taskdog export --format json`, parse with json.loads, return structured `{"ok": True, ...}` envelopes. Plus removed 148-line inline duplicate definitions in `tools.py` that shadowed the canonical `tools_taskdog.py` — now `tools.py` imports the canonical symbols.
 - **Spec:** `specs/M67-taskdog-structured-data/SPEC.md`
 - **Acceptance:**
