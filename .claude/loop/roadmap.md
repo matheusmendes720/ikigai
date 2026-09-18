@@ -687,6 +687,15 @@ Both kept here for audit trail.
 ### M62 — IKIGAI observability dual-identity swap, narrow scope (STATUS: DONE)
 ### M63 — AGENTS.md + CLAUDE.md sync to post-M60 reality (STATUS: DONE)
 ### M64 — Validate pip install -e . + life console script (STATUS: DONE)
+### M65 — LifeConfig defaults point at real repo paths (STATUS: DONE)
+- **What:** Fixes the pre-existing bug surfaced by M64: `life submodules` listed 5 fictitious paths under `ROOT/system/raise_data/...` that don't exist on disk. Rewrote `DEFAULT_SUBMODULES` in `life/cli/config.py` to point at 5 real dirs (interfaces/cli, interfaces/tui, taskwarrior, strategics, specs). Also fixed `ROOT = parents[2]` (was `.parent.parent` — too few levels after M60).
+- **Spec:** `specs/M65-lifeconfig-defaults-real-paths/SPEC.md`
+- **Acceptance:**
+  - [x] `life submodules` lists 5 real paths, each `ref=58b74768`
+  - [x] `life config-show` shows correct root + submodules
+  - [x] Drift + chat 39/39 PASS
+
+
 - **What:** Validation-only milestone. `uv venv` + `uv pip install -e .` succeeds in 2.7s in an isolated `.venv-test-install/`. Console script `life.exe` is exposed, RC=0 for `life --help` / `version` / `submodules` / `config-show` / `log --path`. Even from `C:\Windows\Temp` (foreign cwd) the script runs. No source changes — confirms M60's pyproject.toml works end-to-end.
 - **Spec:** `specs/M64-pip-install-validate/SPEC.md`
 - **Acceptance:**
