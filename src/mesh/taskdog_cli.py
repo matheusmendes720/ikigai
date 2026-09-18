@@ -31,8 +31,8 @@ import json
 import sys
 from pathlib import Path
 
-from mesh.adapters import taskdog as taskdog_mod
-from mesh.adapters.taskdog import TaskdogAdapter
+from src.mesh.adapters import taskdog as taskdog_mod
+from src.mesh.adapters.taskdog import TaskdogAdapter
 
 # Statuses we have seen in the taskdog store so far. Kept loose — the CLI
 # surfaces whatever status the adapter returns, but argparse's --status
