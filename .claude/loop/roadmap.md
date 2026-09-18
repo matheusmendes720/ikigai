@@ -683,6 +683,18 @@ Both kept here for audit trail.
 ### M55 — Zero-byte .claude/n cleanup (STATUS: DONE)
 ### M58 — Restore chat Entry + EntryRole + ProposalStatus.OPEN after a5b1146c (STATUS: DONE)
 ### M59 — Resolve mesh module dual-identity bug + delete stale chat_system duplicate (STATUS: DONE)
+### M60 — Establish life meta-package as a real directory + root pyproject.toml (STATUS: DONE)
+- **What:** The repo had `__init__.py` + `cli/` + `centrals/` + `handlers/` + `plugins/` at root intending to be the `life` meta-package. But a regular Python package needs a directory, not a lone `__init__.py`. Moved everything into a new `./life/` directory, added root `pyproject.toml` + `.python-version` + a `life` console script entry point. `python -m life.cli --help` now works (was ModuleNotFoundError for months).
+- **Spec:** `specs/M60-life-meta-package/SPEC.md`
+- **Acceptance:**
+  - [x] `python -m life.cli --help` works (was ModuleNotFoundError)
+  - [x] `python -m life.cli version` returns 0.1.0
+  - [x] `pyproject.toml` declares `life` package + `life = "life.cli:_main_console"` console script
+  - [x] `.python-version` = 3.11
+  - [x] Phase 3 mesh suite still 308 passing
+  - [x] Drift net canônico still 69/69
+- **Completed:** 2026-09-18 — restores the canonical CLI invocation that AGENTS.md/CLAUDE.md have documented for months
+
 - **What:** 8 src/mesh/*.py files used `from mesh.X import Y` while the conftest used `from src.mesh.X import Y` — Python loaded both as distinct module instances, so test monkeypatches on TASKS_JSONL/QUEUE_DIR silently no-op'd. Fixed by switching source-code absolute imports to `from src.mesh.X` everywhere. Removed stale `tests/test_chat_system.py` (pre-M58 API duplicate).
 - **Spec:** `specs/M59-mesh-dual-identity-fix/SPEC.md`
 - **Acceptance:**
