@@ -983,7 +983,7 @@ def test_no_orphan_milestone_specs() -> None:
         roadmap_text = roadmap_file.read_text(encoding="utf-8")
 
     roadmap_pattern = re.compile(
-        r"^#{3,4}\s+(M\d+)[^(]*\(STATUS:\s*([\w-]+)\)", re.MULTILINE
+        r"^#{3,4}\s+(M\d+(?:\.\d+)?).*?\(STATUS:\s*([\w-]+)\)$", re.MULTILINE
     )
     roadmap_milestones: dict[str, str] = {}
     for m in roadmap_pattern.finditer(roadmap_text):
