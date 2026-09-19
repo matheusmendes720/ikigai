@@ -696,6 +696,15 @@ Both kept here for audit trail.
 ### M71 — Mesh TaskdogAdapter HTTP bridge (STATUS: DONE)
 ### M72 — vault_write migrates off frontmatter 3.x (STATUS: DONE)
 ### M72.1 — frontmatter_compat shim (STATUS: DONE)
+### M73 — UEID regex widens + accepts legacy 5-part + long-UUID (STATUS: DONE)
+- **What:** Tests were failing with `"String should match pattern '^[a-z]{2,5}:...'"`. Three root causes: (1) namespace `{2,5}` too narrow for `ikigai` (6 letters), (2) canonical 4-part regex rejected 5-part legacy fixtures, (3) no support for full 36-char UUIDs in fixtures. Fixed by widening to `{2,8}` and adding alternation branches (4-part short | 4-part long-uuid | 5-part legacy).
+- **Spec:** `specs/M73-ueid-regex-flex/SPEC.md`
+- **Acceptance:**
+  - [x] test_integration_data_model.py : 27/27 PASS (was 14 errors)
+  - [x] test_sqlite_bridge.py : 6/6 PASS (was 5 errors)
+  - [x] UEID accepts: 5-part `ikigai:dream:vaga-...:4f6a202a:2cb24609`, 4-part short, 4-part long-UUID
+
+
 - **What:** Created `sys_ikigai/vault/frontmatter_compat.py` — backward-compat shim wrapping `yaml.safe_load`/`yaml.safe_dump` to provide the loads/dumps/Post API removed by frontmatter 3.x. Migrated 5 callers: `frontmatter_to_dict.py`, `vault_read.py`, `handlers.py`, `strategics/loader.py`, and re-affirmed `vault_write.py` (M72).
 - **Spec:** `specs/M72.1-frontmatter-compat-shim/SPEC.md`
 - **Acceptance:**

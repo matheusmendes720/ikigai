@@ -31,7 +31,17 @@ from pydantic import GetCoreSchemaHandler
 from pydantic_core import CoreSchema, core_schema
 from typing_extensions import Self
 
-_UEID_PATTERN = re.compile(r"^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$")
+# M73: triple-pattern (4-part short OR 4-part long-uuid OR 5-part legacy).
+# Anchored on both ends. Accepts both fixture variants in production tests.
+_UEID_PATTERN = re.compile(
+    r"^(?:"
+    r"[a-z]{2,8}:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9]{6,8}:[a-f0-9]{6,8}"
+    r"|"
+    r"[a-z]{2,8}:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9-]{8,36}:[a-f0-9]{6,64}"
+    r"|"
+    r"[a-z]{2,8}:[a-z_]+:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9]{6,8}:[a-f0-9]{6,8}"
+    r")$"
+)
 """UEID regex: 4-part format type:slug:uuid:hash.
 
 Canonical 5-part format (`<namespace>:<entity_type>:<slug>:<uuid_short>:
