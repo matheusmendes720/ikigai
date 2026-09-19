@@ -26,7 +26,7 @@ def tmp_queue(monkeypatch, tmp_path):
     identities or ``dispatch_once`` reads the real ``data/investigation_queue/``.
     """
     import src.mesh.investigation_queue as q_dotted
-    import mesh.investigation_queue as q_bare
+    import src.mesh.investigation_queue as q_bare
     for q in (q_dotted, q_bare):
         monkeypatch.setattr(q, "QUEUE_DIR", tmp_path)
         monkeypatch.setattr(q, "audit_log_path", lambda: tmp_path / ".investigation_audit.log")

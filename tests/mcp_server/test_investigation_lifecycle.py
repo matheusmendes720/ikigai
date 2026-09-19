@@ -17,7 +17,7 @@ def tmp_queue(monkeypatch):
     """Redirect investigation queue dir to a temp directory."""
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_path = Path(tmp_dir)
-        import mesh.investigation_queue as q
+        import src.mesh.investigation_queue as q
         monkeypatch.setattr(q, "QUEUE_DIR", tmp_path)
         # Patch the audit log path too
         monkeypatch.setattr(q, "audit_log_path", lambda: tmp_path / ".investigation_audit.log")

@@ -709,8 +709,8 @@ def test_investigation_queue_invariants() -> None:
             pytest.fail(f"orphan tmp file in queue: {entry.name}")
 
     # Invariant 4: terminal-state transitions rejected (uses helper, not queue itself)
-    import mesh.investigation_queue as iq_mod
-    from mesh.investigation_queue import transition as _transition
+    import src.mesh.investigation_queue as iq_mod
+    from src.mesh.investigation_queue import transition as _transition
     from src.contracts.investigation import Investigation
 
     # Save original QUEUE_DIR

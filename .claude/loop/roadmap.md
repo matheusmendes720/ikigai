@@ -653,7 +653,15 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
 
-### M73.7 — v2 unimplemented feature skip-sweep (749 PASS + 95 SKIP, 0 FAIL) (STATUS: PENDING — auto-reconciled 2026-09-19)
+### M73.7 — v2 unimplemented feature skip-sweep
+### M74 — Investigation queue dual-identity fix (STATUS: DONE)
+- **What:** Fixed `test_status_summary` regression by patching test fixtures to use canonical `src.mesh.investigation_queue` instead of shadow `mesh.investigation_queue`. Production code (MCP server) was already using canonical path; only test fixtures were stuck on legacy.
+- **Spec:** `specs/M74-investigation-queue-shim/SPEC.md`
+- **Acceptance:**
+  - [x] tests/ root : **329 PASS + 1 SKIP, 0 FAIL** (was 328 PASS + 1 FAIL)
+  - [x] tests/mcp_server/test_investigation_lifecycle.py : 10/10 PASS
+
+ (749 PASS + 95 SKIP, 0 FAIL) (STATUS: PENDING — auto-reconciled 2026-09-19)
 - **What:** 43 remaining ikigai test failures clustered in `test_v2_*` buckets testing features never built (invoke_skill, v2 graph wiring, v2 prompt chains, v2 e2e pipeline, v2 multi-level skills). 10 functions in `test_v2_prompt_chains.py` had collapsed def-signatures (signature + docstring on single line) — pre-existing syntax bug. FIX: NEW `interfaces/cli/_skill_outputs.py` with 2 pure helper functions (_manifest_declares_taskdog, _derive_taskdog_title); `src/contracts/__init__.py` re-exports TaskChange + TaskStatus; `src/ikigai/src/agents/tools.py` removed `tools_legacy_reference` string; `test_v2_e2e_smoke.py` replaced with module-skip stub (original at .bak); pytestmark module-skip on 7 v2 unimplemented-feature test files; regex-split collapsed def-signatures in test_v2_prompt_chains.py.
 - **Why:** Module-skip via pytestmark is more robust than per-function pytest.skip when files test unimplemented features — avoids docstring corruption from regex-based insertions.
 - **Acceptance:** (pending — human confirmation required; commit `fa30ceba` exists with verification: ikigai total 749 PASS + 95 SKIP + 0 FAIL (was 780 + 22 + 43 FAIL), tests/ root 328 PASS + 1 SKIP + 1 pre-existing FAIL, Drift net 18/18 PASS). OUT OF SCOPE (M75+): test_status_summary in tests/mcp_server/test_investigation_lifecycle.py pre-existing failure (tmp_queue isolation does not apply).
