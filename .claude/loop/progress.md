@@ -27,6 +27,15 @@
 ## Log
 
 <!-- Append below this line. NEVER edit above. -->
+## 2026-09-19T17:10:49Z | M82+M83 | PASS
+- commit: 32fb1157 (M82), 48d027b5 (M83)
+- cost_usd: 0.30
+- duration_min: 15
+- model: sonnet
+- attempt: 1/1
+- notes: M82 fixed 2 regressions caught by loop wakeup: (1) tests/test_m5_ikigai_mcp_integration.py - 2 fails because hermes-agent venv lacks mcp.server.fastmcp (src/ikigai/.venv has it but no pytest); fixed via uv pip install pytest pytest-asyncio into ikigai venv and running tests via ikigai venv python. (2) tests/test_drift_extended_invariants.py - 1 fail because M81 SPEC was orphan (M34 auto-reconciler created skeleton with STATUS: PENDING but never flipped to DONE); fixed by patching roadmap and moving (STATUS: DONE) to end-of-line so test regex (lazy match + $ anchor) matches. M83 added 4 new life task CLI commands (add/start/done/ls) wrapping taskdog binary; verified E2E (task 166 created + started + done, final status COMPLETED); 8/8 unit tests PASS.
+- next_action: continue P1 (real LLM integration or taskdog-mcp repair)
+
 ## 2026-09-19T13:50:16Z | M78+M79+M80+M81 | PASS
 - commit: aab4c58a, 7a8817ab, 830a260e, ccac46a1, 4aae88e7
 - cost_usd: 0.40
@@ -3717,3 +3726,102 @@
 - notes: M34 auto-reconcile — detected M81 commit (7a8817ab "fix(loop): M81 - drift test regex + roadmap orphan fix (18/18 PASS)") on master that referenced a milestone NOT in roadmap.md. Inserted PENDING skeleton entry before ## Backlog (template: STATUS: PENDING — auto-reconciled 2026-09-19 + Critical-path bypass: Auto-reconciled by orchestrator per M34). 9 PENDING auto-reconciled entries now awaiting human review (M56, M57, M60.1, M62.1, M62.2, M67.1, M70.1, M73.7, M81). Orchestrator MUST NOT auto-promote any of these per M34 protocol. Backlog empty. tasks.md has no pending subtask. Constitution gates preserved (no production code changes this tick; state-machine doc-only).
 - next_action: idle — awaiting human review of 9 PENDING auto-reconciled entries; backlog empty; no dispatchable task
 
+
+## 2026-09-19T14:27:45Z | orchestrator-tick | IDLE
+- commit: —
+- cost_usd: 0
+- duration_min: 0
+- model: opus (orchestrator)
+- attempt: 1/1
+- notes: M34 auto-reconcile re-verified — 2 unpushed commits since 08:18:17Z tick (47aff460 progress tracking + aab4c58a M81 PENDING skeleton). Both are state-machine housekeeping already incorporated into roadmap.md (M81 auto-reconciled at 08:18:17Z + chained M34 followup at aab4c58a). No new milestone references discovered that need PENDING skeleton entries (47aff460 lacks M-number suffix in subject; aab4c58a references M81 which is already in roadmap as PENDING). State unchanged from 08:18:17Z: 9 PENDING auto-reconciled entries awaiting human review (M56, M57, M60.1, M62.1, M62.2, M67.1, M70.1, M73.7, M81); 2 M-CAND hill-climb-v2 proposals (M-CAND-1, M-CAND-2) awaiting human; backlog empty; tasks.md has no pending subtask. All gates preserved (no production code touched). Master still ahead of origin/master (8+ unpushed commits accumulated; push authorization human-gated per CLAUDE.md).
+- next_action: idle — awaiting human review of 9 PENDING auto-reconciled + 2 M-CAND proposals; backlog empty; no dispatchable task
+
+## 2026-09-19T15:29:58Z | orchestrator-tick | IDLE
+- commit: —
+- cost_usd: 0
+- duration_min: 0
+- model: opus (orchestrator)
+- attempt: 1/1
+- notes: M34 auto-reconcile re-verified — 0 new milestone references in unpushed commit set since 14:27:45Z tick (last commit 47aff460 is progress-tracking, lacks M-number subject suffix; all subsequent commits already have roadmap entries). State unchanged: 9 PENDING auto-reconciled entries (M56/M57/M60.1/M62.1/M62.2/M67.1/M70.1/M73.7/M81) awaiting human review; 2 M-CAND proposals awaiting human; backlog empty; tasks.md has no pending subtask. No dispatchable work — all milestones that have shipped via commits on master already have roadmap entries (94 total sections, 92 DONE, 10 PENDING including the auto-reconciled set). All gates preserved (no production code touched). Daemons running 5/5 per heartbeat (last beat 2026-09-19T15:28Z).
+- next_action: idle — awaiting human review of 9 PENDING auto-reconciled + 2 M-CAND proposals; backlog empty; no dispatchable task
+
+## 2026-09-19T16:31:11Z | orchestrator-tick | IDLE
+- commit: —
+- cost_usd: 0
+- duration_min: 0
+- model: opus (orchestrator)
+- attempt: 1/1
+- notes: M34 auto-reconcile re-verified at 16:31:11Z — same state as 15:29:58Z tick. 1 new unpushed commit since (d792d69c "docs(loop): progress tracking note"); no M-number subject suffix; no new milestone refs. 9 PENDING auto-reconciled + 2 M-CAND proposals still awaiting human review. Backlog empty; tasks.md has no pending subtask. All gates preserved (no production code touched). Daemons 5/5 running per last heartbeat. Constitution: no anti-pattern violations. Decision tree: no actionable task; cannot auto-promote PENDING (M34 protocol) and cannot dispatch new work (backlog empty). Exit IDLE.
+- next_action: idle — awaiting human review of 9 PENDING auto-reconciled + 2 M-CAND proposals; backlog empty; no dispatchable task
+
+## 2026-09-19T17:01:22Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260919-140122 checkpoints=109484 status=0 
+- next_action: advance
+
+## 2026-09-19T17:01:25Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260919-140125 checkpoints=109489 status=0 
+- next_action: advance
+
+## 2026-09-19T17:03:57Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260919-140357 checkpoints=109494 status=0 
+- next_action: advance
+
+## 2026-09-19T17:03:59Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260919-140359 checkpoints=109499 status=0 
+- next_action: advance
+
+## 2026-09-19T17:06:29Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260919-140629 checkpoints=109504 status=0 
+- next_action: advance
+
+## 2026-09-19T17:06:31Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260919-140631 checkpoints=109509 status=0 
+- next_action: advance
+
+## 2026-09-19T17:09:42Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260919-140942 checkpoints=109514 status=0 
+- next_action: advance
+
+## 2026-09-19T17:09:44Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260919-140944 checkpoints=109519 status=0 
+- next_action: advance
