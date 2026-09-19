@@ -452,7 +452,7 @@ IKIGAI_TOOLS.extend(
 # ---------------------------------------------------------------------------
 # These let tests monkeypatch `_VAULT_DIR` and `_read_checkpoint_data`
 # without needing the legacy sync_vault tool to be in IKIGAI_TOOLS.
-# They are NOT registered as tools (sync_vault is in v2/tools_legacy_reference.py).
+# They are NOT registered as tools (sync_vault lives in the v2 archive).
 # Both read from the project's standard layout: vault_root = vault/, checkpoint
 # DB at data/ikigai_checkpoints.db.
 from pathlib import Path as _Path  # noqa: E402
@@ -473,7 +473,7 @@ __all__ = ["_VAULT_DIR", "_read_checkpoint_data"]
 
 
 # ---------------------------------------------------------------------------
-# ikigai_sync_vault (M73.5 — extracted from v2/tools_legacy_reference.py)
+# ikigai_sync_vault (M73.5 — extracted from the v2 reference archive)
 # ---------------------------------------------------------------------------
 # Sync the latest checkpoint to a vault markdown file. Reads _read_checkpoint_data
 # and writes via vault_write. Tests monkeypatch _VAULT_DIR and _read_checkpoint_data.

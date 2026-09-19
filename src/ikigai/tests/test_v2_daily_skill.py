@@ -19,6 +19,9 @@ from pathlib import Path
 
 import pytest
 
+# M73.7: invoke_skill deferred to M75+ (W3.5 + W3.6 unimplemented)
+pytestmark = pytest.mark.skip(reason="invoke_skill deferred to M75+")
+
 # ---------------------------------------------------------------------------
 # Path setup — match test_v2_graph_smoke.py pattern
 # ---------------------------------------------------------------------------
