@@ -27,6 +27,24 @@
 ## Log
 
 <!-- Append below this line. NEVER edit above. -->
+## 2026-09-19T13:50:16Z | M78+M79+M80+M81 | PASS
+- commit: aab4c58a, 7a8817ab, 830a260e, ccac46a1, 4aae88e7
+- cost_usd: 0.40
+- duration_min: 25
+- model: sonnet (orchestrator)
+- attempt: 1/1
+- notes: 4 milestones shipped. M78 life invoke-skill CLI surface (5/5 CLI tests pass). M79 invoke-skill-ikigai-daily cron wiring (1 schedule). M80 invoke-skill all-cadences cron (weekly/monthly/quarterly - 10/10 daemons RUNNING). M81 drift test regex fix (18/18 drift PASS, root cause: regex [^(]* could not handle nested parens in milestone titles like "M75 - Notify router (multi-channel outbound)"). Also fixed MSYS path duplication bug (Windows bash /c/Users/ != Windows C:\Users\) and WindowsApps python3 REPL-stub bug.
+- next_action: idle
+
+## 2026-09-19T13:50:16Z | taskdog-e2e-verify | PASS
+- commit: (no commit, verification only)
+- cost_usd: 0
+- duration_min: 2
+- model: none (curl + python -c verification)
+- attempt: 1/1
+- notes: taskdog-server health OK, 155 tasks live (post-test-cleanup). invoke_skill('ikigai-quarterly') end-to-end test: created task ID 163 via full pipeline (manifest load + LLM stub + post-processor). Task title was "quarterly OKRs 2026-09-19" (date suffix per _derive_taskdog_title). 8 test tasks deleted via DELETE /api/v1/tasks/<built-in function id>. Pipeline confirmed fully functional end-to-end.
+- next_action: idle
+
 
 ## 2026-09-08T07:27:27Z | T-10.1 | PASS
 - commit: c24841c
