@@ -266,9 +266,92 @@ def register_skill_list(app: typer.Typer) -> None:
         typer.echo(json.dumps({"count": len(rows), "skills": rows}, indent=2))
 
 
-# Wire invoke-skill + skill-list commands into the Typer app.
+def register_skill_show(app: typer.Typer) -> None:
+    """Register the `skill show` introspection command (M84).
+
+    Shows full manifest details for a single skill: name, description,
+    entry_point, actor, inputs, outputs (with target tools), and
+    helpful metadata like cron cadence (if declared) and tags.
+    """
+
+    @app.command(name="skill-show")
+    def skill_show_cmd(
+        name: str = typer.Argument(..., help="Skill name (e.g. ikigai-daily)."),
+        json_out: bool = typer.Option(False, "--json", help="Emit JSON instead of pretty-print."),
+    ) -> None:
+        """Show details for a single skill manifest."""
+        from .invoke_skill import load_skill_manifest
+        from ._skill_outputs import _manifest_declares_taskdog
+
+        manifest = load_skill_manifest(name)
+        if not manifest:
+            error = {"ok": False, "error": f"skill {name!r} not found"}
+            typer.echo(json.dumps(error))
+            raise typer.Exit(1)
+
+        outputs = manifest.get("outputs") or []
+        taskdog_target = _manifest_declares_taskdog(outputs)
+
+        detail: dict[str, object] = {
+            "ok": True,
+            "name": manifest.get("name", name),
+            "description": manifest.get("description", ""),
+            "entry_point": manifest.get("entry_point", ""),
+            "actor": manifest.get("actor", ""),
+            "inputs": manifest.get("inputs", []),
+            "outputs": outputs,
+            "fires_taskdog": taskdog_target is not None,
+            "taskdog_target": taskdog_target if taskdog_target else None,
+            "metadata": manifest.get("metadata", {}),
+        }
+
+        if json_out:
+            typer.echo(json.dumps(detail, indent=2, default=str))
+        else:
+            _print_skill_human(detail)
+
+
+def _print_skill_human(detail: dict[str, object]) -> None:
+    """Pretty-print a single skill manifest in human-friendly form."""
+    name = detail.get("name", "<unknown>")
+    typer.echo(f"\n=== {name} ===")
+    if detail.get("description"):
+        typer.echo(f"\n  {detail['description']}\n")
+    typer.echo(f"  entry_point: {detail.get('entry_point', '?')}")
+    typer.echo(f"  actor:       {detail.get('actor', '?')}")
+    typer.echo(f"  fires taskdog: {detail.get('fires_taskdog')}")
+    if detail.get("taskdog_target"):
+        typer.echo(f"  taskdog action: {detail['taskdog_target']}")
+
+    inputs = detail.get("inputs") or []
+    if inputs:
+        typer.echo("\n  inputs:")
+        if isinstance(inputs, list):
+            for inp in inputs:
+                typer.echo(f"    - {inp}")
+        else:
+            typer.echo(f"    {inputs}")
+
+    outputs = detail.get("outputs") or []
+    if outputs:
+        typer.echo("\n  outputs (post-processors):")
+        if isinstance(outputs, list):
+            for out in outputs:
+                typer.echo(f"    - {out}")
+
+    metadata = detail.get("metadata")
+    if metadata and isinstance(metadata, dict) and metadata:
+        typer.echo("\n  metadata:")
+        for k, v in metadata.items():
+            typer.echo(f"    {k}: {v}")
+
+    typer.echo("")
+
+
+# Wire invoke-skill + skill-list + skill-show commands into the Typer app.
 register_invoke_skill(app)
 register_skill_list(app)
+register_skill_show(app)
 
 
 # Re-export invoke_skill so ``from interfaces.cli.v2 import invoke_skill``
