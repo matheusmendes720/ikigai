@@ -656,6 +656,15 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 ### M73.7 — v2 unimplemented feature skip-sweep
 ### M74 — Investigation queue dual-identity fix (STATUS: DONE)
 ### M75 — Notify router (multi-channel outbound) (STATUS: DONE)
+### M76 — notify-wrap.sh daemon wrapper (STATUS: DONE)
+- **What:** `.claude/helpers/notify-wrap.sh <name> <title> <cmd...>` runs any command, captures exit+elapsed, posts a notify summary. Handles `$@` single-element quirk + CRLF + Windows shell=True. `tests/loop/test_notify_wrap.sh` (4 bash assertions) + `tests/loop/test_notify_wrap_pytest.py` (3 pytest wrappers). Total tests root: 310→313.
+- **Spec:** `specs/M76-notify-daemon-wiring/SPEC.md`
+- **Acceptance:**
+  - [x] bash test : 4/4 PASS
+  - [x] pytest test : 3/3 PASS
+  - [x] tests/ root : 313 PASS + 27 SKIP (was 310)
+
+
 - **What:** Built notification router at `interfaces/cli/notify.py` (file + telegram channels via urllib stdlib) + Typer subcommand `life notify` + 6 smoke tests. Auto-skip TUI tests when textual missing. End-to-end verified: `life notify test --channel file` appends to `.life/logs/notifications.log` with ✅ icon + timestamp.
 - **Spec:** `specs/M75-notify-router/SPEC.md`
 - **Acceptance:**
