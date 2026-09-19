@@ -234,6 +234,14 @@ def version():
 
 
 # Register plugin-provided commands (e.g. health)
+
+# ---------------------------------------------------------------------------
+# notify subcommand (M75)
+# ---------------------------------------------------------------------------
+from interfaces.cli.notify_cli import app as notify_app  # noqa: E402
+app.add_typer(notify_app, name="notify")
+
+
 register_plugins(app)
 
 

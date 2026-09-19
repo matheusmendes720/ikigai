@@ -22,6 +22,8 @@ from unittest.mock import patch
 
 import pytest
 
+pytest.importorskip("textual", reason="TUI tests require textual package (optional interface layer)")
+
 from interfaces.tui.operator.app import (
     OperatorApp,
     QueueDetailScreen,

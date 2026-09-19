@@ -655,6 +655,14 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 
 ### M73.7 — v2 unimplemented feature skip-sweep
 ### M74 — Investigation queue dual-identity fix (STATUS: DONE)
+### M75 — Notify router (multi-channel outbound) (STATUS: DONE)
+- **What:** Built notification router at `interfaces/cli/notify.py` (file + telegram channels via urllib stdlib) + Typer subcommand `life notify` + 6 smoke tests. Auto-skip TUI tests when textual missing. End-to-end verified: `life notify test --channel file` appends to `.life/logs/notifications.log` with ✅ icon + timestamp.
+- **Spec:** `specs/M75-notify-router/SPEC.md`
+- **Acceptance:**
+  - [x] tests/interfaces/test_notify_router.py : 6/6 PASS
+  - [x] End-to-end smoke: `python -m life.cli.cli notify test --channel file` works
+
+
 - **What:** Fixed `test_status_summary` regression by patching test fixtures to use canonical `src.mesh.investigation_queue` instead of shadow `mesh.investigation_queue`. Production code (MCP server) was already using canonical path; only test fixtures were stuck on legacy.
 - **Spec:** `specs/M74-investigation-queue-shim/SPEC.md`
 - **Acceptance:**
