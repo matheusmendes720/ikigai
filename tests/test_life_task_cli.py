@@ -145,3 +145,46 @@ def test_task_ls_with_filter(runner: CliRunner, monkeypatch):
     result = runner.invoke(app, ["task", "ls", "--q", "byd"])
     assert result.exit_code == 0, result.stdout
     assert calls == [["list", "--filter", "byd"]]
+
+
+# ============================================================================
+# M85: v2 subcommand wiring (invoke-skill, skill-list, skill-show, plan)
+# ============================================================================
+
+def test_v2_subcommand_registered(runner: CliRunner):
+    """M85: `life v2 --help` should list invoke-skill, skill-list, skill-show, plan."""
+    result = runner.invoke(app, ["v2", "--help"])
+    assert result.exit_code == 0, result.stdout
+    assert "invoke-skill" in result.stdout
+    assert "skill-list" in result.stdout
+    assert "skill-show" in result.stdout
+
+
+def test_v2_skill_list_via_life_cli(runner: CliRunner):
+    """M85: `life v2 skill-list` should list skills."""
+    result = runner.invoke(app, ["v2", "skill-list"])
+    # Output is JSON; should exit 0 even with no skills or some skills
+    assert result.exit_code == 0, result.stdout
+    assert '"count"' in result.stdout
+    assert '"skills"' in result.stdout
+
+
+def test_v2_skill_show_via_life_cli(runner: CliRunner, monkeypatch):
+    """M85: `life v2 skill-show <name>` should show skill details."""
+    manifest = {
+        "name": "ikigai-test",
+        "description": "Test skill",
+        "entry_point": "observe",
+        "actor": "agent",
+        "inputs": [],
+        "outputs": [{"taskdog_create_task": "test"}],
+        "metadata": {},
+    }
+    monkeypatch.setattr(
+        "interfaces.cli.invoke_skill.load_skill_manifest",
+        lambda n: manifest if n == "ikigai-test" else {},
+    )
+    result = runner.invoke(app, ["v2", "skill-show", "ikigai-test"])
+    assert result.exit_code == 0, result.stdout
+    assert "=== ikigai-test ===" in result.stdout
+    assert "fires taskdog: True" in result.stdout

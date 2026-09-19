@@ -1219,3 +1219,6 @@ When verifier returns PASS:
 1. Orchestrator appends to `progress.md` with verdict + commit SHA
 2. Orchestrator edits THIS file: `### M{n} — {title} (STATUS: DONE)`
 3. Next tick picks up the next milestone
+
+### M85 - life v2 subcommand wiring (M78 wiring fix) (STATUS: DONE)
+
