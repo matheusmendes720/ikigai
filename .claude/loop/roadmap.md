@@ -692,7 +692,7 @@ Both kept here for audit trail.
 ### M67 — Taskdog tools return JSON structured data + de-duplicate (STATUS: DONE)
 ### M68 — taskdog-server daemon schedule + daemon-manager CRLF cleanup (STATUS: DONE)
 ### M69 — taskdog_complete_task auto-starts PENDING tasks (STATUS: DONE)
-### M70 — ADR-013 enforcement applied (STATUS: REVERTED)
+### M70 — ADR-013 enforcement applied (STATUS: DONE)
 - **What:** Attempted to add `taskdog_start_task/pause_task/cancel_task` standalone tools (M70). Tests for `IKIGAI_TOOLS count == 12` failed at 15. ADR-013 explicitly forbids new taskdog tools. Reverted cleanly.
 - **Spec:** `specs/M70-adr013-taskdog-scope/SPEC.md`
 - **Outcome:**

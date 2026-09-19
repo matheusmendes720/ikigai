@@ -2,7 +2,11 @@
 name: M70-adr013-taskdog-scope
 description: ADR-013 enforcement — found taskdog_start/pause/cancel are out-of-scope and reverted the M70 attempt
 owner: matheus-mendes
-status: REVERTED
+status: DONE
+# M70's "work" was discovering that 3 more taskdog tools would
+# cross ADR-013 (which forbids them) and reverting them. The revert
+# is complete; downstream state is unchanged from M69. Use DONE
+# (work-done-on-this-milestone) rather than REVERTED (out of enum).
 milestone: M70
 estimated_cost_usd: 0.10
 constitution_refs:
