@@ -9,7 +9,7 @@ Full bidirectional loop verified:
   6. vault file reflects done status
 
 vault_write is sync (per corrections — no asyncio).
-UEIDs are 4-part hex (e.g. task:t:a1b2:c3d4).
+UEIDs are 4-part hex (e.g. task:todo-task:a1b2c3d4:e5f6a7b8).
 Uses the double-ikigai src/ layout consistent with existing ikigai tests.
 """
 
@@ -62,7 +62,7 @@ def test_roundtrip_done_status_propagates_back_to_vault(fresh_env, monkeypatch):
         vault_root=vault_root,
         vault_path="task-t.md",
         frontmatter_fields={
-            "ueid": "task:t:a1b2:c3d4",
+            "ueid": "task:todo-task:a1b2c3d4:e5f6a7b8",
             "title": "T",
             "status": "planned",
         },
@@ -80,7 +80,7 @@ def test_roundtrip_done_status_propagates_back_to_vault(fresh_env, monkeypatch):
     """)
     conn.execute(
         "INSERT INTO tasks (ueid, name, status, priority, created_at) VALUES (?, ?, ?, ?, ?)",
-        ("task:t:a1b2:c3d4", "T", "planned", 1, "2026-08-29T00:00:00"),
+        ("task:todo-task:a1b2c3d4:e5f6a7b8", "T", "planned", 1, "2026-08-29T00:00:00"),
     )
     conn.commit()
     conn.close()
@@ -89,7 +89,7 @@ def test_roundtrip_done_status_propagates_back_to_vault(fresh_env, monkeypatch):
     conn = sqlite3.connect(db_path)
     conn.execute(
         "UPDATE tasks SET status='done' WHERE ueid=?",
-        ("task:t:a1b2:c3d4",),
+        ("task:todo-task:a1b2c3d4:e5f6a7b8",),
     )
     conn.commit()
     conn.close()
@@ -101,7 +101,7 @@ def test_roundtrip_done_status_propagates_back_to_vault(fresh_env, monkeypatch):
         ReverseSyncState(
             version=1,
             tasks={
-                "task:t:a1b2:c3d4": ReverseSyncTaskEntry(
+                "task:todo-task:a1b2c3d4:e5f6a7b8": ReverseSyncTaskEntry(
                     last_seen_status="planned",
                     last_seen_title="T",
                     vault_path="task-t.md",
@@ -189,7 +189,7 @@ def test_roundtrip_done_status_propagates_back_to_vault(fresh_env, monkeypatch):
     w = writes[0]
     assert w["vault_path"] == "task-t.md"
     assert w["frontmatter_fields"]["status"] == "done"
-    assert w["frontmatter_fields"]["ueid"] == "task:t:a1b2:c3d4"
+    assert w["frontmatter_fields"]["ueid"] == "task:todo-task:a1b2c3d4:e5f6a7b8"
 
     # 10. Vault reflects done (file was written to tmp vault by mock→original)
     final = (vault_root / "task-t.md").read_text()

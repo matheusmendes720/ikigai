@@ -32,11 +32,11 @@ def test_taskdog_read_with_mock_adapter() -> None:
     """taskdog_read returns JSON with found=True when adapter returns a slice."""
     with patch.object(taskdog_tools, "TaskdogAdapter") as MockAdapter:
         adapter = MagicMock()
-        adapter.read.return_value = {"ueid": "ik:task:abc:1", "status": "planned"}
+        adapter.read.return_value = {"ueid": "ik:task:abc:12345678", "status": "planned"}
         MockAdapter.return_value = adapter
-        result = json.loads(taskdog_tools.taskdog_read("ik:task:abc:1"))
+        result = json.loads(taskdog_tools.taskdog_read("ik:task:abc:12345678"))
         assert result["found"] is True
-        assert result["slice"]["ueid"] == "ik:task:abc:1"
+        assert result["slice"]["ueid"] == "ik:task:abc:12345678"
 
 
 def test_taskdog_list_with_mock_adapter() -> None:
@@ -44,15 +44,15 @@ def test_taskdog_list_with_mock_adapter() -> None:
     with patch.object(taskdog_tools, "TaskdogAdapter") as MockAdapter:
         adapter = MagicMock()
         adapter.list_all.return_value = [
-            {"ueid": "ik:ta:abc:1", "status": "planned", "created_at": "2026-09-01"},
-            {"ueid": "ik:tb:def:2", "status": "done", "created_at": "2026-08-30"},
+            {"ueid": "ik:ta:abc:12345678", "status": "planned", "created_at": "2026-09-01"},
+            {"ueid": "ik:tb:def:87654321", "status": "done", "created_at": "2026-08-30"},
         ]
         MockAdapter.return_value = adapter
         all_result = json.loads(taskdog_tools.taskdog_list())
         assert all_result["count"] == 2
         filtered = json.loads(taskdog_tools.taskdog_list(status="planned"))
         assert filtered["count"] == 1
-        assert filtered["tasks"][0]["ueid"] == "ik:ta:abc:1"
+        assert filtered["tasks"][0]["ueid"] == "ik:ta:abc:12345678"
 
 
 def test_taskdog_supports_field_with_mock_adapter() -> None:
