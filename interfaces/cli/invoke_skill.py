@@ -179,6 +179,129 @@ def _fake_llm_dispatch(manifest: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _real_llm_dispatch(manifest: dict[str, Any]) -> dict[str, Any]:
+    """Real LLM dispatch via ChatAnthropic (M87).
+
+    Calls Claude with a structured prompt that asks for:
+    - skill analysis (what should the skill do?)
+    - key outputs (1-3 concrete actions or written artifacts)
+    - next action (the immediate next step)
+
+    Returns graph_state dict. Falls back to fake dispatch on any error
+    (missing API key, network failure, parse error, etc).
+
+    Lazy-imports langchain_anthropic to avoid hard dep when
+    IKIGAI_FAKE_LLM=1.
+    """
+    import json as _json
+    import logging
+    import os
+
+    logger = logging.getLogger(__name__)
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_API_KEY")
+    if not api_key:
+        return _fake_llm_dispatch(manifest) | {
+            "llm_stub": False,
+            "ok_reason": "missing ANTHROPIC_API_KEY/CLAUDE_API_KEY env var",
+        }
+
+    try:
+        from langchain_anthropic import ChatAnthropic
+        from langchain_core.messages import HumanMessage, SystemMessage
+    except ImportError as exc:
+        logger.warning("langchain_anthropic import failed: %s", exc)
+        return _fake_llm_dispatch(manifest) | {
+            "llm_stub": False,
+            "ok_reason": f"import_failed: {exc}",
+        }
+
+    model_name = os.environ.get("IKIGAI_MODEL", "claude-3-5-sonnet-latest")
+    try:
+        # Pass api_key explicitly - ChatAnthropic checks ANTHROPIC_API_KEY
+        # by default, not CLAUDE_API_KEY. We accept either alias.
+        llm = ChatAnthropic(model=model_name, temperature=0, api_key=api_key)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("ChatAnthropic init failed: %s", exc)
+        return _fake_llm_dispatch(manifest) | {
+            "llm_stub": False,
+            "ok_reason": f"init_failed: {exc}",
+        }
+
+    sys_msg = SystemMessage(
+        content=(
+            "You are IKIGAI's skill dispatcher. Given a skill manifest "
+            "(name, entry_point, description, inputs, outputs), produce "
+            "a brief 2-4 sentence analysis of what this skill does in the "
+            "current cycle, then return JSON only with keys: "
+            "'analysis' (string), 'outputs' (list of strings - concrete "
+            "actions or artifacts), 'next_action' (string - the immediate "
+            "next step). Do NOT include any markdown fences, just raw JSON."
+        )
+    )
+    user_msg = HumanMessage(
+        content=_json.dumps(
+            {
+                "skill_name": manifest.get("name"),
+                "entry_point": manifest.get("entry_point"),
+                "description": manifest.get("description", ""),
+                "inputs": manifest.get("inputs", []),
+                "outputs": manifest.get("outputs", []),
+                "actor": manifest.get("actor", "agent"),
+            },
+            default=str,
+        )
+    )
+
+    try:
+        response = llm.invoke([sys_msg, user_msg])
+        raw = (response.content or "").strip()
+        if raw.startswith("```"):
+            raw = raw.strip("`")
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
+        parsed = _json.loads(raw)
+        analysis = parsed.get("analysis", "")
+        outputs = parsed.get("outputs", [])
+        next_action = parsed.get("next_action", "")
+        return {
+            "skill": manifest.get("name", "unknown"),
+            "entry_point": manifest.get("entry_point", "observe"),
+            "actor": manifest.get("actor", "agent"),
+            "llm_stub": False,
+            "llm_model": model_name,
+            "graph_state": {
+                "iteration": 0,
+                "last_step": manifest.get("entry_point", "observe"),
+                "analysis": analysis,
+                "outputs": outputs if isinstance(outputs, list) else [],
+                "next_action": next_action,
+            },
+        }
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("LLM dispatch failed: %s", exc)
+        return _fake_llm_dispatch(manifest) | {
+            "llm_stub": False,
+            "ok_reason": f"invoke_failed: {exc}",
+        }
+
+
+def _llm_dispatch(manifest: dict[str, Any]) -> dict[str, Any]:
+    """Dispatch to real LLM unless IKIGAI_FAKE_LLM=1 (M87).
+
+    Behavior:
+    - IKIGAI_FAKE_LLM=1 → _fake_llm_dispatch (deterministic, no API call)
+    - Otherwise → _real_llm_dispatch (calls ChatAnthropic if key present,
+      falls back to fake on any error)
+    """
+    import os
+
+    if os.environ.get("IKIGAI_FAKE_LLM") == "1":
+        return _fake_llm_dispatch(manifest)
+    return _real_llm_dispatch(manifest)
+
+
 def _fire_taskdog(description: str, skill_name: str) -> dict[str, Any]:
     """Call the taskdog_create_task @tool with the derived title.
 
@@ -288,7 +411,7 @@ def invoke_skill(
         }
 
     entry_point = entry_point_override or manifest.get("entry_point", "observe")
-    graph_state = _fake_llm_dispatch(manifest)
+    graph_state = _llm_dispatch(manifest)
 
     result: dict[str, Any] = {
         "skill": manifest.get("name", name),

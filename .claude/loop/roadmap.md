@@ -1225,3 +1225,6 @@ When verifier returns PASS:
 
 
 ### M86 - taskdog-mcp pipx repair (0.23.0 -> 0.28.0) (STATUS: DONE)
+
+
+### M87 - Real LLM integration via ChatAnthropic (STATUS: DONE)
