@@ -20,7 +20,7 @@ from typing import Any
 
 from contracts.common import UEID
 from src.mesh.adapters import CliAdapter, SolverforgeCalendarAdapter, TaskdogAdapter
-from mesh import queue as _queue
+from src.mesh import queue as _queue  # M73.3 dual-identity fix
 
 from mcp_server.tools_mesh import ikigai_health
 

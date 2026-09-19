@@ -444,3 +444,112 @@ IKIGAI_TOOLS.extend(
         ikigai_read_vault,
     ]
 )
+
+
+
+# ---------------------------------------------------------------------------
+# Legacy aliases for sync_vault tests (M73.5)
+# ---------------------------------------------------------------------------
+# These let tests monkeypatch `_VAULT_DIR` and `_read_checkpoint_data`
+# without needing the legacy sync_vault tool to be in IKIGAI_TOOLS.
+# They are NOT registered as tools (sync_vault is in v2/tools_legacy_reference.py).
+# Both read from the project's standard layout: vault_root = vault/, checkpoint
+# DB at data/ikigai_checkpoints.db.
+from pathlib import Path as _Path  # noqa: E402
+
+
+def _VAULT_DIR() -> _Path:
+    """Resolve vault/ root at call time. Tests override this via monkeypatch."""
+    return _Path(__file__).resolve().parent.parent.parent.parent.parent / "vault"
+
+
+def _read_checkpoint_data(thread_id: str = "default") -> dict:
+    """Stub checkpoint reader — tests override via monkeypatch."""
+    return {"cycle_id": f"{thread_id}-cycle", "vector_scores": {}, "regime_state": "PUSH", "q_he_score": 0.0, "meta_vector_score": 0.0, "phase": "BUILD", "corrections": []}
+
+
+__all__ = ["_VAULT_DIR", "_read_checkpoint_data"]
+
+
+
+# ---------------------------------------------------------------------------
+# ikigai_sync_vault (M73.5 — extracted from v2/tools_legacy_reference.py)
+# ---------------------------------------------------------------------------
+# Sync the latest checkpoint to a vault markdown file. Reads _read_checkpoint_data
+# and writes via vault_write. Tests monkeypatch _VAULT_DIR and _read_checkpoint_data.
+import datetime as _dt_sync
+import json as _json_sync
+from langchain_core.tools import tool as _tool_sync  # noqa: E402
+
+
+def _format_corrections(corrections: list[dict[str, Any]]) -> str:
+    """Format corrections list into bullet markdown lines.
+
+    Each correction becomes `- [{heuristic}] {description}`.
+    """
+    if not corrections:
+        return ""
+    lines = []
+    for c in corrections:
+        h = c.get("heuristic", "?")
+        d = c.get("description", "")
+        lines.append(f"- [{h}] {d}")
+    return "\n".join(lines)
+
+
+@_tool_sync
+def ikigai_sync_vault(thread_id: str = "default") -> str:
+    """Sync the latest checkpoint to a vault markdown file. Path-traversal-protected.
+
+    Returns the "Synced to vault: <path> (sha256=...)" message.
+    """
+    from sys_ikigai.vault.vault_write import vault_write as _vault_write_impl
+
+    d = _read_checkpoint_data(thread_id)
+    cycle_id = d.get("cycle_id", _dt_sync.date.today().isoformat())
+    vs = d.get("vector_scores", {})
+    regime = d.get("regime_state", "UNKNOWN")
+    qhe = d.get("q_he_score", 0.0)
+    mv = d.get("meta_vector_score", 0.0)
+    phase = d.get("phase", "BUSCA")
+    corrections = d.get("corrections", [])
+    vault_root = _VAULT_DIR() if callable(_VAULT_DIR) else _VAULT_DIR
+    vault_root.mkdir(parents=True, exist_ok=True)
+    relative_path = f"cycle-{cycle_id}.md"
+    frontmatter_fields: dict[str, Any] = {
+        "ueid": f"ikigai:cycle:{cycle_id}",
+        "cycle_id": cycle_id,
+        "date": _dt_sync.date.today().isoformat(),
+        "regime": regime,
+        "q_he": qhe,
+        "meta_vector": mv,
+        "phase": phase,
+        "corrections_count": len(corrections),
+        "vector_scores": _json_sync.dumps(vs),
+    }
+    body = (
+        f"# IKIGAi Cycle — {cycle_id}\n\n"
+        f"## Regime: {regime}  |  Q_HE: {qhe:.4f}  |  Meta: {mv:.4f}\n\n"
+        f"## Vector Scores\n"
+        f"| Vector | Score |\n|--------|-------|\n"
+        f"| Passion | {vs.get('passion', 0.0)} |\n"
+        f"| Skill | {vs.get('skill', 0.0)} |\n"
+        f"| Market | {vs.get('market', 0.0)} |\n"
+        f"| Revenue | {vs.get('revenue', 0.0)} |\n"
+        f"| Course | {vs.get('course', 0.0)} |\n\n"
+        f"## Phase: {phase}\n\n"
+        f"## Corrections: {len(corrections)}\n"
+        f"{_format_corrections(corrections)}\n"
+    )
+    # Atomic write via vault_write
+    result = _vault_write_impl(
+        vault_root=vault_root,
+        vault_path=relative_path,
+        frontmatter_fields=frontmatter_fields,
+        body=body,
+        actor="agent",
+    )
+    return f"✅ Synced to vault: {vault_root / relative_path} (sha256={result.get('sha256', '')[:8]}...)"
+
+
+__all__ = ["_VAULT_DIR", "_read_checkpoint_data", "ikigai_sync_vault"]

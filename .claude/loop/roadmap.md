@@ -701,6 +701,16 @@ Both kept here for audit trail.
 ### M73.2 — Namespace allowlist rollback (STATUS: DONE)
 ### M73.3 — Ikigai test bug sweep (STATUS: DONE)
 ### M73.4 — Test fixture & skip propagation (STATUS: DONE)
+### M73.5 — sync_vault shim + dual-identity completion (STATUS: DONE)
+- **What:** Extracted ikigai_sync_vault from v2/tools_legacy_reference.py to tools.py as a LangChain @tool. Added module-level _VAULT_DIR and _read_checkpoint_data shims so tests can monkeypatch. Completed dual-identity sweep (2 missed `from mesh import queue` cases). Migrated test_ikigai_sync_vault from frontmatter.loads to frontmatter_compat shim.
+- **Spec:** `specs/M73.5-sync-vault-shim/SPEC.md`
+- **Acceptance:**
+  - [x] test_ikigai_sync_vault.py : 5/5 PASS (was 1/5)
+  - [x] test_resources.py : 7/7 PASS (dual-identity)
+  - [x] test_tools_mesh.py : 7/7 PASS (dual-identity)
+  - [x] ikigai : 778 PASS + 22 SKIP (was 772)
+
+
 - **What:** Fixed stale UEID fixtures (slug too short, hex too short) and module-skipped test files for v2 features not yet implemented (graph wiring stripped per attribution §3). Includes test_bidirectional_vault_sync_e2e (1 PASS from FAIL), test_taskdog_mcp_path3 (4 PASS from 3), test_ikigai_maintainer_nodes (17 SKIP from 17 FAIL), test_algorithm_constants_migration W3.2 (3 SKIP from 3 FAIL).
 - **Spec:** `specs/M73.4-test-fixture-fixes/SPEC.md`
 - **Acceptance:**

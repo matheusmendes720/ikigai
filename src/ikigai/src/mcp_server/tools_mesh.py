@@ -21,7 +21,7 @@ from typing import Annotated, Any
 from pydantic import ValidationError
 from contracts.common import UEID
 from contracts.task_change import TaskAction, TaskChange
-from mesh import queue as _queue
+from src.mesh import queue as _queue  # M73.3 dual-identity fix
 from src.mesh.adapters import CliAdapter, SolverforgeCalendarAdapter, TaskdogAdapter
 
 _GATEWAY_STARTED_AT: float = _time.time()

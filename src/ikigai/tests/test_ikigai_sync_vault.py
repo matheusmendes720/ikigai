@@ -83,13 +83,13 @@ def fresh_vault(monkeypatch: pytest.MonkeyPatch):
 def _read_frontmatter_and_body(md_path: Path) -> tuple[dict[str, object], str]:
     """Split a vault markdown file into (frontmatter_fields, body).
 
-    Uses python-frontmatter so YAML quoting (single-quoted strings, JSON
-    arrays, etc.) is preserved verbatim. A naive `partition(':')` parser
-    would lose the quoting that frontmatter.dumps applies to string values.
+    M72.1: switched from python-frontmatter (3.x removed loads/dumps API)
+    to the in-tree sys_ikigai frontmatter_compat shim which wraps yaml
+    directly. yaml.safe_load preserves YAML quoting verbatim.
     """
-    import frontmatter as _fm
+    from sys_ikigai.vault.frontmatter_compat import loads as _fm_loads
 
-    parsed = _fm.loads(md_path.read_text(encoding="utf-8"))
+    parsed = _fm_loads(md_path.read_text(encoding="utf-8"))
     return dict(parsed.metadata), parsed.content
 
 
