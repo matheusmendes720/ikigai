@@ -696,7 +696,15 @@ Both kept here for audit trail.
 ### M71 — Mesh TaskdogAdapter HTTP bridge (STATUS: DONE)
 ### M72 — vault_write migrates off frontmatter 3.x (STATUS: DONE)
 ### M72.1 — frontmatter_compat shim (STATUS: DONE)
-### M73 — UEID regex widens + accepts legacy 5-part + long-UUID (STATUS: DONE)
+### M73 — UEID regex widens
+### M73.1 — UEID hex min 4 chars (STATUS: DONE)
+- **What:** M73's `{6,8}` short-form hex range still rejected solverforge calendar fixtures with 5-char hashes (`cccc3`, `dddd4`). Lowered to `{4,8}` for both short and long-uuid branches in `src/contracts/common.py:34` and `sys_ikigai/entities/ueid.py`.
+- **Spec:** `specs/M73.1-ueid-hex-min-4/SPEC.md`
+- **Acceptance:**
+  - [x] test_sf_replan.py : 2/2 PASS (was 2 fail)
+  - [x] tests/ : 329/329 + 1 SKIP (no regression)
+
+ + accepts legacy 5-part + long-UUID (STATUS: DONE)
 - **What:** Tests were failing with `"String should match pattern '^[a-z]{2,5}:...'"`. Three root causes: (1) namespace `{2,5}` too narrow for `ikigai` (6 letters), (2) canonical 4-part regex rejected 5-part legacy fixtures, (3) no support for full 36-char UUIDs in fixtures. Fixed by widening to `{2,8}` and adding alternation branches (4-part short | 4-part long-uuid | 5-part legacy).
 - **Spec:** `specs/M73-ueid-regex-flex/SPEC.md`
 - **Acceptance:**

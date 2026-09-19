@@ -35,11 +35,11 @@ from typing_extensions import Self
 # Anchored on both ends. Accepts both fixture variants in production tests.
 _UEID_PATTERN = re.compile(
     r"^(?:"
-    r"[a-z]{2,8}:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9]{6,8}:[a-f0-9]{6,8}"
+    r"[a-z]{2,8}:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9]{4,8}:[a-f0-9]{4,8}"
     r"|"
-    r"[a-z]{2,8}:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9-]{8,36}:[a-f0-9]{6,64}"
+    r"[a-z]{2,8}:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9-]{8,36}:[a-f0-9]{4,64}"
     r"|"
-    r"[a-z]{2,8}:[a-z_]+:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9]{6,8}:[a-f0-9]{6,8}"
+    r"[a-z]{2,8}:[a-z_]+:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9]{4,8}:[a-f0-9]{4,8}"
     r")$"
 )
 """UEID regex: 4-part format type:slug:uuid:hash.
