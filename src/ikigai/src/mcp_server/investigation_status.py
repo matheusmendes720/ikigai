@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from mesh.investigation_queue import get, list_all
+from src.mesh.investigation_queue import get, list_all
 
 
 def investigation_status(inq_id: str | None = None) -> dict[str, Any]:

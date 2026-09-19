@@ -3,7 +3,7 @@
 These are the three MCP tools that map directly to A2UI's three methods
 (see docs/superpowers/specs/2026-08-28-a2ui-protocol-design.md §11 R1):
 
-  ikigai_mesh_show(ueid)        <->  A2UI mesh.read
+  ikigai_mesh_show(ueid)        <->  A2UI src.mesh.read
   ikigai_task_create(...)       <->  A2UI task.write (action=create only in v1)
   ikigai_health()               <->  gateway heartbeat
 
@@ -22,7 +22,7 @@ from pydantic import ValidationError
 from contracts.common import UEID
 from contracts.task_change import TaskAction, TaskChange
 from mesh import queue as _queue
-from mesh.adapters import CliAdapter, SolverforgeCalendarAdapter, TaskdogAdapter
+from src.mesh.adapters import CliAdapter, SolverforgeCalendarAdapter, TaskdogAdapter
 
 _GATEWAY_STARTED_AT: float = _time.time()
 _GATEWAY_VERSION = "1.0.0"
@@ -51,7 +51,7 @@ def _adapter_status(adapter: Any) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# ikigai_mesh_show — A2UI mesh.read
+# ikigai_mesh_show — A2UI src.mesh.read
 # ---------------------------------------------------------------------------
 def ikigai_mesh_show(ueid: Annotated[str, "UEID to look up across forks"]) -> str:
     """Cross-fork view for one UEID."""

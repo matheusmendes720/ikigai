@@ -23,8 +23,8 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 from contracts.common import UEID
-from mesh.adapters import taskdog as taskdog_mod
-from mesh.adapters.taskdog import TaskdogAdapter
+from src.mesh.adapters import taskdog as taskdog_mod
+from src.mesh.adapters.taskdog import TaskdogAdapter
 
 # Path 3 FastMCP instance — separate from the global ikigai-gateway MCP so
 # this module can be wired or registered independently (no cross-talk with

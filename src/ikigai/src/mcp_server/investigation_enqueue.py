@@ -43,7 +43,7 @@ def investigation_enqueue(
         return {"error": "validation_failed", "detail": str(exc)}
 
     # Local import to avoid circular: server.py imports this module at registration time
-    from mesh.investigation_queue import enqueue as _enqueue
+    from src.mesh.investigation_queue import enqueue as _enqueue
 
     try:
         path = _enqueue(inv)

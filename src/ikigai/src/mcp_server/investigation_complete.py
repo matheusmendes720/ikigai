@@ -33,7 +33,7 @@ def investigation_complete(
         }
 
     # Local imports (matching investigation_enqueue pattern)
-    from mesh.investigation_queue import get, log_transition, transition
+    from src.mesh.investigation_queue import get, log_transition, transition
 
     try:
         old = get(inq_id)

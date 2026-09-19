@@ -34,7 +34,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-import mesh.queue
+from src.mesh import queue  # M59 dual-identity fix
 from pydantic import BaseModel, Field
 
 _TASK_RECORD_DEPRECATION_MSG = (
@@ -426,7 +426,7 @@ def reverse_sync(
       1. Load reverse snapshot
       2. list_all() from adapter
       3. For each row, classify (NEW/CHANGED/CHANGED_TO_DONE/UNCHANGED)
-      4. Emit TaskChange via src.mesh.queue.enqueue() (uses module-level
+      4. Emit TaskChange via src.queue.enqueue() (uses module-level
          QUEUE_DIR) for non-UNCHANGED rows
       5. Update snapshot atomically per task (or at end)
 
@@ -503,7 +503,7 @@ def reverse_sync(
                 timestamp=datetime.now(timezone.utc),
             )
             # Use dynamic import to allow test patching
-            mesh.queue.enqueue(event)
+            queue.enqueue(event)
             result.emitted += 1
         except Exception as exc:
             result.errors.append(SyncPerTaskError(ueid=ueid, error=str(exc)))

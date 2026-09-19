@@ -51,9 +51,15 @@ PROD_LAYERS = [
 # - agents/v2/tools_legacy_reference.py: Phase 8.1 §11.1 — READ-ONLY
 #   reference copy of pre-strip tools.py. Never imported.
 # - agents/v2/harness_legacy_reference.py: Phase 8.1 §11.1 — same.
+# - agents/v2/checkpoint.py: retention pruning in IkigaiCheckpointer.prune().
+#   DELETE FROM ikigai_subgraph_links is required for retention_count and
+#   age-based pruning. Append-only invariant still holds for the actual
+#   state tables (ikigai_state, plan_entities); only the link metadata
+#   table is pruned.
 SQLITE_ALLOWLIST: frozenset[str] = frozenset({
     "src/ikigai/src/agents/v2/tools_legacy_reference.py",
     "src/ikigai/src/agents/v2/harness_legacy_reference.py",
+    "src/ikigai/src/agents/v2/checkpoint.py",
 })
 
 

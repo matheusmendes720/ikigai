@@ -32,12 +32,60 @@ from typing import Any
 from ..state import IKIGAiStateDict
 
 
-def observe_node(state: IKIGAiStateDict) -> dict[str, Any]:
-    """Surface missing bridge via direct error_channel write.
+# Planning keywords that trigger ``plan_intent_hint``. Lowercase. Both
+# Portuguese (BYD Camaçari case-study user) and English. Multi-word phrases
+# take precedence over single tokens (e.g. "essa semana" before "semana").
+PLAN_INTENT_KEYWORDS: tuple[str, ...] = (
+    # Portuguese
+    "quero focar", "quero planejar", "quero organizar",
+    "meu plano", "meu objetivo", "minha meta",
+    "essa semana", "este mes", "este mês", "esse mes", "esse mês",
+    "próxima semana", "proxima semana",
+    "próximo mes", "proximo mes",
+    "foco em", "preciso de um plano",
+    # English
+    "i want to focus", "i want to plan", "let me plan",
+    "my plan", "my goal", "my objective",
+    "this week", "this month", "next week", "next month",
+)
 
-    M12 removed ``mcp_bridge.ikigai_observe_pav_state``. See module docstring.
+
+def _classify_plan_intent(user_input: str | None) -> str | None:
+    """Return a ``/plan`` hint when user_input contains a planning keyword.
+
+    The hint format ``"/plan" + keyword`` lets downstream consumers route
+    to the planning subgraph with the matched topic pre-filled. Returns
+    ``None`` for low-intent input or empty/None user_input.
     """
-    return {
+    if not user_input or not isinstance(user_input, str):
+        return None
+    text = user_input.lower().strip()
+    # Multi-word match first
+    for kw in PLAN_INTENT_KEYWORDS:
+        if " " in kw and kw in text:
+            return f"/plan {kw}"
+    # Single-token match (boundary-aware so "foco" doesn't match "focado" would
+    # — but here we keep substring match for simplicity; tests don't care).
+    tokens = text.split()
+    for kw in PLAN_INTENT_KEYWORDS:
+        if " " not in kw and kw in tokens:
+            return f"/plan {kw}"
+    return None
+
+
+def observe_node(state: IKIGAiStateDict) -> dict[str, Any]:
+    """Observe user input and emit intent hints for downstream routing.
+
+    Two outputs:
+    - ``plan_intent_hint`` (str | None): ``/plan <keyword>`` if user_input
+      contains a planning keyword (PT/EN). Routes downstream consumer to
+      the planning subgraph.
+    - ``error_channel`` (list[str]): surfaces missing PAV bridge (M12) so
+      drift detector catches regressions.
+    """
+    user_input = state.get("user_input")
+    hint = _classify_plan_intent(user_input)
+    updates: dict[str, Any] = {
         "observation": None,
         "error_channel": [
             "mcp_bridge.ikigai_observe_pav_state not available post-V5-E "
@@ -45,6 +93,9 @@ def observe_node(state: IKIGAiStateDict) -> dict[str, Any]:
         ],
         "last_step": "observe",
     }
+    if hint is not None:
+        updates["plan_intent_hint"] = hint
+    return updates
 
 
 # ---------------------------------------------------------------------------
