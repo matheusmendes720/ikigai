@@ -56,7 +56,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 
 ## Current Roadmap
 
-### M0 — Bootstrap (STATUS: DONE)
+### M0 - Bootstrap (STATUS: DONE)
 - **What:** Initialize the loop engineering infrastructure itself
 - **Why:** The loop can't run until it has agents, state files, and a constitution
 - **Acceptance:**
@@ -71,7 +71,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Dependencies:** none
 - **Estimated ticks:** 1-2
 
-### M1 — Wire loop-tick.sh to claude-flow daemon (STATUS: DONE)
+### M1 - Wire loop-tick.sh to claude-flow daemon (STATUS: DONE)
 - **What:** Add `loop-tick` to the existing claude-flow daemon schedules
 - **Why:** Today the daemon runs `audit` (4h) and `optimize` (2h) — add a 60m loop-tick
 - **Acceptance:**
@@ -81,7 +81,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Dependencies:** M0
 - **Estimated ticks:** 1
 
-### M2 — Fill empty ikigai skills (STATUS: DONE)
+### M2 - Fill empty ikigai skills (STATUS: DONE)
 - **What:** The 4 ikigai skills (daily, weekly, monthly, quarterly) are 0 bytes. Build them as loop components.
 - **Why:** These are the obvious integration points for the loop engineering pattern
 - **Acceptance:**
@@ -92,7 +92,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 2-4
 - **Completed:** 2026-09-07 (commit `c3f9251` W3.5 + `3b7b8f6` Phase 8.4 — filled in earlier waves, closed retroactively this tick)
 
-### M3 — First hill-climb cron (STATUS: DONE)
+### M3 - First hill-climb cron (STATUS: DONE)
 - **What:** Weekly analysis of `progress.md` + `.swarm/memory.db` + `progress.md`
 - **Why:** Outer loop 4. Improves the harness itself over time.
 - **Acceptance:**
@@ -104,7 +104,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1-2 (then 1/week)
 - **Completed:** 2026-09-07 — cron fired clean after 3-bug fix (commit `770f61e`): awk counters replace grep-double-zero, proposal dir moved from gitignored `logs/` to tracked `proposals/`, stale cp + double-add dropped. Aggregate stats at first review: 10 ticks analyzed, 6 PASS / 0 FAIL / 0 NEEDS_FIX / 0 BLOCKED, $1.80 cumulative cost, 60% pass rate.
 
-### M4 — Integrate with LangGraph graphs (STATUS: DONE)
+### M4 - Integrate with LangGraph graphs (STATUS: DONE)
 - **What:** Wrap the 3 graphs actually registered in `langgraph.json` (`pae_maintainer`, `ikigai_maintainer_v2`, `ikigai_fork_smoke`) as orchestrator-callable sub-tools + deterministic cron entrypoint.
 - **Why:** Today the graphs are manual-invocation via `make dev-graph NAME=<x>`. Make them dispatchable from the loop orchestrator AND from cron unattended (no LLM cost per tick).
 - **Spec:** `specs/M4-langgraph-integration/SPEC.md` (verified 2026-09-07, actual registry — CLAUDE.md table of 5 graphs is stale)
@@ -117,7 +117,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Dependencies:** M3
 - **Estimated ticks:** 3-5
 
-### M5 — IKIGAI MCP integration (STATUS: DONE)
+### M5 - IKIGAI MCP integration (STATUS: DONE)
 - **Spec:** `specs/M5-ikigai-mcp-integration/SPEC.md` (created 2026-09-08; live tool count = 14 tools + 6 resources, NOT 19 as roadmap claimed)
 - **What:** Orchestrator uses IKIGAI MCP tools (14 + 6 resources) for the "research" + "knowledge" + "task" workflow
 - **Why:** Today IKIGAI is invoked manually via `ikigai.bat agent`. Make it accessible from the loop.
@@ -130,7 +130,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 2-3
 - **Completed:** 2026-09-08 — T-5.1..T-5.4 all PASS. Test file untracked (will land in T-5.6 atomic commit).
 
-### M6 — Worktree isolation helper (STATUS: DONE)
+### M6 - Worktree isolation helper (STATUS: DONE)
 - **What:** `scripts/worktree-helper.sh` creates/destroys git worktrees per sub-agent
 - **Why:** Prevent parallel sub-agents from stepping on each other
 - **Acceptance:**
@@ -141,7 +141,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Completed:** 2026-09-07 — T-6.1..T-6.4 all PASS. Spec at `specs/M6-worktree-isolation/SPEC.md` documents commands, exit code matrix, parallel-safety contract. Script body pre-existing at commit `91fb7d4` (M0 bootstrap) — awk bug in `cleanup-all` regex fix landed in M6 commit. Auto-cleanup hook fires on every tick exit path (dry-run/cost-abort/graph-dispatch/overrun/normal) via bash EXIT trap, gated on zero `status: pending` tasks. Regression sweep: test_loop_infra 11/11 + test_m4_langgraph_integration 9/9 + test_canonical_scope 32/32 + test_m5_ikigai_mcp_integration 2/2 = 54/54 PASS.
 
-### M7 — Cost dashboard (STATUS: DONE)
+### M7 - Cost dashboard (STATUS: DONE)
 - **What:** Daily cron writes a `cost-report.md` to `.claude/loop/logs/`
 - **Why:** "Loop brittleness" + "runaway cost" are top risks (Ronacher)
 - **Acceptance:**
@@ -151,7 +151,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Completed:** 2026-09-08 — T-7.1..T-7.4 all PASS. Pure bash + awk script (`scripts/cost-dashboard.sh`, 92L) — zero Python changes. Live report shows ticks_day=112, usd_total=$1.80, usd_avg_per_tick=$0.02, spike_alarm=none. Spike alarm via exit code 2 enables M8 notification channel to pipe on `$? -eq 2` without parsing report file. Commits: 726bfde0 (T-7.1 SPEC + scaffold), 4b2510d3 (T-7.2 tests), ca6a114c (T-7.3 daemon-manager add), + closeout commit (T-7.4). Total M7 cost: $0.00 (pure bash, zero LLM calls). Spec at `specs/M7-cost-dashboard/SPEC.md`.
 
-### M8 — Notification channel (STATUS: DONE)
+### M8 - Notification channel (STATUS: DONE)
 - **What:** ntfy.sh HTTP webhook via `scripts/notify.sh` (pure bash + curl) wired into loop-tick.sh EXIT trap
 - **Why:** "HITL fatigue" mitigation. Only alert when intervention needed (FAIL/NEEDS_FIX/BLOCKED/OVERRUN/BUDGET_ABORT + cost spike)
 - **Acceptance:**
@@ -161,7 +161,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Completed:** 2026-09-08 — T-8.1..T-8.4 all PASS. Pure bash + curl deliverable (scripts/notify.sh, 134L) wired into .claude/loop/loop-tick.sh EXIT trap via notify_hook() function (LIFO trap order: M6 worktree cleanup runs first, then notify). Trap maps TICK_VERDICT + SPIKE_DETECTED → notify --reason (FAIL→tick_fail, NEEDS_FIX→needs_fix, BLOCKED→blocked, OVERRUN→overrun, BUDGET_ABORT→budget, SPIKE_DETECTED→spike_alarm). Cooldown dedup (10min default) via sha256(message) keyed state file. Cost $0/tick (ntfy.sh free tier + zero LLM); "$0.10/tick" budget envelope recorded for future paid webhook replacement. Regression sweep: test_worktree_helper.sh 15/15 + test_cost_dashboard.sh 7/7 + test_notify.sh 11/11 = 33/33 PASS. Commits: b95c0348 (T-8.1 SPEC), aeb4b0c6 (T-8.1 scaffold), 9c498077 (T-8.1 follow-up fixes), e63c6b5c (T-8.2 tests), e11f3b6 (T-8.3 wiring), + this closeout (T-8.4). Spec at `specs/M8-notification-channel/SPEC.md`. Unblocks M9 (Production mode).
 
-### M9 — Production mode (STATUS: DONE)
+### M9 - Production mode (STATUS: DONE)
 - **What:** Cron auto-starts on session start, runs 24/7, only needs human on NEEDS_FIX
 - **Why:** The actual goal of loop engineering
 - **Spec:** specs/M9-production-mode/SPEC.md (created 2026-09-07; 5 acceptance criteria covering auto-start, idempotency, streak observability, 7-day unattended streak, prior-milestone stability)
@@ -175,7 +175,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 5 implementation ticks + 7 days wall-clock for streak gate
 - **Completed:** 2026-09-08 — T-9.1 SPEC (a9341cb) + T-9.2 SessionStart hook (60c32464) + T-9.3 streak-tracker.sh (8645bf75) + T-9.4 tests/test_streak_tracker.sh (860f30d) + T-9.5 streak-tracker cron (12cc97b) + T-9.6 regression sweep clean. M9 infrastructure shipped; 7-day streak gate deferred to wall clock (auto-detected on day 7). Pattern mirrors M8 → M8.1 (real-receipt notification). Regression sweep: bash 44/44 (worktree 15 + cost 7 + notify 11 + streak 11) + pytest 52/52 (loop_infra 11 + m4 9 + canonical_scope 32) = 96/96 PASS.
 
-### M10 — End-to-end loop dispatch (STATUS: DONE)
+### M10 - End-to-end loop dispatch (STATUS: DONE)
 - **What:** `bash scripts/dispatch.sh <task_id>` runs the full chain (read state → spawn worker in worktree → implement → verifier → promotion → notify → progress append) as one terminal unit
 - **Why:** Wire M0–M9 pieces into a single atomic dispatch primitive so a manual session can advance milestones via one CLI call instead of orchestrating 5–6 separate scripts
 - **Spec:** `specs/M10-end-to-end-dispatch/SPEC.md` (created 2026-09-08; 5 acceptance criteria — single-command dispatch / atomic promotion / idempotent replay / notification integration via M8 channel / determinism gate before LLM)
@@ -191,7 +191,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Owner:** loop-orchestrator (bash wrappers, no new orchestrator LLM per SPEC "What M10 does NOT do")
 - **Completed:** 2026-09-08 — T-10.1 scaffold (c24841c) + T-10.2 wire hooks (3773821) + T-10.3 closeout (this commit). 3 bugs caught during T-10.3 acceptance sweep: (1) `find_task_block` regex `/^### /` only matched 3-hash headers but real tasks.md uses 4-hash `#### ` for M4-M10 tasks → fixed to `/^#{3,4} /`; (2) `[[ "$TASK_STATUS" == "done" ]]` exact-match failed when status has trailing commentary (e.g. T-9.6: "done (regression + state machine); 7-day streak gate deferred...") → fixed to `done*` prefix match; (3) regression per-suite check `^===.*PASS` missed pytest lowercase "32 passed" → fixed to `(^===.*pass|passed)`. All 3 captured in tests/test_dispatch.sh Group 2.5 (2 assertions) + Groups 5-8 regression coverage. Final test suite 24/24 PASS (was 22/22; +2 from Group 2.5). Full regression sweep 107/107 PASS (bash 44 + pytest 63; spec 96/96 was stale — M5 IKIGAI MCP integration adds 2/2).
 
-### M11 — IKIGAI Agentic System Top-Down Review (STATUS: DONE)
+### M11 - IKIGAI Agentic System Top-Down Review (STATUS: DONE)
 - **What:** Execute the 10-layer diagnostic across `strategics/`, `src/contracts/`, `src/mesh/`, MCP gateway, v2 agent, `sys_ikigai/`, `vibe-ops/`, `interfaces/`, drift net, LangGraph. Produces gap catalogue + prioritized remediation recommendations.
 - **Why:** "Closing the core of backend systems" — this is the auto-promoted phase that validates IKIGAI v2 actually works end-to-end after the spec TLC apply phase. Without it, our drift net ships clean but the system may still leak vocabulary / contradict docs (the same surface area that already failed in the 2026-09-09 `loop-prod-ready` broken-state session).
 - **Spec:** `docs/superpowers/specs/2026-09-10-system-review-design.md` (269L, ACCEPTED 2026-09-10)
@@ -210,7 +210,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Auto-promoted by:** human authorization per `[[algorithm-gate-dropped-2026-09-03]]` supersession — user explicitly requested "long running loop for an entire phase closing the core of this backend systems"
 - **Completed:** 2026-09-12 — 9 atomic `chore(review): *` commits ending at `07eafedb` (drift re-baseline). 41 gaps consolidated across 6 layers; 2 P0 attribution violations surfaced for M12 Priority 1. Drift net 43/43 preserved (BEFORE = AFTER, +/-0 across all 3 suites). MEMORY entry written + MEMORY.md pointer updated.
 
-### M12 — Phase A: P0 Attribution Violations Fix (STATUS: DONE)
+### M12 - Phase A: P0 Attribution Violations Fix (STATUS: DONE)
 - **What:** Fix the 2 P0 attribution violations surfaced by M11 system review (Priority 1 in `docs/superpowers/specs/2026-09-10-system-review-diagnosis.md`). Add 2 drift tests to prevent regression.
 - **Why:** Without these fixes, `mcp_bridge.py` assumes 9 tool names that were deleted in V5-E (silent runtime failure) and `sys_ikigai/entities/ueid.py` accepts 5-part UEIDs that `src/contracts/common.py` rejects (silent schema drift). Both are silent failures waiting to happen.
 - **Acceptance:**
@@ -228,7 +228,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Completed:** 2026-09-13 — 3 atomic commits `1fe6e9a4` (T-12.2 UEID fix + drift test) + `39f7ebea` (T-12.1 mcp_bridge fix) + `577cfddb` (T-12.3 collection-error guard + obsolete test cleanup from M12 reviewer NEEDS_FIX). Final review verdict: APPROVE, 4.8/5.0 avg code quality. Drift net 46/46 PASS (32 canonical_scope + 7 drift_invariants + 7 drift_extended_invariants — was 43/43 pre-M12, +3 new tests).
 - **Known architectural follow-up (NOT a blocker; future M13):** The 8 v2 graph nodes still call deleted wrappers via `mcp_bridge.<name>` — at call time AttributeError raises but try/except guards route to error_channel per Phase 8.2 SPEC §3. This creates a NEW drift class: v2-node ↔ bridge wrapper alignment is NOT drift-net guarded. Recommended M13 task: clean up 8 dead call sites (delete try/except + replace with planner-only stubs OR delete the nodes entirely).
 
-### M13 — Phase B: V2-Node/Bridge Alignment + Stale Test Cleanup (STATUS: DONE)
+### M13 - Phase B: V2-Node/Bridge Alignment + Stale Test Cleanup (STATUS: DONE)
 - **What:** Address the 3 follow-up items from M12 final review: (1) clean up 8 dead v2-node call sites that silently degrade via try/except; (2) fix or delete 5 pre-existing broken tests; (3) add v2-node/bridge alignment drift test (the new drift class M12 introduced); plus (4) push 6 commits to origin/master.
 - **Why:** M12 closed the bridge/server drift + UEID schema drift. But the 8 v2 nodes still call deleted wrappers — they silently fail via try/except, surfacing as "degraded observations" in `error_channel`. This is the SAME class of silent drift M12 was supposed to eliminate, just shifted from bridge→server to node→bridge. Without an alignment drift test, future changes will silently break the same way.
 - **Acceptance:**
@@ -245,7 +245,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** All fixes preserve append-only, drift-net, Pydantic v2 strict invariants.
 - **Completed:** 2026-09-13 — 4 atomic commits `848193dc` (T-13.2 delete broken PAV tests) + `d4324856` (T-13.3 clean dead v2-node calls) + `cab47c5b` (T-13.4 alignment drift test). Plus bookkeeping `9bfc2238`. Drift net 47/47 PASS.
 
-### M14 — MCP v2 Migration / Pin `mcp<2` (STATUS: DONE)
+### M14 - MCP v2 Migration / Pin `mcp<2` (STATUS: DONE)
 - **What:** Fix 2 pre-existing broken tests that fail with `ModuleNotFoundError: No module named 'mcp.server.fastmcp'` (mcp 2.x renamed `FastMCP` → `MCPServer`) and verify the mcp package version is locked to < 2.x (the IKIGAI codebase was written against the mcp 1.x API).
 - **Why:** Without this fix, the 2 test files fail at collection time, masking whether they're testing real behavior or just confirming a broken import. The codebase has been developed against `mcp<2` per session memory `[[p0-fix-shipped-2026-09-09]]`, but the pin may not be applied uniformly across `pyproject.toml`s (root vs `src/ikigai/pyproject.toml`).
 - **Acceptance:**
@@ -261,7 +261,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** All fixes preserve drift-net invariants; no PAV math re-introduction; no `mcp` 2.x API unless explicitly migrated.
 - **Completed:** 2026-09-13 — env-level fix via `pip install "mcp<2>"` (applied to system Python) + durable fix via root `constraints.txt` pinning `mcp<2` + CLAUDE.md note explaining the constraint workflow. Drift net 47/47 PASS preserved. 2 atomic commits: `29eeb2b8` (durable constraints.txt + CLAUDE.md note). 1 unrelated pre-existing failure remains: `test_all_ten_tools_registered` has stale `expected_tools` list (cites defunct `ikigai_score`/`ikigai_regime`/`ikigai_phase`/etc. that V5-E removed; missing the 3 `investigation_*` tools added in Plan C) — out of scope for M14 (assertion data drift, not import path).
 
-### M15 — M11 Priority 2 Drift Tests + Assertion Drift Fix (STATUS: DONE)
+### M15 - M11 Priority 2 Drift Tests + Assertion Drift Fix (STATUS: DONE)
 - **What:** Address 3 follow-up items from M11 diagnosis Priority 2 + 1 assertion drift from M14 follow-up:
   1. Add `test_langgraph_graph_registry_drift` — `langgraph.json` registry drift (CLAUDE.md claims 5 graphs, only 3 registered)
   2. Extend `test_no_algorithm_constants_in_agent_code` to scan `vibe-ops/src/` too (currently scopes to `src/ikigai/` only)
@@ -286,7 +286,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 
 
 
-### M16 — REPL End-to-End: Soul-Driven Reasoning + Real Adapter Stack (STATUS: DONE)
+### M16 - REPL End-to-End: Soul-Driven Reasoning + Real Adapter Stack (STATUS: DONE)
 - **What:** First user-facing shell that exercises the full stack — `scripts/chat_repl.py` + recall→reason→reflect wired into v2 graph + real taskdog adapter (SQLite UPSERT) + 9 SSE events + chat file persistence
 - **Why:** The 9 locked decisions from `docs/superpowers/specs/2026-09-10-system-review-design.md` sat as design docs since 2026-09-12 with no end-to-end shell to exercise them. The rebuild produced the components but the user had no way to actually USE the soul-driven reasoning. This milestone closes the "spec → runnable" gap.
 - **Acceptance:**
@@ -304,7 +304,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** All fixes preserve append-only, drift-net, Pydantic v2 strict, ADR-013 planner-only scope invariants.
 - **Completed:** 2026-09-14 — 3 atomic commits: `7aed2165` feat(agent): wire recall→reason→reflect into v2 graph with reason→recall loop + `4a6239f3` feat(adapters): taskdog_adapter delegates to real src/mesh/adapters/taskdog.py + `e23d86c3` feat(repl): chat_repl.py interactive shell with /profile switching + chat persistence + SSE. Final live trial: 3 soul switches via REPL, 6 entries persisted to `vault/ikigai/runtime/chat/repl-final/`, 2 profile switches logged, 5 SSE events captured by FakeGateway. Pushed `e23d86c3` to origin/master. 4 prior orphan worktree commits absorbed: ikigai_serve.py restore, souls/loader.py restore, 4 mesh adapter stubs, conflict-marker resolution.
 
-### M17 — Remaining Drift Tests + M16 REPL Coverage (STATUS: DONE)
+### M17 - Remaining Drift Tests + M16 REPL Coverage (STATUS: DONE)
 - **What:** Address the 2 remaining M11 Priority 2 drift gaps + close M16's REPL test-coverage gap:
   1. **T-17.1** Add `test_taskdog_tools_read_only_contract` to `src/ikigai/tests/test_drift_extended_invariants.py` — assert `src/ikigai/src/mcp_server/taskdog_tools.py` exports ONLY the 3 read tools (`taskdog_read`, `taskdog_list`, `taskdog_supports_field`) per Path 3 architecture (ADR-024); explicitly fail if a write tool like `taskdog_apply_change` is added without updating the drift test (the canonical write path stays Path 1 / harness subprocess per `docs/design-system/24-taskdog-paths-architecture.md`).
   2. **T-17.2** Add `test_investigation_queue_tools_present` to `src/ikigai/tests/test_drift_extended_invariants.py` — assert the 3 Plan C investigation tools (`investigation_enqueue`, `investigation_status`, `investigation_complete`) are wired in `server.py` `@MCP.tool` registrations (server.py lines ~176, 190, 198). Locks in Plan C commit (`?` in git log); prevents silent removal during future server.py refactors.
@@ -326,7 +326,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** All fixes preserve append-only, drift-net, Pydantic v2 strict, ADR-013 planner-only scope, ADR-024 taskdog Path 3 read-only invariants.
 - **Completed:** 2026-09-14 — 3 atomic commits: `626bafe9` (T-17.1 taskdog read-only contract drift test + T-17.2 investigation_queue tools present drift test — both landed in same commit batch due to parallel-agent race; net +2 tests) + `15b5b2e0` (T-17.3 chat_repl.py smoke tests — 8 tests in `src/ikigai/tests/test_chat_repl.py`) + `46e4e3da` (M17 closeout — roadmap STATUS flip + drift count update). Drift net 53/53 PASS verified live (19/19 in M17 test files alone). Note: original acceptance bullet stated "51→54" but actual counts are slightly different (canonical_scope grew 32→35 from M16 + drift_extended 9→11 from M17); the important invariant — drift net green + no regression — is preserved. State-machine reconciliation tick (this entry) added SPEC.md retroactively + T-17.1..T-17.4 entries in tasks.md to satisfy constitution gate ("every implementation traces back to specs/*/SPEC.md").
 
-### M18 — Doc Updates — Apply M11-M17 State to CLAUDE.md (STATUS: DONE)
+### M18 - Doc Updates — Apply M11-M17 State to CLAUDE.md (STATUS: DONE)
 - **What:** Update `CLAUDE.md` "Application Status" section to reflect post-M11-M17 state + fix internal contradiction in `Planejamento (E&T).md` §1.2.1 heading
 - **Why:** Two stale docs surfaced after M17 SHIPPED: (1) CLAUDE.md Application Status section predated M11 (or didn't exist at all in post-rebuild CLAUDE.md) — user couldn't tell what was actually working; (2) Planejmento (E&T).md §1.2.1 heading said "Estrutura de 4 Níveis" but the diagram immediately below showed 5 levels — internal contradiction
 - **Acceptance:**
@@ -340,7 +340,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** Doc changes preserve append-only rule; no code touched
 - **Completed:** 2026-09-14 — 2 atomic doc commits: `8a7b13f7` (T-18.2 Planejmento heading 4→5 Níveis) + `33fbcd09` (T-18.1 CLAUDE.md Application Status section added). Drift net 53/53 PASS preserved (doc-only). After this commit: (a) all 4 strategics/ docs internally consistent at 5 levels (T-15.3 + T-18.2); (b) CLAUDE.md Application Status reflects post-rebuild architecture.
 
-### M20 — Operational Hygiene — Gitignore + Submodule Dirty (STATUS: DONE)
+### M20 - Operational Hygiene — Gitignore + Submodule Dirty (STATUS: DONE)
 - **What:** Add gitignore patterns for 0-byte artifacts at repo root + document the strategics/planning-with-files submodule dirty state (NOT a real git submodule — vendored copy with local edits)
 - **Why:** CLAUDE.md "Pre-existing bugs" items 4 (4 zero-byte artifacts from bash redirect leaks) and `strategics/planning-with-files submodule dirty`. Both are operational hygiene: prevent future pollution + clarify what's expected behavior for the vendored copy.
 - **Acceptance:**
@@ -354,7 +354,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** Both changes are config-only or doc-only — no code touched; submodule contents NOT committed (preserves vendored-plugin policy)
 - **Completed:** 2026-09-14 — 2 atomic commits: `4c5fa9e2` (T-20.1 .gitignore +18/-0 lines; 5 new patterns; pre-existing patterns verified) + `934c3fde` (T-20.2 CLAUDE.md "Pre-existing bugs" expanded for submodule dirty state). Drift net 53/53 PASS preserved.
 
-### M21 — Drift Net Expansion — PROD_LAYERS Widening Hypothesis (STATUS: DONE — but hypothesis refuted)
+### M21 - Drift Net Expansion — PROD_LAYERS Widening Hypothesis (STATUS: DONE — but hypothesis refuted)
 - **What:** Test whether `PROD_LAYERS` in `test_canonical_scope.py` could be widened to include `vibe-ops/src/` (eliminating the `_EXTRA_CONSTANT_SCAN_ROOTS` workaround)
 - **Why:** M15 T-15.2 noted this widening was blocked by 3 other drift tests catching legitimate PAV math in vibe-ops/src/. After M15's PAV-symbol renames (DEFAULT_QHE_PUSH_THRESHOLD → HYSTERESIS_HIGH_BOUND, etc.), hypothesis: dormant math code no longer matches FORBIDDEN regexes.
 - **Acceptance:**
@@ -368,7 +368,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Action taken:** Reverted widening (per task constraint that forbids weakening invariants without all tests passing). Kept `_EXTRA_CONSTANT_SCAN_ROOTS` workaround unchanged. Added 17-line M21 documentation comment to `test_canonical_scope.py` documenting the widening attempt, the 4 dormant symbols + their file:line locations, why widening failed, and the 2 paths forward (rename/remove dormant symbols OR per-test allowlists). Net effect: Drift net state preserved; future M21+ widening attempts can pick up from a documented known-state.
 - **Completed:** 2026-09-14 — 1 commit: `711695d7` (`chore(tests): document M21 PROD_LAYERS widening failure`). Drift net 61/61 PASS preserved. Sets up M22.
 
-### M22 — Delete Dormant PAV Files in vibe-ops/src/ (STATUS: DONE)
+### M22 - Delete Dormant PAV Files in vibe-ops/src/ (STATUS: DONE)
 - **What:** Complete ADR-024 PAV-kernel archival by removing 19 files (8 primary dormant PAV + 4 cascading callers + 7 PAE tests). After deletion, re-attempt M21 PROD_LAYERS widening — succeeds because the 4 dormant PAV symbols are now gone.
 - **Why:** Per ADR-024 (PAV-kernel archived 2026-08-31) + M11 T-11.7 G-1 follow-up + M21 failure diagnosis, dormant PAV files in `vibe-ops/src/` were blocking drift net expansion. M15 only renamed module-level constants; the actual dormant math code (compute_score, IkigaiScorer, cybernetics.daily_loop) still existed.
 - **Acceptance:**
@@ -386,7 +386,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** ADR-024 archival preserved; drift net invariant count unchanged (61/61); no PAV math re-introduction
 - **Completed:** 2026-09-14 — 1 atomic commit: `273637fb` (`fix(vibe-ops): delete dormant PAV files per ADR-024 archival (M22)`). 19 files deleted (`-4,354 / +23` lines). Drift net 61/61 PASS preserved. ADR-024 archival now COMPLETE in code (math surface deleted; vault + interface + lifecycle preserved). `langgraph.json` reduced from 3 graphs to 2. `_EXTRA_CONSTANT_SCAN_ROOTS` workaround eliminated. PROD_LAYERS widened to include `vibe-ops/src/`. Per M21 documentation comment in `test_canonical_scope.py`, this commit documents the path forward that was previously blocked.
 
-### M23 — Add `examples/` Directory with 3 Working Milestones (STATUS: DONE)
+### M23 - Add `examples/` Directory with 3 Working Milestones (STATUS: DONE)
 - **What:** Create `examples/` directory with 3 self-contained, runnable demonstrations of loop-engineering milestones (M0 Bootstrap + M1 Cron Tick + M5 MCP Integration)
 - **Why:** Per backlog item 5 + CLAUDE.md "How is the loop infrastructure actually used?" — new contributors need concrete examples to understand the pattern
 - **Acceptance:**
@@ -402,7 +402,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** Doc-only change; no code touched
 - **Completed:** 2026-09-14 — 1 atomic commit: `2f92b87f` (`docs(examples): add 3 working milestone demonstrations (M23)`). 4 files created (1 top-level + 3 sub-READMEs, all under `examples/`). Drift net 61/61 PASS preserved.
 
-### M24.2 — Update test_m4_langgraph_integration.py to match 2-graph registry (STATUS: DONE)
+### M24.2 - Update test_m4_langgraph_integration.py to match 2-graph registry (STATUS: DONE)
 - **What:** Test-only fix: removed `pae_maintainer` from `VALID_GRAPHS` + `VALID_DISPATCH_GRAPHS`; renamed `test_langgraph_registry_has_exactly_three_graphs` → `test_langgraph_registry_has_exactly_two_graphs`. Also installed missing `langgraph-checkpoint-sqlite` dep into hermes-agent venv (same dep-gap family as M53 mcp<2 fix).
 - **Why:** Documented as out-of-M24-scope pre-existing failure during M24 closeout (2026-09-16T01:00Z). Commit 273637fb (M22 PAV archival per ADR-024) deleted `vibe-ops/src/langgraph_entry.py` + removed `pae_maintainer` from `langgraph.json`; tests never updated. `langgraph-checkpoint-sqlite` was the missing sub-package for `from langgraph.checkpoint.sqlite import SqliteSaver`.
 - **Spec:** `specs/M24.2-update-test-m4-langgraph-2-graph-registry/SPEC.md` (created 2026-09-16)
@@ -417,7 +417,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Launched:** 2026-09-16 (loop-orchestrator session, user "go ahead" after M24 closeout)
 - **Completed:** 2026-09-16 — `VALID_GRAPHS` = ["ikigai_maintainer_v2", "ikigai_fork_smoke"]; `VALID_DISPATCH_GRAPHS` = ["ikigai_fork_smoke"]; renamed registry test; co-shipped with M38.1
 
-### M24.1 — Fix worktree-helper.sh Windows path handling (STATUS: DONE)
+### M24.1 - Fix worktree-helper.sh Windows path handling (STATUS: DONE)
 - **What:** Apply M54's `cygpath -m` pattern to `scripts/worktree-helper.sh` + `tests/test_worktree_helper.sh`. The `git -C "$PROJECT_ROOT"` calls were using Cygwin mount paths (`/c/Users/...`) which fail with "fatal: cannot change to ... No such file or directory" on Windows + Git Bash.
 - **Why:** Documented as out-of-M24-scope pre-existing failure during M24 closeout (2026-09-16T01:00Z). Tests have been silently failing since M6 ship date (commit `fcb0d9e0`, 2026-09-08).
 - **Spec:** `specs/M24.1-fix-worktree-helper-windows-paths/SPEC.md` (created 2026-09-16)
@@ -432,7 +432,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Launched:** 2026-09-16 (loop-orchestrator session, user "go ahead")
 - **Completed:** 2026-09-16 — `PROJECT_ROOT_WIN` + `WT_PATH_WIN` added to both helper + test; 11 + 5 `git -C "$PROJECT_ROOT"` calls replaced with `git -C "$PROJECT_ROOT_WIN"`
 
-### M24 — Cross-Loop Cron Dedup (STATUS: DONE)
+### M24 - Cross-Loop Cron Dedup (STATUS: DONE)
 - **What:** Consolidate 3 redundant cron systems (Mavis cron + claude-flow daemon + Claude Code Schedule) into 1 canonical scheduler
 - **Why:** Per backlog item 3 — having 3 parallel scheduling systems is a latent risk (each fires its own tick, drift between them, maintenance burden). M1 SHIPPED claude-flow integration 2026-09-07 but didn't retire the other systems.
 - **Acceptance:**
@@ -451,7 +451,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
   1. `bash tests/test_worktree_helper.sh` — `git worktree add` rejects /c/Users/... path (Windows env issue, same family as M54 daemon-watchdog fix)
   2. `pytest tests/test_m4_langgraph_integration.py` — 5/9 tests fail because commit 273637fb (M22 PAV archival) deleted `vibe-ops/src/langgraph_entry.py` + removed `pae_maintainer` from `langgraph.json` (ADR-024). Tests never updated.
 
-### M25 — Cross-Platform TypeScript Loop-Tick (STATUS: DONE)
+### M25 - Cross-Platform TypeScript Loop-Tick (STATUS: DONE)
 - **What:** Add TypeScript entry point (`.claude/loop/loop-tick.ts`) that delegates to the canonical bash version, so Windows + macOS-native users don't need WSL/git-bash
 - **Why:** Per backlog item 1 — the bash `loop-tick.sh` only runs natively on POSIX. The `.bat` shim required Git Bash on Windows (latent dependency). Deno gives a single TS runtime that works on all 3 OSes
 - **Acceptance:**
@@ -466,7 +466,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** Doc + shim only; bash version unchanged
 - **Completed:** 2026-09-14 — 2 atomic commits: `571286b4` (`feat(loop): add TypeScript loop-tick entry for cross-platform parity (M25)`) + `bcb2aedb` (`docs: add TypeScript loop-tick cross-platform section to CLAUDE.md (M25)`). Drift net 61/61 PASS preserved.
 
-### M26 — Tier-by-Risk Review Depth (STATUS: DONE)
+### M26 - Tier-by-Risk Review Depth (STATUS: DONE)
 - **What:** Add risk classifier + tier-aware verifier review depth, so trivial commits get a linter+glance and infra/contract changes get a security audit + rollback review
 - **Why:** Per backlog item 2 — current verifier applies the same 5-dim review to everything. Per Addy Osmani (jun 2026, "Agentic Code Review"): "Tier by risk, not by author." One-size review wastes tokens on doc-only changes
 - **Acceptance:**
@@ -479,7 +479,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** Doc-only (3 agent .md files); orchestrator pattern already supports env vars
 - **Completed:** 2026-09-15 — 2 atomic commits: `9abbe972` (`feat(loop): add tier-by-risk review depth (M26)`) + `331f550e` (`chore(loop): M26 tier-by-risk shipped — drift 61/61 (drift-bookkeeping)`). Drift net 61/61 PASS preserved.
 
-### M27 — SPEC Frontmatter Migration (STATUS: DONE)
+### M27 - SPEC Frontmatter Migration (STATUS: DONE)
 - **What:** Add YAML frontmatter to all 9 milestone SPEC.md files, declaring identity (`name`, `description`), constitution_refs (kebab-case keys to `.claude/loop/constitution.md` §"Core Principles"), status, owner, and created date
 - **Why:** Per backlog item 4 — SPEC.md is the loop's read entry point. Frontmatter makes specs machine-parseable (drift net, RFC checkers, future cross-spec analyzers) and forces every milestone to declare which constitution principles it implements
 - **Acceptance:**
@@ -493,7 +493,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Constitution gate:** Doc-only; `constitution.md` itself untouched (human-only per orchestrator hard rules)
 - **Completed:** 2026-09-15 — 2 atomic commits: `a339c976` (`feat(specs): add YAML frontmatter with constitution_refs to M4-M24 SPECs (M27)`) + `8cb93b24` (`chore(loop): M27 SPEC frontmatter shipped — drift 61/61 (drift-bookkeeping)`). Drift net 61/61 PASS preserved.
 
-### M28 — Drift-net SPEC frontmatter enforcement (STATUS: DONE)
+### M28 - Drift-net SPEC frontmatter enforcement (STATUS: DONE)
 - **What:** Add `test_spec_frontmatter_schema` to drift net that asserts all specs/M{n}-*/SPEC.md files have YAML frontmatter with name/description/constitution_refs/status/owner/created keys (commit ab813e4f)
 - **Why:** (pending — human confirmation required)
 - **Acceptance:** (pending — human confirmation required)
@@ -501,7 +501,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Completed:** 2026-09-15 — 1 commit (ab813e4f), drift 65/65 PASS preserved
 
-### M29 — Signal-discovery from progress.md tick log (STATUS: DONE)
+### M29 - Signal-discovery from progress.md tick log (STATUS: DONE)
 - **What:** Aggregate progress.md tick log + emit candidate recommendations to next tick (commit 1fed10a9)
 - **Why:** (pending — human confirmation required)
 - **Acceptance:** (pending — human confirmation required)
@@ -509,7 +509,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Completed:** 2026-09-15 — 1 commit (1fed10a9), drift 65/65 PASS preserved
 
-### M30 — Daemon reactivation (cost-dashboard + streak-tracker) (STATUS: DONE)
+### M30 - Daemon reactivation (cost-dashboard + streak-tracker) (STATUS: DONE)
 - **What:** Reactivate cost-dashboard + streak-tracker daemon schedules after daemon pause (commits 64cc3315 + 65b8d062)
 - **Why:** (pending — human confirmation required)
 - **Acceptance:** (pending — human confirmation required)
@@ -517,7 +517,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Completed:** 2026-09-15 — 2 commits (64cc3315 + 65b8d062), drift 65/65 PASS preserved
 
-### M34 — Anti-idle auto-reconcile of roadmap.md on tick start (STATUS: DONE)
+### M34 - Anti-idle auto-reconcile of roadmap.md on tick start (STATUS: DONE)
 - **What:** Orchestrator scans recent commits for milestone references and creates PENDING skeleton entries in roadmap.md to prevent IDLE loops (commit b0f4cb08)
 - **Why:** (pending — human confirmation required)
 - **Acceptance:** (pending — human confirmation required)
@@ -525,7 +525,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Completed:** 2026-09-15 — 1 commit (b0f4cb08), drift 65/65 PASS preserved
 
-### M27.1 — Reconcile roadmap M25/M26/M27 + empty backlog (STATUS: DONE)
+### M27.1 - Reconcile roadmap M25/M26/M27 + empty backlog (STATUS: DONE)
 - **What:** Per human authorization 2026-09-15, close the "pending requires human decision" state on roadmap reconciliation: added M25/M26/M27 sections at STATUS: DONE; emptied backlog; appended next-candidates list (commit 6a7227af)
 - **Why:** (pending — human confirmation required)
 - **Acceptance:** (pending — human confirmation required)
@@ -533,7 +533,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
 
-### M33 — Hill-climb v2 — pattern-based milestone proposal (STATUS: DONE)
+### M33 - Hill-climb v2 — pattern-based milestone proposal (STATUS: DONE)
 - **What:** Hill-climb v2 supersedes v1: replaces weekly stats summary + proposal file with a 3-candidate pattern analysis loop that writes M-CAND-* sections directly to roadmap.md (CAND1 drift coverage gap / CAND2 cost anomaly / CAND3 M29 followup) (commit 72a4ffed)
 - **Why:** (pending — human confirmation required)
 - **Acceptance:** (pending — human confirmation required)
@@ -541,7 +541,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
 
-### M33.1 — Clean roadmap duplicates + idempotent hill-climb (STATUS: DONE)
+### M33.1 - Clean roadmap duplicates + idempotent hill-climb (STATUS: DONE)
 - **What:** Clean roadmap duplicates and add idempotency to hill-climb cron (commit c10cb0e2)
 - **Why:** (pending — human confirmation required)
 - **Acceptance:** (pending — human confirmation required)
@@ -549,7 +549,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
 
-### M35 — Cover all 7 constitution principles via SPEC frontmatter (STATUS: DONE)
+### M35 - Cover all 7 constitution principles via SPEC frontmatter (STATUS: DONE)
 - **What:** Add `constitution_refs` to all SPEC.md files covering the 7 constitution principles; updated 2 SPEC frontmatter + 1 drift test (3 files, +53 lines) (commit cc509ac3)
 - **Why:** (pending — human confirmation required)
 - **Acceptance:** (pending — human confirmation required)
@@ -557,7 +557,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
 
-### M36 — Activate hill-climb v2 (STATUS: DONE)
+### M36 - Activate hill-climb v2 (STATUS: DONE)
 - **What:** Activate hill-climb v2 daemon schedule (commit 3df9d72d)
 - **Why:** (pending — human confirmation required)
 - **Acceptance:** (pending — human confirmation required)
@@ -565,7 +565,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
 
-### M37 — Signal-discovery refresh on 350+ tick dataset, retire stale CANDs (STATUS: DONE)
+### M37 - Signal-discovery refresh on 350+ tick dataset, retire stale CANDs (STATUS: DONE)
 - **What:** Refresh signal-discovery report on 350+ tick dataset; retire 2 stale CANDs (M-CAND-1 addressed by M35, M-CAND-2 addressed by M30) (commit 0544dc29 + companion drift-bookkeeping commit 1a9592c9)
 - **Why:** (pending — human confirmation required)
 - **Acceptance:** (pending — human confirmation required)
@@ -573,7 +573,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
 
-### M38.1 — Fix detect-double-fire.sh spec drift (STATUS: DONE)
+### M38.1 - Fix detect-double-fire.sh spec drift (STATUS: DONE)
 - **What:** Implement the ≥2-seconds-apart filter that M38 spec documented but `detect-double-fire.sh` didn't code. The detector was flagging legitimate rapid-fire cron catchup as double-fires (false positives).
 - **Why:** Discovered during M24.2 verification (2026-09-16T02:38Z) — running `loop-tick.sh --graph ikigai_fork_smoke` 5 times in ~2 minutes caused drift gate to fail. M38 spec explicitly excludes "rapid-fire same task_id within 5 minutes BUT different timestamps (≥2 seconds apart)" but the detector didn't implement that filter.
 - **Spec:** `specs/M38.1-fix-detect-double-fire-spec-drift/SPEC.md` (created 2026-09-16)
@@ -588,7 +588,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Launched:** 2026-09-16 (loop-orchestrator session, user "go ahead" after M24 closeout)
 - **Completed:** 2026-09-16 — single-file change to `detect-double-fire.sh`; added `if delta >= 2.0: continue` filter
 
-### M38 — Double-fire detection and suppression (STATUS: DONE)
+### M38 - Double-fire detection and suppression (STATUS: DONE)
 - **What:** Add `detect-double-fire.sh` script + `test_progress_md_has_no_double_fires` drift test to detect rapid cron dispatches of same task_id within 5-minute window. Test scoped to last 50 entries (historical rapid-fire graph dispatches are legitimate by-design).
 - **Why:** Per M37 top candidate; catches real concurrency bugs (parallel loop-tick invocations) without false-flagging legitimate `--graph` cron dispatches. **Completed:** 2026-09-15 — 4 files: detect-double-fire.sh (NEW, 89L), test_drift_extended_invariants.py (scoped test), specs/M38-double-fire-detection-and-suppression/SPEC.md (NEW), .claude/loop/roadmap.md (this entry). Drift net 66→67/67 PASS.
 - **Acceptance:** Script detects double-fires correctly; drift test passes; roadmap.md entry added.
@@ -597,7 +597,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Critical-path bypass:** None
 
 
-### M56 — Fix daemon-manager-schedules.sh save() Windows tmp bug (STATUS: PENDING — auto-reconciled 2026-09-18)
+### M56 - Fix daemon-manager-schedules.sh save() Windows tmp bug (STATUS: PENDING — auto-reconciled 2026-09-18)
 - **What:** save() in `daemon-manager-schedules.sh` was using `open(path+".tmp","w")` which intermittently fails on Windows git-bash stale-globbed paths (FileNotFoundError raised silently — every save() appended nothing while printing SUCCESS). Replaced with `tempfile.mkstemp(prefix=".schedules-", suffix=".tmp", dir=...)` + `os.makedirs(d, exist_ok=True)` + atomic `os.replace` + BaseException rollback. Re-add verified: 5/5 schedules RUNNING with live PIDs (loop-tick 3626, hill-climb 4647, cost-dashboard 4723, streak-tracker 4816, daemon-watchdog 4909).
 - **Why:** M30 (daemon reactivation) was claimed-DONE but `daemon-manager list` showed 0 schedules because save() silently failed. M57-M60 cannot plan against a live tick if the daemon is parked. Loop was effectively idle at the daemon layer.
 - **Acceptance:** (pending — human confirmation required; commit `ff1330f6` exists with verification)
@@ -605,7 +605,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
 
-### M57 — gitignore aggregate patterns for 54 zero-byte bash-redirect leaks (STATUS: PENDING — auto-reconciled 2026-09-18)
+### M57 - gitignore aggregate patterns for 54 zero-byte bash-redirect leaks (STATUS: PENDING — auto-reconciled 2026-09-18)
 - **What:** 54 zero-byte files at repo root remained visible to `git status` despite M20/M46/M55 each adding individual entry-by-entry rules. Bursty nature of bash `> N` redirect typos is combinatorial, not enumerable. FIX: aggregate patterns (`/[[\(\)]*`, `/$*`, ``/``*``, short 1-4 char alpha + digit, + scattered survivors `/80% /100 /200 /2x /$10 /done /Deep-Agent-as-canonical /console.log(i /{len(lf_data)}`). VERIFIED: `git ls-files --others --exclude-standard` shows 0 leaks among 54 ZB at root.
 - **Why:** Per-tick noise in `git status` obscures real untracked work. Reduce false-positive drift surface.
 - **Acceptance:** (pending — human confirmation required; commit `7be30cdf` exists with verification)
@@ -613,7 +613,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
 
-### M60.1 — close stray `]` in pyproject.toml license field (STATUS: PENDING — auto-reconciled 2026-09-19)
+### M60.1 - close stray `]` in pyproject.toml license field (STATUS: PENDING — auto-reconciled 2026-09-19)
 - **What:** Last write of pyproject.toml emitted `license = { text = "MIT" }]` with a trailing `]` (typo from inline-Inline-table constructor). Effect: TOML parser in pytest configfile loader failed at line 8 with "Expected newline or end of document after a statement" — collapsed pytest mesh collection to an import-error rather than letting 136 tests run. Caught only by re-running tests during /loop wakeup verification, NOT by any regression gate (smoke test passed because it does not use pytest).
 - **Why:** pytest config-file loader failure hid the mesh collection gate, so future M59-style sweeps (with stricter collection rules) would be silently masked behind a pyproject TOML parse error.
 - **Acceptance:** (pending — human confirmation required; commit `8f91c804` exists with verification: pytest tests/mesh/ -q → 136/136 PASS, Drift 69/69 PASS, Phase 3 smoke PASS)
@@ -621,7 +621,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
 
-### M62.1 — IKIGAI observability dual-identity swap (5 files) (STATUS: PENDING — auto-reconciled 2026-09-19)
+### M62.1 - IKIGAI observability dual-identity swap (5 files) (STATUS: PENDING — auto-reconciled 2026-09-19)
 - **What:** Same pattern as M59, inside src/ikigai/: `src/ikigai/src/observability/` is the canonical package location, but 5 files imported `from observability.X import Y` (no `src.ikigai.src.` prefix), so Python loaded `observability` as a separate module entry under the wrong path. `tests/test_reasoning_chain.py` was a Pytest collection-error because `src/ikigai/src/agents/deepagents_harness.py` could not resolve `observability` from the prefixed PYTHONPATH=src. FIX: 5 files → `from src.ikigai.src.observability.X import Y`. Imports now resolve to the same module instance the conftest uses.
 - **Why:** Dual-module identity collision (canonical_scope test failure pattern) silently disables test collection. Out-of-scope: 8 dangling `sys_ikigai.X` imports + `invoke_skill` ImportErrors deferred to M75+ (irreducible from current surface).
 - **Acceptance:** (pending — human confirmation required; commits `6fcfbf70` + `cab91dc9` exist with verification: test_reasoning_chain 3/3, test_v2_imports_safely 8/8, Drift 69/69, Phase 3 mesh 136/136, Ikigai green 81/81, full tests/ 316 PASS + 1 SKIP)
@@ -629,7 +629,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
 
-### M62.2 — strip CRLF + exclude legitimate test-graph double-fires (STATUS: PENDING — auto-reconciled 2026-09-19)
+### M62.2 - strip CRLF + exclude legitimate test-graph double-fires (STATUS: PENDING — auto-reconciled 2026-09-19)
 - **What:** `.claude/loop/scripts/detect-double-fire.sh` had CRLF line endings (Windows leftover from prior edit). When bash read `set -euo pipefail\r`, the CR made bash interpret "pipefail\r" as a separate argument and abort with "set: pipefail : invalid option name" — silently breaking the script. This hid regression in `test_progress_md_has_no_double_fires`: the test could not run the script, so it inherited whatever stderr leaked (test effectively disabled for months). FIX: strip CRLF + add `_LEGITIMATE_TEST_TASK_IDS` frozenset (ikigai_fork_smoke, hill-climb-v2, loop-tick) for ≤1s legitimate test re-fires. Keep M38.1 delta≥2s filter for production.
 - **Why:** Detector script silently broken for months masked real concurrent firings (3 actual double-fires recovered: M5 @ 01:15, T-9.6 @ 09:39, ikigai_fork_smoke @ 20:07 — only the last in test last-50 window).
 - **Acceptance:** (pending — human confirmation required; commit `776dc9be` exists with verification: test_progress_md_has_no_double_fires PASS, test_no_orphan_milestone_specs PASS, test_drift_extended_invariants 18/18 PASS)
@@ -637,7 +637,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
 
-### M67.1 — trim SPEC description to <=120 chars (STATUS: PENDING — auto-reconciled 2026-09-19)
+### M67.1 - trim SPEC description to <=120 chars (STATUS: PENDING — auto-reconciled 2026-09-19)
 - **What:** Drift net `test_milestone_specs_have_valid_frontmatter` failed because the M67 SPEC description was 126 chars (limit: 120). Trimmed to "IKIGAI taskdog tools return JSON structured data + remove duplicate inline definitions in tools.py" (116 chars).
 - **Why:** drift net enforces 120-char SPEC description limit; failure blocked M67 closure.
 - **Acceptance:** (pending — human confirmation required; commit `cc8e07bd` exists with verification: test_drift_extended_invariants 18/18 PASS)
@@ -645,7 +645,7 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
 
-### M70.1 — align SPEC frontmatter status to enum (DONE) + roadmap STATUS: DONE (STATUS: PENDING — auto-reconciled 2026-09-19)
+### M70.1 - align SPEC frontmatter status to enum (DONE) + roadmap STATUS: DONE (STATUS: PENDING — auto-reconciled 2026-09-19)
 - **What:** M70 SPEC frontmatter had `status: REVERTED` to honestly record that the 3 taskdog tools added were reverted. But the drift invariant `test_milestone_specs_have_valid_frontmatter` requires status ∈ {DONE, IN_PROGRESS, PENDING}. REVERTED was out-of-enum. After fixing SPEC to DONE, `test_milestone_specs_status_matches_roadmap` then failed because roadmap still had STATUS: REVERTED. FIX: SPEC.md frontmatter `status: REVERTED → DONE` + explanatory comment block ("DONE on this milestone" = "the work of discovering + reverting + documenting was done"); roadmap.md `STATUS: REVERTED → STATUS: DONE` (same semantics).
 - **Why:** Frontmatter enums are strict on purpose — drift detectors need closed set to gate. Anomalous milestones (reverts) need DONE + explanatory comment, not enum pollution.
 - **Acceptance:** (pending — human confirmation required; commit `709dbd08` exists with verification: test_drift_extended_invariants 18/18, test_chat_system 5/5, test_chat_repl 8/8, test_canonical_scope 35/35, test_taskdog_* 17/17+1 SKIP, test_v2_imports_safely 8/8, Phase 3 tests/ 316+1 SKIP, all 6/6 daemons RUNNING)
@@ -653,12 +653,28 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
 
-### M73.7 — v2 unimplemented feature skip-sweep
-### M74 — Investigation queue dual-identity fix (STATUS: DONE)
-### M75 — Notify router (multi-channel outbound) (STATUS: DONE)
-### M76 — notify-wrap.sh daemon wrapper (STATUS: DONE)
-### M77 — invoke_skill (W3.5/W3.6) implementation (STATUS: DONE)
-### M78 — invoke-skill CLI surface (STATUS: DONE)
+### M73.7 - v2 unimplemented feature skip-sweep
+### M74 - Investigation queue dual-identity fix (STATUS: DONE)
+### M75 - Notify router (multi-channel outbound) (STATUS: DONE)
+### M76 - notify-wrap.sh daemon wrapper (STATUS: DONE)
+### M77 - invoke_skill (W3.5/W3.6) implementation (STATUS: DONE)
+### M78 - invoke-skill CLI surface (STATUS: DONE)
+### M79 - invoke-skill cron wiring + MSYS path fix (STATUS: DONE)
+- **What:** Added invoke-skill-ikigai-daily schedule (1440m) that fires notify-wrap + invoke-skill ikigai-daily with IKIGAI_FAKE_LLM=1. Discovered + fixed Windows MSYS path duplication bug (canonical path C:\Users\mathe\... vs MSYS-mangled C:\c\Users\mathe\...). Changed daemon-manager-schedules.sh python3 to python to avoid WindowsApps stub REPL bug.
+- **Spec:** `specs/M79-invoke-skill-cron/SPEC.md`
+- **Acceptance:**
+  - [x] bash .claude/helpers/daemon-manager.sh list : 7/7 daemons RUNNING
+  - [x] End-to-end: cron invoke-skill-ikigai-daily writes to .life/logs/notifications.log
+
+
+### M80 - invoke-skill all-cadences cron wiring (STATUS: DONE)
+- **What:** Wired weekly (10080m), monthly (43200m), quarterly (129600m) invoke-skill schedules. 10/10 daemons RUNNING. Full automation loop closed for IKIGAI cadence.
+- **Spec:** `specs/M80-invoke-skill-all-cadences/SPEC.md`
+- **Acceptance:**
+  - [x] bash .claude/helpers/daemon-manager.sh list : 10/10 daemons RUNNING
+  - [x] End-to-end: cron invoke-skill-ikigai-quarterly writes to notify log
+
+
 - **What:** Added `life invoke-skill <name>` and `life skill-list` Typer subcommands to interfaces/cli/v2.py. 5 smoke tests in tests/interfaces/test_invoke_skill_cli.py all pass.
 - **Spec:** `specs/M78-invoke-skill-cli/SPEC.md`
 - **Acceptance:**
@@ -721,7 +737,7 @@ Next backlog candidates: M24 T-24.4 closeout (wall-clock gate 2026-09-16T02:44Z)
 
 Both kept here for audit trail.
 
-### M40 — Daemon-Health Drift Test (STATUS: DONE)
+### M40 - Daemon-Health Drift Test (STATUS: DONE)
 - **What:** Drift test asserting the M39 daemon-watchdog infrastructure stays healthy. Locks in: `daemon-watchdog.sh` exists + executable; `schedules.json` registers it with sane thresholds (interval ≤1800s, cost cap ≤$0.50); heartbeat file existence is a soft check.
 - **Why:** M39 shipped a watchdog pattern that the drift net doesn't yet guard. Without this test, a future refactor could silently break the watchdog (e.g. chmod -x, schedule removed) and the next 22h daemon death would go unobserved.
 - **Spec:** `specs/M40-daemon-health-drift-test/SPEC.md` (created 2026-09-15 by daemon M39 daemon-watchdog followup)
@@ -736,7 +752,7 @@ Both kept here for audit trail.
 - **Launched:** 2026-09-15 by daemon (M39 followup); committed 2026-09-15 in `9cc14f87` after drift net flagged M40 as orphan
 - **Completed:** 2026-09-15
 
-### M42 — Prune orphan submodule gitdirs (STATUS: DONE)
+### M42 - Prune orphan submodule gitdirs (STATUS: DONE)
 - **What:** Remove `.git/modules/{taskdog,solverforge-calendar,tuiboard}/` — 13.7MB of submodule backing stores that have no parent gitlink on master (the 3 submodules were originally at `interfaces/<name>` via `.gitmodules` at `7fafc31c`; `.gitmodules` deleted at `248e359`, gitlinks removed at `ec6d9cec`, but backing stores were never cleaned up).
 - **Why:** 13.7MB on every clone + mental overhead (future agents seeing `.git/modules/taskdog/` will assume it's a registered submodule).
 - **Spec:** `specs/M42-prune-orphan-submodule-gitdirs/SPEC.md` (created 2026-09-15; reversibility recipe included — `git submodule add <url> interfaces/<name>` from each recorded SHA restores if needed)
@@ -753,7 +769,7 @@ Both kept here for audit trail.
 - **Launched:** 2026-09-15 (loop-orchestrator session)
 - **Completed:** 2026-09-15 — 13.7MB reclaimed (`.git/modules/` 14M → 0); `git submodule status` empty output (was fatal); drift 68/68 preserved
 
-### M41 — planning-with-files submodule unlink (STATUS: DONE)
+### M41 - planning-with-files submodule unlink (STATUS: DONE)
 - **What:** Strip the phantom submodule gitlink at `strategics/planning-with-files/` — mode 160000 without `.gitmodules` registration. Keep the directory as a self-contained vendored third-party fork (Matheus's fork of OthmanAdi's `planning-with-files` v3.1.3, HEAD `8f5a3c2e`).
 - **Why:** 3 real costs today: (1) `git submodule status` fatal errors break CI submodule-aware steps; (2) the 55-file working-tree diff was never committed — `git submodule update --force` would silently destroy it; (3) governance violation — append-only rule + state-on-disk principle say every change needs a milestone SPEC, none existed.
 - **Spec:** `specs/M41-planning-with-files-submodule-unlink/SPEC.md` (created 2026-09-15; **renumbered from M39** because daemon shipped "daemon-watchdog" at same M-number in parallel — commit `b431a649`; investigation: 3 sub-agents found 100% of the diff is Black/Ruff formatter output against upstream v3.1.3, no functional changes, regenerable; disposition: Option B = unlink + keep as vendored copy; no path relocation; formatter patch discarded)
@@ -770,29 +786,29 @@ Both kept here for audit trail.
   - **Launched:** 2026-09-15 (user-facing session, not daemon tick — push authorization came before this milestone)
   - **Completed:** 2026-09-15 — atomic commits `9c77fa09` (M41 unlink) + `a5a4ab30` (M41 cleanup); pushed to origin master
 
-### M55 — Zero-byte .claude/n cleanup (STATUS: DONE)
-### M58 — Restore chat Entry + EntryRole + ProposalStatus.OPEN after a5b1146c (STATUS: DONE)
-### M59 — Resolve mesh module dual-identity bug + delete stale chat_system duplicate (STATUS: DONE)
-### M60 — Establish life meta-package as a real directory + root pyproject.toml (STATUS: DONE)
-### M62 — IKIGAI observability dual-identity swap, narrow scope (STATUS: DONE)
-### M63 — AGENTS.md + CLAUDE.md sync to post-M60 reality (STATUS: DONE)
-### M64 — Validate pip install -e . + life console script (STATUS: DONE)
-### M65 — LifeConfig defaults point at real repo paths (STATUS: DONE)
-### M66 — Fix bash path arguments in task daily-review / weekly-review (STATUS: DONE)
-### M67 — Taskdog tools return JSON structured data + de-duplicate (STATUS: DONE)
-### M68 — taskdog-server daemon schedule + daemon-manager CRLF cleanup (STATUS: DONE)
-### M69 — taskdog_complete_task auto-starts PENDING tasks (STATUS: DONE)
-### M70 — ADR-013 enforcement applied (STATUS: DONE)
-### M71 — Mesh TaskdogAdapter HTTP bridge (STATUS: DONE)
-### M72 — vault_write migrates off frontmatter 3.x (STATUS: DONE)
-### M72.1 — frontmatter_compat shim (STATUS: DONE)
-### M73 — UEID regex widens
-### M73.1 — UEID hex min 4 chars (STATUS: DONE)
-### M73.2 — Namespace allowlist rollback (STATUS: DONE)
-### M73.3 — Ikigai test bug sweep (STATUS: DONE)
-### M73.4 — Test fixture & skip propagation (STATUS: DONE)
-### M73.5 — sync_vault shim
-### M73.6 — Small fixes batch (STATUS: DONE)
+### M55 - Zero-byte .claude/n cleanup (STATUS: DONE)
+### M58 - Restore chat Entry + EntryRole + ProposalStatus.OPEN after a5b1146c (STATUS: DONE)
+### M59 - Resolve mesh module dual-identity bug + delete stale chat_system duplicate (STATUS: DONE)
+### M60 - Establish life meta-package as a real directory + root pyproject.toml (STATUS: DONE)
+### M62 - IKIGAI observability dual-identity swap, narrow scope (STATUS: DONE)
+### M63 - AGENTS.md + CLAUDE.md sync to post-M60 reality (STATUS: DONE)
+### M64 - Validate pip install -e . + life console script (STATUS: DONE)
+### M65 - LifeConfig defaults point at real repo paths (STATUS: DONE)
+### M66 - Fix bash path arguments in task daily-review / weekly-review (STATUS: DONE)
+### M67 - Taskdog tools return JSON structured data + de-duplicate (STATUS: DONE)
+### M68 - taskdog-server daemon schedule + daemon-manager CRLF cleanup (STATUS: DONE)
+### M69 - taskdog_complete_task auto-starts PENDING tasks (STATUS: DONE)
+### M70 - ADR-013 enforcement applied (STATUS: DONE)
+### M71 - Mesh TaskdogAdapter HTTP bridge (STATUS: DONE)
+### M72 - vault_write migrates off frontmatter 3.x (STATUS: DONE)
+### M72.1 - frontmatter_compat shim (STATUS: DONE)
+### M73 - UEID regex widens (STATUS: DONE)
+### M73.1 - UEID hex min 4 chars (STATUS: DONE)
+### M73.2 - Namespace allowlist rollback (STATUS: DONE)
+### M73.3 - Ikigai test bug sweep (STATUS: DONE)
+### M73.4 - Test fixture & skip propagation (STATUS: DONE)
+### M73.5 - sync_vault shim
+### M73.6 - Small fixes batch (STATUS: DONE)
 - **What:** Fixed taskdog path3 UEID fixture `:`-in-slug bug + removed spurious `@pytest.mark.asyncio` from sync test in server_fastmcp.
 - **Spec:** `specs/M73.6-small-fixes/SPEC.md`
 - **Acceptance:**
@@ -1002,7 +1018,7 @@ Both kept here for audit trail.
 - **Launched:** 2026-09-15 (loop-orchestrator session, user "CONTINUE")
 - **Completed:** 2026-09-15 — `.claude/n` deleted; `git status` clean of this artifact
 
-### M54 — Fix daemon-watchdog.sh heartbeat path (STATUS: DONE)
+### M54 - Fix daemon-watchdog.sh heartbeat path (STATUS: DONE)
 - **What:** Two stacked bugs in `.claude/loop/scripts/daemon-watchdog.sh`: (1) PROJECT_ROOT off-by-one (script is 3 levels deep but went up only 2); (2) **actual bug** — Windows-native Python can't read Cygwin-style paths (`/c/Users/...`), need `cygpath -m` translation.
 - **Why:** M39 ship-time review ran watchdog once and saw exit 0 (silent skip when heartbeat missing), missing that the watchdog has been UNABLE to read heartbeats since ship date. After M53 (mcp install), I ran watchdog self-test and caught the silent failure.
 - **Spec:** `specs/M54-fix-daemon-watchdog-heartbeat-path/SPEC.md` (created 2026-09-15 by daemon during my session)
@@ -1017,7 +1033,7 @@ Both kept here for audit trail.
 - **Launched:** 2026-09-15 (loop-orchestrator session, user "CONTINUE")
 - **Completed:** 2026-09-15 — 2-line change: PROJECT_ROOT off-by-one fix + cygpath -m translation; watchdog now reads real heartbeat correctly
 
-### M53 — Pin mcp<2 in hermes-agent venv (STATUS: DONE)
+### M53 - Pin mcp<2 in hermes-agent venv (STATUS: DONE)
 - **What:** `pip install 'mcp<2'` in the hermes-agent venv — installed `mcp 1.30.0` (was `mcp 2.0.0`). Aligns the runtime venv with the project's `src/ikigai/pyproject.toml` pin (`mcp = "^1.1"`).
 - **Why:** `mcp.server.fastmcp` was removed in mcp 2.0+, breaking 3 test files (test_chat_system.py, test_server_fastmcp.py, test_taskdog_mcp_path3.py) with collection errors. 7 tests now run (3 + 4). 1 collection error remains (separate issue — see SPEC).
 - **Spec:** `specs/M53-pin-mcp-1.x-in-hermes-venv/SPEC.md` (created 2026-09-15)
@@ -1033,7 +1049,7 @@ Both kept here for audit trail.
 - **Launched:** 2026-09-15 (loop-orchestrator session, user "go ahead")
 - **Completed:** 2026-09-15 — `mcp 2.0.0 → 1.30.0`; 882 tests now collect (up from 875); 7 previously-blocked tests now run
 
-### M52 — Fix src/ikigai/src/mcp_server/ import paths (STATUS: DONE)
+### M52 - Fix src/ikigai/src/mcp_server/ import paths (STATUS: DONE)
 - **What:** Remove `src.` prefix from `src/ikigai/src/mcp_server/` import paths (3 files, 10 imports). Same bug class as M47 (src/contracts/) and M48 (src/mesh/) but in the THIRD package I missed.
 - **Why:** Same `from src.contracts.X` vs canonical `from contracts.X` pattern as M47/M48. The 3 test files with collection errors (test_chat_system.py, test_server_fastmcp.py, test_taskdog_mcp_path3.py) are blocked by the separate `mcp.server.fastmcp` dep gap (mcp 2.0 removed it); M52 doesn't fix that but removes the import-path noise so the dep gap is the only remaining blocker.
 - **Spec:** `specs/M52-fix-mcp-server-import-paths/SPEC.md` (created 2026-09-15)
@@ -1047,7 +1063,7 @@ Both kept here for audit trail.
 - **Launched:** 2026-09-15 (loop-orchestrator session, user "continue")
 - **Completed:** 2026-09-15 — 3 file changes (resources.py + taskdog_tools.py + tools_mesh.py); +10/-10 lines; mechanical sed for both `from src.X.Y` (dotted) and `from src.X` (bare-module) patterns
 
-### M51 — gitignore .swarm/state.json (followup to M50) (STATUS: DONE)
+### M51 - gitignore .swarm/state.json (followup to M50) (STATUS: DONE)
 - **What:** Add explicit `/.swarm/state.json` to `.gitignore`. Discovered during M50 disk sweep: daemon runtime state file missed by the existing `.swarm/*.db / *.sql / backups / model-router-state.json` pattern block.
 - **Why:** `git status` was showing `.swarm/state.json` as untracked; this is daemon state that should never enter the index.
 - **Spec:** implicit (1-line followup to M50; same constitution gate)
@@ -1062,7 +1078,7 @@ Both kept here for audit trail.
 - **Launched:** 2026-09-15 (loop-orchestrator session, user "continue.. just keep pushing!")
 - **Completed:** 2026-09-15 — `.swarm/state.json` no longer shows in `git status`
 
-### M50 — Disk hygiene sweep (STATUS: DONE)
+### M50 - Disk hygiene sweep (STATUS: DONE)
 - **What:** Clear accumulated pytest fixture artifacts from `tests/data/pytest-tmp/` (13MB, 2,345 files, 867 subdirs). The directory was already gitignored (M46 added the pattern) — this is a pure filesystem reclaim.
 - **Why:** Disk pressure from accumulated pytest fixtures. Already gitignored; not tracked. No code change.
 - **Spec:** `specs/M50-disk-hygiene-sweep/SPEC.md` (created 2026-09-15)
@@ -1077,7 +1093,7 @@ Both kept here for audit trail.
 - **Launched:** 2026-09-15 (loop-orchestrator session, user "continue.. just keep pushing!")
 - **Completed:** 2026-09-15 — 13MB reclaimed, no git commit needed (files were gitignored)
 
-### M49 — Fix scripts/mcp_inspect.py PYTHONPATH (STATUS: DONE)
+### M49 - Fix scripts/mcp_inspect.py PYTHONPATH (STATUS: DONE)
 - **What:** Add `<repo>` as the first path in `scripts/mcp_inspect.py:build_pythonpath()` so the renamed `sys_ikigai` package (at repo root) is importable.
 - **Why:** After M47 + M48 cleared the `src.*` prefix issues, the next blocker was `ModuleNotFoundError: No module named 'sys_ikigai'` from `src/ikigai/src/mcp_server/server.py:46`. Mirrors `src/ikigai/tests/conftest.py` pattern.
 - **Spec:** `specs/M49-fix-mcp-inspect-pythonpath/SPEC.md` (created 2026-09-15)
@@ -1092,7 +1108,7 @@ Both kept here for audit trail.
 - **Launched:** 2026-09-15 (loop-orchestrator session)
 - **Completed:** 2026-09-15 — single-file change; `python -c "import sys_ikigai"` now succeeds with the script's PYTHONPATH
 
-### M48 — Fix src/mesh/ import paths (STATUS: DONE)
+### M48 - Fix src/mesh/ import paths (STATUS: DONE)
 - **What:** Remove `src.` prefix from `src/mesh/` import paths (16 files, 43 imports). Same bug class as M47 but in the mesh package.
 - **Why:** M47 fixed `src/contracts/` but the mesh package had the identical pattern. `scripts/mcp_inspect.py` after M47 hits `ModuleNotFoundError: No module named 'src'` (gone) → `ModuleNotFoundError: No module named 'mcp.server.fastmcp'` (separate dep gap) → mesh imports still broken for any direct importer. Phase 3 v1 mesh layer (the user-facing API per AGENTS.md) was technically broken.
 - **Spec:** `specs/M48-fix-mesh-import-paths/SPEC.md` (created 2026-09-15)
@@ -1107,7 +1123,7 @@ Both kept here for audit trail.
 - **Launched:** 2026-09-15 (loop-orchestrator session)
 - **Completed:** 2026-09-15 — 16 files changed, mechanical sed across `from src.contracts.X` → `from contracts.X` + `from src.mesh.X` → `from mesh.X` (both module-level and indented function-internal variants)
 
-### M47 — Fix src/contracts/ import paths (STATUS: DONE)
+### M47 - Fix src/contracts/ import paths (STATUS: DONE)
 - **What:** Replace `from src.contracts.X import ...` with relative imports (`from .X import ...`) across `src/contracts/{base,entrega,meta,objetivo,projeto,sonho,tarefa}.py` (7 files). Removes the `src.` prefix that was left over from the pre-refactor import paths.
 - **Why:** Discovered in M46: `scripts/mcp_inspect.py` fails with `ModuleNotFoundError: No module named 'src'` because `src/contracts/__init__.py` imports `src/contracts/base.py`, which had `from src.contracts.common import ...`. Fixing this unblocks: the MCP gateway contract test, any script that imports `contracts.*`, and the IKIGAI MCP server's `investigation_*` tools.
 - **Spec:** `specs/M47-fix-contracts-base-import-path/SPEC.md` (created 2026-09-15; rationale: relative imports survive package moves + match existing `__init__.py` style)
@@ -1123,7 +1139,7 @@ Both kept here for audit trail.
 - **Launched:** 2026-09-15 (loop-orchestrator session, after M46 closeout + user's "keep going" followup)
 - **Completed:** 2026-09-15 — 7 file changes, +7/-7 lines; `src/contracts/` package now imports cleanly
 
-### M46 — Zero-byte gitignore fix + known-bug triage (STATUS: DONE)
+### M46 - Zero-byte gitignore fix + known-bug triage (STATUS: DONE)
 - **What:** Add missing `.gitignore` patterns for `$10` and `{len(lf_data)}` bash-redirect leaks that slipped through M20 T-20.1. Document the actual root cause of the `scripts/mcp_inspect.py` "PYTHONPATH bug" (it's in `src/contracts/base.py:11` using the OLD `src.` prefix, not in the script).
 - **Why:** AGENTS.md §🐛 had 5 flagged bugs; 2 of them were mechanical and trivially fixable (M46); the other 3 were either already resolved (M41), false positives (1 stale PAV test that was actually active), or required deep domain work (`src/contracts/base.py`).
 - **Spec:** `specs/M46-zero-byte-gitignore-fix-and-known-bugs/SPEC.md` (created 2026-09-15; root-cause diagnosis for the PYTHONPATH bug)
@@ -1139,7 +1155,7 @@ Both kept here for audit trail.
 - **Launched:** 2026-09-15 (loop-orchestrator session)
 - **Completed:** 2026-09-15
 
-### M43 — AGENTS.md cleanup (STATUS: DONE)
+### M43 - AGENTS.md cleanup (STATUS: DONE)
 - **What:** Strip or annotate fictional paths (`src/operational/`, `apps/`, `data/taskdog/`, `life-ops/`) in AGENTS.md (41744 bytes) that described paths which don't exist at master HEAD.
 - **Why:** Every future coding agent reading AGENTS.md would otherwise be misled into trying paths that don't exist (PAV removed in `604d6af`; `apps/` only on unmerged `origin/gitbutler/target`).
 - **Spec:** `specs/M43-agents-md-cleanup/SPEC.md` (created 2026-09-15; strategy = strike-through + archive annotation, not deletion, to preserve historical context)
@@ -1154,7 +1170,7 @@ Both kept here for audit trail.
 - **Launched:** 2026-09-15 (loop-orchestrator session)
 - **Completed:** 2026-09-15 — 10 sections touched (top-of-file status banner, Project Overview table, PAV command section, uv workspace layout, Recent Major Changes, Observability sprint, make test target, Testing section, Important Rules, Pitfalls, File Roles Quick Reference); +145/-45 lines; commit `44619941`
 
-### M45 — Loop status card scaffolding (STATUS: DONE)
+### M45 - Loop status card scaffolding (STATUS: DONE)
 - **What:** Initialize the OMH `ulw-loop` metadata artifacts at `.omh/goals/`: `goal_ledger/v1.md`, `loop_status_card/v1.md`, `loop_cycle/v1.md`, `loop_engineering/v1.md`. Mirror the canonical state in `.claude/loop/roadmap.md`.
 - **Why:** Without these artifacts, future `ulw-loop` skill invocations will report "goal_status_card/v1 not found" instead of resuming the loop.
 - **Spec:** `specs/M45-loop-status-card-scaffolding/SPEC.md` (created 2026-09-15)
