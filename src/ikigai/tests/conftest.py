@@ -123,3 +123,13 @@ def _isolate_review_queue(
     from src.mesh import queue as queue_mod
 
     monkeypatch.setattr(queue_mod, "QUEUE_DIR", tmp_path)
+
+
+@pytest.fixture(autouse=True)
+def _disable_taskdog_http_bridge_for_ikigai_tests(monkeypatch):
+    """M71: Disable HTTP-first taskdog adapter in tests.
+
+    Mirrors tests/conftest.py behaviour — autouse so individual tests
+    in src/ikigai/tests/ don't have to remember to set it.
+    """
+    monkeypatch.setenv("TASKDOG_HTTP_ENABLED", "0")

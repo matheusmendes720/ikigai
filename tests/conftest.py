@@ -42,6 +42,25 @@ if str(_REPO_ROOT) not in sys.path:
 # finds the module in sys.modules and skips the path-based loader entirely.
 # This is conftest-scoped so it runs once per pytest session, before any
 # test module is imported.
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _disable_taskdog_http_bridge_for_tests(monkeypatch):
+    """M71: Disable HTTP-first taskdog adapter in tests.
+
+    The taskdog mesh adapter (M71) now prefers the daemon-managed
+    taskdog-server when reachable (TESTAG_HTTP_ENABLED=1). Tests use a
+    local SQLite fixture (monkeypatched TASKDOG_DB), so the HTTP path
+    would silently shadow the fixtures and surface assertions like
+    "expected 3 tasks, got 69" (the live count from the daemon).
+
+    Autouse at the repo test conftest so every test in this repo,
+    including those under tests/mesh/, tests/integration/, and any
+    future test dir, gets this isolation.
+    """
+    monkeypatch.setenv("TASKDOG_HTTP_ENABLED", "0")
 _ALIAS_MODULES: tuple[str, ...] = (
     "sys_ikigai",
     "sys_ikigai.entities",

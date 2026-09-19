@@ -693,6 +693,18 @@ Both kept here for audit trail.
 ### M68 — taskdog-server daemon schedule + daemon-manager CRLF cleanup (STATUS: DONE)
 ### M69 — taskdog_complete_task auto-starts PENDING tasks (STATUS: DONE)
 ### M70 — ADR-013 enforcement applied (STATUS: DONE)
+### M71 — Mesh TaskdogAdapter HTTP bridge (STATUS: DONE)
+- **What:** Rewrote `src/mesh/adapters/taskdog.py` to read from daemon-managed `taskdog-server` via HTTP. `list_all()` now fetches live task inventory (75 tasks). Falls back to local SQLite for tests via `TASKDOG_HTTP_ENABLED=0` autouse fixtures in `tests/conftest.py` + `src/ikigai/tests/conftest.py`.
+- **Spec:** `specs/M71-taskdog-http-bridge/SPEC.md`
+- **Acceptance:**
+  - [x] Live HTTP bridge: `TaskdogAdapter().list_all()` returns 75 tasks (was [])
+  - [x] Phase 3 root 316/316 + 1 SKIP PASS (was 13 failing in test_taskdog_cli.py)
+  - [x] Ikigai critical 91/91 + 1 SKIP PASS
+  - [x] Phase 3 v1 smoke SMOKE TEST PASSED
+  - [x] Drift net 18/18 PASS
+- **Bug found:** `TASKDOG_HTTP_ENABLED` was cached at module import time; fixed via `_http_enabled()` callable reading env at call time so `monkeypatch.setenv` works.
+
+
 - **What:** Attempted to add `taskdog_start_task/pause_task/cancel_task` standalone tools (M70). Tests for `IKIGAI_TOOLS count == 12` failed at 15. ADR-013 explicitly forbids new taskdog tools. Reverted cleanly.
 - **Spec:** `specs/M70-adr013-taskdog-scope/SPEC.md`
 - **Outcome:**
