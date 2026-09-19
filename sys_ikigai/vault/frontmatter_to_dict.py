@@ -18,14 +18,14 @@ def frontmatter_to_dict(path: Path) -> dict[str, Any]:
     the dict. Falls back to empty dict if no frontmatter delimiter.
     """
     try:
-        import frontmatter
+        from .frontmatter_compat import loads, dumps, Post, load, dump  # noqa: F401  (M72.1 shim)
     except ImportError as exc:  # pragma: no cover — required dependency
         raise ImportError(
             "python-frontmatter is required for vault I/O; install via "
             "`uv add frontmatter` in life-ops/ikigai"
         ) from exc
 
-    post = frontmatter.loads(path.read_text(encoding="utf-8"))
+    post = loads(path.read_text(encoding="utf-8"))
     # frontmatter drops None-valued keys in some versions; preserve them
     # explicitly for RT-03.
     raw = post.metadata or {}

@@ -16,7 +16,7 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
-import frontmatter
+from .frontmatter_compat import loads, dumps, Post, load, dump  # noqa: F401  (M72.1 shim)
 
 from .lock import VaultLock
 
@@ -52,8 +52,8 @@ def vault_read(vault_root: Path, vault_path: str) -> dict[str, Any]:
 
     lock_path = vault_root / ".vault.lock"
     with VaultLock(lock_path):
-        # frontmatter.loads() parses both frontmatter (YAML) and body
-        post = frontmatter.loads(target.read_text(encoding="utf-8"))
+        # loads() parses both frontmatter (YAML) and body
+        post = loads(target.read_text(encoding="utf-8"))
         body = post.content
         fm_dict = dict(post.metadata)
         sha256 = hashlib.sha256(target.read_bytes()).hexdigest()

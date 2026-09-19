@@ -41,7 +41,7 @@ def _decompose_ueid(ueid: str) -> dict[str, Any]:
     Vault root: {repo}/data/matheus/
     Structure: dreams/ → objectives/ → projects/ → tasks/
     """
-    import frontmatter
+    from sys_ikigai.vault.frontmatter_compat import loads, dumps, Post, load, dump  # noqa: F401  (M72.1 shim)
 
     repo_root = Path(__file__).parent.parent.parent  # .../src/ikigai/src/mcp_server/ → src/ikigai/
     vault_root = repo_root / "data" / "matheus"
@@ -61,7 +61,7 @@ def _decompose_ueid(ueid: str) -> dict[str, Any]:
             if not md_file.suffix == ".md":
                 continue
             try:
-                post = frontmatter.loads(md_file.read_text(encoding="utf-8"))
+                post = loads(md_file.read_text(encoding="utf-8"))
                 results.append(
                     {
                         "file": str(md_file.relative_to(vault_root)),
@@ -84,7 +84,7 @@ def _decompose_ueid(ueid: str) -> dict[str, Any]:
     dream_data = {}
     if dream_file.exists():
         try:
-            post = frontmatter.loads(dream_file.read_text(encoding="utf-8"))
+            post = loads(dream_file.read_text(encoding="utf-8"))
             dream_data = {
                 "file": f"dreams/{dream_slug}.md",
                 "ueid": post.metadata.get("ueid", ueid),
