@@ -695,6 +695,16 @@ Both kept here for audit trail.
 ### M70 — ADR-013 enforcement applied (STATUS: DONE)
 ### M71 — Mesh TaskdogAdapter HTTP bridge (STATUS: DONE)
 ### M72 — vault_write migrates off frontmatter 3.x (STATUS: DONE)
+### M72.1 — frontmatter_compat shim (STATUS: DONE)
+- **What:** Created `sys_ikigai/vault/frontmatter_compat.py` — backward-compat shim wrapping `yaml.safe_load`/`yaml.safe_dump` to provide the loads/dumps/Post API removed by frontmatter 3.x. Migrated 5 callers: `frontmatter_to_dict.py`, `vault_read.py`, `handlers.py`, `strategics/loader.py`, and re-affirmed `vault_write.py` (M72).
+- **Spec:** `specs/M72.1-frontmatter-compat-shim/SPEC.md`
+- **Acceptance:**
+  - [x] Shim round-trips `---\nkey: val\n---\nbody` correctly
+  - [x] 5 callers migrated, no lingering `import frontmatter`
+  - [x] tests/ : 319+1SK PASS (no regression)
+- **Out of scope (M73+):** UEID regex mismatch in test_integration_data_model fixtures (separate bug)
+
+
 - **What:** `tests/mcp_server/test_vault_write_actor.py` was failing at master HEAD with `"frontmatter has no attribute 'Post'"`. Root cause: frontmatter 3.0.8 removed `Post`/`dumps` API. Replaced `frontmatter.Post + frontmatter.dumps` with manual `yaml.safe_dump()` block-serialization in `sys_ikigai/vault/vault_write.py`.
 - **Spec:** `specs/M72-vault-write-yaml-direct/SPEC.md`
 - **Acceptance:**

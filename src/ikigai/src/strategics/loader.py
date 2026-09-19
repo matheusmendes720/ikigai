@@ -12,7 +12,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-import frontmatter
+from sys_ikigai.vault.frontmatter_compat import loads, dumps, Post, load, dump  # noqa: F401  (M72.1 shim)
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -56,7 +56,7 @@ def load_strategics(vault_root: Path) -> StrategicsContext:
     by_tag: dict[str, list[StrategicDoc]] = {}
 
     for md_path in sorted(strategics_dir.glob("*.md")):
-        post = frontmatter.loads(md_path.read_text(encoding="utf-8"))
+        post = loads(md_path.read_text(encoding="utf-8"))
         tags_raw = post.metadata.get("tags", [])
         tags_iterable: list[object] = tags_raw if isinstance(tags_raw, list) else []
         tags_list: list[str] = [str(t) for t in tags_iterable]
