@@ -3,40 +3,58 @@
     "name": "loop-tick",
     "interval": "60m",
     "interval_seconds": 3600,
-    "command": "bash .claude/loop/loop-tick.sh",
+    "command": "bash .claude/helpers/notify-wrap.sh loop-tick \"Loop tick\" \"bash .claude/loop/loop-tick.sh\"",
     "cost_cap_usd": 5.0,
-    "added_at": "2026-09-07T22:14:29.985300+00:00"
+    "added_at": "2026-09-07T22:14:29.985300+00:00",
+    "command_wrapped": "bash .claude/helpers/notify-wrap.sh loop-tick \"Loop tick\" \"bash .claude/loop/loop-tick.sh\"",
+    "original_command": "bash .claude/loop/loop-tick.sh"
   },
   {
     "name": "hill-climb",
     "interval": "168h",
     "interval_seconds": 604800,
-    "command": "bash .claude/loop/hill-climb.sh",
+    "command": "bash .claude/helpers/notify-wrap.sh hill-climb \"Hill climb\" \"bash .claude/loop/hill-climb.sh\"",
     "cost_cap_usd": 10.0,
-    "added_at": "2026-09-07T22:55:29.287114+00:00"
+    "added_at": "2026-09-07T22:55:29.287114+00:00",
+    "command_wrapped": "bash .claude/helpers/notify-wrap.sh hill-climb \"Hill climb\" \"bash .claude/loop/hill-climb.sh\"",
+    "original_command": "bash .claude/loop/hill-climb.sh"
   },
   {
     "name": "cost-dashboard",
     "interval": "1440m",
     "interval_seconds": 86400,
-    "command": "bash scripts/cost-dashboard.sh",
+    "command": "bash .claude/helpers/notify-wrap.sh cost-dashboard \"Cost dashboard\" \"bash scripts/cost-dashboard.sh\"",
     "cost_cap_usd": 0.5,
-    "added_at": "2026-09-08T01:52:16.916721+00:00"
+    "added_at": "2026-09-08T01:52:16.916721+00:00",
+    "command_wrapped": "bash .claude/helpers/notify-wrap.sh cost-dashboard \"Cost dashboard\" \"bash scripts/cost-dashboard.sh\"",
+    "original_command": "bash scripts/cost-dashboard.sh"
   },
   {
     "name": "streak-tracker",
     "interval": "1440m",
     "interval_seconds": 86400,
-    "command": "bash scripts/streak-tracker.sh",
+    "command": "bash .claude/helpers/notify-wrap.sh streak-tracker \"Streak tracker\" \"bash scripts/streak-tracker.sh\"",
     "cost_cap_usd": 0.1,
-    "added_at": "2026-09-08T04:02:01.483534+00:00"
+    "added_at": "2026-09-08T04:02:01.483534+00:00",
+    "command_wrapped": "bash .claude/helpers/notify-wrap.sh streak-tracker \"Streak tracker\" \"bash scripts/streak-tracker.sh\"",
+    "original_command": "bash scripts/streak-tracker.sh"
   },
   {
     "name": "daemon-watchdog",
     "interval": "30m",
     "interval_seconds": 1800,
-    "command": "bash .claude/loop/scripts/daemon-watchdog.sh",
+    "command": "bash .claude/helpers/notify-wrap.sh daemon-watchdog \"Daemon watchdog\" \"bash .claude/loop/scripts/daemon-watchdog.sh\"",
     "cost_cap_usd": 0.0,
-    "added_at": "2026-09-15T17:54:26.256585+00:00"
+    "added_at": "2026-09-15T17:54:26.256585+00:00",
+    "command_wrapped": "bash .claude/helpers/notify-wrap.sh daemon-watchdog \"Daemon watchdog\" \"bash .claude/loop/scripts/daemon-watchdog.sh\"",
+    "original_command": "bash .claude/loop/scripts/daemon-watchdog.sh"
+  },
+  {
+    "name": "invoke-skill-ikigai-daily",
+    "interval": "1440m",
+    "interval_seconds": 86400,
+    "command": "IKIGAI_FAKE_LLM=1 NOTIFY_VERBOSE=1 bash .claude/helpers/notify-wrap.sh invoke-daily \"IKIGAI daily\" \"PYTHONPATH=src python -m interfaces.cli.v2 invoke-skill ikigai-daily\"",
+    "cost_cap_usd": 0.05,
+    "added_at": "2026-09-19T05:30:00+00:00"
   }
 ]

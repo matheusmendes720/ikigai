@@ -39,7 +39,7 @@ init_schedules_config() {
 # Ops:  exists|get|append|remove|list|count
 # Exit codes follow jq conventions (0=found/matched, 1=not-found).
 _py_schedules() {
-    SCHEDULES_CONFIG="$SCHEDULES_CONFIG" python3 - "$@" <<'PYEOF'
+    SCHEDULES_CONFIG="$SCHEDULES_CONFIG" PYTHONIOENCODING=utf-8 python - "$@" <<'PYEOF'
 import json, os, sys, datetime
 
 path = os.environ["SCHEDULES_CONFIG"]
