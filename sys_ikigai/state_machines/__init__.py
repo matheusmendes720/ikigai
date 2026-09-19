@@ -51,7 +51,7 @@ from sys_ikigai.state_machines._registry import (
 
 def __getattr__(name: str):
     if name in ("StateMachine", "Transition"):
-        mod = importlib.import_module("ikigai.state_machines._sm_base")
+        mod = importlib.import_module("sys_ikigai.state_machines._sm_base")
         return getattr(mod, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 

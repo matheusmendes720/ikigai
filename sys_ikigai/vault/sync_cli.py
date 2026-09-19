@@ -82,7 +82,7 @@ def _build_adapter() -> Any:
     Production: this function returns a wrapper around `ikigai.tools.taskdog`.
     Tests: monkeypatch this with a stub.
     """
-    from mesh.adapters.taskdog import TaskdogAdapter
+    from src.mesh.adapters.taskdog import TaskdogAdapter
 
     return TaskdogAdapter()
 

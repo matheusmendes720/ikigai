@@ -699,6 +699,15 @@ Both kept here for audit trail.
 ### M73 — UEID regex widens
 ### M73.1 — UEID hex min 4 chars (STATUS: DONE)
 ### M73.2 — Namespace allowlist rollback (STATUS: DONE)
+### M73.3 — Ikigai test bug sweep (STATUS: DONE)
+- **What:** Sweep of 4 root-cause bugs across ikigai tests: (1) state_machines __getattr__ lazy-import typo (`ikigai.` → `sys_ikigai.`); (2) sqlite_append_only checkpoint.py retention pruning added to allowlist; (3) observe_node missing `plan_intent_hint` — implemented Plan D Task D.1 with PT/EN keyword detector; (4) M59 dual-identity continuation — 11 more files had `from mesh.X` / `import mesh.X` (production should use `src.mesh.X`).
+- **Spec:** `specs/M73.3-bug-sweep/SPEC.md`
+- **Acceptance:**
+  - [x] ikigai : 773 PASS + 4 SKIP (was 761 + 3)
+  - [x] ikigai : 66 failed + 4 errors (was 79 + 4)
+  - [x] tests/ root : 329 PASS + 1 SKIP (no regression)
+
+
 - **What:** M73.2 attempted to add strict namespace allowlist (`ikigai|tw|obsidian|external|sf|sc|tb|tsk|life|cli|vibe|ext`) to `_UEID_PATTERN` to reject foreign namespaces like `other`. Broke 27 SONHO tests (`sn:`) + IKIGAi habit/memory fixtures (`hab:`, `mem:`, `proj:`, `sa:`). Reverted to M73.1's permissive `{2,8}` range.
 - **Spec:** `specs/M73.2-namespace-rollback/SPEC.md`
 - **Acceptance:**

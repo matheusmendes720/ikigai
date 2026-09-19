@@ -527,7 +527,7 @@ def sync_vault_from_taskdog(
 
     Run this to push fork-side changes back into the agent review path.
     """
-    from mesh.adapters.taskdog import TaskdogAdapter
+    from src.mesh.adapters.taskdog import TaskdogAdapter
 
     from sys_ikigai.vault.sync import reverse_sync
 
