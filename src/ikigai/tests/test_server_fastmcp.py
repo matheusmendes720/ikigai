@@ -40,9 +40,14 @@ def test_all_tools_registered() -> None:
     )
 
 
-@pytest.mark.asyncio
-async def test_main_entrypoint_callable() -> None:
-    """main() must remain an async coroutine for stdio transport."""
+def test_main_entrypoint_callable() -> None:
+    """main() must remain an async coroutine for stdio transport.
+
+    M73.6: removed @pytest.mark.asyncio decoration — pytest-asyncio
+    is not configured in pyproject.toml. The test body is purely sync
+    (inspect.iscoroutinefunction check), so async decoration is unnecessary
+    and was preventing test collection on the current pytest config.
+    """
     import inspect
 
     assert inspect.iscoroutinefunction(main)

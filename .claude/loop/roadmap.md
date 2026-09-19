@@ -701,7 +701,16 @@ Both kept here for audit trail.
 ### M73.2 — Namespace allowlist rollback (STATUS: DONE)
 ### M73.3 — Ikigai test bug sweep (STATUS: DONE)
 ### M73.4 — Test fixture & skip propagation (STATUS: DONE)
-### M73.5 — sync_vault shim + dual-identity completion (STATUS: DONE)
+### M73.5 — sync_vault shim
+### M73.6 — Small fixes batch (STATUS: DONE)
+- **What:** Fixed taskdog path3 UEID fixture `:`-in-slug bug + removed spurious `@pytest.mark.asyncio` from sync test in server_fastmcp.
+- **Spec:** `specs/M73.6-small-fixes/SPEC.md`
+- **Acceptance:**
+  - [x] test_taskdog_mcp_path3.py : 4/4 PASS (was 3/4)
+  - [x] test_server_fastmcp.py : 3/3 PASS (was 2/3)
+  - [x] ikigai : 780 PASS + 22 SKIP (was 778 + 22)
+
+ + dual-identity completion (STATUS: DONE)
 - **What:** Extracted ikigai_sync_vault from v2/tools_legacy_reference.py to tools.py as a LangChain @tool. Added module-level _VAULT_DIR and _read_checkpoint_data shims so tests can monkeypatch. Completed dual-identity sweep (2 missed `from mesh import queue` cases). Migrated test_ikigai_sync_vault from frontmatter.loads to frontmatter_compat shim.
 - **Spec:** `specs/M73.5-sync-vault-shim/SPEC.md`
 - **Acceptance:**
