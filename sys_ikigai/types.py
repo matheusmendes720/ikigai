@@ -46,8 +46,8 @@ class UEID(str):
         r"^(?P<namespace>[a-z]{2,8}):"
         r"(?P<entity_type>[a-z_]+):"
         r"(?P<slug>[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]):"
-        r"(?P<uuid_short>[a-f0-9]{6,8}):"
-        r"(?P<content_hash_short>[a-f0-9]{6,8})$"
+        r"(?P<uuid_short>[a-f0-9]{4,8}):"
+        r"(?P<content_hash_short>[a-f0-9]{4,8})$"
     )
 
     def __new__(cls, value: str) -> UEID:

@@ -698,6 +698,16 @@ Both kept here for audit trail.
 ### M72.1 — frontmatter_compat shim (STATUS: DONE)
 ### M73 — UEID regex widens
 ### M73.1 — UEID hex min 4 chars (STATUS: DONE)
+### M73.2 — Namespace allowlist rollback (STATUS: DONE)
+- **What:** M73.2 attempted to add strict namespace allowlist (`ikigai|tw|obsidian|external|sf|sc|tb|tsk|life|cli|vibe|ext`) to `_UEID_PATTERN` to reject foreign namespaces like `other`. Broke 27 SONHO tests (`sn:`) + IKIGAi habit/memory fixtures (`hab:`, `mem:`, `proj:`, `sa:`). Reverted to M73.1's permissive `{2,8}` range.
+- **Spec:** `specs/M73.2-namespace-rollback/SPEC.md`
+- **Acceptance:**
+  - [x] test_ueid_validator.py : 4 PASS + 1 SKIP (was 3 + 2 FAIL)
+  - [x] test_canonical_scope.py : 35 PASS (was 34 + 1 FAIL)
+  - [x] test_drift_extended_invariants.py : 18 PASS
+  - [x] tests/ root : 329 PASS + 1 SKIP (no regression)
+
+
 - **What:** M73's `{6,8}` short-form hex range still rejected solverforge calendar fixtures with 5-char hashes (`cccc3`, `dddd4`). Lowered to `{4,8}` for both short and long-uuid branches in `src/contracts/common.py:34` and `sys_ikigai/entities/ueid.py`.
 - **Spec:** `specs/M73.1-ueid-hex-min-4/SPEC.md`
 - **Acceptance:**
