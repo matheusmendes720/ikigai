@@ -14,7 +14,127 @@ from .base import BaseCentral
 
 app = typer.Typer(help="Task central: Taskwarrior, reviews, metrics.")
 
-TASK_BIN = "task"
+TASKDOG_BIN = "taskdog"
+
+
+def _run_taskdog(args: list[str]) -> dict[str, Any]:
+    """Run taskdog CLI and return {ok, stdout, stderr, error?}.
+
+    M83: Added as the canonical task creation/completion path now that
+    taskdog-server (HTTP daemon, port 8000) is the project's task store
+    (replaced Taskwarrior per user direction).
+    """
+    cfg = load_config()
+    cmd = [TASKDOG_BIN] + args
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        return {
+            "ok": r.returncode == 0,
+            "stdout": r.stdout,
+            "stderr": r.stderr,
+        }
+    except FileNotFoundError:
+        return {
+            "ok": False,
+            "error": f"{TASKDOG_BIN} not found on PATH. Install with: pipx install taskdog",
+        }
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.command()
+def add(
+    name: str = typer.Argument(..., help="Task title"),
+    priority: Optional[int] = typer.Option(None, "-p", "--priority", help="1-10, higher = more urgent"),
+    tag: list[str] = typer.Option([], "-t", "--tag", help="Tags (repeatable)"),
+    estimate: Optional[float] = typer.Option(None, "-e", "--estimate", help="Estimated hours"),
+    deadline: Optional[str] = typer.Option(None, "-D", "--deadline", help="YYYY-MM-DD HH:MM:SS"),
+    json_out: bool = typer.Option(False, "--json"),
+):
+    """Add a task to taskdog-server (M83: daily-use primary path)."""
+    args = ["add", name]
+    if priority is not None:
+        args += ["--priority", str(priority)]
+    if estimate is not None:
+        args += ["--estimate", str(estimate)]
+    if deadline:
+        args += ["--deadline", deadline]
+    for t in tag:
+        args += ["--tag", t]
+    out = _run_taskdog(args)
+    if json_out:
+        import json
+
+        print(json.dumps(out))
+    else:
+        if out.get("stdout"):
+            typer.echo(out["stdout"].rstrip())
+        if not out.get("ok"):
+            if out.get("error"):
+                typer.echo(out["error"], err=True)
+            else:
+                typer.echo(out.get("stderr", "taskdog add failed"), err=True)
+            raise typer.Exit(1)
+
+
+@app.command()
+def start(
+    task_id: int = typer.Argument(..., help="Task ID"),
+    json_out: bool = typer.Option(False, "--json"),
+):
+    """Start a task (PENDING → IN_PROGRESS)."""
+    out = _run_taskdog(["start", str(task_id)])
+    if json_out:
+        import json
+
+        print(json.dumps(out))
+    else:
+        if out.get("stdout"):
+            typer.echo(out["stdout"].rstrip())
+        if not out.get("ok"):
+            typer.echo(out.get("stderr") or out.get("error", "taskdog start failed"), err=True)
+            raise typer.Exit(1)
+
+
+@app.command()
+def done(
+    task_id: int = typer.Argument(..., help="Task ID"),
+    json_out: bool = typer.Option(False, "--json"),
+):
+    """Mark task as completed (requires IN_PROGRESS first)."""
+    out = _run_taskdog(["done", str(task_id)])
+    if json_out:
+        import json
+
+        print(json.dumps(out))
+    else:
+        if out.get("stdout"):
+            typer.echo(out["stdout"].rstrip())
+        if not out.get("ok"):
+            typer.echo(out.get("stderr") or out.get("error", "taskdog done failed"), err=True)
+            raise typer.Exit(1)
+
+
+@app.command()
+def ls(
+    json_out: bool = typer.Option(False, "--json"),
+    q: Optional[str] = typer.Option(None, "--q", help="Filter query"),
+):
+    """List all tasks (from taskdog-server)."""
+    args = ["list"]
+    if q:
+        args += ["--filter", q]
+    out = _run_taskdog(args)
+    if json_out:
+        import json
+
+        print(json.dumps(out))
+    else:
+        if out.get("stdout"):
+            typer.echo(out["stdout"].rstrip())
+        if not out.get("ok"):
+            typer.echo(out.get("stderr") or out.get("error", "taskdog list failed"), err=True)
+            raise typer.Exit(1)
 
 
 def _run_task(args: list[str], json_out: bool = False) -> dict[str, Any]:
