@@ -56,5 +56,29 @@
     "command": "IKIGAI_FAKE_LLM=1 NOTIFY_VERBOSE=1 bash .claude/helpers/notify-wrap.sh invoke-daily \"IKIGAI daily\" \"PYTHONPATH=src python -m interfaces.cli.v2 invoke-skill ikigai-daily\"",
     "cost_cap_usd": 0.05,
     "added_at": "2026-09-19T05:30:00+00:00"
+  },
+  {
+    "name": "invoke-skill-ikigai-weekly",
+    "interval": "10080m",
+    "interval_seconds": 604800,
+    "command": "IKIGAI_FAKE_LLM=1 NOTIFY_VERBOSE=1 bash .claude/helpers/notify-wrap.sh invoke-weekly \"IKIGAI weekly\" \"PYTHONPATH=src python -m interfaces.cli.v2 invoke-skill ikigai-weekly\"",
+    "cost_cap_usd": 0.05,
+    "added_at": "2026-09-19T05:50:00+00:00"
+  },
+  {
+    "name": "invoke-skill-ikigai-monthly",
+    "interval": "43200m",
+    "interval_seconds": 2592000,
+    "command": "IKIGAI_FAKE_LLM=1 NOTIFY_VERBOSE=1 bash .claude/helpers/notify-wrap.sh invoke-monthly \"IKIGAI monthly\" \"PYTHONPATH=src python -m interfaces.cli.v2 invoke-skill ikigai-monthly\"",
+    "cost_cap_usd": 0.05,
+    "added_at": "2026-09-19T05:50:00+00:00"
+  },
+  {
+    "name": "invoke-skill-ikigai-quarterly",
+    "interval": "129600m",
+    "interval_seconds": 7776000,
+    "command": "IKIGAI_FAKE_LLM=1 NOTIFY_VERBOSE=1 bash .claude/helpers/notify-wrap.sh invoke-quarterly \"IKIGAI quarterly\" \"PYTHONPATH=src python -m interfaces.cli.v2 invoke-skill ikigai-quarterly\"",
+    "cost_cap_usd": 0.1,
+    "added_at": "2026-09-19T05:50:00+00:00"
   }
 ]
