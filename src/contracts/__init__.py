@@ -95,3 +95,7 @@ __all__ = [  # noqa: RUF022 — entries are grouped by domain with comments, not
     "Investigation",
     "InvestigationStatus",
 ]
+
+
+# TaskChange — Phase 3 v1 review queue model
+from .task_change import TaskChange, TaskStatus  # noqa: E402

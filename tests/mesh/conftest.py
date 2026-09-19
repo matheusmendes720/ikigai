@@ -14,10 +14,23 @@ Mirrors the pattern in tests/ikigai/conftest.py and src/ikigai/tests/conftest.py
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def _disable_taskdog_http_bridge(monkeypatch):
+    """Disable HTTP-first reads in the taskdog mesh adapter.
+
+    The adapter (M71) prefers the daemon-managed taskdog-server when up.
+    Tests use a local SQLite fixture (monkeypatched TASKDOG_DB), so the
+    HTTP path would silently shadow fixtures and cause failures like
+    'expected 3 tasks, got 69'. Force it off here.
+    """
+    monkeypatch.setenv("TASKDOG_HTTP_ENABLED", "0")
 
 # Project-root src/ — has contracts/ and mesh/ packages
 _SRC = Path(__file__).resolve().parent.parent.parent / "src"
