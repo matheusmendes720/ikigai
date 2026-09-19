@@ -242,6 +242,14 @@ from interfaces.cli.notify_cli import app as notify_app  # noqa: E402
 app.add_typer(notify_app, name="notify")
 
 
+# ---------------------------------------------------------------------------
+# IKIGAI v2 subcommand (M85)
+# Exposes invoke-skill, skill-list, skill-show, plan under `life v2 ...`
+# ---------------------------------------------------------------------------
+from interfaces.cli.v2 import app as v2_app  # noqa: E402
+app.add_typer(v2_app, name="v2")
+
+
 register_plugins(app)
 
 
