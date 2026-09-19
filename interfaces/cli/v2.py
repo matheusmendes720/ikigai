@@ -185,6 +185,92 @@ register_plan(app)
 # Backward-compat alias — callers that imported `v2_app` keep working.
 v2_app = app
 
+
+
+
+def register_invoke_skill(app: typer.Typer) -> None:
+    """Register the `invoke-skill` command on a Typer sub-app.
+
+    M78: wraps invoke_skill() for the CLI surface. Lets users run
+    `life invoke-skill ikigai-daily` to fire the daily cycle's
+    post-processors (vault_write, taskdog_create_task).
+
+    Pattern matches register_plan(): parameter-based to defer the
+    invoke_skill import and avoid circular imports from v2 subgraphs.
+    """
+
+    @app.command(name="invoke-skill")
+    def invoke_skill_cmd(
+        name: str = typer.Argument(..., help="Skill name (e.g. ikigai-daily, ikigai-quarterly)."),
+        entry_point: str = typer.Option(
+            None,
+            "--entry-point",
+            "-e",
+            help="Override the manifest's entry_point (default: from manifest).",
+        ),
+        actor: str = typer.Option(
+            "agent",
+            "--actor",
+            "-a",
+            help="Actor performing the skill (user | agent | system).",
+        ),
+    ) -> None:
+        """Run a skill manifest end-to-end (W3.5/W3.6).
+
+        Loads the skill from src/ikigai/src/agents/v2/skills/<name>.md,
+        dispatches via IKIGAI_FAKE_LLM=1 (set env var to bypass LLM API),
+        then runs the manifest-declared post-processors (vault_write,
+        taskdog_create_task).
+        """
+        # Lazy import to avoid circular (per Plan D Task E.1 lesson)
+        from .invoke_skill import invoke_skill as _invoke_skill
+
+        result = _invoke_skill(
+            name,
+            entry_point_override=entry_point,
+            actor=actor,
+        )
+        typer.echo(json.dumps(result, indent=2, default=str))
+
+
+def register_skill_list(app: typer.Typer) -> None:
+    """Register the `skill list` introspection command.
+
+    Lists all available skill manifests under the canonical skills dir,
+    showing name, description, entry_point, actor, and whether the
+    manifest declares a taskdog output.
+    """
+
+    @app.command(name="skill-list")
+    def skill_list_cmd() -> None:
+        """List available skill manifests (W3.5)."""
+        from .invoke_skill import _resolve_skills_dir, load_skill_manifest
+        from ._skill_outputs import _manifest_declares_taskdog
+
+        skills_dir = _resolve_skills_dir()
+        rows: list[dict[str, object]] = []
+        for md_path in sorted(skills_dir.glob("*.md")):
+            manifest = load_skill_manifest(md_path.stem)
+            outputs = manifest.get("outputs") or []
+            has_taskdog = _manifest_declares_taskdog(outputs) is not None
+            rows.append(
+                {
+                    "name": manifest.get("name", md_path.stem),
+                    "description": manifest.get("description", ""),
+                    "entry_point": manifest.get("entry_point", ""),
+                    "actor": manifest.get("actor", ""),
+                    "outputs_count": len(outputs) if isinstance(outputs, list) else 0,
+                    "fires_taskdog": has_taskdog,
+                }
+            )
+        typer.echo(json.dumps({"count": len(rows), "skills": rows}, indent=2))
+
+
+# Wire invoke-skill + skill-list commands into the Typer app.
+register_invoke_skill(app)
+register_skill_list(app)
+
+
 # Re-export invoke_skill so ``from interfaces.cli.v2 import invoke_skill``
 # works (W3.5/W3.6 skill manifest loader + taskdog post-processor).
 from .invoke_skill import invoke_skill  # noqa: E402,F401

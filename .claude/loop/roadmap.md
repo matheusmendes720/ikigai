@@ -658,6 +658,14 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 ### M75 — Notify router (multi-channel outbound) (STATUS: DONE)
 ### M76 — notify-wrap.sh daemon wrapper (STATUS: DONE)
 ### M77 — invoke_skill (W3.5/W3.6) implementation (STATUS: DONE)
+### M78 — invoke-skill CLI surface (STATUS: DONE)
+- **What:** Added `life invoke-skill <name>` and `life skill-list` Typer subcommands to interfaces/cli/v2.py. 5 smoke tests in tests/interfaces/test_invoke_skill_cli.py all pass.
+- **Spec:** `specs/M78-invoke-skill-cli/SPEC.md`
+- **Acceptance:**
+  - [x] tests/interfaces/test_invoke_skill_cli.py : 5/5 PASS
+  - [x] tests/ root : 318 PASS + 27 SKIP (was 313 + 27)
+
+
 - **What:** Built `interfaces/cli/invoke_skill.py` with manifest loader (YAML frontmatter parser, strips ikigai- prefix for bare names), LLM stub dispatcher, taskdog post-processor (uses sys.modules.get for dual-identity), review_queue failure path (honors live QUEUE_DIR). 12/12 invoke_skill tests pass.
 - **Spec:** `specs/M77-invoke-skill/SPEC.md`
 - **Acceptance:**
