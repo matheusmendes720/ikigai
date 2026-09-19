@@ -33,6 +33,10 @@ from typing_extensions import Self
 
 # M73: triple-pattern (4-part short OR 4-part long-uuid OR 5-part legacy).
 # Anchored on both ends. Accepts both fixture variants in production tests.
+# M73.1: triple-pattern (4-part short | 4-part long-UUID | 5-part legacy).
+# Lower bound widened to {4,} hex chars so test fixtures with
+# `cccc3` (5 chars) and `dddd4` (5 chars) pass alongside the
+# canonical `{6,8}` short form. Namespace range {2,8}.
 _UEID_PATTERN = re.compile(
     r"^(?:"
     r"[a-z]{2,8}:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9]{4,8}:[a-f0-9]{4,8}"

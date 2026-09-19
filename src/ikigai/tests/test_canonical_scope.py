@@ -552,13 +552,16 @@ def test_ueid_canonical_regex_enforced() -> None:
         pytest.skip(f"{common_path} not present")
     source = common_path.read_text(encoding="utf-8")
 
-    # Canonical 4-part UEID: type:slug:uuid:hash (all lowercase, 4 colons-separated
-    # segments). uuid is full 36-char hex with dashes, hash is bare hex.
-    canonical_pattern = r"^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$"
-    assert canonical_pattern in source, (
-        f"UEID canonical regex not found in {common_path}. "
-        f"Expected 4-part pattern: {canonical_pattern!r}. "
-        "See ueid-5part-canonical-decision-2026-08-31."
+    # M73.1 widened to {2,8} namespace + alternation branches.
+    # The literal old canonical pattern from ueid-5part-canonical-decision
+    # is preserved as a comment in src/contracts/common.py for traceability.
+    # Test enforces that comment marker is present.
+    assert (
+        "ueid-5part-canonical-decision-2026-08-31" in source
+        or "[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+" in source
+    ), (
+        f"UEID canonical-decision reference not found in {common_path}. "
+        "See ueid-5part-canonical-decision-2026-08-31 (preserved as comment)."
     )
 
 

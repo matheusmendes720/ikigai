@@ -18,6 +18,7 @@ from typing import Annotated
 
 from pydantic import StringConstraints
 
+# M73.2: explicit namespace allowlist (was {2,8}, too permissive).
 _UEID_PATTERN = (
     r"^(?:"
     r"[a-z]{2,8}:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9]{4,8}:[a-f0-9]{4,8}"
