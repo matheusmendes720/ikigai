@@ -27,12 +27,8 @@ from pathlib import Path
 
 import pytest
 
-# M73.7: invoke_skill is a W3.6 feature that requires implementing a full
-# skill manifest loader + LLM dispatcher (IKIGAI_FAKE_LLM mode) +
-# post-processor that fires taskdog_create_task. The interface exists in
-# the spec but the production code path was never built (similar to
-# M73.4 maintainer_nodes). Skip these tests until M75+.
-pytestmark = pytest.mark.skip(reason="invoke_skill implementation deferred to M75+ (W3.6 requires skill manifest loader + LLM dispatcher)")
+# M77: invoke_skill is implemented in interfaces/cli/invoke_skill.py.
+# Tests below verify W3.5 manifest loading + W3.6 taskdog post-processor.
 
 # ---------------------------------------------------------------------------
 # Path setup — match test_v2_daily_skill.py + test_v2_graph_smoke.py patterns

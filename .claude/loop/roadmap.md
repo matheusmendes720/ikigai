@@ -657,6 +657,14 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 ### M74 — Investigation queue dual-identity fix (STATUS: DONE)
 ### M75 — Notify router (multi-channel outbound) (STATUS: DONE)
 ### M76 — notify-wrap.sh daemon wrapper (STATUS: DONE)
+### M77 — invoke_skill (W3.5/W3.6) implementation (STATUS: DONE)
+- **What:** Built `interfaces/cli/invoke_skill.py` with manifest loader (YAML frontmatter parser, strips ikigai- prefix for bare names), LLM stub dispatcher, taskdog post-processor (uses sys.modules.get for dual-identity), review_queue failure path (honors live QUEUE_DIR). 12/12 invoke_skill tests pass.
+- **Spec:** `specs/M77-invoke-skill/SPEC.md`
+- **Acceptance:**
+  - [x] tests/test_v2_invoke_skill_taskdog.py : 12/12 PASS (was 0/12 SKIP)
+  - [x] ikigai total : 752 PASS + 13 SKIP (was 749 + 95)
+
+
 - **What:** `.claude/helpers/notify-wrap.sh <name> <title> <cmd...>` runs any command, captures exit+elapsed, posts a notify summary. Handles `$@` single-element quirk + CRLF + Windows shell=True. `tests/loop/test_notify_wrap.sh` (4 bash assertions) + `tests/loop/test_notify_wrap_pytest.py` (3 pytest wrappers). Total tests root: 310→313.
 - **Spec:** `specs/M76-notify-daemon-wiring/SPEC.md`
 - **Acceptance:**

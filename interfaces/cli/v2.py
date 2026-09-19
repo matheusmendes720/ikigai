@@ -185,8 +185,12 @@ register_plan(app)
 # Backward-compat alias — callers that imported `v2_app` keep working.
 v2_app = app
 
+# Re-export invoke_skill so ``from interfaces.cli.v2 import invoke_skill``
+# works (W3.5/W3.6 skill manifest loader + taskdog post-processor).
+from .invoke_skill import invoke_skill  # noqa: E402,F401
 
-__all__ = ["app", "v2_app", "register_plan", "_run_plan", "_format_proposal"]
+
+__all__ = ["app", "v2_app", "register_plan", "_run_plan", "_format_proposal", "invoke_skill"]
 
 
 if __name__ == "__main__":
