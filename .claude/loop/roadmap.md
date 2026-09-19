@@ -1222,3 +1222,6 @@ When verifier returns PASS:
 
 ### M85 - life v2 subcommand wiring (M78 wiring fix) (STATUS: DONE)
 
+
+
+### M86 - taskdog-mcp pipx repair (0.23.0 -> 0.28.0) (STATUS: DONE)
