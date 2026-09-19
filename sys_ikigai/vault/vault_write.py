@@ -13,15 +13,22 @@ Concurrency:
   - VaultLock (existing) for cross-platform file locking
 
 Atomicity:
-  - Writes to a tmp file via frontmatter.dumps() (NOT frontmatter.dump(),
-    which only does f.write() — NOT atomic), then os.replace()s to target.
-    os.replace() is atomic on POSIX and silently replaces an existing target
-    on Windows; Path.rename() calls os.rename(), which on Windows raises
-    FileExistsError if the target exists. This pattern matches save_state()
-    at sync.py:198-202 (B6.4 lesson).
+  - Writes to a tmp file via Python yaml.safe_dump() + manual composition,
+    then os.replace()s to target. os.replace() is atomic on POSIX and
+    silently replaces an existing target on Windows; Path.rename() calls
+    os.rename(), which on Windows raises FileExistsError if the target
+    exists. This pattern matches save_state() at sync.py:198-202 (B6.4 lesson).
 
 NOTE: function is SYNC (NOT async). MCP handlers in this repo are sync —
 they return JSON strings, never await anything.
+
+M72 (2026-09-19): REPLACED `frontmatter.Post`/`dumps` with manual yaml
+serialization. The 3.0.8 frontmatter package no longer ships
+loads/dumps APIs (only Frontmatter class with read_file for reading
+markdown sidecars). The tests
+tests/mcp_server/test_vault_write_actor.py were failing at master
+HEAD with `'frontmatter' has no attribute 'Post'`. Manual yaml
+serialization removes the dependency and is more controllable.
 """
 
 from __future__ import annotations
@@ -33,9 +40,33 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
-import frontmatter
+import yaml
 
 from .lock import VaultLock
+
+
+def _serialize_markdown(frontmatter_fields: dict[str, Any], body: str) -> str:
+    """Compose `---\n<yaml>\n---\n\n<body>\n` block.
+
+    Manual yaml.safe_dump — no frontmatter package dependency.
+    Renders yaml in block style (no flow style / no document-end markers).
+    Keeps insertion order (sort_keys=False). Field keys are emitted in
+    the order they appear in the input dict (Python 3.7+ dicts preserve
+    insertion order), which keeps the output reproducible for given input.
+    """
+    fm_block = yaml.safe_dump(
+        frontmatter_fields or {},
+        default_flow_style=False,
+        sort_keys=False,
+        allow_unicode=True,
+        explicit_start=False,
+    ).strip()
+    body_clean = (body or "").rstrip()
+    parts = ["---", fm_block, "---", ""]
+    if body_clean:
+        parts.append(body_clean)
+    parts.append("")  # trailing newline, repo-standard
+    return "\n".join(parts)
 
 
 def vault_write(
@@ -68,7 +99,7 @@ def vault_write(
         raise ValueError(f"actor must be one of ['user', 'agent', 'system'], got {actor!r}")
 
     # No-op protection
-    if not frontmatter_fields and not body.strip():
+    if not frontmatter_fields and not (body or "").strip():
         raise ValueError("empty body and frontmatter rejected (no-op)")
 
     # Security: reject absolute paths
@@ -86,10 +117,7 @@ def vault_write(
     target.parent.mkdir(parents=True, exist_ok=True)
     lock_path = vault_root / ".vault.lock"
 
-    # Serialize post to string (uses frontmatter.dumps, NOT frontmatter.dump
-    # which only does f.write — NOT atomic).
-    post = frontmatter.Post(content=body, **frontmatter_fields)
-    body_str = frontmatter.dumps(post)
+    body_str = _serialize_markdown(frontmatter_fields, body)
 
     with VaultLock(lock_path):
         # Atomic write: write to tmp file in same dir, then os.replace.
@@ -101,10 +129,6 @@ def vault_write(
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 f.write(body_str)
-                # frontmatter.dumps() ends with a newline already, but be
-                # defensive — never leave a file without trailing newline.
-                if not body_str.endswith("\n"):
-                    f.write("\n")
                 f.flush()
                 os.fsync(f.fileno())
             os.replace(tmp_path, target)
