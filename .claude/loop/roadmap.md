@@ -723,6 +723,12 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **What:** Fix drift test regex to handle nested parens in milestone titles; add missing STATUS marker to M73; convert em-dashes to hyphens in milestone headers
 - **Why:** (pending — human confirmation required)
 - **Acceptance:** (pending — human confirmation required; commit `7a8817ab` exists with verification: tests/test_drift_extended_invariants.py 18/18 PASS, tests/ root 318 PASS + 27 SKIP, ikigai 752 PASS + 13 SKIP, no regression)
+### M82 - regression fixes + ikigai venv pytest install (STATUS: DONE)
+
+### M83 - life task {add,start,done,ls} CLI alias (STATUS: DONE)
+
+### M84 - life skill-show <name> introspection (STATUS: DONE)
+
 - **Dependencies:** None
 - **Estimated ticks:** 1
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
