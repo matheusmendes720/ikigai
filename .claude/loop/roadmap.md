@@ -694,6 +694,15 @@ Both kept here for audit trail.
 ### M69 — taskdog_complete_task auto-starts PENDING tasks (STATUS: DONE)
 ### M70 — ADR-013 enforcement applied (STATUS: DONE)
 ### M71 — Mesh TaskdogAdapter HTTP bridge (STATUS: DONE)
+### M72 — vault_write migrates off frontmatter 3.x (STATUS: DONE)
+- **What:** `tests/mcp_server/test_vault_write_actor.py` was failing at master HEAD with `"frontmatter has no attribute 'Post'"`. Root cause: frontmatter 3.0.8 removed `Post`/`dumps` API. Replaced `frontmatter.Post + frontmatter.dumps` with manual `yaml.safe_dump()` block-serialization in `sys_ikigai/vault/vault_write.py`.
+- **Spec:** `specs/M72-vault-write-yaml-direct/SPEC.md`
+- **Acceptance:**
+  - [x] test_vault_write_actor : 3/3 PASS (was 2 failing)
+  - [x] All other tests regression-free (tests/ : 329+1SK, src/ikigai : 91+1SK)
+  - [x] End-to-end smoke: actor=agent writes valid markdown with sha256 + audit log
+
+
 - **What:** Rewrote `src/mesh/adapters/taskdog.py` to read from daemon-managed `taskdog-server` via HTTP. `list_all()` now fetches live task inventory (75 tasks). Falls back to local SQLite for tests via `TASKDOG_HTTP_ENABLED=0` autouse fixtures in `tests/conftest.py` + `src/ikigai/tests/conftest.py`.
 - **Spec:** `specs/M71-taskdog-http-bridge/SPEC.md`
 - **Acceptance:**
