@@ -1,9 +1,14 @@
-"""Core types: UEID (tri-key), ScoreValue (with unit), Path utilities.
+"""Core types: UEID (anti-fragile identifier), ScoreValue (with unit), Path utilities.
 
-Anti-fragile identity: UEID = namespace:entity_type:slug:uuid_short:content_hash_short
-- slug: human-readable, immutable
-- uuid_short: 8-char UUID, immutable
-- content_hash_short: 8-char SHA-256, detects drift
+UEID format (this file): **LEGACY 5-part** `<namespace>:<entity_type>:<slug>:<uuid_short>:<content_hash_short>`
+The canonical 4-part format lives at `src/contracts/common.py:UEID` (ADR-014).
+This file preserves the 5-part format because downstream test fixtures still
+reference it; migration to 4-part is a future cleanup.
+
+NOTE: M73 widened the namespace segment from `{2,5}` to `{2,8}` to fit the
+namespace `ikigai` (6 letters). The canonical contract at
+`src/contracts/common.py:34` was widened in lockstep. This is the only
+change M73 makes — the part counts stay 5 (here) and 4 (canonical).
 
 ScoreValue explicitly carries unit to avoid 0-100 vs 0-1 vs RICE 1-10 confusion.
 """
@@ -25,20 +30,21 @@ from pydantic_core import core_schema
 
 
 class UEID(str):
-    """Tri-key Universal Entity Identifier (anti-fragile).
+    """Universal Entity Identifier — LEGACY 5-part.
 
     Format: `<namespace>:<entity_type>:<slug>:<uuid_short>:<content_hash_short>`
 
     Components:
-    - `namespace`: ikigai | tw | obsidian | external
-    - `entity_type`: dream | goal | objective | project | task | deliverable | ...
+    - `namespace`: ikigai | tw | obsidian | external | ... (2-8 lowercase)
+    - `entity_type`: dream | goal | project | task | ... (1+ lowercase + underscore)
     - `slug`: human-readable, immutable post-creation
-    - `uuid_short`: 8-char UUID (system-generated, immutable)
-    - `content_hash_short`: 8-char SHA-256 of canonical form (drift detection)
+    - `uuid_short`: 6-8 char UUID hex (system-generated, immutable)
+    - `content_hash_short`: 6-8 char SHA-256 hex (drift detection)
     """
 
     _PATTERN = re.compile(
-        r"^(?P<namespace>[a-z]+):(?P<entity_type>[a-z_]+):"
+        r"^(?P<namespace>[a-z]{2,8}):"
+        r"(?P<entity_type>[a-z_]+):"
         r"(?P<slug>[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]):"
         r"(?P<uuid_short>[a-f0-9]{6,8}):"
         r"(?P<content_hash_short>[a-f0-9]{6,8})$"
@@ -80,7 +86,7 @@ class UEID(str):
         slug: str,
         canonical_content: str = "",
     ) -> UEID:
-        """Generate a new UEID.
+        """Generate a new UEID (LEGACY 5-part format).
 
         Args:
             namespace: e.g., 'ikigai', 'tw', 'obsidian'
