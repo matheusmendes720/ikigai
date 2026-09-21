@@ -1231,3 +1231,6 @@ When verifier returns PASS:
 
 
 ### M88 - v2 graph Day 1: fix recursion + populate recall/reason stubs (STATUS: DONE)
+
+
+### M89 - v2 graph Day 2: real tag_and_persist + commit (STATUS: DONE)
