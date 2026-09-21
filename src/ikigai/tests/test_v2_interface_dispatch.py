@@ -1,14 +1,14 @@
 """Interface dispatch tests — verify CLI commands route to correct prompt chains + MCP tools.
 
-Phase 8.4 gates:
+Phase 8.4 gates (M73.7 initial):
 - v2 Typer sub-app imports cleanly
 - v2 cycle/score/regime/suggest commands each route to correct prompt chain
 - Skill files exist with YAML frontmatter + vault_read-only constraint
 - vault_write invariant holds (no direct vault writes from interface code)
 
-conftest.py sets up sys.path with IKIGAI_PKG_ROOT (src/ikigai/), SRC_ROOT (src/),
-and REPO_ROOT. v2 modules live under src/ikigai/src/agents/v2/.
-Import style: "from agents.v2.X import Y" (no "ikigai.src." prefix).
+M92: 4 commands from Phase 8.2 (suggest/score/regime/cycle) were removed per V5-D
+(only plan/invoke-skill/skill-list/skill-show survive). Their interface-dispatch
+tests are now obsolete — re-skipped individually below.
 """
 
 from __future__ import annotations
@@ -17,10 +17,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
-# M73.7: v2 CLI sub-app commands (suggest/score/regime/cycle) and routing
-# logic are unimplemented in v2.py (only `plan` exists). Tracked M75+.
-pytestmark = pytest.mark.skip(reason="v2 CLI sub-app routing unimplemented (only `plan` command exists); M75+")
 
 # Ensure conftest paths are available
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
@@ -47,6 +43,7 @@ sys.path.insert(0, str(SRC_ROOT))
 # v2 CLI sub-app — import + help routing
 # ---------------------------------------------------------------------------
 
+
 def test_v2_cli_app_importable():
     """v2 Typer sub-app is importable from interfaces.cli.v2."""
     from interfaces.cli.v2 import v2_app
@@ -54,6 +51,7 @@ def test_v2_cli_app_importable():
     assert v2_app is not None
 
 
+@pytest.mark.skip(reason="M92: `v2 suggest` command removed in V5-D (only plan/invoke-skill/skill-list/skill-show survive)")
 def test_v2_suggest_command_help():
     """`life v2 suggest --help` exits 0 and documents the command."""
     from interfaces.cli.v2 import v2_app
@@ -65,6 +63,7 @@ def test_v2_suggest_command_help():
     assert "suggest" in result.output.lower() or "PAV" in result.output
 
 
+@pytest.mark.skip(reason="M92: `v2 score` command removed in V5-D")
 def test_v2_score_command_help():
     """`life v2 score --help` exits 0 and shows date + json options."""
     from interfaces.cli.v2 import v2_app
@@ -76,6 +75,7 @@ def test_v2_score_command_help():
     assert "date" in result.output.lower() or "json" in result.output.lower()
 
 
+@pytest.mark.skip(reason="M92: `v2 regime` command removed in V5-D")
 def test_v2_regime_command_help():
     """`life v2 regime --help` exits 0 and shows date + json options."""
     from interfaces.cli.v2 import v2_app
@@ -86,6 +86,7 @@ def test_v2_regime_command_help():
     assert result.exit_code == 0
 
 
+@pytest.mark.skip(reason="M92: `v2 cycle` command removed in V5-D")
 def test_v2_cycle_command_help():
     """`life v2 cycle --help` exits 0 and shows dry-run option."""
     from interfaces.cli.v2 import v2_app
@@ -101,6 +102,8 @@ def test_v2_cycle_command_help():
 # Prompt chain routing — in-process (fake-LLM)
 # ---------------------------------------------------------------------------
 
+
+@pytest.mark.skip(reason="M92: `v2 score` command removed in V5-D")
 def test_v2_score_routes_to_prompt_chain(monkeypatch):
     """`v2 score` routes to render_score_passion_observation (fake-LLM stub)."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
@@ -109,12 +112,12 @@ def test_v2_score_routes_to_prompt_chain(monkeypatch):
 
     runner = CliRunner()
     result = runner.invoke(v2_app, ["score", "--json"])
-    # Should exit 0 (fake-LLM returns stub immediately)
     assert result.exit_code == 0
     output = result.output.strip()
     assert "passion_score" in output or "error" in output
 
 
+@pytest.mark.skip(reason="M92: `v2 regime` command removed in V5-D")
 def test_v2_regime_routes_to_prompt_chain(monkeypatch):
     """`v2 regime` routes to render_heuristics_regime_observation (fake-LLM stub)."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
@@ -128,6 +131,7 @@ def test_v2_regime_routes_to_prompt_chain(monkeypatch):
     assert "regime" in output or "error" in output
 
 
+@pytest.mark.skip(reason="M92: `v2 suggest` command removed in V5-D")
 def test_v2_suggest_routes_to_surface_pav_intentions(monkeypatch):
     """`v2 suggest` routes to render_surface_pav_intentions (fake-LLM stub)."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
@@ -141,6 +145,7 @@ def test_v2_suggest_routes_to_surface_pav_intentions(monkeypatch):
     assert "suggestions" in output or "error" in output
 
 
+@pytest.mark.skip(reason="M92: `v2 cycle` command removed in V5-D")
 def test_v2_cycle_dry_run_invokes_graph(monkeypatch):
     """`v2 cycle --dry-run` invokes make_v2_graph without crashing."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
@@ -150,9 +155,7 @@ def test_v2_cycle_dry_run_invokes_graph(monkeypatch):
 
     runner = CliRunner()
     result = runner.invoke(v2_app, ["cycle", "--dry-run", "--json"])
-    # Exit 0 OR exit 1 with a graceful error (graph compile may fail in test env)
     assert result.exit_code in (0, 1)
-    # When it fails it should NOT traceback-crash (exit 1 with message)
     if result.exit_code == 1:
         assert "FAIL" in result.output or "Error" in result.output or "failed" in result.output.lower()
 
@@ -160,6 +163,7 @@ def test_v2_cycle_dry_run_invokes_graph(monkeypatch):
 # ---------------------------------------------------------------------------
 # Skill files — existence + frontmatter
 # ---------------------------------------------------------------------------
+
 
 def test_skill_files_exist():
     """All 4 skill files exist under src/agents/v2/skills/."""
@@ -184,12 +188,7 @@ def test_skill_files_have_frontmatter():
 
 
 def test_skill_files_mention_vault_read_only():
-    """All skill files document vault_read-only constraint (vault_write invariant).
-
-    All skill files must reference vault/ and vault_write (the canonical vault writer).
-    The constraint that daily.md is "surface-only" is documented in the skill's
-    description/body, not by omitting vault_write references.
-    """
+    """All skill files document vault_read-only constraint (vault_write invariant)."""
     skill_dir = IKIGAI_ROOT / "src" / "agents" / "v2" / "skills"
     for name in ["daily.md", "weekly.md", "monthly.md", "quarterly.md"]:
         content = (skill_dir / name).read_text(encoding="utf-8")
@@ -201,6 +200,8 @@ def test_skill_files_mention_vault_read_only():
 # vault_write invariant — interface code never writes vault/
 # ---------------------------------------------------------------------------
 
+
+@pytest.mark.skip(reason="M92: `v2 score` command removed in V5-D")
 def test_v2_score_does_not_write_vault(tmp_path, monkeypatch):
     """v2 score reads vault but produces no new files in vault_root."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
@@ -219,13 +220,12 @@ def test_v2_score_does_not_write_vault(tmp_path, monkeypatch):
     runner = CliRunner()
     _ = runner.invoke(v2_app, ["score", "--date", "2026-09-03"])
 
-    # Vault dir must not have been written to (no new files created)
     all_vault_files = list(vault_root.rglob("*"))
-    # Only the pre-existing cycle_state file should be there
     md_files = [f for f in all_vault_files if f.is_file() and f.suffix == ".md"]
     assert len(md_files) == 1, f"Unexpected vault writes detected: {[f.name for f in md_files]}"
 
 
+@pytest.mark.skip(reason="M92: `v2 regime` command removed in V5-D")
 def test_v2_regime_does_not_write_vault(tmp_path, monkeypatch):
     """v2 regime reads vault but produces no new files in vault_root."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")

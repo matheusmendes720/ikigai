@@ -356,10 +356,18 @@ register_skill_show(app)
 
 # Re-export invoke_skill so ``from interfaces.cli.v2 import invoke_skill``
 # works (W3.5/W3.6 skill manifest loader + taskdog post-processor).
-from .invoke_skill import invoke_skill  # noqa: E402,F401
+from .invoke_skill import invoke_skill, load_skill_manifest  # noqa: E402,F401
 
 
-__all__ = ["app", "v2_app", "register_plan", "_run_plan", "_format_proposal", "invoke_skill"]
+__all__ = [
+    "app",
+    "v2_app",
+    "register_plan",
+    "_run_plan",
+    "_format_proposal",
+    "invoke_skill",
+    "load_skill_manifest",
+]
 
 
 if __name__ == "__main__":

@@ -420,6 +420,20 @@ def invoke_skill(
         "graph_state": graph_state,
         "actor": actor,
     }
+    # M92: flatten last_step from graph_state (nested) to top-level so
+    # callers can introspect "did this run reach its target entry_point"
+    # without digging into graph_state.graph_state every time.
+    if isinstance(graph_state, dict):
+        # _fake_llm_dispatch nests under graph_state.graph_state.last_step
+        gs_nested = graph_state.get("graph_state")
+        if isinstance(gs_nested, dict):
+            ls = gs_nested.get("last_step")
+            if ls and "last_step" not in result:
+                result["last_step"] = ls
+        # _real_llm_dispatch puts it at graph_state.last_step (no nesting)
+        ls = graph_state.get("last_step")
+        if ls and "last_step" not in result:
+            result["last_step"] = ls
 
     outputs = manifest.get("outputs", []) or []
     # Detect taskdog output declaration

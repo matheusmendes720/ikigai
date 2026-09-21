@@ -1240,3 +1240,6 @@ When verifier returns PASS:
 
 
 ### M91 - dispatch_sub_agents regression + drift bash-script PATH fix (STATUS: DONE)
+
+
+### M92 - unskip 5 v2 test files + invoke_skill flatten last_step + load_skill_manifest export (STATUS: DONE)
