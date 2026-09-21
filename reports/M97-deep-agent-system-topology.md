@@ -580,4 +580,15 @@ See M96 report for the full gap inventory + recommended fix path (M97).
 
 ## Status
 
-**PUBLISHED.** Awaiting user validation on M96 direction (M97a). No implementation until user confirms next-step priorities.
+**SUPERSEDED by M97b + M98 + M99 + M100 (shipped 2026-09-21).**
+
+The "Awaiting user validation" status is resolved:
+- M97a: user chose Option A (MCP-wire)
+- M97b (commit `873f0881`): `MultiServerMCPClient` wired → 38 tools
+- M98 (`9b96e2b2`): `life v2 agent` one-shot
+- M99 (`be43accf`): `life v2 chat` REPL
+- M100 (`1aeb1ec2`): `life taskdog *` direct sub-app (26 commands)
+
+This report remains as historical reference of what was true at the
+moment of audit (M96 timestamp). Use the live README index in
+`reports/README.md` for current status.

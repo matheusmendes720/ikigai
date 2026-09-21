@@ -8,17 +8,36 @@
 
 ---
 
+## Shipped Since M96 Audit
+
+After the M96 gap analysis (only 4 of 26 taskdog tools wired), the user
+chose **Option A (MCP-wire)** in M97a and shipped these milestones:
+
+| Milestone | Commit | What it added |
+|---|---|---|
+| **M97b** | `873f0881` | `MultiServerMCPClient` wired into `_make_agent()` → deep-agent now has **38 tools** (12 IKIGAI + 26 MCP taskdog) |
+| **M98** | `9b96e2b2` | `life v2 agent "<request>"` — one-shot deep-agent driver (JSON output + tool call trace) |
+| **M99** | `be43accf` | `life v2 chat` — REPL driver + `_ensure_ikigai_src_on_path()` fix |
+| **M100** | `1aeb1ec2` | `life taskdog *` — Typer sub-app exposing **all 26 MCP tools as direct CLI commands** (no LLM) |
+
+**Net result**: every capability listed in M96 as missing is now reachable:
+- Via LLM: `life v2 agent "cancel task #162"` or `life v2 chat`
+- Via direct CLI: `life taskdog cancel-task --task-id 162`
+- Via taskwarrior-style wrapper: `life task cancel 162`
+
+---
+
 ## Active Reports
 
 ### M96 — Taskdog → Deep-Agent Tool Wiring Gap Report
 **File**: [`M96-taskdog-deep-agent-gap-report.md`](M96-taskdog-deep-agent-gap-report.md)
 **Date**: 2026-09-21
-**Status**: READY FOR USER VALIDATION
+**Status**: ✅ RESOLVED via M97b + M98 + M99 + M100
 **Severity**: HIGH — affects 85% of taskdog surface
 
 **What's in it**:
 - Audit of 3 layers of taskdog (CLI: 22 subcommands, REST: 36 endpoints, MCP: 26 tools)
-- Current state: only 4 of 26 taskdog tools wired as LangChain `@tool` (15%)
+- Current state (audit time): only 4 of 26 taskdog tools wired as LangChain `@tool` (15%)
 - 22 missing capabilities listed (cancel/pause/decompose/dependency/update/etc.)
 - 5 user-facing failure scenarios
 - 3 proposed paths forward (MCP-wired, parameter expansion, status quo)

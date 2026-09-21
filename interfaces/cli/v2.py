@@ -669,6 +669,138 @@ def register_chat(app: typer.Typer) -> None:
 register_chat(app)
 
 
+# ---------------------------------------------------------------------------
+# M101b: `td` short alias sub-app for `taskdog *` (cuts typing in half)
+# ---------------------------------------------------------------------------
+
+
+def register_td_alias(app: typer.Typer) -> None:
+    """Register `life v2 td <cmd>` as a thin alias for `life taskdog <cmd>`.
+
+    M101b: user pain point — full kebab names like
+    `life taskdog decompose-task --task-id 150 --num-subtasks 5`
+    are 60+ chars to type. `life v2 td decompose --task-id 150 -n 5`
+    is half.
+
+    Implementation: lazy import + dynamic command discovery at first
+    invocation. Same venv-detect pattern as life.taskdog sub-app.
+    """
+    import importlib.util as _importlib_util
+
+    if _importlib_util.find_spec("langchain_mcp_adapters") is None:
+        _placeholder = typer.Typer(
+            name="td",
+            help="Short alias for `taskdog *` (requires langchain-mcp-adapters).",
+            no_args_is_help=True,
+        )
+
+        @_placeholder.callback(invoke_without_command=True)
+        def _td_unavailable(ctx: typer.Context) -> None:
+            typer.echo(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "error": "langchain-mcp-adapters not installed; use ikigai venv.",
+                    },
+                    indent=2,
+                )
+            )
+            raise typer.Exit(code=1)
+
+        app.add_typer(_placeholder, name="td")
+        return
+
+    # Discover MCP tools and register short-name commands
+    try:
+        from .mcp_runtime import get_mcp_tools_sync
+        tools = get_mcp_tools_sync()
+    except Exception as exc:  # noqa: BLE001
+        typer.echo(
+            json.dumps({"ok": False, "error": f"MCP discovery failed: {exc}"}, indent=2)
+        )
+        raise typer.Exit(code=1)
+
+    _td_app = typer.Typer(
+        name="td",
+        help="Short aliases for `taskdog *` commands (M101b). "
+        "E.g. `life v2 td list -s PENDING` → `life taskdog list-tasks --status PENDING`.",
+        no_args_is_help=True,
+    )
+
+    for tool in tools:
+        # Strip the _task / _tasks suffix for shorter names
+        short_name = tool.name
+        for suffix in ("_task", "_tasks", "_notes", "_dependency", "_dependencies"):
+            if short_name.endswith(suffix):
+                short_name = short_name[: -len(suffix)]
+                break
+        # Keep kebab-case
+        short_name = short_name.replace("_", "-")
+
+        # Build a thin wrapper that calls the full taskdog_app command
+        # via subprocess (avoids re-implementing argument parsing).
+        full_name = tool.name.replace("_", "-")
+
+        def _make_alias(_full: str = full_name) -> Any:
+            def _alias(*args: Any, **kwargs: Any) -> None:
+                import subprocess
+
+                cmd = [
+                    sys.executable,
+                    "-m",
+                    "life.cli.cli",
+                    "taskdog",
+                    _full,
+                ]
+                # Forward kwargs as --key value pairs (only non-None)
+                for k, v in kwargs.items():
+                    if v is None:
+                        continue
+                    cmd.extend([f"--{k.replace('_', '-')}", str(v)])
+                # Capture and print output
+                r = subprocess.run(cmd, capture_output=True, text=True)
+                sys.stdout.write(r.stdout)
+                if r.returncode != 0:
+                    sys.stderr.write(r.stderr)
+                    raise typer.Exit(code=r.returncode)
+
+            return _alias
+
+        # Use the same args_schema as the full version so Typer parses flags identically.
+        properties = (tool.args_schema or {}).get("properties", {})
+        required = set((tool.args_schema or {}).get("required", []))
+
+        import inspect
+
+        params = []
+        for pname, pdef in properties.items():
+            default = typer.Option(
+                ... if pname in required else None,
+                "--" + pname.replace("_", "-"),
+                help=str(pdef.get("description") or ""),
+            )
+            params.append(
+                inspect.Parameter(
+                    name=pname,
+                    kind=inspect.Parameter.KEYWORD_ONLY,
+                    default=default,
+                    annotation=str | None,
+                )
+            )
+
+        alias_fn = _make_alias()
+        alias_fn.__name__ = f"td_{short_name.replace('-', '_')}"
+        alias_fn.__doc__ = f"Alias for `life taskdog {full_name}` (M101b)."
+        alias_fn.__signature__ = inspect.Signature(parameters=params)  # type: ignore[attr-defined]
+        _td_app.command(name=short_name)(alias_fn)
+
+    app.add_typer(_td_app, name="td")
+
+
+# M101b: wire short-alias sub-app.
+register_td_alias(app)
+
+
 # Re-export invoke_skill so ``from interfaces.cli.v2 import invoke_skill``
 # works (W3.5/W3.6 skill manifest loader + taskdog post-processor).
 from .invoke_skill import invoke_skill, load_skill_manifest  # noqa: E402,F401
