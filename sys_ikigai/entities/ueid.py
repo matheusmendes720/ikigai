@@ -18,16 +18,11 @@ from typing import Annotated
 
 from pydantic import StringConstraints
 
-# M73.2: explicit namespace allowlist (was {2,8}, too permissive).
-_UEID_PATTERN = (
-    r"^(?:"
-    r"[a-z]{2,8}:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9]{4,8}:[a-f0-9]{4,8}"
-    r"|"
-    r"[a-z]{2,8}:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9-]{8,36}:[a-f0-9]{4,64}"
-    r"|"
-    r"[a-z]{2,8}:[a-z_]+:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9]{4,8}:[a-f0-9]{4,8}"
-    r")$"
-)
+# R4.2-followup: import the canonical pattern from src/contracts/common per
+# ADR-033 (single source of truth). Previously this file redeclared the
+# triple-pattern; the redeclaration is now removed so any future regex
+# amendment happens in exactly one place.
+from src.contracts.common import _UEID_PATTERN  # re-exported for backward compat
 
 UEID = Annotated[
     str,
@@ -37,4 +32,4 @@ UEID = Annotated[
     ),
 ]
 
-__all__ = ["UEID"]
+__all__ = ["UEID", "_UEID_PATTERN"]
