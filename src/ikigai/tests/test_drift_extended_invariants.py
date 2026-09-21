@@ -25,6 +25,7 @@ Run::
 from __future__ import annotations
 
 import ast
+import sys
 from pathlib import Path
 
 import pytest
@@ -1190,16 +1191,40 @@ def test_progress_md_has_no_double_fires() -> None:
 
     try:
         # Run the bash script via subprocess. On Windows, the script's #! header
-        # invokes python3 which is on PATH. Use shell=True so the shell resolves
-        # python3 correctly; cwd=repo ensures relative paths work.
-        cmd = f'bash "{str(script)}" "{scoped_path}"'
+        # invokes python3 which is not on PATH for the test's subprocess.
+        # M91: find git-bash explicitly (test subprocess doesn't inherit
+        # git-bash from PATH, and shutil.which may return Windows native
+        # bash which has different path semantics).
+        bash_exe = r"C:/Program Files/Git/bin/bash.exe"
+        if not Path(bash_exe).exists():
+            # Try alternative install paths
+            for alt in [
+                r"C:/Program Files (x86)/Git/bin/bash.exe",
+                "/c/Program Files/Git/bin/bash.exe",
+            ]:
+                if Path(alt).exists():
+                    bash_exe = alt
+                    break
+            else:
+                pytest.skip("git-bash not found; skipping detect-double-fire check")
+
+        # M91: convert backslashes to forward slashes — bash strips
+        # backslashes (C:\Users\foo becomes C:Usersfoo). Use /c/Users
+        # format for git-bash (MSYS): lowercase drive letter + slash,
+        # no colon.
+        raw = str(script)
+        normalized = raw.replace("\\", "/").lstrip("/")
+        if len(normalized) >= 2 and normalized[1] == ":":
+            script_path = "/" + normalized[0].lower() + normalized[2:]
+        else:
+            script_path = normalized
+        cmd = [bash_exe, script_path, scoped_path]
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
             timeout=30,
             cwd=str(repo),
-            shell=True,
         )
 
         assert result.returncode == 0, (
