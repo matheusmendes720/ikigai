@@ -367,9 +367,11 @@ def _invoke_subagent(
     entry_point = spec.get("entry_point", "observe")
     started = time.monotonic()
     try:
-        from .graph import make_v2_graph
+        # M102: route through _build_v2_graph (internal API), not make_v2_graph
+        # which is now the langgraph-api-compatible shim.
+        from .graph import _build_v2_graph
 
-        graph = make_v2_graph(checkpoint_db=":memory:", entry_point=entry_point)
+        graph = _build_v2_graph(checkpoint_db=":memory:", entry_point=entry_point)
         # LangGraph invoke respects checkpointer; pass config with thread_id.
         # W4.5 — close the W4.4 reviewer's minor observation: use the full
         # 4-segment hierarchical thread_id format per ADR-027 R3 (parent's

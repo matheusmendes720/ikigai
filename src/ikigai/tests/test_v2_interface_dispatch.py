@@ -159,7 +159,7 @@ def test_v2_suggest_routes_to_surface_pav_intentions(monkeypatch):
 
 
 def test_v2_cycle_dry_run_invokes_graph(monkeypatch):
-    """`v2 cycle --dry-run` invokes make_v2_graph without crashing."""
+    """`v2 cycle --dry-run` invokes _build_v2_graph without crashing."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     monkeypatch.setenv(
         "IKIGAI_VAULT_ROOT", str(Path(__file__).parent.parent.parent.parent / "vault")

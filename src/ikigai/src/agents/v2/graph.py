@@ -21,21 +21,24 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, StateGraph
 from src.ikigai.src.observability.otel_init import get_tracer, init_tracing
 
-from .nodes.balance import balance_node
-from .nodes.commit import commit_node
-from .nodes.decompose import decompose_node
-from .nodes.error import error_node
-from .nodes.heuristics import heuristics_node
-from .nodes.observe import observe_node
-from .nodes.plan import plan_node
-from .nodes.reason_node import reason_node
-from .nodes.recall_node import recall_node
-from .nodes.reflect import reflect_node
-from .nodes.score_vectors import score_vectors_node
-from .nodes.surface_intentions import surface_intentions_node
-from .nodes.tag_and_persist import tag_and_persist_node
-from .state import IKIGAiStateDict
-from .subgraph import dispatch_sub_agents
+# Absolute imports (M102) so langgraph_api can load graph.py standalone
+# without parent package. Previously used relative imports (`.nodes.X`)
+# which broke under `langgraph dev` because the loader has no parent.
+from src.ikigai.src.agents.v2.nodes.balance import balance_node
+from src.ikigai.src.agents.v2.nodes.commit import commit_node
+from src.ikigai.src.agents.v2.nodes.decompose import decompose_node
+from src.ikigai.src.agents.v2.nodes.error import error_node
+from src.ikigai.src.agents.v2.nodes.heuristics import heuristics_node
+from src.ikigai.src.agents.v2.nodes.observe import observe_node
+from src.ikigai.src.agents.v2.nodes.plan import plan_node
+from src.ikigai.src.agents.v2.nodes.reason_node import reason_node
+from src.ikigai.src.agents.v2.nodes.recall_node import recall_node
+from src.ikigai.src.agents.v2.nodes.reflect import reflect_node
+from src.ikigai.src.agents.v2.nodes.score_vectors import score_vectors_node
+from src.ikigai.src.agents.v2.nodes.surface_intentions import surface_intentions_node
+from src.ikigai.src.agents.v2.nodes.tag_and_persist import tag_and_persist_node
+from src.ikigai.src.agents.v2.state import IKIGAiStateDict
+from src.ikigai.src.agents.v2.subgraph import dispatch_sub_agents
 
 _init_tracing_ok = True
 try:
@@ -257,11 +260,11 @@ def _route_after_dispatch_sub_agents(state: IKIGAiStateDict) -> str:
 # ---------------------------------------------------------------------------
 # Graph factory
 # ---------------------------------------------------------------------------
-def make_v2_graph(
+def _build_v2_graph(
     checkpoint_db: str | None = None,
     entry_point: str = "observe",
 ) -> Any:
-    """Build the IKIGAi Maintainer StateGraph v2.
+    """Build the IKIGAi Maintainer StateGraph v2 (internal).
 
     Args:
         checkpoint_db: Path to SQLite file for SqliteSaver checkpointing.
@@ -413,6 +416,66 @@ def make_v2_graph(
 
 
 # ---------------------------------------------------------------------------
+# M102: `make_v2_graph` langgraph-api-compatible factory shim.
+# langgraph_api (_factory_utils.py) requires graph factories to accept ONLY
+# ServerRuntime and/or RunnableConfig (0/1/2 args). Our internal
+# _build_v2_graph takes (checkpoint_db, entry_point), which is incompatible.
+#
+# This shim preserves backward compatibility with v2.py / invoke_skill.py
+# (which still call _build_v2_graph(checkpoint_db=..., entry_point=...))
+# while exposing make_v2_graph() to langgraph_api in the expected shape.
+# ---------------------------------------------------------------------------
+
+
+# Import concrete types up-front so langgraph_api can resolve annotations.
+try:
+    from langgraph_sdk.runtime import ServerRuntime as _ServerRuntime  # noqa: E402
+    from langgraph_sdk.schema import Config as _RunnableConfig  # noqa: E402
+    _HAS_SDK_TYPES = True
+except ImportError:  # langgraph_sdk not installed in some envs
+    _ServerRuntime = None  # type: ignore[assignment]
+    _RunnableConfig = None  # type: ignore[assignment]
+    _HAS_SDK_TYPES = False
+
+
+# M102: `os` needed by make_v2_graph (was imported later for the singleton).
+import os  # noqa: E402
+
+
+def make_v2_graph(
+    runtime: "_ServerRuntime | None" = None,
+    config: "_RunnableConfig | None" = None,
+) -> Any:
+    """LangGraph-API-compatible factory for the IKIGAi Maintainer v2 graph.
+
+    Per langgraph_api/_factory_utils.py: signature must accept ServerRuntime
+    and/or RunnableConfig. Args are 0/1/2 (no more). The actual graph build
+    is delegated to _build_v2_graph(checkpoint_db, entry_point).
+
+    Args:
+        runtime: ServerRuntime instance (langgraph_api passes this). Used
+                 to extract config if not provided.
+        config: RunnableConfig (langgraph_api passes this).
+
+    Returns:
+        Compiled StateGraph ready for .invoke() / .astream().
+    """
+    checkpoint_db = None
+    entry_point = "observe"
+    # Prefer config["configurable"] if available (langgraph_api convention).
+    if config is not None:
+        configurable = getattr(config, "configurable", None) or (
+            config.get("configurable") if isinstance(config, dict) else None
+        )
+        if isinstance(configurable, dict):
+            checkpoint_db = configurable.get("checkpoint_db") or checkpoint_db
+            entry_point = configurable.get("entry_point") or entry_point
+    if checkpoint_db is None:
+        checkpoint_db = os.environ.get("IKIGAI_CHECKPOINT_DB")
+    return _build_v2_graph(checkpoint_db=checkpoint_db, entry_point=entry_point)
+
+
+# ---------------------------------------------------------------------------
 # Module-level singleton for langgraph dev
 # ---------------------------------------------------------------------------
 import os  # noqa: E402
@@ -425,7 +488,7 @@ def graph() -> Any:
     global _graph_instance
     if _graph_instance is None:
         db_path = os.environ.get("IKIGAI_CHECKPOINT_DB")
-        _graph_instance = make_v2_graph(checkpoint_db=db_path)
+        _graph_instance = make_v2_graph(config={"configurable": {"checkpoint_db": db_path}})
     return _graph_instance
 
 

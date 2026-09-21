@@ -105,11 +105,11 @@ def test_v2_graph_imports_cleanly() -> None:
     if str(v2_src) not in sys.path:
         sys.path.insert(0, str(v2_src))
     try:
-        from agents.v2.graph import make_v2_graph
+        from agents.v2.graph import _build_v2_graph
 
-        assert callable(make_v2_graph), "make_v2_graph must be callable"
+        assert callable(_build_v2_graph), "_build_v2_graph must be callable"
     except ImportError as exc:
-        pytest.fail(f"Failed to import make_v2_graph: {exc}")
+        pytest.fail(f"Failed to import _build_v2_graph: {exc}")
 
 
 def test_v2_state_imports_cleanly() -> None:

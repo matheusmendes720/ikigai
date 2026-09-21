@@ -446,11 +446,13 @@ def invoke_skill(
     # just the stub dispatch + post-processors.
     graph_result = None
     try:
-        from src.ikigai.src.agents.v2.graph import make_v2_graph
+        # M102: route through _build_v2_graph (internal API); make_v2_graph
+        # is now the langgraph-api-compatible shim and doesn't take these args.
+        from src.ikigai.src.agents.v2.graph import _build_v2_graph
 
         # Build graph with in-memory checkpoint (no on-disk side effects).
         # thread_id is REQUIRED by SqliteSaver's checkpoint config.
-        graph = make_v2_graph(checkpoint_db=":memory:", entry_point=entry_point)
+        graph = _build_v2_graph(checkpoint_db=":memory:", entry_point=entry_point)
         # Construct minimal state the graph needs
         graph_state: dict[str, Any] = {
             "cycle_id": f"invoke-skill-{name}",

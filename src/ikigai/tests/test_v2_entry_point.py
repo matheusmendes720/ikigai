@@ -1,4 +1,4 @@
-"""Tests for entry_point parameter on make_v2_graph factory.
+"""Tests for entry_point parameter on _build_v2_graph factory.
 
 Skills (daily/weekly/monthly/quarterly) need to enter at specific nodes
 without running the full pipeline. This parameter enables partial-graph
@@ -16,10 +16,10 @@ import pytest
 
 def test_entry_point_default_is_observe(tmp_path):
     """Default entry_point is 'observe' (full pipeline from start)."""
-    from agents.v2.graph import NODES, make_v2_graph
+    from agents.v2.graph import NODES, _build_v2_graph
 
     # Ensure we exercise the default (entry_point="observe")
-    graph = make_v2_graph(checkpoint_db=str(tmp_path / "default.db"))
+    graph = _build_v2_graph(checkpoint_db=str(tmp_path / "default.db"))
     assert graph is not None
 
     # Confirm NODES tuple contains 'observe'
@@ -28,7 +28,7 @@ def test_entry_point_default_is_observe(tmp_path):
 
 def test_entry_point_accepts_valid_node_names(tmp_path):
     """Valid node names (commit, surface_intentions, plan) accepted."""
-    from agents.v2.graph import NODES, make_v2_graph
+    from agents.v2.graph import NODES, _build_v2_graph
 
     valid_entry_points = (
         "observe",
@@ -44,7 +44,7 @@ def test_entry_point_accepts_valid_node_names(tmp_path):
     )
     for ep in valid_entry_points:
         assert ep in NODES, f"{ep} must be in NODES"
-        graph = make_v2_graph(
+        graph = _build_v2_graph(
             checkpoint_db=str(tmp_path / f"ep_{ep}.db"),
             entry_point=ep,
         )
@@ -53,10 +53,10 @@ def test_entry_point_accepts_valid_node_names(tmp_path):
 
 def test_entry_point_rejects_invalid_node_names(tmp_path):
     """Invalid entry_point raises ValueError listing valid options."""
-    from agents.v2.graph import make_v2_graph
+    from agents.v2.graph import _build_v2_graph
 
     with pytest.raises(ValueError, match="Invalid entry_point") as exc_info:
-        make_v2_graph(
+        _build_v2_graph(
             checkpoint_db=str(tmp_path / "invalid.db"),
             entry_point="nonexistent_node",
         )
@@ -70,9 +70,9 @@ def test_entry_point_rejects_invalid_node_names(tmp_path):
 
 def test_entry_point_does_not_break_graph_compilation(tmp_path):
     """entry_point parameter must NOT break compilation for any valid node."""
-    from agents.v2.graph import make_v2_graph
+    from agents.v2.graph import _build_v2_graph
 
-    graph = make_v2_graph(
+    graph = _build_v2_graph(
         checkpoint_db=str(tmp_path / "drift_check.db"),
         entry_point="commit",
     )
@@ -82,9 +82,9 @@ def test_entry_point_does_not_break_graph_compilation(tmp_path):
 
 
 def test_entry_point_default_unchanged_backward_compatible(tmp_path):
-    """Calling make_v2_graph() with no entry_point still works (backward compat)."""
-    from agents.v2.graph import make_v2_graph
+    """Calling _build_v2_graph() with no entry_point still works (backward compat)."""
+    from agents.v2.graph import _build_v2_graph
 
-    graph = make_v2_graph(checkpoint_db=str(tmp_path / "compat.db"))
+    graph = _build_v2_graph(checkpoint_db=str(tmp_path / "compat.db"))
     assert graph is not None
     assert getattr(graph, "_ikigai_entry_point", None) == "observe"

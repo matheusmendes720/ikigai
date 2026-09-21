@@ -217,3 +217,52 @@ def make_fork_smoke_graph(
     compiled_any._ikigai_entry_point = entry_point
     compiled_any._ikigai_graph_kind = "fork_smoke"
     return compiled_any
+
+
+# ---------------------------------------------------------------------------
+# M102: `make_fork_smoke_graph` langgraph-api-compatible factory shim.
+# Same pattern as v2/graph.py:make_v2_graph. langgraph_api requires the
+# factory signature to accept only ServerRuntime and/or RunnableConfig
+# (0/1/2 args). We keep the original (checkpoint_db, entry_point) logic
+# here under _build_fork_smoke_graph() and expose a typed shim.
+# ---------------------------------------------------------------------------
+try:
+    from langgraph_sdk.runtime import ServerRuntime as _ServerRuntime  # noqa: E402
+    from langgraph_sdk.schema import Config as _RunnableConfig  # noqa: E402
+except ImportError:  # langgraph_sdk not installed in some envs
+    _ServerRuntime = None  # type: ignore[assignment]
+    _RunnableConfig = None  # type: ignore[assignment]
+
+
+# M102: rename the original factory to `_build_fork_smoke_graph` so the
+# public name can be replaced with a langgraph-compatible shim.
+_build_fork_smoke_graph = make_fork_smoke_graph  # keep the original logic accessible
+
+
+def make_fork_smoke_graph(  # type: ignore[no-redef]
+    runtime: "_ServerRuntime | None" = None,
+    config: "_RunnableConfig | None" = None,
+) -> Any:
+    """LangGraph-API-compatible factory for the ikigai_fork_smoke graph.
+
+    Per langgraph_api/_factory_utils.py: signature must accept ServerRuntime
+    and/or RunnableConfig. Args are 0/1/2 (no more). The actual graph build
+    is delegated to _build_fork_smoke_graph(checkpoint_db, entry_point).
+    """
+    import os as _os  # local import to avoid module-load ordering issues
+
+    checkpoint_db = None
+    entry_point = "connect"
+    if config is not None:
+        configurable = getattr(config, "configurable", None) or (
+            config.get("configurable") if isinstance(config, dict) else None
+        )
+        if isinstance(configurable, dict):
+            checkpoint_db = configurable.get("checkpoint_db") or checkpoint_db
+            entry_point = configurable.get("entry_point") or entry_point
+    if checkpoint_db is None:
+        checkpoint_db = _os.environ.get("IKIGAI_FORK_SMOKE_CHECKPOINT_DB")
+    return _build_fork_smoke_graph(
+        checkpoint_db=checkpoint_db,
+        entry_point=entry_point,
+    )

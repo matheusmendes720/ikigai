@@ -75,14 +75,14 @@ def _stub_spec(**overrides) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def test_make_v2_graph_has_13_nodes() -> None:
-    """make_v2_graph returns a 13-node graph (11 → 13 after recall+reason wiring).
+def test__build_v2_graph_has_13_nodes() -> None:
+    """_build_v2_graph returns a 13-node graph (11 → 13 after recall+reason wiring).
 
     W4.4 brought the graph to 11 nodes (dispatch_sub_agents as the 11th).
     The new observe -> recall -> reason -> reflect -> commit chain adds
     recall and reason at tuple positions 1 and 2.
     """
-    from agents.v2.graph import NODES, make_v2_graph
+    from agents.v2.graph import NODES, _build_v2_graph
 
     assert len(NODES) == 13, f"Expected 13 nodes, got {len(NODES)}"
     assert "dispatch_sub_agents" in NODES
@@ -93,7 +93,7 @@ def test_make_v2_graph_has_13_nodes() -> None:
     assert NODES.index("recall") == 1
     assert NODES.index("reason") == 2
 
-    graph = make_v2_graph(checkpoint_db=":memory:")
+    graph = _build_v2_graph(checkpoint_db=":memory:")
     # LangGraph compiled graph has a `.nodes` mapping (dict of name → runnable)
     # of the nodes added to the builder. The `error` node + 13 named nodes = 14.
     assert "dispatch_sub_agents" in graph.nodes

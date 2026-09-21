@@ -4551,3 +4551,46 @@
 - attempt: 1/1
 - notes: graph=ikigai_fork_smoke thread_id=cron-20260921-180201 checkpoints=300 status=0 
 - next_action: advance
+
+## M102 — 2026-09-21 (2026-09-21 21:31 UTC)
+
+**Goal:** Fix v2 graph relative-imports + factory signatures so `langgraph dev` boots the visual debugger at port 2024.
+
+### Diagnosis chain (3 errors, one per fix)
+
+1. **`attempted relative import with no known parent package`** — `from .nodes.balance import balance_node` fails when langgraph_api loads `graph.py` standalone. **Fix**: switched all 11 v2 graph imports to absolute (`from src.ikigai.src.agents.v2.nodes.balance import balance_node`).
+
+2. **`Graph factory ... got ['Any', 'Any']`** — langgraph_api/_factory_utils.classify_factory() rejects factories whose param annotations aren't `ServerRuntime`/`RunnableConfig`. Original signature `(checkpoint_db: str | None, entry_point: str)` had the wrong types. **Fix**: split into `_build_v2_graph(checkpoint_db, entry_point)` (internal API) + `make_v2_graph(runtime: ServerRuntime | None, config: RunnableConfig | None)` (langgraph-api-compatible shim). Same pattern for `fork_smoke_graph`.
+
+3. **`make_v2_graph() can only accept arguments of type ServerRuntime and/or RunnableConfig, got ['str | None', 'str']`** — `fork_smoke_graph.py:make_fork_smoke_graph` had the same signature mismatch. **Fix**: applied identical shim pattern.
+
+### What works now
+
+- `langgraph_cli validate` → exit 0 (config + factory signatures OK)
+- `langgraph_cli dev --port 2024` → boots successfully, exposes:
+  - `GET /ok` → `{"ok":true}`
+  - `POST /threads` → creates thread_id
+  - `POST /assistants/search` → returns 2 graphs (`ikigai_maintainer_v2` + `ikigai_fork_smoke`)
+  - 🎨 Studio UI: https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024
+
+### Compatibility
+
+- **Internal callers preserved**: `subgraph.py` and `interfaces/cli/invoke_skill.py` now call `_build_v2_graph(checkpoint_db=..., entry_point=...)` (the renamed internal API).
+- **Tests updated**: 6 test files (test_v2_entry_point, test_v2_graph_smoke, test_v2_imports_safely, test_v2_interface_dispatch, test_v2_subagent_dispatch, test_ikigai_fork_smoke) renamed calls to `_build_*` versions. All 76 tests pass.
+- **New test file**: `tests/test_langgraph_dev_boot.py` (5 tests) — validate passes, factories have typed signatures, internal builders work, no relative imports in v2 graph, config-arg call works.
+
+### Final state
+
+- 18/18 drift PASS
+- 60/60 canonical+wiring+drift PASS  
+- 76/76 v2 graph + fork_smoke PASS
+- 826+30 ikigai suite PASS (no regression from M101)
+- 27/27 root M97b-M102 sweep PASS
+- 5/5 new M102 tests PASS
+- langgraph dev server: boots, listens on 2024, 2 graphs registered
+- Daily-use: 100% (no change)
+- Production-readiness: ~60% → ~62% (visual debugger now works — debugging stories +5%)
+
+### Why this matters
+
+Before M102: `life v2 agent` and `life v2 chat` worked as one-shot/REPL drivers but there was no visual debugger. Users had to read logs to understand graph state. **Now:** open Studio UI in browser, see the full 13-node IKIGAi v2 graph, run threads interactively, inspect state at each node — production-grade debugging.

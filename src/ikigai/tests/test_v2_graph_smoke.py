@@ -1,7 +1,7 @@
-"""v2 graph smoke test — invoke make_v2_graph().invoke() end-to-end with FAKE_LLM.
+"""v2 graph smoke test — invoke _build_v2_graph().invoke() end-to-end with FAKE_LLM.
 
 Per W3.3 brief (sdd/w33-smoke-brief.md) + W4.4 B-N10 dispatch node + recall/reason wiring:
-- Builds v2 graph via make_v2_graph(checkpoint_db=...)
+- Builds v2 graph via _build_v2_graph(checkpoint_db=...)
 - Invokes with stub state in FAKE_LLM mode
 - Asserts all 13 nodes run sequentially
 - Includes API 529 retry logic (Diag 03 risk flag)
@@ -127,10 +127,10 @@ def _stub_state(cycle_id: str = "smoke-001") -> dict:
 # Tests
 # ---------------------------------------------------------------------------
 def test_v2_graph_imports():
-    """make_v2_graph and NODES importable."""
-    from agents.v2.graph import NODES, make_v2_graph
+    """_build_v2_graph and NODES importable."""
+    from agents.v2.graph import NODES, _build_v2_graph
 
-    assert callable(make_v2_graph), "make_v2_graph must be callable"
+    assert callable(_build_v2_graph), "_build_v2_graph must be callable"
     assert len(NODES) == 13, f"Expected 13 nodes (recall+reason added post-W4.4), got {len(NODES)}"
 
 
@@ -166,10 +166,10 @@ def test_v2_graph_smoke_full_pipeline(tmp_path, monkeypatch):
     invokes and reaches a terminal state (either surface_intentions or error).
     """
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
-    from agents.v2.graph import make_v2_graph
+    from agents.v2.graph import _build_v2_graph
 
     ckpt = tmp_path / "ckpt.db"
-    graph = make_v2_graph(checkpoint_db=str(ckpt))
+    graph = _build_v2_graph(checkpoint_db=str(ckpt))
     state = _stub_state()
     result = invoke_with_retry(graph, state)
 
@@ -183,10 +183,10 @@ def test_v2_graph_smoke_full_pipeline(tmp_path, monkeypatch):
 def test_v2_graph_smoke_entry_point_observe(tmp_path, monkeypatch):
     """Default entry point is observe; smoke test still terminates."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
-    from agents.v2.graph import make_v2_graph
+    from agents.v2.graph import _build_v2_graph
 
     ckpt = tmp_path / "ckpt.db"
-    graph = make_v2_graph(checkpoint_db=str(ckpt))
+    graph = _build_v2_graph(checkpoint_db=str(ckpt))
     assert getattr(graph, "_ikigai_entry_point", None) == "observe"
 
 
@@ -211,11 +211,11 @@ def test_v2_graph_smoke_entry_point_observe(tmp_path, monkeypatch):
 def test_v2_graph_smoke_all_entry_points(tmp_path, monkeypatch, entry_point):
     """Each of the 13 NODES is a valid entry point."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
-    from agents.v2.graph import NODES, make_v2_graph
+    from agents.v2.graph import NODES, _build_v2_graph
 
     assert entry_point in NODES
     ckpt = tmp_path / f"ckpt_{entry_point}.db"
-    graph = make_v2_graph(checkpoint_db=str(ckpt), entry_point=entry_point)
+    graph = _build_v2_graph(checkpoint_db=str(ckpt), entry_point=entry_point)
     state = _stub_state(cycle_id=f"smoke-{entry_point}")
     result = invoke_with_retry(graph, state)
     # last_step must be one of the valid terminal nodes
@@ -223,21 +223,21 @@ def test_v2_graph_smoke_all_entry_points(tmp_path, monkeypatch, entry_point):
 
 
 def test_v2_graph_invalid_entry_point_raises():
-    """make_v2_graph raises ValueError on bad entry_point."""
-    from agents.v2.graph import make_v2_graph
+    """_build_v2_graph raises ValueError on bad entry_point."""
+    from agents.v2.graph import _build_v2_graph
 
     with pytest.raises(ValueError, match="Invalid entry_point"):
-        make_v2_graph(checkpoint_db=":memory:", entry_point="not_a_real_node")
+        _build_v2_graph(checkpoint_db=":memory:", entry_point="not_a_real_node")
 
 
 def test_v2_graph_sequential_node_invocation(tmp_path, monkeypatch):
     """Verify all 13 NODES are reachable as entry points (sequential coverage)."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
-    from agents.v2.graph import NODES, make_v2_graph
+    from agents.v2.graph import NODES, _build_v2_graph
 
     for node in NODES:
         ckpt = tmp_path / f"ckpt_{node}.db"
-        graph = make_v2_graph(checkpoint_db=str(ckpt), entry_point=node)
+        graph = _build_v2_graph(checkpoint_db=str(ckpt), entry_point=node)
         state = _stub_state(cycle_id=f"seq-{node}")
         result = invoke_with_retry(graph, state)
         assert isinstance(result, dict), f"Node {node} returned non-dict"
@@ -247,14 +247,14 @@ def test_v2_graph_sequential_node_invocation(tmp_path, monkeypatch):
 def test_v2_graph_retry_helper_is_callable(tmp_path, monkeypatch):
     """Verify the retry helper is defined and callable."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
-    from agents.v2.graph import make_v2_graph
+    from agents.v2.graph import _build_v2_graph
 
     # Just verify the function exists and is callable
     assert callable(invoke_with_retry)
 
     # And can be called without raising
     ckpt = tmp_path / "ckpt_retry.db"
-    graph = make_v2_graph(checkpoint_db=str(ckpt))
+    graph = _build_v2_graph(checkpoint_db=str(ckpt))
     state = _stub_state(cycle_id="retry-test")
     # In FAKE_LLM mode, should work on first try
     result = invoke_with_retry(graph, state)
