@@ -1,43 +1,100 @@
-"""tag_and_persist node — read tags for UEID (READ-ONLY placeholder).
+"""tag_and_persist node — write the proposed_entity to vault (M89).
 
-Per spec 2026-09-03-sonho-tree-hybrid-design §Architecture.
-Sits between N6 plan and N8 commit in the v2 graph.
+Direct invocation of wrap_vault_write from proposal_executor (lazy proxy).
+Bypasses the deleted mcp_bridge.ikigai_tag_and_persist wrapper (M12).
 
-M12 (T-13.3): ``mcp_bridge.ikigai_tag_and_persist`` was deleted from
-``mcp_bridge.py``. Replaced the dead call with a direct
-``error_channel`` write per Phase 8.2 SPEC §3 to surface the missing
-bridge immediately instead of silently degrading via try/except.
-
-The ``tag_and_persist`` identifier is registered as a LEGAL_CALLER in
-``vault_write_wrapper`` (drift invariant test asserts presence). When
-``vault_write`` is wired here per SPEC §6 (separate work), this node
-becomes the canonical write-path entry; the LEGAL_CALLERS whitelist
-will then allow it to dispatch through the wrapper.
-
-If this node ever needs to come back, wire a real MCP bridge wrapper
-(in bridge + server.py's ``@MCP.tool`` registry) before re-introducing
-the call here. The drift detector
-``test_mcp_bridge_wrapped_tool_count_matches_canonical`` will catch the
-regression.
+Falls back to error_channel write on any exception (vault_write is
+the canonical write path so failures should surface, not crash).
 """
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from ..state import IKIGAiStateDict
 
+logger = logging.getLogger(__name__)
+
 
 def tag_and_persist_node(state: IKIGAiStateDict) -> dict[str, Any]:
-    """Surface missing bridge via direct error_channel write.
+    """Persist proposed_entity to vault via wrap_vault_write (M89).
 
-    M12 removed ``mcp_bridge.ikigai_tag_and_persist``. See module docstring.
+    Reads from state:
+    - proposed_entity: BasePlanContract (Sonho/Objetivo/Meta/Projeto/Entrega/Tarefa)
+    - vault_path: relative path under vault root
+    - actor: "user" | "agent" | "system"
+
+    Writes to state:
+    - persisted: True on success
+    - last_step: "tag_and_persist"
+    - error_channel: list of error messages (graceful failure mode)
     """
-    return {
-        "tags": None,
-        "error_channel": [
-            "mcp_bridge.ikigai_tag_and_persist not available post-V5-E "
-            "(M12 deleted wrapper); see src/ikigai/src/agents/v2/mcp_bridge.py docstring"
-        ],
-        "last_step": "tag_and_persist",
-    }
+    proposed = state.get("proposed_entity")
+    vault_path = state.get("vault_path")
+    actor = state.get("actor", "agent")
+
+    if proposed is None or not vault_path:
+        return {
+            "persisted": False,
+            "last_step": "tag_and_persist",
+            "error_channel": [
+                "tag_and_persist: missing proposed_entity or vault_path in state"
+            ],
+        }
+
+    # M89: lazy-import via proposal_executor (consolidates the
+    # wrap_vault_write wiring in one module, easier to patch in tests).
+    try:
+        from v2.nodes.proposal_executor import wrap_vault_write
+    except ImportError as exc:
+        return {
+            "persisted": False,
+            "last_step": "tag_and_persist",
+            "error_channel": [
+                f"proposal_executor.wrap_vault_write import failed: {exc}"
+            ],
+        }
+
+    try:
+        # Serialize proposed_entity for vault storage
+        if hasattr(proposed, "model_dump"):
+            fields = proposed.model_dump()
+        elif isinstance(proposed, dict):
+            fields = dict(proposed)
+        else:
+            fields = {"raw": str(proposed)}
+
+        result = wrap_vault_write(
+            actor=actor,
+            vault_path=vault_path,
+            fields=fields,
+            rationale=state.get("user_request", "")[:200],
+        )
+
+        # wrap_vault_write returns ExecutionReport-like; normalize.
+        ok = bool(getattr(result, "ok", False)) or (
+            isinstance(result, dict) and result.get("ok")
+        )
+        err = (
+            getattr(result, "error", None)
+            or (result.get("error") if isinstance(result, dict) else None)
+            or ""
+        )
+
+        return {
+            "persisted": ok,
+            "vault_path": vault_path,
+            "actor": actor,
+            "last_step": "tag_and_persist",
+            "error_channel": [] if ok else [f"vault_write failed: {err or 'unknown'}"],
+        }
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("tag_and_persist failed: %s", exc)
+        return {
+            "persisted": False,
+            "vault_path": vault_path,
+            "actor": actor,
+            "last_step": "tag_and_persist",
+            "error_channel": [f"{type(exc).__name__}: {exc}"],
+        }
