@@ -286,6 +286,50 @@ def ikigai_commit_summary(cycle_id: str) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# M90: _handle_ikigai_sync_vault — read-only vault sync handler
+# ---------------------------------------------------------------------------
+# Per Phase 8.2 SPEC §6, this handler is the canonical vault-reader
+# endpoint. It MUST NOT write to vault (vault_write is the canonical
+# write path; this is sync, not commit). Reads from
+# vault/ikigai/meta/cycle_state/{date}.md and returns markdown content.
+# Drift test test_v2_sync_vault_handler_readonly pins the read-only
+# invariant.
+def _handle_ikigai_sync_vault(date: str) -> dict[str, Any]:
+    """Read vault/ikigai/meta/cycle_state/{date}.md (M90).
+
+    Read-only. Returns dict with {date, content, found, path}. If the
+    file does not exist, returns found=False with path (not an error).
+    """
+    import os
+    from pathlib import Path
+
+    vault_root_env = os.environ.get("IKIGAI_VAULT_ROOT")
+    if vault_root_env:
+        vault_root = Path(vault_root_env)
+    else:
+        project_root = Path(__file__).resolve().parent.parent.parent.parent
+        vault_root = project_root / "vault"
+
+    cycle_state_path = vault_root / "ikigai" / "meta" / "cycle_state" / f"{date}.md"
+
+    if not cycle_state_path.exists():
+        return {
+            "date": date,
+            "found": False,
+            "path": str(cycle_state_path),
+            "content": None,
+        }
+
+    content = cycle_state_path.read_text(encoding="utf-8")
+    return {
+        "date": date,
+        "found": True,
+        "path": str(cycle_state_path),
+        "content": content,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Phase B3.3: 6 MCP resources
 # ---------------------------------------------------------------------------
 from mcp_server.resources import (  # noqa: E402

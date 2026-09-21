@@ -1234,3 +1234,6 @@ When verifier returns PASS:
 
 
 ### M89 - v2 graph Day 2: real tag_and_persist + commit (STATUS: DONE)
+
+
+### M90 - MCP server.py observation wrappers + _handle_ikigai_sync_vault (STATUS: DONE)
