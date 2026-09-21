@@ -27,6 +27,26 @@
 ## Log
 
 <!-- Append below this line. NEVER edit above. -->
+
+## 2026-09-21T19:58:10Z | M97b | taskdog-mcp wiring via MultiServerMCPClient
+- commit: feat(ikigai): wire taskdog-mcp via MultiServerMCPClient
+- cost_usd: 0.10
+- duration_min: 30
+- model: sonnet
+- attempt: 1/1
+- notes: Created src/ikigai/src/agents/mcp_taskdog_client.py (sync facade over MultiServerMCPClient). Patched deepagents_harness._make_agent() to load 12 IKIGAI_TOOLS + 26 MCP taskdog tools (38 total). Drift invariant preserved (IKIGAI_TOOLS=12 stays). Tests: test_mcp_taskdog_wiring.py 7/7 PASS verifying all 22 M96-gap capabilities now reachable. LangChain-mcp-adapters 0.3.2 installed in src/ikigai/.venv. Restarted taskdog-server (had been down — port 8000 connection refused, fixed by background restart). Full regression: drift 18/18, root 420 PASS+27 SKIP, ikigai 826 PASS+30 SKIP = 1264 tests, 0 FAIL. Next: M98 — surface via `life` CLI so user can invoke deep-agent with new tools end-to-end.
+- next_action: M98 - add life taskdog-* commands and re-attempt langgraph dev install
+
+
+## 2026-09-21T07:18:46Z | M96+M97 | HONEST GAP REVEALED
+- commit: (no code; audit + reports only)
+- cost_usd: 0.30
+- duration_min: 35
+- model: sonnet
+- attempt: 1/1
+- notes: User asked "conseguimos adaptar todas as feats do taskdog em deep-agent workflows?". Audit revealed: ONLY 4 of 26 taskdog tools wired (15%). 22 capabilities unreachable from deep-agent (cancel/pause/decompose/dependency/update/audit/stats/optimize/schedule/notes). The previous "100% daily-use" claim was misleading — it counted CRUD-only (40% real production coverage). M96 report details the gap + 3 decision paths (MCP-wire, param-expand, status-quo). M97 report is the full topology + 7 practical usage scenarios showing what works via CLI vs LLM. Reports stored in /reports/ with README index. Updated roadmap + progress note. Awaiting user direction on M97a (which path forward).
+- next_action: M97a - user validates direction on M96 path forward
+
 ## 2026-09-21T06:37:10Z | M94+M95 | 100% daily-use achieved
 - commit: 9dd90adb (M94), 8b19a83f (M95)
 - cost_usd: 0.30
@@ -4148,4 +4168,148 @@
 - model: none (--graph deterministic dispatch)
 - attempt: 1/1
 - notes: graph=ikigai_fork_smoke thread_id=cron-20260921-033625 checkpoints=110 status=0 
+- next_action: advance
+
+## 2026-09-21T12:25:57Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-092557 checkpoints=115 status=0 
+- next_action: advance
+
+## 2026-09-21T12:26:00Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-092600 checkpoints=120 status=0 
+- next_action: advance
+
+## 2026-09-21T12:53:31Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-095331 checkpoints=125 status=0 
+- next_action: advance
+
+## 2026-09-21T12:53:33Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-095333 checkpoints=130 status=0 
+- next_action: advance
+
+## 2026-09-21T13:00:00Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-100000 checkpoints=135 status=0 
+- next_action: advance
+
+## 2026-09-21T13:00:02Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-100002 checkpoints=140 status=0 
+- next_action: advance
+
+## 2026-09-21T13:17:55Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-101755 checkpoints=145 status=0 
+- next_action: advance
+
+## 2026-09-21T13:17:57Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-101757 checkpoints=150 status=0 
+- next_action: advance
+
+## 2026-09-21T13:24:12Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-102412 checkpoints=155 status=0 
+- next_action: advance
+
+## 2026-09-21T13:24:13Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-102413 checkpoints=160 status=0 
+- next_action: advance
+
+## 2026-09-21T19:55:04Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-165504 checkpoints=165 status=0 
+- next_action: advance
+
+## 2026-09-21T19:55:06Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-165506 checkpoints=170 status=0 
+- next_action: advance
+
+## 2026-09-21T19:56:11Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-165611 checkpoints=175 status=0 
+- next_action: advance
+
+## 2026-09-21T19:56:12Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-165612 checkpoints=180 status=0 
+- next_action: advance
+
+## 2026-09-21T19:57:15Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-165715 checkpoints=185 status=0 
+- next_action: advance
+
+## 2026-09-21T19:57:16Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-165716 checkpoints=190 status=0 
 - next_action: advance
