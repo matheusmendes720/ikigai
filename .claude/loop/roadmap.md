@@ -1243,3 +1243,6 @@ When verifier returns PASS:
 
 
 ### M92 - unskip 5 v2 test files + invoke_skill flatten last_step + load_skill_manifest export (STATUS: DONE)
+
+
+### M93 - langgraph.json v2 graph re-registration verified (already in place) (STATUS: DONE)
