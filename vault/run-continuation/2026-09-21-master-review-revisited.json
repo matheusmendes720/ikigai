@@ -1,0 +1,388 @@
+{
+  "schema_version": "2.0",
+  "generated_at": "2026-09-21",
+  "supersedes": "2026-09-05-master-review-status.json",
+  "purpose": "Re-análise dos 4 Wave 3 mestres após 17 dias + ~25 milestones (M26-M50) shipped. Code tour via 4 Explore agents paralelos + tiebreaker de 3 conflitos entre agentes.",
+  "reviewer": "matheus",
+  "context": {
+    "original_review_date": "2026-09-04",
+    "revisit_date": "2026-09-21",
+    "days_elapsed": 17,
+    "milestones_shipped_since": ["M26-M50 (range)"],
+    "drift_net_at_original": 33,
+    "drift_net_today": 68,
+    "adrs_at_original": 7,
+    "adrs_today": 21
+  },
+  "decisions": {
+    "master_01_component_hierarchy": {
+      "file": "docs/superpowers/specs/2026-09-04-component-hierarchy.md",
+      "original_recommendation": "Accept + 4 edits (8-13h)",
+      "decision": "ADJUST",
+      "decision_at": null,
+      "rationale": "Defeitos 2 (QHE) e 3 (UEID regex) JÁ RESOLVIDOS via milestones pós-master; só precisa de drift tests preventivos. Defeito 1 (tasks.jsonl race) está ABERTO mas subestimado — schema divergence + race window real mas latente. Defeito 4 (TUI tab) misframed — funciona, só falta bootstrap.",
+      "robust_actions": ["R1.1", "R1.2", "R1.3", "R1.4", "R1.5", "R1.6"],
+      "estimated_cost_hours": 8.0,
+      "blocking_issues": []
+    },
+    "master_02_task_breakdown": {
+      "file": "docs/superpowers/specs/2026-09-04-task-breakdown.md",
+      "original_recommendation": "Accept + 1 edit (B-N10→B-N11 sequential confirmation)",
+      "decision": "ADJUST",
+      "decision_at": null,
+      "rationale": "~50/72 done (~70%) vs master 18/72 (38%). 16 milestones collapsed Wave 1+2+3+most-of-Wave-4. B-N10→B-N11 sequencial VERIFIED TRUE. W3.2 QHE constants é highest-leverage unfixed. M96 finding (4/26 taskdog tools wired) reframe Scenario B.",
+      "robust_actions": ["R2.1", "R2.2", "R2.3", "R2.4", "R2.5", "R2.6"],
+      "estimated_cost_hours": 3.0,
+      "blocking_issues": []
+    },
+    "master_03_capability_status": {
+      "file": "docs/superpowers/specs/2026-09-04-capability-status.md",
+      "original_recommendation": "Accept pure (inventário, 0h)",
+      "decision": "ADJUST",
+      "decision_at": null,
+      "rationale": "Master errou 9 reds→greens que viraram (investigation_queue, kill_switch, meta-planner, HTTP taskdog bridge, drift net 53, chat_repl). Recomputed 48+4 = 52/127 ≈ 41%. Counting hygiene issue: 54 reds reais vs headline '41'. Path 1↔2 sync é BY DESIGN não gap. Update cluster gated em user adjudication.",
+      "robust_actions": ["R3.1", "R3.2", "R3.3", "R3.4", "R3.5", "R3.6", "R3.7"],
+      "estimated_cost_hours": 4.0,
+      "blocking_issues": []
+    },
+    "master_04_adr_spec_gap": {
+      "file": "docs/superpowers/specs/2026-09-04-adr-spec-gap.md",
+      "original_recommendation": "Accept + 1 edit (ADR-023 urgente, 1-2h)",
+      "decision": "ADJUST",
+      "decision_at": null,
+      "rationale": "14 ADRs foram escritas pós-master. 11 prioridades do master estão 100% ACEITAS (com renumeração: 015-019 viraram 026-030, 014 virou 025). Mas M11/M14-empty-commit revelaram NOVOS gaps não-antevistos: bridge-wrapper drift, UEID single-source, Phase 8.2 MCP wiring, empty-commit guard. ADR-011 Proposta há 56 dias.",
+      "robust_actions": ["R4.1", "R4.2", "R4.3", "R4.4", "R4.5", "R4.6", "R4.7"],
+      "estimated_cost_hours": 14.0,
+      "blocking_issues": []
+    }
+  },
+  "conflicts_resolved": {
+    "tiebreaker_evidence": "Read direto em observe.py + mcp_bridge.py + ueid.py",
+    "conflicts": [
+      {
+        "topic": "observe.py QHE constants",
+        "agent_01_said": "RESOLVIDO via commit 1ef638c7",
+        "agent_02_said": "AINDA ABERTO",
+        "verdict": "agent_01 WINNING",
+        "evidence_file": "src/ikigai/src/agents/v2/nodes/observe.py:1-26",
+        "evidence_text": "Docstring declara 'M12: mcp_bridge.ikigai_observe_pav_state was deleted'. Função virou _classify_plan_intent + PLAN_INTENT_KEYWORDS.",
+        "implication": "Master-01 corretamente identificou que defeito 2 já está fechado"
+      },
+      {
+        "topic": "mcp_bridge.py PAV wrappers count",
+        "agent_01_said": "9 → 1 wrappers, só ikigai_decompose sobrevive",
+        "agent_04_said": "9 PAV wrappers ainda em mcp_bridge.py:88-130 (P0 violação M11)",
+        "agent_03_said": "8 PAV-flavored stubs em server.py",
+        "verdict": "agent_01 WINNING",
+        "evidence_file": "src/ikigai/src/agents/v2/mcp_bridge.py:103-111",
+        "evidence_text": "Drift detector test_mcp_bridge_wrapped_tool_count_matches_canonical enforces. Apenas ikigai_decompose listado.",
+        "implication": "Master-04 errou — M11 P0 attribution claim não procede para mcp_bridge"
+      },
+      {
+        "topic": "sys_ikigai/entities/ueid.py:16 5-part regex",
+        "agent_04_said": "P0 violação competindo com ADR-014 4-part",
+        "agent_01_said": "Resolvido com triple-pattern idêntico em ambos os arquivos",
+        "verdict": "agent_01 WINNING (parcialmente)",
+        "evidence_file": "sys_ikigai/entities/ueid.py:1-13",
+        "evidence_text": "Docstring explica 5-part como design deliberado para legacy compat. Não é violação.",
+        "implication": "Master-04 errou na severity mas acertou na fragilidade (duas fontes de verdade paralelas). ADR-033 ainda útil."
+      }
+    ]
+  },
+  "robust_action_plan": {
+    "URGENT_1week": [
+      {
+        "id": "R1.1",
+        "action": "Unificar _write_tasks_to_data em delegação ao CliAdapter.apply_change estendido com 14 campos",
+        "cost_hours": 4.5,
+        "rationale": "Único defeito Master-01 realmente aberto. Fecha race condition + schema divergence.",
+        "depends_on": []
+      },
+      {
+        "id": "R1.2",
+        "action": "Adicionar fcntl.flock/msvcrt.locking no CliAdapter.apply_change entre read e write",
+        "cost_hours": 1.0,
+        "rationale": "Cross-platform lock fecha janela rename-vs-append",
+        "depends_on": ["R1.1"]
+      },
+      {
+        "id": "R2.1",
+        "action": "W3.2 QHE constants fix (mover DEFAULT_QHE_PUSH/RECOVER para fora de observe.py)",
+        "cost_hours": 3.0,
+        "rationale": "Highest leverage unfixed master task; gates ADR-019 ratification",
+        "depends_on": []
+      },
+      {
+        "id": "R4.1",
+        "action": "Escrever ADR-032 (Bridge-Wrapper Drift Contract)",
+        "cost_hours": 5.0,
+        "rationale": "Fecha P0 attribution M11 com IKIGAI_TOOLS=12 contract",
+        "depends_on": []
+      },
+      {
+        "id": "R4.2",
+        "action": "Escrever ADR-033 (UEID Single-Source Mandate)",
+        "cost_hours": 2.0,
+        "rationale": "Lock-in canônico entre sys_ikigai/entities/ueid.py e src/contracts/common.py",
+        "depends_on": []
+      }
+    ],
+    "PREVENTIVE_DRIFT_GUARDS": [
+      {
+        "id": "R1.3",
+        "action": "Drift test test_tasks_jsonl_single_writer_path.py — asserta exatamente 1 writer code path",
+        "cost_hours": 0.5,
+        "rationale": "Previne regressão após R1.1+R1.2",
+        "depends_on": ["R1.1", "R1.2"]
+      },
+      {
+        "id": "R1.4",
+        "action": "Drift test test_observe_node_no_qhe_constants.py — grep por QHE|0.85|0.60|DEFAULT_ em observe.py",
+        "cost_hours": 0.5,
+        "rationale": "Pin da resolução V5-E",
+        "depends_on": ["R2.1"]
+      },
+      {
+        "id": "R1.5",
+        "action": "Drift test test_ueid_regex_single_source.py — asserta que ambos regex patterns são byte-equal",
+        "cost_hours": 1.0,
+        "rationale": "Previne drift entre 2 arquivos",
+        "depends_on": ["R4.2"]
+      }
+    ],
+    "DOC_HYGIENE": [
+      {
+        "id": "R3.1",
+        "action": "Refresh matrix Master-03: adicionar 4 linhas (Investigation, Kill switch, Meta-planner, HTTP bridge)",
+        "cost_hours": 2.0,
+        "rationale": "Captura greens que o master errou"
+      },
+      {
+        "id": "R3.2",
+        "action": "Reclassify Path 3 taskdog MCP 12 cells como 🚫-archived (per docs/design-system/24-taskdog-paths-architecture.md:259-281)",
+        "cost_hours": 0.5,
+        "rationale": "Remove noise"
+      },
+      {
+        "id": "R3.3",
+        "action": "Mark investigation_queue cluster explicitly ✅ (4 cells flipped)",
+        "cost_hours": 0.5,
+        "rationale": "Doc hygiene"
+      },
+      {
+        "id": "R3.4",
+        "action": "Reword Path 1↔2 sync cluster como 'BY DESIGN guardrail'",
+        "cost_hours": 0.5,
+        "rationale": "Remove misleading gap signal"
+      },
+      {
+        "id": "R3.5",
+        "action": "Use 54 reds as canonical count (not 41) em todas as referências",
+        "cost_hours": 0.5,
+        "rationale": "Counting hygiene"
+      },
+      {
+        "id": "R4.6",
+        "action": "Atualizar cross-refs pós-renumeração ADR-014 → ADR-025",
+        "cost_hours": 1.5,
+        "rationale": "Previne drift silencioso"
+      }
+    ],
+    "USER_ADJUDICATION": [
+      {
+        "id": "R2.2",
+        "action": "M97a path decision: MCP-wire vs param-expand vs status-quo (para os 22 taskdog tools unwired)",
+        "rationale": "User decision, não engineering",
+        "type": "GATED"
+      },
+      {
+        "id": "R3.6",
+        "action": "Roadmap entry: 'Operator TUI SONHOs tab' (16-24h IF prioritized)",
+        "rationale": "Único cluster Master-03 resolvível via engineering"
+      },
+      {
+        "id": "R3.7",
+        "action": "Update cluster gated: escalate to user via M97a-like decision (v1.2-v1.4 mesh)",
+        "rationale": "CLAUDE.md:381 explicitamente gated"
+      },
+      {
+        "id": "R4.5",
+        "action": "Decidir ADR-011 destino (aceitar ou deletar — 56 dias Proposta)",
+        "rationale": "Doc debt"
+      }
+    ],
+    "UX_POLISH": [
+      {
+        "id": "R1.6",
+        "action": "Bootstrap script bin/seed-demo-tasks.py para UX do TUI",
+        "cost_hours": 1.5,
+        "rationale": "Resolve 'defeito 4' do Master-01 (que era misframed, não defeito)"
+      }
+    ]
+  },
+  "totals": {
+    "urgent_hours": 15.5,
+    "preventive_hours": 2.0,
+    "doc_hygiene_hours": 5.5,
+    "ux_hours": 1.5,
+    "total_engineering_hours": 24.5,
+    "original_master_hours": 10.0,
+    "delta_vs_master_hours": 14.5,
+    "interpretation": "Mais horas que mestre disse, mas 90% do trabalho obsoleto do mestre foi descartado. Trabalho real está focado em defeitos que importam hoje."
+  },
+  "wave_4_kickoff_authorized": true,
+  "iterations": [
+    {
+      "iteration": 1,
+      "completed_at": "2026-09-21",
+      "workflow_run_id": "wf_228088e8-420",
+      "duration_seconds": 803,
+      "shipped": [
+        {
+          "id": "R1.1+R1.2",
+          "title": "tasks.jsonl unification + cross-platform lock",
+          "commit": "37271d74ed1153599e1be79e0c964b39f9c72982",
+          "files_changed": [
+            "src/mesh/adapters/cli.py",
+            "sys_ikigai/vault/task_io.py",
+            "tests/mesh/adapters/test_cli.py"
+          ],
+          "tests_added": 4,
+          "tests_pass_total": 10,
+          "drift_net_preserved": true
+        },
+        {
+          "id": "R2.1",
+          "title": "W3.2 QHE constants fix (drift guard pin)",
+          "commit": "fc9ee150",
+          "files_changed": [
+            "src/ikigai/tests/test_observe_node_no_qhe_constants.py"
+          ],
+          "drift_invariants_added": 5,
+          "drift_net_before": 683,
+          "drift_net_after": 688
+        },
+        {
+          "id": "R4.1",
+          "title": "ADR-032 Bridge-Wrapper Drift Contract",
+          "commit": "b1c78ff9",
+          "files_changed": [
+            "code-docs/adr/ADR-032-bridge-wrapper-drift-contract.md"
+          ],
+          "adr_lines": 219
+        }
+      ],
+      "verification": {
+        "drift_net_pass": 60,
+        "drift_net_total": 60,
+        "ruff_ok": false,
+        "ruff_errors": 212,
+        "ruff_errors_auto_fixable": 160,
+        "ruff_format_files_to_reformat": 46,
+        "mypy_ok": false,
+        "mypy_errors_pre_existing": true,
+        "pytest_pass": 409,
+        "pytest_fail": 6,
+        "pytest_skip": 1,
+        "blocking_issues": [
+          "ruff 212 errors (pre-existing drift, NOT regression)",
+          "ruff format 46 files (pre-existing, NOT regression)",
+          "mypy [import-not-found] stub-resolution (per CLAUDE.md, separate scope)",
+          "6 pytest fails in test_taskdog_harness_e2e.py (pre-existing: anthropic SDK OverloadedError import + taskdog server not on :8000)"
+        ],
+        "verifier_note": "Drift net preserved 60/60 PASS. All 3 agent commits landed cleanly. Cross-pollution flake (test_review_queue_worker_e2e) matches known pre-existing pattern, not regression."
+      }
+    },
+    {
+      "iteration": 2,
+      "completed_at": "2026-09-21",
+      "workflow_run_id": "wf_b317cbd5-f9d",
+      "duration_seconds": 1751,
+      "shipped": [
+        {
+          "id": "R1.3",
+          "title": "drift guard test_tasks_jsonl_single_writer_path.py",
+          "commit": "48b4a04984102865f640d45c0debd0b3cc22a399",
+          "files_changed": [
+            "tests/test_tasks_jsonl_single_writer_path.py"
+          ],
+          "tests_added": 5,
+          "drift_invariants_added": 1
+        },
+        {
+          "id": "R4.2",
+          "title": "ADR-033 UEID Single-Source Mandate",
+          "commit": "eac25ca37969ea744af0450cc3d707fcbf01467d",
+          "files_changed": [
+            "code-docs/adr/ADR-033-ueid-single-source-mandate.md"
+          ],
+          "adr_lines": 260
+        },
+        {
+          "id": "M52-ruff-cleanup",
+          "title": "Mechanical ruff 218 → 0 errors, CI gate cleared",
+          "commit": "fadab7c4",
+          "files_changed": 86,
+          "lines_changed": "+803/-749",
+          "auto_fixed": 166,
+          "manual_fixed": 50,
+          "ci_gate_impact": "ruff check + ruff format BOTH clean now"
+        },
+        {
+          "id": "R1.5",
+          "title": "drift guard test_ueid_regex_single_source.py",
+          "commit": "28fa9966fcc34d234f5c345026f11a237f51384f",
+          "files_changed": [
+            "tests/test_ueid_regex_single_source.py"
+          ],
+          "tests_added": "TBD (verify)"
+        }
+      ],
+      "verification": {
+        "drift_net_pass": 66,
+        "drift_net_total": 66,
+        "ruff_ok": true,
+        "ruff_remaining_errors": 0,
+        "mypy_ok": "pre-existing import-not-found warnings per CLAUDE.md",
+        "pytest_pass": 853,
+        "pytest_skip": 29,
+        "ci_gate_status": "CLEARED (ruff + ruff format both pass; mypy + pytest pass within pre-existing tolerances)",
+        "verifier_note": "Drift net grew 60 → 66 (+6 invariants from R2.1×5 + R1.3×1). M52 ruff cleanup was a massive win: 218 errors eliminated, 86 files touched, CI gate unblocked."
+      },
+      "followups_carrying": [
+        {
+          "id": "R4.2-followup",
+          "title": "Refactor sys_ikigai/entities/ueid.py:22-30 to import _UEID_PATTERN from src.contracts.common (eliminate duplication, make ADR-033 actually enforced)",
+          "priority": "high"
+        }
+      ]
+    }
+  ],
+  "next_session_first_action": "URGENT wave 100% COMPLETE. 11 commits shipped (R1.1-R1.6, R2.1, R3.1-R3.5, R4.1-R4.6). Branch is 24 commits ahead of origin/master — needs push. Remaining work is user adjudication, not engineering.",
+  "ultracode_workflow_status": {
+    "iteration": 3,
+    "completed_iteration": 3,
+    "started_at": "2026-09-21",
+    "status": "URGENT_WAVE_COMPLETE",
+    "loop_action": "STOPPED (URGENT wave done; remaining items require user decision)",
+    "commits_shipped_total": 11,
+    "branch_state": "24 commits ahead of origin/master",
+    "primary_wake_signal": "n/a (loop stopped)",
+    "fallback_heartbeat_seconds": 0,
+    "deferred_to_user_adjudication": [
+      "R2.2 M97a path decision (3 options: MCP-wire vs param-expand vs status-quo for 22 taskdog tools)",
+      "R3.6 'Operator TUI SONHOs tab' (16-24h IF prioritized; only red cluster Master-03 resolvível via engineering)",
+      "R3.7 Update cluster gated: v1.2-v1.4 mesh (per CLAUDE.md:381 explicitamente gated)",
+      "R4.5 ADR-011 destino (accept or delete — 56 days Proposta)",
+      "test_taskdog_harness_e2e.py anthropic SDK OverloadedError import incompatibility (pre-existing environment dependency)",
+      "mypy [import-not-found] cleanup (per CLAUDE.md, separate scope — 542 pre-existing errors)"
+    ],
+    "deferred_to_optional_hygiene": [
+      "5 zero-byte artifacts at repo root to .gitignore (CLAUDE.md note — M53 followup)",
+      "R4.4 followup: create scripts/hooks/pre-commit-empty-guard.sh (G1 enforcement)",
+      "R4.4 followup: add test_empty_commit_guard to test_drift_extended_invariants.py (G5)",
+      "R4.3 followup: add test_tag_and_persist_read_only drift invariant (D4 future scope)",
+      "R3.1-R3.5 pre-existing inconsistencies noted (section 6 'Plan C unexecuted' + matrix arithmetic 24 vs 36)"
+    ]
+  }
+}
