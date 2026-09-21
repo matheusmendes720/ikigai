@@ -409,7 +409,7 @@ Per TLC's `memory.md`, the project maintains `.specs/STATE.md` with:
 | (PEND-014) | Skill binding mechanism | master-04 §2 | **pending ADR write** |
 | (PEND-018) | Kill switch + review queue | master-04 §2 | **pending ADR write** |
 
-**The 5 pending ADRs are the execution loop's hard gates.** Each must be Accepted before its dependent wave task can start. Critical-path ADR-023 first (1-2h), then ADR-016 → ADR-015 → ADR-017 → ADR-014 → ADR-018 → ADR-019.
+**The 5 pending ADRs are the execution loop's hard gates.** Each must be Accepted before its dependent wave task can start. Critical-path ADR-023 first (1-2h), then ADR-016 → ADR-015 → ADR-017 → ADR-025 → ADR-018 → ADR-019.
 
 ---
 

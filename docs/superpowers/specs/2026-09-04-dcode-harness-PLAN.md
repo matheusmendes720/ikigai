@@ -63,7 +63,7 @@ Four layers (verified top-to-bottom, with concrete fixes per layer):
 | W3.1 | Fix pytest collection infra (`consider_namespace_packages = true` + conftest cleanup) | A.1 / B-G01 | — | 2-6h |
 | W3.2 | Migrate `observe.py:56-61` QHE constants to prompt-template (MUST precede W3.4 to unblock ADR-019 alignment) | NEW pre-A | ADR-019 | 2-4h |
 | W3.3 | Smoke test `make_v2_graph().invoke()` with real Claude | A.2 / B-G02 | — | 4h |
-| W3.4 | Wire `daily` skill as `entry_point` (skill binding mechanism) | A.3 / B-G03 | **ADR-014** | 10-12h |
+| W3.4 | Wire `daily` skill as `entry_point` (skill binding mechanism) | A.3 / B-G03 | **ADR-025** | 10-12h |
 | W3.5 | CLI wrapper that triggers `graph.invoke()` → taskdog task | A.5 / B-G04 | — | 8h |
 | W3.6 | E2E smoke: chat → tag_and_persist → commit_node → vault + taskdog.exe → fork reflects | A.6 / B-G05 | — | 4h |
 | W3.7 | Unify `data/tasks.jsonl` writers (CliAdapter pattern, 14-field schema) | NEW data fix | — | 4-6h |
@@ -117,7 +117,7 @@ Four layers (verified top-to-bottom, with concrete fixes per layer):
 | 2 | ADR-016 (stateful subgraph) | Locks checkpoint schema; B-N11 + ADR-017 design against it | 16-20h |
 | 3 | ADR-015 (sub-agent dispatch) | Unblocks B-N10 implementation | 8-12h |
 | 4 | ADR-017 (memory layer across cycles) | Depends on ADR-016 checkpoint schema | 8-12h |
-| 5 | ADR-014 (skill binding) | Unblocks A.3 + 4 unwired entry points | 10-12h |
+| 5 | ADR-025 (skill binding) | Unblocks A.3 + 4 unwired entry points | 10-12h |
 | 6 | ADR-018 (kill switch + review queue) | Scenario C gate | 9-11h |
 | 7 | ADR-019 (empirical algorithm tuning) | Scenario C gate; reference `algorithm-scope-reframed-2026-08-30` | 6-8h |
 | 8 | ADR-020..024 (5 implicit decisions) | Lock-in work | 12-20h |

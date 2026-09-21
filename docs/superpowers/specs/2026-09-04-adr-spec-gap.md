@@ -28,14 +28,14 @@ Source: Diag 09 cross-ref of roadmap [[roadmap-2026-09-04-harness-mvp]]
 
 | ADR | Title | Roadmap Task | Effort | Priority |
 |---|---|---|---|---|
-| **ADR-014** | Skill binding mechanism | A.3 (B-G03) | 10-12h | **CRITICAL PATH** (blocks B-scenario) |
+| **ADR-025** | Skill binding mechanism | A.3 (B-G03) | 10-12h | **CRITICAL PATH** (blocks B-scenario) |
 | **ADR-015** | Sub-agent dispatch protocol | B.1 (B-N10) | 8-12h | **CRITICAL PATH** |
 | **ADR-016** | Stateful subgraph strategy | B.2 (B-N11) | 16-20h | **CRITICAL PATH** — locks checkpoint schema for ADR-017 |
 | **ADR-017** | Memory layer across cycles | B.4 | 8-12h | **CRITICAL PATH** (depends on ADR-016) |
 | **ADR-018** | Kill switch + review queue wiring | C.2 (B-D05) | 9-11h | important (Scenario C gate) |
 | **ADR-019** | Empirical algorithm tuning approach | C.4 | 6-8h | important (Scenario C gate) — **MUST reference `algorithm-scope-reframed-2026-08-30`** |
 
-**Write order:** ADR-016 → ADR-015 → ADR-017 → ADR-014 → ADR-018 → ADR-019. The first four unblock the A/B-scenario critical path.
+**Write order:** ADR-016 → ADR-015 → ADR-017 → ADR-025 → ADR-018 → ADR-019. The first four unblock the A/B-scenario critical path.
 
 ## 3. Implicit decisions to formalize (5 ADRs, 020-024)
 
@@ -93,7 +93,7 @@ Code that does something but no spec describes it:
 
 | Workstream | Effort | Source |
 |---|---|---|
-| ADR-014..019 (6 ADRs for roadmap tasks) | 35-55h | Diag 09 |
+| ADR-025..030 (6 ADRs for roadmap tasks) | 35-55h | Diag 09 |
 | ADR-020..024 (5 ADRs for implicit decisions) | 12-20h | Diag 09 (estimated) |
 | Spec fills (13 GAP tasks) | 13-19h | Diag 10 |
 | Implementation orphan specs | 4-8h | Diag 10 |
@@ -108,7 +108,7 @@ Code that does something but no spec describes it:
 | 2 | ADR-016 (stateful subgraph) | Locks checkpoint schema; B-N11 + ADR-017 design against it | 16-20h |
 | 3 | ADR-015 (sub-agent dispatch) | Unblocks B-N10 implementation | 8-12h |
 | 4 | ADR-017 (memory layer across cycles) | Depends on ADR-016 checkpoint schema | 8-12h |
-| 5 | ADR-014 (skill binding) | Unblocks A.3 + 4 unwired skill entry points | 10-12h |
+| 5 | ADR-025 (skill binding) | Unblocks A.3 + 4 unwired skill entry points | 10-12h |
 | 6 | ADR-018 (kill switch + review queue) | Scenario C gate | 9-11h |
 | 7 | ADR-019 (empirical algorithm tuning) | Scenario C gate; reference `algorithm-scope-reframed-2026-08-30` | 6-8h |
 | 8 | ADR-020..024 (5 implicit decisions) | Lock-in work, not on critical path | 12-20h |
