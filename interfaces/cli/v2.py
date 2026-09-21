@@ -23,6 +23,7 @@ Pattern preserved (NOT refactored):
 from __future__ import annotations
 
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -471,6 +472,128 @@ register_skill_show(app)
 register_daily(app)
 # M95: also wire the V5-D-restored graph aliases (score/regime/suggest/cycle).
 register_graph_aliases(app)
+
+
+# ---------------------------------------------------------------------------
+# M98: `agent` one-shot deep-agent driver
+# ---------------------------------------------------------------------------
+
+
+def register_agent(app: typer.Typer) -> None:
+    """Register the `agent` command on the Typer sub-app.
+
+    M98: surface the deep-agent (38 tools: 12 IKIGAI + 26 MCP taskdog)
+    as a one-shot CLI command. User runs:
+
+        life v2 agent "cancel task #162"
+        life v2 agent "add dependency from 165 to 162"
+        life v2 agent "decompose task 150 into 5 subtasks"
+
+    The agent receives the request, plans tool calls, executes them,
+    and prints the final AI message + tool call trace as JSON.
+
+    Requires the ikigai venv to have langchain-mcp-adapters installed
+    (M97b). Falls back to IKIGAI_TOOLS-only mode if MCP unavailable.
+    """
+
+    @app.command(name="agent")
+    def agent_cmd(
+        request: str = typer.Argument(..., help="User request to send to the deep-agent."),
+        thread_id: str = typer.Option(
+            "cli-agent", "--thread", "-t", help="Thread ID for checkpointing."
+        ),
+        checkpoint_db: str = typer.Option(
+            ":memory:", "--checkpoint-db", "-c", help="SQLite checkpoint DB (default in-memory)."
+        ),
+        human_in_the_loop: bool = typer.Option(
+            False, "--human-in-the-loop", "-i", help="Pause before each tool write."
+        ),
+        disable_mcp: bool = typer.Option(
+            False, "--disable-mcp", help="Skip MCP taskdog tools (12 IKIGAI tools only)."
+        ),
+    ) -> None:
+        """Run the deep-agent on a user request (one-shot, M98)."""
+        if disable_mcp:
+            os.environ["IKIGAI_DISABLE_MCP_TASKDOG"] = "1"
+
+        # Lazy import: ikigai venv required (mcp.server.fastmcp + langchain-mcp-adapters)
+        try:
+            from ikigai.src.agents.deepagents_harness import _make_agent
+            from ikigai.src.agents.deepagents_harness import (
+                _invoke_agent_or_fallback,
+                _extract_assistant_text,
+            )
+        except ImportError as exc:
+            typer.echo(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "error": f"ikigai venv missing: {exc}. "
+                        "Use src/ikigai/.venv/Scripts/python.exe.",
+                    },
+                    indent=2,
+                )
+            )
+            raise typer.Exit(code=1)
+
+        agent, agent_thread_id = _make_agent(
+            thread_id=thread_id,
+            checkpoint_db=checkpoint_db,
+            human_in_the_loop=human_in_the_loop,
+        )
+
+        config = {"configurable": {"thread_id": agent_thread_id}}
+        messages = [{"role": "user", "content": request}]
+
+        result = _invoke_agent_or_fallback(agent, messages, config, agent_thread_id)
+
+        if result is None:
+            typer.echo(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "error": "agent.invoke failed (graceful fallback returned None).",
+                        "thread_id": agent_thread_id,
+                    },
+                    indent=2,
+                )
+            )
+            raise typer.Exit(code=1)
+
+        # Extract the final assistant message text + tool call trace
+        response_text = _extract_assistant_text(result)
+        tool_calls = []
+        for msg in result.get("messages", []):
+            tc = getattr(msg, "tool_calls", None) or (
+                msg.get("tool_calls") if isinstance(msg, dict) else None
+            )
+            if tc:
+                for c in tc:
+                    tool_calls.append(
+                        {
+                            "name": c.get("name") if isinstance(c, dict) else getattr(c, "name", None),
+                            "args": c.get("args") if isinstance(c, dict) else getattr(c, "args", None),
+                        }
+                    )
+
+        typer.echo(
+            json.dumps(
+                {
+                    "ok": True,
+                    "thread_id": agent_thread_id,
+                    "response": response_text,
+                    "tool_calls": tool_calls,
+                    "tool_call_count": len(tool_calls),
+                    "request": request,
+                },
+                indent=2,
+                default=str,
+            )
+        )
+
+
+# M98: wire `agent` one-shot deep-agent driver (post-M97b MCP wiring).
+register_agent(app)
 
 
 # Re-export invoke_skill so ``from interfaces.cli.v2 import invoke_skill``

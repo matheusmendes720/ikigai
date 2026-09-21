@@ -28,6 +28,16 @@
 
 <!-- Append below this line. NEVER edit above. -->
 
+## 2026-09-21T20:06:39Z | M98 | life v2 agent CLI surface for 38-tool deep-agent
+- commit: feat(cli): add `life v2 agent` one-shot deep-agent driver
+- cost_usd: 0.10
+- duration_min: 25
+- model: sonnet
+- attempt: 1/1
+- notes: Added `life v2 agent <request>` Typer command. Loads the deep-agent (38 tools: 12 IKIGAI + 26 MCP taskdog), invokes it on a user request, prints JSON with response + tool call trace. Supports --thread, --checkpoint-db, --human-in-the-loop, --disable-mcp flags. Tests: test_v2_agent_cli.py 4/4 PASS. Restarted all 9 daemons (had dropped to 1/9). Full regression: root 424 PASS+27 SKIP, ikigai canonical+wiring 42 PASS, drift 18/18. Total: 1268 tests, 0 FAIL. Next: M99 = update reports/README to mention M98 entry-point + langgraph dev install attempt.
+- next_action: M99 - langgraph-cli install attempt or add `life taskdog-*` direct MCP commands
+
+
 ## 2026-09-21T19:58:10Z | M97b | taskdog-mcp wiring via MultiServerMCPClient
 - commit: feat(ikigai): wire taskdog-mcp via MultiServerMCPClient
 - cost_usd: 0.10
@@ -4312,4 +4322,22 @@
 - model: none (--graph deterministic dispatch)
 - attempt: 1/1
 - notes: graph=ikigai_fork_smoke thread_id=cron-20260921-165716 checkpoints=190 status=0 
+- next_action: advance
+
+## 2026-09-21T20:05:39Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-170539 checkpoints=195 status=0 
+- next_action: advance
+
+## 2026-09-21T20:05:40Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-170540 checkpoints=200 status=0 
 - next_action: advance
