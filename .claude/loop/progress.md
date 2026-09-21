@@ -28,6 +28,16 @@
 
 <!-- Append below this line. NEVER edit above. -->
 
+## 2026-09-21T20:13:43Z | M99 | life v2 chat REPL driver + ikigai.src sys.path bootstrap
+- commit: feat(cli): add life v2 chat REPL + sys.path bootstrap (M99)
+- cost_usd: 0.05
+- duration_min: 15
+- model: sonnet
+- attempt: 2/2 (first failed on `from strategics.loader import ...` ModuleNotFoundError when run from PYTHONPATH=REPO_ROOT; fix: `_ensure_ikigai_src_on_path()` injects src/ikigai/src onto sys.path idempotently)
+- notes: Added `life v2 chat` Typer command wrapping the existing `run_chat()` REPL from deepagents_harness.py. Live session verified: REPL prints banner, accepts EOF gracefully, prints "Goodbye.". Same flags as `agent`: --thread, --checkpoint-db, --human-in-the-loop, --disable-mcp. Fixed sys.path bootstrap (M99.1) — `__file__` resolves to interfaces/cli/v2.py so target = repo_root/src/ikigai/src. Tests: test_v2_agent_cli.py 7/7 PASS (4 M98 + 3 M99). Full regression: root 427+27, ikigai wiring+canonical+drift 60, total 1287 PASS, 0 FAIL.
+- next_action: M100 - candidate: life taskdog-* direct MCP commands (bypass LLM for power users) OR commit final wrap-up notes
+
+
 ## 2026-09-21T20:06:39Z | M98 | life v2 agent CLI surface for 38-tool deep-agent
 - commit: feat(cli): add `life v2 agent` one-shot deep-agent driver
 - cost_usd: 0.10
@@ -4340,4 +4350,22 @@
 - model: none (--graph deterministic dispatch)
 - attempt: 1/1
 - notes: graph=ikigai_fork_smoke thread_id=cron-20260921-170540 checkpoints=200 status=0 
+- next_action: advance
+
+## 2026-09-21T20:12:51Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-171251 checkpoints=205 status=0 
+- next_action: advance
+
+## 2026-09-21T20:12:52Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-171252 checkpoints=210 status=0 
 - next_action: advance

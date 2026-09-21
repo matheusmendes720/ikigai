@@ -44,6 +44,28 @@ app = typer.Typer(
 
 
 # ===========================================================================
+# M99: sys.path bootstrap for CLI invocations
+# ===========================================================================
+
+
+def _ensure_ikigai_src_on_path() -> None:
+    """Add src/ikigai/src to sys.path so `from strategics.loader import ...`
+    resolves when the user runs `life v2 agent` or `life v2 chat` from
+    a PYTHONPATH=REPO_ROOT shell. Without this, IKIGAI_TOOLS module-load
+    fails because `strategics` lives at src/ikigai/src/strategics/, not
+    under the repo root.
+
+    Idempotent: safe to call multiple times.
+    """
+    # __file__ = <repo>/interfaces/cli/v2.py
+    # target   = <repo>/src/ikigai/src
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+    ikigai_src = os.path.join(repo_root, "src", "ikigai", "src")
+    if ikigai_src not in sys.path:
+        sys.path.insert(0, ikigai_src)
+
+
+# ===========================================================================
 # V5-F: inlined from former _v2_plan.py — see header docstring for rationale
 # ===========================================================================
 
@@ -517,6 +539,9 @@ def register_agent(app: typer.Typer) -> None:
             os.environ["IKIGAI_DISABLE_MCP_TASKDOG"] = "1"
 
         # Lazy import: ikigai venv required (mcp.server.fastmcp + langchain-mcp-adapters)
+        # Inject ikigai.src onto sys.path so `from strategics.loader import ...`
+        # resolves (strategics lives at src/ikigai/src/strategics/, not under repo root).
+        _ensure_ikigai_src_on_path()
         try:
             from ikigai.src.agents.deepagents_harness import _make_agent
             from ikigai.src.agents.deepagents_harness import (
@@ -594,6 +619,74 @@ def register_agent(app: typer.Typer) -> None:
 
 # M98: wire `agent` one-shot deep-agent driver (post-M97b MCP wiring).
 register_agent(app)
+
+
+# ---------------------------------------------------------------------------
+# M99: `chat` REPL driver — live conversational access to the 38-tool agent
+# ---------------------------------------------------------------------------
+
+
+def register_chat(app: typer.Typer) -> None:
+    """Register the `chat` command on the Typer sub-app.
+
+    M99: surface the existing ``run_chat()`` REPL (deepagents_harness.py)
+    as a CLI command. User runs ``life v2 chat`` to get an interactive
+    session with the 38-tool deep-agent.
+
+    Built-in slash commands are NOT exposed (per attribution §3 design):
+    the agent reads ./strategics/ for instructions, so the shell stays
+    neutral and routes user input directly to the agent.
+    """
+
+    @app.command(name="chat")
+    def chat_cmd(
+        thread_id: str = typer.Option(
+            "chat-cli", "--thread", "-t", help="Thread ID for checkpointing."
+        ),
+        checkpoint_db: str = typer.Option(
+            ":memory:",
+            "--checkpoint-db",
+            "-c",
+            help="SQLite checkpoint DB (default in-memory).",
+        ),
+        human_in_the_loop: bool = typer.Option(
+            False, "--human-in-the-loop", "-i", help="Pause before each tool write."
+        ),
+        disable_mcp: bool = typer.Option(
+            False, "--disable-mcp", help="Skip MCP taskdog tools (12 IKIGAI tools only)."
+        ),
+    ) -> None:
+        """Start an interactive REPL chat with the deep-agent (M99)."""
+        if disable_mcp:
+            os.environ["IKIGAI_DISABLE_MCP_TASKDOG"] = "1"
+
+        # Inject ikigai.src onto sys.path (see register_agent docstring).
+        _ensure_ikigai_src_on_path()
+        try:
+            from ikigai.src.agents.deepagents_harness import _make_agent, run_chat
+        except ImportError as exc:
+            typer.echo(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "error": f"ikigai venv missing: {exc}. "
+                        "Use src/ikigai/.venv/Scripts/python.exe.",
+                    },
+                    indent=2,
+                )
+            )
+            raise typer.Exit(code=1)
+
+        agent, agent_thread_id = _make_agent(
+            thread_id=thread_id,
+            checkpoint_db=checkpoint_db,
+            human_in_the_loop=human_in_the_loop,
+        )
+        run_chat(agent, agent_thread_id)
+
+
+# M99: wire `chat` REPL driver.
+register_chat(app)
 
 
 # Re-export invoke_skill so ``from interfaces.cli.v2 import invoke_skill``
