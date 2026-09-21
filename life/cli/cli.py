@@ -249,6 +249,44 @@ app.add_typer(notify_app, name="notify")
 from interfaces.cli.v2 import app as v2_app  # noqa: E402
 app.add_typer(v2_app, name="v2")
 
+# M100: direct taskdog-mcp commands (26 tools, no LLM).
+# Detect whether the active Python has langchain-mcp-adapters installed
+# before attempting module-import-time registration. Falls back to a
+# placeholder if not, so `life --help` works from any venv.
+import importlib.util as _importlib_util
+
+if _importlib_util.find_spec("langchain_mcp_adapters") is not None:
+    from interfaces.cli.taskdog_app import app as taskdog_mcp_app  # noqa: E402
+    from interfaces.cli.taskdog_app import register_taskdog_app  # noqa: E402
+    try:
+        register_taskdog_app(taskdog_mcp_app)
+    except typer.Exit:
+        pass
+    app.add_typer(taskdog_mcp_app, name="taskdog")
+else:
+    # No langchain-mcp-adapters → register a placeholder that explains the fix.
+    _placeholder_app = typer.Typer(
+        name="taskdog",
+        help="M100 taskdog-mcp commands (requires langchain-mcp-adapters).",
+        no_args_is_help=True,
+    )
+
+    @_placeholder_app.callback(invoke_without_command=True)
+    def _taskdog_unavailable(ctx: typer.Context) -> None:
+        typer.echo(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": "langchain-mcp-adapters not installed in this venv.",
+                    "fix": "uv pip install --python <venv> langchain-mcp-adapters",
+                },
+                indent=2,
+            )
+        )
+        raise typer.Exit(code=1)
+
+    app.add_typer(_placeholder_app, name="taskdog")
+
 
 register_plugins(app)
 
