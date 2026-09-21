@@ -1237,3 +1237,6 @@ When verifier returns PASS:
 
 
 ### M90 - MCP server.py observation wrappers + _handle_ikigai_sync_vault (STATUS: DONE)
+
+
+### M91 - dispatch_sub_agents regression + drift bash-script PATH fix (STATUS: DONE)
