@@ -27,6 +27,8 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+
+from .mcp_runtime import _ensure_ikigai_src_on_path
 from typing import Any
 
 import typer
@@ -41,28 +43,6 @@ if str(_REPO_ROOT) not in sys.path:
 app = typer.Typer(
     help="IKIGAI v2 commands — plan (Plan D meta-planner; only surviving command post V5-D)",
 )
-
-
-# ===========================================================================
-# M99: sys.path bootstrap for CLI invocations
-# ===========================================================================
-
-
-def _ensure_ikigai_src_on_path() -> None:
-    """Add src/ikigai/src to sys.path so `from strategics.loader import ...`
-    resolves when the user runs `life v2 agent` or `life v2 chat` from
-    a PYTHONPATH=REPO_ROOT shell. Without this, IKIGAI_TOOLS module-load
-    fails because `strategics` lives at src/ikigai/src/strategics/, not
-    under the repo root.
-
-    Idempotent: safe to call multiple times.
-    """
-    # __file__ = <repo>/interfaces/cli/v2.py
-    # target   = <repo>/src/ikigai/src
-    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
-    ikigai_src = os.path.join(repo_root, "src", "ikigai", "src")
-    if ikigai_src not in sys.path:
-        sys.path.insert(0, ikigai_src)
 
 
 # ===========================================================================
