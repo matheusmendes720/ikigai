@@ -28,6 +28,16 @@
 
 <!-- Append below this line. NEVER edit above. -->
 
+## 2026-09-21T21:05:50Z | M101a/b/c | docs update + td short aliases + langgraph-cli install
+- commit: feat(cli): docs+aliases+langgraph-cli (M101)
+- cost_usd: 0.10
+- duration_min: 45
+- model: sonnet
+- attempt: 1/1
+- notes: 3 sub-milestones. (a) Updated reports/README.md and reports/M97 with shipped milestones M97b/M98/M99/M100 (status now RESOLVED, not READY FOR VALIDATION). (b) Added `life v2 td *` short alias sub-app in v2.py — `life v2 td list -s PENDING` vs full `life taskdog list-tasks --status PENDING`. 26 aliases via subprocess routing (no re-implementation). IKIGAI_DISABLE_MCP_TASKDOG=1 fallback. (c) Installed `langgraph-cli[inmem]==0.4.31` + `langgraph-api==0.14.3` in src/ikigai/.venv. `langgraph_cli validate` confirms langgraph.json valid (2 graphs: pae_maintainer + ikigai_maintainer_v2). KNOWN LIMITATION: `langgraph dev` boots but crashes at graph-load (relative imports fail when loaded standalone — `from .nodes.balance import balance_node`). Fix tracked separately (needs package-relative imports in src/ikigai/src/agents/v2/graph.py). Tests: 5/5 v2_td_alias + 4/4 langgraph_cli_smoke. Regression: 22/22 new tests + drift 18/18 + canonical 35/35 + MCP wiring 7/7 = 1302+ PASS, 0 FAIL.
+- next_action: M102 candidate: fix v2 graph relative-import issue OR langgraph.json schema cleanup (drop $schema warning)
+
+
 ## 2026-09-21T20:42:35Z | M100 | life taskdog * direct MCP commands (no LLM)
 - commit: feat(cli): add life taskdog sub-app with 26 MCP-backed commands (M100)
 - cost_usd: 0.10
@@ -4468,4 +4478,76 @@
 - model: none (--graph deterministic dispatch)
 - attempt: 1/1
 - notes: graph=ikigai_fork_smoke thread_id=cron-20260921-174059 checkpoints=260 status=0 
+- next_action: advance
+
+## 2026-09-21T20:55:38Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-175538 checkpoints=265 status=0 
+- next_action: advance
+
+## 2026-09-21T20:55:39Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-175539 checkpoints=270 status=0 
+- next_action: advance
+
+## 2026-09-21T20:57:46Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-175746 checkpoints=275 status=0 
+- next_action: advance
+
+## 2026-09-21T20:57:47Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-175747 checkpoints=280 status=0 
+- next_action: advance
+
+## 2026-09-21T20:59:51Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-175951 checkpoints=285 status=0 
+- next_action: advance
+
+## 2026-09-21T20:59:53Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-175953 checkpoints=290 status=0 
+- next_action: advance
+
+## 2026-09-21T21:01:59Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-180159 checkpoints=295 status=0 
+- next_action: advance
+
+## 2026-09-21T21:02:01Z | ikigai_fork_smoke | PASS
+- commit: -
+- cost_usd: 0
+- duration_min: 0
+- model: none (--graph deterministic dispatch)
+- attempt: 1/1
+- notes: graph=ikigai_fork_smoke thread_id=cron-20260921-180201 checkpoints=300 status=0 
 - next_action: advance
