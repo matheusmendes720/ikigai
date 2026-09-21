@@ -13,7 +13,7 @@ Source: `docs/superpowers/specs/2026-09-04-diag-04-backend-tasks.md`
 ### B-G* — Graph shell (5 tasks)
 - B-G01 — pytest collection infra (fix `src.ikigai.src.*` namespace) — **PENDING, 6h, blocks all v2 tests** (Diag 03: 2-4h via `consider_namespace_packages = true`)
 - B-G02 — graph.invoke() smoke test with real Claude — **PENDING, blocked by B-G01, 4h, API 529 risk**
-- B-G03 — skill binding daily/weekly/monthly/quarterly as entry points — **PENDING, 10-12h, needs ADR-014**
+- B-G03 — skill binding daily/weekly/monthly/quarterly as entry points — **PENDING, 10-12h, needs ADR-025**
 - B-G04 — CLI wrapper that triggers graph.invoke() → taskdog — **PENDING, 8h, blocked by B-G03**
 - B-G05 — E2E smoke: chat → tag_and_persist → commit_node → vault + taskdog.exe → fork reflects — **PENDING, 4h, blocked by B-G04**
 
@@ -76,7 +76,7 @@ Source: `docs/superpowers/specs/2026-09-04-diag-05-frontend-tasks.md`
 ```
 A.1 [B-G01] pytest infra (2-6h)
   └── A.2 [B-G02] smoke test (4h)
-       └── A.3 [B-G03] skill binding (10-12h, needs ADR-014)
+       └── A.3 [B-G03] skill binding (10-12h, needs ADR-025)
             └── A.5 [B-G04] CLI wrapper (8h)
                  └── A.6 [B-G05] E2E smoke (4h)
                       └── B.1 [B-N10] sub-agent dispatch (12-16h, needs ADR-015)
@@ -111,7 +111,7 @@ A.1 [B-G01] pytest infra (2-6h)
 
 ### Wave 4 — Critical path block 2 (~32-44h, B scenario)
 - B.1 → B.2 → B.4 → B.6 (B-N10 → B-N11)
-- **Depends on Wave 3 + ADR-014..017 written.**
+- **Depends on Wave 3 + ADR-025..028 written.**
 
 ### Wave 5 — Critical path block 3 (~12 weeks, C scenario)
 - C.1 → C.2 → C.3 → C.4

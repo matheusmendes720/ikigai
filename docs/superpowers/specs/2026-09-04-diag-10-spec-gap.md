@@ -100,7 +100,7 @@ Legend: **GAP** = no spec/plan/ADR addresses this task; **partial** = spec exist
 |------|-----------|-----------|-----|------|--------|
 | **B-G01** | pytest collection infra (`src.ikigai.src.*` namespace) | — | — | — | **GAP** (mechanical) |
 | **B-G02** | smoke test `make_v2_graph().invoke()` with real Claude | `2026-08-30-phase-b7-end-to-end-agent-loop.md` | — | `phase-b7-agent-layer-activation.md` | partial |
-| **B-G03** | wire `daily` skill as entry_point | — | — | — | **GAP** (Diag 09 ADR-014 candidate) |
+| **B-G03** | wire `daily` skill as entry_point | — | — | — | **GAP** (Diag 09 ADR-025 candidate) |
 | **B-G04** | CLI wrapper: graph.invoke() → taskdog task | `2026-08-30-phase-b7-end-to-end-agent-loop.md` | — | `phase-b7-agent-layer-activation.md` | partial |
 | **B-G05** | E2E smoke: chat → tag_and_persist → commit → vault + taskdog | `2026-08-30-phase-b7-end-to-end-agent-loop.md` | — | `phase-b7-agent-layer-activation.md` | partial |
 | **B-N01** | observe node (subprocess solverforge-calendar-mcp) | `2026-09-03-sonho-tree-hybrid-design.md` | ADR-013 | — | partial (subprocess wiring GAP) |
@@ -165,7 +165,7 @@ Diag 09 identified 11 implicit decisions (ADR-020 through ADR-024 + extras). Cro
 
 | Diag 09 ADR candidate | Already spec'd as | Recommendation |
 |-----------------------|-------------------|----------------|
-| **ADR-014 — Skill binding mechanism** (B-G03) | Phase 8 memory `phase-8-agentic-systems-refactor-complete-2026-09-03` mentions 4 skill files | **Promote memory → ADR** (4-6h) |
+| **ADR-025 — Skill binding mechanism** (B-G03) | Phase 8 memory `phase-8-agentic-systems-refactor-complete-2026-09-03` mentions 4 skill files | **Promote memory → ADR** (4-6h) |
 | **ADR-015 — Sub-agent dispatch protocol** (B.1) | — | **Write fresh ADR** (6-10h) |
 | **ADR-016 — Stateful subgraph strategy** (B.2) | `graph.py:330-335` SqliteSaver wired but unused | **Write fresh ADR** (8-12h, most consequential) |
 | **ADR-017 — Memory layer across cycles** (B.4) | Phase 8 mitigation memory suggests `vault/ikigai/meta/cycle_state/{date}.md` | **Write fresh ADR** (6-10h) |
@@ -235,7 +235,7 @@ Ranked by **(a) blocking subsequent work + (b) risk of re-litigation** (per Diag
 
 1. **B-D05 + B-D04 + ADR-018 — Kill switch + transition_validator wiring (drift invariants d, e)** — blocks C.2 (kill switch wiring) and B-T01/B-T02 (per-tier validation). Drift detector currently 8/8 → 9/9 post Plan A; (d) STUBBED, (e) planned Scenario B.5; neither spec'd. Effort: 4-6h ADR + 5h code. **Most critical-path gap.**
 
-2. **B-G03 + ADR-014 — Skill binding mechanism** — blocks A.3 (skill entry-point wiring). Determines whether IKIGAI_TOOLS grows from 12→16+ or stays flat. 4 skill markdown files exist (per Phase 8 memory) but frontmatter schema, trigger conditions, parameter binding are undocumented. Effort: 4-6h ADR + 6h code.
+2. **B-G03 + ADR-025 — Skill binding mechanism** — blocks A.3 (skill entry-point wiring). Determines whether IKIGAI_TOOLS grows from 12→16+ or stays flat. 4 skill markdown files exist (per Phase 8 memory) but frontmatter schema, trigger conditions, parameter binding are undocumented. Effort: 4-6h ADR + 6h code.
 
 3. **B-M14 + ADR-016 — Stateful subgraph strategy (SqliteSaver)** — `graph.py:330-335` wires SqliteSaver but **never used** (per roadmap L96). Locks checkpoint key schema, state ownership, concurrency. Affects B.2 + B.4 (memory layer). Effort: 8-12h ADR + 8h code. **Most consequential in B-scenario.**
 
@@ -250,7 +250,7 @@ Ranked by **(a) blocking subsequent work + (b) risk of re-litigation** (per Diag
 **Total ADR work (per Diag 09): 35-55h** (~4.5-7 working days focused)
 
 Breakdown:
-- ADR-014 (skill binding): 4-6h
+- ADR-025 (skill binding): 4-6h
 - ADR-015 (sub-agent dispatch): 6-10h
 - ADR-016 (stateful subgraph): 8-12h
 - ADR-017 (memory layer): 6-10h
@@ -294,7 +294,7 @@ Breakdown:
 | Implicit decisions to formalize (Diag 09 ADRs) | 11 |
 | Top 5 spec gaps total effort | 56-77h |
 
-**Honest assessment:** Spec/ADR coverage is **~62% complete**. The shipped layer (Phase A fork MCP, Plan A contracts, Plan B/C external + investigation) is well-spec'd. The **pending layer** (kill switch, stateful subgraph, sub-agent dispatch, memory layer, transition matrix) is **spec-light** — most of these exist as roadmap tasks with implicit decisions in memory. The gap is **time-bounded**: ADR-016 → ADR-015 → ADR-017 → ADR-014 (per Diag 09 §4.1) is the priority sequence, and these 4 ADRs alone account for 24-38h of the 35-55h total ADR effort.
+**Honest assessment:** Spec/ADR coverage is **~62% complete**. The shipped layer (Phase A fork MCP, Plan A contracts, Plan B/C external + investigation) is well-spec'd. The **pending layer** (kill switch, stateful subgraph, sub-agent dispatch, memory layer, transition matrix) is **spec-light** — most of these exist as roadmap tasks with implicit decisions in memory. The gap is **time-bounded**: ADR-016 → ADR-015 → ADR-017 → ADR-025 (per Diag 09 §4.1) is the priority sequence, and these 4 ADRs alone account for 24-38h of the 35-55h total ADR effort.
 
 **Recommended next concrete task:** Write ADR-016 (Stateful subgraph strategy) — most consequential B-scenario gap; locks checkpoint schema that ADR-017 (memory layer) needs to design against.
 

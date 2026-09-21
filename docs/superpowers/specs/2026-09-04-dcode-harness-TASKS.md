@@ -181,16 +181,16 @@
   - [ ] API 529 retry logic present (per Diag 03 risk flag)
 - **Risk:** API rate limits; pre-cache prompts; have offline smoke (FAKE_LLM stub documented as W4.x)
 
-### Task W3.4 — Write ADR-014 (Skill binding mechanism)
+### Task W3.4 — Write ADR-025 (Skill binding mechanism)
 
-- **ID:** ADR-014
+- **ID:** ADR-025
 - **Title:** Decide how skills (daily/weekly/monthly/quarterly) bind to graph entry points
 - **Source:** master-04 §2
 - **Dependencies:** none (can write while W3.3 is in progress)
 - **Effort:** 10-12h
-- **Files affected:** `code-docs/adr/ADR-014-skill-binding-mechanism.md` (new)
+- **Files affected:** `code-docs/adr/ADR-025-skill-binding-mechanism.md` (new)
 - **Acceptance criteria:**
-  - [ ] ADR-014 specifies skill→entry-point contract (YAML manifest, programmatic, hybrid?)
+  - [ ] ADR-025 specifies skill→entry-point contract (YAML manifest, programmatic, hybrid?)
   - [ ] ADR references W2.3 work + lists 4 unwired entry points as motivation
   - [ ] ADR identifies actor for each binding (user vs agent)
   - [ ] ADR reviewed + Accepted by user
@@ -198,10 +198,10 @@
 ### Task W3.5 — Wire `daily` skill as entry point
 
 - **ID:** W3.5 (also roadmap A.3 / B-G03)
-- **Title:** Implement skill binding per ADR-014, focusing on `daily` as the first binding
+- **Title:** Implement skill binding per ADR-025, focusing on `daily` as the first binding
 - **Source:** master-02 §1 (B-G03)
-- **Dependencies:** W3.3, W3.4 (ADR-014 Accepted)
-- **Effort:** 8h (note: ADR-014 is 10-12h, this is just the daily binding after ADR is decided)
+- **Dependencies:** W3.3, W3.4 (ADR-025 Accepted)
+- **Effort:** 8h (note: ADR-025 is 10-12h, this is just the daily binding after ADR is decided)
 - **Files affected:** `interfaces/cli/v2.py`, `src/ikigai/src/agents/v2/__init__.py`, skill YAML
 - **Acceptance criteria:**
   - [ ] `life v2 daily` triggers `make_v2_graph(entry_point="observe").invoke(state)`
@@ -419,12 +419,12 @@
   - [ ] ADR-024: PAV kernel archive (clarifies read-only archive)
   - [ ] All 5 reviewed + Accepted by user
 
-### Task W5.4 — Write ADR-014 follow-up: extend for monthly/quarterly bindings
+### Task W5.4 — Write ADR-025 follow-up: extend for monthly/quarterly bindings
 
 - **ID:** W5.4 (also roadmap A.3 / B-G03 extension)
-- **Title:** Extend ADR-014 binding mechanism to monthly + quarterly (only daily was Wave 3)
+- **Title:** Extend ADR-025 binding mechanism to monthly + quarterly (only daily was Wave 3)
 - **Source:** master-02 §1 (B-G03)
-- **Dependencies:** ADR-014 Accepted, W3.5 (daily binding done)
+- **Dependencies:** ADR-025 Accepted, W3.5 (daily binding done)
 - **Effort:** 6-8h (split with W5.5)
 - **Files affected:** `interfaces/cli/v2.py`, skill YAML files
 - **Acceptance criteria:**
@@ -598,8 +598,8 @@ W2 (11h) ── depends on W1
 W3.1 ── standalone (fix pytest)
 W3.2 ── standalone (QHE constants, parallels W3.1)
 W3.3 ── depends on W3.1 (smoke test)
-W3.4 (ADR-014) ── standalone, parallels W3.3
-W3.5 ── depends on W3.3 + ADR-014
+W3.4 (ADR-025) ── standalone, parallels W3.3
+W3.5 ── depends on W3.3 + ADR-025
 W3.6 ── depends on W3.5
 W3.7 ── standalone (data fix), parallels W3.x
 W3.8 ── depends on W3.5, W3.6, W3.7
@@ -614,7 +614,7 @@ W4.8 ── depends on W4.4, W4.5, W4.6, W4.7
 W5.1 (ADR-018) ── standalone, parallels W4.x
 W5.2 (ADR-019) ── depends on W3.2
 W5.3 (ADR-020..024) ── W3.0 first, others parallel
-W5.4 ── depends on ADR-014 + W3.5
+W5.4 ── depends on ADR-025 + W3.5
 W5.5 ── depends on W3.x (Plan C independent of sub-agent work)
 W5.6 ── depends on W3.5 (daily binding)
 W5.7 ── depends on W5.5
