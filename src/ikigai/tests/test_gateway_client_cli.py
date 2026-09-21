@@ -9,7 +9,6 @@ from socketserver import ThreadingMixIn
 from typing import Any
 
 import pytest
-
 from sys_ikigai.gateway.client_cli import (
     _parse_sse_frame,
     _strip_chunked_framing,

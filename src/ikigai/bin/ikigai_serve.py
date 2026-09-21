@@ -20,9 +20,10 @@ import logging
 import signal
 import sys
 import threading
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Callable, Iterable
+from typing import Any
 
 LOG = logging.getLogger("ikigai.serve")
 
@@ -31,14 +32,14 @@ DEFAULT_PORT = 8765
 DEFAULT_LOG_LEVEL = "INFO"
 
 __all__ = (
+    "DEFAULT_HOST",
+    "DEFAULT_LOG_LEVEL",
+    "DEFAULT_PORT",
     "ServeOptions",
     "ServeRuntime",
     "main",
     "register_mesh_adapters",
     "serve",
-    "DEFAULT_HOST",
-    "DEFAULT_PORT",
-    "DEFAULT_LOG_LEVEL",
 )
 
 # ---------------------------------------------------------------------------
@@ -100,8 +101,7 @@ def register_mesh_adapters(gateway: Any) -> list[str]:
         ),
         (
             "solverforge_calendar",
-            "sys_ikigai.gateway.adapters.solverforge_calendar_adapter:"
-            "SolverforgeCalendarAdapter",
+            "sys_ikigai.gateway.adapters.solverforge_calendar_adapter:SolverforgeCalendarAdapter",
         ),
         (
             "tuiboard",
@@ -118,9 +118,7 @@ def register_mesh_adapters(gateway: Any) -> list[str]:
             LOG.warning("mesh adapter '%s' unavailable: %s", name, exc)
             continue
 
-        register: Callable[[Any, Any], Any] | None = getattr(
-            gateway, "register_adapter", None
-        )
+        register: Callable[[Any, Any], Any] | None = getattr(gateway, "register_adapter", None)
         if register is None:  # stub gateway — best effort
             LOG.debug("gateway has no register_adapter; recording '%s' only", name)
             attached.append(name)
@@ -151,16 +149,14 @@ def _build_handler(runtime: ServeRuntime) -> type[BaseHTTPRequestHandler]:
             LOG.debug("http: " + format, *args)
 
         def _json(self, status: int, payload: dict[str, Any]) -> None:
-            body = (
-                __import__("json").dumps(payload).encode("utf-8")
-            )
+            body = __import__("json").dumps(payload).encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
 
-        def do_GET(self) -> None:  # noqa: N802 — stdlib name
+        def do_GET(self) -> None:
             if self.path in ("/", "/health"):
                 self._json(
                     200,
@@ -195,7 +191,7 @@ def _build_handler(runtime: ServeRuntime) -> type[BaseHTTPRequestHandler]:
 def _install_signal_handlers(runtime: ServeRuntime) -> None:
     """Install SIGINT/SIGTERM handlers that flip the stop event."""
 
-    def _handle(signum: int, frame: Any) -> None:  # noqa: ARG001
+    def _handle(signum: int, frame: Any) -> None:
         LOG.info("signal %s received; requesting shutdown", signum)
         runtime.stop_event.set()
 
@@ -215,9 +211,7 @@ def _build_gateway() -> Any:
             UnifiedMCPGateway,
         )
     except Exception as exc:  # pragma: no cover — import fallback
-        LOG.warning(
-            "sys_ikigai gateway not importable; using stub gateway (%s)", exc
-        )
+        LOG.warning("sys_ikigai gateway not importable; using stub gateway (%s)", exc)
 
         class _StubGateway:
             def __init__(self) -> None:
@@ -272,9 +266,7 @@ def serve(runtime: ServeRuntime) -> int:
     )
 
     handler_cls = _build_handler(runtime)
-    runtime.httpd = ThreadingHTTPServer(
-        (runtime.options.host, runtime.options.port), handler_cls
-    )
+    runtime.httpd = ThreadingHTTPServer((runtime.options.host, runtime.options.port), handler_cls)
     runtime.http_thread = threading.Thread(
         target=runtime.httpd.serve_forever,
         name="ikigai-serve-http",

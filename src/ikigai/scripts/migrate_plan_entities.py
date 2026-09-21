@@ -124,21 +124,24 @@ def migrate(db_path: Path) -> int:
             created_at = row[10] if len(row) > 10 else ""
 
             # Map to new schema
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO plan_entities_new (
                     ueid, entity_type, slug, title, status,
                     created_at, updated_at, ikigai_vectors
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                f"cycle:{cycle_id}",
-                "cycle",
-                cycle_id,
-                f"Cycle {cycle_id}",
-                "ACTIVE",
-                created_at,
-                created_at,
-                "{}",
-            ))
+            """,
+                (
+                    f"cycle:{cycle_id}",
+                    "cycle",
+                    cycle_id,
+                    f"Cycle {cycle_id}",
+                    "ACTIVE",
+                    created_at,
+                    created_at,
+                    "{}",
+                ),
+            )
 
     # Replace old table with new
     conn.execute("DROP TABLE plan_entities")
@@ -147,8 +150,12 @@ def migrate(db_path: Path) -> int:
     # Create indexes
     conn.execute("CREATE INDEX IF NOT EXISTS idx_plan_entities_type ON plan_entities(entity_type)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_plan_entities_status ON plan_entities(status)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_plan_entities_parent ON plan_entities(parent_ueid)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_plan_entities_slug ON plan_entities(entity_type, slug)")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_plan_entities_parent ON plan_entities(parent_ueid)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_plan_entities_slug ON plan_entities(entity_type, slug)"
+    )
 
     # Create history table
     conn.execute("""
@@ -161,7 +168,9 @@ def migrate(db_path: Path) -> int:
         )
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_history_ueid ON plan_entities_history(ueid)")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_history_changed ON plan_entities_history(changed_at)")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_history_changed ON plan_entities_history(changed_at)"
+    )
 
     conn.commit()
     conn.close()
@@ -173,8 +182,15 @@ def migrate(db_path: Path) -> int:
 def main() -> int:
     """Main entry point."""
     import argparse
-    parser = argparse.ArgumentParser(description="Migrate plan_entities.db to canonical 24-col schema")
-    parser.add_argument("--db-path", type=Path, help="Path to plan_entities.db (default: ~/.ikigai/plan_entities.db)")
+
+    parser = argparse.ArgumentParser(
+        description="Migrate plan_entities.db to canonical 24-col schema"
+    )
+    parser.add_argument(
+        "--db-path",
+        type=Path,
+        help="Path to plan_entities.db (default: ~/.ikigai/plan_entities.db)",
+    )
     args = parser.parse_args()
 
     db_path = args.db_path or get_db_path()

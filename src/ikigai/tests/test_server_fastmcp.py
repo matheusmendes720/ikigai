@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from mcp_server.server import MCP, TOOLS, main
 
 
@@ -24,16 +22,10 @@ def test_all_tools_registered() -> None:
     from pathlib import Path
 
     server_path = (
-        Path(__file__).resolve().parents[2]
-        / "ikigai"
-        / "src"
-        / "mcp_server"
-        / "server.py"
+        Path(__file__).resolve().parents[2] / "ikigai" / "src" / "mcp_server" / "server.py"
     )
     text = server_path.read_text(encoding="utf-8")
-    expected_tools = set(
-        re.findall(r'@MCP\.tool\(\s*name="(\w+)"', text)
-    )
+    expected_tools = set(re.findall(r'@MCP\.tool\(\s*name="(\w+)"', text))
     registered = {tool.name for tool in TOOLS}
     assert registered == expected_tools, (
         f"Missing: {expected_tools - registered}; Extra: {registered - expected_tools}"

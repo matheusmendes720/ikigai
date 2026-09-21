@@ -144,17 +144,21 @@ def test_scan_hierarchy_returns_match_for_known_meta():
     # Use the in-repo vault mock fixture or empty test vault
     matches = scan_hierarchy("objetivo Q4-2026 build")
     # May be empty in test env; just verify it returns HierarchyMatch
-    from src.ikigai.contracts.proposal import HierarchyMatch as _HM  # noqa: E402
+    from src.ikigai.contracts.proposal import HierarchyMatch as _hm  # noqa: N813
 
-    assert isinstance(matches, _HM)
+    assert isinstance(matches, _hm)
 
 
 def test_fetch_context_returns_three_lists():
     """fetch_context returns (memory_refs, folder_reads, hierarchy_match)."""
-    from src.ikigai.contracts.proposal import (  # noqa: E402
-        FolderReadOp as _FRO,
-        HierarchyMatch as _HM2,
-        MemoryRef as _MR,
+    from src.ikigai.contracts.proposal import (
+        FolderReadOp as _fro,  # noqa: N813
+    )
+    from src.ikigai.contracts.proposal import (
+        HierarchyMatch as _hm2,  # noqa: N813
+    )
+    from src.ikigai.contracts.proposal import (
+        MemoryRef as _mr,  # noqa: N813
     )
 
     state = {
@@ -164,15 +168,15 @@ def test_fetch_context_returns_three_lists():
     refs, reads, match = fetch_context(state)
     assert isinstance(refs, list)
     assert isinstance(reads, list)
-    assert isinstance(match, _HM2)
+    assert isinstance(match, _hm2)
     # Type narrow: each ref/entry should be a Pydantic v2 instance or empty
-    assert all(isinstance(r, _MR) for r in refs)
-    assert all(isinstance(r, _FRO) for r in reads)
+    assert all(isinstance(r, _mr) for r in refs)
+    assert all(isinstance(r, _fro) for r in reads)
 
 
 def test_fetch_context_handles_missing_recall_memory(monkeypatch):
     """If recall_memory is not importable, fetch_context proceeds with empty refs."""
-    from src.ikigai.contracts.proposal import HierarchyMatch as _HM3  # noqa: E402
+    from src.ikigai.contracts.proposal import HierarchyMatch as _hm3  # noqa: N813
 
     state = {
         "user_request": "test",
@@ -182,4 +186,4 @@ def test_fetch_context_handles_missing_recall_memory(monkeypatch):
     refs, reads, match = fetch_context(state)
     assert refs == []
     assert reads == []
-    assert isinstance(match, _HM3)
+    assert isinstance(match, _hm3)

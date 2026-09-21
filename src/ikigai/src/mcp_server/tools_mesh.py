@@ -18,9 +18,9 @@ import uuid
 from datetime import UTC, datetime
 from typing import Annotated, Any
 
-from pydantic import ValidationError
 from contracts.common import UEID
 from contracts.task_change import TaskAction, TaskChange
+from pydantic import ValidationError
 from src.mesh import queue as _queue  # M73.3 dual-identity fix
 from src.mesh.adapters import CliAdapter, SolverforgeCalendarAdapter, TaskdogAdapter
 

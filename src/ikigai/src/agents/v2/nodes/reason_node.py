@@ -42,14 +42,10 @@ def _build_proposal_from_context(
         last = recent_intentions[-1]
         ueid = last.get("ueid", "?")
         body = (last.get("body_markdown") or "")[:200]
-        reasoning_parts.append(
-            f"Grounded in recent intention {ueid}: {body}"
-        )
+        reasoning_parts.append(f"Grounded in recent intention {ueid}: {body}")
         # If no user_request, propose reflecting on the latest intention
         if not user_request:
-            operations.append(
-                {"type": "reflect.intention", "target_ueid": ueid}
-            )
+            operations.append({"type": "reflect.intention", "target_ueid": ueid})
     else:
         reasoning_parts.append("No recent intentions in memory (first cycle?)")
 

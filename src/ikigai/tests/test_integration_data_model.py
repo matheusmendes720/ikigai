@@ -26,7 +26,6 @@ from typing import Any
 
 import pytest
 from pydantic import ValidationError
-
 from sys_ikigai.adapters.checkpoint_adapter import CheckpointAdapter
 from sys_ikigai.adapters.drift_detector import DriftDetector
 from sys_ikigai.adapters.sqlite_bridge import IKIGAiRecordBridge

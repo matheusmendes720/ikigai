@@ -41,6 +41,7 @@ if str(_IKIGAI_SRC) not in sys.path:
 # Tests — invoke_skill helper
 # ---------------------------------------------------------------------------
 
+
 def test_invoke_skill_importable():
     """invoke_skill is importable from interfaces.cli.v2."""
     from interfaces.cli.v2 import invoke_skill
@@ -133,6 +134,7 @@ def test_invoke_skill_uses_manifest_entry_point_by_default(tmp_path, monkeypatch
 # Tests — daily command via Typer runner
 # ---------------------------------------------------------------------------
 
+
 # M94: unskipped — `v2 daily` command now exists (alias for invoke-skill ikigai-daily)
 def test_daily_command_surface_suggestions_via_skill(tmp_path, monkeypatch):
     """`life v2 daily` via invoke_skill returns suggestions in surface (FAKE_LLM)."""
@@ -171,4 +173,6 @@ def test_daily_command_no_vault_write(tmp_path, monkeypatch):
 
     # Vault must not have been written to
     md_files = [f for f in vault_root.rglob("*.md") if f.is_file()]
-    assert len(md_files) == 0, f"daily skill must not write vault; found: {[f.name for f in md_files]}"
+    assert len(md_files) == 0, (
+        f"daily skill must not write vault; found: {[f.name for f in md_files]}"
+    )

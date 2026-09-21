@@ -31,7 +31,6 @@ if str(_REPO_ROOT) not in sys.path:
 from src.contracts.task_change import TaskAction, TaskChange  # noqa: E402
 from src.mesh.agent_consumer import Decision, ValidationResult  # noqa: E402
 from src.mesh.agent_propagator import propagate  # noqa: E402
-
 from sys_ikigai.vault.sync import (  # noqa: E402
     ReverseSyncState,
     ReverseSyncTaskEntry,

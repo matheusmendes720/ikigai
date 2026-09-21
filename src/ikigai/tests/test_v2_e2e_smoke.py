@@ -5,8 +5,11 @@ syntax (signature + docstring on same line). The original file is
 preserved at test_v2_e2e_smoke.py.bak. M75+ should re-emit each test
 function with proper multi-line signature + docstring structure.
 """
+
 from __future__ import annotations
 
 import pytest
 
-pytestmark = pytest.mark.skip(reason="v2 e2e pipeline unimplemented (needs _resolve_vault_root + invoke_skill); M75+")
+pytestmark = pytest.mark.skip(
+    reason="v2 e2e pipeline unimplemented (needs _resolve_vault_root + invoke_skill); M75+"
+)

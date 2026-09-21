@@ -29,19 +29,29 @@ class TestUEIDFromLegacy:
     def test_from_legacy_parses_2part_underscore(self) -> None:
         """Legacy type_slug format is converted to canonical 4-part with zero UUID/hash."""
         result = UEID.from_legacy("tsk_morning_water")
-        expected = UEID(
-            "tsk:morning-water:00000000-0000-0000-0000-000000000000:0000000000000000"
-        )
+        expected = UEID("tsk:morning-water:00000000-0000-0000-0000-000000000000:0000000000000000")
         assert result == expected
 
     def test_from_legacy_accepts_various_types(self) -> None:
         """Table-driven: from_legacy() handles tsk_, hab_, proj_, sub_, chk_ prefixes."""
         cases = [
             ("tsk_foo", "tsk:foo:00000000-0000-0000-0000-000000000000:0000000000000000"),
-            ("hab_morning_water", "hab:morning-water:00000000-0000-0000-0000-000000000000:0000000000000000"),
-            ("proj_vaga_remota_2026", "proj:vaga-remota-2026:00000000-0000-0000-0000-000000000000:0000000000000000"),
-            ("sub_deliverable_review", "sub:deliverable-review:00000000-0000-0000-0000-000000000000:0000000000000000"),
-            ("chk_prerequisite_check", "chk:prerequisite-check:00000000-0000-0000-0000-000000000000:0000000000000000"),
+            (
+                "hab_morning_water",
+                "hab:morning-water:00000000-0000-0000-0000-000000000000:0000000000000000",
+            ),
+            (
+                "proj_vaga_remota_2026",
+                "proj:vaga-remota-2026:00000000-0000-0000-0000-000000000000:0000000000000000",
+            ),
+            (
+                "sub_deliverable_review",
+                "sub:deliverable-review:00000000-0000-0000-0000-000000000000:0000000000000000",
+            ),
+            (
+                "chk_prerequisite_check",
+                "chk:prerequisite-check:00000000-0000-0000-0000-000000000000:0000000000000000",
+            ),
         ]
         for legacy, expected_canonical in cases:
             result = UEID.from_legacy(legacy)
@@ -50,12 +60,12 @@ class TestUEIDFromLegacy:
     def test_from_legacy_rejects_garbage(self) -> None:
         """Invalid legacy strings raise ValueError with a descriptive message."""
         invalid_cases = [
-            "garbage",          # no delimiter
-            "x_y_z",            # 3 parts
-            "TSK_foo",          # uppercase type
-            "tsk_",             # empty suffix
-            "tsk-legacy",       # wrong delimiter (dash, not underscore)
-            "_tsk_foo",         # leading underscore
+            "garbage",  # no delimiter
+            "x_y_z",  # 3 parts
+            "TSK_foo",  # uppercase type
+            "tsk_",  # empty suffix
+            "tsk-legacy",  # wrong delimiter (dash, not underscore)
+            "_tsk_foo",  # leading underscore
         ]
         for invalid in invalid_cases:
             with pytest.raises(ValueError, match="Invalid UEID"):

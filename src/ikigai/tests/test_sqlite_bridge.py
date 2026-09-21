@@ -18,7 +18,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
-
 from sys_ikigai.adapters.sqlite_bridge import IKIGAiRecordBridge
 from sys_ikigai.entities.ikigai_record import IKIGAiRecord
 from sys_ikigai.entities.score_value import ScoreUnit, ScoreValue

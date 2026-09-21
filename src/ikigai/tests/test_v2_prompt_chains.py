@@ -8,6 +8,7 @@ Verifies:
 - MCP observation wrappers: 15 tools total, vault_read invariant
 - _handle_ikigai_sync_vault removed from server.py
 """
+
 from __future__ import annotations
 
 import ast
@@ -84,21 +85,21 @@ def test_v2_prompts_fake_llm_mode() -> None:
     os.environ["IKIGAI_FAKE_LLM"] = "1"
     try:
         from agents.v2.prompts import (
-            score_passion_observation,
-            score_skill_observation,
-            score_market_observation,
-            score_revenue_observation,
-            score_course_observation,
-            score_meta_vector_observation,
-            observe_qhe_observation,
-            heuristics_regime_observation,
+            decompose_rice_observation,
             h1_energy,
             h2_qhe_composite,
             h3_regime_fsm,
             h4_market_fit,
             h5_skill_velocity,
             h6_severity,
-            decompose_rice_observation,
+            heuristics_regime_observation,
+            observe_qhe_observation,
+            score_course_observation,
+            score_market_observation,
+            score_meta_vector_observation,
+            score_passion_observation,
+            score_revenue_observation,
+            score_skill_observation,
         )
 
         render_fns = [
@@ -109,7 +110,10 @@ def test_v2_prompts_fake_llm_mode() -> None:
             ("score_course", score_course_observation.render_score_course_observation),
             ("score_meta", score_meta_vector_observation.render_score_meta_vector_observation),
             ("observe_qhe", observe_qhe_observation.render_observe_qhe_observation),
-            ("heuristics_regime", heuristics_regime_observation.render_heuristics_regime_observation),
+            (
+                "heuristics_regime",
+                heuristics_regime_observation.render_heuristics_regime_observation,
+            ),
             ("h1_energy", h1_energy.render_h1_energy),
             ("h2_qhe", h2_qhe_composite.render_h2_qhe_composite),
             ("h3_regime", h3_regime_fsm.render_h3_regime_fsm),
@@ -198,7 +202,9 @@ def test_v2_drift_detector_count_unaffected() -> None:
 
 def test_v2_no_forbidden_imports_in_prompts() -> None:
     """No prompt module imports from sys_ikigai.core.scoring or ikigai.core.heuristics."""
-    FORBIDDEN = frozenset({"ikigai.core.scoring", "ikigai.core.heuristics", "ikigai.core"})
+    FORBIDDEN = frozenset(  # noqa: N806 — local test constant
+        {"ikigai.core.scoring", "ikigai.core.heuristics", "ikigai.core"}
+    )
     violations = []
     for py_file in PROMPTS_DIR.rglob("*.py"):  # type: ignore[union-attr]
         try:
@@ -280,14 +286,10 @@ def test_v2_sync_vault_handler_readonly() -> None:
     body = match.group(0)
 
     # Should read vault
-    assert "read_text" in body or ".exists()" in body, (
-        "Handler should read from vault"
-    )
+    assert "read_text" in body or ".exists()" in body, "Handler should read from vault"
     # Must not write to vault
     for indicator in ["write_text", "open(", 'open("', "open('"]:
-        assert indicator not in body, (
-            f"Handler must not write to vault (found '{indicator}')"
-        )
+        assert indicator not in body, f"Handler must not write to vault (found '{indicator}')"
 
 
 def test_v2_observation_wrappers_read_vault() -> None:
@@ -324,13 +326,25 @@ def test_v2_tools_v2_no_forbidden_function_defs() -> None:
     if not tools_v2.exists():
         pytest.skip("tools_v2.py not present")
 
-    FORBIDDEN = frozenset({
-        "compute_meta_vector", "compute_qhe", "compute_score", "compute_regime",
-        "compute_phase", "compute_passion_score", "compute_skill_score",
-        "compute_market_score", "compute_revenue_score", "compute_course_score",
-        "compute_alignment_label", "compute_weighted_priority", "rank_tasks",
-        "classify_opportunity", "apply_hysteresis",
-    })
+    FORBIDDEN = frozenset(  # noqa: N806 — local test constant
+        {
+            "compute_meta_vector",
+            "compute_qhe",
+            "compute_score",
+            "compute_regime",
+            "compute_phase",
+            "compute_passion_score",
+            "compute_skill_score",
+            "compute_market_score",
+            "compute_revenue_score",
+            "compute_course_score",
+            "compute_alignment_label",
+            "compute_weighted_priority",
+            "rank_tasks",
+            "classify_opportunity",
+            "apply_hysteresis",
+        }
+    )
 
     source = tools_v2.read_text(encoding="utf-8")
     tree = ast.parse(source)

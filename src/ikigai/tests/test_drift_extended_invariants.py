@@ -315,9 +315,7 @@ def test_mcp_bridge_wrapped_tool_count_matches_canonical() -> None:
     import re as _re
 
     repo = REPO_ROOT
-    bridge_file = (
-        repo / "src" / "ikigai" / "src" / "agents" / "v2" / "mcp_bridge.py"
-    )
+    bridge_file = repo / "src" / "ikigai" / "src" / "agents" / "v2" / "mcp_bridge.py"
     server_file = repo / "src" / "ikigai" / "src" / "mcp_server" / "server.py"
 
     # Step 1: discover all tools registered in server.py via @MCP.tool.
@@ -327,22 +325,16 @@ def test_mcp_bridge_wrapped_tool_count_matches_canonical() -> None:
     server_tools: set[str] = set()
     server_text = server_file.read_text(encoding="utf-8")
     # Decorators with explicit name="..." (tolerant to multi-line).
-    for match in _re.finditer(
-        r'@MCP\.tool\([^@]*?name="([A-Za-z_][\w]*)"', server_text
-    ):
+    for match in _re.finditer(r'@MCP\.tool\([^@]*?name="([A-Za-z_][\w]*)"', server_text):
         server_tools.add(match.group(1))
     # Bare @MCP.tool() followed by def — function name IS the tool name.
-    for match in _re.finditer(
-        r"@MCP\.tool\(\)\s*(?:async\s+)?def\s+(\w+)", server_text
-    ):
+    for match in _re.finditer(r"@MCP\.tool\(\)\s*(?:async\s+)?def\s+(\w+)", server_text):
         server_tools.add(match.group(1))
 
     # Step 2: discover all ikigai_* wrappers in mcp_bridge.py.
     bridge_tools: set[str] = set()
     bridge_text = bridge_file.read_text(encoding="utf-8")
-    for match in _re.finditer(
-        r"^(?:async\s+)?def\s+(ikigai_\w+)", bridge_text, _re.MULTILINE
-    ):
+    for match in _re.finditer(r"^(?:async\s+)?def\s+(ikigai_\w+)", bridge_text, _re.MULTILINE):
         bridge_tools.add(match.group(1))
 
     # Step 3: drift assertion. Every bridge tool must exist in the
@@ -361,12 +353,8 @@ def test_mcp_bridge_wrapped_tool_count_matches_canonical() -> None:
     # Step 4: forward reference sanity. bridge must use _call() which
     # dispatches via tool-name string. Catches typos that would route
     # to a non-existent server tool at runtime.
-    referenced_tool_names = set(
-        _re.findall(r'_call\("(ikigai_\w+)"', bridge_text)
-    )
-    for fn_match in _re.finditer(
-        r"^def\s+(ikigai_\w+)\([^)]*\):", bridge_text, _re.MULTILINE
-    ):
+    referenced_tool_names = set(_re.findall(r'_call\("(ikigai_\w+)"', bridge_text))
+    for fn_match in _re.finditer(r"^def\s+(ikigai_\w+)\([^)]*\):", bridge_text, _re.MULTILINE):
         fn_name = fn_match.group(1)
         assert fn_name in referenced_tool_names, (
             f"Bridge wrapper {fn_name} does not call _call(...) "
@@ -416,9 +404,7 @@ def test_ueid_regex_canonical_across_modules() -> None:
         # Find string literals that LOOK like a UEID regex:
         # starts with ^ (and either a lowercase letter or alternation like (...),
         # ends with $.
-        for match in re.finditer(
-            r'r?["\'](\^[\(\[][^"\']+?\$)["\']', text, re.MULTILINE
-        ):
+        for match in re.finditer(r'r?["\'](\^[\(\[][^"\']+?\$)["\']', text, re.MULTILINE):
             pattern = match.group(1)
             # Heuristic: UEID-like patterns have hash segments [0-9a-f] or [a-f0-9].
             if not re.search(r"\[0-?9a-f\]|\[a-f0-9\]", pattern):
@@ -433,7 +419,7 @@ def test_ueid_regex_canonical_across_modules() -> None:
                 violations.append((str(path.relative_to(LIFE_REPO)), pattern))
 
     assert not violations, (
-        f"UEID regex definitions with 5+ parts found (canonical is 4-part per ADR-014):\n"
+        "UEID regex definitions with 5+ parts found (canonical is 4-part per ADR-014):\n"
         + "\n".join(f"  {p}: {r}" for p, r in violations)
         + "\n\nFix: change to canonical 4-part pattern OR delete the stale regex."
     )
@@ -463,7 +449,6 @@ def test_v2_tests_collect_without_errors() -> None:
     detect happen at module-load time, so importlib is sufficient.
     """
     import importlib
-    import sys
 
     repo = _resolve_repo_root()
     v2_tests_dir = repo / "src" / "ikigai" / "src" / "agents" / "v2" / "tests"
@@ -565,7 +550,6 @@ def test_v2_node_bridge_alignment() -> None:
     `mcp_bridge.<attr>(...)` reference via AST, and cross-checks against
     the live attribute set on the mcp_bridge module.
     """
-    import importlib
 
     repo = _resolve_repo_root()
     nodes_dir = repo / "src" / "ikigai" / "src" / "agents" / "v2" / "nodes"
@@ -573,14 +557,18 @@ def test_v2_node_bridge_alignment() -> None:
         pytest.skip(f"v2 nodes dir not found: {nodes_dir}")
 
     # 1. Collect live mcp_bridge attributes
-    import src.ikigai.src.agents.v2.mcp_bridge as mcp_bridge  # noqa: E402
+    import src.ikigai.src.agents.v2.mcp_bridge as mcp_bridge
+
     live_attrs = {
-        name for name in dir(mcp_bridge)
+        name
+        for name in dir(mcp_bridge)
         if not name.startswith("_")  # exclude dunder + private
     }
 
     # 2. Parse each node file via AST and extract mcp_bridge.<attr> attribute accesses
-    missing: list[tuple[str, str]] = []  # (file, attr) pairs where node references an attr that doesn't exist
+    missing: list[
+        tuple[str, str]
+    ] = []  # (file, attr) pairs where node references an attr that doesn't exist
     for node_file in sorted(nodes_dir.glob("*.py")):
         if node_file.name == "__init__.py":
             continue
@@ -601,7 +589,7 @@ def test_v2_node_bridge_alignment() -> None:
                     missing.append((str(node_file.relative_to(repo)), attr))
 
     assert not missing, (
-        f"v2 nodes reference mcp_bridge.<attr> for attributes that don't exist:\n"
+        "v2 nodes reference mcp_bridge.<attr> for attributes that don't exist:\n"
         + "\n".join(f"  {file}: {attr}" for file, attr in missing)
         + f"\n\nLive mcp_bridge attrs: {sorted(live_attrs)}"
     )
@@ -638,7 +626,7 @@ class TestInvestigationQueueTools:
 
         text = server.read_text(encoding="utf-8")
 
-        REQUIRED = {
+        REQUIRED = {  # noqa: N806 — local test constant
             "investigation_enqueue",
             "investigation_status",
             "investigation_complete",
@@ -652,7 +640,7 @@ class TestInvestigationQueueTools:
         # decorator — this catches both multi-line and single-line forms.
         declared_tools: set[str] = set()
         for match in re.finditer(
-            r'@MCP\.tool\s*\(([^)]*)\)',
+            r"@MCP\.tool\s*\(([^)]*)\)",
             text,
             flags=re.DOTALL,
         ):
@@ -710,7 +698,7 @@ def test_taskdog_tools_read_only_contract() -> None:
         declared_tools.add(match.group(1))
 
     # Permitted set per Path 3 read-only contract.
-    ALLOWED: frozenset[str] = frozenset(
+    ALLOWED: frozenset[str] = frozenset(  # noqa: N806 — local test constant
         {
             "taskdog_read",
             "taskdog_list",
@@ -724,7 +712,7 @@ def test_taskdog_tools_read_only_contract() -> None:
     # nothing extra has been added).
 
     assert not unexpected, (
-        f"taskdog_tools.py exposes WRITE operations (forbidden per Path 3 contract):\n"
+        "taskdog_tools.py exposes WRITE operations (forbidden per Path 3 contract):\n"
         + "\n".join(f"  - {tool}" for tool in sorted(unexpected))
         + f"\n\nDeclared tools: {sorted(declared_tools)}\n"
         + f"Allowed tools (Path 3 read-only): {sorted(ALLOWED)}"
@@ -735,15 +723,17 @@ def test_taskdog_tools_read_only_contract() -> None:
 # M28 — SPEC frontmatter schema drift net
 # ---------------------------------------------------------------------------
 
-VALID_PRINCIPLE_KEYS: frozenset[str] = frozenset({
-    "correctness_over_speed",
-    "reversibility_over_cleverness",
-    "composition_over_inheritance",
-    "tests_are_the_contract",
-    "state_on_disk_not_conversation",
-    "multi_package_boundaries_are_sacred",
-    "spec_driven_not_vibe_driven",
-})
+VALID_PRINCIPLE_KEYS: frozenset[str] = frozenset(
+    {
+        "correctness_over_speed",
+        "reversibility_over_cleverness",
+        "composition_over_inheritance",
+        "tests_are_the_contract",
+        "state_on_disk_not_conversation",
+        "multi_package_boundaries_are_sacred",
+        "spec_driven_not_vibe_driven",
+    }
+)
 
 VALID_STATUSES: frozenset[str] = frozenset({"DONE", "IN_PROGRESS", "PENDING"})
 
@@ -840,14 +830,12 @@ def test_milestone_specs_have_valid_frontmatter() -> None:
 
     failures: list[str] = []
     for spec_file in sorted(spec_files):
-        milestone = _spec_file_to_milestone_id(spec_file) or spec_file.parent.name
+        _milestone = _spec_file_to_milestone_id(spec_file) or spec_file.parent.name
         text = spec_file.read_text(encoding="utf-8")
         fm = _parse_frontmatter(text)
 
         if not fm:
-            failures.append(
-                f"  {spec_file.parent.name}/SPEC.md: no YAML frontmatter found"
-            )
+            failures.append(f"  {spec_file.parent.name}/SPEC.md: no YAML frontmatter found")
             continue
 
         missing: list[str] = []
@@ -872,7 +860,9 @@ def test_milestone_specs_have_valid_frontmatter() -> None:
         elif len(refs_val) == 0:
             missing.append("constitution_refs must have >=1 entry")
         else:
-            invalid_refs = [r for r in refs_val if not isinstance(r, str) or r not in VALID_PRINCIPLE_KEYS]
+            invalid_refs = [
+                r for r in refs_val if not isinstance(r, str) or r not in VALID_PRINCIPLE_KEYS
+            ]
             if invalid_refs:
                 missing.append(
                     f"constitution_refs contains invalid keys: {invalid_refs} "
@@ -882,9 +872,7 @@ def test_milestone_specs_have_valid_frontmatter() -> None:
         # status
         status_val = fm.get("status")
         if not isinstance(status_val, str) or status_val not in VALID_STATUSES:
-            missing.append(
-                f"status must be one of {sorted(VALID_STATUSES)}, got {status_val!r}"
-            )
+            missing.append(f"status must be one of {sorted(VALID_STATUSES)}, got {status_val!r}")
 
         # owner
         owner_val = fm.get("owner")
@@ -892,14 +880,10 @@ def test_milestone_specs_have_valid_frontmatter() -> None:
             missing.append("owner (str, non-empty)")
 
         if missing:
-            failures.append(
-                f"  {spec_file.parent.name}/SPEC.md: "
-                + "; ".join(missing)
-            )
+            failures.append(f"  {spec_file.parent.name}/SPEC.md: " + "; ".join(missing))
 
     assert not failures, (
-        "The following milestone SPEC files have invalid frontmatter:\n"
-        + "\n".join(failures)
+        "The following milestone SPEC files have invalid frontmatter:\n" + "\n".join(failures)
     )
 
 
@@ -948,10 +932,7 @@ def test_milestone_specs_status_matches_roadmap() -> None:
                 f"but roadmap says {roadmap_status!r}"
             )
 
-    assert not failures, (
-        "Milestone SPEC status mismatches roadmap STATUS:\n"
-        + "\n".join(failures)
-    )
+    assert not failures, "Milestone SPEC status mismatches roadmap STATUS:\n" + "\n".join(failures)
 
 
 def test_no_orphan_milestone_specs() -> None:
@@ -995,15 +976,13 @@ def test_no_orphan_milestone_specs() -> None:
     # (a) SPEC without roadmap entry
     for mid in sorted(spec_milestones):
         if mid not in roadmap_milestones:
-            failures.append(
-                f"  {mid}: SPEC.md exists but no entry in roadmap.md"
-            )
+            failures.append(f"  {mid}: SPEC.md exists but no entry in roadmap.md")
 
     # (b) Roadmap non-PENDING entry without SPEC — only enforce for the
     # 9 milestones that M27 explicitly required SPECs for (per M27
     # acceptance criteria: M4, M5, M6, M7, M8, M9, M10, M17, M24).
     # All other milestones predate the SPEC.md convention and are exempt.
-    SPECD_MILESTONES: frozenset[str] = frozenset(
+    SPECD_MILESTONES: frozenset[str] = frozenset(  # noqa: N806 — local test constant
         {"M4", "M5", "M6", "M7", "M8", "M9", "M10", "M17", "M24"}
     )
     for mid, status in sorted(roadmap_milestones.items()):
@@ -1014,14 +993,10 @@ def test_no_orphan_milestone_specs() -> None:
                 continue
             if mid in SPECD_MILESTONES:
                 failures.append(
-                    f"  {mid}: roadmap has (STATUS: {status}) "
-                    f"but no specs/{mid}-*/SPEC.md file"
+                    f"  {mid}: roadmap has (STATUS: {status}) but no specs/{mid}-*/SPEC.md file"
                 )
 
-    assert not failures, (
-        "Orphan milestone entries detected:\n"
-        + "\n".join(failures)
-    )
+    assert not failures, "Orphan milestone entries detected:\n" + "\n".join(failures)
 
 
 # ---------------------------------------------------------------------------
@@ -1055,7 +1030,7 @@ def test_orchestrator_has_auto_reconcile_section() -> None:
                 break
         # Also accept "auto-reconcile roadmap" split across lines within 5-line window
         if i > 0:
-            window = " ".join(lines[max(0, i - 5):i + 1]).lower()
+            window = " ".join(lines[max(0, i - 5) : i + 1]).lower()
             if "auto-reconcil" in window and "roadmap" in window:
                 has_auto_reconcile_heading = True
                 break
@@ -1171,21 +1146,20 @@ def test_progress_md_has_no_double_fires() -> None:
         pytest.skip(f"progress.md not found: {progress}")
 
     # Build a temp progress.md with only the last 50 entries
-    import tempfile, shutil
+    import tempfile
+
     progress_text = progress.read_text(encoding="utf-8")
     lines = progress_text.splitlines(keepends=True)
     # Keep header (first 17 lines per format) + last 50 tick entries
-    HEADER_LINES = 17
-    SCOPE_LINES = 50
+    HEADER_LINES = 17  # noqa: N806 — local test constant
+    SCOPE_LINES = 50  # noqa: N806 — local test constant
     if len(lines) <= HEADER_LINES + SCOPE_LINES:
         pytest.skip("progress.md too small to scope (need >67 lines)")
     header = lines[:HEADER_LINES]
     tail = lines[-SCOPE_LINES:]
     scoped = "".join(header + tail)
 
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".md", delete=False, encoding="utf-8"
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False, encoding="utf-8") as f:
         f.write(scoped)
         scoped_path = f.name
 
@@ -1298,6 +1272,4 @@ def test_daemon_health_infrastructure() -> None:
         or "notify.sh" in script_text
         or bool(re.search(r"curl\s+.*ntfy", script_text))
     )
-    assert has_alert_path, (
-        f"daemon-watchdog.sh missing ntfy alert path: {script}"
-    )
+    assert has_alert_path, f"daemon-watchdog.sh missing ntfy alert path: {script}"

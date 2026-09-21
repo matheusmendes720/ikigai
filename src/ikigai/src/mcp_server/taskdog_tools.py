@@ -21,8 +21,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
 from contracts.common import UEID
+from mcp.server.fastmcp import FastMCP
 from src.mesh.adapters import taskdog as taskdog_mod
 from src.mesh.adapters.taskdog import TaskdogAdapter
 

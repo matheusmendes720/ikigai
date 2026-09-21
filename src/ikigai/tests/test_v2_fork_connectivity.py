@@ -17,7 +17,6 @@ from socketserver import ThreadingMixIn
 from typing import Any
 
 import pytest
-
 from sys_ikigai.gateway import UnifiedMCPGateway
 
 # ---------------------------------------------------------------------------

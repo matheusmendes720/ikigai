@@ -10,6 +10,5 @@ from __future__ import annotations
 
 from src.ikigai.bin.ikigai_serve import main
 
-
 if __name__ == "__main__":
     raise SystemExit(main())

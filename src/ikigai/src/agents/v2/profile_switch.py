@@ -1,9 +1,10 @@
 """Profile switching (decision #1) + thread UUIDs (decision #7)."""
+
 from __future__ import annotations
+
 import re
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
 from src.ikigai.souls.loader import known_profiles
 

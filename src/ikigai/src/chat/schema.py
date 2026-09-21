@@ -1,10 +1,13 @@
 """Pydantic v2 strict models for chat thread (decision #3)."""
+
 from __future__ import annotations
+
+import re
 from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-import re
 
 _UEID_RE = re.compile(r"^[a-z]{2,10}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$")
 
@@ -16,6 +19,7 @@ class _ProposalStatusEnum(StrEnum):
     the enum's `.value`. The legacy Literal lives on below for serialization
     helpers if needed.
     """
+
     DRAFT = "draft"
     OPEN = "OPEN"
     SEMI = "semi"
@@ -32,7 +36,9 @@ and `is ProposalStatus.OPEN` survives across module reloads.
 """
 
 
-_PROPOSAL_STATUS_LITERAL = Literal["draft", "open", "semi", "ready", "approved", "rejected", "archived", "OPEN", "CLOSED"]
+_PROPOSAL_STATUS_LITERAL = Literal[
+    "draft", "open", "semi", "ready", "approved", "rejected", "archived", "OPEN", "CLOSED"
+]
 
 
 # ---------------------------------------------------------------------------
@@ -66,8 +72,6 @@ class Entry(BaseModel):
     entity_type: str = "entry"  # marker for tests asserted in M58
 
 
-
-
 class Proposal(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     id: str
@@ -83,6 +87,7 @@ class Proposal(BaseModel):
         # Accept StrEnum members, strings (case-sensitive), or plain str literals.
         # Coerce "open" -> _ProposalStatusEnum.OPEN, "OPEN" -> .OPEN, etc.
         from .schema import _ProposalStatusEnum as _PSE
+
         if hasattr(v, "value"):  # any StrEnum
             v = v.value
         if isinstance(v, str):
@@ -104,7 +109,6 @@ class Proposal(BaseModel):
     @property
     def proposal_id(self) -> str:
         return self.id
-
 
 
 class ChatThread(BaseModel):

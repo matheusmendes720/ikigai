@@ -7,7 +7,6 @@ import time
 from pathlib import Path
 
 import pytest
-
 from sys_ikigai.gateway.event_log import EventLog
 from sys_ikigai.gateway.event_log_cli import _format_record, main
 

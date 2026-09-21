@@ -41,7 +41,13 @@ def _decompose_ueid(ueid: str) -> dict[str, Any]:
     Vault root: {repo}/data/matheus/
     Structure: dreams/ → objectives/ → projects/ → tasks/
     """
-    from sys_ikigai.vault.frontmatter_compat import loads, dumps, Post, load, dump  # noqa: F401  (M72.1 shim)
+    from sys_ikigai.vault.frontmatter_compat import (  # noqa: F401  (M72.1 shim)
+        Post,
+        dump,
+        dumps,
+        load,
+        loads,
+    )
 
     repo_root = Path(__file__).parent.parent.parent  # .../src/ikigai/src/mcp_server/ → src/ikigai/
     vault_root = repo_root / "data" / "matheus"

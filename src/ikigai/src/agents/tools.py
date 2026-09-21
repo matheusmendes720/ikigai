@@ -11,6 +11,7 @@ Drift detectors in ``tests/test_canonical_scope.py`` enforce this invariant.
 
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import subprocess
@@ -26,14 +27,12 @@ from .reliability import (
     invalidate_session_cache,
     retry_with_backoff,
 )
-
 from .tools_taskdog import (
-    taskdog_list_tasks,
-    taskdog_create_task,
     taskdog_complete_task,
+    taskdog_create_task,
     taskdog_get_task,
+    taskdog_list_tasks,
 )
-
 
 # ---------------------------------------------------------------------------
 # MCP Session Cache (for connection state tracking)
@@ -425,11 +424,11 @@ IKIGAI_TOOLS = [
     tuiboard_update_task,
     tuiboard_create_task,
     # Taskdog task management
-        taskdog_list_tasks,
-        taskdog_create_task,
-        taskdog_complete_task,
-        taskdog_get_task,
-    ]
+    taskdog_list_tasks,
+    taskdog_create_task,
+    taskdog_complete_task,
+    taskdog_get_task,
+]
 
 
 # ---------------------------------------------------------------------------
@@ -446,7 +445,6 @@ IKIGAI_TOOLS.extend(
 )
 
 
-
 # ---------------------------------------------------------------------------
 # Legacy aliases for sync_vault tests (M73.5)
 # ---------------------------------------------------------------------------
@@ -458,18 +456,25 @@ IKIGAI_TOOLS.extend(
 from pathlib import Path as _Path  # noqa: E402
 
 
-def _VAULT_DIR() -> _Path:
+def _VAULT_DIR() -> _Path:  # noqa: N802
     """Resolve vault/ root at call time. Tests override this via monkeypatch."""
     return _Path(__file__).resolve().parent.parent.parent.parent.parent / "vault"
 
 
 def _read_checkpoint_data(thread_id: str = "default") -> dict:
     """Stub checkpoint reader — tests override via monkeypatch."""
-    return {"cycle_id": f"{thread_id}-cycle", "vector_scores": {}, "regime_state": "PUSH", "q_he_score": 0.0, "meta_vector_score": 0.0, "phase": "BUILD", "corrections": []}
+    return {
+        "cycle_id": f"{thread_id}-cycle",
+        "vector_scores": {},
+        "regime_state": "PUSH",
+        "q_he_score": 0.0,
+        "meta_vector_score": 0.0,
+        "phase": "BUILD",
+        "corrections": [],
+    }
 
 
 __all__ = ["_VAULT_DIR", "_read_checkpoint_data"]
-
 
 
 # ---------------------------------------------------------------------------
@@ -477,8 +482,6 @@ __all__ = ["_VAULT_DIR", "_read_checkpoint_data"]
 # ---------------------------------------------------------------------------
 # Sync the latest checkpoint to a vault markdown file. Reads _read_checkpoint_data
 # and writes via vault_write. Tests monkeypatch _VAULT_DIR and _read_checkpoint_data.
-import datetime as _dt_sync
-import json as _json_sync
 from langchain_core.tools import tool as _tool_sync  # noqa: E402
 
 
@@ -506,7 +509,7 @@ def ikigai_sync_vault(thread_id: str = "default") -> str:
     from sys_ikigai.vault.vault_write import vault_write as _vault_write_impl
 
     d = _read_checkpoint_data(thread_id)
-    cycle_id = d.get("cycle_id", _dt_sync.date.today().isoformat())
+    cycle_id = d.get("cycle_id", datetime.date.today().isoformat())
     vs = d.get("vector_scores", {})
     regime = d.get("regime_state", "UNKNOWN")
     qhe = d.get("q_he_score", 0.0)
@@ -519,13 +522,13 @@ def ikigai_sync_vault(thread_id: str = "default") -> str:
     frontmatter_fields: dict[str, Any] = {
         "ueid": f"ikigai:cycle:{cycle_id}",
         "cycle_id": cycle_id,
-        "date": _dt_sync.date.today().isoformat(),
+        "date": datetime.date.today().isoformat(),
         "regime": regime,
         "q_he": qhe,
         "meta_vector": mv,
         "phase": phase,
         "corrections_count": len(corrections),
-        "vector_scores": _json_sync.dumps(vs),
+        "vector_scores": json.dumps(vs),
     }
     body = (
         f"# IKIGAi Cycle — {cycle_id}\n\n"

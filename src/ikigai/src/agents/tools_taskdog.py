@@ -104,9 +104,7 @@ def _missing_taskdog_msg(err: Exception) -> str:
     retryable_exceptions=(subprocess.TimeoutExpired, ConnectionError, OSError),
     config=_taskdog_retry_config,
 )
-def taskdog_list_tasks(
-    status: str | None = None, include_archived: bool = False
-) -> str:
+def taskdog_list_tasks(status: str | None = None, include_archived: bool = False) -> str:
     """List tasks from taskdog. Returns a JSON envelope with `tasks` array.
 
     Args:
@@ -161,15 +159,18 @@ def taskdog_create_task(name: str) -> str:
         # Extract ID from the success line — taskdog prints "(ID: <int>)".
         task_id = None
         import re as _re
+
         m = _re.search(r"\(\s*ID\s*:\s*(\d+)\s*\)", proc.stdout)
         if m:
             task_id = int(m.group(1))
-        return json.dumps({
-            "ok": True,
-            "id": task_id,
-            "name": name,
-            "raw": proc.stdout.strip(),
-        })
+        return json.dumps(
+            {
+                "ok": True,
+                "id": task_id,
+                "name": name,
+                "raw": proc.stdout.strip(),
+            }
+        )
     except FileNotFoundError as e:
         return _missing_taskdog_msg(e)
     except (subprocess.TimeoutExpired, ConnectionError, OSError):
@@ -205,6 +206,7 @@ def taskdog_complete_task(task_id: int) -> str:
         already IN_PROGRESS, the start call is a no-op (or surfaces "task is
         IN_PROGRESS" which we ignore on the second attempt).
     """
+
     # Helper: 1-shot run for the `done` or `start` subcommand
     def _run(subcmd: str) -> tuple[int, str, str]:
         proc = subprocess.run(
@@ -219,7 +221,9 @@ def taskdog_complete_task(task_id: int) -> str:
         # First attempt: `done`
         rc, out, err = _run("done")
         if rc == 0:
-            return json.dumps({"ok": True, "task_id": task_id, "started": False, "raw": out.strip()})
+            return json.dumps(
+                {"ok": True, "task_id": task_id, "started": False, "raw": out.strip()}
+            )
 
         # Detect the PENDING guard
         err_msg = (err or out or "").strip()
@@ -234,11 +238,15 @@ def taskdog_complete_task(task_id: int) -> str:
             # Retry the done
             rc, out, err = _run("done")
             if rc == 0:
-                return json.dumps({
-                    "ok": True, "task_id": task_id,
-                    "started": True, "raw": out.strip(),
-                    "auto_started": True,
-                })
+                return json.dumps(
+                    {
+                        "ok": True,
+                        "task_id": task_id,
+                        "started": True,
+                        "raw": out.strip(),
+                        "auto_started": True,
+                    }
+                )
             # Still failed — surface the new error
             err_msg = (err or out or "").strip()
             raise ConnectionError(f"taskdog error after auto-start: {err_msg}")
@@ -288,6 +296,7 @@ def taskdog_get_task(task_id: int) -> str:
         raise
     except Exception as e:
         return _missing_taskdog_msg(e)
+
 
 __all__ = [
     "taskdog_complete_task",

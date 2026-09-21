@@ -55,11 +55,24 @@ def _http_enabled() -> bool:
     """Read the env flag at call time (not import time) so test fixtures
     using monkeypatch.setenv take effect even after the module is loaded.
     """
-    return os.environ.get("TASKDOG_HTTP_ENABLED", "1") not in ("0", "false", "False", "")
+    return os.environ.get("TASKDOG_HTTP_ENABLED", "1") not in (
+        "0",
+        "false",
+        "False",
+        "",
+    )
+
 
 SUPPORTED_FIELDS = {
-    "title", "due", "priority", "status", "ueid",
-    "planned_start", "planned_end", "actual_end", "tags",
+    "title",
+    "due",
+    "priority",
+    "status",
+    "ueid",
+    "planned_start",
+    "planned_end",
+    "actual_end",
+    "tags",
 }
 
 
@@ -113,27 +126,27 @@ class TaskdogAdapter:
     # Reads — try HTTP first, fall back to local SQLite
     # ------------------------------------------------------------------
     def read(self, ueid: UEID) -> dict[str, Any] | None:
-            # Production path: HTTP bridge (taskdog-server stores tasks by
-            # numeric id, so we can't lookup by UEID string here; only
-            # local SQLite keeps UEID column).
-            # Try SQLite first to honor monkeypatch'd TASKDOG_DB in tests.
-            if TASKDOG_DB.exists():
-                return self._sqlite_read(str(ueid))
-            # Note: HTTP read-by-UEID is not yet implemented (taskdog-server
-            # exposes by-numeric-id only; cross-fork join via UEID goes
-            # through the local SQLite write store + taskdog.exe for live).
-            return None
+        # Production path: HTTP bridge (taskdog-server stores tasks by
+        # numeric id, so we can't lookup by UEID string here; only
+        # local SQLite keeps UEID column).
+        # Try SQLite first to honor monkeypatch'd TASKDOG_DB in tests.
+        if TASKDOG_DB.exists():
+            return self._sqlite_read(str(ueid))
+        # Note: HTTP read-by-UEID is not yet implemented (taskdog-server
+        # exposes by-numeric-id only; cross-fork join via UEID goes
+        # through the local SQLite write store + taskdog.exe for live).
+        return None
 
     def list_all(self) -> list[dict[str, Any]]:
-            # Try HTTP bridge — this is the production path now
-            if _http_enabled():
-                data = _http_get("/api/v1/tasks")
-                if isinstance(data, dict) and isinstance(data.get("tasks"), list):
-                    return [_normalize_http_task(t) for t in data["tasks"]]
-            # Fallback to local SQLite (test compatibility + offline mode)
-            if TASKDOG_DB.exists():
-                return self._sqlite_list_all()
-            return []
+        # Try HTTP bridge — this is the production path now
+        if _http_enabled():
+            data = _http_get("/api/v1/tasks")
+            if isinstance(data, dict) and isinstance(data.get("tasks"), list):
+                return [_normalize_http_task(t) for t in data["tasks"]]
+        # Fallback to local SQLite (test compatibility + offline mode)
+        if TASKDOG_DB.exists():
+            return self._sqlite_list_all()
+        return []
 
     def _sqlite_read(self, ueid_str: str) -> dict[str, Any] | None:
         conn = sqlite3.connect(TASKDOG_DB)

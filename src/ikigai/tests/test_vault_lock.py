@@ -9,7 +9,6 @@ import time
 from pathlib import Path
 
 import pytest
-
 from sys_ikigai.vault.lock import VaultLock
 
 

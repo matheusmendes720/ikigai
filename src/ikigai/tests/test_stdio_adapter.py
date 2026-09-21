@@ -22,7 +22,6 @@ import uuid
 from pathlib import Path
 
 import pytest
-
 from sys_ikigai.gateway.downstream import (
     solverforge_calendar_adapter,
     taskdog_adapter,

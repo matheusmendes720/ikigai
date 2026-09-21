@@ -31,22 +31,39 @@ from typing import Any
 
 from ..state import IKIGAiStateDict
 
-
 # Planning keywords that trigger ``plan_intent_hint``. Lowercase. Both
 # Portuguese (BYD Camaçari case-study user) and English. Multi-word phrases
 # take precedence over single tokens (e.g. "essa semana" before "semana").
 PLAN_INTENT_KEYWORDS: tuple[str, ...] = (
     # Portuguese
-    "quero focar", "quero planejar", "quero organizar",
-    "meu plano", "meu objetivo", "minha meta",
-    "essa semana", "este mes", "este mês", "esse mes", "esse mês",
-    "próxima semana", "proxima semana",
-    "próximo mes", "proximo mes",
-    "foco em", "preciso de um plano",
+    "quero focar",
+    "quero planejar",
+    "quero organizar",
+    "meu plano",
+    "meu objetivo",
+    "minha meta",
+    "essa semana",
+    "este mes",
+    "este mês",
+    "esse mes",
+    "esse mês",
+    "próxima semana",
+    "proxima semana",
+    "próximo mes",
+    "proximo mes",
+    "foco em",
+    "preciso de um plano",
     # English
-    "i want to focus", "i want to plan", "let me plan",
-    "my plan", "my goal", "my objective",
-    "this week", "this month", "next week", "next month",
+    "i want to focus",
+    "i want to plan",
+    "let me plan",
+    "my plan",
+    "my goal",
+    "my objective",
+    "this week",
+    "this month",
+    "next week",
+    "next month",
 )
 
 

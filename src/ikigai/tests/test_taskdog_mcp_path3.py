@@ -30,10 +30,10 @@ def test_three_read_only_tools_registered() -> None:
 
 def test_taskdog_read_with_mock_adapter() -> None:
     """taskdog_read returns JSON with found=True when adapter returns a slice."""
-    with patch.object(taskdog_tools, "TaskdogAdapter") as MockAdapter:
+    with patch.object(taskdog_tools, "TaskdogAdapter") as mock_adapter:
         adapter = MagicMock()
         adapter.read.return_value = {"ueid": "ik:task-foo:abc12345:def67890", "status": "planned"}
-        MockAdapter.return_value = adapter
+        mock_adapter.return_value = adapter
         result = json.loads(taskdog_tools.taskdog_read("ik:task-foo:abc12345:def67890"))
         assert result["found"] is True
         assert result["slice"]["ueid"] == "ik:task-foo:abc12345:def67890"
@@ -41,13 +41,17 @@ def test_taskdog_read_with_mock_adapter() -> None:
 
 def test_taskdog_list_with_mock_adapter() -> None:
     """taskdog_list respects status filter and limit."""
-    with patch.object(taskdog_tools, "TaskdogAdapter") as MockAdapter:
+    with patch.object(taskdog_tools, "TaskdogAdapter") as mock_adapter:
         adapter = MagicMock()
         adapter.list_all.return_value = [
-            {"ueid": "ik:ta-foo:abc12345:def67890", "status": "planned", "created_at": "2026-09-01"},
+            {
+                "ueid": "ik:ta-foo:abc12345:def67890",
+                "status": "planned",
+                "created_at": "2026-09-01",
+            },
             {"ueid": "ik:tb-foo:abc12345:def87654", "status": "done", "created_at": "2026-08-30"},
         ]
-        MockAdapter.return_value = adapter
+        mock_adapter.return_value = adapter
         all_result = json.loads(taskdog_tools.taskdog_list())
         assert all_result["count"] == 2
         filtered = json.loads(taskdog_tools.taskdog_list(status="planned"))
@@ -57,10 +61,10 @@ def test_taskdog_list_with_mock_adapter() -> None:
 
 def test_taskdog_supports_field_with_mock_adapter() -> None:
     """taskdog_supports_field returns {field, supported} JSON."""
-    with patch.object(taskdog_tools, "TaskdogAdapter") as MockAdapter:
+    with patch.object(taskdog_tools, "TaskdogAdapter") as mock_adapter:
         adapter = MagicMock()
         adapter.supports_field.side_effect = lambda f: f in {"title", "ueid"}
-        MockAdapter.return_value = adapter
+        mock_adapter.return_value = adapter
         ok = json.loads(taskdog_tools.taskdog_supports_field("title"))
         assert ok == {"field": "title", "supported": True}
         no = json.loads(taskdog_tools.taskdog_supports_field("bogus"))

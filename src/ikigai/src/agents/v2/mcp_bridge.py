@@ -38,7 +38,6 @@ spans emitted by mcp_server/tracing.py.
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import json
 import time
@@ -46,7 +45,6 @@ import traceback
 from typing import Any
 
 from opentelemetry.trace import Status, StatusCode
-
 from src.ikigai.src.observability.otel_init import get_tracer
 
 # Module-level server handle. Production binds this to the
@@ -78,9 +76,9 @@ def _call(tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
             "Production code must initialize the MCP Gateway client "
             "before calling any ikigai_X function."
         )
-    args_hash = hashlib.sha256(
-        json.dumps(args, sort_keys=True, default=str).encode()
-    ).hexdigest()[:16]
+    args_hash = hashlib.sha256(json.dumps(args, sort_keys=True, default=str).encode()).hexdigest()[
+        :16
+    ]
     with _tracer.start_as_current_span(f"ikigai.bridge.{tool_name}") as span:
         span.set_attribute("tool.name", tool_name)
         span.set_attribute("tool.arguments_hash", args_hash)
@@ -109,4 +107,3 @@ def _call(tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
 def ikigai_decompose(*, task_id: str) -> dict[str, Any]:
     """Decompose a task into subtasks."""
     return _call("ikigai_decompose", {"task_id": task_id})
-

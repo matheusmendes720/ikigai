@@ -15,6 +15,7 @@ from pathlib import Path
 
 from solverforge_calendar.db import SolverforgeDB
 from solverforge_calendar.models import SfPlanDiff, SfReplanInput, SfReplanOutput
+from src.contracts.common import UEID
 
 
 def _db() -> SolverforgeDB:
@@ -210,7 +211,3 @@ def _find_slot(
             return (slot, candidate_end)
         slot += timedelta(minutes=30)
     return None
-
-
-# Re-export UEID locally to avoid line-length issues in SfPlanDiff construction below
-from src.contracts.common import UEID

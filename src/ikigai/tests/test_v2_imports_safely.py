@@ -231,8 +231,8 @@ def test_v2_no_forbidden_function_defs() -> None:
                         f"{py_file.relative_to(IKIGAI_SRC.parent.parent)}:{node.lineno}  "
                         f"forbidden def: {node.name}"
                     )
-    assert not violations, (
-        "Forbidden function defs detected in agents/v2/:\n" + "\n".join(violations)
+    assert not violations, "Forbidden function defs detected in agents/v2/:\n" + "\n".join(
+        violations
     )
 
 
@@ -250,6 +250,4 @@ def test_v2_no_forbidden_class_defs() -> None:
                     f"{py_file.relative_to(IKIGAI_SRC.parent.parent)}:{node.lineno}  "
                     f"forbidden class: {node.name}"
                 )
-    assert not violations, (
-        "Forbidden class defs detected in agents/v2/:\n" + "\n".join(violations)
-    )
+    assert not violations, "Forbidden class defs detected in agents/v2/:\n" + "\n".join(violations)

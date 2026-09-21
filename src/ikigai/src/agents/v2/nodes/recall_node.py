@@ -92,7 +92,7 @@ def recall_node(state: dict[str, Any]) -> dict[str, Any]:
             for d in daily[-5:]
         ]
         context["memory_db"] = memory_db
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("recall_node memory_read failed: %s", exc)
         context["strategics_loaded"] = False
         context["recall_error"] = f"{type(exc).__name__}: {exc}"

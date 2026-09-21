@@ -16,8 +16,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pytest
-
 # Ensure conftest paths are available
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 SRC_ROOT = REPO_ROOT / "src"
@@ -53,6 +51,7 @@ def test_v2_cli_app_importable():
 
 # M95: unskipped - the V5-D-removed command now exists as an alias
 
+
 def test_v2_suggest_command_help():
     """`life v2 suggest --help` exits 0 and documents the command."""
     from interfaces.cli.v2 import v2_app
@@ -65,6 +64,7 @@ def test_v2_suggest_command_help():
 
 
 # M95: unskipped - the V5-D-removed command now exists as an alias
+
 
 def test_v2_score_command_help():
     """`life v2 score --help` exits 0 and shows date + json options."""
@@ -79,6 +79,7 @@ def test_v2_score_command_help():
 
 # M95: unskipped - the V5-D-removed command now exists as an alias
 
+
 def test_v2_regime_command_help():
     """`life v2 regime --help` exits 0 and shows date + json options."""
     from interfaces.cli.v2 import v2_app
@@ -90,6 +91,7 @@ def test_v2_regime_command_help():
 
 
 # M95: unskipped - the V5-D-removed command now exists as an alias
+
 
 def test_v2_cycle_command_help():
     """`life v2 cycle --help` exits 0 and shows dry-run option."""
@@ -109,6 +111,7 @@ def test_v2_cycle_command_help():
 
 # M95: unskipped - the V5-D-removed command now exists as an alias
 
+
 def test_v2_score_routes_to_prompt_chain(monkeypatch):
     """`v2 score` routes to render_score_passion_observation (fake-LLM stub)."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
@@ -123,6 +126,7 @@ def test_v2_score_routes_to_prompt_chain(monkeypatch):
 
 
 # M95: unskipped - the V5-D-removed command now exists as an alias
+
 
 def test_v2_regime_routes_to_prompt_chain(monkeypatch):
     """`v2 regime` routes to render_heuristics_regime_observation (fake-LLM stub)."""
@@ -153,10 +157,13 @@ def test_v2_suggest_routes_to_surface_pav_intentions(monkeypatch):
 
 # M95: unskipped - the V5-D-removed command now exists as an alias
 
+
 def test_v2_cycle_dry_run_invokes_graph(monkeypatch):
     """`v2 cycle --dry-run` invokes make_v2_graph without crashing."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
-    monkeypatch.setenv("IKIGAI_VAULT_ROOT", str(Path(__file__).parent.parent.parent.parent / "vault"))
+    monkeypatch.setenv(
+        "IKIGAI_VAULT_ROOT", str(Path(__file__).parent.parent.parent.parent / "vault")
+    )
     from interfaces.cli.v2 import v2_app
     from typer.testing import CliRunner
 
@@ -164,7 +171,9 @@ def test_v2_cycle_dry_run_invokes_graph(monkeypatch):
     result = runner.invoke(v2_app, ["cycle", "--dry-run", "--json"])
     assert result.exit_code in (0, 1)
     if result.exit_code == 1:
-        assert "FAIL" in result.output or "Error" in result.output or "failed" in result.output.lower()
+        assert (
+            "FAIL" in result.output or "Error" in result.output or "failed" in result.output.lower()
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -190,8 +199,12 @@ def test_skill_files_have_frontmatter():
         content = (skill_dir / name).read_text(encoding="utf-8")
         assert content.startswith("---\n"), f"{name} missing YAML frontmatter"
         assert re.search(r"^name:\s", content, re.MULTILINE), f"{name} missing 'name:' field"
-        assert re.search(r"^description:\s", content, re.MULTILINE), f"{name} missing 'description:' field"
-        assert re.search(r"^triggers:\s", content, re.MULTILINE), f"{name} missing 'triggers:' field"
+        assert re.search(r"^description:\s", content, re.MULTILINE), (
+            f"{name} missing 'description:' field"
+        )
+        assert re.search(r"^triggers:\s", content, re.MULTILINE), (
+            f"{name} missing 'triggers:' field"
+        )
 
 
 def test_skill_files_mention_vault_read_only():
@@ -209,6 +222,7 @@ def test_skill_files_mention_vault_read_only():
 
 
 # M95: unskipped - the V5-D-removed command now exists as an alias
+
 
 def test_v2_score_does_not_write_vault(tmp_path, monkeypatch):
     """v2 score reads vault but produces no new files in vault_root."""
@@ -234,6 +248,7 @@ def test_v2_score_does_not_write_vault(tmp_path, monkeypatch):
 
 
 # M95: unskipped - the V5-D-removed command now exists as an alias
+
 
 def test_v2_regime_does_not_write_vault(tmp_path, monkeypatch):
     """v2 regime reads vault but produces no new files in vault_root."""

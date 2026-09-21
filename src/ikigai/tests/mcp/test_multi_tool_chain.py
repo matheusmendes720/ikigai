@@ -34,7 +34,9 @@ from pathlib import Path
 import pytest
 
 # M73.7: module-skip — async MCP stdio tests need pytest-asyncio plugin (not configured); M75+
-pytestmark = pytest.mark.skip(reason="async MCP stdio tests need pytest-asyncio plugin (not configured); M75+")
+pytestmark = pytest.mark.skip(
+    reason="async MCP stdio tests need pytest-asyncio plugin (not configured); M75+"
+)
 
 
 # ── Chain tests (no MCP subprocess needed) ────────────────────────────────
@@ -43,6 +45,7 @@ pytestmark = pytest.mark.skip(reason="async MCP stdio tests need pytest-asyncio 
 def test_chain_vault_read_then_strategics(tmp_path: Path) -> None:
     """vault_read a file → load_strategics → both produce expected output."""
     from sys_ikigai.vault.vault_read import vault_read
+
     from strategics.loader import load_strategics
 
     vault = tmp_path / "vault"
@@ -68,6 +71,7 @@ def test_chain_vault_read_then_strategics(tmp_path: Path) -> None:
 def test_chain_strategics_then_vault_write(tmp_path: Path) -> None:
     """Read strategics → write a new vault file informed by them."""
     from sys_ikigai.vault.vault_write import vault_write
+
     from strategics.loader import load_strategics
 
     vault = tmp_path / "vault"

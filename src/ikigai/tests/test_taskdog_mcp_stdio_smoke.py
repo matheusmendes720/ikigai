@@ -48,7 +48,7 @@ RUNNER = textwrap.dedent(
     f"""
     import asyncio, sys
     sys.path.insert(0, {str(REPO)!r})
-    sys.path.insert(0, {str(REPO / 'src')!r})
+    sys.path.insert(0, {str(REPO / "src")!r})
     from src.ikigai.src.mcp_server.taskdog_tools import mcp
     asyncio.run(mcp.run_stdio_async())
     """
@@ -89,7 +89,7 @@ def _read_message(stream, timeout_s: float = 10.0) -> dict:
                     if not line:
                         continue
                     self.q.put(line)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 self.q.put(exc)
             finally:
                 self.q.put(sentinel)
@@ -150,7 +150,8 @@ class StdioMCPClient:
         self._notify("notifications/initialized", {})
 
     def _request(self, method: str, params: dict) -> dict:
-        assert self._proc.stdin is not None and self._proc.stdout is not None
+        assert self._proc.stdin is not None
+        assert self._proc.stdout is not None
         req_id = self._next_id
         self._next_id += 1
         _write_message(
@@ -290,9 +291,7 @@ def test_taskdog_list_against_isolated_temp_db() -> None:
     client = StdioMCPClient(runner)
     try:
         # Unfiltered list — all 3 rows, newest first by created_at.
-        all_rows = client.call_tool(
-            "taskdog_list", {"db_path": str(db), "limit": 10}
-        )
+        all_rows = client.call_tool("taskdog_list", {"db_path": str(db), "limit": 10})
         assert all_rows["count"] == 3
         assert [t["ueid"] for t in all_rows["tasks"]] == [
             "ik:tc:ccc:3",
@@ -306,9 +305,7 @@ def test_taskdog_list_against_isolated_temp_db() -> None:
         assert planned["count"] == 2
         assert {t["ueid"] for t in planned["tasks"]} == {"ik:ta:aaa:1", "ik:tc:ccc:3"}
         # Limit cap is honored.
-        capped = client.call_tool(
-            "taskdog_list", {"db_path": str(db), "limit": 1}
-        )
+        capped = client.call_tool("taskdog_list", {"db_path": str(db), "limit": 1})
         assert capped["count"] == 1
     finally:
         client.close()
@@ -326,20 +323,14 @@ def test_taskdog_read_against_isolated_temp_db() -> None:
     runner = _new_runner()
     client = StdioMCPClient(runner)
     try:
-        hit = client.call_tool(
-            "taskdog_read", {"ueid": "ik:td:ab12:cd34", "db_path": str(db)}
-        )
+        hit = client.call_tool("taskdog_read", {"ueid": "ik:td:ab12:cd34", "db_path": str(db)})
         assert hit["found"] is True
         assert hit["slice"]["name"] == "read-me"
-        miss = client.call_tool(
-            "taskdog_read", {"ueid": "ik:td:ffff:0000", "db_path": str(db)}
-        )
+        miss = client.call_tool("taskdog_read", {"ueid": "ik:td:ffff:0000", "db_path": str(db)})
         assert miss["found"] is False
         assert miss["slice"] is None
         # Invalid UEID surfaces as JSON error, not a crash.
-        bad = client.call_tool(
-            "taskdog_read", {"ueid": "not-a-ueid", "db_path": str(db)}
-        )
+        bad = client.call_tool("taskdog_read", {"ueid": "not-a-ueid", "db_path": str(db)})
         assert "error" in bad
     finally:
         client.close()

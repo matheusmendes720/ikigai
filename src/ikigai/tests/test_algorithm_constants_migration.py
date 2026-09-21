@@ -229,7 +229,9 @@ def test_node_does_not_import_default_constants_from_state(node_file: str) -> No
     "node_file",
     ["observe.py", "balance.py", "heuristics.py"],
 )
-@pytest.mark.skip(reason="W3.2 load_constants migration not yet implemented; load_constants module does not exist. Tracked in M75+.")
+@pytest.mark.skip(
+    reason="W3.2 load_constants migration not yet implemented; load_constants module does not exist. Tracked in M75+."
+)
 def test_node_uses_load_constants_phrase(node_file: str) -> None:
     """observe.py / balance.py / heuristics.py MUST use load_constants.get()."""
     src = (V2_DIR / "nodes" / node_file).read_text(encoding="utf-8")

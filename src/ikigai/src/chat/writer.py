@@ -9,7 +9,9 @@ a5b1146c-era callers):
   - New style:   write_entry(entry, base_dir=Path)
   - Legacy 3-arg: write_entry(vault_root, thread_id, entry)
 """
+
 from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
@@ -19,14 +21,17 @@ def _atomic_write_text(target: Path, content: str) -> None:
     """Write `content` to `target` atomically (tempfile + os.replace)."""
     target.parent.mkdir(parents=True, exist_ok=True)
     import tempfile
+
     fd, tmp = tempfile.mkstemp(prefix=".chat-", suffix=".tmp", dir=target.parent)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(content)
         os.replace(tmp, target)
     except BaseException:
-        try: os.unlink(tmp)
-        except OSError: pass
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
         raise
 
 
@@ -67,7 +72,9 @@ def write_entry(*args, **kwargs):
     """Persist a chat entry. See module docstring for signature styles."""
     entry, base_dir = _detect_signature(args, kwargs)
     if base_dir is None:
-        raise TypeError("write_entry: base_dir is required (new API) or vault_root+thread_id (legacy)")
+        raise TypeError(
+            "write_entry: base_dir is required (new API) or vault_root+thread_id (legacy)"
+        )
     if hasattr(entry, "model_dump"):
         d = entry.model_dump()
     elif isinstance(entry, dict):
@@ -80,7 +87,6 @@ def write_entry(*args, **kwargs):
 
     # Normalize the layout: tests expect base/{thread_id}/{entry.id}.md,
     # but legacy callers passed a flat dict so thread_id may not be set.
-    explicit_thread = d.get("thread_id")
     if "thread_id" not in d and base.name.startswith("thr-"):
         # base was already the thread subdir; treat stem as thread_id
         d = {**d, "thread_id": base.name}
@@ -161,6 +167,6 @@ def write_proposal(*args, **kwargs):
                 payload = {"proposals": {}}
         except Exception:
             payload = {"proposals": {}}
-    payload.setdefault("proposals", {})[pid] = {k: v for k, v in d.items()}
+    payload.setdefault("proposals", {})[pid] = dict(d.items())
     _atomic_write_text(sidecar, json.dumps(payload, indent=2, default=str))
     return target

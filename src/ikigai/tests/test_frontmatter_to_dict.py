@@ -7,7 +7,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from sys_ikigai.vault.frontmatter_to_dict import frontmatter_to_dict
 
 

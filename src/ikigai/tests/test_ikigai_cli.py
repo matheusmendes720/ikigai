@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import json
 
-from typer.testing import CliRunner
-
 from sys_ikigai.cli.app import app
+from typer.testing import CliRunner
 
 runner = CliRunner()
 

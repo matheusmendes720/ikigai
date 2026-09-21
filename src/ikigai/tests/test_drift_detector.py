@@ -11,7 +11,6 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
-
 from sys_ikigai.adapters.drift_detector import DriftDetector, DriftFinding
 from sys_ikigai.entities.drift_state import DriftState
 from sys_ikigai.propagation.sqlite_adapter import SQLiteAdapter

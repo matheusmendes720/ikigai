@@ -38,9 +38,7 @@ def tag_and_persist_node(state: IKIGAiStateDict) -> dict[str, Any]:
         return {
             "persisted": False,
             "last_step": "tag_and_persist",
-            "error_channel": [
-                "tag_and_persist: missing proposed_entity or vault_path in state"
-            ],
+            "error_channel": ["tag_and_persist: missing proposed_entity or vault_path in state"],
         }
 
     # M89: lazy-import via proposal_executor (consolidates the
@@ -51,9 +49,7 @@ def tag_and_persist_node(state: IKIGAiStateDict) -> dict[str, Any]:
         return {
             "persisted": False,
             "last_step": "tag_and_persist",
-            "error_channel": [
-                f"proposal_executor.wrap_vault_write import failed: {exc}"
-            ],
+            "error_channel": [f"proposal_executor.wrap_vault_write import failed: {exc}"],
         }
 
     try:
@@ -73,9 +69,7 @@ def tag_and_persist_node(state: IKIGAiStateDict) -> dict[str, Any]:
         )
 
         # wrap_vault_write returns ExecutionReport-like; normalize.
-        ok = bool(getattr(result, "ok", False)) or (
-            isinstance(result, dict) and result.get("ok")
-        )
+        ok = bool(getattr(result, "ok", False)) or (isinstance(result, dict) and result.get("ok"))
         err = (
             getattr(result, "error", None)
             or (result.get("error") if isinstance(result, dict) else None)
@@ -89,7 +83,7 @@ def tag_and_persist_node(state: IKIGAiStateDict) -> dict[str, Any]:
             "last_step": "tag_and_persist",
             "error_channel": [] if ok else [f"vault_write failed: {err or 'unknown'}"],
         }
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("tag_and_persist failed: %s", exc)
         return {
             "persisted": False,

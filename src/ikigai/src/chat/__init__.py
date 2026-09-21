@@ -1,22 +1,23 @@
 """Chat file system (decision #3)."""
+
 from __future__ import annotations
 
+from .reader import read_thread
 from .schema import (
+    ChatThread,
     Entry,
     EntryRole,
     Proposal,
     ProposalStatus,
-    ChatThread,
 )
 from .writer import write_entry, write_proposal
-from .reader import read_thread
 
 __all__ = [
+    "ChatThread",
     "Entry",
     "EntryRole",
     "Proposal",
     "ProposalStatus",
-    "ChatThread",
     "read_thread",
     "write_entry",
     "write_proposal",

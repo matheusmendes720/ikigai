@@ -20,7 +20,6 @@ from socketserver import ThreadingMixIn
 from typing import Any
 
 import pytest
-
 from sys_ikigai.gateway.client_adapter import MCPClientAdapter
 from sys_ikigai.gateway.event_log import EventLog
 from sys_ikigai.gateway.gateway import GatewayConfig, UnifiedMCPGateway

@@ -57,14 +57,11 @@ class TestChatReplCli:
             timeout=10,
         )
         assert result.returncode == 0, (
-            f"--help exited non-zero: rc={result.returncode}\n"
-            f"stderr={result.stderr}"
+            f"--help exited non-zero: rc={result.returncode}\nstderr={result.stderr}"
         )
         # argparse always prints "usage:" on --help
         combined = (result.stdout + result.stderr).lower()
-        assert "usage:" in combined, (
-            f"--help output missing 'usage:': {combined[:200]}"
-        )
+        assert "usage:" in combined, f"--help output missing 'usage:': {combined[:200]}"
         # The description (IKIGAI REPL) should appear in --help text
         assert "repl" in combined or "chat" in combined, (
             f"--help output missing 'repl' or 'chat': {combined[:200]}"
@@ -96,9 +93,12 @@ class TestChatReplCli:
                 [
                     sys.executable,
                     str(CHAT_REPL),
-                    "--vault", str(tmp_path),
-                    "--thread", "test-profile-flag",
-                    "--profile", "ikigai-planner",
+                    "--vault",
+                    str(tmp_path),
+                    "--thread",
+                    "test-profile-flag",
+                    "--profile",
+                    "ikigai-planner",
                 ],
                 stdin=devnull,
                 capture_output=True,
@@ -123,8 +123,10 @@ class TestChatReplEofHandling:
                 [
                     sys.executable,
                     str(CHAT_REPL),
-                    "--vault", str(tmp_path),
-                    "--thread", "test-empty-stdin",
+                    "--vault",
+                    str(tmp_path),
+                    "--thread",
+                    "test-empty-stdin",
                 ],
                 stdin=devnull,
                 capture_output=True,
@@ -142,8 +144,10 @@ class TestChatReplEofHandling:
             [
                 sys.executable,
                 str(CHAT_REPL),
-                "--vault", str(tmp_path),
-                "--thread", "test-single-input",
+                "--vault",
+                str(tmp_path),
+                "--thread",
+                "test-single-input",
             ],
             capture_output=True,
             text=True,
@@ -166,9 +170,12 @@ class TestChatReplSoulAware:
                 [
                     sys.executable,
                     str(CHAT_REPL),
-                    "--vault", str(tmp_path),
-                    "--thread", "test-banner",
-                    "--profile", "ikigai-planner",
+                    "--vault",
+                    str(tmp_path),
+                    "--thread",
+                    "test-banner",
+                    "--profile",
+                    "ikigai-planner",
                 ],
                 stdin=devnull,
                 capture_output=True,

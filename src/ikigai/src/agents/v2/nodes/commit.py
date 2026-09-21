@@ -33,9 +33,7 @@ def _taskdog_create_task_via_bridge(title: str) -> dict[str, Any]:
     """
     import sys
 
-    tools_mod = sys.modules.get("agents.tools") or sys.modules.get(
-        "src.ikigai.src.agents.tools"
-    )
+    tools_mod = sys.modules.get("agents.tools") or sys.modules.get("src.ikigai.src.agents.tools")
     if tools_mod is None:
         try:
             from src.ikigai.src.agents import tools as _tools
@@ -49,7 +47,7 @@ def _taskdog_create_task_via_bridge(title: str) -> dict[str, Any]:
     try:
         result = fn.invoke({"name": title})
         return {"ok": True, "result": result}
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
 
@@ -96,11 +94,11 @@ def commit_node(state: IKIGAiStateDict) -> dict[str, Any]:
                 target = op.get("target", "untitled task")
                 if isinstance(target, str) and target.strip():
                     td_result = _taskdog_create_task_via_bridge(target.strip())
-                    commit_result["taskdog_results"].append(
-                        {"target": target, **td_result}
-                    )
+                    commit_result["taskdog_results"].append({"target": target, **td_result})
                     if not td_result.get("ok"):
-                        logger.warning("taskdog_create_task failed for %r: %s", target, td_result.get("error"))
+                        logger.warning(
+                            "taskdog_create_task failed for %r: %s", target, td_result.get("error")
+                        )
 
     return {
         "commit": commit_result,

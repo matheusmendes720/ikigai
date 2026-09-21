@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from sys_ikigai.state_machines import (
     StateMachine,
     deliverable_state_machine,

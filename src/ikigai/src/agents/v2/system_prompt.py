@@ -1,6 +1,9 @@
 """System prompt template assembly (decision #2)."""
+
 from __future__ import annotations
-from typing import Iterable, Optional
+
+from collections.abc import Iterable
+
 from src.ikigai.souls.loader import load_soul
 
 _TEMPLATE = """<SYSTEM>
@@ -22,7 +25,7 @@ def assemble(
     profile: str,
     capabilities: Iterable[str],
     scope: str,
-    soul_content: Optional[str] = None,
+    soul_content: str | None = None,
 ) -> str:
     """Build the system prompt.
 

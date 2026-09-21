@@ -11,12 +11,9 @@ Covers:
 from __future__ import annotations
 
 import shutil
-import tempfile
-from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
-
 from src.ikigai.src.chat import (
     Entry,
     EntryRole,
@@ -73,7 +70,7 @@ def test_entry_schema_construction_and_frozen() -> None:
         entry.content = "tampered"  # type: ignore[misc]
 
     # extra="forbid": unknown field must raise at construction.
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="not_a_real_field"):
         Entry(
             id="thr-0002",
             thread_id="thr",
@@ -175,7 +172,9 @@ def test_writer_reader_round_trip(chat_root: Path) -> None:
     assert p1_path == chat_root / thread_id / "proposals" / f"{thread_id}-prop-0001.md"
     assert e1_path == chat_root / thread_id / f"{thread_id}-0001.md"
     assert e2_path == chat_root / thread_id / f"{thread_id}-0002.md"
-    assert p1_path.exists() and e1_path.exists() and e2_path.exists()
+    assert p1_path.exists()
+    assert e1_path.exists()
+    assert e2_path.exists()
 
     entries, proposals = read_thread(thread_id, base_dir=chat_root)
 

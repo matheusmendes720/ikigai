@@ -149,9 +149,7 @@ def test_taskdog_create_then_complete_roundtrip() -> None:
         text=True,
         timeout=30,
     )
-    assert start_result.returncode == 0, (
-        f"taskdog start failed: stderr={start_result.stderr!r}"
-    )
+    assert start_result.returncode == 0, f"taskdog start failed: stderr={start_result.stderr!r}"
 
     done_result = taskdog_complete_task.invoke({"task_id": task_id})
     assert isinstance(done_result, str)

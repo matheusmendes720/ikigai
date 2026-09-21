@@ -157,7 +157,6 @@ def test_v2_graph_named_nodes():
 
 
 def test_v2_graph_smoke_full_pipeline(tmp_path, monkeypatch):
-
     """Run full pipeline observe → ... → surface_intentions with FAKE_LLM.
 
     Note: Full pipeline end-to-end requires proposed_entity to be a proper
@@ -210,7 +209,6 @@ def test_v2_graph_smoke_entry_point_observe(tmp_path, monkeypatch):
     ],
 )
 def test_v2_graph_smoke_all_entry_points(tmp_path, monkeypatch, entry_point):
-
     """Each of the 13 NODES is a valid entry point."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     from agents.v2.graph import NODES, make_v2_graph
@@ -233,7 +231,6 @@ def test_v2_graph_invalid_entry_point_raises():
 
 
 def test_v2_graph_sequential_node_invocation(tmp_path, monkeypatch):
-
     """Verify all 13 NODES are reachable as entry points (sequential coverage)."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     from agents.v2.graph import NODES, make_v2_graph
@@ -248,7 +245,6 @@ def test_v2_graph_sequential_node_invocation(tmp_path, monkeypatch):
 
 
 def test_v2_graph_retry_helper_is_callable(tmp_path, monkeypatch):
-
     """Verify the retry helper is defined and callable."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     from agents.v2.graph import make_v2_graph

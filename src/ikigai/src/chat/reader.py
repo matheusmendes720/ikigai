@@ -4,14 +4,14 @@ Pydantic-typed where possible (decision #3). Returns ([entries], [proposals])
 tuple per tests/test_chat_system.py::test_read_thread_missing_returns_empty
 plus round-trip tests.
 """
+
 from __future__ import annotations
+
 import json
 import re
 from pathlib import Path
-from typing import Any
 
 from .schema import Entry, EntryRole, Proposal
-
 
 # Tolerant metadata parser for our write_entry format: `## [role] eid\n\n{content}`
 _ENTRY_HEADER_RE = re.compile(r"^##\s*\[([^\]]+)\]\s+(\S+)\s*$", re.MULTILINE)
@@ -42,7 +42,7 @@ def read_thread(thread_id: str, *, base_dir) -> tuple[list[Entry], list[Proposal
         if header:
             role_str = header.group(1).strip()
             eid_in_md = header.group(2).strip()
-            body = text[header.end():].strip("\n")
+            body = text[header.end() :].strip("\n")
         else:
             role_str = "user"
             eid_in_md = md.stem
@@ -61,7 +61,11 @@ def read_thread(thread_id: str, *, base_dir) -> tuple[list[Entry], list[Proposal
             payload = json.loads(sidecar.read_text(encoding="utf-8"))
             for pid, prop in (payload.get("proposals") or {}).items():
                 try:
-                    kwargs = {k: v for k, v in prop.items() if k in {"action", "target_ueid", "rationale", "status"}}
+                    kwargs = {
+                        k: v
+                        for k, v in prop.items()
+                        if k in {"action", "target_ueid", "rationale", "status"}
+                    }
                     proposals.append(Proposal(id=pid, thread_id=thread_id, **kwargs))
                 except Exception:
                     continue

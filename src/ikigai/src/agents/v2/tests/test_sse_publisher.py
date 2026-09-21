@@ -5,11 +5,12 @@
   2. Each of the 9 publish_* methods emits the canonical event via a fake gateway.
   3. The publisher swallows gateway errors so a broken downstream never breaks emit.
 """
+
 from __future__ import annotations
 
 from src.ikigai.src.agents.v2.sse_publisher import (
-    AgentSSEPublisher,
     EVENT_TAXONOMY,
+    AgentSSEPublisher,
 )
 
 
@@ -46,15 +47,25 @@ def test_publish_methods_emit_canonical_events() -> None:
     gateway = FakeGateway()
     pub = AgentSSEPublisher(gateway=gateway)
 
-    pub.publish_thread_created(thread_id="t-1", profile_active="ikigai", soul_path="souls/ikigai.md")
+    pub.publish_thread_created(
+        thread_id="t-1", profile_active="ikigai", soul_path="souls/ikigai.md"
+    )
     pub.publish_profile_switched(from_profile="ikigai", to_profile="taskdog", reason="bootstrap")
     pub.publish_entry_message(entry_id="e-1", actor="user", ts="2026-09-14T00:00:00Z", content="hi")
     pub.publish_entry_proposal(entry_id="e-2", proposal_id="p-1", status="open")
     pub.publish_proposal_status_changed(proposal_id="p-1", from_status="open", to_status="approved")
-    pub.publish_proposal_approved(proposal_id="p-1", approved_at="2026-09-14T00:01:00Z", approver="alice")
-    pub.publish_proposal_rejected(proposal_id="p-2", rejected_at="2026-09-14T00:02:00Z", reason="nope")
-    pub.publish_thread_closed(thread_id="t-1", closed_at="2026-09-14T00:03:00Z", summary_path="summaries/t-1.md")
-    pub.publish_handoff_visible(from_profile="ikigai", to_profile="taskdog", context_summary="send task X")
+    pub.publish_proposal_approved(
+        proposal_id="p-1", approved_at="2026-09-14T00:01:00Z", approver="alice"
+    )
+    pub.publish_proposal_rejected(
+        proposal_id="p-2", rejected_at="2026-09-14T00:02:00Z", reason="nope"
+    )
+    pub.publish_thread_closed(
+        thread_id="t-1", closed_at="2026-09-14T00:03:00Z", summary_path="summaries/t-1.md"
+    )
+    pub.publish_handoff_visible(
+        from_profile="ikigai", to_profile="taskdog", context_summary="send task X"
+    )
 
     assert len(gateway.calls) == 9
 
@@ -62,18 +73,41 @@ def test_publish_methods_emit_canonical_events() -> None:
     canonical = set(EVENT_TAXONOMY)
     for event, payload in gateway.calls:
         assert event in canonical
-        assert isinstance(payload, dict) and payload
+        assert isinstance(payload, dict)
+        assert payload
 
     # Spot-check exact (event, payload) pairs
     expected_pairs = [
-        ("thread.created", {"thread_id": "t-1", "profile_active": "ikigai", "soul_path": "souls/ikigai.md"}),
+        (
+            "thread.created",
+            {"thread_id": "t-1", "profile_active": "ikigai", "soul_path": "souls/ikigai.md"},
+        ),
         ("profile.switched", {"from": "ikigai", "to": "taskdog", "reason": "bootstrap"}),
-        ("entry.message", {"entry_id": "e-1", "actor": "user", "ts": "2026-09-14T00:00:00Z", "content": "hi"}),
+        (
+            "entry.message",
+            {"entry_id": "e-1", "actor": "user", "ts": "2026-09-14T00:00:00Z", "content": "hi"},
+        ),
         ("entry.proposal", {"entry_id": "e-2", "proposal_id": "p-1", "status": "open"}),
-        ("proposal.status_changed", {"proposal_id": "p-1", "from": "open", "to": "approved", "reason": ""}),
-        ("proposal.approved", {"proposal_id": "p-1", "approved_at": "2026-09-14T00:01:00Z", "approver": "alice"}),
-        ("proposal.rejected", {"proposal_id": "p-2", "rejected_at": "2026-09-14T00:02:00Z", "reason": "nope"}),
-        ("thread.closed", {"thread_id": "t-1", "closed_at": "2026-09-14T00:03:00Z", "summary_path": "summaries/t-1.md"}),
+        (
+            "proposal.status_changed",
+            {"proposal_id": "p-1", "from": "open", "to": "approved", "reason": ""},
+        ),
+        (
+            "proposal.approved",
+            {"proposal_id": "p-1", "approved_at": "2026-09-14T00:01:00Z", "approver": "alice"},
+        ),
+        (
+            "proposal.rejected",
+            {"proposal_id": "p-2", "rejected_at": "2026-09-14T00:02:00Z", "reason": "nope"},
+        ),
+        (
+            "thread.closed",
+            {
+                "thread_id": "t-1",
+                "closed_at": "2026-09-14T00:03:00Z",
+                "summary_path": "summaries/t-1.md",
+            },
+        ),
         ("handoff.visible", {"from": "ikigai", "to": "taskdog", "context_summary": "send task X"}),
     ]
     assert gateway.calls == expected_pairs
@@ -91,7 +125,9 @@ def test_publisher_swallows_gateway_errors() -> None:
     pub.publish_entry_message(entry_id="e", actor="user", ts="2026-09-14T00:00:00Z", content="x")
     pub.publish_entry_proposal(entry_id="e", proposal_id="p", status="open")
     pub.publish_proposal_status_changed(proposal_id="p", from_status="open", to_status="rejected")
-    pub.publish_proposal_approved(proposal_id="p", approved_at="2026-09-14T00:00:00Z", approver="alice")
+    pub.publish_proposal_approved(
+        proposal_id="p", approved_at="2026-09-14T00:00:00Z", approver="alice"
+    )
     pub.publish_proposal_rejected(proposal_id="p", rejected_at="2026-09-14T00:00:00Z", reason="x")
     pub.publish_thread_closed(thread_id="t", closed_at="2026-09-14T00:00:00Z", summary_path="s.md")
     pub.publish_handoff_visible(from_profile="a", to_profile="b", context_summary="x")

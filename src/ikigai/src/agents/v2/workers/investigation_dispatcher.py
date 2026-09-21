@@ -11,6 +11,7 @@ Cron-invoked (NOT a daemon/hot loop). Idempotent. Skips malformed files.
 Drift invariant (h) catches structural issues; this worker assumes
 the queue is well-formed.
 """
+
 from __future__ import annotations
 
 import logging

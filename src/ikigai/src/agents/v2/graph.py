@@ -19,25 +19,23 @@ from typing import Any, Literal
 
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, StateGraph
-
 from src.ikigai.src.observability.otel_init import get_tracer, init_tracing
 
-
-from .nodes.balance import balance_node  # noqa: E402
-from .nodes.commit import commit_node  # noqa: E402
-from .nodes.decompose import decompose_node  # noqa: E402
-from .nodes.error import error_node  # noqa: E402
-from .nodes.heuristics import heuristics_node  # noqa: E402
-from .nodes.observe import observe_node  # noqa: E402
-from .nodes.plan import plan_node  # noqa: E402
-from .nodes.reason_node import reason_node  # noqa: E402
-from .nodes.recall_node import recall_node  # noqa: E402
-from .nodes.reflect import reflect_node  # noqa: E402
-from .nodes.score_vectors import score_vectors_node  # noqa: E402
-from .nodes.surface_intentions import surface_intentions_node  # noqa: E402
-from .nodes.tag_and_persist import tag_and_persist_node  # noqa: E402
-from .state import IKIGAiStateDict  # noqa: E402
-from .subgraph import dispatch_sub_agents  # noqa: E402
+from .nodes.balance import balance_node
+from .nodes.commit import commit_node
+from .nodes.decompose import decompose_node
+from .nodes.error import error_node
+from .nodes.heuristics import heuristics_node
+from .nodes.observe import observe_node
+from .nodes.plan import plan_node
+from .nodes.reason_node import reason_node
+from .nodes.recall_node import recall_node
+from .nodes.reflect import reflect_node
+from .nodes.score_vectors import score_vectors_node
+from .nodes.surface_intentions import surface_intentions_node
+from .nodes.tag_and_persist import tag_and_persist_node
+from .state import IKIGAiStateDict
+from .subgraph import dispatch_sub_agents
 
 _init_tracing_ok = True
 try:
