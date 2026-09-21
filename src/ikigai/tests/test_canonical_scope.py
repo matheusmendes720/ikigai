@@ -383,7 +383,6 @@ def test_no_algorithm_constants_in_agent_code() -> None:
     but never invoked; the drift net now blocks re-introduction of math
     constants regardless of which tree they live in.
     """
-    import re as _re
 
     violations: list[str] = []
     # Match NAME = <numeric-or-bool-or-call> at module top-level only —
@@ -408,9 +407,7 @@ def test_no_algorithm_constants_in_agent_code() -> None:
                     continue
                 for target in node.targets:
                     if not (
-                        isinstance(target, ast.Name)
-                        and target.id.isupper()
-                        and "_" in target.id
+                        isinstance(target, ast.Name) and target.id.isupper() and "_" in target.id
                     ):
                         continue
                     # Skip typing constructs — `Foo = Literal["..."]` is a
@@ -710,8 +707,8 @@ def test_investigation_queue_invariants() -> None:
 
     # Invariant 4: terminal-state transitions rejected (uses helper, not queue itself)
     import src.mesh.investigation_queue as iq_mod
-    from src.mesh.investigation_queue import transition as _transition
     from src.contracts.investigation import Investigation
+    from src.mesh.investigation_queue import transition as _transition
 
     # Save original QUEUE_DIR
     original_qd = iq_mod.QUEUE_DIR
@@ -1146,18 +1143,14 @@ def test_planning_note_template_exists() -> None:
     bullets, friction ≈ zero. The agent layer consumes these when operational.
     """
     template_path = REPO_ROOT / "vault" / "ikigai" / "templates" / "sonho-log.md"
-    assert template_path.exists(), (
-        f"Planning note template missing at {template_path}."
-    )
+    assert template_path.exists(), f"Planning note template missing at {template_path}."
     content = template_path.read_text(encoding="utf-8")
     # Verify frontmatter + planning-note markers
     assert content.startswith("---"), "Planning note template must have YAML frontmatter"
     assert "type: planning_note" in content, (
         "Planning note template frontmatter must declare type=planning_note"
     )
-    assert "## Mudança" in content, (
-        "Planning note template missing '## Mudança' section"
-    )
+    assert "## Mudança" in content, "Planning note template missing '## Mudança' section"
 
 
 # ---------------------------------------------------------------------------
@@ -1182,6 +1175,7 @@ def _extract_tool_name_from_decorator(decorator: ast.AST) -> str | None:
         if keyword.arg == "name" and isinstance(keyword.value, ast.Constant):
             return keyword.value.value
     return None
+
 
 # ---------------------------------------------------------------------------
 # Phase 2 — ikigai_serve CLI + souls loader drift invariants
@@ -1246,7 +1240,7 @@ def test_ikigai_serve_module_exists() -> None:
         "class ServeRuntime",
         "def main",
         "def register_mesh_adapters",
-        '__all__',
+        "__all__",
     ):
         assert required_symbol in source, (
             f"ikigai_serve.py missing required symbol: {required_symbol}"
@@ -1267,9 +1261,11 @@ def test_ikigai_serve_module_exists() -> None:
         "bin/__main__.py must import main from src.ikigai.bin.ikigai_serve "
         "so `python -m src.ikigai.bin.ikigai_serve` resolves."
     )
-    assert "__name__" in main_source and "__main__" in main_source, (
-        "bin/__main__.py must guard the entry-point with the "
-        "standard `if __name__ == \"__main__\":` pattern."
+    assert "__name__" in main_source, (
+        "bin/__main__.py must reference __name__ for the entry-point guard."
+    )
+    assert "__main__" in main_source, (
+        "bin/__main__.py must reference __main__ for the entry-point guard."
     )
 
 
@@ -1285,7 +1281,7 @@ def test_ikigai_serve_imports() -> None:
 
     try:
         module = importlib.import_module("src.ikigai.bin.ikigai_serve")
-    except Exception as exc:  # noqa: BLE001 — drift detector
+    except Exception as exc:
         pytest.fail(
             f"src.ikigai.bin.ikigai_serve failed to import: {exc!r}. "
             "Phase 2 ships a side-effect-free CLI module — fix the "
@@ -1304,9 +1300,7 @@ def test_ikigai_serve_imports() -> None:
     # __all__ must match the expected surface (or be a superset of the
     # required names — drift detector rejects accidental removals).
     all_attr = getattr(module, "__all__", None)
-    assert all_attr is not None, (
-        "ikigai_serve.py must define __all__ to pin the public API."
-    )
+    assert all_attr is not None, "ikigai_serve.py must define __all__ to pin the public API."
     missing_from_all = expected_names - set(all_attr)
     assert not missing_from_all, (
         f"ikigai_serve.__all__ missing required names: {sorted(missing_from_all)}. "
@@ -1321,8 +1315,7 @@ def test_ikigai_serve_imports() -> None:
         "ServeOptions.host default must be '127.0.0.1' (dev-mode safe bind)."
     )
     assert "port: int = 8765" in source, (
-        "ServeOptions.port default must be 8765 per the rebuild plan "
-        "(default-playbook port)."
+        "ServeOptions.port default must be 8765 per the rebuild plan (default-playbook port)."
     )
 
 
@@ -1347,12 +1340,9 @@ def test_ikigai_serve_soul_loader_chain() -> None:
     souls_dir = IKIGAI_PKG / "souls"
 
     assert loader_path.is_file(), (
-        f"souls/loader.py missing at {loader_path}. "
-        "Phase 2 ships the persona document loader here."
+        f"souls/loader.py missing at {loader_path}. Phase 2 ships the persona document loader here."
     )
-    assert souls_dir.is_dir(), (
-        f"souls directory missing at {souls_dir}."
-    )
+    assert souls_dir.is_dir(), f"souls directory missing at {souls_dir}."
 
     loader_source = loader_path.read_text(encoding="utf-8")
 
@@ -1392,9 +1382,7 @@ def test_ikigai_serve_soul_loader_chain() -> None:
     expected = {
         entry.name[: -len(".md")]
         for entry in souls_dir.iterdir()
-        if entry.is_file()
-        and not entry.name.startswith(".")
-        and entry.name.endswith(".md")
+        if entry.is_file() and not entry.name.startswith(".") and entry.name.endswith(".md")
     }
     assert discovered == expected, (
         f"souls/loader.known_profiles() chain mismatch.\n"
@@ -1412,17 +1400,15 @@ def test_ikigai_serve_soul_loader_chain() -> None:
     )
     for profile in sorted(discovered):
         body = loader.load_soul(profile)
-        assert isinstance(body, str) and body.strip(), (
-            f"load_soul({profile!r}) returned empty / non-string content."
-        )
+        assert isinstance(body, str), f"load_soul({profile!r}) returned non-string content."
+        assert body.strip(), f"load_soul({profile!r}) returned empty content."
 
     # Negative tests — load_soul rejects bad inputs.
-    import pytest as _pytest
+    import pytest
 
-    with _pytest.raises((TypeError, ValueError)):
+    with pytest.raises((TypeError, ValueError)):
         loader.load_soul("")  # empty
-    with _pytest.raises((TypeError, ValueError)):
+    with pytest.raises((TypeError, ValueError)):
         loader.load_soul("../etc/passwd")  # path traversal
-    with _pytest.raises(FileNotFoundError):
+    with pytest.raises(FileNotFoundError):
         loader.load_soul("definitely-not-a-real-profile-xyz")
-

@@ -56,11 +56,13 @@ PROD_LAYERS = [
 #   age-based pruning. Append-only invariant still holds for the actual
 #   state tables (ikigai_state, plan_entities); only the link metadata
 #   table is pruned.
-SQLITE_ALLOWLIST: frozenset[str] = frozenset({
-    "src/ikigai/src/agents/v2/tools_legacy_reference.py",
-    "src/ikigai/src/agents/v2/harness_legacy_reference.py",
-    "src/ikigai/src/agents/v2/checkpoint.py",
-})
+SQLITE_ALLOWLIST: frozenset[str] = frozenset(
+    {
+        "src/ikigai/src/agents/v2/tools_legacy_reference.py",
+        "src/ikigai/src/agents/v2/harness_legacy_reference.py",
+        "src/ikigai/src/agents/v2/checkpoint.py",
+    }
+)
 
 
 def _iter_python_files(root: Path) -> list[Path]:
@@ -154,7 +156,9 @@ def test_no_drop_table_in_prod() -> None:
             for line_no, snippet in _scan_for_string_in_execute(tree, "DROP"):
                 violations.append(
                     _format_violation(
-                        py_file, line_no, "SQLITE-DROP",
+                        py_file,
+                        line_no,
+                        "SQLITE-DROP",
                         f"DROP statement in execute() — schema must not change: {snippet!r}",
                     )
                 )
@@ -185,7 +189,9 @@ def test_no_delete_from_in_prod() -> None:
             for line_no, snippet in _scan_for_string_in_execute(tree, "DELETE"):
                 violations.append(
                     _format_violation(
-                        py_file, line_no, "SQLITE-DELETE",
+                        py_file,
+                        line_no,
+                        "SQLITE-DELETE",
                         f"DELETE statement in execute() — checkpoints are append-only: {snippet!r}",
                     )
                 )
@@ -215,7 +221,9 @@ def test_sqlite_writes_only_to_data_dir() -> None:
             for line_no, path_str in _scan_for_sqlite_connect_to_non_data(tree):
                 violations.append(
                     _format_violation(
-                        py_file, line_no, "SQLITE-PATH",
+                        py_file,
+                        line_no,
+                        "SQLITE-PATH",
                         f"sqlite3.connect to non-data/ path: {path_str!r}",
                     )
                 )
@@ -232,5 +240,9 @@ def test_sqlite_append_only_self_check() -> None:
     assert SQLITE_ALLOWLIST, "SQLITE_ALLOWLIST must be non-empty"
     # Each allowlist entry should actually exist on disk
     for rel_path in SQLITE_ALLOWLIST:
-        full = LIFE_REPO / rel_path.replace("/", "\\") if "\\" in str(LIFE_REPO) else LIFE_REPO / rel_path
+        full = (
+            LIFE_REPO / rel_path.replace("/", "\\")
+            if "\\" in str(LIFE_REPO)
+            else LIFE_REPO / rel_path
+        )
         assert full.exists(), f"SQLITE_ALLOWLIST entry missing: {rel_path}"

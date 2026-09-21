@@ -22,6 +22,7 @@ is a violation. The drift detector (test_canonical_scope.py) provides the
 parallel pattern for catching canonical-scope drift; this test provides the
 analog for write-path drift.
 """
+
 from __future__ import annotations
 
 import re
@@ -85,11 +86,7 @@ def _is_allowlisted(rel_path: Path) -> bool:
     if parts == ("src", "ikigai", "src", "mcp_server", "tools_vault.py"):
         return True
     # src/ikigai/src/ikigai/vault/<anything>.py
-    if (
-        len(parts) >= 5
-        and parts[:4] == ("src", "ikigai", "src", "ikigai")
-        and parts[4] == "vault"
-    ):
+    if len(parts) >= 5 and parts[:4] == ("src", "ikigai", "src", "ikigai") and parts[4] == "vault":
         return True
     return False
 
@@ -119,8 +116,7 @@ def _file_targets_vault(src: str) -> bool:
     body = _strip_comments_and_strings_relaxed(src)
 
     has_vault_path = (
-        _RE_VAULT_STRING.search(body) is not None
-        or _RE_PATH_VAULT.search(body) is not None
+        _RE_VAULT_STRING.search(body) is not None or _RE_PATH_VAULT.search(body) is not None
     )
     if not has_vault_path:
         return False
@@ -169,8 +165,12 @@ def test_vault_write_is_sole_writer() -> None:
                 # Extract a small excerpt for human review
                 body = _strip_comments_and_strings_relaxed(src)
                 excerpts: list[str] = []
-                for pat in (_RE_OPEN_WRITE, _RE_PATH_WRITE_METHODS,
-                            _RE_ATOMIC_RENAME, _RE_WITH_OPEN):
+                for pat in (
+                    _RE_OPEN_WRITE,
+                    _RE_PATH_WRITE_METHODS,
+                    _RE_ATOMIC_RENAME,
+                    _RE_WITH_OPEN,
+                ):
                     m = pat.search(body)
                     if m:
                         start = max(0, m.start() - 40)

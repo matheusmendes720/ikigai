@@ -10,7 +10,6 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
-
 from sys_ikigai.adapters.state_reducer import StateReducer
 from sys_ikigai.entities.ikigai_record import EntityType, IKIGAiRecord
 

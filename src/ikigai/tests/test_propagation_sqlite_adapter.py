@@ -8,7 +8,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from sys_ikigai.propagation.sqlite_adapter import SQLiteAdapter
 
 

@@ -27,10 +27,8 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Iterable
 
 import yaml
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Data model
@@ -87,7 +85,11 @@ def load_entities(vault_root: Path) -> list[Entity]:
         created_at_raw = meta.get("created_at", "2026-01-01T00:00:00Z")
         if isinstance(created_at_raw, datetime):
             # YAML auto-parsed ISO 8601 as datetime
-            created_at = created_at_raw if created_at_raw.tzinfo else created_at_raw.replace(tzinfo=timezone.utc)
+            created_at = (
+                created_at_raw
+                if created_at_raw.tzinfo
+                else created_at_raw.replace(tzinfo=timezone.utc)
+            )
         else:
             # String form — handle Z suffix
             created_at_str = str(created_at_raw).replace("Z", "+00:00")
@@ -119,25 +121,37 @@ def load_entities(vault_root: Path) -> list[Entity]:
 
 def render_breakdown(entities: list[Entity]) -> str:
     """Hierarchical tree: DREAM → GOAL → OBJECTIVE → PROJECT → DELIVERABLE."""
-    by_ueid = {e.ueid: e for e in entities}
     children: dict[str, list[Entity]] = {}
     roots = [e for e in entities if not e.parent_ueid]
     for e in entities:
         if e.parent_ueid:
             children.setdefault(e.parent_ueid, []).append(e)
 
-    type_order = {"dream": 0, "goal": 1, "objective": 2, "project": 3, "deliverable": 4, "profile": 5}
+    type_order = {
+        "dream": 0,
+        "goal": 1,
+        "objective": 2,
+        "project": 3,
+        "deliverable": 4,
+        "profile": 5,
+    }
     for parent_ueid in children:
         children[parent_ueid].sort(key=lambda e: (type_order.get(e.entity_type, 99), e.slug))
 
     lines = ["# Breakdown (parent_ueid tree)", ""]
 
     def walk(e: Entity, depth: int = 0) -> None:
-        icon = {"dream": "🌙", "objective": "🎯", "project": "🛠 ", "deliverable": "📦", "profile": "👤"}.get(
-            e.entity_type, "·"
-        )
+        icon = {
+            "dream": "🌙",
+            "objective": "🎯",
+            "project": "🛠 ",
+            "deliverable": "📦",
+            "profile": "👤",
+        }.get(e.entity_type, "·")
         indent = "  " * depth
-        lines.append(f"{indent}{icon} **{e.entity_type.upper()}** `{e.slug}` — {e.title} [{e.status}, {e.horizon_days}d]")
+        lines.append(
+            f"{indent}{icon} **{e.entity_type.upper()}** `{e.slug}` — {e.title} [{e.status}, {e.horizon_days}d]"
+        )
         for child in children.get(e.ueid, []):
             walk(child, depth + 1)
 
@@ -166,14 +180,29 @@ def render_gantt(entities: list[Entity], total_days: int = 365) -> str:
     bar_width = 60
 
     # Sort by entity_type then start
-    type_order = {"dream": 0, "goal": 1, "objective": 2, "project": 3, "deliverable": 4, "profile": 5}
-    sorted_entities = sorted(entities, key=lambda e: (type_order.get(e.entity_type, 99), e.created_at))
+    type_order = {
+        "dream": 0,
+        "goal": 1,
+        "objective": 2,
+        "project": 3,
+        "deliverable": 4,
+        "profile": 5,
+    }
+    sorted_entities = sorted(
+        entities, key=lambda e: (type_order.get(e.entity_type, 99), e.created_at)
+    )
 
     lines = [f"# Gantt ({span_days}d span, {bar_width} cols)", ""]
     header = "       " + "·" * bar_width
     lines.append(header)
 
-    icon_map = {"dream": "🌙", "objective": "🎯", "project": "🛠 ", "deliverable": "📦", "profile": "👤"}
+    icon_map = {
+        "dream": "🌙",
+        "objective": "🎯",
+        "project": "🛠 ",
+        "deliverable": "📦",
+        "profile": "👤",
+    }
     for e in sorted_entities:
         start_offset = (e.created_at - min_date).days
         end_offset = (e.end_date - min_date).days
@@ -211,10 +240,16 @@ def render_kanban(entities: list[Entity]) -> str:
             continue
         lines.append(f"## 📋 {status.upper()} ({len(items)})")
         for e in items:
-            icon = {"dream": "🌙", "objective": "🎯", "project": "🛠 ", "deliverable": "📦", "profile": "👤"}.get(
-                e.entity_type, "·"
+            icon = {
+                "dream": "🌙",
+                "objective": "🎯",
+                "project": "🛠 ",
+                "deliverable": "📦",
+                "profile": "👤",
+            }.get(e.entity_type, "·")
+            lines.append(
+                f"  - {icon} **{e.entity_type}** `{e.slug}` — {e.title} [{e.horizon_days}d]"
             )
-            lines.append(f"  - {icon} **{e.entity_type}** `{e.slug}` — {e.title} [{e.horizon_days}d]")
         lines.append("")
     return "\n".join(lines).rstrip()
 
@@ -234,7 +269,9 @@ def render_calendar(entities: list[Entity]) -> str:
         start = e.created_at.strftime("%Y-%m-%d")
         end = e.end_date.strftime("%Y-%m-%d")
         span = f"{e.horizon_days}d"
-        lines.append(f"{start:<12} {end:<12} {span:<6} {e.entity_type:<12} {e.slug[:33]:<35} {e.status}")
+        lines.append(
+            f"{start:<12} {end:<12} {span:<6} {e.entity_type:<12} {e.slug[:33]:<35} {e.status}"
+        )
     return "\n".join(lines)
 
 
@@ -282,7 +319,7 @@ def main(argv: list[str] | None = None) -> int:
         "calendar": render_calendar,
     }
     if args.view == "all":
-        for name, fn in views.items():
+        for _name, fn in views.items():
             print(fn(entities))
             print()
     else:

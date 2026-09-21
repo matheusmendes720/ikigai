@@ -1,5 +1,7 @@
 """Soul loader for the IKIGAI agent layer."""
+
 from __future__ import annotations
+
 from pathlib import Path
 
 _SOULS_DIR = Path(__file__).parent
@@ -24,9 +26,7 @@ def _discover_profiles() -> frozenset[str]:
     return frozenset(
         entry.name[: -len(".md")]
         for entry in _SOULS_DIR.iterdir()
-        if entry.is_file()
-        and not entry.name.startswith(".")
-        and entry.name.endswith(".md")
+        if entry.is_file() and not entry.name.startswith(".") and entry.name.endswith(".md")
     )
 
 
@@ -45,4 +45,4 @@ def load_soul(profile: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
-__all__ = ["load_soul", "known_profiles"]
+__all__ = ["known_profiles", "load_soul"]

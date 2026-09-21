@@ -98,4 +98,6 @@ __all__ = [  # noqa: RUF022 — entries are grouped by domain with comments, not
 
 
 # TaskChange — Phase 3 v1 review queue model
-from .task_change import TaskChange, TaskStatus  # noqa: E402
+# (TaskChange / TaskStatus are imported via dotted-prefix
+# `from src.contracts.task_change import ...` — not re-exported here
+# to avoid a circular import surface; see src/mesh/queue.py)

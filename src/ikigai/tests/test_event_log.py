@@ -7,7 +7,6 @@ import threading
 from pathlib import Path
 
 import pytest
-
 from sys_ikigai.gateway.event_log import (
     DEFAULT_MAX_BYTES,
     DEFAULT_MAX_ROTATIONS,

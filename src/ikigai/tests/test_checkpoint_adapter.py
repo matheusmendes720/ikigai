@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
-
 from sys_ikigai.adapters.checkpoint_adapter import CheckpointAdapter
 from sys_ikigai.entities.ikigai_record import IKIGAiRecord
 

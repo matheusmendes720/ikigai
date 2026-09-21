@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -256,8 +257,6 @@ class TimestampMixin(BaseModel):
 # ---------------------------------------------------------------------------
 # Planning Contract Literals (Plan A - Task 1)
 # ---------------------------------------------------------------------------
-
-from typing import Literal
 
 PaeCyclePhase = Literal["plan", "adjust", "evaluate"]
 PlanTier = Literal["SONHO", "QUARTERLY", "ONDA", "WEEKLY", "DAILY"]

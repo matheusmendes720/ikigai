@@ -12,7 +12,6 @@ from typing import Any
 
 import pytest
 from pydantic import ValidationError
-
 from sys_ikigai.entities.correction_signal import CorrectionSignal
 from sys_ikigai.entities.fractal_regime import FractalRegime, FractalRegimeState
 from sys_ikigai.entities.ikigai_record import (

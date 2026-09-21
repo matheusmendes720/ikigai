@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 
 import pytest
 from pydantic import ValidationError
-
 from sys_ikigai.entities.correction_signal import CorrectionSignal
 
 

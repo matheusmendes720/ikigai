@@ -12,8 +12,14 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-from sys_ikigai.vault.frontmatter_compat import loads, dumps, Post, load, dump  # noqa: F401  (M72.1 shim)
 from pydantic import BaseModel, ConfigDict, Field
+from sys_ikigai.vault.frontmatter_compat import (  # noqa: F401  (M72.1 shim)
+    Post,
+    dump,
+    dumps,
+    load,
+    loads,
+)
 
 
 class StrategicDoc(BaseModel):

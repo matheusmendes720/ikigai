@@ -22,7 +22,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from sys_ikigai.security import kill_switch as ks
 from sys_ikigai.security.vault_write_wrapper import (
     LEGAL_CALLERS,
