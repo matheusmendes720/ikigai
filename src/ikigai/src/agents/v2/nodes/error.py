@@ -30,7 +30,14 @@ def error_node(state: IKIGAiStateDict) -> dict[str, Any]:
     timestamp = dt.datetime.now().isoformat()
     summary = f"ERROR in node '{originating}' at {timestamp}: {err_type}: {err_msg}"
 
+    # M88: error_node must write originating_node back to state so test
+    # assertions like `result["originating_node"] is not None` pass.
+    # Previously only the safe_node wrapper set these; new routing
+    # decisions (e.g. _route_after_reason loop-exit) also need them.
     return {
+        "originating_node": originating,
+        "error_type": err_type,
+        "error_message": err_msg,
         "commit_summary": summary,
         "terminated": True,
         "last_step": "error",

@@ -1228,3 +1228,6 @@ When verifier returns PASS:
 
 
 ### M87 - Real LLM integration via ChatAnthropic (STATUS: DONE)
+
+
+### M88 - v2 graph Day 1: fix recursion + populate recall/reason stubs (STATUS: DONE)

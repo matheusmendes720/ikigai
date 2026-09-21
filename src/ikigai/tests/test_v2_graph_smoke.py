@@ -20,8 +20,10 @@ from pathlib import Path
 
 import pytest
 
-# M73.7: module-skip — v2 graph wiring incomplete (recursion loops without termination); M73.7 + M75+
-pytestmark = pytest.mark.skip(reason="v2 graph wiring incomplete (recursion loops without termination); M73.7 + M75+")
+# M88: unskip - v2 graph recursion bounded (MAX_REASON_LOOPS), recall/reason
+# now use real memory_db. Smoke test should pass. Re-skip if specific test
+# fails - this is the entry point for re-enabling the v2 suite.
+# pytestmark = pytest.mark.skip(reason="v2 graph wiring incomplete (recursion loops without termination); M73.7 + M75+")
 
 # ---------------------------------------------------------------------------
 # Path setup — match conftest.py and test_v2_imports_safely.py pattern

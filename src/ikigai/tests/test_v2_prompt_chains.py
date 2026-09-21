@@ -17,8 +17,11 @@ from pathlib import Path
 
 import pytest
 
-# M73.7: module-skip — v2 prompt chains + observation wrappers unimplemented; M75+
-pytestmark = pytest.mark.skip(reason="v2 prompt chains + observation wrappers unimplemented; M75+")
+# M88: unskip prompt-chains now that graph routes are bounded.
+# Reason: graph recursion fixed (MAX_REASON_LOOPS), error_node writes
+# originating_node back to state. Prompt-chain tests should now pass
+# if their underlying node implementations are real.
+# pytestmark = pytest.mark.skip(reason="v2 prompt chains + observation wrappers unimplemented; M75+")
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -214,6 +217,7 @@ def test_v2_no_forbidden_imports_in_prompts() -> None:
     assert not violations, "Forbidden imports in prompts:\n" + "\n".join(violations)
 
 
+@pytest.mark.skip(reason="M88 Day-2: MCP observation wrappers + sync_vault handler not yet implemented")
 def test_v2_mcp_observation_wrappers_registered() -> None:
     """After server.py edit, 15 @MCP.tool decorators present (was 8)."""
 
@@ -243,6 +247,7 @@ def test_v2_mcp_observation_wrappers_registered() -> None:
     )
 
 
+@pytest.mark.skip(reason="M88 Day-2: _handle_ikigai_sync_vault function not yet implemented")
 def test_v2_sync_vault_handler_readonly() -> None:
     """_handle_ikigai_sync_vault is read-only (vault_write invariant).
 
@@ -281,6 +286,7 @@ def test_v2_sync_vault_handler_readonly() -> None:
         )
 
 
+@pytest.mark.skip(reason="M88 Day-2: vault/ikigai/meta/cycle_state reader not yet implemented")
 def test_v2_observation_wrappers_read_vault() -> None:
     """ikigai_score MCP handler reads from vault path, not SQLite."""
     server_path = IKIGAI_SRC / "mcp_server" / "server.py"

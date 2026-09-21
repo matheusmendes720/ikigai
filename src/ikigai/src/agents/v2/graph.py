@@ -130,13 +130,44 @@ def _route_after_reason(
     state: IKIGAiStateDict,
 ) -> Literal["reflect", "recall", "error"]:
     """After reason: proceed to reflect on validated proposal, otherwise loop back
-    to recall to gather more context (reason->recall validation-failure loop)."""
+    to recall to gather more context (reason->recall validation-failure loop).
+
+    M88: Bound the recall<->reason loop. After MAX_REASON_LOOPS iterations,
+    route to error (graceful failure) so the graph terminates. The
+    originating_node + error_type fields let upstream callers diagnose
+    why reason never produced a proposal.
+
+    Note: route functions return a node name; error_node reads error
+    fields from state. So we set them here as a side effect on the
+    routing decision (only when we're routing to error).
+    """
     if state.get("error_type"):
         return "error"
     draft = state.get("draft_proposal")
     if not draft:
+        iteration = state.get("iteration", 0)
+        if iteration >= MAX_REASON_LOOPS:
+            # M88: populate error fields so error_node can produce a
+            # useful commit_summary. These fields are normally set by
+            # the safe_node wrapper; here we set them manually because
+            # the loop-exit is a routing decision, not a node exception.
+            state["originating_node"] = "reason"
+            state["error_type"] = "ReasonLoopExhausted"
+            state["error_message"] = (
+                f"reason_node failed to produce draft_proposal after "
+                f"{MAX_REASON_LOOPS} iterations (recall_node context "
+                f"insufficient)"
+            )
+            return "error"
         return "recall"
     return "reflect"
+
+
+# M88: cap on reason<->recall bounces before graceful termination.
+# Without this, the v2 graph hangs because recall_node is a stub that
+# never populates draft_proposal. Bound chosen at 3: gives 2 retries
+# before forcing termination (matches LangGraph typical patterns).
+MAX_REASON_LOOPS = 3
 
 
 def _route_after_score_vectors(
