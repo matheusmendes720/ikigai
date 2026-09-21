@@ -214,8 +214,9 @@ def _make_agent(
         # outside the LLM tool surface. LLM tools are scoped to data/ only.
     )
 
-    # Load IKIGAi tools
-    from .tools import IKIGAI_TOOLS
+    # Load IKIGAi tools (+ optional MCP taskdog tools, M97b)
+    from .mcp_taskdog_client import build_agent_tools
+    all_tools = build_agent_tools()  # 12 IKIGAI_TOOLS + 0-26 MCP taskdog tools
 
     # LLM — initialize ChatAnthropic with MiniMax API credentials
     api_key = os.environ.get("MINIMAX_API_KEY", os.environ.get("ANTHROPIC_API_KEY", ""))
@@ -235,7 +236,7 @@ def _make_agent(
         span.set_attribute("model", os.environ.get("ANTHROPIC_MODEL", "MiniMax-M2.7-highspeed"))
         agent = create_deep_agent(
             model=llm,
-            tools=IKIGAI_TOOLS,
+            tools=all_tools,
             system_prompt=_SYSTEM_PROMPT,
             checkpointer=checkpointer,
             interrupt_on=interrupt_on,

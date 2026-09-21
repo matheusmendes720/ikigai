@@ -1252,3 +1252,29 @@ When verifier returns PASS:
 
 
 ### M95 - v2 score/regime/suggest/cycle graph entry_point aliases (STATUS: DONE)
+
+
+### M96 - Taskdog → Deep-Agent Tool Wiring Gap Report (AUDIT, NO CODE) (STATUS: PUBLISHED)
+- Reports: reports/M96-taskdog-deep-agent-gap-report.md
+- Severity: HIGH
+- Finding: 4 of 26 taskdog tools wired (15%); deep-agent can do CRUD but not cancel/pause/decompose/dependency/update/audit/stats/optimize/schedule
+- Decision needed: User picks A (MCP-wired, 1-2hr), B (param expansion, 30min), or C (status quo)
+- See M97 for the practical impact scenarios
+
+### M97 - Deep-Agent System Topology & Practical Usage Guide (STATUS: PUBLISHED, M97b wiring DONE)
+- Reports: reports/M97-deep-agent-system-topology.md
+- 5-layer topology (User → Skills → v2 graph → Agents → Data)
+- 7 practical scenarios showing what works via CLI vs what works via LLM
+- Honest "what CAN'T the agent do today" map
+- Recommended next steps (P0-P4)
+- 193 tasks live, 9/9 daemons running, 12 IKIGAI_TOOLS wired, 19 IKIGAI_MCP_tools, 26 taskdog-mcp tools, 36 taskdog REST endpoints, 13 v2 graph nodes
+
+
+### M97b - taskdog-mcp wiring via MultiServerMCPClient (STATUS: DONE)
+- New module: src/ikigai/src/agents/mcp_taskdog_client.py (sync facade over async client)
+- Patched: src/ikigai/src/agents/deepagents_harness.py _make_agent() loads 12 IKIGAI_TOOLS + 26 MCP = 38 tools
+- New test: src/ikigai/tests/test_mcp_taskdog_wiring.py (7 tests, all PASS)
+- Drift detector preserved (IKIGAI_TOOLS=12 unchanged)
+- LangChain-mcp-adapters 0.3.2 installed in src/ikigai/.venv
+- 22 M96-gap capabilities now reachable: cancel_task, pause_task, decompose_task, add_dependency, optimize_schedule, etc.
+- Regression: drift 18/18, root 420+27, ikigai 826+30, 1264 tests pass, 0 fail
