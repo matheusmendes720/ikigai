@@ -1249,3 +1249,6 @@ When verifier returns PASS:
 
 
 ### M94 - invoke_skill real graph execution + v2 daily command + CLI error handling (STATUS: DONE)
+
+
+### M95 - v2 score/regime/suggest/cycle graph entry_point aliases (STATUS: DONE)
