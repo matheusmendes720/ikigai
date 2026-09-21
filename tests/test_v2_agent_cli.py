@@ -92,3 +92,42 @@ def test_v2_agent_disable_mcp_flag_parses(ikigai_python: str) -> None:
     combined = (r.stdout + r.stderr).lower()
     assert "no such option" not in combined
     assert "unrecognized" not in combined
+
+
+# ---------------------------------------------------------------------------
+# M99: `chat` REPL driver tests
+# ---------------------------------------------------------------------------
+
+
+def test_v2_chat_help_lists_command(ikigai_python: str) -> None:
+    """`life v2 --help` must list the new `chat` command."""
+    r = _run_cli(ikigai_python, "v2", "--help")
+    assert r.returncode == 0
+    assert "chat" in r.stdout
+    assert "Start an interactive REPL chat with the deep-agent (M99)." in r.stdout
+
+
+def test_v2_chat_command_help(ikigai_python: str) -> None:
+    """`life v2 chat --help` must print the chat options."""
+    r = _run_cli(ikigai_python, "v2", "chat", "--help")
+    assert r.returncode == 0
+    assert "--thread" in r.stdout
+    assert "--checkpoint-db" in r.stdout
+    assert "--disable-mcp" in r.stdout
+
+
+def test_v2_chat_with_empty_input_exits(ikigai_python: str) -> None:
+    """`life v2 chat` with immediate EOF must exit gracefully (not crash)."""
+    # EOF immediately → run_chat() catches EOFError → prints "Goodbye." → exits 0
+    r = subprocess.run(
+        [ikigai_python, "-m", "life.cli", "v2", "chat", "--disable-mcp"],
+        cwd=REPO_ROOT,
+        env={**os.environ, "PYTHONPATH": REPO_ROOT},
+        capture_output=True,
+        text=True,
+        input="",  # immediate EOF
+        timeout=30,
+    )
+    assert "Goodbye" in r.stdout or "Goodbye" in r.stderr, (
+        f"REPL did not exit gracefully. stdout={r.stdout!r} stderr={r.stderr!r}"
+    )
