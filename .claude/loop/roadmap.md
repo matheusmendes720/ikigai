@@ -1246,3 +1246,6 @@ When verifier returns PASS:
 
 
 ### M93 - langgraph.json v2 graph re-registration verified (already in place) (STATUS: DONE)
+
+
+### M94 - invoke_skill real graph execution + v2 daily command + CLI error handling (STATUS: DONE)

@@ -59,7 +59,7 @@ def test_invoke_skill_loads_daily_manifest():
     assert manifest["actor"] == "user"
 
 
-@pytest.mark.skip(reason="M92: invoke_skill stub-dispatches without running graph; warning/ValueError/suggestions require full graph execution (M93+)")
+# M94: unskipped — invoke_skill now runs graph
 def test_invoke_skill_with_override_different_logs_warning(caplog, monkeypatch):
     """invoke_skill(entry_point_override=...) different from manifest logs warning.
 
@@ -94,7 +94,7 @@ def test_invoke_skill_with_override_same_uses_override(monkeypatch):
     assert isinstance(result, dict)
 
 
-@pytest.mark.skip(reason="M92: invoke_skill stub-dispatches without running graph (M93+)")
+# M94: unskipped — invoke_skill now runs graph
 def test_invoke_skill_unknown_entry_point_raises():
     """invoke_skill raises ValueError for unknown entry_point."""
     from interfaces.cli.v2 import invoke_skill
@@ -103,7 +103,7 @@ def test_invoke_skill_unknown_entry_point_raises():
         invoke_skill("ikigai-daily", entry_point_override="not_a_real_node")
 
 
-@pytest.mark.skip(reason="M92: invoke_skill stub-dispatches without running graph (M93+)")
+# M94: unskipped — invoke_skill now runs graph
 def test_invoke_skill_daily_returns_user_suggestions(tmp_path, monkeypatch):
     """invoke_skill('ikigai-daily') returns dict with user_suggestions (FAKE_LLM)."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
@@ -133,7 +133,7 @@ def test_invoke_skill_uses_manifest_entry_point_by_default(tmp_path, monkeypatch
 # Tests — daily command via Typer runner
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skip(reason="M92: test calls `v2 daily` command which doesn't exist; invoke-skill is the actual surface (M93+)")
+# M94: unskipped — `v2 daily` command now exists (alias for invoke-skill ikigai-daily)
 def test_daily_command_surface_suggestions_via_skill(tmp_path, monkeypatch):
     """`life v2 daily` via invoke_skill returns suggestions in surface (FAKE_LLM)."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")

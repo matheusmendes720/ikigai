@@ -186,6 +186,35 @@ register_plan(app)
 v2_app = app
 
 
+# M94: register a `daily` command as a thin alias for `invoke-skill ikigai-daily`.
+# This restores the missing command that test_daily_command_surface_suggestions_via_skill
+# expects (was removed in V5-D). The actual work is delegated to invoke_skill().
+def register_daily(app: typer.Typer) -> None:
+    """Register `v2 daily` as an alias for `v2 invoke-skill ikigai-daily`."""
+
+    @app.command(name="daily")
+    def daily_cmd(
+        json_out: bool = typer.Option(False, "--json", help="Emit JSON output"),
+    ) -> None:
+        """Run the ikigai-daily skill end-to-end (M94 alias for invoke-skill)."""
+        from .invoke_skill import invoke_skill
+
+        result = invoke_skill("ikigai-daily")
+        # M94: shape the output for test_daily_command_surface_suggestions_via_skill
+        # which expects `output["surface"]["suggestions"]` + `language`.
+        surface = {
+            "skill": result.get("skill"),
+            "entry_point": result.get("entry_point"),
+            "suggestions": result.get("user_suggestions", []),
+            "suggestions_count": result.get("suggestions_count"),
+            "language": result.get("suggestions_language"),
+        }
+        if json_out:
+            typer.echo(json.dumps({"surface": surface}, default=str))
+        else:
+            typer.echo(json.dumps({"surface": surface}, indent=2, default=str))
+
+
 
 
 def register_invoke_skill(app: typer.Typer) -> None:
@@ -225,11 +254,26 @@ def register_invoke_skill(app: typer.Typer) -> None:
         # Lazy import to avoid circular (per Plan D Task E.1 lesson)
         from .invoke_skill import invoke_skill as _invoke_skill
 
-        result = _invoke_skill(
-            name,
-            entry_point_override=entry_point,
-            actor=actor,
-        )
+        # M94: catch ValueError (manifest not found / unknown entry_point)
+        # and surface as a structured error dict (NOT raise from CLI).
+        # This preserves the test_invoke_skill_unknown_returns_empty_state
+        # contract: exit 0 + JSON error response.
+        try:
+            result = _invoke_skill(
+                name,
+                entry_point_override=entry_point,
+                actor=actor,
+            )
+        except ValueError as exc:
+            # Build the same shape as the old "empty state" return value.
+            result = {
+                "skill": name,
+                "entry_point": "unknown",
+                "outputs_fired": [],
+                "graph_state": {"error": str(exc)},
+                "actor": actor,
+                "error": str(exc),
+            }
         typer.echo(json.dumps(result, indent=2, default=str))
 
 
@@ -352,6 +396,8 @@ def _print_skill_human(detail: dict[str, object]) -> None:
 register_invoke_skill(app)
 register_skill_list(app)
 register_skill_show(app)
+# M94: also wire the `daily` alias.
+register_daily(app)
 
 
 # Re-export invoke_skill so ``from interfaces.cli.v2 import invoke_skill``

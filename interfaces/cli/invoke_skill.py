@@ -402,38 +402,145 @@ def invoke_skill(
     manifest = load_skill_manifest(name)
 
     if not manifest:
-        return {
-            "skill": name,
-            "entry_point": "unknown",
-            "outputs_fired": [],
-            "graph_state": {"error": f"manifest not found: {name}"},
-            "actor": actor,
-        }
+        raise ValueError(f"manifest not found: {name}")
 
     entry_point = entry_point_override or manifest.get("entry_point", "observe")
-    graph_state = _llm_dispatch(manifest)
+
+    # M94: validate entry_point against the graph's declared NODES.
+    # Lazy import: tests monkeypatch the source module path.
+    try:
+        from src.ikigai.src.agents.v2.graph import NODES as _VALID_NODES
+    except ImportError:
+        try:
+            from agents.v2.graph import NODES as _VALID_NODES  # type: ignore[no-redef]
+        except ImportError:
+            _VALID_NODES = ()  # empty fallback - accept any
+
+    if entry_point not in _VALID_NODES:
+        raise ValueError(
+            f"Invalid entry_point {entry_point!r} - "
+            f"must be one of: {', '.join(_VALID_NODES)}"
+        )
+
+    # M94: log warning when entry_point_override differs from manifest default.
+    # This catches misconfiguration (e.g. testing daily with observe as
+    # override would silently run a different pipeline than intended).
+    import logging as _logging
+
+    _logger = _logging.getLogger(__name__)
+    if (
+        entry_point_override is not None
+        and entry_point_override != manifest.get("entry_point")
+    ):
+        _logger.warning(
+            "entry_point override=%r differs from manifest default %r; "
+            "running pipeline from %r",
+            entry_point_override,
+            manifest.get("entry_point"),
+            entry_point,
+        )
+
+    # M94: actually run the v2 graph when entry_point requires it.
+    # Surface-level entry points (e.g. "surface_intentions") require the
+    # graph to populate user_suggestions. Without this, the result is
+    # just the stub dispatch + post-processors.
+    graph_result = None
+    try:
+        from src.ikigai.src.agents.v2.graph import make_v2_graph
+
+        # Build graph with in-memory checkpoint (no on-disk side effects).
+        # thread_id is REQUIRED by SqliteSaver's checkpoint config.
+        graph = make_v2_graph(checkpoint_db=":memory:", entry_point=entry_point)
+        # Construct minimal state the graph needs
+        graph_state: dict[str, Any] = {
+            "cycle_id": f"invoke-skill-{name}",
+            "cycle_start": "",
+            "cycle_end": "",
+            "iteration": 0,
+            "actor": actor,
+            "user_request": name,  # cycle_id-style: pass skill name as request
+            "last_step": entry_point,
+        }
+        # Use a stable thread_id per skill to allow checkpoint continuity
+        graph_config = {
+            "configurable": {
+                "thread_id": f"invoke-skill-{name}-thread",
+            }
+        }
+        graph_result = graph.invoke(graph_state, config=graph_config)
+    except Exception as exc:  # noqa: BLE001 - graph run is best-effort
+        # Graph run failure shouldn't crash invoke_skill — fall through
+        # to post-processors. Surface the error in graph_state for
+        # diagnostics.
+        _logger.warning("v2 graph run failed (continuing with post-processors): %s", exc)
+        graph_result = {"graph_run_error": f"{type(exc).__name__}: {exc}"}
+
+    # M94: extract user_suggestions + other graph outputs
+    if isinstance(graph_result, dict):
+        for k in ("user_suggestions", "suggestions_count", "suggestions_language", "commit_summary"):
+            if k in graph_result and k not in graph_result.get("graph_state", {}):
+                # M94: surface graph outputs at top level (so tests can
+                # assert without diving into graph_state).
+                # But don't overwrite if post-processor set it.
+                pass  # we handle via flatten below
+
+    # Build the graph_state field that the rest of invoke_skill will read.
+    # Combine: LLM dispatch (which gives analysis/next_action) + graph
+    # run result (which gives user_suggestions and final state).
+    llm_state = _llm_dispatch(manifest)
+    combined_graph_state: dict[str, Any] = dict(llm_state.get("graph_state") or {})
+    if isinstance(graph_result, dict):
+        # Promote user-facing fields to top of graph_state
+        for k in ("user_suggestions", "suggestions_count", "suggestions_language", "commit_summary"):
+            if k in graph_result:
+                combined_graph_state[k] = graph_result[k]
+        # Track last_step from graph if available
+        if "last_step" in graph_result and "last_step" not in combined_graph_state:
+            combined_graph_state["last_step"] = graph_result["last_step"]
+        # Update iteration if the graph advanced it
+        if "iteration" in graph_result:
+            combined_graph_state["iteration"] = graph_result["iteration"]
+        # Preserve graph errors in graph_state for diagnostics
+        if "graph_run_error" in graph_result:
+            combined_graph_state["graph_run_error"] = graph_result["graph_run_error"]
+
+    # Override top-level graph_state to the combined view
+    graph_state_result = {
+        "skill": manifest.get("name", name),
+        "entry_point": entry_point,
+        "actor": llm_state.get("actor", actor),
+        "llm_stub": llm_state.get("llm_stub", True),
+        "graph_state": combined_graph_state,
+    }
+    if "llm_model" in llm_state:
+        graph_state_result["llm_model"] = llm_state["llm_model"]
+    if "ok_reason" in llm_state:
+        graph_state_result["ok_reason"] = llm_state["ok_reason"]
 
     result: dict[str, Any] = {
         "skill": manifest.get("name", name),
         "entry_point": entry_point,
         "outputs_fired": [],
-        "graph_state": graph_state,
+        "graph_state": graph_state_result,
         "actor": actor,
     }
     # M92: flatten last_step from graph_state (nested) to top-level so
     # callers can introspect "did this run reach its target entry_point"
     # without digging into graph_state.graph_state every time.
-    if isinstance(graph_state, dict):
-        # _fake_llm_dispatch nests under graph_state.graph_state.last_step
-        gs_nested = graph_state.get("graph_state")
+    if isinstance(graph_state_result, dict):
+        gs_nested = graph_state_result.get("graph_state")
         if isinstance(gs_nested, dict):
             ls = gs_nested.get("last_step")
             if ls and "last_step" not in result:
                 result["last_step"] = ls
-        # _real_llm_dispatch puts it at graph_state.last_step (no nesting)
-        ls = graph_state.get("last_step")
+        ls = graph_state_result.get("last_step")
         if ls and "last_step" not in result:
             result["last_step"] = ls
+
+    # M94: surface user_suggestions at top level (graph state promotion)
+    for k in ("user_suggestions", "suggestions_count", "suggestions_language"):
+        if k in combined_graph_state and k not in result:
+            result[k] = combined_graph_state[k]
 
     outputs = manifest.get("outputs", []) or []
     # Detect taskdog output declaration
