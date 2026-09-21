@@ -215,6 +215,77 @@ def register_daily(app: typer.Typer) -> None:
             typer.echo(json.dumps({"surface": surface}, indent=2, default=str))
 
 
+# M95: register score/regime/suggest/cycle as aliases for invoke-skill
+# with the corresponding entry_point override. These were V5-D-removed
+# commands; restoring as thin aliases re-enables interface_dispatch tests.
+def _make_graph_alias(name: str, entry_point: str, help_text: str) -> object:
+    """Build a Typer command that invokes invoke_skill with a fixed entry_point.
+
+    Used to restore V5-D-removed commands as thin wrappers over the
+    canonical invoke-skill interface.
+    """
+
+    def cmd(
+        date: str = typer.Option(None, "--date", help="Date (YYYY-MM-DD)"),
+        json_out: bool = typer.Option(False, "--json", help="Emit JSON output"),
+        dry_run: bool = typer.Option(False, "--dry-run", help="Dry run (no writes)"),
+    ) -> None:
+        from .invoke_skill import invoke_skill
+
+        result = invoke_skill("ikigai-daily", entry_point_override=entry_point)
+        if json_out:
+            typer.echo(json.dumps(result, indent=2, default=str))
+        else:
+            typer.echo(json.dumps(result, indent=2, default=str))
+
+    cmd.__name__ = name
+    cmd.__doc__ = help_text
+    return app.command(name=name)(cmd)
+
+
+def register_graph_aliases(app: typer.Typer) -> None:
+    """Register `score/regime/suggest/cycle` aliases (M95).
+
+    Each maps to invoke_skill with the corresponding entry_point.
+    Uses @app.command() with a Typer-style signature (NOT @click decorators)
+    so --json/--date options are recognized correctly.
+
+    Note: We MUST use a factory function (default arg pattern) for
+    entry_pt because Typer evaluates @app.command() at decoration
+    time, capturing the loop variable reference. Without the default
+    arg trick, all 4 commands would see the LAST iteration's entry_pt.
+    """
+    for cmd_name, entry_pt, help_text in [
+        ("score", "score_vectors", "Graph entry_point: score_vectors (M95 alias)"),
+        ("regime", "heuristics", "Graph entry_point: heuristics (M95 alias)"),
+        ("suggest", "surface_intentions", "Graph entry_point: surface_intentions (M95 alias)"),
+        ("cycle", "observe", "Graph entry_point: observe (full cycle, M95 alias)"),
+    ]:
+
+        @app.command(name=cmd_name, help=help_text)
+        def _alias_cmd(
+            date: str = typer.Option(None, "--date", help="Date (YYYY-MM-DD)"),
+            json_out: bool = typer.Option(False, "--json", help="Emit JSON output"),
+            dry_run: bool = typer.Option(False, "--dry-run", help="Dry run (no writes)"),
+            _entry_pt: str = entry_pt,  # bind via default arg (M95 fix)
+        ) -> None:
+            from .invoke_skill import invoke_skill
+
+            try:
+                result = invoke_skill("ikigai-daily", entry_point_override=_entry_pt)
+            except ValueError as exc:
+                # M95: surface errors as structured JSON for CLI consumers
+                result = {
+                    "skill": "ikigai-daily",
+                    "entry_point": _entry_pt,
+                    "outputs_fired": [],
+                    "graph_state": {"error": str(exc)},
+                    "actor": "agent",
+                    "error": str(exc),
+                }
+            typer.echo(json.dumps(result, indent=2, default=str))
+
+
 
 
 def register_invoke_skill(app: typer.Typer) -> None:
@@ -398,6 +469,8 @@ register_skill_list(app)
 register_skill_show(app)
 # M94: also wire the `daily` alias.
 register_daily(app)
+# M95: also wire the V5-D-restored graph aliases (score/regime/suggest/cycle).
+register_graph_aliases(app)
 
 
 # Re-export invoke_skill so ``from interfaces.cli.v2 import invoke_skill``

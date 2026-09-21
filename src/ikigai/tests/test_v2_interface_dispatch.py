@@ -51,7 +51,8 @@ def test_v2_cli_app_importable():
     assert v2_app is not None
 
 
-@pytest.mark.skip(reason="M92: `v2 suggest` command removed in V5-D (only plan/invoke-skill/skill-list/skill-show survive)")
+# M95: unskipped - the V5-D-removed command now exists as an alias
+
 def test_v2_suggest_command_help():
     """`life v2 suggest --help` exits 0 and documents the command."""
     from interfaces.cli.v2 import v2_app
@@ -63,7 +64,8 @@ def test_v2_suggest_command_help():
     assert "suggest" in result.output.lower() or "PAV" in result.output
 
 
-@pytest.mark.skip(reason="M92: `v2 score` command removed in V5-D")
+# M95: unskipped - the V5-D-removed command now exists as an alias
+
 def test_v2_score_command_help():
     """`life v2 score --help` exits 0 and shows date + json options."""
     from interfaces.cli.v2 import v2_app
@@ -75,7 +77,8 @@ def test_v2_score_command_help():
     assert "date" in result.output.lower() or "json" in result.output.lower()
 
 
-@pytest.mark.skip(reason="M92: `v2 regime` command removed in V5-D")
+# M95: unskipped - the V5-D-removed command now exists as an alias
+
 def test_v2_regime_command_help():
     """`life v2 regime --help` exits 0 and shows date + json options."""
     from interfaces.cli.v2 import v2_app
@@ -86,7 +89,8 @@ def test_v2_regime_command_help():
     assert result.exit_code == 0
 
 
-@pytest.mark.skip(reason="M92: `v2 cycle` command removed in V5-D")
+# M95: unskipped - the V5-D-removed command now exists as an alias
+
 def test_v2_cycle_command_help():
     """`life v2 cycle --help` exits 0 and shows dry-run option."""
     from interfaces.cli.v2 import v2_app
@@ -103,7 +107,8 @@ def test_v2_cycle_command_help():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skip(reason="M92: `v2 score` command removed in V5-D")
+# M95: unskipped - the V5-D-removed command now exists as an alias
+
 def test_v2_score_routes_to_prompt_chain(monkeypatch):
     """`v2 score` routes to render_score_passion_observation (fake-LLM stub)."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
@@ -117,7 +122,8 @@ def test_v2_score_routes_to_prompt_chain(monkeypatch):
     assert "passion_score" in output or "error" in output
 
 
-@pytest.mark.skip(reason="M92: `v2 regime` command removed in V5-D")
+# M95: unskipped - the V5-D-removed command now exists as an alias
+
 def test_v2_regime_routes_to_prompt_chain(monkeypatch):
     """`v2 regime` routes to render_heuristics_regime_observation (fake-LLM stub)."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
@@ -131,7 +137,7 @@ def test_v2_regime_routes_to_prompt_chain(monkeypatch):
     assert "regime" in output or "error" in output
 
 
-@pytest.mark.skip(reason="M92: `v2 suggest` command removed in V5-D")
+# M95: unskipped - the V5-D-removed command now exists as an alias
 def test_v2_suggest_routes_to_surface_pav_intentions(monkeypatch):
     """`v2 suggest` routes to render_surface_pav_intentions (fake-LLM stub)."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
@@ -145,7 +151,8 @@ def test_v2_suggest_routes_to_surface_pav_intentions(monkeypatch):
     assert "suggestions" in output or "error" in output
 
 
-@pytest.mark.skip(reason="M92: `v2 cycle` command removed in V5-D")
+# M95: unskipped - the V5-D-removed command now exists as an alias
+
 def test_v2_cycle_dry_run_invokes_graph(monkeypatch):
     """`v2 cycle --dry-run` invokes make_v2_graph without crashing."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
@@ -201,7 +208,8 @@ def test_skill_files_mention_vault_read_only():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skip(reason="M92: `v2 score` command removed in V5-D")
+# M95: unskipped - the V5-D-removed command now exists as an alias
+
 def test_v2_score_does_not_write_vault(tmp_path, monkeypatch):
     """v2 score reads vault but produces no new files in vault_root."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
@@ -225,7 +233,8 @@ def test_v2_score_does_not_write_vault(tmp_path, monkeypatch):
     assert len(md_files) == 1, f"Unexpected vault writes detected: {[f.name for f in md_files]}"
 
 
-@pytest.mark.skip(reason="M92: `v2 regime` command removed in V5-D")
+# M95: unskipped - the V5-D-removed command now exists as an alias
+
 def test_v2_regime_does_not_write_vault(tmp_path, monkeypatch):
     """v2 regime reads vault but produces no new files in vault_root."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
