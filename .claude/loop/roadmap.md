@@ -1278,3 +1278,18 @@ When verifier returns PASS:
 - LangChain-mcp-adapters 0.3.2 installed in src/ikigai/.venv
 - 22 M96-gap capabilities now reachable: cancel_task, pause_task, decompose_task, add_dependency, optimize_schedule, etc.
 - Regression: drift 18/18, root 420+27, ikigai 826+30, 1264 tests pass, 0 fail
+
+### M102 — langgraph dev server boots (2026-09-21)
+
+**Goal**: Fix v2 graph factory signatures so `langgraph dev` can load both graphs at port 2024.
+
+**Delivered:**
+- 11 relative imports in v2/graph.py → absolute imports
+- `_build_v2_graph(checkpoint_db, entry_point)` extracted; `make_v2_graph(runtime, config)` langgraph-api-compatible shim
+- Same pattern applied to fork_smoke_graph (renamed to `_build_fork_smoke_graph`)
+- 5 new tests in `tests/test_langgraph_dev_boot.py` (validate, typed sigs, internal builders, no relative imports, config-arg call)
+- `langgraph_cli dev --port 2024` boots, /ok returns {"ok":true}, 2 graphs registered
+
+**Why**: Closes the M101c known limitation. Production-readiness ~60% → ~62% (visual debugger now usable for the first time).
+
+**Status**: SHIPPED. Tests: 826+30 ikigai, 27+5 root M97b-M102, 18/18 drift, 60/60 canonical+wiring.
