@@ -39,6 +39,7 @@ if command -v cygpath >/dev/null 2>&1; then
     BASELINES_DIR_WIN="$(cygpath -w "$REPO/reports/baselines")"
     TREND_WIN="$(cygpath -w "$REPO/reports/backtest-trend.md")"
     INTEGRITY_WIN="$(cygpath -w "$REPO/reports/baselines/SHA256SUMS")"
+    SIG_WIN="$(cygpath -w "$REPO/reports/baselines/SHA256SUMS.gpg")"
 else
     PYTHONPATH_SRC="$REPO"
     SCENARIOS_WIN="$REPO/vault/drafts/q3-scenarios.with-anchors.yaml"
@@ -53,6 +54,7 @@ else
     BASELINES_DIR_WIN="$REPO/reports/baselines"
     TREND_WIN="$REPO/reports/backtest-trend.md"
     INTEGRITY_WIN="$REPO/reports/baselines/SHA256SUMS"
+    SIG_WIN="$REPO/reports/baselines/SHA256SUMS.gpg"
 fi
 export PYTHONPATH="$PYTHONPATH_SRC"
 
@@ -197,10 +199,16 @@ echo "[8/9] Running M118 baseline_archive..."
 
 # --- 9. Baseline integrity (M124) ---
 echo ""
-echo "[9/9] Running M124 baseline_integrity..."
+echo "[9/10] Running M124 baseline_integrity..."
 "$PYTHON" tools/backtest/baseline_integrity.py \
     snapshot \
     --baselines-dir "$BASELINES_DIR_WIN"
+
+# --- 10. Cryptographic signature (M127) ---
+echo ""
+echo "[10/10] Running M127 baseline_sign (symmetric gpg)..."
+"$PYTHON" tools/backtest/baseline_sign.py sign \
+    --baselines-dir "$BASELINES_DIR_WIN" 2>&1 | head -3
 
 echo ""
 echo "===================================="
@@ -210,4 +218,5 @@ echo "  Drift:     reports/backtest-drift.md"
 echo "  LLM-judge: reports/backtest-Q1-llm-judgment.json"
 echo "  Trend:     reports/backtest-trend.md"
 echo "  Integrity: reports/baselines/SHA256SUMS"
+echo "  Signature: reports/baselines/SHA256SUMS.gpg"
 echo "===================================="

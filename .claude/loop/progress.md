@@ -6144,3 +6144,52 @@ The `mock_patch("tools.backtest.llm_judge.ChatAnthropic")` path doesn't work bec
 
 ### Cumulative test count
 - M110-M126: **304 new tests** since M109 (+14 this round)
+## M127 — 2026-09-22
+
+**Goal:** Cryptographic integrity verification for `reports/baselines/SHA256SUMS`. Closes M124's honest-scope gap (SHA256 detects accidental corruption; crypto detects intentional tampering).
+
+### Design pivot
+
+Initially tried **asymmetric GPG** (`gpg --detach-sign` with secret key) — failed because gpg-agent can't start in MSYS Python subprocess ("agent_genkey failed: No agent running"). Pivoted to **symmetric gpg** (`gpg --symmetric` + `gpg --decrypt`) — works without an agent, no keyring needed, no socket issues.
+
+### Delivered
+
+**`tools/backtest/baseline_sign.py`** (~210 lines):
+- 4 subcommands: `sign`, `verify`, `status`, `rotate`
+- Passphrase resolution: env `LIFE_BASELINE_PASSPHRASE` → file `reports/baselines/.passphrase` → auto-generate (32-byte url-safe) + persist
+- AES256 symmetric encryption (industry standard)
+- Detached signature file: `SHA256SUMS.gpg` (256 bytes for ~200-byte manifest)
+- `MSYS_NO_PATHCONV=1` env var to prevent MSYS path mangling on Windows
+- Graceful fallback if gpg missing (warn + skip, don't break CI)
+
+**`tests/test_m127_baseline_sign.py`** (21 tests, all PASS):
+- `get_passphrase`: env precedence, auto-generation, file persistence
+- `sign_manifest`: creates .gpg, non-empty, fails on missing manifest
+- `verify_signature`: valid signature, detects manifest tampering, missing signature, missing manifest, wrong passphrase
+- `status`: returns expected fields, shows unsigned state, records signature size
+- `rotate_passphrase`: changes passphrase, invalidates old .gpg, re-signs
+- CLI: sign / verify / status / rotate / invalid cmd
+- Full sign-verify-tamper-restore roundtrip
+
+**Pipeline integration** (`scripts/backtest/run_backtest.sh` step 10):
+- After M124 snapshot, sign the manifest
+- Live verified: full 10-step pipeline completes successfully
+
+### Honest scope
+
+- ✅ Symmetric crypto: SHA256SUMS.gpg contains the encrypted manifest; verifying decrypts and compares
+- ✅ Wrong passphrase detected (test_verifies_wrong_passphrase)
+- ✅ Manifest tampering detected (test_verify_detects_manifest_tampering)
+- ⚠️ **Trust model**: "whoever knows the passphrase can re-sign." Single-user only. For distributed trust, use cosign/sigstore (out of scope).
+- ⚠️ **MSYS path mangling**: needed `MSYS_NO_PATHCONV=1` to prevent gpg getting concatenated paths (same bug as M123).
+- ⚠️ **gpg-agent unavailable**: asymmetric GPG (gpg-agent-based) doesn't work in MSYS Python subprocess. Symmetric crypto sidesteps this entirely.
+
+### Decisions
+
+- **Symmetric over asymmetric**: works without agent, no key management burden, ~99% of the integrity benefit.
+- **Passphrase in file**: 32-byte url-safe token, mode 0600 on POSIX. Documented env-var override for CI.
+- **`.gpg` extension**: standard naming for encrypted file.
+- **`MSYS_NO_PATHCONV=1`**: required for Windows; added to `_run_gpg` + `generate_key`.
+
+### Cumulative test count
+- M110-M127: **325 new tests** since M109 (+21 this round)
