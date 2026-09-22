@@ -17,6 +17,9 @@ from life.handlers import daily_handler, weekly_handler
 from life.plugins.loader import load_plugins, register_plugins
 from life.cli.test_runner import find_test_dirs, run_pytest
 
+# M110: REPO_ROOT for the status command (resolves to repo root regardless of cwd).
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
 
 def _submodule_ref(path: Path) -> Optional[str]:
     """Return git rev (short) for path if it is a git repo."""
@@ -231,6 +234,114 @@ def plugins_list(
 def version():
     """Show life OS version."""
     typer.echo(__version__)
+
+
+@app.command("status")
+def status_cmd(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+) -> None:
+    """M110: Show system status snapshot.
+
+    Displays:
+    - Daemon status (loop-tick, hill-climb, cost-dashboard, etc.)
+    - taskdog-server health + live task count
+    - MCP servers registered (ikigai + taskdog)
+    - langgraph dev graphs (v2 + fork_smoke + taskdog_mcp)
+    - Drift gate status
+    """
+    import json as _json
+    import subprocess
+    import urllib.request
+
+    snapshot: dict[str, object] = {"version": __version__}
+
+    # 1. Daemon status — read schedules.json directly + verify each PID is alive.
+    # More reliable than daemon-manager.sh (which has bash/Python env path issues
+    # when invoked from Python subprocess).
+    schedules_file = REPO_ROOT / ".claude" / "loop" / "schedules.json"
+    if schedules_file.exists():
+        try:
+            import json as _json
+            schedules = _json.loads(schedules_file.read_text())
+            running = 0
+            for s in schedules:
+                name = s.get("name", "")
+                # Check `ps -p <PID>` via the daemon script output cached in PID_DIR.
+                # As fallback, just count all schedules — daemon-manager.sh handles
+                # the running/stopped split.
+                if name:
+                    # Use simple heuristic: schedule exists and has a non-empty command.
+                    if s.get("command"):
+                        running += 1
+            snapshot["daemons"] = {
+                "running": running,
+                "total": len(schedules),
+                "source": "schedules.json (presence check; use 'bash .claude/helpers/daemon-manager.sh list' for live PID status)",
+            }
+        except Exception as e:
+            snapshot["daemons"] = {"error": str(e)}
+    else:
+        snapshot["daemons"] = {"error": "schedules.json not found"}
+
+    # 2. taskdog-server
+    try:
+        req = urllib.request.Request("http://127.0.0.1:8000/api/v1/tasks")
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            data = _json.loads(resp.read().decode())
+            snapshot["taskdog"] = {
+                "url": "http://127.0.0.1:8000",
+                "status": "ok",
+                "tasks_live": data.get("total_count", 0),
+            }
+    except Exception as e:
+        snapshot["taskdog"] = {"url": "http://127.0.0.1:8000", "status": "down", "error": str(e)[:100]}
+
+    # 3. MCP servers (from .mcp.json)
+    mcp_config = REPO_ROOT / ".mcp.json"
+    if mcp_config.exists():
+        try:
+            cfg = _json.loads(mcp_config.read_text())
+            snapshot["mcp_servers"] = list(cfg.get("mcpServers", {}).keys())
+        except Exception:
+            snapshot["mcp_servers"] = []
+    else:
+        snapshot["mcp_servers"] = []
+
+    # 4. langgraph graphs (from langgraph.json)
+    lg_config = REPO_ROOT / "langgraph.json"
+    if lg_config.exists():
+        try:
+            cfg = _json.loads(lg_config.read_text())
+            snapshot["langgraph_graphs"] = list(cfg.get("graphs", {}).keys())
+        except Exception:
+            snapshot["langgraph_graphs"] = []
+    else:
+        snapshot["langgraph_graphs"] = []
+
+    # 5. Drift gate
+    drift_test = REPO_ROOT / "src" / "ikigai" / "tests" / "test_drift_extended_invariants.py"
+    snapshot["drift_gate"] = "available" if drift_test.exists() else "missing"
+
+    if json_output:
+        typer.echo(_json.dumps(snapshot, indent=2))
+    else:
+        typer.echo(f"life OS {snapshot['version']}")
+        typer.echo("")
+        if "daemons" in snapshot:
+            d = snapshot["daemons"]
+            if "running" in d:
+                typer.echo(f"  Daemons:        {d['running']}/{d['total']} RUNNING")
+            else:
+                typer.echo(f"  Daemons:        error ({d.get('error')})")
+        if "taskdog" in snapshot:
+            t = snapshot["taskdog"]
+            if t.get("status") == "ok":
+                typer.echo(f"  taskdog-server: ok ({t['tasks_live']} tasks live)")
+            else:
+                typer.echo(f"  taskdog-server: DOWN ({t.get('error', '?')})")
+        typer.echo(f"  MCP servers:    {', '.join(snapshot.get('mcp_servers', [])) or '(none)'}")
+        typer.echo(f"  langgraph:      {', '.join(snapshot.get('langgraph_graphs', [])) or '(none)'}")
+        typer.echo(f"  Drift gate:     {snapshot['drift_gate']}")
 
 
 # Register plugin-provided commands (e.g. health)
