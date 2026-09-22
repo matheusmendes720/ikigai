@@ -841,6 +841,73 @@ def register_audit_drift(app: typer.Typer) -> None:
 register_audit_drift(app)
 
 
+# M131: register vault-toggle subcommand (preview + apply) on the v2 app.
+def register_vault_toggle(app: typer.Typer) -> None:
+    """Register `life v2 vault-toggle` — guarded mutation of vault checkboxes.
+
+    M131: surfaces M114f's `preview_toggle()` + `apply_toggle()` as a CLI.
+    Three sub-commands (kept flat for ease of use):
+
+      preview  — dry-run, always safe; never mutates
+      apply    — mutate after preview (refuses if preview fails)
+      toggle   — preview + apply in one shot (for trusted agent flows)
+
+    All three require:
+      - --plan-path (vault-relative, no .., no absolute)
+      - --line (positive integer)
+      - --expected (the checkbox text without the leading "- [ ] ")
+
+    apply + toggle also require:
+      - --reason (free text, recorded in vault/.vault_events.jsonl)
+      - --actor (who is doing this; defaults to "cli")
+    """
+
+    @app.command(name="vault-preview")
+    def preview_cmd(
+        plan_path: str = typer.Option(..., "--plan-path", "-p", help="Vault-relative path."),
+        line: int = typer.Option(..., "--line", "-l", help="Target line number (1-indexed)."),
+        expected: str = typer.Option(..., "--expected", "-e", help="Expected checkbox text."),
+        json_output: bool = typer.Option(False, "--json"),
+    ) -> None:
+        from tools.vault.apply_toggle_cli import main as at_main
+        rc = at_main("preview", rel_path=plan_path, line=line,
+                     expected=expected, json_output=json_output)
+        raise typer.Exit(code=rc)
+
+    @app.command(name="vault-apply")
+    def apply_cmd(
+        plan_path: str = typer.Option(..., "--plan-path", "-p"),
+        line: int = typer.Option(..., "--line", "-l"),
+        expected: str = typer.Option(..., "--expected", "-e"),
+        reason: str = typer.Option(..., "--reason", "-r", help="Free-text reason (audit-logged)."),
+        actor: str = typer.Option("cli", "--actor", help="Who is doing this (audit-logged)."),
+        skip_preview: bool = typer.Option(False, "--skip-preview", help="Skip preview gate (trusted scripts only)."),
+        json_output: bool = typer.Option(False, "--json"),
+    ) -> None:
+        from tools.vault.apply_toggle_cli import main as at_main
+        rc = at_main("apply", rel_path=plan_path, line=line, expected=expected,
+                     actor=actor, reason=reason, skip_preview=skip_preview,
+                     json_output=json_output)
+        raise typer.Exit(code=rc)
+
+    @app.command(name="vault-toggle")
+    def toggle_cmd(
+        plan_path: str = typer.Option(..., "--plan-path", "-p"),
+        line: int = typer.Option(..., "--line", "-l"),
+        expected: str = typer.Option(..., "--expected", "-e"),
+        reason: str = typer.Option(..., "--reason", "-r"),
+        actor: str = typer.Option("cli", "--actor"),
+        json_output: bool = typer.Option(False, "--json"),
+    ) -> None:
+        from tools.vault.apply_toggle_cli import main as at_main
+        rc = at_main("toggle", rel_path=plan_path, line=line, expected=expected,
+                     actor=actor, reason=reason, json_output=json_output)
+        raise typer.Exit(code=rc)
+
+
+register_vault_toggle(app)
+
+
 # Re-export invoke_skill so ``from interfaces.cli.v2 import invoke_skill``
 # works (W3.5/W3.6 skill manifest loader + taskdog post-processor).
 from .invoke_skill import invoke_skill, load_skill_manifest  # noqa: E402,F401

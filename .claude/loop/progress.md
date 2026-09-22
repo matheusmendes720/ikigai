@@ -6254,3 +6254,67 @@ Total drifts: 313
 
 ### Cumulative test count
 - M110-M128: **339 new tests** since M109 (+14 this round)
+## M131 — 2026-09-22
+
+**Goal:** Surface `vault_propagation.preview_toggle()` + `apply_toggle()` as a CLI. Closes the read/write loop with M128 (audit-drift).
+
+### Delivered
+
+**`tools/vault/apply_toggle_cli.py`** (~180 lines):
+- 3 commands: `preview`, `apply`, `toggle` (preview + apply in one shot)
+- `--plan-path`, `--line`, `--expected`, `--reason`, `--actor`, `--skip-preview`, `--json`
+- Path safety: rejects absolute paths and `..` traversal
+- Lazy import of `vault_propagation` functions
+- Exit codes: 0 = success, 1 = refused (preview failed), 2 = error
+
+**`interfaces/cli/v2.py`** — added `register_vault_toggle(app)`:
+- 3 Typer commands: `vault-preview`, `vault-apply`, `vault-toggle`
+- All have plan-path / line / expected as required
+- `vault-apply` and `vault-toggle` add `--reason` (required, audit-logged)
+- `--actor` defaults to "cli"
+- `--skip-preview` for trusted scripts (bypasses preview gate)
+- `--json` for machine output
+
+**`tests/test_m131_apply_toggle_cli.py`** (25 tests, all PASS):
+- `_resolve_plan_path`: rejects absolute paths, rejects parent traversal, resolves relative to vault
+- Argument validation: missing plan-path, missing line, zero/negative line, missing expected, missing reason
+- Plan-not-found: exit 1
+- `preview`: success → "Would become" output, refuses on mismatch
+- `apply`: success → exit 0 + file mutated, refusal → exit 1 + no mutation, `--skip-preview` honored
+- `toggle`: combined preview + apply, refuses if preview fails (no apply_toggle call)
+- JSON output: preview returns JSON, apply returns JSON with `refused: true` on failure
+- Typer registration: function exists, wires 3 commands
+- Exception handling: unexpected exception → exit 2
+
+### Live evidence
+
+```
+$ life v2 vault-preview -p drafts/folha-norte-projeto-META-INDEX.md -l 88 -e "Ler este índice."
+# Preview: drafts/folha-norte-projeto-META-INDEX.md:88
+# Would become: - [x] Ler este índice.
+# Checkboxes done after: 1
+```
+
+Preview against real vault file works correctly. `vault-apply` and `vault-toggle` will mutate the file + write to `vault/.vault_events.jsonl`.
+
+### Decisions
+
+- **Three commands, not one with --dry-run**: clearer separation; user can't accidentally apply without seeing the preview-apply distinction
+- **`--reason` required for apply/toggle**: audit log has actor + reason on every mutation
+- **`--actor` defaults to "cli"**: agents should pass their own actor name (e.g. "agent_audit_drift")
+- **`--skip-preview` only via flag**: not env var, not config file; visible in command line, audit log
+- **Path safety via `_resolve_plan_path`**: rejects `..` and absolute paths; vault files only
+- **`toggle` calls apply with skip_preview=True**: the preview already validated, no point running it twice
+
+### Honest scope
+
+- ✅ preview/apply/toggle CLI surfaces working
+- ✅ Refuses on preview failure (default behavior)
+- ✅ `--skip-preview` for trusted scripts
+- ✅ JSON output for agent prompts
+- ⚠️ **No file lock**: two concurrent applies could race; not addressed here (single-user local use)
+- ⚠️ **No undo**: toggle is one-way (open→done); "reopen" needs a separate command (out of scope)
+- ⚠️ **Audit log is append-only**: `vault/.vault_events.jsonl` can grow unbounded; rotation is M132
+
+### Cumulative test count
+- M110-M131: **364 new tests** since M109 (+25 this round)
