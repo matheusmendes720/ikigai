@@ -1,0 +1,279 @@
+cycle_start: '2026-09-22'
+cycle_end: '2026-10-19'
+anchor_count: 1
+anchor_files_used: 0
+scenarios:
+- day: 1
+  date: '2026-09-22'
+  category: add-task
+  prompt: Day 1 — add-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: &id001
+  - taskdog_create_task
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 2
+  date: '2026-09-23'
+  category: add-task
+  prompt: Day 2 — add-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id001
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 3
+  date: '2026-09-24'
+  category: add-task
+  prompt: Day 3 — add-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id001
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 4
+  date: '2026-09-25'
+  category: add-task
+  prompt: Day 4 — add-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id001
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 5
+  date: '2026-09-26'
+  category: complete-task
+  prompt: Day 5 — complete-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: &id002
+  - taskdog_complete_task
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 6
+  date: '2026-09-27'
+  category: complete-task
+  prompt: Day 6 — complete-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id002
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 7
+  date: '2026-09-28'
+  category: complete-task
+  prompt: Day 7 — complete-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id002
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 8
+  date: '2026-09-29'
+  category: daily-plan
+  prompt: Day 8 — daily-plan. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: &id003
+  - taskdog_list_tasks
+  - taskdog_get_daily_allocations
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 9
+  date: '2026-09-30'
+  category: daily-plan
+  prompt: Day 9 — daily-plan. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id003
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 10
+  date: '2026-10-01'
+  category: daily-plan
+  prompt: Day 10 — daily-plan. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id003
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 11
+  date: '2026-10-02'
+  category: daily-plan
+  prompt: Day 11 — daily-plan. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id003
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 12
+  date: '2026-10-03'
+  category: daily-plan
+  prompt: Day 12 — daily-plan. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id003
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 13
+  date: '2026-10-04'
+  category: daily-plan
+  prompt: Day 13 — daily-plan. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id003
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 14
+  date: '2026-10-05'
+  category: daily-plan
+  prompt: Day 14 — daily-plan. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id003
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 15
+  date: '2026-10-06'
+  category: decompose
+  prompt: Day 15 — decompose. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: &id004
+  - taskdog_create_task
+  - taskdog_add_dependency
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 16
+  date: '2026-10-07'
+  category: decompose
+  prompt: Day 16 — decompose. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id004
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 17
+  date: '2026-10-08'
+  category: decompose
+  prompt: Day 17 — decompose. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id004
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 18
+  date: '2026-10-09'
+  category: decompose
+  prompt: Day 18 — decompose. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id004
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 19
+  date: '2026-10-10'
+  category: list-tasks
+  prompt: Day 19 — list-tasks. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: &id005
+  - taskdog_list_tasks
+  - taskdog_search_tasks
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 20
+  date: '2026-10-11'
+  category: list-tasks
+  prompt: Day 20 — list-tasks. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id005
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 21
+  date: '2026-10-12'
+  category: list-tasks
+  prompt: Day 21 — list-tasks. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id005
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 22
+  date: '2026-10-13'
+  category: list-tasks
+  prompt: Day 22 — list-tasks. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id005
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 23
+  date: '2026-10-14'
+  category: update-task
+  prompt: Day 23 — update-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: &id006
+  - taskdog_update_task
+  - taskdog_set_priority
+  - taskdog_set_tags
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 24
+  date: '2026-10-15'
+  category: update-task
+  prompt: Day 24 — update-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id006
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 25
+  date: '2026-10-16'
+  category: update-task
+  prompt: Day 25 — update-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id006
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 26
+  date: '2026-10-17'
+  category: weekly-review
+  prompt: Day 26 — weekly-review. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: &id007
+  - taskdog_get_burndown
+  - taskdog_get_executive_summary
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 27
+  date: '2026-10-18'
+  category: weekly-review
+  prompt: Day 27 — weekly-review. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id007
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 28
+  date: '2026-10-19'
+  category: weekly-review
+  prompt: Day 28 — weekly-review. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id007
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+coverage_target:
+  scenarios_per_category:
+    add-task: 4
+    list-tasks: 4
+    update-task: 3
+    complete-task: 3
+    decompose: 4
+    daily-plan: 7
+    weekly-review: 3
+  tool_invocation_count_per_tool: 3
+  target_tools:
+  - taskdog_create_task
+  - taskdog_list_tasks
+  - taskdog_get_task
+  - taskdog_update_task
+  - taskdog_complete_task
+  - taskdog_reopen
+  - taskdog_pause
+  - taskdog_archive
+  - taskdog_cancel
+  - taskdog_search_tasks
+  - taskdog_set_priority
+  - taskdog_set_deadline
+  - taskdog_set_tags
+  - taskdog_add_dependency
+  - taskdog_remove_dependency
+  - taskdog_create_note
+  - taskdog_list_notes
+  - taskdog_get_metrics
+  - taskdog_get_burndown
+  - taskdog_get_executive_summary
+  - taskdog_get_cognitive_debt_metrics
+  - taskdog_get_q_high_e_low_metrics
+  - taskdog_get_execution_rate
+  - taskdog_get_daily_allocations
+  - taskdog_bulk_archive
+  - taskdog_bulk_complete
