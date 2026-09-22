@@ -36,6 +36,8 @@ if command -v cygpath >/dev/null 2>&1; then
     LLM_WIN="$(cygpath -w "$REPO/reports/backtest-Q1-llm-judgment.json")"
     SCENARIOS_NAT_YAML="$(cygpath -w "$REPO/vault/drafts/q3-scenarios.yaml")"
     SCENARIOS_NAT_EXHAUSTIVE="$(cygpath -w "$REPO/vault/drafts/q3-scenarios.exhaustive.yaml")"
+    BASELINES_DIR_WIN="$(cygpath -w "$REPO/reports/baselines")"
+    TREND_WIN="$(cygpath -w "$REPO/reports/backtest-trend.md")"
 else
     PYTHONPATH_SRC="$REPO"
     SCENARIOS_WIN="$REPO/vault/drafts/q3-scenarios.with-anchors.yaml"
@@ -47,6 +49,8 @@ else
     LLM_WIN="$REPO/reports/backtest-Q1-llm-judgment.json"
     SCENARIOS_NAT_YAML="$REPO/vault/drafts/q3-scenarios.yaml"
     SCENARIOS_NAT_EXHAUSTIVE="$REPO/vault/drafts/q3-scenarios.exhaustive.yaml"
+    BASELINES_DIR_WIN="$REPO/reports/baselines"
+    TREND_WIN="$REPO/reports/backtest-trend.md"
 fi
 export PYTHONPATH="$PYTHONPATH_SRC"
 
@@ -155,7 +159,7 @@ fi
 
 # --- 7. LLM-judge (M116) ---
 echo ""
-echo "[7/7] Running M116 llm_judge..."
+echo "[7/8] Running M116 llm_judge..."
 USE_LLM_FLAG=""
 if [[ "${USE_LLM:-0}" == "1" ]]; then
     USE_LLM_FLAG="--use-llm"
@@ -169,10 +173,25 @@ fi
     --out "$LLM_WIN" \
     $USE_LLM_FLAG
 
+# --- 8. Baseline archive + weekly trend (M118) ---
+echo ""
+echo "[8/8] Running M118 baseline_archive..."
+"$PYTHON" tools/backtest/baseline_archive.py \
+    archive \
+    --source "$JUDGMENT_WIN" \
+    --baselines-dir "$BASELINES_DIR_WIN"
+
+"$PYTHON" tools/backtest/baseline_archive.py \
+    weekly \
+    --baselines-dir "$BASELINES_DIR_WIN" \
+    --since-days 90 \
+    --out "$TREND_WIN"
+
 echo ""
 echo "===================================="
 echo "  Backtest Q1 complete."
-echo "  Report:   reports/backtest-Q1.md"
-echo "  Drift:    reports/backtest-drift.md"
+echo "  Report:    reports/backtest-Q1.md"
+echo "  Drift:     reports/backtest-drift.md"
 echo "  LLM-judge: reports/backtest-Q1-llm-judgment.json"
+echo "  Trend:     reports/backtest-trend.md"
 echo "===================================="
