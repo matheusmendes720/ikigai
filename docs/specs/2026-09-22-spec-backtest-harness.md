@@ -103,6 +103,6 @@ This is a SPEC. The user OKs scope; M114 implements in atomic phases:
 
 ## Open questions for user
 
-1. **Q3 seed corpus source**: Should I auto-extract events from `vault/` (sparse, mostly META-NP drafts) or anchor to my own repo history (`git log --since 2025-07-01` of M34-M111 milestones as historical-anchor scenarios)?
-2. **Real LLM vs fake-LLM for v1**: First run should use `IKIGAI_FAKE_LLM=1` (deterministic, no API cost) to validate harness plumbing — then a second run with real API. OK?
-3. **Per-tool coverage target**: How many times should each of 26 taskdog tools be exercised in a single backtest? My default: 3 invocations/tool = 78 task-instances for ~28 daily scenarios.
+1. **Q3 seed corpus source**: ✅ **RESOLVED — vault is the SOT.** `seed_q3_scenarios.py` sweeps `vault/` recursively, parses frontmatter, anchors scenarios to documented events/dates/people. Implementation must handle sparse-vault gracefully (synthesize anchored scenarios from cluster docs / progress.md milestones when no Q3 vault events exist yet).
+2. **Real LLM vs fake-LLM for v1**: Default `IKIGAI_FAKE_LLM=1` for first run (deterministic, no API cost), then a second run with real API (with model-downgrade chain MiniMax → Haiku → rule-only).
+3. **Per-tool coverage target**: 3 invocations per tool × 26 tools = 78 task-instances spread over 28 daily scenarios.
