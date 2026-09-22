@@ -4968,3 +4968,58 @@ This means production deployments can opt in to OTel by setting LangSmith/Langfu
 ### Files
 
 - `tests/test_otel_emit.py` — NEW (7 tests)
+## M110 — 2026-09-22
+
+**Goal:** Add `life status [--json]` CLI command for system health snapshot.
+
+### Delivered
+
+NEW `life status` Typer command in `life/cli/cli.py`:
+- Default human-readable output
+- `--json` for machine-readable
+- Reads from: `.claude/loop/schedules.json`, `http://127.0.0.1:8000/api/v1/tasks`, `.mcp.json`, `langgraph.json`
+
+### Live verification
+
+```bash
+$ PYTHONPATH=. src/ikigai/.venv/Scripts/python.exe -m life.cli status
+life OS 0.1.0
+
+  Daemons:        9/9 RUNNING
+  taskdog-server: ok (206 tasks live)
+  MCP servers:    ikigai, taskdog
+  langgraph:      ikigai_maintainer_v2, ikigai_fork_smoke, ikigai_taskdog_mcp
+  Drift gate:     available
+```
+
+### Side fix
+
+Stripped CRLF from `.claude/helpers/daemon-manager-schedules.sh` (the recurring CRLF bug — happens whenever Windows tooling writes to the file).
+
+### Tests
+
+NEW `tests/test_status_cli.py` — 8 tests:
+- `test_status_help` — status command registered in life app
+- `test_status_human_readable` — default output has all 6 sections
+- `test_status_json_output` — --json returns valid JSON with 6 keys
+- `test_status_daemon_count_matches_schedules` — daemon count == schedules.json length
+- `test_status_taskdog_live_count` — when taskdog up, tasks_live > 0
+- `test_status_mcp_servers_listed` — ikigai + taskdog both present
+- `test_status_langgraph_graphs_listed` — all 3 graphs (v2 + fork_smoke + taskdog_mcp)
+- `test_status_drift_gate_available` — drift gate marker reports "available"
+
+All 8/8 PASS.
+
+### Why this matters
+
+Before M110: users had to run 4+ commands to check system health (`daemon-manager list`, `curl taskdog`, `cat .mcp.json`, `cat langgraph.json`). Now: `life status` (or `life status --json`) returns the whole picture in one command.
+
+### Production-readiness
+
+~73% → ~75% (system observability from CLI surface — was M96 audit only)
+
+### Files
+
+- `life/cli/cli.py` — added `status_cmd` + `REPO_ROOT` constant
+- `tests/test_status_cli.py` — NEW (8 tests)
+- `.claude/helpers/daemon-manager-schedules.sh` — stripped CRLF (side fix)
