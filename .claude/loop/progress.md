@@ -6193,3 +6193,64 @@ Initially tried **asymmetric GPG** (`gpg --detach-sign` with secret key) — fai
 
 ### Cumulative test count
 - M110-M127: **325 new tests** since M109 (+21 this round)
+## M128 — 2026-09-22
+
+**Goal:** Surface `vault_propagation.audit_drift()` as a first-class CLI command. Currently only invoked via M117's `_act_complete` side-effect in the backtest harness — agents and humans can't call it directly.
+
+### Delivered
+
+**`tools/vault/audit_drift_cli.py`** (~120 lines):
+- `main(json_output, kind_filter, exit_on_drift)` — core wrapper around `vault_propagation.audit_drift()`
+- `_format_summary(drift)` — human-readable summary table
+- `_format_kind_table(drifts, kind)` — per-kind table (capped at 20 rows)
+- Exit codes: 0 = no drift or acknowledged; 1 = drift + `--exit-on-drift`; 2 = audit_drift raised
+
+**`interfaces/cli/v2.py`** — added `register_audit_drift(app)`:
+- New command: `life v2 audit-drift`
+- Options: `--json`, `--kind-filter` / `-k`, `--exit-on-drift`
+- Live help text verified:
+  ```
+  Usage: python -m life.cli v2 audit-drift [OPTIONS]
+  --json                          Emit JSON instead of human-readable table.
+  --kind-filter    -k      <str>  Only show drifts of this kind.
+  --exit-on-drift                 Exit code 1 if any drift is found (CI-friendly).
+  ```
+
+**`tests/test_m128_audit_drift_cli.py`** (14 tests, all PASS):
+- `_format_summary`: no drift → friendly message, with drift → table
+- `_format_kind_table`: no match → friendly, 25+ items → "... and N more"
+- `main`: human, JSON, kind-filter, kind-filter+JSON, --exit-on-drift no-drift (rc=0), --exit-on-drift with-drift (rc=1), audit_drift raises (rc=2), audit_drift raises + exit-on (rc=2)
+- Typer registration: function exists, wires "audit-drift" command
+
+### Live evidence
+
+`life v2 audit-drift` against real vault + taskdog (590 tasks):
+```
+Vault ↔ Taskdog drift audit
+============================================================
+Drifts by kind:
+  planned_orphan           313
+
+Total drifts: 313
+```
+
+`--json` returns valid JSON with full drift list. `--kind-filter planned_orphan` filters down. `--exit-on-drift` returns rc=1 (CI-friendly).
+
+### Decisions
+
+- **Thin façade over vault_propagation.audit_drift()** — all drift logic stays in M114f. M128 is presentation only.
+- **Lazy import** — `from tools.backtest.vault_propagation import audit_drift` happens inside `_audit_drift()`, not at module-load. Keeps `life v2 --help` fast.
+- **`--kind-filter` not `--kind`** — keeps parity with vault_propagation naming.
+- **Exit code 2 for errors** — distinct from drift-found (1) and clean (0), so CI scripts can tell the difference between "drift exists" and "audit itself failed".
+- **`plan_text: None` handling** — phantom_task drifts have no plan info; render with `taskdog_name` instead of crashing on `None[:40]`.
+
+### Honest scope
+
+- ✅ Drift detection from vault vs taskdog (real, live)
+- ✅ All 6 drift kinds (unmarked_done, unmarked_open, phantom_task, planned_orphan, priority_mismatch, tag_mismatch)
+- ✅ JSON / human / filter / exit-on-drift
+- ⚠️ **No preview/apply** — these are the M114f `preview_toggle()` and `apply_toggle()` functions; out of scope for M128 (read-only CLI is the goal).
+- ⚠️ **313 planned_orphan drifts live** — that's the current state of the vault vs taskdog. This is data, not a bug; META-NP drafts intentionally have no taskdog tracking yet.
+
+### Cumulative test count
+- M110-M128: **339 new tests** since M109 (+14 this round)
