@@ -75,8 +75,13 @@ def init_tracing() -> None:
     Idempotent — safe to call from multiple entry points in the same process.
     No-op if called twice. Each exporter is added only if its credentials are
     present in the environment, so this works for local-only development too.
+    M107: Set IKIGAI_DISABLE_OTEL=1 to skip init entirely (Windows subprocess
+    environments where OTel contrib instrumentors crash on asyncio import).
     """
     global _INITIALIZED
+    if os.environ.get("IKIGAI_DISABLE_OTEL") == "1":
+        _INITIALIZED = True
+        return
     with _INIT_LOCK:
         if _INITIALIZED:
             return

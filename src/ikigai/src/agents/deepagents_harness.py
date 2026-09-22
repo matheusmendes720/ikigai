@@ -377,13 +377,32 @@ def _invoke_agent_or_fallback(
     _ = thread_id  # reserved for future per-thread overrides
     try:
         return cast(dict[str, Any], agent.invoke({"messages": messages}, config=config))
-    except (RuntimeError, ValueError, KeyError, TypeError, AttributeError, OSError) as exc:
+    except (
+        RuntimeError,
+        ValueError,
+        KeyError,
+        TypeError,
+        AttributeError,
+        OSError,
+    ) as exc:
         # Re-raise control-flow exceptions — these are NOT graceful-fallback candidates.
         if isinstance(exc, (KeyboardInterrupt, SystemExit, GeneratorExit)):
             raise
         import traceback as _tb
 
         print(f"[invoke-fallback] {type(exc).__name__}: {exc}", flush=True)
+        _tb.print_exc()
+        return None
+    # M107: catch langchain_core ModelConnectionError / ModelError (network, proxy down).
+    # AnthropicConnectionError inherits from anthropic.APIConnectionError → ModelConnectionError
+    # but NOT OSError, so it slipped through the narrow catch above.
+    except Exception as exc:  # noqa: BLE001 — intentional broad catch for graceful fallback
+        # Re-raise control-flow exceptions.
+        if isinstance(exc, (KeyboardInterrupt, SystemExit, GeneratorExit)):
+            raise
+        import traceback as _tb
+
+        print(f"[invoke-fallback-broad] {type(exc).__name__}: {exc}", flush=True)
         _tb.print_exc()
         return None
 
