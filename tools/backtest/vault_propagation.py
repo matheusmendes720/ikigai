@@ -64,6 +64,9 @@ VAULT_LINK_RE = re.compile(r"\[vault:([^#\]]+)#(\d+)\]")
 # M120: capture priority tags from vault checkbox text. Format: `| priority=N`
 # appended after the checkbox link (e.g. `- [vault:plan.md#6] Foo | priority=7`).
 PRIORITY_TAG_RE = re.compile(r"\|\s*priority=(\d{1,2})\b")
+# M122: capture tags declarations. Format: `| tags=tag1,tag2,tag3` (comma-separated).
+# Whitespace inside the list is tolerated: `| tags=foo, bar, baz`.
+TAGS_TAG_RE = re.compile(r"\|\s*tags=([^\n|]+)")
 
 # Per algorithm-attribution §7: vault write invariant — the only code path that
 # mutates vault content outside of explicit human file edits. Re-indexing via
@@ -77,6 +80,8 @@ DRIFT_PHANTOM_TASK = "phantom_task"     # taskdog task has no vault checkbox lin
 DRIFT_PLANNED_ORPHAN = "planned_orphan"  # vault checkbox has no taskdog task
 # M120: priority declared in vault checkbox (`| priority=N`) doesn't match taskdog priority.
 DRIFT_PRIORITY_MISMATCH = "priority_mismatch"
+# M122: tags declared in vault checkbox (`| tags=a,b,c`) don't match taskdog tags.
+DRIFT_TAG_MISMATCH = "tag_mismatch"
 
 
 def now_iso() -> str:
@@ -449,6 +454,35 @@ def audit_drift(
                     "taskdog_name": tname,
                     "vault_priority": vault_priority,
                     "taskdog_priority": td_priority_int,
+                })
+        # M122: tag drift detection. Compares vault `| tags=a,b,c` to taskdog tags
+        # as unordered sets (case-insensitive, whitespace-trimmed). Emits
+        # tag_mismatch drift if the sets differ.
+        # Skip if taskdog tags field is missing (None) — we don't know what
+        # they should be. Empty list vs vault-tags-still-fires mismatch.
+        m_tags = TAGS_TAG_RE.search(cb_text or "")
+        if m_tags is not None and "tags" in t:
+            vault_tags_raw = m_tags.group(1)
+            vault_tags = sorted({x.strip().lower() for x in vault_tags_raw.split(",") if x.strip()})
+            td_tags_raw = t.get("tags") or []
+            if isinstance(td_tags_raw, str):
+                # Some servers serialize as comma-separated string.
+                td_tags_iter = [x.strip() for x in td_tags_raw.split(",") if x.strip()]
+            else:
+                td_tags_iter = list(td_tags_raw)
+            td_tags = sorted({str(x).strip().lower() for x in td_tags_iter if str(x).strip()})
+            if vault_tags and vault_tags != td_tags:
+                drifts.append({
+                    "drift_kind": DRIFT_TAG_MISMATCH,
+                    "plan_file": str(plan),
+                    "plan_rel": cb_rel,
+                    "plan_line": line_no,
+                    "plan_text": cb_text,
+                    "taskdog_id": tid,
+                    "taskdog_status": tstatus,
+                    "taskdog_name": tname,
+                    "vault_tags": vault_tags,
+                    "taskdog_tags": td_tags,
                 })
 
     linked_task_keys = set()
