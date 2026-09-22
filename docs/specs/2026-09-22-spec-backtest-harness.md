@@ -13,14 +13,41 @@ Today's daily-use 100% comes from M97b (38 tools) + M105 (3rd graph) + M112 (HTT
 
 A backtest harness turns "I think it works" into "I have last week's reliability score."
 
-## Scope (in/out)
+## Drill-down: role anchors (per user directive 2026-09-22)
+
+Per `./strategics/` and `docs/superpowers/specs/2026-08-29-algorithm-attribution-design.md`, the deep-agent role has explicit requirements that the harness MUST model:
+
+### Read-side roles (from algorithm-attribution §1 + strategics/index)
+
+1. **Constitutional SOT reader** — `./strategics/` PT-BR markdown per algorithm-attribution §1; the agent reads business rules from markdown, not from algorithm code.
+2. **Dual-frame temporal tracker** — PAE (Plan-Ajustar-Executar) × Hierarchical (5-level Pyramid). One Cycle = 1.5 months (3 Waves). One Wave = 3 weeks (15 work-days). Macro-Fase = 180 days (Test de Fogo).
+3. **5-level hierarchy mapper** (Modelagem Operacional): SONHOS → OBJETIVOS → METAS → TAREFAS → ATIVIDADES. The agent must answer queries about any level and the live status across levels.
+4. **Tagging-system conversant** (Integracao_Tática): #supervisão (E), #revisão/#relatórios (T), #narrativa/#to-do (O). Hierarchical tag chains: Sonho #PublicarLivro → Objetivo #RascunhoCap1 → Meta #Semana1-Escrever20pg → Tarefa #Dia1-5pg.
+5. **Time-horizon aware** (Análise T&O): Daily routines (Rotina Inicial + Final with checklist), Blocos de Tempo, Relatórios Diários. Surveillance cycles: Day 1, 2-5, 7 (Weekly Revisão), 15 (Quinzenal Supervisão), 45 (Wave Revisão Geral + Correção), 180 (Test de Fogo).
+
+### Write-side roles (from algorithm-attribution §7 + chapter 5 vault_write invariant)
+
+6. **vault_write MCP enforcer** — Per §7: all vault writes (deep agent + native CLI + forks) go through the `vault_write` MCP tool, append-only. **No other code path writes to vault/.** The harness MUST simulate that taskdog's `done` operation propagates a `vault_event.json` entry to the vault, updating linked plans automatically.
+7. **taskdog → vault propagation driver** — When a user marks a task done via `life task done` (manual) OR via the agent (ReAct tool call), the system writes a `vault_event.json` line AND the vault plan file (`vault/.../projeto-SOMETHING.md`) gets the related checkbox/tally updated. This is the user-facing requirement.
+8. **Plan-update-on-the-fly reflector** — User can refactor / update plans mid-stream. Harness must model: scenario that says "user updates Objetivo #RascunhoCap1 mid-cycle → agent should re-decompose TAREFAS to align". Agent must read vault current state, restructure, write back via vault_write.
+
+### Cross-cutting role requirements
+
+9. **Cross-routine executor** — Routine Inicial (morning: state, todos, blockers) + Routine Final (evening: done tally, tomorrow plan, learnings). Agent must execute both realistically.
+10. **Diagnostic reporter** — On failure, agent must surface: which level in hierarchy is broken, what's the impact on Telemetry (commit velocity, LOC), and which Correção do Trajeto applies.
+11. **Cultural voice compliance** — PT-BR responses per `00-ÍNDICE-PROGRESSIVO.md`; no English-only jargon; respects the ABT framing (Executive → Key Conclusions → Why Now / How / What / Results / Risk).
+
+## Updated scope (v1)
 
 **IN:**
-- 4-week strategy generated from last-Q3 vault events (Aug-Sep 2025 if available, else constructed scenarios anchored to known task patterns in this repo: BYD career track, M34 autonomous loop, M112 HTTP path tests, etc.)
-- Judge-LLM scoring: pass-rate, tool-selection accuracy, argument correctness, graceful-failure rate
-- Taskdog tool exhaustive coverage: all 26 MCP tools exercised at least N times
-- Reliability scoring per task category
-- Report output: `reports/backtest-Q{N}.md`
+- 28-day scenario cycle generated from last-Q3 vault knowledge (Aug-Sep 2025 if available, else constructed from 5-level hierarchy + cluster docs)
+- **Each scenario exercises at least one role-anchor above** (1-11 from above list)
+- Taskdog taskdog exhaustive coverage: all 26 MCP tools exercised at least N times
+- Judge-LLM scoring: pass-rate, role-anchor satisfaction, vault_write invariance
+- **Propagation verifier**: taskdog `done` → vault `vault_event.json` + linked plan checkbox toggled
+- **Plan-update-on-the-fly verifier**: user mid-cycle refactor → vault_write archive + new plan file
+- Reliability scoring per role requirement
+- Report output: `reports/backtest-Q{N}.md` with per-role-anchor matrix + judge-LLM summary
 
 **OUT (this milestone):**
 - Continuous CI integration (manual run only)
@@ -37,7 +64,9 @@ A backtest harness turns "I think it works" into "I have last week's reliability
    vault/drafts/q3-scenarios.yaml  (generated, gitignored)
                 │         ↓                               │
    backtest_harness.runner ── simulated task ──►  ikigai_maintainer_v2 / ikigai_taskdog_mcp
-                │         ↓                               │
+                │         ↓           ↓                  │
+                │   vault_write MCP  ←  simulates propagation (taskdog done → vault_event.json + plan toggle)
+                │         ↓           ↓                  │
                 │   llm-as-judge (Hermes adapter, no LLM call required for grading)
                 │         ↓                               │
                 │ reports/backtest-Q{N}.md                │
@@ -48,12 +77,14 @@ A backtest harness turns "I think it works" into "I have last week's reliability
 
 | Component | Path | Role |
 |---|---|---|
-| `seed_q3_scenarios.py` | `tools/backtest/seed_q3_scenarios.py` | Generates 28-day scenario corpus, anchored to real BYD career-track + M34 autonomous loop patterns discovered in this repo |
-| `backtest_harness.py` | `tools/backtest/backtest_harness.py` | Runs scenario → agent → records transcript + tool calls |
-| `judge_llm.py` | `tools/backtest/judge_llm.py` | Scores transcripts (rule-based v1; LLM-based deferred) |
-| `taskdog_exhaustiveness.py` | `tools/backtest/taskdog_exhaustiveness.py` | Maps each of 26 MCP tools to N scenarios that exercise it; ensures coverage |
-| `run_backtest.sh` | `scripts/backtest/run.sh` | Shell wrapper (PARALLEL=false first, then PARALLEL=true) |
-| `reports/backtest-Q{n}.md` | Auto-generated | Score report |
+| `seed_q3_scenarios.py` | `tools/backtest/seed_q3_scenarios.py` | Generates 28-day scenario corpus (DONE M114a) |
+| `taskdog_exhaustiveness.py` | `tools/backtest/taskdog_exhaustiveness.py` | Ensures 26-tool coverage (DONE M114d) |
+| `role_anchors.py` | `tools/backtest/role_anchors.py` | Maps scenarios to role-anchor requirements 1-11 |
+| `backtest_harness.py` | `tools/backtest/backtest_harness.py` | Runs scenarios; checks role-anchor satisfaction; simulates vault_write propagation |
+| `vault_propagation.py` | `tools/backtest/vault_propagation.py` | Simulates the taskdog done → vault_event.json + plan toggle flow |
+| `judge_llm.py` | `tools/backtest/judge_llm.py` | Rule-based v1 + LLM-judge v2 (LLM optional) |
+| `run_backtest.sh` | `scripts/backtest/run.sh` | Shell wrapper (PARALLEL=false first, then true) |
+| `reports/backtest-Q{n}.md` | Auto-generated | Report with per-role-anchor matrix + judge-LLM summary |
 
 ### Scenarios (v1 corpus, 28 days × 1 task/day)
 
@@ -95,11 +126,16 @@ If real LLM API fails (per user fallback chain), degrade to: try `MiniMax-M3` fi
 ## Acceptance
 
 This is a SPEC. The user OKs scope; M114 implements in atomic phases:
-- **M114a** — `seed_q3_scenarios.py` (deterministic generator)
+- **M114a** — `seed_q3_scenarios.py` (deterministic generator) ✅
 - **M114b** — `backtest_harness.py` (run scenarios against ReAct agent)
 - **M114c** — `judge_llm.py` (rule-based scoring v1)
-- **M114d** — `taskdog_exhaustiveness.py` (map 26 tools to scenarios)
-- **M114e** — `run_backtest.sh` + `reports/backtest-Q1.md` generation
+- **M114d** — `taskdog_exhaustiveness.py` (map 26 tools to scenarios) ✅
+- **M114e** — `role_anchors.py` (map scenarios → role-anchor 1-11)
+- **M114f** — `vault_propagation.py` (simulate taskdog done → vault_event.json + plan toggle)
+- **M114g** — `run_backtest.sh` + `reports/backtest-Q1.md` generation
+- **M114h** — End-to-end propagation test: real taskdog `done` → real vault plan update verified by file mtime + vault_event.json line count
+
+Each phase lands its own commit; drift net stays 23/23.
 
 ## Open questions for user
 
