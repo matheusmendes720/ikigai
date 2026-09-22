@@ -5922,3 +5922,63 @@ drift: vault_tags=['frontend', 'urgent'], taskdog_tags=['backend', 'urgent']
 
 ### Cumulative test count
 - M110-M122: **252 new tests** since M109 (+14 this round)
+## M123 — 2026-09-22
+
+**Goal:** Daily cron for `bash scripts/backtest/run_backtest.sh`. Wire it up for Windows Task Scheduler + Linux/macOS crontab.
+
+### Delivered
+
+**`scripts/cron/cron-backtest.sh`** (60 lines) — bash driver:
+- Resolves repo root from `$BASH_SOURCE` (works for symlinks).
+- Detects Python: prefers repo venv (`src/ikigai/.venv/Scripts/python.exe` or `bin/python`), falls back to PATH.
+- Creates `.life/logs/` if missing, appends (not overwrites) to `cron-backtest.log`.
+- Logs ISO-8601 timestamp + status (OK / FAILED with rc).
+- Exits non-zero on pipeline failure so scheduler can detect.
+
+**`scripts/cron/setup-task-scheduler.ps1`** (60 lines) — Windows Task Scheduler one-time setup:
+- Registers task `life-oss-backtest-daily` running daily at 06:00 (configurable via `-Time`).
+- 30-minute execution time limit.
+- `AllowStartIfOnBatteries` + `DontStopIfGoingOnBatteries` + `StartWhenAvailable` so laptops catch up.
+- Idempotent: unregisters existing task before re-registering.
+- `-Unregister` flag for clean removal.
+
+**`scripts/cron/README.md`** — documents both Windows and POSIX setup.
+
+**`tests/test_m123_cron_backtest.py`** — 8 tests, all PASS:
+- Script exists and is executable.
+- Run via subprocess succeeds and writes log.
+- Resolves repo root even when invoked from subdir.
+- Exit code propagates from run_backtest.sh.
+- Log appends (doesn't overwrite).
+- README + PS1 script reference the right pieces.
+
+### Live verification
+
+```
+$ bash scripts/cron/cron-backtest.sh
+# → tail .life/logs/cron-backtest.log:
+[2026-09-22T10:39:25-03:00] Starting daily backtest pipeline
+[... pipeline output ...]
+[2026-09-22T10:39:25-03:00] Pipeline OK
+```
+
+### Decisions
+
+- **`shell=True` in subprocess tests** — discovered during debugging that Python's `subprocess.run(args)` lets MSYS mangle Windows-style paths in argv. Switching to `shell=True` (command string passed to cmd.exe → bash) handles paths correctly. Documented in helper comment.
+- **Append, don't overwrite log** — running twice in one day accumulates log entries. Operators see the full history.
+- **`--skip-gen` always passed** — scenario generation is stable; only re-run when M114 chain updates.
+- **30-min time limit** — pipeline usually finishes in ~5s, but leaves headroom for slow CI.
+- **Idempotent registration** — re-running `setup-task-scheduler.ps1` cleanly replaces the existing task.
+- **No notification on failure** — user opted out of Telegram/Discord (per memory). Cron failures visible via Task Scheduler history + log file.
+
+### Honest scope
+
+- ✅ Windows Task Scheduler setup script ready
+- ✅ POSIX crontab snippet documented in README
+- ✅ Tests cover exit code propagation, log behavior, repo resolution
+- ⚠️ **Not actually scheduled** — task registration requires manual `setup-task-scheduler.ps1` invocation (one-time setup). Per user "yolo on" mode, didn't auto-schedule.
+- ⚠️ **No email/notification on failure** — user opted out of Telegram. Cron failures visible via Task Scheduler history + log file inspection.
+- ⚠️ **Per-machine baselines** — each machine has its own `reports/baselines/`. CI would need a shared store.
+
+### Cumulative test count
+- M110-M123: **260 new tests** since M109 (+8 this round)
