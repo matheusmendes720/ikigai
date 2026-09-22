@@ -1,0 +1,1423 @@
+{
+  "n_total": 73,
+  "n_pass": 70,
+  "n_fail": 0,
+  "n_error": 0,
+  "n_skip": 3,
+  "by_tool": {
+    "taskdog_create_task": 8,
+    "taskdog_list_tasks": 56,
+    "taskdog_create_subtask": 4,
+    "taskdog_update_task": 3,
+    "taskdog_get_metrics": 3
+  },
+  "by_anchor": {
+    "4": {
+      "PASS": 11,
+      "FAIL": 0,
+      "ERROR": 0,
+      "SKIP": 0
+    },
+    "6": {
+      "PASS": 11,
+      "FAIL": 0,
+      "ERROR": 0,
+      "SKIP": 0
+    },
+    "5": {
+      "PASS": 55,
+      "FAIL": 0,
+      "ERROR": 0,
+      "SKIP": 3
+    },
+    "7": {
+      "PASS": 3,
+      "FAIL": 0,
+      "ERROR": 0,
+      "SKIP": 3
+    },
+    "9": {
+      "PASS": 52,
+      "FAIL": 0,
+      "ERROR": 0,
+      "SKIP": 3
+    },
+    "1": {
+      "PASS": 55,
+      "FAIL": 0,
+      "ERROR": 0,
+      "SKIP": 0
+    },
+    "2": {
+      "PASS": 59,
+      "FAIL": 0,
+      "ERROR": 0,
+      "SKIP": 0
+    },
+    "3": {
+      "PASS": 59,
+      "FAIL": 0,
+      "ERROR": 0,
+      "SKIP": 0
+    },
+    "11": {
+      "PASS": 59,
+      "FAIL": 0,
+      "ERROR": 0,
+      "SKIP": 0
+    },
+    "8": {
+      "PASS": 10,
+      "FAIL": 0,
+      "ERROR": 0,
+      "SKIP": 0
+    },
+    "10": {
+      "PASS": 7,
+      "FAIL": 0,
+      "ERROR": 0,
+      "SKIP": 0
+    }
+  },
+  "outcomes": [
+    {
+      "day": 1,
+      "category": "add-task",
+      "anchors": [
+        4,
+        6
+      ],
+      "tools_called": [
+        "taskdog_create_task"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "created task 286",
+      "taskdog_id": 286
+    },
+    {
+      "day": 2,
+      "category": "add-task",
+      "anchors": [
+        4,
+        6
+      ],
+      "tools_called": [
+        "taskdog_create_task"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "created task 287",
+      "taskdog_id": 287
+    },
+    {
+      "day": 3,
+      "category": "add-task",
+      "anchors": [
+        4,
+        6
+      ],
+      "tools_called": [
+        "taskdog_create_task"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "created task 288",
+      "taskdog_id": 288
+    },
+    {
+      "day": 4,
+      "category": "add-task",
+      "anchors": [
+        4,
+        6
+      ],
+      "tools_called": [
+        "taskdog_create_task"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "created task 289",
+      "taskdog_id": 289
+    },
+    {
+      "day": 5,
+      "category": "complete-task",
+      "anchors": [
+        5,
+        7,
+        9
+      ],
+      "tools_called": [],
+      "vault_events": [],
+      "status": "SKIP",
+      "detail": "task 3 blocked by dependencies",
+      "taskdog_id": 3
+    },
+    {
+      "day": 6,
+      "category": "complete-task",
+      "anchors": [
+        5,
+        7,
+        9
+      ],
+      "tools_called": [],
+      "vault_events": [],
+      "status": "SKIP",
+      "detail": "task 3 blocked by dependencies",
+      "taskdog_id": 3
+    },
+    {
+      "day": 7,
+      "category": "complete-task",
+      "anchors": [
+        5,
+        7,
+        9
+      ],
+      "tools_called": [],
+      "vault_events": [],
+      "status": "SKIP",
+      "detail": "task 3 blocked by dependencies",
+      "taskdog_id": 3
+    },
+    {
+      "day": 8,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 283 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 9,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 283 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 10,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 283 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 11,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 283 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 12,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 283 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 13,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 283 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 14,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 283 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 15,
+      "category": "decompose",
+      "anchors": [
+        2,
+        3,
+        6,
+        8,
+        11
+      ],
+      "tools_called": [
+        "taskdog_create_task",
+        "taskdog_create_subtask"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "decomposed 290 into 2 children",
+      "taskdog_id": 290
+    },
+    {
+      "day": 16,
+      "category": "decompose",
+      "anchors": [
+        2,
+        3,
+        6,
+        8,
+        11
+      ],
+      "tools_called": [
+        "taskdog_create_task",
+        "taskdog_create_subtask"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "decomposed 293 into 2 children",
+      "taskdog_id": 293
+    },
+    {
+      "day": 17,
+      "category": "decompose",
+      "anchors": [
+        2,
+        3,
+        6,
+        8,
+        11
+      ],
+      "tools_called": [
+        "taskdog_create_task",
+        "taskdog_create_subtask"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "decomposed 296 into 2 children",
+      "taskdog_id": 296
+    },
+    {
+      "day": 18,
+      "category": "decompose",
+      "anchors": [
+        2,
+        3,
+        6,
+        8,
+        11
+      ],
+      "tools_called": [
+        "taskdog_create_task",
+        "taskdog_create_subtask"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "decomposed 299 into 2 children",
+      "taskdog_id": 299
+    },
+    {
+      "day": 19,
+      "category": "list-tasks",
+      "anchors": [
+        4,
+        10
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "listed 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 20,
+      "category": "list-tasks",
+      "anchors": [
+        4,
+        10
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "listed 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 21,
+      "category": "list-tasks",
+      "anchors": [
+        4,
+        10
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "listed 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 22,
+      "category": "list-tasks",
+      "anchors": [
+        4,
+        10
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "listed 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 23,
+      "category": "update-task",
+      "anchors": [
+        4,
+        6,
+        8
+      ],
+      "tools_called": [
+        "taskdog_update_task"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "updated task 3",
+      "taskdog_id": 3
+    },
+    {
+      "day": 24,
+      "category": "update-task",
+      "anchors": [
+        4,
+        6,
+        8
+      ],
+      "tools_called": [
+        "taskdog_update_task"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "updated task 3",
+      "taskdog_id": 3
+    },
+    {
+      "day": 25,
+      "category": "update-task",
+      "anchors": [
+        4,
+        6,
+        8
+      ],
+      "tools_called": [
+        "taskdog_update_task"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "updated task 3",
+      "taskdog_id": 3
+    },
+    {
+      "day": 26,
+      "category": "weekly-review",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        7,
+        8,
+        10,
+        11
+      ],
+      "tools_called": [
+        "taskdog_get_metrics"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "weekly metrics read",
+      "taskdog_id": null
+    },
+    {
+      "day": 27,
+      "category": "weekly-review",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        7,
+        8,
+        10,
+        11
+      ],
+      "tools_called": [
+        "taskdog_get_metrics"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "weekly metrics read",
+      "taskdog_id": null
+    },
+    {
+      "day": 28,
+      "category": "weekly-review",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        7,
+        8,
+        10,
+        11
+      ],
+      "tools_called": [
+        "taskdog_get_metrics"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "weekly metrics read",
+      "taskdog_id": null
+    },
+    {
+      "day": 1000,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1001,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1002,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1003,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1004,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1005,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1006,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1007,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1008,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1009,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1010,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1011,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1012,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1013,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1014,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1015,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1016,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1017,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1018,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1019,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1020,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1021,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1022,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1023,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1024,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1025,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1026,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1027,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1028,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1029,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1030,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1031,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1032,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1033,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1034,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1035,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1036,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1037,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1038,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1039,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1040,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1041,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1042,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1043,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    },
+    {
+      "day": 1044,
+      "category": "daily-plan",
+      "anchors": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        11
+      ],
+      "tools_called": [
+        "taskdog_list_tasks"
+      ],
+      "vault_events": [],
+      "status": "PASS",
+      "detail": "daily plan: 295 tasks",
+      "taskdog_id": null
+    }
+  ],
+  "elapsed_seconds": 2.473,
+  "scenarios_source": "C:\\Users\\mathe\\code_space\\life-oss\\life\\vault\\drafts\\q3-scenarios.with-anchors.yaml"
+}

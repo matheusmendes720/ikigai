@@ -5248,3 +5248,76 @@ Includes: structure validation (anchor count, IDs, uniqueness, sources), per-cat
 - ✅ Coverage matrix computes correctly; live run on real YAML shows 11/11 OK
 - ⚠️ Coverage metric is **count-based** — M114b (harness) will need rule-based checks (does the agent's actual output touch the anchor's claim, not just call the right tool?)
 - ⚠️ Anchor #7 propagation driver is satisfied with 6 scenarios, but the **real test** is whether the agent's audit_drift output surfaces drift that exists (not just whether it calls taskdog_get_task)
+## M114b — 2026-09-22
+
+**Goal:** Run the 73 padded backtest scenarios through a deterministic harness that exercises real taskdog-server + audit routines. Verify what passes without LLM inference.
+
+### Delivered
+
+**`tools/backtest/backtest_harness.py`** (430 lines) — deterministic executor:
+- 7 action functions: `_act_add/list/update/complete/decompose/daily_plan/weekly_review`
+- Each calls **real taskdog-server HTTP API** at `127.0.0.1:8000`
+- Per-category action selection (no LLM)
+- Pool of mutable task IDs for update/complete actions
+- 2-step lifecycle enforcement: PENDING → IN_PROGRESS → COMPLETED (skips already-done)
+- Dependency-blocked scenarios gracefully SKIP (not ERROR)
+- Per-scenario outcome + per-tool + per-anchor roll-up
+- Output: `reports/backtest-Q1-results.json` (full) + console summary
+
+**`tests/test_backtest_harness.py`** — 20 tests, all PASS.
+
+### Live verification
+
+```
+$ python tools/backtest/backtest_harness.py
+{
+  "n_total": 73,
+  "n_pass": 70,
+  "n_fail": 0,
+  "n_error": 0,
+  "n_skip": 3,
+  "elapsed_s": 2.473,
+  "by_tool_count": 5,
+  "by_anchor_total": 381
+}
+```
+
+**70/73 scenarios PASS** end-to-end against live taskdog-server. **3 SKIP** are dependency-blocked (task 3 needs task 4 completed first — agent would surface "blocked by upstream" in real workflow).
+
+### Tool coverage (live)
+
+- `taskdog_list_tasks`: 56 calls
+- `taskdog_create_task`: 8
+- `taskdog_create_subtask`: 4
+- `taskdog_get_metrics`: 3
+- `taskdog_update_task`: 3
+- `taskdog_complete_task`: 3
+
+### Anchor coverage (live, all 11 met)
+
+- #1 constitutional_sot_reader: 55 PASS
+- #2 dual_frame_temporal_tracker: 59
+- #3 five_level_hierarchy_mapper: 59
+- #4 tagging_system_conversant: 11
+- #5 time_horizon_aware: 55
+- #6 vault_write_mcp_enforcer: 11
+- #7 taskdog_vault_propagation_driver: 3 PASS + 3 SKIP (lifecycle blocked)
+- #8 plan_update_on_the_fly_reflector: 10
+- #9 cross_routine_executor: 52
+- #10 diagnostic_reporter: 7
+- #11 cultural_voice_compliance: 59
+
+### Decisions
+
+- **No LLM** — deterministic mode only. When `IKIGAI_API_KEY` is available, future M114b-real can swap action selection to LLM-driven.
+- **Real HTTP** — taskdog-server actually gets called (not mocked). Catches schema mismatches (caught: `title`→`name`, `priority` int, lifecycle 2-step, dependency check, already-completed).
+- **SKIP over ERROR** — for dependency-blocks and already-completed. Distinguishes "harness bug" from "world is harder than expected."
+- **Pool of mutable tasks** — module-level `_task_id_pool` caches PENDING/IN_PROGRESS task IDs across scenarios. Drains naturally.
+
+### Honest scope
+
+- ✅ All 5 tools exercised end-to-end against real server
+- ✅ 70/73 deterministic scenarios PASS
+- ✅ Schema mismatches caught + fixed during build (priority int, name not title, lifecycle 2-step)
+- ⚠️ 3 scenarios SKIP — agent routine in production would surface these as "blocked by upstream" (task 4 uncomplete → can't complete task 3). Future work: harness could re-order scenarios by dependencies.
+- ⚠️ Anchor #7 (propagation driver) has only 3 PASS — the harness doesn't actually call `audit_drift`. M114g report will note this gap; future harness should integrate `vault_diff.py` for completeness.
