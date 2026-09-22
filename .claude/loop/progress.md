@@ -5640,3 +5640,64 @@ $ bash scripts/backtest/run_backtest.sh --skip-gen
 
 - **Score didn't jump massively** — was 94.5, now 94.6 because `audit_drift` is the 21st tool (was 20), but the denominator (27 expected_unique) includes 7 server-missing tools, so net coverage = (20/21) = 95.0%. The qualitative win is: anchor #7 has a real executed code path, not just a synthetic intent.
 - **`_act_audit_drift` does HTTP** — means if taskdog is down, it returns ERROR. The judge correctly categorizes this; harness distinguishes PASS / SKIP / ERROR.
+## M118 — 2026-09-22
+
+**Goal:** Historical baseline archive with weekly trend. Drift detector (M115) only had one baseline; now we track score over time.
+
+### Delivered
+
+**`tools/backtest/baseline_archive.py`** (250 lines) — 3 subcommands:
+- `archive` — copies today's `backtest-Q1-judgment.json` to `reports/baselines/<YYYY-MM-DD>.json`. **First-wins** — re-running same day is a no-op.
+- `list` — enumerate baselines newer than N days (0 = all-time sentinel).
+- `weekly` — groups baselines by ISO week, returns per-week avg of {total, anchor, tool, scenario}, renders markdown trend table with delta vs first week + 📈/📉/➡️ emoji.
+
+**`scripts/backtest/run_backtest.sh`** — step 8 added. Always invokes both `archive` and `weekly` at end of pipeline.
+
+**`tests/test_baseline_archive.py`** — 19 tests, all PASS:
+- archive: creates first, first-wins same-day, validates date format
+- list: filters by age, sentinel for 0=all, missing dir = []
+- _score: extracts 4 dimensions from judgment JSON
+- weekly_trend: groups by ISO week, computes per-week avg, skips invalid JSON, empty dir = []
+- trend_report_markdown: empty, single-week, multi-week-up, multi-week-down
+- CLI: archive/list/weekly subcommands dispatch correctly; unknown cmd exits 1
+
+**`reports/baselines/2026-09-22.json`** — today's archive.
+
+**`reports/backtest-trend.md`** — first trend report (1 run in W39).
+
+### Live verification
+
+```
+$ bash scripts/backtest/run_backtest.sh --skip-gen
+[1/8] taskdog-server OK
+[2/8] skipped
+[3/8] harness: 73 scenarios → 65 PASS / 8 SKIP / 0 ERROR
+[4/8] judge: 94.6/100
+[5/8] report: reports/backtest-Q1.md
+[6/8] drift: reports/backtest-drift.md
+[7/8] LLM-judge: 0.751/1.0
+[8/8] baseline_archive:
+  # Skipped (already archived): 2026-09-22.json
+  → reports/backtest-trend.md:
+    | 2026-W39 | 1 | 94.6 | 95.8 | 95.0 | 89.0 | 2026-09-22 |
+```
+
+### Decisions
+
+- **First-wins same-day** — a backtest run shouldn't pollute history if repeated within the same calendar day. The first one captures the day's "morning" snapshot.
+- **`since_days=0` = sentinel** — confirmed by `test_list_baselines_zero_since_returns_all`. Not "newer than today" (which would always be 0).
+- **Per-host archive** — no centralized store. CI machines and local machines have separate `reports/baselines/` trees. Good enough for local-only environments; for shared CI we'd swap for S3/git-LFS.
+- **ISO weeks** — uses `date.isocalendar()` (Mon-start). Clean alignment with week boundaries.
+- **Skip invalid JSON** — corrupted archive files don't break the whole trend computation.
+
+### Honest scope
+
+- ✅ Archive rotation works (day-stamped, first-wins)
+- ✅ Weekly trend renders correctly (avg, emoji, delta)
+- ✅ Pipeline is now 8 steps (was 7)
+- ⚠️ **No cross-host sync** — only one day's worth of data so far (today). The trend table will be more meaningful after running the pipeline a few times across different days.
+- ⚠️ **No anti-tampering** — `archive` writes a copy, not a checksum. A hand-edited baseline will silently appear in trend. Future work: add `reports/baselines/SHA256SUMS` manifest.
+- ⚠️ **No auto-trigger** — must invoke `bash scripts/backtest/run_backtest.sh` manually. Cron job (M121 candidate) could automate daily snapshots.
+
+### Cumulative test count
+- M110-M118: **201 new tests** since M109 (+19 this round)
