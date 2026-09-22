@@ -1,0 +1,297 @@
+{
+  "scores": {
+    "anchor_pass_rate_pct": 95.8,
+    "tool_coverage_pct": 100.0,
+    "schema_valid_pct": 100.0,
+    "scenario_pass_rate_pct": 89.0,
+    "total_score": 96.1
+  },
+  "weights": {
+    "anchor_pass_rate": 0.4,
+    "tool_coverage": 0.3,
+    "schema_valid": 0.1,
+    "scenario_pass_rate": 0.2
+  },
+  "anchors": {
+    "1": {
+      "name": "constitutional_sot_reader",
+      "n_scenarios": 55,
+      "n_pass": 48,
+      "n_skip": 7,
+      "n_error": 0,
+      "pass_rate": 0.936
+    },
+    "2": {
+      "name": "dual_frame_temporal_tracker",
+      "n_scenarios": 59,
+      "n_pass": 52,
+      "n_skip": 7,
+      "n_error": 0,
+      "pass_rate": 0.941
+    },
+    "3": {
+      "name": "five_level_hierarchy_mapper",
+      "n_scenarios": 59,
+      "n_pass": 52,
+      "n_skip": 7,
+      "n_error": 0,
+      "pass_rate": 0.941
+    },
+    "4": {
+      "name": "tagging_system_conversant",
+      "n_scenarios": 11,
+      "n_pass": 11,
+      "n_skip": 0,
+      "n_error": 0,
+      "pass_rate": 1.0
+    },
+    "5": {
+      "name": "time_horizon_aware",
+      "n_scenarios": 58,
+      "n_pass": 50,
+      "n_skip": 8,
+      "n_error": 0,
+      "pass_rate": 0.931
+    },
+    "6": {
+      "name": "vault_write_mcp_enforcer",
+      "n_scenarios": 11,
+      "n_pass": 11,
+      "n_skip": 0,
+      "n_error": 0,
+      "pass_rate": 1.0
+    },
+    "7": {
+      "name": "taskdog_vault_propagation_driver",
+      "n_scenarios": 6,
+      "n_pass": 5,
+      "n_skip": 1,
+      "n_error": 0,
+      "pass_rate": 0.917
+    },
+    "8": {
+      "name": "plan_update_on_the_fly_reflector",
+      "n_scenarios": 10,
+      "n_pass": 10,
+      "n_skip": 0,
+      "n_error": 0,
+      "pass_rate": 1.0
+    },
+    "9": {
+      "name": "cross_routine_executor",
+      "n_scenarios": 55,
+      "n_pass": 47,
+      "n_skip": 8,
+      "n_error": 0,
+      "pass_rate": 0.927
+    },
+    "10": {
+      "name": "diagnostic_reporter",
+      "n_scenarios": 7,
+      "n_pass": 7,
+      "n_skip": 0,
+      "n_error": 0,
+      "pass_rate": 1.0
+    },
+    "11": {
+      "name": "cultural_voice_compliance",
+      "n_scenarios": 59,
+      "n_pass": 52,
+      "n_skip": 7,
+      "n_error": 0,
+      "pass_rate": 0.941
+    }
+  },
+  "tools": {
+    "expected_total": 97,
+    "actual_total": 101,
+    "expected_unique_tools": 26,
+    "actual_unique_tools": 21,
+    "missing_tools": [
+      "taskdog_bulk_archive",
+      "taskdog_bulk_complete",
+      "taskdog_get_execution_rate",
+      "taskdog_get_executive_summary",
+      "taskdog_get_q_high_e_low_metrics",
+      "taskdog_search_tasks"
+    ],
+    "unexpected_tools": [
+      "taskdog_create_subtask"
+    ],
+    "by_tool": {
+      "taskdog_add_dependency": {
+        "expected": 4,
+        "actual": 4,
+        "covered": true
+      },
+      "taskdog_archive": {
+        "expected": 3,
+        "actual": 3,
+        "covered": true
+      },
+      "taskdog_bulk_archive": {
+        "expected": 3,
+        "actual": 0,
+        "covered": false
+      },
+      "taskdog_bulk_complete": {
+        "expected": 3,
+        "actual": 0,
+        "covered": false
+      },
+      "taskdog_cancel": {
+        "expected": 3,
+        "actual": 3,
+        "covered": true
+      },
+      "taskdog_complete_task": {
+        "expected": 3,
+        "actual": 3,
+        "covered": true
+      },
+      "taskdog_create_note": {
+        "expected": 3,
+        "actual": 3,
+        "covered": true
+      },
+      "taskdog_create_subtask": {
+        "expected": 0,
+        "actual": 4,
+        "covered": false
+      },
+      "taskdog_create_task": {
+        "expected": 8,
+        "actual": 8,
+        "covered": true
+      },
+      "taskdog_get_burndown": {
+        "expected": 3,
+        "actual": 3,
+        "covered": true
+      },
+      "taskdog_get_cognitive_debt_metrics": {
+        "expected": 3,
+        "actual": 3,
+        "covered": true
+      },
+      "taskdog_get_daily_allocations": {
+        "expected": 7,
+        "actual": 7,
+        "covered": true
+      },
+      "taskdog_get_execution_rate": {
+        "expected": 3,
+        "actual": 0,
+        "covered": false
+      },
+      "taskdog_get_executive_summary": {
+        "expected": 3,
+        "actual": 0,
+        "covered": false
+      },
+      "taskdog_get_metrics": {
+        "expected": 3,
+        "actual": 3,
+        "covered": true
+      },
+      "taskdog_get_q_high_e_low_metrics": {
+        "expected": 3,
+        "actual": 0,
+        "covered": false
+      },
+      "taskdog_get_task": {
+        "expected": 3,
+        "actual": 3,
+        "covered": true
+      },
+      "taskdog_list_notes": {
+        "expected": 3,
+        "actual": 3,
+        "covered": true
+      },
+      "taskdog_list_tasks": {
+        "expected": 11,
+        "actual": 32,
+        "covered": true
+      },
+      "taskdog_pause": {
+        "expected": 3,
+        "actual": 3,
+        "covered": true
+      },
+      "taskdog_remove_dependency": {
+        "expected": 3,
+        "actual": 1,
+        "covered": true
+      },
+      "taskdog_reopen": {
+        "expected": 3,
+        "actual": 3,
+        "covered": true
+      },
+      "taskdog_search_tasks": {
+        "expected": 4,
+        "actual": 0,
+        "covered": false
+      },
+      "taskdog_set_deadline": {
+        "expected": 3,
+        "actual": 3,
+        "covered": true
+      },
+      "taskdog_set_priority": {
+        "expected": 3,
+        "actual": 3,
+        "covered": true
+      },
+      "taskdog_set_tags": {
+        "expected": 3,
+        "actual": 3,
+        "covered": true
+      },
+      "taskdog_update_task": {
+        "expected": 3,
+        "actual": 3,
+        "covered": true
+      }
+    }
+  },
+  "schema": {
+    "known_tools_count": 26,
+    "unknown_tools_referenced": [],
+    "schema_valid": true
+  },
+  "gaps": [
+    {
+      "kind": "tool_server_missing",
+      "tool": "taskdog_bulk_archive",
+      "detail": "Tool is in MCP spec but no HTTP endpoint on live taskdog-server. Either add endpoint, or mark tool as retired in spec."
+    },
+    {
+      "kind": "tool_server_missing",
+      "tool": "taskdog_bulk_complete",
+      "detail": "Tool is in MCP spec but no HTTP endpoint on live taskdog-server. Either add endpoint, or mark tool as retired in spec."
+    },
+    {
+      "kind": "tool_server_missing",
+      "tool": "taskdog_get_execution_rate",
+      "detail": "Tool is in MCP spec but no HTTP endpoint on live taskdog-server. Either add endpoint, or mark tool as retired in spec."
+    },
+    {
+      "kind": "tool_server_missing",
+      "tool": "taskdog_get_executive_summary",
+      "detail": "Tool is in MCP spec but no HTTP endpoint on live taskdog-server. Either add endpoint, or mark tool as retired in spec."
+    },
+    {
+      "kind": "tool_server_missing",
+      "tool": "taskdog_get_q_high_e_low_metrics",
+      "detail": "Tool is in MCP spec but no HTTP endpoint on live taskdog-server. Either add endpoint, or mark tool as retired in spec."
+    },
+    {
+      "kind": "tool_server_missing",
+      "tool": "taskdog_search_tasks",
+      "detail": "Tool is in MCP spec but no HTTP endpoint on live taskdog-server. Either add endpoint, or mark tool as retired in spec."
+    }
+  ],
+  "n_judged": 73
+}
