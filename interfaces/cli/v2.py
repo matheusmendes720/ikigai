@@ -904,6 +904,23 @@ def register_vault_toggle(app: typer.Typer) -> None:
                      actor=actor, reason=reason, json_output=json_output)
         raise typer.Exit(code=rc)
 
+    # M133: inverse of toggle — reopen a closed checkbox.
+    @app.command(name="vault-reopen")
+    def reopen_cmd(
+        plan_path: str = typer.Option(..., "--plan-path", "-p"),
+        line: int = typer.Option(..., "--line", "-l"),
+        expected: str = typer.Option(..., "--expected", "-e"),
+        reason: str = typer.Option(..., "--reason", "-r"),
+        actor: str = typer.Option("cli", "--actor"),
+        skip_preview: bool = typer.Option(False, "--skip-preview"),
+        json_output: bool = typer.Option(False, "--json"),
+    ) -> None:
+        from tools.vault.reopen_cli import main as ro_main
+        rc = ro_main(rel_path=plan_path, line=line, expected=expected,
+                     actor=actor, reason=reason, skip_preview=skip_preview,
+                     json_output=json_output)
+        raise typer.Exit(code=rc)
+
 
 register_vault_toggle(app)
 

@@ -202,6 +202,155 @@ def toggle_checkbox(plan_path: Path, target_line: int, expected_text: str) -> di
     }
 
 
+def reopen_checkbox(plan_path: Path, target_line: int, expected_text: str) -> dict[str, Any]:
+    """Inverse of `toggle_checkbox`: flip `- [x] <text>` back to `- [ ] <text>`.
+
+    M133: used when the user (or agent) wants to unmark a task as not done.
+    Same safety guards as `toggle_checkbox`: refuses if line doesn't match.
+    Returns {ok, before_line, after_line, file_path, checkboxes_done}.
+    """
+    if not plan_path.exists():
+        return {"ok": False, "error": f"plan not found: {plan_path}", "file_path": str(plan_path)}
+    text = plan_path.read_text(encoding="utf-8")
+    lines = text.splitlines(keepends=True)
+    if target_line < 1 or target_line > len(lines):
+        return {"ok": False, "error": f"line {target_line} out of range", "file_path": str(plan_path)}
+    line = lines[target_line - 1]
+    stripped = line.rstrip("\n")
+    # Refuse if the line is already open.
+    if stripped.startswith("- [ ] "):
+        return {
+            "ok": False,
+            "error": f"line {target_line} is already open (cannot reopen): {stripped!r}",
+            "file_path": str(plan_path),
+        }
+    # Match `- [x] text` (no link) OR `- [x] [vault:...] text` (with link).
+    # The `[x]` token must be exactly that — not a vault link.
+    # Pattern: `- [x] <link_or_text>` where link is `[vault:rel#line]` or just text.
+    m = re.match(r"^- \[x\] (.+)$", stripped)
+    if m is None:
+        return {
+            "ok": False,
+            "error": f"line {target_line} mismatch: expected `- [x] <text>`, got {stripped!r}",
+            "file_path": str(plan_path),
+            "expected": f"- [x] {expected_text}",
+            "actual": stripped,
+        }
+    rest = m.group(1)  # everything after `- [x] `
+    # Validate that expected_text matches the content (after stripping the link prefix).
+    link_m = re.match(r"^\[vault:[^#\]]+#\d+\] (.+)$", rest)
+    if link_m:
+        content = link_m.group(1)
+    else:
+        content = rest
+    if content != expected_text:
+        return {
+            "ok": False,
+            "error": f"line {target_line} mismatch: expected content {expected_text!r}, got {content!r}",
+            "file_path": str(plan_path),
+            "expected": expected_text,
+            "actual": content,
+        }
+    reopened_line = f"- [ ] {rest}\n"
+    lines[target_line - 1] = reopened_line
+    new_text = "".join(lines)
+    new_text = _bump_frontmatter_field(new_text, "ultima_revisao", now_iso()[:10])
+    plan_path.write_text(new_text, encoding="utf-8")
+    return {
+        "ok": True,
+        "before_line": stripped,
+        "after_line": reopened_line.rstrip("\n"),
+        "file_path": str(plan_path),
+        "checkboxes_done": _count_checkboxes_done(new_text),
+    }
+
+
+def preview_reopen(plan_path: Path, target_line: int, expected_text: str) -> dict[str, Any]:
+    """Read-only check: would `reopen_checkbox` succeed? Used by agent before mutating.
+
+    Returns the same shape as `reopen_checkbox` but does NOT mutate the file.
+    """
+    if not plan_path.exists():
+        return {"ok": False, "error": f"plan not found: {plan_path}", "file_path": str(plan_path)}
+    text = plan_path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    if target_line < 1 or target_line > len(lines):
+        return {"ok": False, "error": f"line {target_line} out of range", "file_path": str(plan_path)}
+    stripped = lines[target_line - 1].rstrip("\n")
+    if stripped.startswith("- [ ] "):
+        return {
+            "ok": False,
+            "error": f"line {target_line} is already open: {stripped!r}",
+            "file_path": str(plan_path),
+        }
+    m = re.match(r"^- \[x\] (.+)$", stripped)
+    if m is None:
+        return {
+            "ok": False,
+            "error": f"line {target_line} mismatch: expected `- [x] <text>`, got {stripped!r}",
+            "file_path": str(plan_path),
+            "expected": f"- [x] {expected_text}",
+            "actual": stripped,
+        }
+    rest = m.group(1)
+    link_m = re.match(r"^\[vault:[^#\]]+#\d+\] (.+)$", rest)
+    content = link_m.group(1) if link_m else rest
+    if content != expected_text:
+        return {
+            "ok": False,
+            "error": f"line {target_line} mismatch: expected content {expected_text!r}, got {content!r}",
+            "file_path": str(plan_path),
+            "expected": expected_text,
+            "actual": content,
+        }
+    would_be = f"- [ ] {rest}"
+    return {
+        "ok": True,
+        "preview": True,
+        "would_become": would_be,
+        "file_path": str(plan_path),
+        "checkboxes_done_after": _count_checkboxes_done(text) - 1,
+    }
+
+
+def apply_reopen(
+    plan_path: Path,
+    target_line: int,
+    expected_text: str,
+    actor: str,
+    reason: str,
+    *,
+    require_preview_ok: bool = True,
+) -> dict[str, Any]:
+    """GUARDED mutation: real reopen, but only after `preview_reopen` succeeded.
+
+    Mirror of `apply_toggle` but for the reverse direction.
+    """
+    preview = preview_reopen(plan_path, target_line, expected_text)
+    if require_preview_ok and not preview["ok"]:
+        append_event({
+            "event": "vault.reopen_refused",
+            "rel_path": str(plan_path),
+            "target_line": target_line,
+            "expected_text": expected_text,
+            "reason": reason,
+            "actor": actor,
+            "preview_error": preview.get("error"),
+        })
+        return {"ok": False, "refused": True, "preview": preview}
+    result = reopen_checkbox(plan_path, target_line, expected_text)
+    append_event({
+        "event": "vault.reopen_applied",
+        "rel_path": str(plan_path),
+        "target_line": target_line,
+        "expected_text": expected_text,
+        "reason": reason,
+        "actor": actor,
+        "ok": result["ok"],
+    })
+    return result
+
+
 def preview_toggle(
     plan_path: Path,
     target_line: int,
