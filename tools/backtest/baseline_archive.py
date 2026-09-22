@@ -59,17 +59,39 @@ def archive_baseline(
 
     No-op if the date already exists — first run of the day wins.
     """
+    return _archive_with_suffix(source, baselines_dir, date_str, suffix="")
+
+
+def archive_llm_baseline(
+    source: Path,
+    baselines_dir: Path = DEFAULT_BASELINES_DIR,
+    date_str: str | None = None,
+) -> Path:
+    """Copy `source` to baselines_dir/<date>.llm.json. First-wins same-day.
+
+    Stored alongside the rule-based baseline but with `.llm.json` suffix so
+    list_baselines() doesn't pick it up. M119: trend table reads both.
+    """
+    return _archive_with_suffix(source, baselines_dir, date_str, suffix=".llm")
+
+
+def _archive_with_suffix(
+    source: Path,
+    baselines_dir: Path,
+    date_str: str | None,
+    suffix: str,
+) -> Path:
     if date_str is None:
         date_str = _today_str()
     if not DATE_RE.match(date_str):
         raise ValueError(f"date_str must be YYYY-MM-DD, got {date_str!r}")
     baselines_dir.mkdir(parents=True, exist_ok=True)
-    targets = baselines_dir / f"{date_str}.json"
-    if targets.exists():
-        print(f"# Skipped (already archived): {targets.name}")
-        return targets  # first-wins; do not overwrite
-    shutil.copy2(source, targets)
-    return targets
+    target = baselines_dir / f"{date_str}{suffix}.json"
+    if target.exists():
+        print(f"# Skipped (already archived): {target.name}")
+        return target
+    shutil.copy2(source, target)
+    return target
 
 
 def list_baselines(
@@ -106,14 +128,44 @@ def _score(j: dict[str, Any]) -> dict[str, float]:
     }
 
 
+def _llm_score(j: dict[str, Any]) -> dict[str, float] | None:
+    """Extract llm-judge aggregate from the M116 JSON shape.
+
+    Returns None if the JSON doesn't have an aggregate (e.g. rule-based judgment).
+    """
+    agg = j.get("aggregate")
+    if not isinstance(agg, dict):
+        return None
+    return {
+        "llm_overall": round(float(agg.get("overall", 0.0)), 3),
+        "llm_arg_quality": round(float(agg.get("argument_quality", 0.0)), 3),
+        "llm_seq_coherence": round(float(agg.get("sequence_coherence", 0.0)), 3),
+        "llm_cultural_fit": round(float(agg.get("cultural_fit", 0.0)), 3),
+        "llm_tool_selection": round(float(agg.get("tool_selection", 0.0)), 3),
+    }
+
+
+def _llm_score_from_path(path: Path) -> dict[str, float] | None:
+    """Load <DATE>.llm.json if present. Returns None on missing/invalid."""
+    if not path.exists():
+        return None
+    try:
+        return _llm_score(_load(path))
+    except (json.JSONDecodeError, ValueError):
+        return None
+
+
 def weekly_trend(
     baselines_dir: Path = DEFAULT_BASELINES_DIR, since_days: int = 90
 ) -> list[dict[str, Any]]:
     """Group baselines by ISO week. Returns week_start, avg scores, n_runs.
 
-    Most-recent week last.
+    Most-recent week last. If a matching <date>.llm.json exists, also computes
+    per-week llm_overall avg and includes it in the result.
     """
-    by_week: dict[str, list[tuple[dt.date, dict[str, float]]]] = defaultdict(list)
+    by_week: dict[str, list[tuple[dt.date, dict[str, float], dict[str, float] | None]]] = (
+        defaultdict(list)
+    )
     for p in list_baselines(baselines_dir, since_days=since_days):
         d = dt.date.fromisoformat(p.stem)
         week_key = d.isocalendar()
@@ -122,7 +174,8 @@ def weekly_trend(
             score = _score(_load(p))
         except (json.JSONDecodeError, ValueError):
             continue
-        by_week[week_label].append((d, score))
+        llm = _llm_score_from_path(baselines_dir / f"{p.stem}.llm.json")
+        by_week[week_label].append((d, score, llm))
 
     weeks: list[dict[str, Any]] = []
     for label, runs in sorted(by_week.items()):
@@ -130,11 +183,18 @@ def weekly_trend(
         runs.sort(key=lambda r: r[0])
         n = len(runs)
         avg = {
-            "total_score": round(sum(s["total_score"] for _, s in runs) / n, 2),
-            "tool_coverage": round(sum(s["tool_coverage"] for _, s in runs) / n, 2),
-            "anchor_pass": round(sum(s["anchor_pass"] for _, s in runs) / n, 2),
-            "scenario_pass": round(sum(s["scenario_pass"] for _, s in runs) / n, 2),
+            "total_score": round(sum(s["total_score"] for _, s, _ in runs) / n, 2),
+            "tool_coverage": round(sum(s["tool_coverage"] for _, s, _ in runs) / n, 2),
+            "anchor_pass": round(sum(s["anchor_pass"] for _, s, _ in runs) / n, 2),
+            "scenario_pass": round(sum(s["scenario_pass"] for _, s, _ in runs) / n, 2),
         }
+        llm_runs = [l for _, _, l in runs if l is not None]
+        if llm_runs:
+            avg["llm_overall"] = round(sum(l["llm_overall"] for l in llm_runs) / len(llm_runs), 3)
+            avg["llm_n_runs"] = len(llm_runs)
+        else:
+            avg["llm_overall"] = None  # marker: no llm data this week
+            avg["llm_n_runs"] = 0
         weeks.append({
             "week_label": label,
             "week_start": runs[0][0].isoformat(),
@@ -149,29 +209,64 @@ def trend_report_markdown(
     weeks: list[dict[str, Any]],
     *,
     title: str = "Backtest weekly trend",
+    include_llm: bool = True,
 ) -> str:
-    """Render a markdown table from weekly_trend() output."""
+    """Render a markdown table from weekly_trend() output.
+
+    If include_llm=True (default), add an `llm` column showing the per-week
+    LLM-judge overall avg. Weeks without llm data show `—`.
+    """
     out: list[str] = []
     out.append(f"# {title}\n")
     if not weeks:
         out.append("_No baselines in window._\n")
         return "\n".join(out)
-    out.append("| Week | n_runs | total | anchor | tool | scenario | latest_run |")
-    out.append("|------|--------|-------|--------|------|----------|------------|")
+
+    # Check whether ANY week has llm data; if not, omit the column.
+    any_llm = include_llm and any(w["avg"].get("llm_overall") is not None for w in weeks)
+    if any_llm:
+        out.append("| Week | n_runs | total | anchor | tool | scenario | llm | latest_run |")
+        out.append("|------|--------|-------|--------|------|----------|-----|------------|")
+    else:
+        out.append("| Week | n_runs | total | anchor | tool | scenario | latest_run |")
+        out.append("|------|--------|-------|--------|------|----------|------------|")
     for w in weeks:
         a = w["avg"]
-        out.append(
-            f"| {w['week_label']} | {w['n_runs']} | {a['total_score']:.1f} | "
-            f"{a['anchor_pass']:.1f} | {a['tool_coverage']:.1f} | "
-            f"{a['scenario_pass']:.1f} | {w['latest_run']} |"
-        )
-    # Per-week delta vs first week
+        if any_llm:
+            llm_cell = "—" if a.get("llm_overall") is None else f"{a['llm_overall']:.3f}"
+            out.append(
+                f"| {w['week_label']} | {w['n_runs']} | {a['total_score']:.1f} | "
+                f"{a['anchor_pass']:.1f} | {a['tool_coverage']:.1f} | "
+                f"{a['scenario_pass']:.1f} | {llm_cell} | {w['latest_run']} |"
+            )
+        else:
+            out.append(
+                f"| {w['week_label']} | {w['n_runs']} | {a['total_score']:.1f} | "
+                f"{a['anchor_pass']:.1f} | {a['tool_coverage']:.1f} | "
+                f"{a['scenario_pass']:.1f} | {w['latest_run']} |"
+            )
+    # Per-week delta vs first week (total_score)
     if len(weeks) >= 2:
         first = weeks[0]["avg"]["total_score"]
         last = weeks[-1]["avg"]["total_score"]
         delta = round(last - first, 2)
         emoji = "📈" if delta > 0.5 else ("📉" if delta < -0.5 else "➡️")
-        out.append(f"\n**Trend:** {emoji} {delta:+.2f} ({weeks[0]['latest_run']} → {weeks[-1]['latest_run']})")
+        out.append(
+            f"\n**Trend (rule-based):** {emoji} {delta:+.2f} "
+            f"({weeks[0]['latest_run']} → {weeks[-1]['latest_run']})"
+        )
+    # LLM delta — only if at least 2 weeks have llm data
+    if any_llm:
+        llm_weeks = [w for w in weeks if w["avg"].get("llm_overall") is not None]
+        if len(llm_weeks) >= 2:
+            first = llm_weeks[0]["avg"]["llm_overall"]
+            last = llm_weeks[-1]["avg"]["llm_overall"]
+            delta = round(last - first, 3)
+            emoji = "📈" if delta > 0.05 else ("📉" if delta < -0.05 else "➡️")
+            out.append(
+                f"\n**Trend (LLM-judge overall):** {emoji} {delta:+.3f} "
+                f"({llm_weeks[0]['latest_run']} → {llm_weeks[-1]['latest_run']})"
+            )
     out.append("")
     return "\n".join(out)
 
@@ -184,6 +279,17 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--source", type=Path, default=REPO_ROOT / "reports" / "backtest-Q1-judgment.json")
     a.add_argument("--baselines-dir", type=Path, default=DEFAULT_BASELINES_DIR)
     a.add_argument("--date", default=None)
+
+    al = sub.add_parser(
+        "archive-llm",
+        help="Archive today's LLM-judge JSON into baselines/<DATE>.llm.json",
+    )
+    al.add_argument(
+        "--source", type=Path,
+        default=REPO_ROOT / "reports" / "backtest-Q1-llm-judgment.json",
+    )
+    al.add_argument("--baselines-dir", type=Path, default=DEFAULT_BASELINES_DIR)
+    al.add_argument("--date", default=None)
 
     l = sub.add_parser("list", help="List baselines newer than N days")
     l.add_argument("--baselines-dir", type=Path, default=DEFAULT_BASELINES_DIR)
@@ -203,6 +309,14 @@ def main(argv: list[str] | None = None) -> int:
             pass
         else:
             print(f"# Archived {args.source.name} → {target}")
+        return 0
+    if args.cmd == "archive-llm":
+        target = archive_llm_baseline(args.source, args.baselines_dir, args.date)
+        # _archive_with_suffix prints skip if already there; print success only on new write.
+        # We can detect "new write" by checking mtime vs source mtime, but simpler:
+        # always print what we did (idempotent message).
+        if target.exists() and target.stat().st_mtime == target.stat().st_mtime:
+            pass  # archive_llm_baseline already printed; no extra noise
         return 0
     if args.cmd == "list":
         for path in list_baselines(args.baselines_dir, args.since_days):
