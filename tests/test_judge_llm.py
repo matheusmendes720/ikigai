@@ -134,11 +134,12 @@ def test_judge_schema_invalid_tool() -> None:
     assert (1, "taskdog_NOT_REAL") in s["unknown_tools_referenced"]
 
 
-def test_judge_schema_knows_26_tools() -> None:
+def test_judge_schema_knows_27_tools_post_m117() -> None:
+    """M113 spec: 26 taskdog-mcp tools. M117 added taskdog_audit_drift = 27."""
     js = []
     s = judge_schema(js)
-    assert s["known_tools_count"] == 26
-    assert len(TASKDOG_TOOLS) == 26
+    assert s["known_tools_count"] == 27
+    assert len(TASKDOG_TOOLS) == 27
 
 
 # === identify_gaps ===

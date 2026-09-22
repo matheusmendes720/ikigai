@@ -67,9 +67,9 @@ def test_tools_per_category_valid_subset() -> None:
             assert t in TASKDOG_TOOLS, f"{cat!r} uses unknown tool {t!r}"
 
 
-def test_taskdog_tools_list_size_26() -> None:
-    """M113 spec: 26 taskdog-mcp tools exhaustively covered."""
-    assert len(TASKDOG_TOOLS) == 26
+def test_taskdog_tools_list_size_27_post_m117() -> None:
+    """M113 spec: 26 taskdog-mcp tools. M117 added taskdog_audit_drift = 27."""
+    assert len(TASKDOG_TOOLS) == 27
 
 
 def test_yaml_roundtrip(tmp_path: Path) -> None:

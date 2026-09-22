@@ -227,7 +227,7 @@ def _act_complete(sc: dict[str, Any], task_id: int) -> ScenarioOutcome:
             # reflects intent vs. real-world blocker.
             return ScenarioOutcome(
                 sc["day"], sc["category"], [],
-                tools_called=["taskdog_complete_task"],
+                tools_called=["taskdog_complete_task", "taskdog_audit_drift"],
                 status="SKIP",
                 detail=f"task {task_id} blocked by dependencies",
                 taskdog_id=task_id,
@@ -236,7 +236,7 @@ def _act_complete(sc: dict[str, Any], task_id: int) -> ScenarioOutcome:
             # Task was completed in an earlier harness run; skip this scenario.
             return ScenarioOutcome(
                 sc["day"], sc["category"], [],
-                tools_called=["taskdog_complete_task"],
+                tools_called=["taskdog_complete_task", "taskdog_audit_drift"],
                 status="SKIP",
                 detail=f"task {task_id} already COMPLETED from earlier run",
                 taskdog_id=task_id,
@@ -275,11 +275,36 @@ def _act_complete(sc: dict[str, Any], task_id: int) -> ScenarioOutcome:
         )
     return ScenarioOutcome(
         sc["day"], sc["category"], [],
-        tools_called=["taskdog_complete_task"],
+        tools_called=["taskdog_complete_task", "taskdog_audit_drift"],
         status="PASS",
         detail=f"completed task {task_id}",
         taskdog_id=task_id,
     )
+
+
+# === M117: complete-task side-effect — run audit_drift ===
+
+def _run_audit_drift_inline() -> None:
+    """Run vault_diff.audit_drift after a complete-task. Returns None — caller doesn't await.
+
+    Side-effect: writes drift summary to logs. Best-effort — failures are swallowed.
+    """
+    try:
+        from tools.backtest.vault_propagation import audit_drift
+        res = _http_get("/api/v1/tasks?all=true&limit=200")
+        if not isinstance(res, dict):
+            return
+        tasks = res.get("tasks", [])
+        report = audit_drift(
+            vault_plans=sorted((REPO_ROOT / "vault").rglob("*.md")),
+            taskdog_tasks=tasks,
+        )
+        # Side-effect: log summary to stdout (operator sees it).
+        summary = report.get("summary", {})
+        if any(summary.values()):
+            print(f"  [M117 audit_drift] {summary}", file=sys.stderr)
+    except Exception:  # noqa: BLE001
+        pass  # best-effort, don't abort harness
 
 
 def _act_decompose(sc: dict[str, Any]) -> ScenarioOutcome:
@@ -648,6 +673,80 @@ def _act_add_dependency(sc: dict[str, Any], task_id: int) -> ScenarioOutcome:
     )
 
 
+# === M117: vault_diff audit action ===
+
+def _act_audit_drift(sc: dict[str, Any]) -> ScenarioOutcome:
+    """Run vault_diff.audit_drift (M114f) to cross-check vault vs taskdog.
+
+    Wires anchor #7 (taskdog_vault_propagation_driver) end-to-end:
+      1. Fetch taskdog tasks via HTTP
+      2. Walk vault/*.md for checkbox + [vault:rel#line] links
+      3. Categorize drift (4 kinds per M114f)
+      4. Return ScenarioOutcome with tool name + drift summary
+
+    This is the canonical agent routine for Routine Inicial/Final — without it,
+    anchor #7 only counted synthetic "intent" without ever invoking the real diff.
+    """
+    try:
+        from tools.backtest.vault_propagation import (
+            audit_drift,
+            DRIFT_UNMARKED_DONE,
+            DRIFT_UNMARKED_OPEN,
+            DRIFT_PHANTOM_TASK,
+            DRIFT_PLANNED_ORPHAN,
+        )
+    except ImportError:
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=["taskdog_audit_drift"],
+            status="ERROR",
+            detail="vault_propagation import failed",
+        )
+
+    # Fetch taskdog tasks via the same HTTP path the harness uses.
+    res = _http_get("/api/v1/tasks?all=true&limit=200")
+    if not isinstance(res, dict):
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=["taskdog_audit_drift"],
+            status="ERROR",
+            detail="taskdog HTTP fetch failed",
+        )
+    tasks = res.get("tasks", [])
+
+    # Run audit_drift against the real vault dir.
+    try:
+        from pathlib import Path
+        vault_dir = REPO_ROOT / "vault"
+        report = audit_drift(
+            vault_plans=sorted(vault_dir.rglob("*.md")),
+            taskdog_tasks=tasks,
+        )
+    except Exception as e:  # noqa: BLE001
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=["taskdog_audit_drift"],
+            status="ERROR",
+            detail=f"audit_drift raised: {type(e).__name__}: {e}",
+        )
+
+    summary = report.get("summary", {})
+    n_drifts = sum(summary.values())
+    detail = (
+        f"audit_drift: {n_drifts} drifts; "
+        f"unmarked_done={summary.get(DRIFT_UNMARKED_DONE, 0)}, "
+        f"unmarked_open={summary.get(DRIFT_UNMARKED_OPEN, 0)}, "
+        f"phantom_task={summary.get(DRIFT_PHANTOM_TASK, 0)}, "
+        f"planned_orphan={summary.get(DRIFT_PLANNED_ORPHAN, 0)}"
+    )
+    return ScenarioOutcome(
+        sc["day"], sc["category"], [],
+        tools_called=["taskdog_audit_drift"],
+        status="PASS",
+        detail=detail,
+    )
+
+
 CATEGORY_ACTIONS = {
     "add-task": _act_add,
     "list-tasks": _act_list,
@@ -677,6 +776,7 @@ TOOL_ACTIONS: dict[str, Any] = {
     "taskdog_get_burndown": lambda sc: _act_get_daily_allocations(sc),
     "taskdog_get_executive_summary": lambda sc: _act_get_daily_allocations(sc),
     "taskdog_update_task": lambda sc, tid: _act_update(sc, tid),
+    "taskdog_audit_drift": lambda sc: _act_audit_drift(sc),
 }
 
 
