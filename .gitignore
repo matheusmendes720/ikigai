@@ -516,3 +516,7 @@ archive/legacy-pav/src-operational/medic/bin/
 /Deep-Agent-as-canonical
 /console.log(i
 /done
+
+# M127 baseline signing passphrase (auto-generated)
+reports/baselines/.passphrase
+src/ikigai/data/baselines/.passphrase
