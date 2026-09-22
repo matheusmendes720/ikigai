@@ -399,11 +399,61 @@ def run_chat(agent: Any, thread_id: str) -> None:
     built-in commands. The deep agent reads ./strategics/ markdown for
     instructions (per the design's SOT clause), so the chat shell stays
     neutral and routes user input directly to the deep agent.
+
+    M106: REPL history + tab completion (readline on Unix, pyreadline3
+    on Windows). History persisted to .life/chat_history (one line per
+    entry, deduplicated, max 500 entries). Tab completion suggests
+    common commands (help, exit, /thread, /reset, etc.).
     """
     print("IKIGAi Conversational Agent — powered by deepagents")
-    print("Ctrl+C to exit\n")
+    print("Ctrl+C to exit | ↑/↓ for history | Tab for completion\n")
     print("Free-form chat only — algorithm code is archived per the")
     print("attribution spec; strategic instructions live in ./strategics/.\n")
+
+    # M106: history + tab completion setup (readline on Unix, pyreadline3 on Windows)
+    _HISTORY_PATH = Path(".life/chat_history")
+    _HISTORY_MAX = 500
+    rl: Any = None
+    try:
+        import readline  # noqa: F401  (Unix)
+        import readline as _rl
+        rl = _rl
+    except ImportError:
+        try:
+            import pyreadline3  # noqa: F401  (Windows)
+            import pyreadline3 as _rl
+            rl = _rl
+        except ImportError:
+            rl = None
+    if rl is not None:
+        try:
+            _HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+            if _HISTORY_PATH.exists():
+                rl.read_history_file(str(_HISTORY_PATH))
+        except OSError:
+            pass
+        rl.set_history_length(_HISTORY_MAX)
+        # Basic completion: empty input + Tab → list commands.
+        _COMMANDS = ("/help", "/exit", "/quit", "/thread", "/reset", "/history", "/clear")
+
+        def _complete(text: str, state: int) -> str:
+            if not text:
+                # No prefix — list all commands on first Tab.
+                if state == 0:
+                    return "/"
+                return ""
+            options = [c for c in _COMMANDS if c.startswith(text)]
+            if state < len(options):
+                return options[state]
+            return ""
+
+        try:
+            rl.set_completer(_complete)
+            rl.parse_and_bind("tab: complete")
+        except Exception:
+            pass
+    else:
+        print("(history/tab-completion unavailable — install pyreadline3 for Windows)\n")
 
     config: dict[str, Any] = {"configurable": {"thread_id": thread_id}}
     messages: list[dict[str, Any]] = []
@@ -417,6 +467,55 @@ def run_chat(agent: Any, thread_id: str) -> None:
         if not user_input:
             continue
 
+        # Built-in REPL commands (don't go through the agent)
+        if user_input in ("/exit", "/quit"):
+            print("Goodbye.")
+            break
+        if user_input == "/help":
+            print("\nBuilt-in commands:")
+            print("  /help                show this message")
+            print("  /exit, /quit         exit the REPL")
+            print("  /thread              show current thread_id")
+            print("  /reset               clear conversation history")
+            print("  /history             show last 10 input lines")
+            print("  /clear               clear the screen")
+            print("\nAnything else: send to the deep agent.\n")
+            continue
+        if user_input == "/thread":
+            print(f"thread_id = {thread_id}")
+            continue
+        if user_input == "/reset":
+            messages = []
+            print("(conversation cleared)")
+            continue
+        if user_input == "/history":
+            if rl is None:
+                print("(history unavailable)")
+            else:
+                # Walk back through readline history (last 10 entries).
+                length = rl.get_history_length()
+                start = max(1, length - 9)
+                for i in range(start, length + 1):
+                    try:
+                        item = rl.get_history_item(i)
+                        if item:
+                            print(f"  {i}: {item}")
+                    except Exception:
+                        break
+            continue
+        if user_input == "/clear":
+            import os as _os
+            _os.system("cls" if _os.name == "nt" else "clear")
+            continue
+
+        # Save to history (after command filter so /help etc. don't pollute).
+        if rl is not None:
+            try:
+                rl.add_history(user_input)
+                rl.write_history_file(str(_HISTORY_PATH))
+            except OSError:
+                pass
+
         messages.append({"role": "user", "content": user_input})
         result = _invoke_agent_or_fallback(agent, messages, config, thread_id)
         if result is None:
@@ -426,6 +525,12 @@ def run_chat(agent: Any, thread_id: str) -> None:
         messages = result.get("messages", messages)
         print(assistant_text)
 
+    # Final history flush.
+    if rl is not None:
+        try:
+            rl.write_history_file(str(_HISTORY_PATH))
+        except OSError:
+            pass
     # Flush any pending spans to both exporters before the process exits.
     shutdown_tracing()
 
