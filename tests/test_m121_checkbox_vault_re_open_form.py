@@ -57,8 +57,8 @@ def test_regex_does_not_match_plain_text() -> None:
 
 
 def test_regex_does_not_match_indented() -> None:
-    """Leading whitespace is not in the convention; intentionally rejected."""
-    assert CHECKBOX_VAULT_RE.match("  - [ ] [vault:plan.md#8] Foo") is None
+    """6+ spaces of indent = too deep, rejected (M125 limit)."""
+    assert CHECKBOX_VAULT_RE.match("      - [ ] [vault:plan.md#8] Foo") is None
 
 
 def test_regex_still_matches_bare_form() -> None:

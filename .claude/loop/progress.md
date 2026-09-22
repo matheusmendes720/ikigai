@@ -6049,3 +6049,45 @@ rc=1
 
 ### Cumulative test count
 - M110-M124: **279 new tests** since M109 (+19 this round)
+## M125 — 2026-09-22
+
+**Goal:** Support indented checkboxes in `CHECKBOX_VAULT_RE`. Real user markdown often has nested checkboxes (sub-bullets). Current regex `^- ...` rejects them all.
+
+### Delivered
+
+**`tools/backtest/vault_propagation.py`** — 1 change:
+- `CHECKBOX_VAULT_RE` now accepts leading whitespace: `[ \t]{0,4}` before `-`. Max 4 spaces / any tabs — beyond that, it's likely a code block or deeper list, not a checkbox.
+
+**`tests/test_m121_checkbox_vault_re_open_form.py`** — updated 1 regression test (`test_regex_does_not_match_indented`) to test the new limit (6+ spaces rejected, not 2+).
+
+**`tests/test_m125_indented_checkbox.py`** — 11 new tests:
+- 0/2/4-space indent accepted
+- Tab indent accepted
+- All 3 forms (closed/bare/open) work with indent
+- 6+ space indent rejected
+- 8+ space indent rejected
+- Plain text (with or without indent) rejected
+- audit_drift matches indented checkbox (priority_mismatch fires end-to-end)
+
+### Live verification
+
+```python
+CHECKBOX_VAULT_RE.match("  - [ ] [vault:plan.md#8] Foo")
+# → <re.Match object; span=(0, 30), match='  - [ ] [vault:plan.md#8] Foo'>
+
+CHECKBOX_VAULT_RE.match("      - [ ] [vault:plan.md#8] Foo")  # 6 spaces
+# → None  (correctly rejected)
+```
+
+### Decisions
+
+- **Max 4 spaces** — covers nested-checkbox convention. Beyond 4 spaces is unusual for task lists.
+- **Tab indent accepted** — `[ \t]{0,4}` matches both spaces and tabs.
+- **Per-line check** — each line is independently checked; nested structure isn't enforced (we don't validate "this is inside a list").
+- **Plain text still rejected** — indented `- [ ] plain text` without `[vault:...]` link returns None (the link is what makes it "vault-linked").
+
+### Drift gate still 23/23 ✅
+### 89/89 PASS across all M114+ backtest + drift tests
+
+### Cumulative test count
+- M110-M125: **290 new tests** since M109 (+11 this round)
