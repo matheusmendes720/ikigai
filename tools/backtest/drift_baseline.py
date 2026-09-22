@@ -112,24 +112,84 @@ def weekly(bdir: Path = DEFAULT_DRIFT_DIR, since_days: int = 90) -> list[dict[st
     return [by_week[k] for k in sorted(by_week)]
 
 
-def trend_report_markdown(weeks: list[dict[str, Any]]) -> str:
-    """Render weekly trend as markdown table."""
+def trend_report_markdown(
+    weeks: list[dict[str, Any]],
+    *,
+    show_delta: bool = False,
+    kinds: tuple[str, ...] | None = None,
+) -> str:
+    """Render weekly trend as markdown table.
+
+    kinds: filter to a subset of kinds (None = all ALL_KINDS).
+    show_delta: include Δ column (week-over-week change) per kind.
+    """
     if not weeks:
         return "# Drift trend\n\n(no snapshots)\n"
+    selected = kinds if kinds else ALL_KINDS
     lines = ["# Drift trend", ""]
-    header = ["Week", "Snaps"] + list(ALL_KINDS) + ["Total"]
+    header = ["Week", "Snaps"] + list(selected) + ["Total"]
+    if show_delta:
+        # Append Δ per kind (in same order as selected).
+        header += [f"Δ{k}" for k in selected]
+        header += ["ΔTotal"]
     lines.append("| " + " | ".join(header) + " |")
     lines.append("|" + "|".join(["---"] * len(header)) + "|")
+    prev_totals: dict[str, int] | None = None
     for w in weeks:
         totals = w["totals"]
         row = [
             w["week"],
             str(w["snapshot_count"]),
-            *[str(totals.get(k, 0)) for k in ALL_KINDS],
-            str(sum(totals.values())),
+            *[str(totals.get(k, 0)) for k in selected],
+            str(sum(totals.get(k, 0) for k in selected)),
         ]
+        if show_delta:
+            if prev_totals is None:
+                row += ["—"] * (len(selected) + 1)
+            else:
+                for k in selected:
+                    cur = totals.get(k, 0)
+                    prv = prev_totals.get(k, 0)
+                    row.append(f"{cur - prv:+d}")
+                cur_total = sum(totals.get(k, 0) for k in selected)
+                prv_total = sum(prev_totals.get(k, 0) for k in selected)
+                row.append(f"{cur_total - prv_total:+d}")
         lines.append("| " + " | ".join(row) + " |")
+        prev_totals = totals
     return "\n".join(lines) + "\n"
+
+
+def trend_report_json(
+    weeks: list[dict[str, Any]],
+    *,
+    kinds: tuple[str, ...] | None = None,
+) -> str:
+    """Render weekly trend as JSON.
+
+    Includes week-over-week deltas (computed here, not in trend_report_markdown
+    to keep formatting concerns separate).
+    """
+    import json as _json
+    selected = list(kinds) if kinds else list(ALL_KINDS)
+    rows: list[dict[str, Any]] = []
+    prev_totals: dict[str, int] | None = None
+    for w in weeks:
+        totals = w["totals"]
+        filtered_totals = {k: totals.get(k, 0) for k in selected}
+        row: dict[str, Any] = {
+            "week": w["week"],
+            "snapshot_count": w["snapshot_count"],
+            "totals": filtered_totals,
+            "total": sum(filtered_totals.values()),
+        }
+        if prev_totals is not None:
+            row["delta"] = {
+                k: filtered_totals[k] - prev_totals.get(k, 0) for k in selected
+            }
+            row["delta_total"] = row["total"] - sum(prev_totals.get(k, 0) for k in selected)
+        rows.append(row)
+        prev_totals = filtered_totals
+    return _json.dumps({"weeks": rows}, indent=2) + "\n"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -146,7 +206,12 @@ def main(argv: list[str] | None = None) -> int:
     w = sub.add_parser("weekly")
     w.add_argument("--drift-dir", type=Path, default=DEFAULT_DRIFT_DIR)
     w.add_argument("--since-days", type=int, default=90)
-    w.add_argument("--out", type=Path, default=None, help="Write markdown to file")
+    w.add_argument("--kind", action="append", default=None,
+                   help="Filter to one drift kind (repeatable). Default: all.")
+    w.add_argument("--delta", action="store_true",
+                   help="Include week-over-week Δ column (markdown only).")
+    w.add_argument("--format", choices=("markdown", "json"), default="markdown")
+    w.add_argument("--out", type=Path, default=None, help="Write output to file")
 
     args = p.parse_args(argv)
 
@@ -160,13 +225,24 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.cmd == "weekly":
         weeks = weekly(args.drift_dir, args.since_days)
-        md = trend_report_markdown(weeks)
+        kinds = tuple(args.kind) if args.kind else None
+        # Validate kinds.
+        if kinds:
+            unknown = [k for k in kinds if k not in ALL_KINDS]
+            if unknown:
+                print(f"# Error: unknown drift kind(s): {unknown}", file=sys.stderr)
+                print(f"# Valid kinds: {list(ALL_KINDS)}", file=sys.stderr)
+                return 2
+        if args.format == "json":
+            out = trend_report_json(weeks, kinds=kinds)
+        else:
+            out = trend_report_markdown(weeks, show_delta=args.delta, kinds=kinds)
         if args.out:
             args.out.parent.mkdir(parents=True, exist_ok=True)
-            args.out.write_text(md, encoding="utf-8")
+            args.out.write_text(out, encoding="utf-8")
             print(f"# Wrote {args.out}")
         else:
-            print(md)
+            print(out, end="")
         return 0
     return 1
 
