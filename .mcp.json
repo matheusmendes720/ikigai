@@ -7,6 +7,12 @@
       "env": {
         "PYTHONPATH": "C:\\Users\\mathe\\code_space\\life-oss\\life\\src;C:\\Users\\mathe\\code_space\\life-oss\\life\\src\\ikigai\\src"
       }
+    },
+    "taskdog": {
+      "command": "taskdog-mcp",
+      "args": [],
+      "cwd": "C:\\Users\\mathe\\code_space\\life-oss\\life",
+      "env": {}
     }
   }
 }
