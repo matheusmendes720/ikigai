@@ -38,6 +38,7 @@ if command -v cygpath >/dev/null 2>&1; then
     SCENARIOS_NAT_EXHAUSTIVE="$(cygpath -w "$REPO/vault/drafts/q3-scenarios.exhaustive.yaml")"
     BASELINES_DIR_WIN="$(cygpath -w "$REPO/reports/baselines")"
     TREND_WIN="$(cygpath -w "$REPO/reports/backtest-trend.md")"
+    INTEGRITY_WIN="$(cygpath -w "$REPO/reports/baselines/SHA256SUMS")"
 else
     PYTHONPATH_SRC="$REPO"
     SCENARIOS_WIN="$REPO/vault/drafts/q3-scenarios.with-anchors.yaml"
@@ -51,6 +52,7 @@ else
     SCENARIOS_NAT_EXHAUSTIVE="$REPO/vault/drafts/q3-scenarios.exhaustive.yaml"
     BASELINES_DIR_WIN="$REPO/reports/baselines"
     TREND_WIN="$REPO/reports/backtest-trend.md"
+    INTEGRITY_WIN="$REPO/reports/baselines/SHA256SUMS"
 fi
 export PYTHONPATH="$PYTHONPATH_SRC"
 
@@ -175,7 +177,7 @@ fi
 
 # --- 8. Baseline archive + weekly trend (M118 + M119) ---
 echo ""
-echo "[8/8] Running M118 baseline_archive..."
+echo "[8/9] Running M118 baseline_archive..."
 "$PYTHON" tools/backtest/baseline_archive.py \
     archive \
     --source "$JUDGMENT_WIN" \
@@ -193,6 +195,13 @@ echo "[8/8] Running M118 baseline_archive..."
     --since-days 90 \
     --out "$TREND_WIN"
 
+# --- 9. Baseline integrity (M124) ---
+echo ""
+echo "[9/9] Running M124 baseline_integrity..."
+"$PYTHON" tools/backtest/baseline_integrity.py \
+    snapshot \
+    --baselines-dir "$BASELINES_DIR_WIN"
+
 echo ""
 echo "===================================="
 echo "  Backtest Q1 complete."
@@ -200,4 +209,5 @@ echo "  Report:    reports/backtest-Q1.md"
 echo "  Drift:     reports/backtest-drift.md"
 echo "  LLM-judge: reports/backtest-Q1-llm-judgment.json"
 echo "  Trend:     reports/backtest-trend.md"
+echo "  Integrity: reports/baselines/SHA256SUMS"
 echo "===================================="
