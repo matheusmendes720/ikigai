@@ -5388,3 +5388,77 @@ $ python tools/backtest/judge_llm.py
 - ✅ Gaps categorized accurately (6 server-missing, 0 harness-missing)
 - ⚠️ Score is **coverage-weighted, not quality-weighted** — a scenario that calls the right tool with wrong args scores PASS. Future judge could add an "argument validation" dimension.
 - ⚠️ Anchors #5 (time_horizon) and #9 (cross_routine) have 3 SKIPs each (lifecycle-blocked); treated as 50% credit. Real harness with dependency-aware scheduling would not skip these.
+## M114g — 2026-09-22
+
+**Goal:** Markdown report + shell driver that runs the full backtest pipeline end-to-end.
+
+### Delivered
+
+**`tools/backtest/backtest_report.py`** (250 lines) — renders `reports/backtest-Q1.md`:
+- TL;DR table (scenarios, tools, anchors, elapsed)
+- Score breakdown (4 dimensions + total)
+- Per-anchor coverage (sorted by pass_rate ascending → low-coverage surfaces first)
+- Per-tool coverage (covered + unexpected)
+- Tool invocation totals (from harness)
+- Gap detail (4 categories: anchor_no_scenarios, anchor_low_pass, tool_under_exercised, tool_server_missing, schema_invalid)
+- Methodology + next-steps
+
+**`scripts/backtest/run_backtest.sh`** — 5-step driver:
+1. Verify taskdog-server reachable (curl health check)
+2. Generate scenarios (M114a + M114d) — skip if `--skip-gen`
+3. Map to anchors (M114e)
+4. Run harness (M114b)
+5. Score (M114c) + render report (M114g)
+
+Windows-compatible: uses `cygpath -w` for native Python paths.
+
+**`tests/test_backtest_report.py`** — 10 tests, all PASS.
+
+### Live verification
+
+```
+$ bash scripts/backtest/run_backtest.sh --skip-gen
+====================================
+  Backtest Q1 — full pipeline
+  repo: /c/Users/mathe/code_space/life-oss/life
+  python: src/ikigai/.venv/Scripts/python.exe
+====================================
+
+[1/5] Checking taskdog-server health...
+  taskdog-server OK (HTTP 200)
+
+[3/5] Running M114b backtest harness...
+{
+  "n_total": 73, "n_pass": 65, "n_fail": 0, "n_error": 0, "n_skip": 8,
+  "elapsed_s": 3.325, "by_tool_count": 20, "by_anchor_total": 345
+}
+
+[4/5] Running M114c judge_llm...
+{
+  "anchor_pass_rate_pct": 95.8, "tool_coverage_pct": 94.7,
+  "schema_valid_pct": 100.0, "scenario_pass_rate_pct": 89.0,
+  "total_score": 94.5
+}
+
+[5/5] Rendering M114g markdown report...
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1.md (5932 chars)
+```
+
+**Total: 94.5/100** (run-to-run variance; previously 96.1 — difference is one SKIP from task state at run time, not a code change).
+
+### Decisions
+
+- **Single bash entry point** — one command runs the full pipeline (`bash scripts/backtest/run_backtest.sh`). Idempotent: if scenarios already exist, skip regen.
+- **Native Windows paths** via `cygpath -w` — matches the pattern in `scripts/smoke/phase3_v1.sh`. Avoids MSYS path translation bugs.
+- **Per-anchor sorted by pass_rate ascending** — surface low-coverage first when reading the report
+- **Tools covered vs. tools called** — separates "spec wants tool X" from "harness called tool X" so coverage gaps are clearly attributed
+- **Gaps categorized** — `tool_server_missing` is spec drift (separate workstream), `tool_under_exercised` is harness work
+
+### Honest scope
+
+- ✅ End-to-end pipeline runs in <5 seconds with 1 bash command
+- ✅ Markdown report renders correctly with 47 passing tests
+- ✅ Windows-compatible (cygpath conversion)
+- ✅ Honest variance: 94.5-96.1 between runs (driven by which tasks are in PENDING vs COMPLETED state at run time — not a harness bug)
+- ⚠️ Report doesn't yet include **drift between consecutive runs** — useful for tracking score over time. Future M115+ would diff `backtest-Q1-results.json` between runs.
+- ⚠️ `--skip-gen` skips even the M114e role_anchor map step. If you only want to skip natural scenarios but still re-anchor, future work could split flags.
