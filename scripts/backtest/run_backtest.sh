@@ -173,12 +173,18 @@ fi
     --out "$LLM_WIN" \
     $USE_LLM_FLAG
 
-# --- 8. Baseline archive + weekly trend (M118) ---
+# --- 8. Baseline archive + weekly trend (M118 + M119) ---
 echo ""
 echo "[8/8] Running M118 baseline_archive..."
 "$PYTHON" tools/backtest/baseline_archive.py \
     archive \
     --source "$JUDGMENT_WIN" \
+    --baselines-dir "$BASELINES_DIR_WIN"
+
+# M119: also archive the LLM-judge scores so weekly trend shows both.
+"$PYTHON" tools/backtest/baseline_archive.py \
+    archive-llm \
+    --source "$LLM_WIN" \
     --baselines-dir "$BASELINES_DIR_WIN"
 
 "$PYTHON" tools/backtest/baseline_archive.py \

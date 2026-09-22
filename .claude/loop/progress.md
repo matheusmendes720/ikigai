@@ -5701,3 +5701,58 @@ $ bash scripts/backtest/run_backtest.sh --skip-gen
 
 ### Cumulative test count
 - M110-M118: **201 new tests** since M109 (+19 this round)
+## M119 — 2026-09-22
+
+**Goal:** Track LLM-judge (M116) scores over time alongside rule-based (M114c) scores. M118 only archived the rule-based judgment.
+
+### Delivered
+
+**`tools/backtest/baseline_archive.py`** — 4 changes:
+1. `archive_llm_baseline(source, ...)` — new function mirroring `archive_baseline` but writes to `<DATE>.llm.json`. First-wins same-day.
+2. `_archive_with_suffix(...)` — refactored shared private helper used by both archive functions.
+3. `_llm_score(judgment_json)` — extracts 5 dimensions (overall + 4 sub-scores) from M116 aggregate JSON. Returns None for rule-based JSON (which has no `aggregate` key).
+4. `_llm_score_from_path(path)` — loads `<DATE>.llm.json` if present; returns None on missing/invalid.
+5. `weekly_trend(...)` — finds matching `.llm.json` per date, merges per-week llm_overall avg into the week aggregate (with `llm_n_runs` count for sanity).
+6. `trend_report_markdown(...)` — adds `llm` column when ANY week has llm data (else omits); weeks without llm show `—`. Adds a `Trend (LLM-judge overall)` line when 2+ weeks have data. New `include_llm=False` flag suppresses the column.
+7. CLI: new `archive-llm` subcommand.
+
+**`scripts/backtest/run_backtest.sh`** — step 8 now invokes both `archive` and `archive-llm`.
+
+**`tests/test_m119_llm_drift.py`** — 15 new tests:
+- archive_llm_baseline: creates first, first-wins same-day, lists correctly exclude .llm.json
+- _llm_score: extracts 5 dimensions, returns None for rule-based or missing aggregate
+- weekly_trend: picks up llm, handles missing llm, independent weeks
+- trend_report_markdown: column present/absent correctly, dash for missing weeks, llm trend line, include_llm flag
+- CLI: archive-llm subcommand works
+
+### Live verification
+
+```
+$ bash scripts/backtest/run_backtest.sh --skip-gen
+[8/8] baseline_archive:
+  → Archived backtest-Q1-judgment.json → reports/baselines/2026-09-22.json
+  → # Skipped (already archived): 2026-09-22.llm.json  (M119 first-wins)
+  → Wrote reports/backtest-trend.md
+
+$ cat reports/backtest-trend.md
+| Week | n_runs | total | anchor | tool | scenario | llm | latest_run |
+| 2026-W39 | 1 | 94.6 | 95.8 | 95.0 | 89.0 | 0.751 | 2026-09-22 |
+```
+
+### Decisions
+
+- **`.llm.json` suffix** — distinct from `<DATE>.json` so `list_baselines()` regex (`^\d{4}-\d{2}-\d{2}$`) naturally excludes them. Both files live in the same `reports/baselines/` dir but are kept distinct by filename.
+- **Optional column** — if no week has llm data, the column is hidden. This means existing M118 trend reports without llm data render exactly the same (no regression).
+- **Per-week llm_n_runs** — exposed in the aggregate so future reporting can distinguish "1 llm run" from "5 llm runs averaged". Not used in the markdown table yet, but available for further analysis.
+- **`Trend (LLM-judge overall)` line** — separate from rule-based trend. The ±0.05 threshold is tighter because llm_overall is on a 0-1 scale vs rule total on 0-100.
+
+### Honest scope
+
+- ✅ LLM scores now archived alongside rule-based
+- ✅ Trend table shows both, with correct column rendering
+- ✅ First-wins same-day honored for both
+- ⚠️ **First day only** — only 1 week's data so far. The llm trend column needs multiple weeks before it tells a story.
+- ⚠️ **Stub-mode LLM scores are not very meaningful** — the 0.751 is heuristic. Set `USE_LLM=1` and provide `ANTHROPIC_API_KEY` for real LLM-judge scores to be archived.
+
+### Cumulative test count
+- M110-M119: **216 new tests** since M109 (+15 this round)
