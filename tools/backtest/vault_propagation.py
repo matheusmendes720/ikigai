@@ -68,6 +68,10 @@ PRIORITY_TAG_RE = re.compile(r"\|\s*priority=(\d{1,2})\b")
 # M122: capture tags declarations. Format: `| tags=tag1,tag2,tag3` (comma-separated).
 # Whitespace inside the list is tolerated: `| tags=foo, bar, baz`.
 TAGS_TAG_RE = re.compile(r"\|\s*tags=([^\n|]+)")
+# M130: capture due_date declarations. Format: `| due=YYYY-MM-DD`. Vault
+# date is plain ISO; taskdog's `deadline` is ISO datetime (we compare on
+# the date portion, first 10 chars).
+DUE_TAG_RE = re.compile(r"\|\s*due=(\d{4}-\d{2}-\d{2})\b")
 
 # Per algorithm-attribution §7: vault write invariant — the only code path that
 # mutates vault content outside of explicit human file edits. Re-indexing via
@@ -83,6 +87,9 @@ DRIFT_PLANNED_ORPHAN = "planned_orphan"  # vault checkbox has no taskdog task
 DRIFT_PRIORITY_MISMATCH = "priority_mismatch"
 # M122: tags declared in vault checkbox (`| tags=a,b,c`) don't match taskdog tags.
 DRIFT_TAG_MISMATCH = "tag_mismatch"
+# M130: due_date declared in vault checkbox (`| due=YYYY-MM-DD`) doesn't
+# match taskdog's deadline field (date portion only).
+DRIFT_DUE_DATE_MISMATCH = "due_date_mismatch"
 
 
 def now_iso() -> str:
@@ -484,6 +491,32 @@ def audit_drift(
                     "taskdog_name": tname,
                     "vault_tags": vault_tags,
                     "taskdog_tags": td_tags,
+                })
+        # M130: due_date drift detection. Compares vault `| due=YYYY-MM-DD`
+        # to taskdog's `deadline` field on the date portion only.
+        # Skip if taskdog has no deadline (None) — we don't know what it
+        # should be. Missing deadline vs vault-due-set fires mismatch.
+        m_due = DUE_TAG_RE.search(cb_text or "")
+        if m_due is not None:
+            vault_due = m_due.group(1)
+            td_deadline_raw = t.get("deadline")
+            if td_deadline_raw is not None and isinstance(td_deadline_raw, str):
+                # Extract date portion: "2026-08-30T18:00:00" → "2026-08-30"
+                td_due = td_deadline_raw[:10] if len(td_deadline_raw) >= 10 else None
+            else:
+                td_due = None
+            if td_due is not None and vault_due != td_due:
+                drifts.append({
+                    "drift_kind": DRIFT_DUE_DATE_MISMATCH,
+                    "plan_file": str(plan),
+                    "plan_rel": cb_rel,
+                    "plan_line": line_no,
+                    "plan_text": cb_text,
+                    "taskdog_id": tid,
+                    "taskdog_status": tstatus,
+                    "taskdog_name": tname,
+                    "vault_due_date": vault_due,
+                    "taskdog_due_date": td_due,
                 })
 
     linked_task_keys = set()
