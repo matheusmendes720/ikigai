@@ -218,10 +218,40 @@ def _make_agent(
     from .mcp_taskdog_client import build_agent_tools
     all_tools = build_agent_tools()  # 12 IKIGAI_TOOLS + 0-26 MCP taskdog tools
 
-    # LLM — initialize ChatAnthropic with MiniMax API credentials
-    api_key = os.environ.get("MINIMAX_API_KEY", os.environ.get("ANTHROPIC_API_KEY", ""))
+    # LLM — initialize ChatAnthropic with MiniMax / Anthropic / Claude-proxy credentials
+    # M104: Added CLAUDE_API_KEY fallback (hermes-agent proxy) so the harness works
+    # in environments where the user's Anthropic key is exposed as CLAUDE_API_KEY
+    # (the hermes-agent convention). Detection order:
+    #   1. MINIMAX_API_KEY — explicit MiniMax provider
+    #   2. ANTHROPIC_API_KEY — direct Anthropic
+    #   3. CLAUDE_API_KEY — hermes-agent proxy (sk-cp-* tokens route via local proxy)
+    api_key = (
+        os.environ.get("MINIMAX_API_KEY")
+        or os.environ.get("ANTHROPIC_API_KEY")
+        or os.environ.get("CLAUDE_API_KEY")
+        or ""
+    )
     base_url = os.environ.get("ANTHROPIC_BASE_URL", "https://api.minimax.io/anthropic")
+    # If user provides only CLAUDE_API_KEY (no ANTHROPIC_*), default to the
+    # local hermes-agent proxy unless they overrode ANTHROPIC_BASE_URL.
+    if (
+        not os.environ.get("MINIMAX_API_KEY")
+        and not os.environ.get("ANTHROPIC_API_KEY")
+        and os.environ.get("CLAUDE_API_KEY")
+        and not os.environ.get("ANTHROPIC_BASE_URL")
+    ):
+        base_url = "http://127.0.0.1:8045/v1"  # hermes-agent Claude proxy default
     model_name = os.environ.get("ANTHROPIC_MODEL", "MiniMax-M2.7-highspeed")
+    # When using CLAUDE_API_KEY via hermes proxy, the model name should be
+    # something the proxy understands. The hermes-agent proxy accepts the
+    # same model names as direct Anthropic.
+    if (
+        not os.environ.get("MINIMAX_API_KEY")
+        and not os.environ.get("ANTHROPIC_API_KEY")
+        and os.environ.get("CLAUDE_API_KEY")
+        and not os.environ.get("ANTHROPIC_MODEL")
+    ):
+        model_name = "claude-3-5-haiku-latest"  # proxy default
 
     llm = ChatAnthropic(
         model=model_name,
