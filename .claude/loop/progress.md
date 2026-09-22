@@ -4927,3 +4927,44 @@ Before M108: Claude Code could call IKIGAI MCP tools (8) but NOT the 26 taskdog-
 
 - `.mcp.json` — added taskdog MCP server entry
 - `tests/test_mcp_config.py` — NEW (5 tests)
+## M109 — 2026-09-22
+
+**Goal:** Verify OTel spans emit correctly (observability smoke test).
+
+### Delivered
+
+NEW `tests/test_otel_emit.py` — 7 tests:
+- `test_get_tracer_returns_valid_tracer` — tracer has start_as_current_span
+- `test_span_creation_with_attributes` — spans accept string + int attrs
+- `test_nested_spans` — parent/child context propagation via API
+- `test_init_tracing_idempotent` — calling twice is safe
+- `test_ikigai_disable_otel_short_circuit` — env var disables init (M107 contract)
+- `test_tracer_provider_after_init` — global TracerProvider is set
+- `test_span_kind_attribute` — SpanKind.CLIENT works
+
+### Key finding (honest scope)
+
+Spans are `NonRecordingSpan` (is_valid=False, trace_id=0) when no exporter is configured. This is **expected OpenTelemetry behavior** — without `LANGSMITH_API_KEY` and `LANGFUSE_*_KEY` env vars, `init_tracing()` creates a `TracerProvider` with no span processors, so spans are not recorded.
+
+To get real spans emitted, users need:
+- `LANGSMITH_API_KEY` — enables LangSmith OTLP exporter (LLM observability)
+- `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY` — enables Langfuse exporter (stack traces)
+
+Tests verify the **API surface works** (provider set, span context manager usable, attributes settable) — not that exporters are wired (that requires real API keys).
+
+### Why this matters
+
+The M107 patch added `IKIGAI_DISABLE_OTEL=1` as an escape hatch. M109 tests verify:
+- The disable mechanism works
+- The enable mechanism (no env var) sets up a TracerProvider correctly
+- The span API is usable regardless of recording state
+
+This means production deployments can opt in to OTel by setting LangSmith/Langfuse keys, opt out by setting `IKIGAI_DISABLE_OTEL=1`, and the default (no env vars) is a no-op (correctly).
+
+### Production-readiness
+
+~73% (no change — observability was already wired in M87; M109 just verifies)
+
+### Files
+
+- `tests/test_otel_emit.py` — NEW (7 tests)
