@@ -1,0 +1,13 @@
+{
+  "date": "2026-09-22",
+  "summary": {
+    "due_date_mismatch": 0,
+    "phantom_task": 0,
+    "planned_orphan": 313,
+    "priority_mismatch": 0,
+    "tag_mismatch": 0,
+    "unmarked_done": 0,
+    "unmarked_open": 0
+  },
+  "total": 313
+}
