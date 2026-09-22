@@ -1,0 +1,868 @@
+scenarios:
+- day: 1
+  date: '2026-09-22'
+  category: add-task
+  prompt: Day 1 — add-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: &id001
+  - taskdog_create_task
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 2
+  date: '2026-09-23'
+  category: add-task
+  prompt: Day 2 — add-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id001
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 3
+  date: '2026-09-24'
+  category: add-task
+  prompt: Day 3 — add-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id001
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 4
+  date: '2026-09-25'
+  category: add-task
+  prompt: Day 4 — add-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id001
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 5
+  date: '2026-09-26'
+  category: complete-task
+  prompt: Day 5 — complete-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: &id002
+  - taskdog_complete_task
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 6
+  date: '2026-09-27'
+  category: complete-task
+  prompt: Day 6 — complete-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id002
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 7
+  date: '2026-09-28'
+  category: complete-task
+  prompt: Day 7 — complete-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id002
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 8
+  date: '2026-09-29'
+  category: daily-plan
+  prompt: Day 8 — daily-plan. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: &id003
+  - taskdog_list_tasks
+  - taskdog_get_daily_allocations
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 9
+  date: '2026-09-30'
+  category: daily-plan
+  prompt: Day 9 — daily-plan. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id003
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 10
+  date: '2026-10-01'
+  category: daily-plan
+  prompt: Day 10 — daily-plan. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id003
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 11
+  date: '2026-10-02'
+  category: daily-plan
+  prompt: Day 11 — daily-plan. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id003
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 12
+  date: '2026-10-03'
+  category: daily-plan
+  prompt: Day 12 — daily-plan. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id003
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 13
+  date: '2026-10-04'
+  category: daily-plan
+  prompt: Day 13 — daily-plan. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id003
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 14
+  date: '2026-10-05'
+  category: daily-plan
+  prompt: Day 14 — daily-plan. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id003
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 15
+  date: '2026-10-06'
+  category: decompose
+  prompt: Day 15 — decompose. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: &id004
+  - taskdog_create_task
+  - taskdog_add_dependency
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 16
+  date: '2026-10-07'
+  category: decompose
+  prompt: Day 16 — decompose. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id004
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 17
+  date: '2026-10-08'
+  category: decompose
+  prompt: Day 17 — decompose. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id004
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 18
+  date: '2026-10-09'
+  category: decompose
+  prompt: Day 18 — decompose. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id004
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 19
+  date: '2026-10-10'
+  category: list-tasks
+  prompt: Day 19 — list-tasks. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: &id005
+  - taskdog_list_tasks
+  - taskdog_search_tasks
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 20
+  date: '2026-10-11'
+  category: list-tasks
+  prompt: Day 20 — list-tasks. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id005
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 21
+  date: '2026-10-12'
+  category: list-tasks
+  prompt: Day 21 — list-tasks. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id005
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 22
+  date: '2026-10-13'
+  category: list-tasks
+  prompt: Day 22 — list-tasks. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id005
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 23
+  date: '2026-10-14'
+  category: update-task
+  prompt: Day 23 — update-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: &id006
+  - taskdog_update_task
+  - taskdog_set_priority
+  - taskdog_set_tags
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 24
+  date: '2026-10-15'
+  category: update-task
+  prompt: Day 24 — update-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id006
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 25
+  date: '2026-10-16'
+  category: update-task
+  prompt: Day 25 — update-task. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id006
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 26
+  date: '2026-10-17'
+  category: weekly-review
+  prompt: Day 26 — weekly-review. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: &id007
+  - taskdog_get_burndown
+  - taskdog_get_executive_summary
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 27
+  date: '2026-10-18'
+  category: weekly-review
+  prompt: Day 27 — weekly-review. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id007
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 28
+  date: '2026-10-19'
+  category: weekly-review
+  prompt: Day 28 — weekly-review. No specific vault event; use generic deep-agent build context. Pick reasonable defaults.
+  expected_tools: *id007
+  expected_args:
+    cluster: ikigai/misc
+    tags_any: []
+- day: 1000
+  date: 2026-cycle-synth-1000
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_get_task
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_get_task
+- day: 1001
+  date: 2026-cycle-synth-1001
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_get_task
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_get_task
+- day: 1002
+  date: 2026-cycle-synth-1002
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_get_task
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_get_task
+- day: 1003
+  date: 2026-cycle-synth-1003
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_reopen
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_reopen
+- day: 1004
+  date: 2026-cycle-synth-1004
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_reopen
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_reopen
+- day: 1005
+  date: 2026-cycle-synth-1005
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_reopen
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_reopen
+- day: 1006
+  date: 2026-cycle-synth-1006
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_pause
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_pause
+- day: 1007
+  date: 2026-cycle-synth-1007
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_pause
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_pause
+- day: 1008
+  date: 2026-cycle-synth-1008
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_pause
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_pause
+- day: 1009
+  date: 2026-cycle-synth-1009
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_archive
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - archive
+    synthetic: true
+  synthetic_for_tool: taskdog_archive
+- day: 1010
+  date: 2026-cycle-synth-1010
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_archive
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - archive
+    synthetic: true
+  synthetic_for_tool: taskdog_archive
+- day: 1011
+  date: 2026-cycle-synth-1011
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_archive
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - archive
+    synthetic: true
+  synthetic_for_tool: taskdog_archive
+- day: 1012
+  date: 2026-cycle-synth-1012
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_cancel
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_cancel
+- day: 1013
+  date: 2026-cycle-synth-1013
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_cancel
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_cancel
+- day: 1014
+  date: 2026-cycle-synth-1014
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_cancel
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_cancel
+- day: 1015
+  date: 2026-cycle-synth-1015
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_set_deadline
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - deadline-this-week
+    synthetic: true
+  synthetic_for_tool: taskdog_set_deadline
+- day: 1016
+  date: 2026-cycle-synth-1016
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_set_deadline
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - deadline-this-week
+    synthetic: true
+  synthetic_for_tool: taskdog_set_deadline
+- day: 1017
+  date: 2026-cycle-synth-1017
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_set_deadline
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - deadline-this-week
+    synthetic: true
+  synthetic_for_tool: taskdog_set_deadline
+- day: 1018
+  date: 2026-cycle-synth-1018
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_remove_dependency
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_remove_dependency
+- day: 1019
+  date: 2026-cycle-synth-1019
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_remove_dependency
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_remove_dependency
+- day: 1020
+  date: 2026-cycle-synth-1020
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_remove_dependency
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_remove_dependency
+- day: 1021
+  date: 2026-cycle-synth-1021
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_create_note
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_create_note
+- day: 1022
+  date: 2026-cycle-synth-1022
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_create_note
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_create_note
+- day: 1023
+  date: 2026-cycle-synth-1023
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_create_note
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_create_note
+- day: 1024
+  date: 2026-cycle-synth-1024
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_list_notes
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_list_notes
+- day: 1025
+  date: 2026-cycle-synth-1025
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_list_notes
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_list_notes
+- day: 1026
+  date: 2026-cycle-synth-1026
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_list_notes
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_list_notes
+- day: 1027
+  date: 2026-cycle-synth-1027
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_get_metrics
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_get_metrics
+- day: 1028
+  date: 2026-cycle-synth-1028
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_get_metrics
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_get_metrics
+- day: 1029
+  date: 2026-cycle-synth-1029
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_get_metrics
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_get_metrics
+- day: 1030
+  date: 2026-cycle-synth-1030
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_get_cognitive_debt_metrics
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_get_cognitive_debt_metrics
+- day: 1031
+  date: 2026-cycle-synth-1031
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_get_cognitive_debt_metrics
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_get_cognitive_debt_metrics
+- day: 1032
+  date: 2026-cycle-synth-1032
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_get_cognitive_debt_metrics
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_get_cognitive_debt_metrics
+- day: 1033
+  date: 2026-cycle-synth-1033
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_get_q_high_e_low_metrics
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_get_q_high_e_low_metrics
+- day: 1034
+  date: 2026-cycle-synth-1034
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_get_q_high_e_low_metrics
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_get_q_high_e_low_metrics
+- day: 1035
+  date: 2026-cycle-synth-1035
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_get_q_high_e_low_metrics
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_get_q_high_e_low_metrics
+- day: 1036
+  date: 2026-cycle-synth-1036
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_get_execution_rate
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_get_execution_rate
+- day: 1037
+  date: 2026-cycle-synth-1037
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_get_execution_rate
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_get_execution_rate
+- day: 1038
+  date: 2026-cycle-synth-1038
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_get_execution_rate
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_get_execution_rate
+- day: 1039
+  date: 2026-cycle-synth-1039
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_bulk_archive
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - archive
+    synthetic: true
+  synthetic_for_tool: taskdog_bulk_archive
+- day: 1040
+  date: 2026-cycle-synth-1040
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_bulk_archive
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - archive
+    synthetic: true
+  synthetic_for_tool: taskdog_bulk_archive
+- day: 1041
+  date: 2026-cycle-synth-1041
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_bulk_archive
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - archive
+    synthetic: true
+  synthetic_for_tool: taskdog_bulk_archive
+- day: 1042
+  date: 2026-cycle-synth-1042
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_bulk_complete
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_bulk_complete
+- day: 1043
+  date: 2026-cycle-synth-1043
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_bulk_complete
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_bulk_complete
+- day: 1044
+  date: 2026-cycle-synth-1044
+  category: daily-plan
+  prompt: User asks for today's daily plan — exercise of list_tasks + get_daily_allocations.
+  expected_tools:
+  - taskdog_bulk_complete
+  expected_args:
+    cluster: ikigai/plan
+    tags_any:
+    - ops
+    synthetic: true
+  synthetic_for_tool: taskdog_bulk_complete
+cycle_start: '2026-09-22'
+anchor_count: 45
+coverage:
+  target_invocations_per_tool: 3
+  before:
+    taskdog_create_task: 8
+    taskdog_complete_task: 3
+    taskdog_list_tasks: 11
+    taskdog_get_daily_allocations: 7
+    taskdog_add_dependency: 4
+    taskdog_search_tasks: 4
+    taskdog_update_task: 3
+    taskdog_set_priority: 3
+    taskdog_set_tags: 3
+    taskdog_get_burndown: 3
+    taskdog_get_executive_summary: 3
+  added:
+    taskdog_get_task: 3
+    taskdog_reopen: 3
+    taskdog_pause: 3
+    taskdog_archive: 3
+    taskdog_cancel: 3
+    taskdog_set_deadline: 3
+    taskdog_remove_dependency: 3
+    taskdog_create_note: 3
+    taskdog_list_notes: 3
+    taskdog_get_metrics: 3
+    taskdog_get_cognitive_debt_metrics: 3
+    taskdog_get_q_high_e_low_metrics: 3
+    taskdog_get_execution_rate: 3
+    taskdog_bulk_archive: 3
+    taskdog_bulk_complete: 3
+  after:
+    taskdog_create_task: 8
+    taskdog_complete_task: 3
+    taskdog_list_tasks: 11
+    taskdog_get_daily_allocations: 7
+    taskdog_add_dependency: 4
+    taskdog_search_tasks: 4
+    taskdog_update_task: 3
+    taskdog_set_priority: 3
+    taskdog_set_tags: 3
+    taskdog_get_burndown: 3
+    taskdog_get_executive_summary: 3
+    taskdog_get_task: 3
+    taskdog_reopen: 3
+    taskdog_pause: 3
+    taskdog_archive: 3
+    taskdog_cancel: 3
+    taskdog_set_deadline: 3
+    taskdog_remove_dependency: 3
+    taskdog_create_note: 3
+    taskdog_list_notes: 3
+    taskdog_get_metrics: 3
+    taskdog_get_cognitive_debt_metrics: 3
+    taskdog_get_q_high_e_low_metrics: 3
+    taskdog_get_execution_rate: 3
+    taskdog_bulk_archive: 3
+    taskdog_bulk_complete: 3
+  tools_under_target: {}
+  tools_meeting_target:
+    taskdog_create_task: 8
+    taskdog_list_tasks: 11
+    taskdog_get_task: 3
+    taskdog_update_task: 3
+    taskdog_complete_task: 3
+    taskdog_reopen: 3
+    taskdog_pause: 3
+    taskdog_archive: 3
+    taskdog_cancel: 3
+    taskdog_search_tasks: 4
+    taskdog_set_priority: 3
+    taskdog_set_deadline: 3
+    taskdog_set_tags: 3
+    taskdog_add_dependency: 4
+    taskdog_remove_dependency: 3
+    taskdog_create_note: 3
+    taskdog_list_notes: 3
+    taskdog_get_metrics: 3
+    taskdog_get_burndown: 3
+    taskdog_get_executive_summary: 3
+    taskdog_get_cognitive_debt_metrics: 3
+    taskdog_get_q_high_e_low_metrics: 3
+    taskdog_get_execution_rate: 3
+    taskdog_get_daily_allocations: 7
+    taskdog_bulk_archive: 3
+    taskdog_bulk_complete: 3
+  max_invocation_count: 11
+  min_invocation_count: 3
+  total_tools: 26
