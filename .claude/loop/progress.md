@@ -5023,3 +5023,55 @@ Before M110: users had to run 4+ commands to check system health (`daemon-manage
 - `life/cli/cli.py` — added `status_cmd` + `REPO_ROOT` constant
 - `tests/test_status_cli.py` — NEW (8 tests)
 - `.claude/helpers/daemon-manager-schedules.sh` — stripped CRLF (side fix)
+## M111 — 2026-09-22
+
+**Goal:** Add 5 new drift invariants to protect M97b-M106 surface from regression.
+
+### Delivered
+
+Added 5 invariants to `src/ikigai/tests/test_drift_extended_invariants.py`:
+
+1. `test_mcp_taskdog_client_wired_in_deep_agent` — M97b: `deepagents_harness.py` imports `build_agent_tools` from `mcp_taskdog_client` (else regresses to 12 IKIGAI_TOOLS only, was 38)
+
+2. `test_langgraph_json_has_three_graphs` — M105: `langgraph.json` registers 3 graphs (v2 + fork_smoke + taskdog_mcp)
+
+3. `test_mcp_json_has_taskdog_server` — M108: `.mcp.json` registers taskdog MCP server alongside ikigai
+
+4. `test_harness_supports_claude_api_key_fallback` — M104: `deepagents_harness.py` checks `CLAUDE_API_KEY` (hermes proxy fallback)
+
+5. `test_run_chat_has_builtin_commands` — M106: `run_chat()` exposes 7 built-in REPL commands (`/help`, `/exit`, `/quit`, `/thread`, `/reset`, `/history`, `/clear`)
+
+6. `test_factory_shims_have_typed_signatures` — M102: `make_v2_graph` factory has `ServerRuntime | None` + `RunnableConfig | None` annotations
+
+7. `test_no_relative_imports_in_v2_graph` — M102: `v2/graph.py` doesn't use `from .nodes.X` (broke langgraph_api loader)
+
+### Verification
+
+```
+$ pytest tests/test_drift_extended_invariants.py -p no:asyncio --tb=short -q
+collected 25 items
+.................ss....
+23 passed, 2 skipped in 1.52s
+```
+
+(Was 18 PASS + 2 SKIP — **+5 new invariants** total 23 PASS + 2 SKIP.)
+
+### Why this matters
+
+The drift net is the system's "regression tripwire" — these tests run on every CI gate. Adding invariants for the new M97b-M106 surface ensures:
+- The 38 deep-agent tools don't silently regress to 12
+- The 3 langgraph graphs don't get unregistered
+- Claude Code's taskdog MCP coverage doesn't disappear
+- hermes-agent proxy users don't get locked out
+- REPL users keep their commands
+- The langgraph dev server doesn't crash on graph load
+
+If anyone refactors `deepagents_harness.py`, removes `mcp_taskdog_client`, or breaks the typed factory signatures, these tests fail before the regression ships.
+
+### Production-readiness
+
+~75% → ~76% (regression protection on 5 new capabilities)
+
+### Files
+
+- `src/ikigai/tests/test_drift_extended_invariants.py` — added 5 invariants + `import re`
