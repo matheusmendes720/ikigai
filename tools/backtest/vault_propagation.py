@@ -179,16 +179,21 @@ def toggle_checkbox(plan_path: Path, target_line: int, expected_text: str) -> di
     # as metadata alongside the closed-checkbox indicator. Format:
     #   `- [ ] [vault:rel#line] text`  →  `- [x] [vault:rel#line] text`
     #   `- [ ] text`                   →  `- [x] text`
+    #   `- [vault:rel#line] text`      →  `- [x] [vault:rel#line] text`  (legacy)
+    # The bracket content distinguishes two cases:
+    # - non-whitespace content (e.g. "vault:rel#line") → preserve as a link
+    # - whitespace-only content (`[ ]`)                → just the checkbox marker
     bracket_match = re.match(r"^- \[([^\]]*)\] (.*)", stripped)
-    if bracket_match:
-        # Re-emit as `- [x] <bracket_content> <rest>`.
-        # Bracket content keeps its leading [vault:...] link if it was a vault link;
-        # we just unwrap and re-wrap.
+    if bracket_match and bracket_match.group(1).strip():
+        # Non-empty bracket content — preserve as a link inside [ ].
         inner = bracket_match.group(1)
         rest = bracket_match.group(2)
         flipped_line = f"- [x] [{inner}] {rest}\n"
     else:
-        flipped_line = f"- [x] {stripped[3:]}\n"
+        # Empty/whitespace bracket content — strip the whole `[ ]` and replace.
+        # stripped[3:] on "- [ ] text" = "] text" — instead skip past "[ ]".
+        # stripped[5:] gives " text" with leading space; lstrip one.
+        flipped_line = f"- [x] {stripped[5:].lstrip(' ')}\n"
     lines[target_line - 1] = flipped_line
     new_text = "".join(lines)
     new_text = _bump_frontmatter_field(new_text, "ultima_revisao", now_iso()[:10])
