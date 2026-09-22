@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import json as _json
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any, Optional
 
@@ -15,6 +18,41 @@ from .base import BaseCentral
 app = typer.Typer(help="Task central: Taskwarrior, reviews, metrics.")
 
 TASKDOG_BIN = "taskdog"
+# M112: taskdog-server HTTP endpoint. Default port from M68 wiring.
+TASKDOG_HTTP_URL = "http://127.0.0.1:8000"
+# Env override (set to "0" or "false" to disable HTTP, force CLI subprocess).
+ENABLE_HTTP = True
+
+
+def _http_post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
+    """POST JSON to taskdog-server and return parsed response."""
+    req = urllib.request.Request(
+        f"{TASKDOG_HTTP_URL}{path}",
+        data=_json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return _json.loads(resp.read().decode("utf-8"))
+
+
+def _http_get(path: str) -> dict[str, Any]:
+    """GET JSON from taskdog-server."""
+    req = urllib.request.Request(f"{TASKDOG_HTTP_URL}{path}")
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return _json.loads(resp.read().decode("utf-8"))
+
+
+def _http_patch(path: str, payload: dict[str, Any]) -> dict[str, Any]:
+    """PATCH JSON to taskdog-server."""
+    req = urllib.request.Request(
+        f"{TASKDOG_HTTP_URL}{path}",
+        data=_json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="PATCH",
+    )
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return _json.loads(resp.read().decode("utf-8"))
 
 
 def _run_taskdog(args: list[str]) -> dict[str, Any]:
@@ -42,6 +80,31 @@ def _run_taskdog(args: list[str]) -> dict[str, Any]:
         return {"ok": False, "error": str(e)}
 
 
+def _http_or_cli(
+    http_fn: Any, cli_args: list[str]
+) -> dict[str, Any]:
+    """M112: Try HTTP first, fall back to CLI subprocess.
+
+    Returns {"ok": bool, "stdout": str, "stderr": str, "error": str?, "transport": "http"|"cli"}.
+    """
+    if ENABLE_HTTP:
+        try:
+            result = http_fn()
+            return {
+                "ok": True,
+                "stdout": _json.dumps(result),
+                "stderr": "",
+                "transport": "http",
+            }
+        except (urllib.error.URLError, ConnectionError, OSError) as e:
+            # Server down — fall back to CLI subprocess.
+            pass
+        except Exception as e:
+            return {"ok": False, "error": f"http_failed: {e}", "transport": "http"}
+    # Fallback: subprocess CLI.
+    return {**_run_taskdog(cli_args), "transport": "cli"}
+
+
 @app.command()
 def add(
     name: str = typer.Argument(..., help="Task title"),
@@ -51,17 +114,34 @@ def add(
     deadline: Optional[str] = typer.Option(None, "-D", "--deadline", help="YYYY-MM-DD HH:MM:SS"),
     json_out: bool = typer.Option(False, "--json"),
 ):
-    """Add a task to taskdog-server (M83: daily-use primary path)."""
-    args = ["add", name]
+    """Add a task to taskdog-server (M83: daily-use primary path).
+
+    M112: Now uses HTTP to taskdog-server directly (faster than subprocess CLI).
+    Falls back to `taskdog` CLI if HTTP server is unreachable.
+    """
+    payload: dict[str, Any] = {"name": name}
     if priority is not None:
-        args += ["--priority", str(priority)]
+        payload["priority"] = priority
     if estimate is not None:
-        args += ["--estimate", str(estimate)]
+        payload["estimate"] = estimate
     if deadline:
-        args += ["--deadline", deadline]
+        payload["deadline"] = deadline
+    if tag:
+        payload["tags"] = tag
+
+    def _http_add() -> dict[str, Any]:
+        return _http_post("/api/v1/tasks", payload)
+
+    cli_args = ["add", name]
+    if priority is not None:
+        cli_args += ["--priority", str(priority)]
+    if estimate is not None:
+        cli_args += ["--estimate", str(estimate)]
+    if deadline:
+        cli_args += ["--deadline", deadline]
     for t in tag:
-        args += ["--tag", t]
-    out = _run_taskdog(args)
+        cli_args += ["--tag", t]
+    out = _http_or_cli(_http_add, cli_args)
     if json_out:
         import json
 
@@ -82,8 +162,14 @@ def start(
     task_id: int = typer.Argument(..., help="Task ID"),
     json_out: bool = typer.Option(False, "--json"),
 ):
-    """Start a task (PENDING → IN_PROGRESS)."""
-    out = _run_taskdog(["start", str(task_id)])
+    """Start a task (PENDING → IN_PROGRESS).
+
+    M112: HTTP-first, CLI-fallback.
+    """
+    def _http_start() -> dict[str, Any]:
+        return _http_post(f"/api/v1/tasks/{task_id}/start", {})
+
+    out = _http_or_cli(_http_start, ["start", str(task_id)])
     if json_out:
         import json
 
@@ -101,8 +187,14 @@ def done(
     task_id: int = typer.Argument(..., help="Task ID"),
     json_out: bool = typer.Option(False, "--json"),
 ):
-    """Mark task as completed (requires IN_PROGRESS first)."""
-    out = _run_taskdog(["done", str(task_id)])
+    """Mark task as completed (requires IN_PROGRESS first).
+
+    M112: HTTP-first, CLI-fallback.
+    """
+    def _http_done() -> dict[str, Any]:
+        return _http_patch(f"/api/v1/tasks/{task_id}/complete", {})
+
+    out = _http_or_cli(_http_done, ["done", str(task_id)])
     if json_out:
         import json
 
@@ -119,12 +211,41 @@ def done(
 def ls(
     json_out: bool = typer.Option(False, "--json"),
     q: Optional[str] = typer.Option(None, "--q", help="Filter query"),
+    status: Optional[str] = typer.Option(None, "--status", help="Filter by status (PENDING/IN_PROGRESS/COMPLETED)"),
+    tags: list[str] = typer.Option([], "--tag", help="Filter by tag (repeatable)"),
 ):
-    """List all tasks (from taskdog-server)."""
-    args = ["list"]
+    """List all tasks (from taskdog-server).
+
+    M112: HTTP-first, CLI-fallback. Server supports `status` and `tags` filters.
+    Free-text `q` is applied client-side after fetching.
+    """
+    def _http_ls() -> dict[str, Any]:
+        from urllib.parse import quote, urlencode
+
+        params: dict[str, str] = {}
+        if status:
+            params["status"] = status
+        if tags:
+            # taskdog-server accepts comma-separated tags OR repeated `tags` params.
+            params["tags"] = ",".join(tags)
+        path = "/api/v1/tasks"
+        if params:
+            path += "?" + urlencode(params)
+        data = _http_get(path)
+        # Client-side filter for free-text q (taskdog-server doesn't support it).
+        if q and "tasks" in data:
+            ql = q.lower()
+            data["tasks"] = [
+                t for t in data["tasks"]
+                if ql in t.get("name", "").lower()
+                or any(ql in tg.lower() for tg in t.get("tags", []))
+            ]
+        return data
+
+    cli_args = ["list"]
     if q:
-        args += ["--filter", q]
-    out = _run_taskdog(args)
+        cli_args += ["--filter", q]
+    out = _http_or_cli(_http_ls, cli_args)
     if json_out:
         import json
 
