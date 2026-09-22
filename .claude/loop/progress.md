@@ -4724,3 +4724,87 @@ Before M105: visual debugger showed only 2 graphs (the IKIGAI v2 pipeline + fork
 - `src/ikigai/src/agents/taskdog_mcp_graph.py` — NEW
 - `langgraph.json` — added 3rd graph entry
 - `tests/test_taskdog_mcp_graph.py` — NEW (5 tests)
+
+## M106 — 2026-09-22 (2026-09-22 00:52 UTC)
+
+**Goal:** Add history persistence + tab completion to `life v2 chat` REPL.
+
+### Delivered
+
+Patched `src/ikigai/src/agents/deepagents_harness.py:run_chat()`:
+- **History persistence**: readline (Unix) / pyreadline3 (Windows), max 500 lines, persisted to `.life/chat_history`
+- **Tab completion**: 7 built-in commands (`/help`, `/exit`, `/quit`, `/thread`, `/reset`, `/history`, `/clear`)
+- **Built-in commands** (don't go through the agent):
+  - `/help` — list commands
+  - `/exit`, `/quit` — exit REPL
+  - `/thread` — show current thread_id
+  - `/reset` — clear conversation
+  - `/history` — show last 10 input lines
+  - `/clear` — clear screen (cls on Windows, clear on Unix)
+- **Banner update**: "Ctrl+C to exit | ↑/↓ for history | Tab for completion"
+
+Installed `pyreadline3==3.5.6` in `src/ikigai/.venv` (Windows-only — Unix has native readline).
+
+### Live verification
+
+```bash
+$ echo "/help
+/exit" | PYTHONPATH=src/ikigai/src src/ikigai/.venv/Scripts/python.exe -c "
+import sys; sys.path.insert(0, r'src/ikigai/src')
+class FakeAgent: pass
+from agents.deepagents_harness import run_chat
+run_chat(FakeAgent(), 'test-thread')
+"
+IKIGAi Conversational Agent — powered by deepagents
+Ctrl+C to exit | ↑/↓ for history | Tab for completion
+
+Free-form chat only — algorithm code is archived per the
+attribution spec; strategic instructions live in ./strategics/.
+
+🧑 > Built-in commands:
+  /help                show this message
+  /exit, /quit         exit the REPL
+  /thread              show current thread_id
+  /reset               clear conversation history
+  /history             show last 10 input lines
+  /clear               clear the screen
+
+Anything else: send to the deep agent.
+
+🧑 > Goodbye.
+```
+
+### Tests
+
+NEW `tests/test_chat_repl_history.py` — 9 tests:
+- `test_banner_shows_history_hint` — banner has ↑/↓ for history + Tab for completion
+- `test_help_command` — `/help` lists all 7 commands
+- `test_exit_command` — `/exit` exits with Goodbye
+- `test_quit_command` — `/quit` exits (alias for /exit)
+- `test_thread_command` — `/thread` prints thread_id (uses "my-custom-thread-42" fixture)
+- `test_reset_command` — `/reset` clears conversation
+- `test_clear_command` — `/clear` runs without error
+- `test_history_command` — `/history` runs without error
+- `test_history_file_created` — REPL doesn't crash on free-form input
+
+All 9/9 PASS.
+
+### Production-readiness
+
+~68% → ~70% (REPL UX gap closed: was M99 stub without history/commands)
+
+### Why this matters
+
+Before M106: `life v2 chat` was a bare `input()` loop. Users couldn't:
+- See previous commands (no ↑/↓)
+- Use Tab to discover commands
+- Reset conversation without restarting
+- See what thread they were on
+
+Now: a usable interactive REPL with persistent history across sessions.
+
+### Files
+
+- `src/ikigai/src/agents/deepagents_harness.py` — PATCHED (run_chat gains history+commands)
+- `src/ikigai/.venv` — `pyreadline3==3.5.6` installed
+- `tests/test_chat_repl_history.py` — NEW (9 tests)
