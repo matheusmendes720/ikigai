@@ -99,14 +99,16 @@ CATEGORY_COUNTS: dict[str, int] = {
 }
 
 # Per M113 §3: which tool each category should primarily exercise.
+# M117: complete-task + weekly-review also exercise taskdog_audit_drift
+# (the agent's Routine Inicial/Final drift check from M114f).
 CATEGORY_EXPECTED_TOOLS: dict[str, list[str]] = {
     "add-task": ["taskdog_create_task"],
     "list-tasks": ["taskdog_list_tasks", "taskdog_search_tasks"],
     "update-task": ["taskdog_update_task", "taskdog_set_priority", "taskdog_set_tags"],
-    "complete-task": ["taskdog_complete_task"],
+    "complete-task": ["taskdog_complete_task", "taskdog_audit_drift"],
     "decompose": ["taskdog_create_task", "taskdog_add_dependency"],
     "daily-plan": ["taskdog_list_tasks", "taskdog_get_daily_allocations"],
-    "weekly-review": ["taskdog_get_burndown", "taskdog_get_executive_summary"],
+    "weekly-review": ["taskdog_get_burndown", "taskdog_get_executive_summary", "taskdog_audit_drift"],
 }
 
 # M113 spec: 26 taskdog-mcp tools. Listed in taskdog-mcp server's own ordering.
@@ -135,6 +137,8 @@ TASKDOG_TOOLS: list[str] = [
     "taskdog_get_q_high_e_low_metrics",
     "taskdog_get_execution_rate",
     "taskdog_get_daily_allocations",
+    # M117: vault_diff audit — exercise via Routine Inicial/Final (anchor #7)
+    "taskdog_audit_drift",
     "taskdog_bulk_archive",
     "taskdog_bulk_complete",
 ]
