@@ -921,6 +921,58 @@ def register_vault_toggle(app: typer.Typer) -> None:
                      json_output=json_output)
         raise typer.Exit(code=rc)
 
+    # M135: rollback recent toggle/reopen events from the audit log.
+    @app.command(name="vault-rollback")
+    def rollback_cmd(
+        since_hours: float = typer.Option(None, "--since-hours",
+                                          help="Only rollback events newer than N hours."),
+        actor: str = typer.Option(None, "--actor",
+                                   help="Only rollback events from this actor."),
+        event: str = typer.Option(None, "--event",
+                                   help="Only rollback events of this type."),
+        limit: int = typer.Option(1, "--limit", "-n",
+                                   help="Rollback this many most-recent matching events."),
+        reason: str = typer.Option("user rollback", "--reason", "-r"),
+        actor_name: str = typer.Option("cli-rollback", "--actor-name"),
+        dry_run: bool = typer.Option(False, "--dry-run"),
+        list_only: bool = typer.Option(False, "--list",
+                                        help="List matching events without rolling back."),
+        json_output: bool = typer.Option(False, "--json"),
+    ) -> None:
+        from tools.vault.rollback import list_events, main as rb_main
+        import sys as _sys
+        if list_only:
+            events = list_events(since_hours=since_hours, actor=actor,
+                                 event_type=event, limit=limit)
+            if json_output:
+                import json as _json
+                print(_json.dumps(events, indent=2, default=str))
+            else:
+                for e in events:
+                    ts = e.get("ts", "")
+                    evt = e.get("event", "?")
+                    rel = e.get("rel_path", "")
+                    line_no = e.get("target_line", "")
+                    text = e.get("expected_text", "")[:30]
+                    ok = e.get("ok", True)
+                    marker = "✓" if ok else "✗"
+                    print(f"{marker} {ts}  {evt}  {rel}:{line_no}  {text}")
+            raise typer.Exit(code=0)
+        # Delegate to the underlying CLI for the actual rollback.
+        _sys.argv = [
+            "rollback", "undo",
+            *(["--since-hours", str(since_hours)] if since_hours else []),
+            *(["--actor", actor] if actor else []),
+            *(["--event", event] if event else []),
+            "--limit", str(limit),
+            "--reason", reason,
+            "--actor-name", actor_name,
+            *(["--dry-run"] if dry_run else []),
+            *(["--json"] if json_output else []),
+        ]
+        rc = rb_main(_sys.argv[1:])
+        raise typer.Exit(code=rc)
+
 
 register_vault_toggle(app)
 
