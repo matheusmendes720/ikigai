@@ -242,6 +242,36 @@ jobs:
             reports/baselines/
           retention-days: 14
 
+  # M136: drift regression check — fails CI if any drift kind grew >10%
+  # week-over-week OR a new drift kind appeared.
+  drift-regression:
+    name: Drift Regression Check (M136)
+    runs-on: ubuntu-latest
+    needs: backtest-pipeline
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: |
+          uv sync || true
+          pip install --quiet pytest typer rich || true
+
+      - name: Run drift regression check
+        run: |
+          PYTHONPATH=. python tools/backtest/drift_regression.py check --snapshot --threshold 0.10
+
+      - name: Generate regression report
+        if: always()
+        run: |
+          PYTHONPATH=. python tools/backtest/drift_regression.py report > reports/drift-regression.md || true
+
   # NOTE: operational-e2e and git-hooks jobs REMOVED 2026-08-31 — PAV
   # kernel archived to archive/legacy-pav/src-operational/. The archived
   # package retains its own test suite (uv run pytest from inside the
