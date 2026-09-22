@@ -25,6 +25,7 @@ Run::
 from __future__ import annotations
 
 import ast
+import re
 import sys
 from pathlib import Path
 
@@ -1273,3 +1274,111 @@ def test_daemon_health_infrastructure() -> None:
         or bool(re.search(r"curl\s+.*ntfy", script_text))
     )
     assert has_alert_path, f"daemon-watchdog.sh missing ntfy alert path: {script}"
+
+
+# ---------------------------------------------------------------------------
+# M111 — New invariants for the M97b-M106 surface area.
+# These protect the new capabilities (38 deep-agent tools, 3 langgraph graphs,
+# 7 REPL commands, CLAUDE_API_KEY fallback) from accidental regression.
+# ---------------------------------------------------------------------------
+
+
+def test_mcp_taskdog_client_wired_in_deep_agent() -> None:
+    """M97b: deepagents_harness imports build_agent_tools from mcp_taskdog_client.
+
+    Without this, the deep-agent would fall back to 12 IKIGAI_TOOLS only (not 38).
+    """
+    harness_file = (
+        Path(__file__).parent.parent / "src" / "agents" / "deepagents_harness.py"
+    )
+    text = harness_file.read_text(encoding="utf-8")
+    assert "from .mcp_taskdog_client import build_agent_tools" in text, (
+        "deepagents_harness.py missing mcp_taskdog_client import — "
+        "agent regressed to 12 IKIGAI_TOOLS only (was 38 with MCP)"
+    )
+    assert "build_agent_tools()" in text, (
+        "deepagents_harness.py not calling build_agent_tools()"
+    )
+
+
+def test_langgraph_json_has_three_graphs() -> None:
+    """M105: langgraph.json registers 3 graphs (v2 + fork_smoke + taskdog_mcp).
+
+    Visual debugger depends on this for Studio UI coverage.
+    """
+    lg_config = REPO_ROOT.parent.parent / "langgraph.json"
+    if not lg_config.exists():
+        pytest.skip(f"langgraph.json not found at {lg_config}")
+    config = json.loads(lg_config.read_text(encoding="utf-8"))
+    graphs = config.get("graphs", {})
+    assert "ikigai_maintainer_v2" in graphs, "v2 graph missing"
+    assert "ikigai_fork_smoke" in graphs, "fork_smoke graph missing"
+    assert "ikigai_taskdog_mcp" in graphs, "taskdog_mcp graph missing (M105)"
+    assert len(graphs) >= 3, f"expected ≥3 graphs, got {len(graphs)}"
+
+
+def test_mcp_json_has_taskdog_server() -> None:
+    """M108: .mcp.json registers taskdog MCP server alongside ikigai."""
+    mcp_config = REPO_ROOT.parent.parent / ".mcp.json"
+    if not mcp_config.exists():
+        pytest.skip(f".mcp.json not found at {mcp_config}")
+    config = json.loads(mcp_config.read_text(encoding="utf-8"))
+    servers = config.get("mcpServers", {})
+    assert "ikigai" in servers, "ikigai server missing from .mcp.json"
+    assert "taskdog" in servers, "taskdog server missing from .mcp.json (M108)"
+
+
+def test_harness_supports_claude_api_key_fallback() -> None:
+    """M104: deepagents_harness checks CLAUDE_API_KEY in addition to MINIMAX/ANTHROPIC.
+
+    Users with hermes-agent proxy tokens (sk-cp-*) need this fallback.
+    """
+    harness_file = (
+        Path(__file__).parent.parent / "src" / "agents" / "deepagents_harness.py"
+    )
+    text = harness_file.read_text(encoding="utf-8")
+    assert "CLAUDE_API_KEY" in text, (
+        "deepagents_harness.py missing CLAUDE_API_KEY fallback (M104)"
+    )
+
+
+def test_run_chat_has_builtin_commands() -> None:
+    """M106: run_chat() in deepagents_harness.py exposes 7 built-in REPL commands."""
+    harness_file = (
+        Path(__file__).parent.parent / "src" / "agents" / "deepagents_harness.py"
+    )
+    text = harness_file.read_text(encoding="utf-8")
+    for cmd in ("/help", "/exit", "/quit", "/thread", "/reset", "/history", "/clear"):
+        assert cmd in text, f"REPL command {cmd} missing from run_chat (M106)"
+
+
+def test_factory_shims_have_typed_signatures() -> None:
+    """M102: make_v2_graph and make_fork_smoke_graph have typed parameters
+    (ServerRuntime | None + RunnableConfig | None) so langgraph_api can load them.
+    """
+    graph_file = (
+        Path(__file__).parent.parent / "src" / "agents" / "v2" / "graph.py"
+    )
+    text = graph_file.read_text(encoding="utf-8")
+    assert "ServerRuntime | None" in text, (
+        "v2 graph factory missing ServerRuntime | None annotation (M102)"
+    )
+    assert "RunnableConfig | None" in text, (
+        "v2 graph factory missing RunnableConfig | None annotation (M102)"
+    )
+
+
+def test_no_relative_imports_in_v2_graph() -> None:
+    """M102: v2/graph.py doesn't use `from .nodes.X` (broke langgraph_api loader)."""
+    graph_file = (
+        Path(__file__).parent.parent / "src" / "agents" / "v2" / "graph.py"
+    )
+    text = graph_file.read_text(encoding="utf-8")
+    # Strip comments (single-line only — v2/graph.py has no triple-quoted docstrings in body).
+    body_lines = [
+        line for line in text.splitlines()
+        if not line.strip().startswith("#")
+    ]
+    body = "\n".join(body_lines)
+    bad = re.findall(r"^from \.\w+", body, flags=re.MULTILINE)
+    assert not bad, f"relative imports still present in v2/graph.py: {bad}"
