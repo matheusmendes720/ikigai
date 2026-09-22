@@ -31,6 +31,8 @@ if command -v cygpath >/dev/null 2>&1; then
     RESULTS_WIN="$(cygpath -w "$REPO/reports/backtest-Q1-results.json")"
     JUDGMENT_WIN="$(cygpath -w "$REPO/reports/backtest-Q1-judgment.json")"
     REPORT_WIN="$(cygpath -w "$REPO/reports/backtest-Q1.md")"
+    DRIFT_WIN="$(cygpath -w "$REPO/reports/backtest-drift.md")"
+    BASELINE_WIN="$(cygpath -w "$REPO/reports/backtest-Q1-judgment.bak.json")"
     SCENARIOS_NAT_YAML="$(cygpath -w "$REPO/vault/drafts/q3-scenarios.yaml")"
     SCENARIOS_NAT_EXHAUSTIVE="$(cygpath -w "$REPO/vault/drafts/q3-scenarios.exhaustive.yaml")"
 else
@@ -39,6 +41,8 @@ else
     RESULTS_WIN="$REPO/reports/backtest-Q1-results.json"
     JUDGMENT_WIN="$REPO/reports/backtest-Q1-judgment.json"
     REPORT_WIN="$REPO/reports/backtest-Q1.md"
+    DRIFT_WIN="$REPO/reports/backtest-drift.md"
+    BASELINE_WIN="$REPO/reports/backtest-Q1-judgment.bak.json"
     SCENARIOS_NAT_YAML="$REPO/vault/drafts/q3-scenarios.yaml"
     SCENARIOS_NAT_EXHAUSTIVE="$REPO/vault/drafts/q3-scenarios.exhaustive.yaml"
 fi
@@ -123,14 +127,33 @@ echo "[4/5] Running M114c judge_llm..."
 
 # --- 5. Render report ---
 echo ""
-echo "[5/5] Rendering M114g markdown report..."
+echo "[5/6] Rendering M114g markdown report..."
 "$PYTHON" tools/backtest/backtest_report.py \
     --results "$RESULTS_WIN" \
     --judgment "$JUDGMENT_WIN" \
     --out "$REPORT_WIN"
 
+# --- 6. Drift detection (M115) ---
+echo ""
+echo "[6/6] Running M115 backtest_drift..."
+if [[ -f "$BASELINE_WIN" ]]; then
+    "$PYTHON" tools/backtest/backtest_drift.py \
+        --current "$JUDGMENT_WIN" \
+        --baseline "$BASELINE_WIN" \
+        --out "$DRIFT_WIN"
+else
+    # First run — snapshot current as baseline for next time.
+    "$PYTHON" tools/backtest/backtest_drift.py \
+        --current "$JUDGMENT_WIN" \
+        --baseline "$BASELINE_WIN" \
+        --out "$DRIFT_WIN" \
+        --snapshot
+    echo "  (No baseline found — snapshotted current as baseline for next run)"
+fi
+
 echo ""
 echo "===================================="
 echo "  Backtest Q1 complete."
 echo "  Report: reports/backtest-Q1.md"
+echo "  Drift:  reports/backtest-drift.md"
 echo "===================================="
