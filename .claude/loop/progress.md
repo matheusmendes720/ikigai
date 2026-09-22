@@ -5859,3 +5859,66 @@ summary: {'priority_mismatch': 1}
 
 ### Cumulative test count
 - M110-M121: **238 new tests** since M109 (+10 this round)
+## M122 — 2026-09-22
+
+**Goal:** Add 6th drift kind — `tag_mismatch` — to `audit_drift`. Detects when vault's declared tags (via `| tags=a,b,c`) disagree with taskdog's tags list.
+
+### Delivered
+
+**`tools/backtest/vault_propagation.py`** — 3 changes:
+1. New regex: `TAGS_TAG_RE = r"\|\s*tags=([^\n|]+)"` — captures `| tags=a,b,c` from checkbox text.
+2. New constant: `DRIFT_TAG_MISMATCH = "tag_mismatch"` (6th drift kind).
+3. New check in `audit_drift()` after priority check:
+   - Skip if taskdog `tags` field is **missing** (None) — we don't know what they should be.
+   - Normalize both sides: lowercase, strip whitespace, split on comma, sort as set.
+   - Compare sets — mismatch fires drift.
+   - Handles both `tags: ["a", "b"]` (list) and `tags: "a,b"` (legacy comma-string).
+
+Drift dict carries `vault_tags` + `taskdog_tags` fields.
+
+**`tests/test_m122_tag_drift.py`** — 14 tests, all PASS:
+- regex captures simple + with spaces, no match without pipe
+- drift fires on mismatch
+- no drift on match (exact, unordered, case-insensitive, whitespace)
+- no drift when vault lacks `| tags=` declaration
+- no drift when taskdog `tags` field is missing
+- drift fires when taskdog tags=[] but vault declared
+- comma-separated string serialization still parsed
+- works on COMPLETED tasks
+- independent of priority_mismatch (both can fire)
+
+### Live verification
+
+```
+$ python -c "audit_drift(...)"
+summary: {'tag_mismatch': 1}
+drift: vault_tags=['frontend', 'urgent'], taskdog_tags=['backend', 'urgent']
+```
+
+### Decisions
+
+- **Set comparison, not list** — order doesn't matter; `["a", "b"]` ≡ `["b", "a"]`.
+- **Case-insensitive** — `URGENT` ≡ `urgent`. Real-world tag conventions are inconsistent.
+- **Whitespace-tolerant** — `foo, bar` ≡ `foo,bar`.
+- **Skip on missing tags field** — if taskdog has no `tags` field at all, don't drift. We don't have a contract to compare against.
+- **Empty taskdog list vs non-empty vault** — DOES fire drift (vault declared an opinion; taskdog has none).
+
+### Drift kinds now (6)
+1. `unmarked_done`
+2. `unmarked_open`
+3. `phantom_task`
+4. `planned_orphan`
+5. `priority_mismatch` (M120)
+6. **`tag_mismatch`** (M122)
+
+### Honest scope
+
+- ✅ Regex captures correctly
+- ✅ Mismatch detection works
+- ✅ Graceful on missing/None/empty/wrong-type
+- ✅ Tests pass
+- ⚠️ **Tag-set semantics** — using sorted-tuple-of-lowercased-strings means we don't distinguish "duplicate tags" (e.g. vault says `urgent, urgent`). Future M123+ could add stricter semantics.
+- ⚠️ **No tag normalization rules** — `tag-1` vs `tag_1` would be considered different. Could add a normalization layer.
+
+### Cumulative test count
+- M110-M122: **252 new tests** since M109 (+14 this round)
