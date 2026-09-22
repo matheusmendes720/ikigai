@@ -801,6 +801,46 @@ def register_td_alias(app: typer.Typer) -> None:
 register_td_alias(app)
 
 
+# M128: register audit-drift subcommand on the v2 app.
+def register_audit_drift(app: typer.Typer) -> None:
+    """Register `life v2 audit-drift` — drift detection from vault_propagation.
+
+    M128: lets the agent (and humans) invoke audit_drift() directly,
+    without going through the backtest harness. Three modes:
+      - default: human-readable summary table
+      - --json: machine-readable for agent prompts / CI
+      - --kind-filter: only show drifts of one kind (phantom_task, etc.)
+
+    Exit codes:
+      0 — drift acknowledged (default) OR no drift
+      1 — drift found AND --exit-on-drift is set
+      2 — audit_drift raised (import error, vault missing, etc.)
+    """
+
+    @app.command(name="audit-drift")
+    def audit_drift_cmd(
+        json_output: bool = typer.Option(
+            False, "--json", help="Emit JSON instead of human-readable table."
+        ),
+        kind_filter: str | None = typer.Option(
+            None, "--kind-filter", "-k", help="Only show drifts of this kind."
+        ),
+        exit_on_drift: bool = typer.Option(
+            False, "--exit-on-drift", help="Exit code 1 if any drift is found (CI-friendly)."
+        ),
+    ) -> None:
+        from tools.vault.audit_drift_cli import main as ad_main
+        rc = ad_main(
+            json_output=json_output,
+            kind_filter=kind_filter,
+            exit_on_drift=exit_on_drift,
+        )
+        raise typer.Exit(code=rc)
+
+
+register_audit_drift(app)
+
+
 # Re-export invoke_skill so ``from interfaces.cli.v2 import invoke_skill``
 # works (W3.5/W3.6 skill manifest loader + taskdog post-processor).
 from .invoke_skill import invoke_skill, load_skill_manifest  # noqa: E402,F401
