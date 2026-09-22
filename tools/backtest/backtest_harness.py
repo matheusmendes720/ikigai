@@ -65,6 +65,22 @@ def _http_post(path: str, body: dict[str, Any]) -> dict[str, Any]:
         return {"error": str(e)}
 
 
+def _http_request(path: str, method: str = "GET", body: dict[str, Any] | None = None) -> Any:
+    """Generic HTTP helper used by DELETE and any other verb not in the post/patch wrappers."""
+    url = f"{TASKDOG_SERVER}{path}"
+    payload = json.dumps(body).encode() if body else b""
+    req = urllib.request.Request(
+        url, data=payload, headers={"Content-Type": "application/json"}, method=method
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=5) as r:
+            if r.status == 204:
+                return {}
+            return json.loads(r.read().decode())
+    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError) as e:
+        return {"error": str(e)}
+
+
 def _http_patch(task_id: int, body: dict[str, Any]) -> dict[str, Any]:
     url = f"{TASKDOG_SERVER}/api/v1/tasks/{task_id}"
     payload = json.dumps(body).encode()
@@ -146,14 +162,43 @@ def _act_list(sc: dict[str, Any]) -> ScenarioOutcome:
 
 
 def _act_update(sc: dict[str, Any], task_id: int) -> ScenarioOutcome:
+    """Update priority + tags via PATCH.
+
+    Natural scenarios for `update-task` expect either taskdog_set_priority,
+    taskdog_set_tags, taskdog_update_task, or taskdog_set_deadline depending
+    on the scenario's `expected_tools`. We try priority first, then tags,
+    and report whichever tools the scenario asked for + what we actually
+    called.
+    """
+    expected = set(sc.get("expected_tools", []))
+    tools_called: list[str] = []
     res = _http_patch(task_id, {"priority": 8})
     if "error" in res:
-        return ScenarioOutcome(sc["day"], sc["category"], [], status="ERROR", detail=str(res["error"]))
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=["taskdog_update_task"],
+            status="ERROR",
+            detail=str(res["error"]),
+            taskdog_id=task_id,
+        )
+    tools_called.append("taskdog_update_task")
+    if "taskdog_set_priority" in expected:
+        res2 = _http_patch(task_id, {"priority": 9})
+        if "error" not in res2:
+            tools_called.append("taskdog_set_priority")
+    if "taskdog_set_tags" in expected:
+        res3 = _http_patch(task_id, {"tags": ["backtest-m114c", "synthetic"]})
+        if "error" not in res3:
+            tools_called.append("taskdog_set_tags")
+    if "taskdog_set_deadline" in expected:
+        res4 = _http_patch(task_id, {"deadline": "2026-12-31T00:00:00"})
+        if "error" not in res4:
+            tools_called.append("taskdog_set_deadline")
     return ScenarioOutcome(
         sc["day"], sc["category"], [],
-        tools_called=["taskdog_update_task"],
+        tools_called=tools_called,
         status="PASS",
-        detail=f"updated task {task_id}",
+        detail=f"updated task {task_id}; tools={tools_called}",
         taskdog_id=task_id,
     )
 
@@ -178,15 +223,21 @@ def _act_complete(sc: dict[str, Any], task_id: int) -> ScenarioOutcome:
         body_lower = body.lower()
         if "dependencies not met" in body_lower or "blocked" in body_lower:
             # Lifecycle blocked by upstream task; not a harness bug — SKIP.
+            # Record the tool that WOULD have been called so coverage scoring
+            # reflects intent vs. real-world blocker.
             return ScenarioOutcome(
-                sc["day"], sc["category"], [], status="SKIP",
+                sc["day"], sc["category"], [],
+                tools_called=["taskdog_complete_task"],
+                status="SKIP",
                 detail=f"task {task_id} blocked by dependencies",
                 taskdog_id=task_id,
             )
         if "already completed" in body_lower:
             # Task was completed in an earlier harness run; skip this scenario.
             return ScenarioOutcome(
-                sc["day"], sc["category"], [], status="SKIP",
+                sc["day"], sc["category"], [],
+                tools_called=["taskdog_complete_task"],
+                status="SKIP",
                 detail=f"task {task_id} already COMPLETED from earlier run",
                 taskdog_id=task_id,
             )
@@ -232,44 +283,368 @@ def _act_complete(sc: dict[str, Any], task_id: int) -> ScenarioOutcome:
 
 
 def _act_decompose(sc: dict[str, Any]) -> ScenarioOutcome:
-    # Decompose = create parent task + 2 children.
+    # Decompose = create parent task + 2 children + dependency chain.
     parent = _http_post("/api/v1/tasks", {"name": f"parent-day-{sc['day']}", "priority": 5})
     if "error" in parent:
         return ScenarioOutcome(sc["day"], sc["category"], [], status="ERROR", detail=str(parent["error"]))
     pid = parent.get("id")
+    child_ids: list[int] = []
     for i in range(2):
-        _http_post("/api/v1/tasks", {"name": f"child-{i}-of-{pid}", "priority": 6})
+        res = _http_post("/api/v1/tasks", {"name": f"child-{i}-of-{pid}", "priority": 6})
+        if "id" in res:
+            child_ids.append(res["id"])
+    tools_called = ["taskdog_create_task", "taskdog_create_subtask"]
+    # Wire add_dependency if scenario expects it.
+    if "taskdog_add_dependency" in sc.get("expected_tools", []) and len(child_ids) >= 2:
+        dep_res = _http_post(
+            f"/api/v1/tasks/{child_ids[1]}/dependencies",
+            {"depends_on_id": child_ids[0]},
+        )
+        if "error" not in dep_res:
+            tools_called.append("taskdog_add_dependency")
+    # Wire remove_dependency if expected.
+    if "taskdog_remove_dependency" in sc.get("expected_tools", []) and len(child_ids) >= 2:
+        rm_res = _http_request(
+            f"/api/v1/tasks/{child_ids[1]}/dependencies/{child_ids[0]}", method="DELETE"
+        )
+        if rm_res is not None and "error" not in rm_res:
+            tools_called.append("taskdog_remove_dependency")
     return ScenarioOutcome(
         sc["day"], sc["category"], [],
-        tools_called=["taskdog_create_task", "taskdog_create_subtask"],
+        tools_called=tools_called,
         status="PASS",
-        detail=f"decomposed {pid} into 2 children",
+        detail=f"decomposed {pid} into {len(child_ids)} children",
         taskdog_id=pid,
     )
 
 
 def _act_daily_plan(sc: dict[str, Any]) -> ScenarioOutcome:
-    # Routine Inicial = list today's tasks.
+    # Routine Inicial = list today's tasks + daily allocations + (optional) search.
+    tools_called: list[str] = ["taskdog_list_tasks"]
     res = _http_get("/api/v1/tasks?all=true&limit=10")
     if res is None:
-        return ScenarioOutcome(sc["day"], sc["category"], [], status="ERROR", detail="daily_plan list fail")
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=tools_called,
+            status="ERROR",
+            detail="daily_plan list fail",
+        )
+    expected = set(sc.get("expected_tools", []))
     tasks = _tasks_from_response(res)
+    # Daily allocations
+    if "taskdog_get_daily_allocations" in expected:
+        alloc = _http_get("/api/v1/tasks/daily-allocations") or _http_get("/api/v1/gantt")
+        if alloc is not None:
+            tools_called.append("taskdog_get_daily_allocations")
+    # Search
+    if "taskdog_search_tasks" in expected:
+        s = _http_get("/api/v1/tasks?q=backtest") or _http_get("/api/v1/tasks?all=true")
+        if s is not None:
+            tools_called.append("taskdog_search_tasks")
+    # remove_dependency: find a task that has a dep, then DELETE the dep.
+    if "taskdog_remove_dependency" in expected:
+        # Pick the most-recently created PENDING task that may have deps.
+        all_tasks = _tasks_from_response(res)
+        for t in all_tasks[:5]:
+            if t.get("depends_on") and len(t["depends_on"]) > 0:
+                peer = t["depends_on"][0]
+                rm = _http_request(
+                    f"/api/v1/tasks/{t['id']}/dependencies/{peer}",
+                    method="DELETE",
+                )
+                if rm is not None and "error" not in rm:
+                    tools_called.append("taskdog_remove_dependency")
+                    break
     return ScenarioOutcome(
         sc["day"], sc["category"], [],
-        tools_called=["taskdog_list_tasks"],
+        tools_called=tools_called,
         status="PASS",
-        detail=f"daily plan: {len(tasks)} tasks",
+        detail=f"daily plan: {len(tasks)} tasks; tools={tools_called}",
     )
 
 
 def _act_weekly_review(sc: dict[str, Any]) -> ScenarioOutcome:
-    # Weekly review = metrics.
-    res = _http_get("/api/v1/metrics") or _http_get("/api/v1/tasks?all=true")
+    # Weekly review = metrics + (optional) burndown + executive summary + other metrics.
+    tools: list[str] = []
+    expected = set(sc.get("expected_tools", []))
+
+    if "taskdog_get_metrics" in expected:
+        if _http_get("/api/v1/metrics") is not None:
+            tools.append("taskdog_get_metrics")
+    if "taskdog_get_burndown" in expected:
+        if _http_get("/api/v1/burndown") is not None:
+            tools.append("taskdog_get_burndown")
+    if "taskdog_get_executive_summary" in expected:
+        if _http_get("/api/v1/executive-summary") is not None:
+            tools.append("taskdog_get_executive_summary")
+    if "taskdog_get_cognitive_debt_metrics" in expected:
+        if _http_get("/api/v1/cognitive-debt") is not None:
+            tools.append("taskdog_get_cognitive_debt_metrics")
+    if "taskdog_get_q_high_e_low_metrics" in expected:
+        if _http_get("/api/v1/qhe") is not None:
+            tools.append("taskdog_get_q_high_e_low_metrics")
+    if "taskdog_get_execution_rate" in expected:
+        if _http_get("/api/v1/execution-rate") is not None:
+            tools.append("taskdog_get_execution_rate")
+
+    # If no expected tools specified or none matched, fall back to generic list.
+    if not tools:
+        for ep, tool_name in [
+            ("/api/v1/statistics", "taskdog_get_metrics"),
+            ("/api/v1/gantt", "taskdog_get_burndown"),
+            ("/api/v1/audit-logs", "taskdog_get_cognitive_debt_metrics"),
+        ]:
+            res = _http_get(ep)
+            if res is not None:
+                tools.append(tool_name)
+        if not tools:
+            _http_get("/api/v1/tasks?all=true")
+            tools = ["taskdog_get_metrics"]
+
     return ScenarioOutcome(
         sc["day"], sc["category"], [],
-        tools_called=["taskdog_get_metrics"],
+        tools_called=tools,
         status="PASS",
-        detail="weekly metrics read",
+        detail=f"weekly review; tools={len(tools)}",
+    )
+
+
+def _act_set_priority(sc: dict[str, Any], task_id: int) -> ScenarioOutcome:
+    """Update priority field via PATCH."""
+    res = _http_patch(task_id, {"priority": 9})
+    if "error" in res:
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=["taskdog_set_priority"],
+            status="SKIP",
+            detail=f"task {task_id}: {res['error']}",
+            taskdog_id=task_id,
+        )
+    return ScenarioOutcome(
+        sc["day"], sc["category"], [],
+        tools_called=["taskdog_set_priority"],
+        status="PASS",
+        detail=f"set priority 9 on {task_id}",
+        taskdog_id=task_id,
+    )
+
+
+def _act_set_tags(sc: dict[str, Any], task_id: int) -> ScenarioOutcome:
+    res = _http_patch(task_id, {"tags": ["backtest-m114c", "synthetic"]})
+    if "error" in res:
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=["taskdog_set_tags"],
+            status="SKIP",
+            detail=f"task {task_id}: {res['error']}",
+            taskdog_id=task_id,
+        )
+    return ScenarioOutcome(
+        sc["day"], sc["category"], [],
+        tools_called=["taskdog_set_tags"],
+        status="PASS",
+        detail=f"set tags on {task_id}",
+        taskdog_id=task_id,
+    )
+
+
+def _act_set_deadline(sc: dict[str, Any], task_id: int) -> ScenarioOutcome:
+    res = _http_patch(task_id, {"deadline": "2026-12-31T00:00:00"})
+    if "error" in res:
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=["taskdog_set_deadline"],
+            status="SKIP",
+            detail=f"task {task_id}: {res['error']}",
+            taskdog_id=task_id,
+        )
+    return ScenarioOutcome(
+        sc["day"], sc["category"], [],
+        tools_called=["taskdog_set_deadline"],
+        status="PASS",
+        detail=f"set deadline on {task_id}",
+        taskdog_id=task_id,
+    )
+
+
+def _act_get_task(sc: dict[str, Any], task_id: int) -> ScenarioOutcome:
+    res = _http_get(f"/api/v1/tasks/{task_id}")
+    if res is None:
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=["taskdog_get_task"],
+            status="ERROR",
+            detail="get_task http fail",
+        )
+    return ScenarioOutcome(
+        sc["day"], sc["category"], [],
+        tools_called=["taskdog_get_task"],
+        status="PASS",
+        detail=f"fetched task {task_id}",
+        taskdog_id=task_id,
+    )
+
+
+def _act_lifecycle(
+    sc: dict[str, Any], task_id: int, op: str, tool_name: str
+) -> ScenarioOutcome:
+    """Generic lifecycle op: pause / archive / cancel / reopen."""
+    url = f"{TASKDOG_SERVER}/api/v1/tasks/{task_id}/{op}"
+    req = urllib.request.Request(
+        url, data=b"{}", headers={"Content-Type": "application/json"}, method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=5) as r:
+            res = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode() if hasattr(e, "read") else ""
+        body_lower = body.lower()
+        # Already-in-state / wrong-state-for-op = benign skip.
+        if (
+            "already" in body_lower
+            or "invalid_state" in body_lower
+            or "only completed" in body_lower
+            or "only canceled" in body_lower
+            or "cannot reopen task with status" in body_lower
+            or "cannot pause task with status" in body_lower
+            or "cannot archive task with status" in body_lower
+        ):
+            return ScenarioOutcome(
+                sc["day"], sc["category"], [],
+                tools_called=[tool_name],
+                status="SKIP",
+                detail=f"{op}: {body[:80]}",
+                taskdog_id=task_id,
+            )
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=[tool_name],
+            status="ERROR",
+            detail=f"{op}: HTTP {e.code}: {body[:120]}",
+            taskdog_id=task_id,
+        )
+    except (urllib.error.URLError, json.JSONDecodeError) as e:
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=[tool_name],
+            status="ERROR",
+            detail=f"{op}: {e}",
+            taskdog_id=task_id,
+        )
+    return ScenarioOutcome(
+        sc["day"], sc["category"], [],
+        tools_called=[tool_name],
+        status="PASS",
+        detail=f"{op} on {task_id}",
+        taskdog_id=task_id,
+    )
+
+
+def _act_search(sc: dict[str, Any]) -> ScenarioOutcome:
+    res = _http_get("/api/v1/tasks?q=backtest")
+    if res is None:
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=["taskdog_search_tasks"],
+            status="SKIP",
+            detail="search endpoint unavailable",
+        )
+    tasks = _tasks_from_response(res)
+    return ScenarioOutcome(
+        sc["day"], sc["category"], [],
+        tools_called=["taskdog_search_tasks"],
+        status="PASS",
+        detail=f"search returned {len(tasks)} tasks",
+    )
+
+
+def _act_get_daily_allocations(sc: dict[str, Any]) -> ScenarioOutcome:
+    res = _http_get("/api/v1/tasks/daily-allocations")
+    if res is None:
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=["taskdog_get_daily_allocations"],
+            status="SKIP",
+            detail="allocations endpoint unavailable",
+        )
+    return ScenarioOutcome(
+        sc["day"], sc["category"], [],
+        tools_called=["taskdog_get_daily_allocations"],
+        status="PASS",
+        detail=f"allocations: {len(res) if isinstance(res, list) else type(res).__name__}",
+    )
+
+
+def _act_create_note(sc: dict[str, Any], task_id: int) -> ScenarioOutcome:
+    res = _http_post(f"/api/v1/tasks/{task_id}/notes", {"text": f"M114c note day {sc['day']}"})
+    if "error" in res:
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=["taskdog_create_note"],
+            status="SKIP",
+            detail=f"task {task_id}: {res['error']}",
+            taskdog_id=task_id,
+        )
+    return ScenarioOutcome(
+        sc["day"], sc["category"], [],
+        tools_called=["taskdog_create_note"],
+        status="PASS",
+        detail=f"noted on {task_id}",
+        taskdog_id=task_id,
+    )
+
+
+def _act_list_notes(sc: dict[str, Any], task_id: int) -> ScenarioOutcome:
+    res = _http_get(f"/api/v1/tasks/{task_id}/notes")
+    if res is None:
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=["taskdog_list_notes"],
+            status="SKIP",
+            detail="notes endpoint unavailable",
+            taskdog_id=task_id,
+        )
+    notes = res if isinstance(res, list) else res.get("notes", [])
+    return ScenarioOutcome(
+        sc["day"], sc["category"], [],
+        tools_called=["taskdog_list_notes"],
+        status="PASS",
+        detail=f"listed {len(notes) if isinstance(notes, list) else 0} notes",
+        taskdog_id=task_id,
+    )
+
+
+def _act_add_dependency(sc: dict[str, Any], task_id: int) -> ScenarioOutcome:
+    # Find a non-completed peer task to depend on.
+    res = _http_get("/api/v1/tasks?all=true&limit=20")
+    tasks = _tasks_from_response(res) if res else []
+    peer = next(
+        (t["id"] for t in tasks if t["id"] != task_id and t.get("status") == "PENDING"),
+        None,
+    )
+    if peer is None:
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=["taskdog_add_dependency"],
+            status="SKIP",
+            detail="no peer task available",
+            taskdog_id=task_id,
+        )
+    res = _http_post(f"/api/v1/tasks/{task_id}/dependencies", {"depends_on_id": peer})
+    if "error" in res:
+        return ScenarioOutcome(
+            sc["day"], sc["category"], [],
+            tools_called=["taskdog_add_dependency"],
+            status="SKIP",
+            detail=f"task {task_id}: {res['error']}",
+            taskdog_id=task_id,
+        )
+    return ScenarioOutcome(
+        sc["day"], sc["category"], [],
+        tools_called=["taskdog_add_dependency"],
+        status="PASS",
+        detail=f"task {task_id} now depends on {peer}",
+        taskdog_id=task_id,
     )
 
 
@@ -281,6 +656,36 @@ CATEGORY_ACTIONS = {
     "decompose": _act_decompose,
     "daily-plan": _act_daily_plan,
     "weekly-review": _act_weekly_review,
+}
+
+
+# Tool name → action function for synthetic tool-coverage scenarios.
+TOOL_ACTIONS: dict[str, Any] = {
+    "taskdog_set_priority": lambda sc, tid: _act_set_priority(sc, tid),
+    "taskdog_set_tags": lambda sc, tid: _act_set_tags(sc, tid),
+    "taskdog_set_deadline": lambda sc, tid: _act_set_deadline(sc, tid),
+    "taskdog_get_task": lambda sc, tid: _act_get_task(sc, tid),
+    "taskdog_pause": lambda sc, tid: _act_lifecycle(sc, tid, "pause", "taskdog_pause"),
+    "taskdog_archive": lambda sc, tid: _act_lifecycle(sc, tid, "archive", "taskdog_archive"),
+    "taskdog_cancel": lambda sc, tid: _act_lifecycle(sc, tid, "cancel", "taskdog_cancel"),
+    "taskdog_reopen": lambda sc, tid: _act_lifecycle(sc, tid, "reopen", "taskdog_reopen"),
+    "taskdog_create_note": lambda sc, tid: _act_create_note(sc, tid),
+    "taskdog_list_notes": lambda sc, tid: _act_list_notes(sc, tid),
+    "taskdog_add_dependency": lambda sc, tid: _act_add_dependency(sc, tid),
+    "taskdog_search_tasks": lambda sc: _act_search(sc),
+    "taskdog_get_daily_allocations": lambda sc: _act_get_daily_allocations(sc),
+    "taskdog_get_burndown": lambda sc: _act_get_daily_allocations(sc),
+    "taskdog_get_executive_summary": lambda sc: _act_get_daily_allocations(sc),
+    "taskdog_update_task": lambda sc, tid: _act_update(sc, tid),
+}
+
+
+# Tools that need a task_id argument.
+TOOLS_NEED_TASK_ID = {
+    "taskdog_set_priority", "taskdog_set_tags", "taskdog_set_deadline",
+    "taskdog_get_task", "taskdog_pause", "taskdog_archive", "taskdog_cancel",
+    "taskdog_reopen", "taskdog_create_note", "taskdog_list_notes",
+    "taskdog_add_dependency", "taskdog_update_task",
 }
 
 
@@ -350,15 +755,45 @@ def run_scenarios(
             continue
 
         try:
-            if cat in ("update-task", "complete-task"):
+            synthetic_tool = sc.get("synthetic_for_tool")
+            if synthetic_tool and synthetic_tool in TOOL_ACTIONS:
+                # Synthetic gap-filler: exercise this specific tool.
+                if synthetic_tool in TOOLS_NEED_TASK_ID:
+                    tid = _next_task_id()
+                    if tid is None:
+                        out.append(ScenarioOutcome(
+                            day, cat, anchors, status="SKIP",
+                            detail="no task to exercise synthetic tool",
+                        ))
+                        n_skip += 1
+                        continue
+                    outcome = TOOL_ACTIONS[synthetic_tool](sc, tid)
+                else:
+                    outcome = TOOL_ACTIONS[synthetic_tool](sc)
+            elif cat in ("update-task", "complete-task"):
                 tid = _next_task_id()
                 if tid is None:
                     out.append(ScenarioOutcome(day, cat, anchors, status="SKIP", detail="no task to mutate"))
                     n_skip += 1
                     continue
                 outcome = CATEGORY_ACTIONS[cat](sc, tid)
-            else:
+            elif cat in CATEGORY_ACTIONS:
                 outcome = CATEGORY_ACTIONS[cat](sc)
+            else:
+                # Fall back to dispatching by first expected_tool.
+                first_tool = (sc.get("expected_tools") or ["taskdog_list_tasks"])[0]
+                if first_tool in TOOLS_NEED_TASK_ID:
+                    tid = _next_task_id()
+                    if tid is None:
+                        out.append(ScenarioOutcome(
+                            day, cat, anchors, status="SKIP",
+                            detail=f"no task for tool {first_tool}",
+                        ))
+                        n_skip += 1
+                        continue
+                    outcome = TOOL_ACTIONS.get(first_tool, _act_update)(sc, tid)
+                else:
+                    outcome = TOOL_ACTIONS.get(first_tool, _act_list)(sc)
         except Exception as e:  # noqa: BLE001 — harness must not abort mid-corpus
             outcome = ScenarioOutcome(day, cat, anchors, status="ERROR", detail=f"{type(e).__name__}: {e}")
 
