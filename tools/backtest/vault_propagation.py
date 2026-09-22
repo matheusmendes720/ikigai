@@ -53,12 +53,13 @@ TASKDOG_SNAPSHOT = REPO_ROOT / "data" / "taskdog_snapshot.json"
 # `- [vault:rel#line] text` or closed form `- [x] [vault:rel#line] text` are
 # matched by a SECOND pattern below.
 CHECKBOX_RE = re.compile(r"^- \[( |x)\] (.+)$")
-# M114f: alternation handles both open and closed vault-linked checkboxes.
-# M121: added the `[ ] [vault:...]` form (open checkbox + link) — was missing.
+# M121: alternation handles all 3 vault-linked checkbox forms.
+# M125: added optional leading whitespace (`[ \t]{0,4}`) for nested checkboxes.
+# Max 4 spaces — beyond that, the line is likely a code block or list item.
 CHECKBOX_VAULT_RE = re.compile(
-    r"^- \[x\] \[vault:([^#\]]+)#(\d+)\] (.+)$"    # closed: `- [x] [vault:rel#line] text`
-    r"|^- \[vault:([^#\]]+)#(\d+)\] (.+)$"           # bare:   `- [vault:rel#line] text`
-    r"|^- \[ \] \[vault:([^#\]]+)#(\d+)\] (.+)$"     # open:   `- [ ] [vault:rel#line] text` (M121)
+    r"^[ \t]{0,4}- \[x\] \[vault:([^#\]]+)#(\d+)\] (.+)$"   # closed: `- [x] [vault:rel#line] text`
+    r"|^[ \t]{0,4}- \[vault:([^#\]]+)#(\d+)\] (.+)$"         # bare:   `- [vault:rel#line] text`
+    r"|^[ \t]{0,4}- \[ \] \[vault:([^#\]]+)#(\d+)\] (.+)$"   # open:   `- [ ] [vault:rel#line] text`
 )
 VAULT_LINK_RE = re.compile(r"\[vault:([^#\]]+)#(\d+)\]")
 # M120: capture priority tags from vault checkbox text. Format: `| priority=N`
