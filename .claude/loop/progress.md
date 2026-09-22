@@ -6091,3 +6091,56 @@ CHECKBOX_VAULT_RE.match("      - [ ] [vault:plan.md#8] Foo")  # 6 spaces
 
 ### Cumulative test count
 - M110-M125: **290 new tests** since M109 (+11 this round)
+## M126 — 2026-09-22
+
+**Goal:** Real-LLM smoke test for `llm_judge.py --use-llm` mode. Without an actual `ANTHROPIC_API_KEY`, only the integration SHAPE can be verified.
+
+### Delivered
+
+**`tests/test_m126_real_llm_smoke.py`** — 14 tests, all PASS:
+
+**Fallback paths** (5 tests):
+- `_real_llm_score` with `ConnectionError` → `mode: stub_fallback`, no crash
+- `ModelError` (langchain_core.exceptions) → `mode: stub_fallback`
+- Generic `RuntimeError` → `mode: stub_fallback`
+- JSON parse failure (model returns garbage) → `mode: stub`
+- Successful response parsing → `mode: llm`, all 4 dimensions extracted, `overall` computed
+
+**Dispatch paths** (3 tests):
+- No API key + `--use-llm` → stub mode (never tried)
+- `use_llm=False` → stub mode (explicit opt-out)
+- Hermes-agent proxy key (`sk-cp-...`) → ChatAnthropic constructed, call fails, `stub_fallback` (proves code path is reached)
+
+**End-to-end CLI** (2 tests):
+- `main(--use-llm)` with proxy key → all scenarios get `mode: stub_fallback` in output JSON
+- `main(--use-llm)` without key → all scenarios stay `mode: stub`
+
+**Env vars** (1 test):
+- `IKIGAI_MODEL` env var overrides default model name in `ChatAnthropic(model=...)` call
+
+**Real-shape integration smoke** (3 tests):
+- Realistic Anthropic response shape (all 4 dims + comment + JSON format) parses correctly
+- Response wrapped in ` ```json ` fence is still parsed
+- Prompt sent to ChatAnthropic contains scenario context (Day, category, expected_tools, status)
+
+### Key discovery during testing
+
+The `mock_patch("tools.backtest.llm_judge.ChatAnthropic")` path doesn't work because `_real_llm_score` does a LOCAL `from langchain_anthropic import ChatAnthropic`. The first failing test inadvertently hit the real Anthropic API and got a 401 (`API key is invalid`) — proving the code path DOES reach the real network. Fixed by patching at the module level: `mock_patch("langchain_anthropic.ChatAnthropic")`.
+
+### Decisions
+
+- **No real API call in CI** — no key, $0 budget. These tests prove code paths, not actual model quality.
+- **Module-level mock target** — patch `langchain_anthropic.ChatAnthropic`, not `tools.backtest.llm_judge.ChatAnthropic` (because the import is local).
+- **Real-shape responses in tests** — fake responses mimic Anthropic's actual `.content` attribute pattern.
+- **`stub` vs `stub_fallback` distinction** — `stub` = never tried (no key); `stub_fallback` = tried and failed. Reports can distinguish.
+
+### Honest scope
+
+- ✅ All code paths covered (success, fallback, missing key, env vars)
+- ✅ Prompt construction verified
+- ✅ Real-shape response parsing verified
+- ⚠️ **No real Anthropic call** — we have no key in this env. The hermes-agent `CLAUDE_API_KEY=sk-cp-i-...` proxy token doesn't directly work with ChatAnthropic.
+- ⚠️ **M126 follow-up candidate**: actual real-LLM smoke ($0.01 cost) — set `ANTHROPIC_API_KEY`, run on 3 scenarios, verify `mode: llm` for all 3. Out of scope for M126.
+
+### Cumulative test count
+- M110-M126: **304 new tests** since M109 (+14 this round)
