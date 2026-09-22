@@ -5185,3 +5185,66 @@ Including: drift detection (4 kinds), preview safety, apply guard against bad pr
 - ✅ Drift categories cover real-world scenarios
 - ⚠️ Drift join heuristic is exact-match by `[vault:rel#line]` link — tasks without the link get marked phantom_task. Many real taskdog tasks won't have links yet (this requires user to retroactively add `[vault:...]` tokens to existing tasks).
 - ⚠️ CLI's `--audit --write-events` writes a `vault.audit` event with summary, but downstream observers (per algorithm-attribution §7) are not yet wired.
+## M114e — 2026-09-22
+
+**Goal:** Map the 73 padded backtest scenarios to the 11 role-anchor requirements from M113 v2 spec. Coverage-driven.
+
+### Delivered
+
+**`tools/backtest/role_anchors.py`** (350 lines) — declarative 11 anchors + scenario↔anchor mapping:
+
+| # | Anchor | Source | Categories |
+|---|--------|--------|------------|
+| 1 | constitutional_sot_reader | `strategics/00-INDICE-PROGRESSIVO.md` | daily-plan, weekly-review |
+| 2 | dual_frame_temporal_tracker | `Modelagem Operacional.md + Planejamento (E&T).md` | daily-plan, weekly-review, decompose |
+| 3 | five_level_hierarchy_mapper | `Modelagem Operacional.md` | decompose, daily-plan, weekly-review |
+| 4 | tagging_system_conversant | `Integracao_Tatica.md` | add-task, list-tasks, update-task |
+| 5 | time_horizon_aware | `Analise (Tatico e Operacional).md` | daily-plan, weekly-review, complete-task |
+| 6 | vault_write_mcp_enforcer | `algorithm-attribution-design.md §7` | add-task, update-task, decompose |
+| 7 | taskdog_vault_propagation_driver | user 2026-09-22 + M114f | complete-task, weekly-review |
+| 8 | plan_update_on_the_fly_reflector | user 2026-09-22 + Planejamento (E&T)#3.2 | update-task, decompose, weekly-review |
+| 9 | cross_routine_executor | Analise (T&O)#Rotina inicial/final | daily-plan, complete-task |
+| 10 | diagnostic_reporter | Hierarquia de Objetivos + telemetry | weekly-review, list-tasks |
+| 11 | cultural_voice_compliance | 00-INDICE-PROGRESSIVO + altitude-shifter | daily-plan, weekly-review, decompose |
+
+### Live verification (against M114d exhaustive corpus)
+
+```
+$ python tools/backtest/role_anchors.py --dry-run
+
+{"scenarios_in": 73, "scenarios_out": 73, "gap_fillers_added": 0,
+ "anchors_total": 11, "anchors_met": 11, "anchors_unmet": []}
+
+#1  constitutional_sot_reader                55/3 OK
+#2  dual_frame_temporal_tracker              59/3 OK
+#3  five_level_hierarchy_mapper              59/4 OK
+#4  tagging_system_conversant                11/4 OK
+#5  time_horizon_aware                       58/4 OK
+#6  vault_write_mcp_enforcer                 11/3 OK
+#7  taskdog_vault_propagation_driver         6/3 OK
+#8  plan_update_on_the_fly_reflector         10/3 OK
+#9  cross_routine_executor                   55/3 OK
+#10 diagnostic_reporter                      7/3 OK
+#11 cultural_voice_compliance                59/4 OK
+```
+
+**All 11 anchors met from natural + synthetic scenarios in M114d.** No fillers needed.
+
+### Tests: 17 PASS
+
+Includes: structure validation (anchor count, IDs, uniqueness, sources), per-category primary anchor mapping, gap-filler synthesis, live exhaustive-YAML round-trip.
+
+### Decisions
+
+- **Anchors are 1-11, ID-stable** — anchor IDs are the join key in scenario→anchor maps, scenario→role mapping stays stable across cycles.
+- **Coverage target is per-anchor** — `COVERAGE_TARGET` is a dict, not uniform. Some anchors (e.g. #3 hierarchy) need ≥4 scenarios to verify coverage; others (e.g. #6 enforcer) need only ≥3.
+- **Synthetic gap-fillers** — `synthesize_gap_scenarios()` produces one extra scenario per unmet anchor, marked `synthetic_for_anchor=<id>`. Currently unused (all met).
+- **PT-BR descriptions included** — anchors come from `strategics/*.md` (PT-BR); descriptions match user-voice.
+
+### Honest scope
+
+- ✅ All 11 anchors declared with PT-BR + EN descriptions and source traceability
+- ✅ Primary anchor per category is total over all 7 scenario categories
+- ✅ Coverage matrix computes correctly; live run on real YAML shows 11/11 OK
+- ⚠️ Coverage metric is **count-based** — M114b (harness) will need rule-based checks (does the agent's actual output touch the anchor's claim, not just call the right tool?)
+- ⚠️ Anchor #7 propagation driver is satisfied with 6 scenarios, but the **real test** is whether the agent's audit_drift output surfaces drift that exists (not just whether it calls taskdog_get_task)
