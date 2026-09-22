@@ -5525,3 +5525,57 @@ Plus per-anchor regression table, tool coverage diff, gap emergence/resolution.
 - ✅ Auto-snapshot on first run, auto-compare on subsequent runs
 - ⚠️ **Run-to-run variance** — `total_score` can fluctuate 94.5 → 96.1 between identical harness runs (driven by task state at run time, NOT a code change). The drift report shows this as STABLE since deltas are <0.5 typically, but it's not strictly zero. **Future M116+ could average the last N runs** to reduce noise.
 - ⚠️ **No historical archive** — only the most-recent baseline is kept. Future work could keep `backtest-Q1-judgment.bak.2026-W39.json` for week-over-week diffs.
+## M116 — 2026-09-22
+
+**Goal:** Optional LLM-judge layer for qualitative scoring. Complements rule-based judge (M114c).
+
+### Delivered
+
+**`tools/backtest/llm_judge.py`** (300 lines) — 4-dimension qualitative scoring:
+- `argument_quality` — were task_name / priority / tags sensible?
+- `sequence_coherence` — did tool order follow a sensible workflow?
+- `cultural_fit` — PT-BR + ABT framing compliance
+- `tool_selection` — did the agent pick the right tool for the intent?
+
+3 modes:
+1. **Stub** (default) — deterministic heuristic, no LLM call
+2. **Real LLM** (`--use-llm`) — calls `ChatAnthropic` via `langchain_anthropic`
+3. **Stub fallback** — when `IKIGAI_FAKE_LLM=1`, no `ANTHROPIC_API_KEY`, or LLM call fails
+
+**`scripts/backtest/run_backtest.sh`** — step 7 added. `USE_LLM=1` env flag enables real LLM mode.
+
+**`tests/test_llm_judge.py`** — 16 tests, all PASS.
+
+### Live verification (stub mode)
+
+```
+$ python tools/backtest/llm_judge.py
+{
+  "argument_quality": 0.667,
+  "sequence_coherence": 0.825,
+  "cultural_fit": 0.567,
+  "tool_selection": 0.945,
+  "overall": 0.751,
+  "n_scenarios": 73,
+  "modes": {"stub": 73}
+}
+```
+
+**Overall 0.751/1.0** (stub heuristic). `tool_selection` highest (0.945) — harness consistently calls right tools. `cultural_fit` lowest (0.567) — stub doesn't actually check PT-BR framing yet.
+
+### Decisions
+
+- **Stub-by-default** — never makes an LLM call without explicit opt-in. Avoids surprise API costs.
+- **IKIGAI_FAKE_LLM=1 honored** — same convention as existing IKIGAI prompts (h1_energy, h2_qhe_composite, etc.)
+- **JSON parse tolerant** — handles ` ```json ` fences, falls back to stub on parse failure
+- **Score range 0.0-1.0** — same as rule judge, comparable roll-up
+- **Mode field** — per-scenario `mode: stub|llm|stub_fallback` lets reports show what fraction was real LLM vs stub
+
+### Honest scope
+
+- ✅ Stub scoring is deterministic + tested (16 tests)
+- ✅ Real-LLM path is wired (langchain_anthropic ChatAnthropic, IKIGAI_MODEL env var)
+- ✅ Graceful fallback when API key missing or model unavailable
+- ⚠️ **Stub heuristic is naive** — only checks tool-name presence, not actual argument quality. Real-LLM scoring would be qualitatively different.
+- ⚠️ **Stub never reached in CI** — `IKIGAI_FAKE_LLM` is set elsewhere; the 73-scenario run was 100% stub. Set `USE_LLM=1` and provide `ANTHROPIC_API_KEY` for real evaluation.
+- ⚠️ **No drift tracking for LLM judge yet** — would be a future M117+ addition.
