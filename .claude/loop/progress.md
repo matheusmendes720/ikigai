@@ -5756,3 +5756,54 @@ $ cat reports/backtest-trend.md
 
 ### Cumulative test count
 - M110-M119: **216 new tests** since M109 (+15 this round)
+## M120 — 2026-09-22
+
+**Goal:** Add 5th drift kind — `priority_mismatch` — to `audit_drift`. Detects when vault's declared priority (via `| priority=N` tag in checkbox text) disagrees with taskdog's priority field.
+
+### Delivered
+
+**`tools/backtest/vault_propagation.py`** — 3 changes:
+1. New regex: `PRIORITY_TAG_RE = r"\|\s*priority=(\d{1,2})\b"` — captures `| priority=N` from checkbox text.
+2. New constant: `DRIFT_PRIORITY_MISMATCH = "priority_mismatch"` (5th kind).
+3. New check in `audit_drift()` after the existing UNMARKED_DONE/UNMARKED_OPEN blocks — if vault checkbox declares a priority, compare to taskdog priority; emit mismatch drift if they differ. **Independent of completion status** (priority drift can apply to PENDING/IN_PROGRESS/COMPLETED tasks).
+
+Drift dict carries `vault_priority` + `taskdog_priority` fields for debugging.
+
+**`tests/test_m120_priority_drift.py`** — 12 tests, all PASS:
+- regex captures int and 2-digit
+- mismatch emitted, match no drift, no-tag no drift
+- graceful on None / non-int / non-numeric (no crashes)
+- 3 mismatches → summary count 3
+- works on COMPLETED tasks (no conflict with unmarked_done)
+- works independently of unmarked_done (both kinds emitted for same scenario)
+
+### Live verification
+
+```
+$ PYTHONPATH=. python -c "..."
+summary: {'phantom_task': 590, 'planned_orphan': 313}
+priority_mismatch count: 0
+
+→ 0 because no vault checkbox in this repo uses `| priority=N` yet.
+  The convention is wired and tested; data will follow.
+```
+
+### Decisions
+
+- **Convention: `| priority=N` after the link** — same separator as existing `| priority=N` patterns in user notes. Non-numeric values are silently skipped (no drift emitted, no crash).
+- **Priority tag is OPTIONAL** — checkboxes without `| priority=N` are not flagged, even if taskdog priority differs. This avoids noise when vault author didn't declare an opinion on priority.
+- **Independent kind** — not bundled with UNMARKED_DONE/UNMARKED_OPEN. A single scenario can emit 2+ drift kinds at once, each with its own remediation path.
+- **Drift dict carries both priorities** — `vault_priority` + `taskdog_priority` — so the operator can see what to update without re-querying.
+
+### Honest scope
+
+- ✅ Regex captures correctly
+- ✅ Mismatch detection works
+- ✅ Graceful on malformed input
+- ✅ Tests pass
+- ⚠️ **0 live data** — no vault checkbox in this repo uses the new convention yet. Future work: add `| priority=N` to a sample vault plan and verify the harness surfaces the drift.
+- ⚠️ **Real bug discovered (NOT fixed in M120 scope)**: `CHECKBOX_VAULT_RE` doesn't match `[ ] [vault:...]` form (with `[ ]` wrapper) — only the `[vault:...]` or `[x] [vault:...]` forms. My initial tests used `[ ]` wrapper and all failed until I removed it. Fixing this regex gap is a M121 candidate.
+- ⚠️ **Tag drift (`| tags=...`) not yet covered** — same pattern as priority but separate kind. Could be M121 too.
+
+### Cumulative test count
+- M110-M120: **228 new tests** since M109 (+12 this round)

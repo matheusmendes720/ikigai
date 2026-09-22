@@ -55,6 +55,9 @@ TASKDOG_SNAPSHOT = REPO_ROOT / "data" / "taskdog_snapshot.json"
 CHECKBOX_RE = re.compile(r"^- \[( |x)\] (.+)$")
 CHECKBOX_VAULT_RE = re.compile(r"^- \[x\] \[vault:([^#\]]+)#(\d+)\] (.+)$|^- \[vault:([^#\]]+)#(\d+)\] (.+)$")
 VAULT_LINK_RE = re.compile(r"\[vault:([^#\]]+)#(\d+)\]")
+# M120: capture priority tags from vault checkbox text. Format: `| priority=N`
+# appended after the checkbox link (e.g. `- [vault:plan.md#6] Foo | priority=7`).
+PRIORITY_TAG_RE = re.compile(r"\|\s*priority=(\d{1,2})\b")
 
 # Per algorithm-attribution §7: vault write invariant — the only code path that
 # mutates vault content outside of explicit human file edits. Re-indexing via
@@ -66,6 +69,8 @@ DRIFT_UNMARKED_DONE = "unmarked_done"   # taskdog COMPLETED but vault [ ]
 DRIFT_UNMARKED_OPEN = "unmarked_open"   # taskdog PENDING but vault [x]
 DRIFT_PHANTOM_TASK = "phantom_task"     # taskdog task has no vault checkbox link
 DRIFT_PLANNED_ORPHAN = "planned_orphan"  # vault checkbox has no taskdog task
+# M120: priority declared in vault checkbox (`| priority=N`) doesn't match taskdog priority.
+DRIFT_PRIORITY_MISMATCH = "priority_mismatch"
 
 
 def now_iso() -> str:
@@ -405,6 +410,38 @@ def audit_drift(
                 "taskdog_status": tstatus,
                 "taskdog_name": tname,
             })
+        # M120: priority drift detection. Only checked if vault checkbox declares
+        # `| priority=N`. If taskdog priority differs, emit a mismatch drift.
+        # This is independent of done/undone — a completed task can still have
+        # priority drift (priority change wasn't reflected in vault).
+        m_pri = PRIORITY_TAG_RE.search(cb_text or "")
+        if m_pri is not None:
+            try:
+                vault_priority = int(m_pri.group(1))
+            except ValueError:
+                vault_priority = None
+            td_priority = t.get("priority")
+            try:
+                td_priority_int = int(td_priority) if td_priority is not None else None
+            except (TypeError, ValueError):
+                td_priority_int = None
+            if (
+                vault_priority is not None
+                and td_priority_int is not None
+                and vault_priority != td_priority_int
+            ):
+                drifts.append({
+                    "drift_kind": DRIFT_PRIORITY_MISMATCH,
+                    "plan_file": str(plan),
+                    "plan_rel": cb_rel,
+                    "plan_line": line_no,
+                    "plan_text": cb_text,
+                    "taskdog_id": tid,
+                    "taskdog_status": tstatus,
+                    "taskdog_name": tname,
+                    "vault_priority": vault_priority,
+                    "taskdog_priority": td_priority_int,
+                })
 
     linked_task_keys = set()
     for t in taskdog_tasks:
