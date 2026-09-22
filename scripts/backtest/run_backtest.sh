@@ -33,6 +33,7 @@ if command -v cygpath >/dev/null 2>&1; then
     REPORT_WIN="$(cygpath -w "$REPO/reports/backtest-Q1.md")"
     DRIFT_WIN="$(cygpath -w "$REPO/reports/backtest-drift.md")"
     BASELINE_WIN="$(cygpath -w "$REPO/reports/backtest-Q1-judgment.bak.json")"
+    LLM_WIN="$(cygpath -w "$REPO/reports/backtest-Q1-llm-judgment.json")"
     SCENARIOS_NAT_YAML="$(cygpath -w "$REPO/vault/drafts/q3-scenarios.yaml")"
     SCENARIOS_NAT_EXHAUSTIVE="$(cygpath -w "$REPO/vault/drafts/q3-scenarios.exhaustive.yaml")"
 else
@@ -43,6 +44,7 @@ else
     REPORT_WIN="$REPO/reports/backtest-Q1.md"
     DRIFT_WIN="$REPO/reports/backtest-drift.md"
     BASELINE_WIN="$REPO/reports/backtest-Q1-judgment.bak.json"
+    LLM_WIN="$REPO/reports/backtest-Q1-llm-judgment.json"
     SCENARIOS_NAT_YAML="$REPO/vault/drafts/q3-scenarios.yaml"
     SCENARIOS_NAT_EXHAUSTIVE="$REPO/vault/drafts/q3-scenarios.exhaustive.yaml"
 fi
@@ -135,7 +137,7 @@ echo "[5/6] Rendering M114g markdown report..."
 
 # --- 6. Drift detection (M115) ---
 echo ""
-echo "[6/6] Running M115 backtest_drift..."
+echo "[6/7] Running M115 backtest_drift..."
 if [[ -f "$BASELINE_WIN" ]]; then
     "$PYTHON" tools/backtest/backtest_drift.py \
         --current "$JUDGMENT_WIN" \
@@ -151,9 +153,26 @@ else
     echo "  (No baseline found — snapshotted current as baseline for next run)"
 fi
 
+# --- 7. LLM-judge (M116) ---
+echo ""
+echo "[7/7] Running M116 llm_judge..."
+USE_LLM_FLAG=""
+if [[ "${USE_LLM:-0}" == "1" ]]; then
+    USE_LLM_FLAG="--use-llm"
+    echo "  (USE_LLM=1; will call ChatAnthropic if API key available)"
+else
+    echo "  (stub mode; pass USE_LLM=1 to enable real LLM)"
+fi
+"$PYTHON" tools/backtest/llm_judge.py \
+    --scenarios "$SCENARIOS_WIN" \
+    --harness-results "$RESULTS_WIN" \
+    --out "$LLM_WIN" \
+    $USE_LLM_FLAG
+
 echo ""
 echo "===================================="
 echo "  Backtest Q1 complete."
-echo "  Report: reports/backtest-Q1.md"
-echo "  Drift:  reports/backtest-drift.md"
+echo "  Report:   reports/backtest-Q1.md"
+echo "  Drift:    reports/backtest-drift.md"
+echo "  LLM-judge: reports/backtest-Q1-llm-judgment.json"
 echo "===================================="
