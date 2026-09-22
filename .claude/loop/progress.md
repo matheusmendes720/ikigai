@@ -5982,3 +5982,70 @@ $ bash scripts/cron/cron-backtest.sh
 
 ### Cumulative test count
 - M110-M123: **260 new tests** since M109 (+8 this round)
+## M124 — 2026-09-22
+
+**Goal:** SHA256 integrity manifest for `reports/baselines/*.json`. Detects tampering or accidental corruption.
+
+### Delivered
+
+**`tools/backtest/baseline_integrity.py`** (140 lines) — 3 subcommands:
+- `snapshot` — recompute SHA256 of every baseline, write `reports/baselines/SHA256SUMS`
+- `verify` — recompute SHA256, compare against manifest, exit 0 if clean, 1 if mismatch
+- `show` — print current SHA256 of every baseline
+
+Manifest format is standard `<hex>  <rel-path>` (sha256sum-compatible). Detects 3 kinds of issues:
+- `MISMATCH` — file's hash differs from manifest
+- `NEW` — file not in manifest
+- `MISSING` — file in manifest but deleted from disk
+
+**`scripts/backtest/run_backtest.sh`** — step 9 added. Always invokes `snapshot` at end of pipeline.
+
+**`reports/baselines/SHA256SUMS`** — first manifest (2 entries).
+
+**`tests/test_m124_baseline_integrity.py`** — 19 tests, all PASS:
+- Hash determinism + sensitivity to modification
+- iter_baselines includes both .json + .llm.json, excludes SHA256SUMS
+- snapshot creates manifest in correct format
+- verify clean → ok=True, msgs=[]
+- verify detects tampering (MISMATCH)
+- verify detects new files (NEW)
+- verify detects deletions (MISSING)
+- CLI subcommands dispatch correctly
+
+### Live verification
+
+```
+$ bash scripts/backtest/run_backtest.sh --skip-gen
+[9/9] Running M124 baseline_integrity...
+# Wrote reports/baselines/SHA256SUMS
+
+$ cat reports/baselines/SHA256SUMS
+15ebafe5668db3d7...  2026-09-22.json
+7483deca2fd0c7a3...  2026-09-22.llm.json
+
+# Tamper test:
+$ echo "{}" > reports/baselines/2026-09-22.json
+$ python tools/backtest/baseline_integrity.py verify
+# MISMATCH: 2026-09-22.json (expected 15ebafe5, got ca3d163b)
+# INTEGRITY CHECK FAILED
+rc=1
+```
+
+### Decisions
+
+- **sha256sum-compatible format** — `<hex>  <path>` matches standard sha256sum output. Operators can verify with `sha256sum -c SHA256SUMS` (after CWD'ing to the baselines dir) for cross-tool compatibility.
+- **No GPG signing** — checksum only, not signature. Determined attacker can rewrite both file AND manifest. Sufficient for trusted environments. Stronger guarantees (GPG) deferred.
+- **3 failure kinds detected** — mismatch/new/missing. Each gives the operator enough context to diagnose.
+- **Snapshot is pipeline-final** — last step of `run_backtest.sh`. Manifest reflects state AFTER all baselines are archived.
+- **First-wins same-day archive bug discovered** — when M124 was being tested, an empty baseline file persisted (because archive_baseline refused to overwrite). Manually `rm`'d then re-archived. Worth noting in M125 or later.
+
+### Honest scope
+
+- ✅ Tampering detected
+- ✅ Manifest format compatible with standard tools
+- ✅ Pipeline is now 9 steps
+- ⚠️ **No signature** — checksum only. GPG signing out of scope.
+- ⚠️ **archive_baseline first-wins can hide corruption** — if a baseline is corrupted on disk and then archive_baseline is called same-day, the corrupt version persists. Future M125 could add a `verify` precheck in archive_baseline.
+
+### Cumulative test count
+- M110-M124: **279 new tests** since M109 (+19 this round)
