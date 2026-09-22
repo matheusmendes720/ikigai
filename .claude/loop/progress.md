@@ -4876,3 +4876,54 @@ All 10/10 PASS.
 - `src/ikigai/src/observability/otel_init.py` — IKIGAI_DISABLE_OTEL escape
 - `pytest.ini` — added `src/ikigai/src` to pythonpath
 - `tests/test_agent_invocation.py` — NEW (10 tests)
+## M108 — 2026-09-22
+
+**Goal:** Wire taskdog-mcp into Claude Code MCP config so Claude Code can invoke the 26 MCP tools directly.
+
+### Delivered
+
+- PATCHED `.mcp.json` — added 2nd `mcpServers` entry:
+  ```json
+  "taskdog": {
+    "command": "taskdog-mcp",
+    "args": [],
+    "cwd": "C:\\Users\\mathe\\code_space\\life-oss\\life",
+    "env": {}
+  }
+  ```
+- Existing `ikigai` server entry preserved.
+
+### Verification
+
+```bash
+$ which taskdog-mcp
+/c/Users/mathe/.local/bin/taskdog-mcp
+
+$ taskdog-mcp --help
+usage: python.exe C:\Users\mathe\.local\bin\taskdog-mcp [-h] [--version]
+Taskdog MCP Server - Model Context Protocol server for AI integration
+```
+
+### Tests
+
+NEW `tests/test_mcp_config.py` — 5 tests:
+- `test_mcp_config_exists` — .mcp.json valid JSON
+- `test_mcp_servers_count` — ≥2 servers registered
+- `test_ikigai_server_registered` — ikigai server entry intact
+- `test_taskdog_server_registered` — taskdog server entry (NEW M108)
+- `test_taskdog_command_in_path` — taskdog-mcp --help works
+
+All 5/5 PASS.
+
+### Why this matters
+
+Before M108: Claude Code could call IKIGAI MCP tools (8) but NOT the 26 taskdog-mcp tools. Users had to switch to `life` CLI for task operations. **Now**: Claude Code's MCP integration includes taskdog-mcp — same ReAct agent can call `create_task`, `list_tasks`, `complete_task`, etc. via the MCP protocol. No context-switch.
+
+### Production-readiness
+
+~72% → ~73% (Claude Code MCP coverage: 8 IKIGAI tools → 8 + 26 taskdog tools)
+
+### Files
+
+- `.mcp.json` — added taskdog MCP server entry
+- `tests/test_mcp_config.py` — NEW (5 tests)
