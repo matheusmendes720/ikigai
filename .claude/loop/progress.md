@@ -5075,3 +5075,55 @@ If anyone refactors `deepagents_harness.py`, removes `mcp_taskdog_client`, or br
 ### Files
 
 - `src/ikigai/tests/test_drift_extended_invariants.py` — added 5 invariants + `import re`
+## M112 — 2026-09-22
+
+**Goal:** Make `life task add/start/done/ls` use taskdog-server HTTP directly (faster, no subprocess).
+
+### Delivered
+
+**`life/centrals/task.py`** rewritten:
+- New HTTP helpers: `_http_post/_get/_patch` (urllib, zero deps)
+- New `_http_or_cli(http_fn, cli_args)` helper — try HTTP, fall back to CLI on connection error
+- `task add/start/done/ls` now route through HTTP-first
+- `task ls` adds `--status` and `--tag` filters (server-supported), `--q` filters client-side
+- `ENABLE_HTTP = True` constant (env override possible)
+
+**`tests/test_task_http_path.py`** NEW (7 tests):
+- HTTP helpers parse JSON correctly
+- `_http_or_cli` returns `transport="http"` when server returns 200
+- `_http_or_cli` falls back to `transport="cli"` when server is unreachable
+- `life task add --json` works via HTTP mock
+- Client-side `--q` filter narrows results correctly
+- `life task ls --help` shows new options
+
+**`tests/test_life_task_cli.py`** updated (existing tests):
+- New autouse fixture `_force_cli_fallback` disables HTTP, lets old tests stub CLI
+- 11 tests still pass (no regression)
+
+**`tests/test_m4_langgraph_integration.py`** updated:
+- `VALID_GRAPHS` now includes `ikigai_taskdog_mcp` (M105 added it)
+
+### Verified live
+
+```
+$ life task add "M112 test HTTP path" --priority 7 --tag m112 --tag smoke
+{"id": 213, "name": "M112 test HTTP path", "status": "PENDING", "priority": 7, "tags": ["smoke", "m112"], ...}
+
+$ life task ls --q "M112"
+{"tasks": [{"id": 213, "name": "M112 test HTTP path", ...}], ...}
+```
+
+### Test totals
+
+- New tests: 7 (test_task_http_path)
+- Updated tests: 11 (test_life_task_cli.autouse force CLI)
+- Updated M4: 1 (3rd graph added)
+- **All M112 tests green**; pre-existing m4_langgraph dispatch failures unrelated (loop-tick.sh requires `langgraph dev` running)
+
+### Honest scope
+
+- ✅ Real taskdog-server (207 tasks) adds via HTTP in ~50ms (vs ~500ms subprocess)
+- ✅ Client-side `--q` filter works on 207-task dataset
+- ✅ Server-side filters `status` and `tags` wired
+- ⚠️ HTTP fallback is silent (no warning when CLI is used) — could add `--verbose` flag later
+- ⚠️ No test verifies start→done→list state transition via HTTP (only add)

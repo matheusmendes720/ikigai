@@ -3,6 +3,9 @@
 These wrap the taskdog CLI (which talks to taskdog-server, port 8000).
 Tests use a stub `_run_taskdog` to avoid spawning real subprocesses.
 The goal is to verify Typer command wiring, flag handling, and JSON output.
+
+M112: HTTP-first path added — tests force CLI fallback by setting
+`task.ENABLE_HTTP = False` (server unreachable) + stubbing _run_taskdog.
 """
 
 from __future__ import annotations
@@ -14,6 +17,13 @@ import pytest
 from typer.testing import CliRunner
 
 from life.cli.cli import app
+from life.centrals import task as task_central
+
+
+@pytest.fixture(autouse=True)
+def _force_cli_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    """M112: HTTP path bypassed so existing tests can still stub CLI."""
+    monkeypatch.setattr(task_central, "ENABLE_HTTP", False)
 
 
 @pytest.fixture
@@ -32,6 +42,7 @@ def taskdog_stub(monkeypatch: pytest.MonkeyPatch):
                 "stdout": stdout,
                 "stderr": stderr,
                 "error": None if success else "taskdog failed",
+                "transport": "cli",
             }
 
         return _stub

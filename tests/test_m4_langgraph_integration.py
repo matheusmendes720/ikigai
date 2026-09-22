@@ -35,11 +35,11 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LANGGRAPH_JSON = REPO_ROOT / "langgraph.json"
 CHECKPOINT_DB = REPO_ROOT / ".swarm" / "langgraph_checkpoint.db"
-VALID_GRAPHS = ["ikigai_maintainer_v2", "ikigai_fork_smoke"]
+VALID_GRAPHS = ["ikigai_maintainer_v2", "ikigai_fork_smoke", "ikigai_taskdog_mcp"]
 # Dispatch tests exclude ikigai_maintainer_v2 — its loop-tick.sh --graph dispatch
-# returns rc=1 (the v2 restore at commit fb41578 is parallel code whose
+# returns rc1 (the v2 restore at commit fb41578 is parallel code whose
 # make_v2_graph factory is not wired into the same entry-point contract as
-# ikigai_fork_smoke). Registry test still asserts both are present in langgraph.json.
+# ikigai_fork_smoke). Registry test still asserts all are present in langgraph.json.
 # M24.2: pae_maintainer removed from VALID_DISPATCH_GRAPHS — graph archived in M22
 # (commit 273637fb per ADR-024), langgraph_entry.py + langgraph.json entry deleted.
 VALID_DISPATCH_GRAPHS = ["ikigai_fork_smoke"]
