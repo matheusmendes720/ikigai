@@ -5807,3 +5807,55 @@ priority_mismatch count: 0
 
 ### Cumulative test count
 - M110-M120: **228 new tests** since M109 (+12 this round)
+## M121 — 2026-09-22
+
+**Goal:** Fix `CHECKBOX_VAULT_RE` to match the natural user form `- [ ] [vault:rel#line] text` (open checkbox + link). Real bug discovered in M120 — all my initial tests failed because the regex only handled bare/closed forms.
+
+### Delivered
+
+**`tools/backtest/vault_propagation.py`** — 2 changes:
+1. `CHECKBOX_VAULT_RE` extended from 2 alternates to 3:
+   - alt 1: `- [x] [vault:rel#line] text` (closed)
+   - alt 2: `- [vault:rel#line] text` (bare)
+   - alt 3: `- [ ] [vault:rel#line] text` (open, **M121 new**)
+2. Consumer code in `audit_drift()` updated to read groups 7/8/9 for the new alternate. `done` flag is now `(group(1) is None) and (group(7) is None)` — true only when leading bracket was `[x]`.
+
+**`tests/test_m121_checkbox_vault_re_open_form.py`** — 10 tests, all PASS:
+- regex matches open form (with and without priority tag)
+- regex matches closed form (regression)
+- regex matches bare form (regression)
+- regex rejects plain text
+- regex rejects leading whitespace (intentional, per M114f convention)
+- audit_drift fires `priority_mismatch` for open form
+- audit_drift fires `unmarked_done` for open form + COMPLETED task
+- audit_drift fires `unmarked_open` for closed form + PENDING task
+- audit_drift fires priority_mismatch for bare form (regression)
+
+### Live verification
+
+```python
+>>> from tools.backtest.vault_propagation import CHECKBOX_VAULT_RE
+>>> CHECKBOX_VAULT_RE.match("- [ ] [vault:plan.md#8] Foo")
+<re.Match object; span=(0, 26), match='- [ ] [vault:plan.md#8] Foo'>
+>>> CHECKBOX_VAULT_RE.match("- [ ] [vault:plan.md#8] Foo | priority=7")
+<re.Match object; span=(0, 42), match='- [ ] [vault:plan.md#8] Foo | priority=7'>
+
+# audit_drift end-to-end with `[ ] [vault:...]` form:
+summary: {'priority_mismatch': 1}
+```
+
+### Decisions
+
+- **Typo fix during patch**: initial regex had `\]` instead of `\[ \]` — caught by inline verification before commit. Always test after regex patches.
+- **9 groups now (1-9)** — groups 1-3 (alt 1), 4-6 (alt 2), 7-9 (alt 3). Consumer code uses `or` chain.
+- **Whitespace-sensitive** — leading whitespace is rejected (intentional; matches the M114f fixture convention). Indented checkboxes are an edge case the agent routine doesn't address yet.
+
+### Honest scope
+
+- ✅ All 3 checkbox forms now matched
+- ✅ Regression coverage for bare + closed forms preserved
+- ✅ Drift gate still 23/23 + 2 SKIP
+- ⚠️ **M120 tests still use bare form** — works because M120 tests already pass with bare form. Could be updated to open form for more natural coverage but not strictly necessary.
+
+### Cumulative test count
+- M110-M121: **238 new tests** since M109 (+10 this round)

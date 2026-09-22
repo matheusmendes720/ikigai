@@ -53,7 +53,13 @@ TASKDOG_SNAPSHOT = REPO_ROOT / "data" / "taskdog_snapshot.json"
 # `- [vault:rel#line] text` or closed form `- [x] [vault:rel#line] text` are
 # matched by a SECOND pattern below.
 CHECKBOX_RE = re.compile(r"^- \[( |x)\] (.+)$")
-CHECKBOX_VAULT_RE = re.compile(r"^- \[x\] \[vault:([^#\]]+)#(\d+)\] (.+)$|^- \[vault:([^#\]]+)#(\d+)\] (.+)$")
+# M114f: alternation handles both open and closed vault-linked checkboxes.
+# M121: added the `[ ] [vault:...]` form (open checkbox + link) — was missing.
+CHECKBOX_VAULT_RE = re.compile(
+    r"^- \[x\] \[vault:([^#\]]+)#(\d+)\] (.+)$"    # closed: `- [x] [vault:rel#line] text`
+    r"|^- \[vault:([^#\]]+)#(\d+)\] (.+)$"           # bare:   `- [vault:rel#line] text`
+    r"|^- \[ \] \[vault:([^#\]]+)#(\d+)\] (.+)$"     # open:   `- [ ] [vault:rel#line] text` (M121)
+)
 VAULT_LINK_RE = re.compile(r"\[vault:([^#\]]+)#(\d+)\]")
 # M120: capture priority tags from vault checkbox text. Format: `| priority=N`
 # appended after the checkbox link (e.g. `- [vault:plan.md#6] Foo | priority=7`).
@@ -341,11 +347,13 @@ def audit_drift(
             stripped = line.rstrip("\n")
             m_vault = CHECKBOX_VAULT_RE.match(stripped)
             if m_vault:
-                # Two alternates: open form `[vault:...]` OR closed form `[x] [vault:...]`.
-                rel_path = m_vault.group(1) or m_vault.group(4)
-                line_no = m_vault.group(2) or m_vault.group(5)
-                cb_text = m_vault.group(3) or m_vault.group(6)
-                done = m_vault.group(1) is None  # group(1) only fills on open form; closed form fills via grp(4)
+                # Three alternates: closed `[x] [vault:...]`, bare `[vault:...]`,
+                # or open `[ ] [vault:...]` (M121).
+                rel_path = m_vault.group(1) or m_vault.group(4) or m_vault.group(7)
+                line_no = m_vault.group(2) or m_vault.group(5) or m_vault.group(8)
+                cb_text = m_vault.group(3) or m_vault.group(6) or m_vault.group(9)
+                # done = True if leading bracket was [x]; False for [ ] or bare.
+                done = (m_vault.group(1) is None) and (m_vault.group(7) is None)
                 # Re-derive done: if the leading bracket was [x], closed. Easier:
                 done = stripped.startswith("- [x] ")
                 if not rel_path:
