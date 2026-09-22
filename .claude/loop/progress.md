@@ -6318,3 +6318,47 @@ Preview against real vault file works correctly. `vault-apply` and `vault-toggle
 
 ### Cumulative test count
 - M110-M131: **364 new tests** since M109 (+25 this round)
+## M130 — 2026-09-22
+
+**Goal:** Add 7th drift kind — `due_date_mismatch`. Vault checkbox `| due=YYYY-MM-DD` vs taskdog's `deadline` field (date portion only).
+
+### Delivered
+
+**`tools/backtest/vault_propagation.py`** — added:
+- `DUE_TAG_RE = re.compile(r"\|\s*due=(\d{4}-\d{2}-\d{2})\b")` — captures `| due=YYYY-MM-DD`
+- `DRIFT_DUE_DATE_MISMATCH = "due_date_mismatch"` — 7th drift kind constant
+- Detection logic in `audit_drift()`: compares vault due_date (string) vs taskdog deadline's first 10 chars (date portion of ISO datetime)
+
+**`tests/test_m130_due_date_drift.py`** (15 tests, all PASS):
+- `DUE_TAG_RE`: basic match, combined with priority/tags, no-match, extra whitespace
+- `audit_drift`: matching dates → no drift, mismatched dates → drift, no-timezone deadline, missing taskdog deadline (skipped), missing vault due (skipped), combined with priority/tags annotations, short deadline (skipped), drift dict has all required fields
+- Constants exported (`DRIFT_DUE_DATE_MISMATCH`, `DUE_TAG_RE`)
+
+### Design choices
+
+- **Plain ISO date in vault** (`2026-09-30`), matching the priority/tag pattern of plain annotation
+- **Date-only comparison**: taskdog's deadline is `2026-08-30T18:00:00`; we extract the first 10 chars. This is intentional — time-of-day comparison would be over-engineering.
+- **Skipped when taskdog has no deadline**: we don't know what it "should" be; firing mismatch would create false positives.
+- **Skipped when vault has no `| due=...`**: just like priority/tag — only check if explicitly declared.
+
+### Honest scope
+
+- ✅ Regex captures `| due=YYYY-MM-DD` with whitespace tolerance
+- ✅ Date-only comparison (no time-of-day mismatch)
+- ✅ Missing values in either side are skipped (no false positives)
+- ✅ Combines cleanly with priority + tags (all 3 work in same checkbox)
+- ⚠️ **Date validation is regex-only**: `2026-13-01` matches the regex (not a real date). Real date validation is the consumer's responsibility.
+- ⚠️ **Live count = 0 due_date_mismatch** (vault has no `| due=...` annotations yet). Code path verified by tests.
+
+### Drift kinds now (7 total)
+
+1. `unmarked_done` — taskdog COMPLETED but vault [ ]
+2. `unmarked_open` — taskdog PENDING but vault [x]
+3. `phantom_task` — taskdog task has no vault checkbox link
+4. `planned_orphan` — vault checkbox has no taskdog task
+5. `priority_mismatch` — vault `| priority=N` ≠ taskdog priority (M120)
+6. `tag_mismatch` — vault `| tags=a,b,c` ≠ taskdog tags (M122)
+7. `due_date_mismatch` — vault `| due=YYYY-MM-DD` ≠ taskdog deadline (M130)
+
+### Cumulative test count
+- M110-M130: **379 new tests** since M109 (+15 this round)
