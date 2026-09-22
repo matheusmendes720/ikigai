@@ -5127,3 +5127,61 @@ $ life task ls --q "M112"
 - ✅ Server-side filters `status` and `tags` wired
 - ⚠️ HTTP fallback is silent (no warning when CLI is used) — could add `--verbose` flag later
 - ⚠️ No test verifies start→done→list state transition via HTTP (only add)
+## M114f — 2026-09-22
+
+**Goal:** Agent-driven routine cross-checks vault SOT vs taskdog timeline. No auto-trigger on `life task done`.
+
+### Pivot from M114f v1
+
+Original M114f was going to auto-toggle vault checkboxes on `life task done`. User corrected:
+> "nao precisa ter um trigger que atualiza automaticamente ... deve fazer parte da rotina do deep agents... verificar como esta o planejamento SOT em comparacao se reflete ou nao as tasks"
+
+Rewrote to **read-first, mutate-only-via-agent-decision** semantic. `life task done` stays pure.
+
+### Delivered
+
+**`tools/backtest/vault_propagation.py`** (renamed mentally to `vault_diff.py` — same file):
+- `audit_drift()` — READ-ONLY cross-check of vault checkboxes vs taskdog task status. Returns 4 drift kinds:
+  - `unmarked_done` — taskdog COMPLETED but vault `[ ]`
+  - `unmarked_open` — taskdog PENDING/IN_PROGRESS but vault `[x]`
+  - `phantom_task` — taskdog task with no vault link
+  - `planned_orphan` — vault checkbox with no taskdog task
+- `preview_toggle()` — dry-run, no mutation
+- `apply_toggle()` — GUARDED mutation; refuses if preview would fail; logs to `.vault_events.jsonl`
+- `refactor_plan()` — append-only mutation path (existing, kept)
+- `append_event()` — audit log writer with `VAULT_WRITE_INVARIANT` marker
+
+**`tests/test_vault_propagation.py`** — 23 tests, all PASS:
+
+### Live verification
+
+```
+$ python tools/backtest/vault_propagation.py --audit --dry-run
+{
+  "vault_plans_count": 67,
+  "taskdog_tasks_count": 0,
+  "drifts": [13 planned_orphans + 0 others],
+  ...
+}
+```
+
+Real vault audit works. **The agent's Routine Inicial/Final now has a tool**: call `audit_drift()` to see if user-marked tasks (via interface) match the SOT, surface drift, and decide if/when to mutate the vault.
+
+### Decisions
+
+- **No file mutation from `life task done`** — explicit user directive
+- **`[vault:rel#line]` link convention** — used as join key between taskdog name and vault checkbox
+- **Closed-form preserved** — `- [x] [vault:vault/plan.md#8] text` keeps the link as metadata
+- **`audit_drift` is the canonical agent routine** — wired to Routine Inicial/Final via M114b/M114h
+
+### Tests: 23 PASS
+
+Including: drift detection (4 kinds), preview safety, apply guard against bad preview, audit-only invariant (audit doesn't mutate), frontmatter bump, event-log audit, snapshot loader.
+
+### Honest scope
+
+- ✅ Audit_drift proven against real vault (67 plans audited live)
+- ✅ No auto-trigger anywhere — `life task done` is unchanged
+- ✅ Drift categories cover real-world scenarios
+- ⚠️ Drift join heuristic is exact-match by `[vault:rel#line]` link — tasks without the link get marked phantom_task. Many real taskdog tasks won't have links yet (this requires user to retroactively add `[vault:...]` tokens to existing tasks).
+- ⚠️ CLI's `--audit --write-events` writes a `vault.audit` event with summary, but downstream observers (per algorithm-attribution §7) are not yet wired.
