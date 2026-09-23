@@ -179,9 +179,32 @@ def judge_scenario_llm(
         return _stub_score(scenario, outcome)
     if not _LANGCHAIN_AVAILABLE:
         return _stub_score(scenario, outcome)
-    if not os.environ.get("ANTHROPIC_API_KEY") and not os.environ.get("CLAUDE_API_KEY"):
+    if not _is_real_llm_available():
         return _stub_score(scenario, outcome)
     return _real_llm_score(scenario, outcome)
+
+
+def _is_real_llm_available() -> bool:
+    """M139: detect whether a real LLM call is possible.
+
+    Returns True iff:
+      - langchain_anthropic is importable, AND
+      - IKIGAI_FAKE_LLM is not set to "1", AND
+      - ANTHROPIC_API_KEY OR CLAUDE_API_KEY is set.
+
+    When False, `judge_scenario_llm(..., use_llm=True)` will fall back
+    to the stub. This is the canonical gate for tests that want to
+    `pytest.skip` when the LLM is unavailable.
+    """
+    if not _LANGCHAIN_AVAILABLE:
+        return False
+    if os.environ.get("IKIGAI_FAKE_LLM", "0") == "1":
+        return False
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return True
+    if os.environ.get("CLAUDE_API_KEY"):
+        return True
+    return False
 
 
 def aggregate_llm_scores(per_scenario: list[dict[str, Any]]) -> dict[str, Any]:
