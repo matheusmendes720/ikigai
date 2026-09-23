@@ -977,6 +977,51 @@ def register_vault_toggle(app: typer.Typer) -> None:
 register_vault_toggle(app)
 
 
+# M140 — vault full-text search.
+def register_vault_search(app: typer.Typer) -> None:
+    """Register `life v2 vault-search` command."""
+
+    @app.command(name="vault-search")
+    def vault_search_cmd(
+        query: str = typer.Argument(..., help="Substring (or regex with --regex)"),
+        regex: bool = typer.Option(False, "--regex", help="Interpret query as Python regex"),
+        glob: str | None = typer.Option(None, "--glob", help="Glob filter (relative to vault/)"),
+        kind: str | None = typer.Option(None, "--kind", help="Frontmatter kind filter"),
+        context: int = typer.Option(0, "--context", help="N lines of context"),
+        limit: int = typer.Option(100, "--limit", help="Max matches"),
+        fmt: str = typer.Option("content", "--format", help="content | paths | json"),
+        case_sensitive: bool = typer.Option(False, "--case-sensitive"),
+    ) -> None:
+        from tools.vault.search import main as _vault_search_main  # lazy import
+        import sys as _sys
+        argv: list[str] = [query]
+        if regex:
+            argv.append("--regex")
+        if glob is not None:
+            argv += ["--glob", glob]
+        if kind is not None:
+            argv += ["--kind", kind]
+        if context:
+            argv += ["--context", str(context)]
+        if limit != 100:
+            argv += ["--limit", str(limit)]
+        if fmt != "content":
+            argv += ["--format", fmt]
+        if case_sensitive:
+            argv.append("--case-sensitive")
+        # Echo output to stdout (the script writes to stdout).
+        rc = _vault_search_main(argv)
+        if rc == 1:
+            # No matches is not a real error; typer exits 0.
+            print("(no matches)", file=_sys.stderr)
+        elif rc == 2:
+            raise typer.Exit(code=2)
+        # rc 0 → matches found, output already printed
+
+
+register_vault_search(app)
+
+
 # Re-export invoke_skill so ``from interfaces.cli.v2 import invoke_skill``
 # works (W3.5/W3.6 skill manifest loader + taskdog post-processor).
 from .invoke_skill import invoke_skill, load_skill_manifest  # noqa: E402,F401
