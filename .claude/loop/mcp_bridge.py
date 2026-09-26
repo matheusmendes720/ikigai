@@ -370,36 +370,134 @@ RESOURCE_URIS: dict[str, str] = {
 def read_ueid_resource(ueid: str) -> Any:
     """Read the `ueid://{ueid}` resource — task slice by UEID across forks.
 
-    Returns the raw FastMCP resource envelope (parsing belongs to M146).
+    Returns the parsed FastMCP resource envelope (a `dict[str, Any]`),
+    not the raw envelope shape. Parsing happens in `_parse_resource_envelope`
+    (M146). Falls back to raw payload if envelope shape unrecognized.
     """
-    return _server.read_resource(RESOURCE_URIS["ueid"].format(ueid=ueid))
+    return _parse_resource_envelope(
+        _server.read_resource(RESOURCE_URIS["ueid"].format(ueid=ueid))
+    )
 
 
 def read_queue_pending_resource() -> Any:
     """Read the `queue://pending` resource — pending TaskChange events.
 
-    Returns the raw FastMCP resource envelope.
+    Returns parsed envelope.
     """
-    return _server.read_resource(RESOURCE_URIS["queue_pending"])
+    return _parse_resource_envelope(
+        _server.read_resource(RESOURCE_URIS["queue_pending"])
+    )
 
 
 def read_queue_event_resource(event_id: str) -> Any:
     """Read the `queue://events/{event_id}` resource — one resolved event."""
-    return _server.read_resource(RESOURCE_URIS["queue_event"].format(event_id=event_id))
+    return _parse_resource_envelope(
+        _server.read_resource(RESOURCE_URIS["queue_event"].format(event_id=event_id))
+    )
 
 
 def read_health_resource() -> Any:
     """Read the `health://gateway` resource — MCP gateway heartbeat."""
-    return _server.read_resource(RESOURCE_URIS["health"])
+    return _parse_resource_envelope(
+        _server.read_resource(RESOURCE_URIS["health"])
+    )
 
 
 def read_plans_cycles_resource() -> Any:
     """Read the `plans://cycles` resource — all planning cycles summary."""
-    return _server.read_resource(RESOURCE_URIS["plans_cycles"])
+    return _parse_resource_envelope(
+        _server.read_resource(RESOURCE_URIS["plans_cycles"])
+    )
 
 
 def read_plans_cycle_resource(cycle_id: str) -> Any:
     """Read the `plans://cycles/{cycle_id}` resource — one cycle detail."""
-    return _server.read_resource(
-        RESOURCE_URIS["plans_cycle"].format(cycle_id=cycle_id)
+    return _parse_resource_envelope(
+        _server.read_resource(
+            RESOURCE_URIS["plans_cycle"].format(cycle_id=cycle_id)
+        )
     )
+
+
+# ---------------------------------------------------------------------------
+# M146 — resource envelope parsing
+# ---------------------------------------------------------------------------
+#
+# FastMCP `read_resource(uri)` returns a `ReadResourceResult` whose shape
+# varies by SDK version:
+#   - v1.x: list of `(uri, mime_type, text|blob)` tuples (`ReadResourceContents`)
+#   - v0.x: list of dicts `{uri, mimeType, text}` or single dict
+#   - raw payload: bytes or str (some legacy servers)
+#
+# `_parse_resource_envelope` normalizes all 3 shapes into a single
+# `dict[str, Any]` that workers can consume uniformly. Falls back to
+# `{"raw": payload}` when shape is unrecognized so callers always get
+# something predictable.
+
+
+def _parse_resource_envelope(payload: Any) -> dict[str, Any]:
+    """Normalize FastMCP `read_resource(uri)` response into a dict.
+
+    Handles:
+      1. Single dict: `{"uri": ..., "mimeType": ..., "text": ...}` → as-is
+      2. List of dicts / ReadResourceContents: concat `.text` or `.blob`
+      3. Raw str/bytes: wrap in `{"raw": payload}`
+      4. Anything else: `{"raw": payload}` (fallback)
+    """
+    # Shape 3: raw str or bytes
+    if isinstance(payload, (str, bytes)):
+        return {"raw": payload}
+
+    # Shape 1: single dict (v0.x or simple server)
+    if isinstance(payload, dict):
+        # Already a dict — pass through, but normalize keys
+        if "uri" in payload or "text" in payload or "mimeType" in payload:
+            return payload
+        return {"raw": payload}
+
+    # Shape 2: list of ReadResourceContents / dicts
+    if isinstance(payload, list):
+        if not payload:
+            return {"contents": []}
+        items: list[dict[str, Any]] = []
+        text_parts: list[str] = []
+        for item in payload:
+            # ReadResourceContents has .uri, .mimeType, .text or .blob attrs
+            if hasattr(item, "text"):
+                text_parts.append(str(item.text))
+                items.append(
+                    {
+                        "uri": getattr(item, "uri", None),
+                        "mimeType": getattr(item, "mimeType", None),
+                        "text": str(item.text),
+                    }
+                )
+            elif hasattr(item, "blob"):
+                items.append(
+                    {
+                        "uri": getattr(item, "uri", None),
+                        "mimeType": getattr(item, "mimeType", None),
+                        "blob": str(item.blob),
+                    }
+                )
+            elif isinstance(item, dict):
+                items.append(item)
+                if "text" in item:
+                    text_parts.append(str(item["text"]))
+            else:
+                items.append({"raw": str(item)})
+        if text_parts and all(
+            i.get("mimeType") is None or i.get("mimeType", "").startswith(("text/", "application/json"))
+            for i in items
+        ):
+            # Concatenated text — return as single text + items list
+            joined = "\n".join(text_parts)
+            try:
+                import json as _json
+                return _json.loads(joined)
+            except (ValueError, TypeError):
+                return {"text": joined, "items": items}
+        return {"contents": items}
+
+    # Shape 4: fallback
+    return {"raw": payload}

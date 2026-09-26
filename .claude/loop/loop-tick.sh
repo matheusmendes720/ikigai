@@ -380,7 +380,36 @@ if $DRY_RUN; then
   echo "[$TICK_TS] DRY RUN — would invoke orchestrator with:" | tee -a "$LOG_FILE"
   echo "$ORCHESTRATOR_PROMPT" | tee -a "$LOG_FILE"
   exit 0
-fi
+  fi
+
+  # M146: bind the loop MCP bridge + initialize OTel tracing at loop
+  # startup. This makes `python -m life.cli` (or any worker importing
+  # `mcp_bridge`) actually hit the FastMCP gateway + emit OTel spans.
+  # `init_observability()` is idempotent; `bind_server()` registers an
+  # `atexit` hook for clean subprocess shutdown. If binding fails (no
+  # IKIGAI venv, stdio hang, etc.), we log and continue — workers fall
+  # back to MagicMock-style unbound behavior and emit RuntimeError when
+  # called. This matches the M146 SPEC §Honest scope: "Workers fall back
+  # to Bash + file tools" when binding isn't available.
+  MCP_BIND_OUTPUT=$("$PYTHON" -c "
+  import sys
+  sys.path.insert(0, '.claude/loop')
+  try:
+      from mcp_runtime import init_observability, bind_server
+      init_observability()
+      bind_server()
+      print('mcp-bridge-bound')
+  except Exception as e:
+      print(f'mcp-bridge-bind-failed: {type(e).__name__}: {e}', file=sys.stderr)
+      sys.exit(2)
+  " 2>&1) || MCP_BIND_EXIT=$?
+  if [ -n "${MCP_BIND_EXIT:-}" ]; then
+      echo "[$TICK_TS] MCP bridge bind FAILED (exit=$MCP_BIND_EXIT): $MCP_BIND_OUTPUT" | tee -a "$LOG_FILE"
+      # Don't abort — workers can still operate without MCP (degraded mode)
+  else
+      echo "[$TICK_TS] MCP bridge bound: $MCP_BIND_OUTPUT" | tee -a "$LOG_FILE"
+  fi
+  unset MCP_BIND_OUTPUT MCP_BIND_EXIT
 
 # Invoke the orchestrator
 # The actual invocation depends on what agent runtime is available.
