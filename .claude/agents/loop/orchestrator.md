@@ -189,7 +189,7 @@ Scope discipline (ADR-013) — IKIGAI agent layer is planner-only:
 - WRITE-WITH-REVIEW: vault_write (sole vault writer per ADR-012), investigation_*
 - FORBIDDEN: any PAE math / scoring / policy tools — not in MCP surface
 
-### Programmatic Bridge (M142 read + M144 write + M145 taskdog rest)
+### Programmatic Bridge (M142 read + M144 write + M145 taskdog rest + M146 production)
 
 Worker / verifier sub-agents can call **14 IKIGAI MCP tools** (8 read + 6
 write-side) + **6 MCP resource accessors** via a thin Python bridge at
@@ -200,10 +200,31 @@ inside a worktree.
 from importlib.util import spec_from_file_location, module_from_spec
 _spec = spec_from_file_location("loop_mcp_bridge", ".claude/loop/mcp_bridge.py")
 _bridge = module_from_spec(_spec); _spec.loader.exec_module(_bridge)
-# Production must bind _bridge._server to a FastMCP client at startup (M146).
-# Tests monkeypatch _bridge._server to a MagicMock.
+# Production binding happens at loop startup via `loop-tick.sh` calling
+# `mcp_runtime.bind_server()`. Tests monkeypatch _bridge._server to a
+# MagicMock. If bind_server() failed (no IKIGAI venv, stdio hang),
+# _bridge._server is None and any tool call raises RuntimeError —
+# workers fall back to Bash + file tools (degraded mode).
 result = _bridge.ikigai_mesh_show(ueid="study:topic:st_python_01")
 ```
+
+**M146 production binding** (`.claude/loop/mcp_runtime.py`):
+- `bind_server()` — spawns `python -u -m mcp_server` subprocess via
+  `stdio_client`, bridges its asyncio event loop to sync via a
+  background thread, sets `mcp_bridge._server = _SyncAdapter(...)`.
+- `unbind_server()` — tears down subprocess + event loop + ClientSession.
+  Registered as `atexit` hook automatically.
+- `init_observability()` — idempotent call to `init_tracing()` from
+  `src/ikigai/src/observability/otel_init.py`. Wires OTel to LangSmith
+  + Langfuse (if env vars present) or no-op if absent.
+- All three are safe to call multiple times. All three are no-ops in
+  test environments (where `_server` is monkeypatched).
+
+**Resource envelope parsing**: `_parse_resource_envelope()` (M146
+addition to `mcp_bridge.py`) handles 5 FastMCP shapes — URI-tagged
+dict, plain dict, text-only dict, bytes payload, raw string. Returns
+uniform `{"uri", "mimeType", "text"|"blob"|"raw"}` for downstream
+consumers.
 
 **Read-only wrappers (M142, 6 + M145, 2 = 8):** `ikigai_decompose`,
 `ikigai_read_tasks`, `ikigai_mesh_show`, `ikigai_health`,
