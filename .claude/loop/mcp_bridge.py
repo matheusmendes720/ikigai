@@ -13,23 +13,28 @@ they live in v2 graph / operator-TUI per ADR-012/013 and arrive as M144.
 Architecture:
     Worker / Verifier / Orchestrator
         → `.claude/loop/mcp_bridge.ikigai_mesh_show(ueid=...)`
-        → `_call(tool_name, args)`
+        → `_call(tool_name, args)` (wrapped in OTel span — M143)
         → module-level `_server.call(tool_name, args)`
 
 `_server` is `None` by default — production must bind it to a FastMCP client
-at loop startup. Tests monkeypatch `_server` to a `MagicMock` (FakeMcpServer
-pattern, same as v2 mcp_bridge).
+at loop startup (M146). Tests monkeypatch `_server` to a `MagicMock`
+(FakeMcpServer pattern, same as v2 mcp_bridge).
 
 Error policy: errors propagate. Caller catches and routes to its own
 error_channel. Matches v2 mcp_bridge.py contract.
 
-OTel span emission is deferred to M143 (depends on
-`.claude/loop/observability/` which doesn't exist yet).
+**OTel spans (M143).** Every `_call(...)` opens a span named
+`{SPAN_PREFIX}{tool_name}` (e.g. `loop.mcp.ikigai_mesh_show`). Tracer name
+prefix `loop.mcp` is deliberately distinct from v2's `ikigai.bridge` and
+server-side `ikigai.mcp` so the 3 layers don't double-count in trace
+exporters. Same 5-attribute schema as v2 mcp_bridge.py:_call (T-8.3.1,
+2026-09-08): `tool.name`, `tool.arguments_hash`, `tool.duration_ms`, plus
+`tool.error.class` / `tool.error.message` / `tool.error.traceback` on error.
 
 Adding a new tool here requires:
   1. Append a sync wrapper to this module (e.g. `def ikigai_X(*, ...): ...`)
-  2. The drift test `tests/test_m142_mcp_bridge_alignment.py` auto-detects
-     that count is now N+1 — update it explicitly. No silent growth.
+  2. The drift test `tests/test_m142_mcp_bridge.py::test_drift_count_of_wrapped_tools_is_6`
+     auto-detects that count is now N+1 — update it explicitly. No silent growth.
 
 Do NOT add `vault_write` / `ikigai_write_tasks` / `investigation_*` here
 without an M144 spec — see `.claude/agents/loop/orchestrator.md` for the
@@ -38,12 +43,31 @@ planner-only boundary (ADR-013).
 
 from __future__ import annotations
 
+import hashlib
+import json
+import time
+import traceback
 from typing import Any
+
+from opentelemetry.trace import Status, StatusCode
+
+from src.ikigai.src.observability.otel_init import get_tracer
+
+# Span-name prefix constant — pinned by drift test
+# `test_m143_span_prefix_constant_matches_actual_span_name`. Changing this
+# requires an explicit spec bump (no silent prefix rotation).
+SPAN_PREFIX = "loop.mcp."
 
 # Module-level server handle. Production binds this to the FastMCP gateway
 # client (deferred to M146). Tests monkeypatch to a MagicMock. Same pattern
 # as `src/ikigai/src/agents/v2/mcp_bridge.py:_server`.
 _server: Any = None
+
+# Module-level tracer — span prefix `loop.mcp.{tool_name}` is deliberately
+# distinct from server-side `ikigai.mcp.{tool_name}` (see
+# mcp_server/tracing.py:23) and v2-bridge-side `ikigai.bridge.{tool_name}`
+# so the three layers don't double-count in trace exporters.
+_tracer = get_tracer("loop.mcp")
 
 
 # ---------------------------------------------------------------------------
@@ -52,14 +76,23 @@ _server: Any = None
 
 
 def _call(tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
-    """Dispatch an MCP tool call synchronously.
+    """Dispatch an MCP tool call inside an OTel span (M143).
+
+    Span name: `{SPAN_PREFIX}{tool_name}` (e.g. `loop.mcp.ikigai_mesh_show`).
+    Attributes mirror v2 `mcp_bridge.py:_call` (T-8.3.1, 2026-09-08):
+      - tool.name (string)
+      - tool.arguments_hash (SHA-256 of canonical JSON, first 16 hex)
+      - tool.duration_ms (number)
+      - tool.error.class (only on error)
+      - tool.error.message (only on error, truncated to 500 chars)
+      - tool.error.traceback (only on error, truncated to 3000 chars)
 
     Raises:
         RuntimeError: when `_server` is unbound (production must initialize
             the MCP Gateway client before invoking any ikigai_X wrapper).
-        Exception: anything raised by `_server.call(...)` propagates. Caller
-            (worker / verifier / orchestrator) catches and routes to its own
-            error_channel.
+        Exception: anything raised by `_server.call(...)` propagates after
+            being recorded on the span. Caller (worker / verifier /
+            orchestrator) catches and routes to its own error_channel.
     """
     if _server is None:
         raise RuntimeError(
@@ -68,7 +101,26 @@ def _call(tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
             "before calling any ikigai_X function. "
             "See M142 SPEC §Honest scope — production binding is M146."
         )
-    return _server.call(tool_name, args)
+    args_hash = hashlib.sha256(
+        json.dumps(args, sort_keys=True, default=str).encode()
+    ).hexdigest()[:16]
+    with _tracer.start_as_current_span(f"{SPAN_PREFIX}{tool_name}") as span:
+        span.set_attribute("tool.name", tool_name)
+        span.set_attribute("tool.arguments_hash", args_hash)
+        start = time.perf_counter()
+        try:
+            result = _server.call(tool_name, args)
+            span.set_attribute("tool.duration_ms", (time.perf_counter() - start) * 1000)
+            span.set_status(Status(StatusCode.OK))
+            return result
+        except Exception as exc:
+            span.set_status(Status(StatusCode.ERROR, str(exc)))
+            span.set_attribute("tool.error.class", type(exc).__name__)
+            span.set_attribute("tool.error.message", str(exc)[:500])
+            tb_str = traceback.format_exc(limit=15)
+            span.set_attribute("tool.error.traceback", tb_str[:3000])
+            span.set_attribute("tool.duration_ms", (time.perf_counter() - start) * 1000)
+            raise
 
 
 # ---------------------------------------------------------------------------

@@ -6464,3 +6464,111 @@ $ PYTHONPATH="src/ikigai/src;src/ikigai/.venv/Lib/site-packages" \
 - M142: **+14** new tests (M140/M141 didn't add new test files — they
   landed existing-file changes)
 - M110-M142: **393 new tests** since M109
+
+## M143 — 2026-09-26
+
+**Goal:** OpenTelemetry spans for `.claude/loop/mcp_bridge.py:_call()`,
+mirroring v2 mcp_bridge T-8.3.1 (2026-09-08). Tracer name prefix
+`loop.mcp.{tool_name}` distinct from v2's `ikigai.bridge.` and server's
+`ikigai.mcp.`.
+
+### Delivered
+
+**`specs/M143-loop-otel-wiring/SPEC.md`** (190L) — port v2's 5-attribute
+schema + truncation rules byte-for-byte, with tracer prefix `loop.mcp.`
+(deliberately distinct to prevent double-counting in trace exporters).
+
+**`.claude/loop/mcp_bridge.py`** (143 → 195 LOC) — added:
+- `import hashlib, json, time, traceback` + `Status, StatusCode` from opentelemetry
+- `from src.ikigai.src.observability.otel_init import get_tracer`
+- Module constant `SPAN_PREFIX = "loop.mcp."`
+- `_tracer = get_tracer("loop.mcp")`
+- `_call()` wraps `_server.call(...)` in OTel span context
+- 6 attributes: `tool.name`, `tool.arguments_hash` (SHA-256 first 16 hex),
+  `tool.duration_ms`, plus `tool.error.class` / `tool.error.message`
+  (truncated 500 chars) / `tool.error.traceback` (truncated 3000 chars)
+- Span status: `Status(StatusCode.OK)` on success,
+  `Status(StatusCode.ERROR, str(exc))` on error
+- RuntimeError on `_server is None` short-circuits BEFORE span context
+  (verified by `test_unbound_server_does_not_emit_span`)
+
+**`tests/test_m143_mcp_bridge_spans.py`** (273L, **13/13 PASS**):
+- Module-scoped `bridge` fixture loads module AFTER TracerProvider set
+  (OTel SDK forbids re-setting global provider; unique cache key
+  `loop_mcp_bridge_m143` prevents stale NoOp tracer binding)
+- Tests: SPAN_PREFIX value, tracer name, success span name,
+  success attributes, deterministic hash, status OK on success,
+  error span name, error attributes, status ERROR on error,
+  500-char message truncation, no span on unbound server,
+  v2-schema parity, tracer-distinct-from-v2-prefix
+
+**`tests/test_m142_mcp_bridge.py`** (drift test updated) — `test_drift_count_of_wrapped_tools_is_6`
+now counts only canonical IKIGAI/taskdog wrappers, not OTel imports
+(`Status` / `StatusCode` / `get_tracer` exposed via `dir()` after M143
+imports). Without this fix, the test would have falsely failed on M143.
+
+### Decisions
+
+- **Module-scoped fixture for TracerProvider**: OTel SDK allows only ONE
+  `set_tracer_provider()` call per process. Module-scoped fixture
+  installs the in-memory provider once before bridge load. Function-
+  scoped approach (first attempt) failed with "Overriding of current
+  TracerProvider is not allowed".
+- **Module cache key unique per test file**: `loop_mcp_bridge_m143` —
+  prevents the test from picking up a cached bridge module that was
+  loaded against a different (NoOp) provider in a previous test run.
+- **Span prefix `loop.mcp.` not `loop.mcp.bridge.`**: parallel to v2's
+  `ikigai.bridge` and server's `ikigai.mcp`. The 3 prefixes form a
+  clear hierarchy: server-side FastMCP tool dispatch → v2 graph sync
+  wrapper → loop-side sync wrapper. No double-counting in trace UIs.
+- **Same 5-attribute schema as v2**: enables drop-in replacement of v2
+  with loop bridge in callers that consume span attributes
+  (drift-tested by `test_span_attribute_keys_match_v2_schema`).
+- **Span context excludes RuntimeError on `_server is None`**: the
+  early-return is the dispatcher contract, not a tool call — putting
+  it inside the span would conflate "loop bridge misconfigured" with
+  "tool dispatch failed".
+
+### Honest scope
+
+- ✅ OTel span emission with full v2 schema parity
+- ✅ Span prefix constant pinned by drift test
+- ✅ Tracer name distinct from v2/server (no double-counting)
+- ✅ All 13 M143 tests PASS
+- ✅ All 14 M142 tests still PASS (regression sweep clean)
+- ⚠️ **No production init of OTel SDK**: tests use in-memory exporter.
+  Real export to LangSmith/Langfuse still requires `init_tracing()`
+  call at loop startup, which is M146.
+- ⚠️ **No resource attributes for loop layer**: spans inherit the
+  service name from whichever SDK init ran first. Default is
+  `ikigai-maintainer` (v2 default). Adding a loop-specific override
+  is M146.
+- ⚠️ **Drift test for `dir()`-based wrapper count had to be updated**:
+  M143 imports (`Status`, `StatusCode`, `get_tracer`) showed up as
+  callables in `dir(bridge)`. Fix: count only canonical IKIGAI/taskdog
+  prefixed names. Honest about the regression in the test.
+
+### Test run summary
+
+```
+$ PYTHONPATH="src/ikigai/src;src/ikigai/.venv/Lib/site-packages" \
+  src/ikigai/.venv/Scripts/python.exe -m pytest \
+  tests/test_m142_mcp_bridge.py tests/test_m143_mcp_bridge_spans.py \
+  tests/contracts/ tests/integration/ -q
+98 passed in 0.63s
+```
+
+### Followups (sequential, same as M142)
+
+- **M144** — write-side MCP tools (`vault_write`, `ikigai_write_tasks`,
+  `investigation_*`). Cost: $0.20.
+- **M145** — taskdog fork tools beyond `taskdog_list` + 6 resources.
+- **M146** — production binding of `_server` to FastMCP client +
+  `init_tracing()` at loop startup. Cost: $0.50.
+
+### Cumulative test count
+
+- M110-M130: **379 new tests** since M109
+- M142: **+14** new tests
+- M143: **+13** new tests (M141 didn't add new test files)
+- M110-M143: **406 new tests** since M109
