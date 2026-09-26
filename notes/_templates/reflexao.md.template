@@ -1,0 +1,82 @@
+---
+tipo: discovery-log-reflexao
+template_version: 1.0
+slug_referencia: <slug>
+folha_projeto_fk: <folha-projeto-path>
+perfil_de_uso: [cognitivo | fisico | hibrido]
+data: YYYY-MM-DD
+autor: humano                    # SEMPRE humano. Se agente escrever, marcar [RASCUNHO]
+---
+
+# 🪞 Discovery Log — reflexão — YYYY-MM-DD — <slug>
+
+> **Intenção:** este arquivo é a **reflexão auto-aplicada** sobre o que mudou na cabeça, no processo, na motivação. Subjetivo, narrativo, honesto.
+>
+> **Quem preenche:** **VOCÊ** (humano). Agente pode RASCUNHAR se você pedir, mas é você quem valida.
+>
+> **Quando preencher:** fim de ciclo (semana/mês), não todo dia. Mais reflexivo, menos operacional.
+>
+> **Por que separado do backlog.md:** misturar "decidi treinar 5x5 pull-ups" com "tô me sentindo ansioso sobre deadline do projeto" no mesmo arquivo polui ambos. Backlog é sobre **o que aconteceu**; reflexão é sobre **o que isso fez com você**.
+>
+> **Conexão vault:** depois de preencher, referenciar (não duplicar) na Folha Projeto §6 (Revisão de Fim de Ciclo).
+
+---
+
+## 1. Como foi essa janela
+
+> O que senti nesta semana/este ciclo. Tom livre, narrativa.
+
+<texto livre, 1-3 parágrafos>
+
+---
+
+## 2. O que mudou na minha cabeça
+
+> Sobre o problema, sobre o método, sobre mim mesmo. Insight (ou não-insight).
+
+- <mudança 1>
+- <mudança 2>
+- <o que ficou mais/menos claro>
+
+---
+
+## 3. O que NÃO vou fazer (e por quê é OK)
+
+> Descartes conscientes. Tão importantes quanto o que você vai fazer.
+
+- <descartado 1> — porque <razão>
+- <descartado 2> — porque <razão>
+
+---
+
+## 4. Pergunta aberta que ficou
+
+> Uma pergunta que não tem resposta ainda. Honesta. Sem tentar resolver agora.
+
+<pergunta>
+
+---
+
+## 5. Conexão com outros nortes/projetos
+
+> Como essa janela se conecta com o resto da vida/projetos? Tem interferência? Tem sinergia?
+
+<texto livre>
+
+---
+
+## Notes para o humano
+
+- **Não existe resposta certa.** Este template é pra você pensar com estrutura, não pra ser avaliado.
+- **Se você não quer preencher tudo, não preencha.** §1 + §4 já cumprem o básico.
+- **Se uma seção ficar vazia por mais de 3 ciclos**, ela provavelmente não te serve — proponha remover ou renomear.
+- **Cross-cycle:** o conteúdo de §1 desta semana pode virar decisão da próxima Folha Projeto. Não duplique.
+
+---
+
+## Cross-references
+
+- Folha Projeto: `<folha-projeto-path>`
+- Logs do ciclo: `notes/YYYY-MM-DD-<slug>-backlog.md` (× N sessões)
+- Folha Norte: `vault/00-norte/<slug>.md`
+- Templates siblings: `notes/_templates/backlog.md.template`, `notes/_templates/README.md`

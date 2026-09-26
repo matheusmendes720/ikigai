@@ -1,0 +1,86 @@
+---
+tipo: discovery-log-backlog
+template_version: 1.0
+slug_referencia: <slug>             # mesmo slug da Folha Projeto (ex: calistenia-base)
+folha_projeto_fk: <folha-projeto-path>  # path relativo da Folha Projeto (ex: vault/projetos/2026-S39-calistenia-base.md)
+perfil_de_uso: [cognitivo | fisico | hibrido]
+data: YYYY-MM-DD
+autor: [humano | agente]
+---
+
+# 📋 Discovery Log — backlog — YYYY-MM-DD — <slug>
+
+> **Intenção:** este arquivo é o **diário de bordo operacional** da sessão. Factual, curto, objetivo. NÃO é lugar pra reflexão subjetiva (pra isso tem `reflexao.md.template`).
+>
+> **Quem preenche:** agente (ou humano) durante ou logo após a sessão.
+>
+> **Convenção:** criar 1 arquivo novo por sessão. Nunca editar logs antigos (append-only). Naming: `notes/YYYY-MM-DD-<slug>-backlog.md`.
+>
+> **Conexão vault:** depois de preencher este log, appendar 1-3 bullets resumo em `vault/projetos/<folha-projeto>.md ## Discovery Log`.
+
+---
+
+## 1. Sessão (factual)
+
+**Quando:** YYYY-MM-DD HH:MM-HH:MM (opcional: <duração>)
+**Onde:** <local, contexto>
+**Qual tópico da Folha Projeto:** <A | B | C | D> — copiar da Folha Projeto §1
+
+---
+
+## 2. O que testei / observei
+
+> Preencher com fatos. Números, medições, comportamento observado. Sem opinião.
+
+- <fato 1>
+- <fato 2>
+- <fato 3>
+
+_(se não houve teste/observação: escrever "nenhum teste objetivo hoje — só leitura/planejamento")_
+
+---
+
+## 3. Decisões tomadas
+
+> O que decidi avançar/parar/mudar. **Por quê** (1-2 frases).
+
+- [ ] **Decisão 1:** <o quê> — porque <razão>
+- [ ] **Decisão 2:** <o quê> — porque <razão>
+
+_(se nenhuma decisão concreta: "sem decisão nova — seguindo plano da semana")_
+
+---
+
+## 4. Ajustes / Programação que ficou
+
+> Se for treino: progressões escolhidas, séries/reps/carga. Se for código: arquivos editados, commits. Se for estudo: tópicos cobertos.
+
+| Item | Estado final |
+|---|---|
+| <item 1> | <estado> |
+| <item 2> | <estado> |
+
+---
+
+## 5. Próxima sessão (continuidade)
+
+- <o que fazer na próxima>
+- <bloqueador pendente>
+
+---
+
+## Notes para o agente futuro
+
+> Se você (agente) está lendo este template e não sabe o que preencher:
+> 1. **Se a sessão foi vazia**, escreva `sessão vazia — sem progresso observável` em §2 e pronto.
+> 2. **Se você está gerando rascunho pro humano revisar**, marque cada seção com `[RASCUNHO]` no topo e use tom factual SEM inferir motivação.
+> 3. **Se você não tem certeza de uma decisão**, escreva `decisão pendente — confirmar com humano em §3` e liste opções.
+> 4. **Nunca invente números.** Se não medi, escreva `não medido`.
+
+---
+
+## Cross-references
+
+- Folha Projeto: `<folha-projeto-path>`
+- Folha Norte: `vault/00-norte/<slug>.md` (se aplicável)
+- Templates siblings: `notes/_templates/reflexao.md.template`, `notes/_templates/README.md`
