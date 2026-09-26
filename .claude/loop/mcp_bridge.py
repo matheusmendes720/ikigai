@@ -2,9 +2,9 @@
 
 Mirrors the architecture of `src/ikigai/src/agents/v2/mcp_bridge.py` (M5 +
 Phase 8.2) but lives at the LOOP layer (`.claude/loop/`). It exposes a thin,
-callable Python surface for the **12 IKIGAI MCP tools** so loop sub-agents
-can do `ikigai_mesh_show(ueid=...)` without hand-rolling the stdio JSON-RPC
-handshake from inside a worker worktree.
+callable Python surface for the **14 IKIGAI MCP tools** + **6 MCP resource
+accessors** so loop sub-agents can do `ikigai_mesh_show(ueid=...)` without
+hand-rolling the stdio JSON-RPC handshake from inside a worker worktree.
 
 **M142 slice (6 read-only):** `ikigai_decompose`, `ikigai_read_tasks`,
 `ikigai_mesh_show`, `ikigai_health`, `ikigai_task_create` (with
@@ -14,6 +14,11 @@ handshake from inside a worker worktree.
 `vault_write`, `investigation_enqueue`, `investigation_status`,
 `investigation_complete`. Write tools inherit the server-side security
 model (VaultLock for vault_write, path validation, audit logging).
+
+**M145 slice (2 read-side taskdog + 6 resource accessors):** `taskdog_read`,
+`taskdog_supports_field`, plus `read_ueid_resource`, `read_queue_pending_resource`,
+`read_queue_event_resource`, `read_health_resource`,
+`read_plans_cycles_resource`, `read_plans_cycle_resource`.
 
 Architecture:
     Worker / Verifier / Orchestrator
@@ -310,3 +315,91 @@ def investigation_complete(
     if inq_ueid is not None:
         args["inq_ueid"] = inq_ueid
     return _call("investigation_complete", args)
+
+
+# ---------------------------------------------------------------------------
+# M145 slice (2 read-side taskdog forks). NO PAV-math tools (ADR-013).
+# ---------------------------------------------------------------------------
+
+
+def taskdog_read(ueid: str, db_path: str | None = None) -> dict[str, Any]:
+    """Get a taskdog task slice by UEID (read-only fork tool).
+
+    Returns `null` slice if not found. `db_path` is an optional override
+    for tests; omit in production (the canonical path is auto-discovered).
+    """
+    args: dict[str, Any] = {"ueid": ueid}
+    if db_path is not None:
+        args["db_path"] = db_path
+    return _call("taskdog_read", args)
+
+
+def taskdog_supports_field(field_name: str) -> dict[str, Any]:
+    """Capability check: is `field_name` a supported taskdog field?
+
+    Returns `{"field": field_name, "supported": bool}`.
+    Read-only; useful before writing to avoid rejection.
+    """
+    return _call("taskdog_supports_field", {"field_name": field_name})
+
+
+# ---------------------------------------------------------------------------
+# M145 slice — MCP resource accessors
+# ---------------------------------------------------------------------------
+#
+# FastMCP resources use `read_resource(uri)`, NOT `call(tool_name, args)`.
+# So resource accessors are separate helper functions that delegate to
+# `_server.read_resource(uri)` — they do NOT go through `_call(...)` and
+# therefore do NOT emit OTel spans (lesson from M143 deferral: OTel for
+# resources lands in M146 if it lands at all).
+#
+# The URI map (`RESOURCE_URIS`) is pinned by drift test
+# `test_m145_resource_uri_dict_length_is_6` so URI drift between server
+# (`@MCP.resource` decorators) and bridge is caught immediately.
+
+RESOURCE_URIS: dict[str, str] = {
+    "ueid": "ueid://{ueid}",
+    "queue_pending": "queue://pending",
+    "queue_event": "queue://events/{event_id}",
+    "health": "health://gateway",
+    "plans_cycles": "plans://cycles",
+    "plans_cycle": "plans://cycles/{cycle_id}",
+}
+
+
+def read_ueid_resource(ueid: str) -> Any:
+    """Read the `ueid://{ueid}` resource — task slice by UEID across forks.
+
+    Returns the raw FastMCP resource envelope (parsing belongs to M146).
+    """
+    return _server.read_resource(RESOURCE_URIS["ueid"].format(ueid=ueid))
+
+
+def read_queue_pending_resource() -> Any:
+    """Read the `queue://pending` resource — pending TaskChange events.
+
+    Returns the raw FastMCP resource envelope.
+    """
+    return _server.read_resource(RESOURCE_URIS["queue_pending"])
+
+
+def read_queue_event_resource(event_id: str) -> Any:
+    """Read the `queue://events/{event_id}` resource — one resolved event."""
+    return _server.read_resource(RESOURCE_URIS["queue_event"].format(event_id=event_id))
+
+
+def read_health_resource() -> Any:
+    """Read the `health://gateway` resource — MCP gateway heartbeat."""
+    return _server.read_resource(RESOURCE_URIS["health"])
+
+
+def read_plans_cycles_resource() -> Any:
+    """Read the `plans://cycles` resource — all planning cycles summary."""
+    return _server.read_resource(RESOURCE_URIS["plans_cycles"])
+
+
+def read_plans_cycle_resource(cycle_id: str) -> Any:
+    """Read the `plans://cycles/{cycle_id}` resource — one cycle detail."""
+    return _server.read_resource(
+        RESOURCE_URIS["plans_cycle"].format(cycle_id=cycle_id)
+    )

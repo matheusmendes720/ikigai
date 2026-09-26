@@ -1273,3 +1273,87 @@ task + spec was sufficient context, same as M142)
 
 **M144 actual cost:** **$0.00** (orchestrator did it directly — bounded
 task + spec was sufficient context, same as M142 + M143)
+
+## Active Tasks (M145 — Loop Taskdog Rest + Resources)
+
+### M145 — Loop-side Taskdog Rest + Resources
+- **Spec:** `specs/M145-loop-taskdog-rest/SPEC.md` (created 2026-09-26)
+- **Goal:** Add 2 taskdog fork tools + 6 MCP resource accessors, completing
+  the bridge's server-side surface. Bridge becomes 14 wrappers + 6
+  resource accessors. Final slice before M146 production binding.
+
+#### T-145.1 — Add 2 taskdog wrappers + 6 resource accessors + RESOURCE_URIS dict
+- **status:** done
+- **spec_ref:** `specs/M145-loop-taskdog-rest/SPEC.md` (acceptance #1, #2, #3, #4)
+- **acceptance:**
+  - [x] `taskdog_read(ueid, db_path=None)` and `taskdog_supports_field(field_name)` added
+  - [x] 6 resource accessors added: `read_ueid_resource`, `read_queue_pending_resource`,
+        `read_queue_event_resource`, `read_health_resource`, `read_plans_cycles_resource`,
+        `read_plans_cycle_resource`
+  - [x] Module-level `RESOURCE_URIS` dict with 6 entries (short name → URI template)
+  - [x] Module grew from 312 → 405 LOC (≤420 target met)
+- **estimated_cost_usd:** 0.08
+- **estimated_minutes:** 20
+- **last_verdict:** PASS
+
+#### T-145.2 — Update M142+M144 drift tests for 14-wrapper total
+- **status:** done
+- **spec_ref:** `specs/M145-loop-taskdog-rest/SPEC.md` (acceptance #6)
+- **acceptance:**
+  - [x] M142 `test_drift_count_of_read_only_wrappers_is_6` → `is_8`
+        (added taskdog_read + taskdog_supports_field)
+  - [x] M142 `test_drift_count_of_wrapped_tools_is_12` → `is_14`
+        (combined total)
+  - [x] M144 `test_total_wrapper_count_is_12` → `is_14`
+- **estimated_cost_usd:** 0.02
+- **estimated_minutes:** 5
+- **last_verdict:** PASS
+
+#### T-145.3 — Create `tests/test_m145_mcp_bridge_taskdog_rest.py`
+- **status:** done
+- **spec_ref:** `specs/M145-loop-taskdog-rest/SPEC.md` (acceptance #5)
+- **acceptance:**
+  - [x] File exists with 19 tests, all PASS
+  - [x] Tests cover: taskdog wrappers + db_path omission, all 6 resource
+        accessors with correct URIs, RESOURCE_URIS dict length + keys + values,
+        `{placeholder}` format strings, total wrapper count, accessors don't
+        use _server.call (use read_resource)
+- **estimated_cost_usd:** 0.05
+- **estimated_minutes:** 15
+- **last_verdict:** PASS
+
+#### T-145.4 — Update orchestrator prompt Programmatic Bridge subsection
+- **status:** done
+- **spec_ref:** `specs/M145-loop-taskdog-rest/SPEC.md` (acceptance #8)
+- **acceptance:**
+  - [x] Wrapper count updated: 12 → 14
+  - [x] Read subset: 6 → 8 (added taskdog_read + taskdog_supports_field)
+  - [x] Resource accessors section added (6 entries with URIs)
+  - [x] Deferred-to-M145+ list removed; only M146 remains
+  - [x] Drift detectors updated to reference new tests
+- **estimated_cost_usd:** 0.02
+- **estimated_minutes:** 5
+- **last_verdict:** PASS
+
+#### T-145.5 — Verify regression sweep
+- **status:** done
+- **spec_ref:** `specs/M145-loop-taskdog-rest/SPEC.md` (closeout)
+- **acceptance:**
+  - [x] M142 (15) + M143 (14) + M144 (21) + M145 (19) +
+        contracts/integration (71) = **140/140 PASS**
+- **estimated_cost_usd:** 0.01
+- **estimated_minutes:** 5
+- **last_verdict:** PASS
+
+#### T-145.6 — progress.md entry + atomic commit + push
+- **status:** pending (in progress)
+- **spec_ref:** `specs/M145-loop-taskdog-rest/SPEC.md` (closeout)
+- **acceptance:**
+  - [x] `progress.md` M145 entry appended
+  - [ ] Atomic commit + push to origin master
+- **estimated_cost_usd:** 0.05
+- **estimated_minutes:** 10
+- **last_verdict:** PASS
+
+**M145 actual cost:** **$0.00** (orchestrator did it directly — bounded
+task + spec was sufficient context, same as M142 + M143 + M144)
