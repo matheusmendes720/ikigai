@@ -189,11 +189,12 @@ Scope discipline (ADR-013) — IKIGAI agent layer is planner-only:
 - WRITE-WITH-REVIEW: vault_write (sole vault writer per ADR-012), investigation_*
 - FORBIDDEN: any PAE math / scoring / policy tools — not in MCP surface
 
-### Programmatic Bridge (M142 read-only + M144 write-side)
+### Programmatic Bridge (M142 read + M144 write + M145 taskdog rest)
 
-Worker / verifier sub-agents can call **12 IKIGAI MCP tools** (6 read-only
-+ 6 write-side) via a thin Python bridge at `.claude/loop/mcp_bridge.py` —
-no need to hand-roll stdio JSON-RPC from inside a worktree.
+Worker / verifier sub-agents can call **14 IKIGAI MCP tools** (8 read + 6
+write-side) + **6 MCP resource accessors** via a thin Python bridge at
+`.claude/loop/mcp_bridge.py` — no need to hand-roll stdio JSON-RPC from
+inside a worktree.
 
 ```python
 from importlib.util import spec_from_file_location, module_from_spec
@@ -204,9 +205,10 @@ _bridge = module_from_spec(_spec); _spec.loader.exec_module(_bridge)
 result = _bridge.ikigai_mesh_show(ueid="study:topic:st_python_01")
 ```
 
-**Read-only wrappers (M142, 6):** `ikigai_decompose`, `ikigai_read_tasks`,
-`ikigai_mesh_show`, `ikigai_health`, `ikigai_task_create` (default
-`dry_run=True` — read-shape), `taskdog_list`.
+**Read-only wrappers (M142, 6 + M145, 2 = 8):** `ikigai_decompose`,
+`ikigai_read_tasks`, `ikigai_mesh_show`, `ikigai_health`,
+`ikigai_task_create` (default `dry_run=True` — read-shape), `taskdog_list`,
+`taskdog_read`, `taskdog_supports_field`.
 
 **Write-side wrappers (M144, 6):** `vault_read`, `ikigai_write_tasks`,
 `vault_write`, `investigation_enqueue`, `investigation_status`,
@@ -219,6 +221,14 @@ result = _bridge.ikigai_mesh_show(ueid="study:topic:st_python_01")
     `actor="loop-agent"` (distinct from v2 graph's `"agent"`) — easy to
     grep audit logs by source layer.
 
+**Resource accessors (M145, 6):** `read_ueid_resource(ueid)`,
+`read_queue_pending_resource()`, `read_queue_event_resource(event_id)`,
+`read_health_resource()`, `read_plans_cycles_resource()`,
+`read_plans_cycle_resource(cycle_id)`. URIs pinned in module-level
+`RESOURCE_URIS` dict (6 entries). Resource accessors delegate to
+`_server.read_resource(uri)` (NOT `_call(...)`) — see `src/ikigai/src/mcp_server/server.py`
+for `@MCP.resource` registrations.
+
 **NOT exposed (FORBIDDEN per ADR-013 — planner-only boundary):**
 `ikigai_observe_pav_state`, `ikigai_score_vectors`, `ikigai_heuristics`,
 `ikigai_balance`, `ikigai_plan`, `ikigai_reflect`, `ikigai_tag_and_persist`,
@@ -226,22 +236,24 @@ result = _bridge.ikigai_mesh_show(ueid="study:topic:st_python_01")
 for v2-graph drift detection. Workers that need math/policy/scoring
 should escalate to v2 graph, NOT use the loop bridge.
 
-**Deferred to M145+:** `taskdog_read`, `taskdog_supports_field`, 6 MCP
-resources. Production binding of `_server` to FastMCP client (M146) +
-`init_tracing()` call at loop startup (M146).
+**Deferred to M146:** production binding of `_server` to FastMCP client +
+`init_tracing()` call at loop startup + optional resource-envelope parsing.
 
 **Error contract:** `_bridge._call(...)` raises `RuntimeError` when
 `_server is None` (production binding deferred to M146). Exceptions from
 `_server.call(...)` propagate — caller catches and routes to its own
-error_channel. Every call emits an OTel span `loop.mcp.{tool_name}` (M143)
-with the v2 schema (`tool.name`, `tool.arguments_hash`, `tool.duration_ms`,
-plus error attrs on failure).
+error_channel. Every tool call emits an OTel span `loop.mcp.{tool_name}`
+(M143) with the v2 schema (`tool.name`, `tool.arguments_hash`,
+`tool.duration_ms`, plus error attrs on failure). Resource accessors do
+NOT emit OTel spans (deferred to M146 if it lands at all).
 
 Drift detectors:
-  - `tests/test_m142_mcp_bridge.py::test_drift_count_of_read_only_wrappers_is_6`
-    — 6 read-only pinned.
-  - `tests/test_m144_mcp_bridge_write_tools.py::test_total_wrapper_count_is_12`
-    — total 12 pinned.
+  - `tests/test_m142_mcp_bridge.py::test_drift_count_of_read_only_wrappers_is_8`
+    — 8 read-only pinned (6 M142 + 2 M145).
+  - `tests/test_m144_mcp_bridge_write_tools.py::test_total_wrapper_count_is_14`
+    — total 14 pinned (8 read + 6 write).
+  - `tests/test_m145_mcp_bridge_taskdog_rest.py::test_resource_uri_dict_length_is_6`
+    — RESOURCE_URIS has 6 entries.
   - `tests/test_m142_mcp_bridge.py::test_forbidden_tools_not_importable`
     — 8 PAV-math names forbidden.
 
@@ -249,8 +261,8 @@ Adding a new wrapper requires an explicit spec bump (no silent growth —
 lesson from M11/M12 PAV-math drift).
 
 See `specs/M142-agent-mcp-wiring/SPEC.md`, `specs/M143-loop-otel-wiring/SPEC.md`,
-and `specs/M144-loop-write-tools/SPEC.md` for design rationale + the
-FakeMcpServer test pattern.
+`specs/M144-loop-write-tools/SPEC.md`, and `specs/M145-loop-taskdog-rest/SPEC.md`
+for design rationale + the FakeMcpServer test pattern.
 
 ## Risk-Tiered Review
 

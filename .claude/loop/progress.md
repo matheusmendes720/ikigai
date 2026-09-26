@@ -6680,3 +6680,106 @@ $ PYTHONPATH="src/ikigai/src;src/ikigai/.venv/Lib/site-packages" \
 - M143: **+13** new tests
 - M144: **+21** new tests (M141 didn't add new test files)
 - M110-M144: **427 new tests** since M109
+
+## M145 — 2026-09-26
+
+**Goal:** Add 2 taskdog fork tools + 6 MCP resource accessors to complete
+the bridge's server-side surface. Bridge becomes 14 wrappers + 6 resource
+accessors. Final slice before M146 production binding.
+
+### Delivered
+
+**`specs/M145-loop-taskdog-rest/SPEC.md`** (~9KB) — design rationale for
+the taskdog_rest + resources slice, `RESOURCE_URIS` URI map drift guard,
+resource-accessor-as-separate-helper pattern (NOT tool wrappers because
+FastMCP resources use `read_resource(uri)`, not `call(tool, args)`).
+
+**`.claude/loop/mcp_bridge.py`** (312 → 405 LOC) — added:
+- `taskdog_read(ueid, db_path=None)` — read-side fork tool; `db_path`
+  optional override for tests
+- `taskdog_supports_field(field_name)` — capability check
+- 6 resource accessors: `read_ueid_resource(ueid)`,
+  `read_queue_pending_resource()`, `read_queue_event_resource(event_id)`,
+  `read_health_resource()`, `read_plans_cycles_resource()`,
+  `read_plans_cycle_resource(cycle_id)`
+- Module-level `RESOURCE_URIS` dict (6 entries) — pinned by drift test
+- Module docstring updated to reference M142 + M144 + M145 slices
+
+**`tests/test_m145_mcp_bridge_taskdog_rest.py`** (19/19 PASS, **~10KB**):
+- taskdog wrappers delegate to `_call()` with correct args
+- `taskdog_read` omits `db_path` when None (clean server payload)
+- All 6 resource accessors call `_server.read_resource(uri)` with correct URI
+- `RESOURCE_URIS` dict has exactly 6 entries (drift guard)
+- `{placeholder}` format strings used (not f-strings — `format()` works cleanly)
+- Resource accessors do NOT go through `_call()` (no OTel span — M143 deferral)
+- Resource accessors return raw server payload (envelope parsing → M146)
+
+**`tests/test_m142_mcp_bridge.py`** (drift test updated):
+- `test_drift_count_of_read_only_wrappers_is_6` → `is_8`
+- `test_drift_count_of_wrapped_tools_is_12` → `is_14`
+
+**`tests/test_m144_mcp_bridge_write_tools.py`** (drift test updated):
+- `test_total_wrapper_count_is_12` → `is_14`
+
+**`.claude/agents/loop/orchestrator.md`** — Programmatic Bridge subsection:
+- Wrapper count: 12 → 14
+- Read subset: 6 → 8 (added taskdog_read + taskdog_supports_field)
+- Resource accessors section added (6 entries)
+- Deferred-to-M145+ list removed; only M146 remains
+- Drift detectors updated
+
+### Decisions
+
+- **Resource accessors as standalone functions, NOT `_call` wrappers**:
+  FastMCP resources use `read_resource(uri)`, not `call(tool, args)`.
+  Bundling them in the same module keeps the bridge cohesive (one import
+  gives workers everything) without pretending they're tool calls.
+- **`RESOURCE_URIS` module-level dict**: prevents URI drift between
+  accessors and tests. Format strings use `{placeholder}` (not f-strings)
+  so callers can `RESOURCE_URIS["ueid"].format(ueid=...)` cleanly.
+- **Resource accessors DON'T emit OTel spans**: they bypass `_call()`,
+  so M143's span wrapping doesn't apply. Per honest scope, OTel for
+  resources is deferred to M146 if it lands at all.
+- **`taskdog_read` `db_path` optional**: matches server signature.
+  Default omitted from payload (`if db_path is not None: args["db_path"] = db_path`).
+  Same pattern as `investigation_enqueue`'s `tags` omission (M144).
+
+### Honest scope
+
+- ✅ 2 taskdog wrappers + 6 resource accessors + RESOURCE_URIS dict
+- ✅ All 19 M145 tests PASS
+- ✅ All M142 (15) + M143 (14) + M144 (21) tests still PASS — full sweep 140/140
+- ✅ Orchestrator prompt updated (additive)
+- ⚠️ **Resource accessors return raw `_server.read_resource(uri)` output**:
+  parsing FastMCP's resource envelope (status code + mime type + body)
+  belongs to M146. M145 helpers just delegate.
+- ⚠️ **Production binding still mocked**: same as M144. M146 closes.
+- ⚠️ **No integration test against real FastMCP server**: tests use
+  MagicMock for `_server.read_resource`. Real binding lives in M146.
+
+### Test run summary
+
+```
+$ PYTHONPATH="src/ikigai/src;src/ikigai/.venv/Lib/site-packages" \
+  src/ikigai/.venv/Scripts/python.exe -m pytest \
+  tests/test_m142_mcp_bridge.py tests/test_m143_mcp_bridge_spans.py \
+  tests/test_m144_mcp_bridge_write_tools.py \
+  tests/test_m145_mcp_bridge_taskdog_rest.py \
+  tests/contracts/ tests/integration/ -q
+140 passed in 0.89s
+```
+
+### Followups
+
+- **M146** — production binding of `_server` to FastMCP client +
+  `init_tracing()` at loop startup + optional resource-envelope parsing.
+  This is the FINAL milestone in the bridge chain. Cost: $0.50.
+
+### Cumulative test count
+
+- M110-M130: **379 new tests** since M109
+- M142: **+14** new tests
+- M143: **+13** new tests
+- M144: **+21** new tests
+- M145: **+19** new tests
+- M110-M145: **446 new tests** since M109

@@ -180,19 +180,20 @@ def test_drift_count_of_wrapped_tools_is_6(bridge):
         and name.startswith(("ikigai_", "taskdog_", "vault_", "investigation_"))
         and callable(getattr(bridge, name))
     }
-    # M142 enforces 6 read-only wrappers. M144 added 6 more (write-side),
-    # bringing the total to 12. Splitting drift detection into read + write
-    # subsets lets each milestone evolve independently.
-    assert len(actual_wrapped) == 12, (
-        f"M142+M144 wrapper drift: expected exactly 12 wrappers (6 read + "
-        f"6 write), got {len(actual_wrapped)}: {sorted(actual_wrapped)}"
+    # M142 (6 read) + M144 (6 write) + M145 (2 read taskdog) = 14 wrappers.
+    # Splitting drift detection into read + write subsets lets each
+    # milestone evolve independently.
+    assert len(actual_wrapped) == 14, (
+        f"M142+M144+M145 wrapper drift: expected exactly 14 wrappers "
+        f"(8 read + 6 write), got {len(actual_wrapped)}: "
+        f"{sorted(actual_wrapped)}"
     )
 
 
-def test_drift_count_of_read_only_wrappers_is_6(bridge):
-    """M142 invariant: read-only slice has exactly 6 wrappers.
+def test_drift_count_of_read_only_wrappers_is_8(bridge):
+    """M142 + M145 invariant: read-only slice has exactly 8 wrappers.
 
-    Subset of the 12-wrapper total. If M147 adds a 7th read-only tool,
+    Subset of the 14-wrapper total. If M147 adds a 9th read-only tool,
     this test fails — explicit spec bump required.
     """
     read_only = {
@@ -202,13 +203,16 @@ def test_drift_count_of_read_only_wrappers_is_6(bridge):
         "ikigai_health",
         "ikigai_task_create",
         "taskdog_list",
+        # M145 additions:
+        "taskdog_read",
+        "taskdog_supports_field",
     }
     actual = {
         name for name in read_only
         if hasattr(bridge, name) and callable(getattr(bridge, name))
     }
     assert actual == read_only, (
-        f"M142 read-only surface drift: expected={sorted(read_only)}, "
+        f"M142+M145 read-only surface drift: expected={sorted(read_only)}, "
         f"present={sorted(actual)}"
     )
 
