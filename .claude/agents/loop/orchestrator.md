@@ -189,6 +189,42 @@ Scope discipline (ADR-013) — IKIGAI agent layer is planner-only:
 - WRITE-WITH-REVIEW: vault_write (sole vault writer per ADR-012), investigation_*
 - FORBIDDEN: any PAE math / scoring / policy tools — not in MCP surface
 
+### Programmatic Bridge (M142 — read-only)
+
+Worker / verifier sub-agents can call the **6 read-only IKIGAI MCP tools**
+via a thin Python bridge at `.claude/loop/mcp_bridge.py` — no need to
+hand-roll stdio JSON-RPC from inside a worktree.
+
+```python
+from importlib.util import spec_from_file_location, module_from_spec
+_spec = spec_from_file_location("loop_mcp_bridge", ".claude/loop/mcp_bridge.py")
+_bridge = module_from_spec(_spec); _spec.loader.exec_module(_bridge)
+# Production must bind _bridge._server to a FastMCP client at startup (M146).
+# Tests monkeypatch _bridge._server to a MagicMock.
+result = _bridge.ikigai_mesh_show(ueid="study:topic:st_python_01")
+```
+
+**Exposed wrappers (6):** `ikigai_decompose`, `ikigai_read_tasks`,
+`ikigai_mesh_show`, `ikigai_health`, `ikigai_task_create` (default
+`dry_run=True` — read-shape), `taskdog_list`.
+
+**NOT exposed (M144 territory):** `vault_write`, `vault_read`,
+`ikigai_write_tasks`, `investigation_enqueue`, `investigation_status`,
+`investigation_complete`, `taskdog_read`, `taskdog_supports_field`. Workers
+that need to write go through `python -m life.cli ...` (canonical) or
+escalate to v2 graph.
+
+**Error contract:** `_bridge._call(...)` raises `RuntimeError` when
+`_server is None` (production binding deferred to M146). Exceptions from
+`_server.call(...)` propagate — caller catches and routes to its own
+error_channel.
+
+Drift detector: `tests/test_m142_mcp_bridge.py::test_drift_count_of_wrapped_tools_is_6`
+pins the surface at 6 wrappers. Adding a 7th requires an explicit spec bump
+(no silent growth — lesson from M11/M12 PAV-math drift).
+
+See `specs/M142-agent-mcp-wiring/SPEC.md` for full design rationale + the
+FakeMcpServer test pattern.
 
 ## Risk-Tiered Review
 

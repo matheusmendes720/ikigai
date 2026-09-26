@@ -6362,3 +6362,105 @@ Preview against real vault file works correctly. `vault-apply` and `vault-toggle
 
 ### Cumulative test count
 - M110-M130: **379 new tests** since M109 (+15 this round)
+
+## M142 — 2026-09-26
+
+**Goal:** Loop-side MCP bridge for orchestrator/worker/verifier so they can
+call 6 read-only IKIGAI MCP tools without hand-rolling stdio JSON-RPC.
+Write tools (`vault_write`, `ikigai_write_tasks`, `investigation_*`)
+deferred to M144 to preserve planner-only boundary (ADR-013).
+
+### Delivered
+
+**`specs/M142-agent-mcp-wiring/SPEC.md`** (169L) — scope-revised from 8 tools
+to 6 (read-only slice); followups M143 (OTel), M144 (write side), M145
+(taskdog rest + resources), M146 (production binding).
+
+**`.claude/loop/mcp_bridge.py`** (143L) — 6 sync wrappers around module-level
+`_server` handle + `_call()` dispatcher. Mirrors v2 mcp_bridge.py contract:
+- `ikigai_decompose(*, task_id)`
+- `ikigai_read_tasks(*, horizon=None, limit=50)`
+- `ikigai_mesh_show(*, ueid)`
+- `ikigai_health()`
+- `ikigai_task_create(*, ueid, fields=None, dry_run=True)` — read-shape via default
+- `taskdog_list(*, status=None, limit=None)`
+
+`_call()` raises `RuntimeError` when `_server is None` (references M146 binding
+milestone in the error message). Exceptions from `_server.call()` propagate.
+
+**`tests/test_m142_mcp_bridge.py`** (240L, **14/14 PASS**):
+- `_call` raises when server unbound (acceptance #2)
+- `_call` propagates exceptions
+- All 6 wrappers return FakeMcpServer dict (one test each)
+- Drift detector: exactly 6 wrappers (pins surface, no silent growth)
+- Forbidden tools NOT importable (vault_write, ikigai_write_tasks,
+  investigation_*, taskdog_read/supports_field)
+- `ikigai_task_create` defaults `dry_run=True` (planner-only invariant)
+- Bonus: kwarg behavior tests + `_server=` rejection
+
+**`.claude/agents/loop/orchestrator.md`** — added "Programmatic Bridge
+(M142 — read-only)" subsection with one-line import + call example,
+list of 6 exposed wrappers, list of M144-forbidden tools, error contract,
+drift detector pointer, SPEC reference. Existing 14-tool table preserved
+(additive).
+
+**`.claude/loop/tasks.md`** — added M142 section with T-142.1..T-142.4
+(status=pending → done as completed; cost estimates $0.30 cap).
+
+### Decisions
+
+- **6 tools, not 14**: read-only slice keeps ADR-013 boundary clean. Writes
+  go through `python -m life.cli ...` (canonical) or v2 graph (audit log).
+- **Same `_server` pattern as v2 mcp_bridge.py**: production binding
+  deferred to M146. Tests monkeypatch to MagicMock (FakeMcpServer).
+- **No OTel in M142**: spans come in M143 when `.claude/loop/observability/`
+  exists. Keeps M142 surface minimal + reviewable.
+- **Drift detector from day one**: lesson from M11/M12 PAV-math drift where
+  bridge and server drifted silently. Adding a 7th wrapper requires an
+  explicit spec bump.
+- **`ikigai_task_create` defaults `dry_run=True`**: even though the tool
+  name says "create", the wrapper forces read-shape until caller opts in.
+  Drift test pins this default.
+
+### Honest scope
+
+- ✅ 6 read-only wrappers + drift detector + tests + orchestrator prompt update
+- ✅ All 14 M142 tests PASS
+- ✅ No changes to v2 `mcp_bridge.py`, `server.py`, or `.mcp.json` (additive)
+- ⚠️ **No production binding** of `_server` to FastMCP client — mirrors
+  Phase 8.2 deferral. Tests use MagicMock; running `loop-tick.sh` today
+  doesn't actually invoke MCP.
+- ⚠️ **No OTel**: span emission deferred to M143.
+- ⚠️ **Write tools deferred**: `vault_write`, `ikigai_write_tasks`,
+  `investigation_*` live in M144.
+- ⚠️ **Pre-existing conftest blocker**: tests/conftest.py eagerly imports
+  `sys_ikigai.adapters.checkpoint_adapter` which needs `langgraph` —
+  not installed in root venv. Worked around with
+  `PYTHONPATH="src/ikigai/src;src/ikigai/.venv/Lib/site-packages"` for the
+  test run. NOT caused by M142 — same failure on master without our changes.
+  Filed as pre-existing follow-up.
+
+### Test run summary
+
+```
+$ PYTHONPATH="src/ikigai/src;src/ikigai/.venv/Lib/site-packages" \
+  src/ikigai/.venv/Scripts/python.exe -m pytest tests/test_m142_mcp_bridge.py \
+  tests/contracts/ tests/integration/ -q
+85 passed in 4.17s
+```
+
+### Followups (sequential)
+
+- **M143** — `.claude/loop/observability/` OTel wiring + apply spans
+  to `mcp_bridge.py`. Cost: $0.10.
+- **M144** — wire write-side tools (`vault_write`, `ikigai_write_tasks`,
+  `investigation_*`). Cost: $0.20.
+- **M145** — taskdog fork tools beyond `taskdog_list` + 6 resources.
+- **M146** — production binding of `_server` to FastMCP client. Cost: $0.50.
+
+### Cumulative test count
+
+- M110-M130: **379 new tests** since M109
+- M142: **+14** new tests (M140/M141 didn't add new test files — they
+  landed existing-file changes)
+- M110-M142: **393 new tests** since M109
