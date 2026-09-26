@@ -189,11 +189,11 @@ Scope discipline (ADR-013) — IKIGAI agent layer is planner-only:
 - WRITE-WITH-REVIEW: vault_write (sole vault writer per ADR-012), investigation_*
 - FORBIDDEN: any PAE math / scoring / policy tools — not in MCP surface
 
-### Programmatic Bridge (M142 — read-only)
+### Programmatic Bridge (M142 read-only + M144 write-side)
 
-Worker / verifier sub-agents can call the **6 read-only IKIGAI MCP tools**
-via a thin Python bridge at `.claude/loop/mcp_bridge.py` — no need to
-hand-roll stdio JSON-RPC from inside a worktree.
+Worker / verifier sub-agents can call **12 IKIGAI MCP tools** (6 read-only
++ 6 write-side) via a thin Python bridge at `.claude/loop/mcp_bridge.py` —
+no need to hand-roll stdio JSON-RPC from inside a worktree.
 
 ```python
 from importlib.util import spec_from_file_location, module_from_spec
@@ -204,26 +204,52 @@ _bridge = module_from_spec(_spec); _spec.loader.exec_module(_bridge)
 result = _bridge.ikigai_mesh_show(ueid="study:topic:st_python_01")
 ```
 
-**Exposed wrappers (6):** `ikigai_decompose`, `ikigai_read_tasks`,
+**Read-only wrappers (M142, 6):** `ikigai_decompose`, `ikigai_read_tasks`,
 `ikigai_mesh_show`, `ikigai_health`, `ikigai_task_create` (default
 `dry_run=True` — read-shape), `taskdog_list`.
 
-**NOT exposed (M144 territory):** `vault_write`, `vault_read`,
-`ikigai_write_tasks`, `investigation_enqueue`, `investigation_status`,
-`investigation_complete`, `taskdog_read`, `taskdog_supports_field`. Workers
-that need to write go through `python -m life.cli ...` (canonical) or
-escalate to v2 graph.
+**Write-side wrappers (M144, 6):** `vault_read`, `ikigai_write_tasks`,
+`vault_write`, `investigation_enqueue`, `investigation_status`,
+`investigation_complete`.
+
+  - `vault_write(vault_path, frontmatter, body)` — canonical vault writer
+    per ADR-012. All 3 kwargs required; no defaults. Audit log is
+    append-only (`vault/.vault_events.jsonl`) — no rollback.
+  - `investigation_enqueue(...)` / `investigation_complete(...)` default
+    `actor="loop-agent"` (distinct from v2 graph's `"agent"`) — easy to
+    grep audit logs by source layer.
+
+**NOT exposed (FORBIDDEN per ADR-013 — planner-only boundary):**
+`ikigai_observe_pav_state`, `ikigai_score_vectors`, `ikigai_heuristics`,
+`ikigai_balance`, `ikigai_plan`, `ikigai_reflect`, `ikigai_tag_and_persist`,
+`ikigai_commit_summary` — the 8 PAV-math stubs registered in `server.py`
+for v2-graph drift detection. Workers that need math/policy/scoring
+should escalate to v2 graph, NOT use the loop bridge.
+
+**Deferred to M145+:** `taskdog_read`, `taskdog_supports_field`, 6 MCP
+resources. Production binding of `_server` to FastMCP client (M146) +
+`init_tracing()` call at loop startup (M146).
 
 **Error contract:** `_bridge._call(...)` raises `RuntimeError` when
 `_server is None` (production binding deferred to M146). Exceptions from
 `_server.call(...)` propagate — caller catches and routes to its own
-error_channel.
+error_channel. Every call emits an OTel span `loop.mcp.{tool_name}` (M143)
+with the v2 schema (`tool.name`, `tool.arguments_hash`, `tool.duration_ms`,
+plus error attrs on failure).
 
-Drift detector: `tests/test_m142_mcp_bridge.py::test_drift_count_of_wrapped_tools_is_6`
-pins the surface at 6 wrappers. Adding a 7th requires an explicit spec bump
-(no silent growth — lesson from M11/M12 PAV-math drift).
+Drift detectors:
+  - `tests/test_m142_mcp_bridge.py::test_drift_count_of_read_only_wrappers_is_6`
+    — 6 read-only pinned.
+  - `tests/test_m144_mcp_bridge_write_tools.py::test_total_wrapper_count_is_12`
+    — total 12 pinned.
+  - `tests/test_m142_mcp_bridge.py::test_forbidden_tools_not_importable`
+    — 8 PAV-math names forbidden.
 
-See `specs/M142-agent-mcp-wiring/SPEC.md` for full design rationale + the
+Adding a new wrapper requires an explicit spec bump (no silent growth —
+lesson from M11/M12 PAV-math drift).
+
+See `specs/M142-agent-mcp-wiring/SPEC.md`, `specs/M143-loop-otel-wiring/SPEC.md`,
+and `specs/M144-loop-write-tools/SPEC.md` for design rationale + the
 FakeMcpServer test pattern.
 
 ## Risk-Tiered Review

@@ -2,13 +2,18 @@
 
 Mirrors the architecture of `src/ikigai/src/agents/v2/mcp_bridge.py` (M5 +
 Phase 8.2) but lives at the LOOP layer (`.claude/loop/`). It exposes a thin,
-callable Python surface for the **6 read-only IKIGAI MCP tools** so loop
-sub-agents can do `ikigai_mesh_show(ueid=...)` without hand-rolling the
-stdio JSON-RPC handshake from inside a worker worktree.
+callable Python surface for the **12 IKIGAI MCP tools** so loop sub-agents
+can do `ikigai_mesh_show(ueid=...)` without hand-rolling the stdio JSON-RPC
+handshake from inside a worker worktree.
 
-**READ-ONLY slice (M142).** Write-side tools (`vault_write`,
-`ikigai_write_tasks`, `investigation_*`) are deliberately NOT exposed here —
-they live in v2 graph / operator-TUI per ADR-012/013 and arrive as M144.
+**M142 slice (6 read-only):** `ikigai_decompose`, `ikigai_read_tasks`,
+`ikigai_mesh_show`, `ikigai_health`, `ikigai_task_create` (with
+`dry_run=True` default), `taskdog_list`.
+
+**M144 slice (6 write-side):** `vault_read`, `ikigai_write_tasks`,
+`vault_write`, `investigation_enqueue`, `investigation_status`,
+`investigation_complete`. Write tools inherit the server-side security
+model (VaultLock for vault_write, path validation, audit logging).
 
 Architecture:
     Worker / Verifier / Orchestrator
@@ -33,12 +38,13 @@ exporters. Same 5-attribute schema as v2 mcp_bridge.py:_call (T-8.3.1,
 
 Adding a new tool here requires:
   1. Append a sync wrapper to this module (e.g. `def ikigai_X(*, ...): ...`)
-  2. The drift test `tests/test_m142_mcp_bridge.py::test_drift_count_of_wrapped_tools_is_6`
-     auto-detects that count is now N+1 — update it explicitly. No silent growth.
+  2. The drift tests `test_drift_count_of_read_only_wrappers_is_6` (M142)
+     and `test_drift_count_of_write_wrappers_is_6` (M144) auto-detect
+     that count is now N+1 — update them explicitly. No silent growth.
 
-Do NOT add `vault_write` / `ikigai_write_tasks` / `investigation_*` here
-without an M144 spec — see `.claude/agents/loop/orchestrator.md` for the
-planner-only boundary (ADR-013).
+Do NOT add PAV-math tools (`ikigai_observe_pav_state`, `ikigai_score_vectors`,
+etc. — see `src/ikigai/src/mcp_server/server.py:218+`) here — they are
+FORBIDDEN per ADR-013 (planner-only boundary).
 """
 
 from __future__ import annotations
@@ -193,3 +199,114 @@ def taskdog_list(*, status: str | None = None, limit: int | None = None) -> dict
     if limit is not None:
         args["limit"] = limit
     return _call("taskdog_list", args)
+
+
+# ---------------------------------------------------------------------------
+# M144 slice (6 write-side). NO PAV-math tools (FORBIDDEN per ADR-013).
+# ---------------------------------------------------------------------------
+
+
+def vault_read(vault_path: str) -> dict[str, Any]:
+    """Read a markdown file from the vault (read-side write-tool companion).
+
+    Returns parsed frontmatter, body, sha256, mtime. Read-only — never
+    writes. Mirror of `vault_write` security model (path validation,
+    vault-rooted paths only). Server signature mirrors
+    `src/ikigai/src/mcp_server/server.py:148-159`.
+    """
+    return _call("vault_read", {"vault_path": vault_path})
+
+
+def ikigai_write_tasks(tasks: list[dict[str, Any]]) -> dict[str, Any]:
+    """Write structured tasks to `data/tasks.jsonl` — Deep Agent output.
+
+    Server signature: `src/ikigai/src/mcp_server/server.py:67-71`.
+    Returns a JSON string describing the write outcome.
+    """
+    return _call("ikigai_write_tasks", {"tasks": tasks})
+
+
+def vault_write(
+    *,
+    vault_path: str,
+    frontmatter: dict[str, Any],
+    body: str,
+) -> dict[str, Any]:
+    """Write a markdown file to the vault — canonical writer per ADR-012.
+
+    Rejects paths outside `vault/`, absolute paths, empty writes.
+    Uses VaultLock for concurrency safety; atomic via tmp-file + rename.
+
+    All three kwargs are REQUIRED — no defaults. A typo or missing field
+    should fail loud, not silently write a half-baked note.
+    """
+    return _call(
+        "vault_write",
+        {
+            "vault_path": vault_path,
+            "frontmatter": frontmatter,
+            "body": body,
+        },
+    )
+
+
+def investigation_enqueue(
+    *,
+    inq_id: str,
+    source: str,
+    payload: str,
+    tags: list[str] | None = None,
+    actor: str = "loop-agent",
+) -> dict[str, Any]:
+    """Park a pre-form observation in the investigation queue.
+
+    Investigations live outside the 6-level SONHO/OBJETIVO/META/PROJETO/
+    ENTREGA/TAREFA hierarchy and can later crystallize into a UEID via
+    `inq_ueid` on `investigation_complete`.
+
+    `actor` defaults to `"loop-agent"` — distinguishable from v2 graph's
+    default `"agent"` and operator-TUI's typed actor. Trivial to grep
+    by source.
+    """
+    args: dict[str, Any] = {
+        "inq_id": inq_id,
+        "source": source,
+        "payload": payload,
+        "actor": actor,
+    }
+    if tags is not None:
+        args["tags"] = tags
+    return _call("investigation_enqueue", args)
+
+
+def investigation_status(inq_id: str | None = None) -> dict[str, Any]:
+    """Fetch the status of one investigation (by inq_id) or a summary.
+
+    Read-side. Pass `inq_id=None` to get a summary across all statuses.
+    """
+    return _call("investigation_status", {"inq_id": inq_id})
+
+
+def investigation_complete(
+    *,
+    inq_id: str,
+    final_status: str = "resolved",
+    actor: str = "loop-agent",
+    inq_ueid: str | None = None,
+) -> dict[str, Any]:
+    """Mark an investigation resolved (success) or archived (abandoned).
+
+    Terminal state — no resurrection. Pass `inq_ueid` when the
+    investigation crystallizes into a UEID.
+
+    `final_status` defaults to `"resolved"`. Use `"archived"` for
+    abandoned investigations.
+    """
+    args: dict[str, Any] = {
+        "inq_id": inq_id,
+        "final_status": final_status,
+        "actor": actor,
+    }
+    if inq_ueid is not None:
+        args["inq_ueid"] = inq_ueid
+    return _call("investigation_complete", args)
