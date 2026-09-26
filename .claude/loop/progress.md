@@ -6572,3 +6572,111 @@ $ PYTHONPATH="src/ikigai/src;src/ikigai/.venv/Lib/site-packages" \
 - M142: **+14** new tests
 - M143: **+13** new tests (M141 didn't add new test files)
 - M110-M143: **406 new tests** since M109
+
+## M144 — 2026-09-26
+
+**Goal:** Add 6 write-side IKIGAI MCP wrappers to `.claude/loop/mcp_bridge.py`,
+completing the loop bridge from 6 read-only → 12 total. Worker writes now
+flow through the bridge; v2-graph writes stay separate.
+
+### Delivered
+
+**`specs/M144-loop-write-tools/SPEC.md`** (~10KB) — design rationale for
+the write slice, drift-test split into read + write subsets, `actor="loop-agent"`
+default for distinguishing loop vs v2 graph writes in audit logs.
+
+**`.claude/loop/mcp_bridge.py`** (195 → 312 LOC) — added:
+- `vault_read(vault_path)` — read-side companion to vault_write
+- `ikigai_write_tasks(tasks)` — write to `data/tasks.jsonl` (Deep Agent output)
+- `vault_write(vault_path, frontmatter, body)` — canonical vault writer per
+  ADR-012, all 3 kwargs REQUIRED
+- `investigation_enqueue(inq_id, source, payload, tags=None, actor="loop-agent")`
+- `investigation_status(inq_id=None)` — read-side
+- `investigation_complete(inq_id, final_status="resolved", actor="loop-agent", inq_ueid=None)`
+
+Module docstring updated to reference both M142 and M144 slices. SPAN_PREFIX
+constant unchanged (M143). New wrappers inherit OTel span emission for free.
+
+**`tests/test_m142_mcp_bridge.py`** (drift test split):
+- `test_drift_count_of_read_only_wrappers_is_6` — M142 invariant (6 read)
+- `test_drift_count_of_write_wrappers_is_6` — M144 invariant (6 write)
+- `test_drift_count_of_wrapped_tools_is_12` — combined total
+- FORBIDDEN_NAMES reduced from 8 (mixed write-side + taskdog_rest) to **8 PAV-math
+  tools** (`ikigai_observe_pav_state`, `ikigai_score_vectors`, etc.). ADR-013
+  planner-only boundary is the only remaining restriction.
+
+**`tests/test_m144_mcp_bridge_write_tools.py`** (21/21 PASS, **296L**):
+- Each wrapper delegates to `_call()` with correct tool_name + args dict
+- `vault_write` requires all 3 kwargs (TypeError on missing — loud-fail)
+- `investigation_*` defaults `actor="loop-agent"` (overridable)
+- `investigation_complete` defaults `final_status="resolved"`
+- `investigation_enqueue` omits `tags` kwarg entirely when None (clean payload)
+- `investigation_complete` omits `inq_ueid` kwarg when None
+- Total wrapper count = 12, PAV-math still forbidden, `_server=` rejected
+
+**`.claude/agents/loop/orchestrator.md`** — Programmatic Bridge subsection
+expanded: 6 read + 6 write = 12 total, write-side bullet list, ADR-012
+vault_write notes, audit-log actor convention, deferred-to-M145 list.
+
+### Decisions
+
+- **`actor="loop-agent"` default** for investigation tools: distinguishes
+  loop writes from v2-graph writes (`"agent"` default) and operator-TUI
+  writes (typed actor) in `vault/.vault_events.jsonl` + investigation audit
+  log. Trivial to grep by source layer.
+- **`vault_write` has NO defaults**: every arg required. The canonical
+  vault writer; a typo or missing field should fail loud, not silently
+  write a half-baked note. Mirrors server-side `vault_write` signature
+  exactly (`server.py:128-148`).
+- **Drift test split (read + write subsets)**: gives future contributors
+  a cleaner migration story. M147 adding a 7th read tool only updates
+  the read subset; M148 adding a 7th write tool only updates the write
+  subset. Both subsets live in the M142 test file for proximity.
+- **`vault_read` is bundled in M144 (not M142)**: it shares the security
+  model with `vault_write` (path validation, vault-rooted paths only).
+  Bundling them in one milestone keeps the audit-log invariants under
+  one review.
+- **PAV-math tools (8) stay forbidden** despite being registered in
+  `server.py`. They exist for v2-graph drift detection only; loop bridge
+  workers that need math/policy/scoring escalate to v2 graph per ADR-013.
+
+### Honest scope
+
+- ✅ 12 wrappers exposed (6 read + 6 write) + drift test split
+- ✅ All 21 M144 tests PASS
+- ✅ All 15 M142 + 14 M143 tests still PASS — full sweep 121/121
+- ✅ Orchestrator prompt updated (additive)
+- ⚠️ **Production binding still mocked**: `vault_write` calls
+  `_server.call("vault_write", {...})` which is a MagicMock in tests.
+  Production needs M146 binding. Until then, the bridge is testable
+  but not production-callable.
+- ⚠️ **Audit-log schema for `actor="loop-agent"`** is implicit — existing
+  operator-TUI may not filter by this yet. Out of scope; M146 follow-up
+  if filtering becomes important.
+- ⚠️ **`vault_write` 3-required-kwargs is a behavior change for callers**
+  who used to pass them positionally. The wrapper is keyword-only (`*`
+  in signature) so old code calling positionally would already fail.
+
+### Test run summary
+
+```
+$ PYTHONPATH="src/ikigai/src;src/ikigai/.venv/Lib/site-packages" \
+  src/ikigai/.venv/Scripts/python.exe -m pytest \
+  tests/test_m142_mcp_bridge.py tests/test_m143_mcp_bridge_spans.py \
+  tests/test_m144_mcp_bridge_write_tools.py tests/contracts/ tests/integration/ -q
+121 passed in 0.96s
+```
+
+### Followups (sequential)
+
+- **M145** — taskdog fork tools beyond `taskdog_list` + 6 MCP resources.
+- **M146** — production binding of `_server` to FastMCP client +
+  `init_tracing()` at loop startup. Cost: $0.50.
+
+### Cumulative test count
+
+- M110-M130: **379 new tests** since M109
+- M142: **+14** new tests
+- M143: **+13** new tests
+- M144: **+21** new tests (M141 didn't add new test files)
+- M110-M144: **427 new tests** since M109

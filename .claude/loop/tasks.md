@@ -1182,3 +1182,94 @@ no sub-agents spawned; bounded task + spec was sufficient context)
 
 **M143 actual cost:** **$0.00** (orchestrator did it directly — bounded
 task + spec was sufficient context, same as M142)
+
+## Active Tasks (M144 — Loop Write Tools)
+
+### M144 — Loop-side Write Tools
+- **Spec:** `specs/M144-loop-write-tools/SPEC.md` (created 2026-09-26)
+- **Goal:** Add 6 write-side IKIGAI MCP wrappers to `.claude/loop/mcp_bridge.py`,
+  completing the loop bridge from 6 read-only → 12 total (6 read + 6 write).
+  Worker writes go through the bridge; v2-graph writes stay separate.
+
+#### T-144.1 — Add 6 new wrappers to `.claude/loop/mcp_bridge.py`
+- **status:** done
+- **spec_ref:** `specs/M144-loop-write-tools/SPEC.md` (acceptance #1, #2, #3, #4)
+- **acceptance:**
+  - [x] 6 wrappers added: `vault_read`, `ikigai_write_tasks`, `vault_write`,
+        `investigation_enqueue`, `investigation_status`, `investigation_complete`
+  - [x] `vault_write` has 3 required kwargs, no defaults
+  - [x] `investigation_*` default actor is `"loop-agent"`
+  - [x] `investigation_complete` default `final_status="resolved"`
+  - [x] Module grew from 195 → 312 LOC (≤320 target met)
+  - [x] Module docstring updated to reflect M142 + M144 slices
+- **estimated_cost_usd:** 0.10
+- **estimated_minutes:** 25
+- **last_verdict:** PASS
+- **notes:** All 12 wrappers verified via direct Python smoke test + 21
+  pytest tests. SPAN_PREFIX constant unchanged (M143).
+
+#### T-144.2 — Split M142 drift test into read + write subsets
+- **status:** done
+- **spec_ref:** `specs/M144-loop-write-tools/SPEC.md` (acceptance #5)
+- **acceptance:**
+  - [x] `test_drift_count_of_read_only_wrappers_is_6` (M142 invariant)
+  - [x] `test_drift_count_of_write_wrappers_is_6` (M144 invariant)
+  - [x] `test_drift_count_of_wrapped_tools_is_12` (combined total)
+  - [x] FORBIDDEN_NAMES reduced to 8 PAV-math tools (was 8 mixed write-side
+        tools + taskdog_rest). vault_write / ikigai_write_tasks /
+        investigation_* now LEGITIMATE bridge surface.
+- **estimated_cost_usd:** 0.04
+- **estimated_minutes:** 10
+- **last_verdict:** PASS
+
+#### T-144.3 — Create `tests/test_m144_mcp_bridge_write_tools.py`
+- **status:** done
+- **spec_ref:** `specs/M144-loop-write-tools/SPEC.md` (acceptance #5, #6, #7)
+- **acceptance:**
+  - [x] File exists with 21 tests, all PASS
+  - [x] Tests cover: each wrapper delegates correctly, vault_write requires
+        all 3 kwargs (TypeError on missing), investigation_* default actor,
+        investigation_complete default final_status, total wrapper count,
+        PAV-math still forbidden, `_server=` kwarg rejection
+- **estimated_cost_usd:** 0.08
+- **estimated_minutes:** 20
+- **last_verdict:** PASS
+
+#### T-144.4 — Update orchestrator prompt Programmatic Bridge subsection
+- **status:** done
+- **spec_ref:** `specs/M144-loop-write-tools/SPEC.md` (acceptance #8)
+- **acceptance:**
+  - [x] Subsection header changed from "M142 — read-only" to
+        "M142 read-only + M144 write-side"
+  - [x] Wrapper count updated from 6 → 12
+  - [x] Write-side bullet list with vault_write / investigation_* notes
+  - [x] Forbidden set reduced to 8 PAV-math names (was 8 mixed)
+  - [x] Drift detectors section lists all 3 (read subset, write subset,
+        forbidden)
+  - [x] SPEC reference updated to include M144
+- **estimated_cost_usd:** 0.02
+- **estimated_minutes:** 5
+- **last_verdict:** PASS
+
+#### T-144.5 — Verify regression sweep
+- **status:** done
+- **spec_ref:** `specs/M144-loop-write-tools/SPEC.md` (closeout)
+- **acceptance:**
+  - [x] M142 (15 tests) + M143 (14 tests) + M144 (21 tests) +
+        contracts/integration (71 tests) = **121/121 PASS**
+- **estimated_cost_usd:** 0.01
+- **estimated_minutes:** 5
+- **last_verdict:** PASS
+
+#### T-144.6 — progress.md entry + atomic commit + push
+- **status:** pending (in progress)
+- **spec_ref:** `specs/M144-loop-write-tools/SPEC.md` (closeout)
+- **acceptance:**
+  - [x] `progress.md` M144 entry appended
+  - [ ] Atomic commit + push to origin master
+- **estimated_cost_usd:** 0.05
+- **estimated_minutes:** 10
+- **last_verdict:** PASS
+
+**M144 actual cost:** **$0.00** (orchestrator did it directly — bounded
+task + spec was sufficient context, same as M142 + M143)

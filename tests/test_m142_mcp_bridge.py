@@ -180,34 +180,95 @@ def test_drift_count_of_wrapped_tools_is_6(bridge):
         and name.startswith(("ikigai_", "taskdog_", "vault_", "investigation_"))
         and callable(getattr(bridge, name))
     }
-    assert actual_wrapped == forbidden, (
-        f"M142 wrapper drift: expected exactly {len(forbidden)} wrappers, "
-        f"got {len(actual_wrapped)}: {sorted(actual_wrapped)}"
+    # M142 enforces 6 read-only wrappers. M144 added 6 more (write-side),
+    # bringing the total to 12. Splitting drift detection into read + write
+    # subsets lets each milestone evolve independently.
+    assert len(actual_wrapped) == 12, (
+        f"M142+M144 wrapper drift: expected exactly 12 wrappers (6 read + "
+        f"6 write), got {len(actual_wrapped)}: {sorted(actual_wrapped)}"
+    )
+
+
+def test_drift_count_of_read_only_wrappers_is_6(bridge):
+    """M142 invariant: read-only slice has exactly 6 wrappers.
+
+    Subset of the 12-wrapper total. If M147 adds a 7th read-only tool,
+    this test fails — explicit spec bump required.
+    """
+    read_only = {
+        "ikigai_decompose",
+        "ikigai_read_tasks",
+        "ikigai_mesh_show",
+        "ikigai_health",
+        "ikigai_task_create",
+        "taskdog_list",
+    }
+    actual = {
+        name for name in read_only
+        if hasattr(bridge, name) and callable(getattr(bridge, name))
+    }
+    assert actual == read_only, (
+        f"M142 read-only surface drift: expected={sorted(read_only)}, "
+        f"present={sorted(actual)}"
+    )
+
+
+def test_drift_count_of_write_wrappers_is_6(bridge):
+    """M144 invariant: write-side slice has exactly 6 wrappers.
+
+    Subset of the 12-wrapper total. If M148 adds a 7th write tool,
+    this test fails — explicit spec bump required.
+    """
+    write_side = {
+        "vault_read",
+        "ikigai_write_tasks",
+        "vault_write",
+        "investigation_enqueue",
+        "investigation_status",
+        "investigation_complete",
+    }
+    actual = {
+        name for name in write_side
+        if hasattr(bridge, name) and callable(getattr(bridge, name))
+    }
+    assert actual == write_side, (
+        f"M144 write-side surface drift: expected={sorted(write_side)}, "
+        f"present={sorted(actual)}"
     )
 
 
 # ---------------------------------------------------------------------------
-# Acceptance #5: forbidden tools absent from module surface
+# Acceptance #5: PAV-math tools absent from module surface (still forbidden)
 # ---------------------------------------------------------------------------
 
 
+# Per ADR-013 (planner-only boundary). These 8 PAV-math stubs are registered
+# in server.py for v2-graph drift detection but must NEVER appear in the
+# loop bridge — they execute math/policy/scoring that the loop layer is
+# forbidden to invoke. See src/ikigai/src/mcp_server/server.py:218+ for the
+# full list.
 FORBIDDEN_NAMES = {
-    "vault_write",
-    "vault_read",
-    "ikigai_write_tasks",
-    "investigation_enqueue",
-    "investigation_status",
-    "investigation_complete",
-    "taskdog_read",
-    "taskdog_supports_field",
+    "ikigai_observe_pav_state",
+    "ikigai_score_vectors",
+    "ikigai_heuristics",
+    "ikigai_balance",
+    "ikigai_plan",
+    "ikigai_reflect",
+    "ikigai_tag_and_persist",
+    "ikigai_commit_summary",
 }
 
 
 def test_forbidden_tools_not_importable(bridge):
-    """M144 territory: vault_write, ikigai_write_tasks, investigation_*, etc."""
+    """ADR-013: PAV-math tools MUST NOT be importable from the loop bridge.
+
+    Note: as of M144, vault_write / ikigai_write_tasks / investigation_*
+    are LEGITIMATE bridge surface (no longer forbidden). This test now
+    only checks the 8 PAV-math names.
+    """
     exported = set(dir(bridge))
     leaked = exported & FORBIDDEN_NAMES
-    assert not leaked, f"M142 is read-only; forbidden tools leaked: {leaked}"
+    assert not leaked, f"PAV-math tools leaked (ADR-013 violation): {leaked}"
 
 
 # ---------------------------------------------------------------------------
