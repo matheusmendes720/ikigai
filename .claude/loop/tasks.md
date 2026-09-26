@@ -1107,3 +1107,78 @@
 no sub-agents spawned; bounded task + spec was sufficient context)
 
 **M142 total cost:** **$0.20** (round to $0.30 with retry buffer)
+
+## Active Tasks (M143 — Loop OTel Wiring)
+
+### M143 — Loop-side OTel Wiring
+- **Spec:** `specs/M143-loop-otel-wiring/SPEC.md` (created 2026-09-26)
+- **Goal:** Add OpenTelemetry spans to `.claude/loop/mcp_bridge.py:_call()`,
+  mirroring v2 mcp_bridge T-8.3.1 (2026-09-08) pattern. Tracer prefix
+  `loop.mcp.{tool_name}` distinct from v2's `ikigai.bridge.` and
+  server-side `ikigai.mcp.`.
+
+#### T-143.1 — Add OTel span emission to `.claude/loop/mcp_bridge.py:_call()`
+- **status:** done
+- **spec_ref:** `specs/M143-loop-otel-wiring/SPEC.md` (acceptance #1, #2, #3, #4)
+- **acceptance:**
+  - [x] `_tracer = get_tracer("loop.mcp")` imported from
+        `src.ikigai/src/observability/otel_init.py`
+  - [x] `SPAN_PREFIX = "loop.mcp."` module constant
+  - [x] `_call()` wraps `_server.call(...)` in
+        `_tracer.start_as_current_span(f"{SPAN_PREFIX}{tool_name}")`
+  - [x] 5 attributes: `tool.name`, `tool.arguments_hash`, `tool.duration_ms`,
+        `tool.error.class`, `tool.error.message`, `tool.error.traceback`
+  - [x] Span status: OK on success, ERROR+description on error
+  - [x] RuntimeError on `_server is None` short-circuits BEFORE span
+  - [x] Module grew from 143 → 195 LOC (≤200 target met)
+- **estimated_cost_usd:** 0.06
+- **estimated_minutes:** 15
+- **last_verdict:** PASS
+- **notes:** Module docstring updated to reference M143. SPAN_PREFIX
+  constant pinned by drift test (test_m143_span_prefix_constant_value).
+
+#### T-143.2 — Create `tests/test_m143_mcp_bridge_spans.py`
+- **status:** done
+- **spec_ref:** `specs/M143-loop-otel-wiring/SPEC.md` (acceptance #5)
+- **acceptance:**
+  - [x] File exists with 13 tests, all PASS
+  - [x] Module-scoped `bridge` fixture loads module AFTER TracerProvider
+        is set (OTel SDK forbids re-setting global provider)
+  - [x] Tests cover: SPAN_PREFIX value, tracer name, success span name,
+        success attributes, deterministic hash, status OK on success,
+        error span name, error attributes, status ERROR on error,
+        500-char truncation, no span on unbound server, v2-schema parity,
+        tracer-distinct-from-v2-prefix
+- **estimated_cost_usd:** 0.05
+- **estimated_minutes:** 15
+- **last_verdict:** PASS
+- **notes:** First fixture version used function-scoped TracerProvider
+  install which failed with "Overriding of current TracerProvider is
+  not allowed" — fixed by switching to module-scoped fixture that
+  installs the provider once per session before bridge load. Module is
+  cached under unique key `loop_mcp_bridge_m143` to ensure re-load.
+
+#### T-143.3 — Verify M142 tests still PASS (regression sweep)
+- **status:** done
+- **spec_ref:** `specs/M143-loop-otel-wiring/SPEC.md` (acceptance #6)
+- **acceptance:**
+  - [x] M142 drift test `test_drift_count_of_wrapped_tools_is_6` updated
+        to count only canonical wrappers (not OTel imports like
+        `Status`/`StatusCode`/`get_tracer`)
+  - [x] `pytest tests/test_m142_mcp_bridge.py tests/test_m143_mcp_bridge_spans.py tests/contracts/ tests/integration/` 98/98 PASS
+- **estimated_cost_usd:** 0.01
+- **estimated_minutes:** 5
+- **last_verdict:** PASS
+
+#### T-143.4 — progress.md entry + atomic commit + push
+- **status:** pending (in progress)
+- **spec_ref:** `specs/M143-loop-otel-wiring/SPEC.md` (closeout)
+- **acceptance:**
+  - [x] `progress.md` M143 entry appended
+  - [ ] Atomic commit + push to origin master
+- **estimated_cost_usd:** 0.05
+- **estimated_minutes:** 10
+- **last_verdict:** PASS
+
+**M143 actual cost:** **$0.00** (orchestrator did it directly — bounded
+task + spec was sufficient context, same as M142)

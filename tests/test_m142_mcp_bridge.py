@@ -150,22 +150,40 @@ def test_taskdog_list_with_filters_passes_kwargs(bridge, fake_server):
 
 
 def test_drift_count_of_wrapped_tools_is_6(bridge):
-    """Pin the M142 surface to 6. Adding a 7th requires explicit spec bump."""
-    wrappers = {
-        name
-        for name in dir(bridge)
-        if not name.startswith("_")
-        and callable(getattr(bridge, name))
-        and name not in {"Any"}  # exclude typing re-export
-    }
-    assert wrappers == {
+    """Pin the M142 surface to 6. Adding a 7th requires explicit spec bump.
+
+    Counts only the canonical IKIGAI / taskdog wrappers, NOT imports like
+    `Status` / `StatusCode` / `get_tracer` (added in M143 for OTel).
+    """
+    forbidden = {
         "ikigai_decompose",
         "ikigai_read_tasks",
         "ikigai_mesh_show",
         "ikigai_health",
         "ikigai_task_create",
         "taskdog_list",
-    }, f"Expected exactly 6 wrappers, got: {sorted(wrappers)}"
+    }
+    actual = {
+        name
+        for name in forbidden
+        if hasattr(bridge, name) and callable(getattr(bridge, name))
+    }
+    assert actual == forbidden, (
+        f"M142 surface drift: expected={sorted(forbidden)}, "
+        f"present={sorted(actual)}"
+    )
+    # And no 7th canonical-style wrapper has been added silently
+    actual_wrapped = {
+        name
+        for name in dir(bridge)
+        if not name.startswith("_")
+        and name.startswith(("ikigai_", "taskdog_", "vault_", "investigation_"))
+        and callable(getattr(bridge, name))
+    }
+    assert actual_wrapped == forbidden, (
+        f"M142 wrapper drift: expected exactly {len(forbidden)} wrappers, "
+        f"got {len(actual_wrapped)}: {sorted(actual_wrapped)}"
+    )
 
 
 # ---------------------------------------------------------------------------
