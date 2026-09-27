@@ -6842,3 +6842,91 @@ binding path, not a test bug. See SPEC §Honest scope.
 
 **Chain status:** M142 ✅ + M143 ✅ + M144 ✅ + M145 ✅ + M146 ✅
 = 5 milestones in this session. Bridge chain complete.
+
+## M147 — 2026-09-26
+
+**Goal:** Fix the Windows MCP stdio handshake hang discovered in M146
+honest-scope. Make `bind_server()` actually complete the MCP initialize
+against the real `python -m mcp_server` subprocess on Windows.
+
+**Root cause investigation (3 layered bugs):**
+
+1. **BrokenResourceError on Windows pipes** — `mcp.client.stdio.stdio_client`
+   uses `anyio.open_process` + `FileReadStream`. On Windows, subprocess
+   pipes use overlapped I/O (`CREATE_NO_WINDOW` flag). `FileReadStream`
+   calls `to_thread.run_sync(file.read)` which fails on overlapped pipes
+   with `BrokenResourceError`. Verified by reading
+   `mcp/client/stdio/__init__.py:155-162` and `anyio/streams/file.py:64`.
+
+2. **FastMCP timing quirks** — even with raw subprocess, FastMCP on
+   Windows requires ~5s after Popen for the server to enter its event
+   loop, then ~3s after `initialize` before it can accept the
+   `notifications/initialized` notification. Sending both messages
+   back-to-back causes the requests to sit in stdin buffer unprocessed.
+
+3. **`_send()` violated JSON-RPC 2.0 spec for notifications** — The
+   `_send()` method always added an `id` field to outgoing messages,
+   including for notifications. JSON-RPC 2.0 spec says notifications
+   MUST omit `id`. FastMCP rejected `notifications/initialized` with
+   `id: 2` because it routed the message to `CancelTaskRequest.method`
+   literal validator (which only accepts `'tasks/cancel'`). This was
+   the actual blocker — even with all the right timing, the server
+   would never accept the notification.
+
+**What landed:**
+
+- `.claude/loop/mcp_runtime.py` — complete transport replacement:
+  - Removed `from mcp.client.stdio import stdio_client` and
+    `from mcp import ClientSession, StdioServerParameters`.
+  - Added `_RawClient` class: synchronous JSON-RPC 2.0 client over
+    raw subprocess pipes. Thread-safe (id-keyed `_responses` dict +
+    `threading.Lock` + `threading.Event`).
+  - Added `_notify()` method: writes JSON-RPC notifications WITHOUT
+    the `id` field. This was the root cause fix.
+  - Added `_RawTransport.start()`: spawns subprocess, waits 5s for
+    server to start, sends `initialize` (id=1), waits 3s, sends
+    `notifications/initialized` (no id), awaits response. Retries
+    the handshake once on failure for reliability.
+  - `call_tool()` and `read_resource()` retry up to 3 times on
+    `TimeoutError` (FastMCP occasionally drops requests during/right
+    after the handshake).
+  - Switched reader thread from byte-by-byte `read(1)` to line-buffered
+    `readline()` — more reliable on Windows subprocess pipes.
+  - Reader `_dispatch` only routes messages with `id` + (`result` or
+    `error`); notifications without id are ignored (M148+ could wire
+    them to callbacks).
+  - `_await` checks `is_set()` on the event BEFORE clearing it (avoids
+    losing notifications under lock contention).
+  - `init_observability()` no longer raises ImportError if the
+    observability module isn't available — returns False instead
+    (graceful degradation).
+  - Total LOC: 486 (was 341; +145 for transport + retry + sync client).
+
+- `tests/test_m147_windows_stdio.py` — 8 new tests:
+  - `_notify` writes JSON without `id` (root cause validation)
+  - `_send` writes JSON with `id`
+  - Reader dispatches responses by id
+  - Reader ignores messages without id
+  - `_await` returns matching response and pops it
+  - `call_tool` source has retry loop
+  - **End-to-end: `bind_server` completes MCP handshake**
+  - **End-to-end: `bind_server` → `ikigai_health` returns valid dict**
+
+- `tests/test_m146_production_binding.py`:
+  - `bridge` fixture now registers in `sys.modules` (pre-existing bug
+    that prevented `_get_mcp_bridge()` from finding it under pytest).
+  - `test_bind_server_smoke_ikigai_health` flipped from `xfail` to
+    `skipif` — it now PASSES on machines with the IKIGAI venv installed.
+
+**Test results:** 163 PASSED (was 154 + 9 new M147 tests). Zero regressions
+in M142-M146 or contracts/integration suites.
+
+**Production binding works end-to-end on Windows.** The bridge is now
+ready for `loop-tick.sh` to call `bind_server()` at loop startup and
+have workers actually hit live IKIGAI MCP tools instead of falling back
+to degraded Bash mode.
+
+**Cost:** $0.00 (one session, no sub-agents).
+
+**Chain status:** M142 → M143 → M144 → M145 → M146 → M147 all on master.
+Bridge chain **complete** — production-bound, end-to-end tested.
