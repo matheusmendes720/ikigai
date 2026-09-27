@@ -34,10 +34,15 @@ RUNTIME_PATH = REPO_ROOT / ".claude" / "loop" / "mcp_runtime.py"
 
 @pytest.fixture(scope="module")
 def bridge():
-    """Load `.claude/loop/mcp_bridge.py` as a module object."""
+    """Load `.claude/loop/mcp_bridge.py` as a module object.
+
+    Registers in sys.modules so `mcp_runtime._get_mcp_bridge()` can find
+    it (it iterates sys.modules looking for the bridge path).
+    """
     spec = importlib.util.spec_from_file_location("loop_mcp_bridge_m146", BRIDGE_PATH)
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
+    sys.modules["loop_mcp_bridge_m146"] = mod  # register so mcp_runtime can find it
     spec.loader.exec_module(mod)
     mod._server = None
     return mod
@@ -205,35 +210,26 @@ def test_unbind_server_is_safe_when_never_bound(runtime, bridge):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    reason="M146 smoke test requires IKIGAI venv at src/ikigai/.venv; "
-    "marked xfail so CI without the venv stays green. Production "
-    "users with the venv will see this pass.",
-    strict=False,
+@pytest.mark.skipif(
+    not (REPO_ROOT / "src" / "ikigai" / ".venv" / "Scripts" / "python.exe").exists(),
+    reason="IKIGAI venv not installed at src/ikigai/.venv",
 )
 def test_bind_server_smoke_ikigai_health(runtime, bridge):
     """bind_server() → subprocess → ikigai_health() returns dict.
 
-    This is the real production binding smoke test. It will pass on
-    machines with the IKIGAI venv installed and FAIL with a timeout
-    if the subprocess can't start (which is why xfail)."""
-
-    # Skip if we're clearly not in an environment with the IKIGAI venv
-    ikigai_python = REPO_ROOT / "src" / "ikigai" / ".venv" / "Scripts" / "python.exe"
-    if not ikigai_python.exists():
-        pytest.skip(f"IKIGAI venv python not found at {ikigai_python}")
-
+    The real production binding smoke test. M147 fixed the Windows stdio
+    hang so this should PASS on machines with the IKIGAI venv installed.
+    Skip (not xfail) on machines without the venv so CI stays green.
+    """
+    runtime.bind_server()
     try:
-        runtime.bind_server()
-        try:
-            result = bridge.ikigai_health()
-            assert isinstance(result, dict)
-        finally:
-            runtime.unbind_server()
-    except Exception as exc:
-        # Re-raise so xfail catches it; the skip path above handles the
-        # "no venv" case cleanly.
-        raise
+        result = bridge.ikigai_health()
+        assert isinstance(result, dict)
+        # Real response should have name + version fields
+        assert "name" in result
+        assert "version" in result
+    finally:
+        runtime.unbind_server()
 
 
 # ---------------------------------------------------------------------------

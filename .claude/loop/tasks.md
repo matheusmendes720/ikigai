@@ -1378,3 +1378,33 @@ task + spec was sufficient context, same as M142 + M143 + M144)
 - **Degraded mode:** If `bind_server()` fails (no IKIGAI venv, stdio
   hang), workers fall back to Bash + file tools. Bridge still loads,
   tool calls raise RuntimeError until `_server` is bound.
+
+## Active Tasks (M147 — Fix Windows stdio)
+
+### M147 — Windows stdio fix
+- **Spec:** `specs/M147-fix-windows-stdio/SPEC.md`
+- **State:** SHIPPED ✅ (commit pending)
+- **What landed:**
+  - `.claude/loop/mcp_runtime.py` — replaced `mcp.client.stdio.stdio_client`
+    with raw `subprocess.Popen` + thread-based reader (`_RawClient`,
+    `_RawTransport` classes). Added `_notify()` for JSON-RPC notifications
+    (without `id` field — the root cause fix).
+  - `tests/test_m147_windows_stdio.py` — 8 new tests covering notify/send
+    distinction, reader routing, retry logic, end-to-end handshake, and
+    end-to-end ikigai_health call.
+  - `tests/test_m146_production_binding.py` — flipped real-server smoke
+    from `xfail` to `skipif`; now passes on machines with IKIGAI venv.
+- **Root cause discovered:**
+  The original M146 stdio hang had THREE causes:
+  1. `stdio_client` (anyio + FileReadStream) hits `BrokenResourceError`
+     on Windows overlapped I/O pipes (M147 transport fix bypasses this).
+  2. FastMCP requires a delay between `initialize` and
+     `notifications/initialized` (M147 adds 5s + 3s sleeps).
+  3. **`_send()` always included `id` field, even for notifications**
+     (JSON-RPC spec violation). FastMCP rejected `notifications/initialized`
+     with `id: 2` because it tried to validate as `CancelTaskRequest` and
+     failed the literal method check. New `_notify()` omits `id` entirely.
+- **Test results:** 163 PASSED (was 154 + 9 new). Zero regressions.
+- **Cost:** $0.00 (one session, no sub-agents).
+- **Chain status:** M142 → M143 → M144 → M145 → M146 → M147 all on master.
+  Bridge chain complete and production-bound.
