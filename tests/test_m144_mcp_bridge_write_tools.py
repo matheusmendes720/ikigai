@@ -242,8 +242,8 @@ def test_investigation_complete_default_final_status(bridge, fake_server):
 # (Lives in M142 test file. Re-verified here for cross-check.)
 
 
-def test_total_wrapper_count_is_14(bridge):
-    """M142 (6) + M144 (6) + M145 (2) = 14 total wrappers."""
+def test_total_wrapper_count_is_23(bridge):
+    """M142 (6) + M144 (6) + M145 (2) + M148 (9 taskdog writes) = 23 wrappers."""
     prefixes = ("ikigai_", "taskdog_", "vault_", "investigation_")
     actual = {
         name
@@ -252,8 +252,8 @@ def test_total_wrapper_count_is_14(bridge):
         and name.startswith(prefixes)
         and callable(getattr(bridge, name))
     }
-    assert len(actual) == 14, (
-        f"Expected 14 wrappers (8 read + 6 write), got {len(actual)}: "
+    assert len(actual) == 23, (
+        f"Expected 23 wrappers (14 prior + 9 M148), got {len(actual)}: "
         f"{sorted(actual)}"
     )
 
