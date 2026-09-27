@@ -344,6 +344,125 @@ def taskdog_supports_field(field_name: str) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# M148 slice — taskdog write tools + search. All writes go through the
+# mesh review queue (ADR-014). Validation happens in agent_consumer; the
+# adapter then mutates the SQLite store on APPROVE.
+# ---------------------------------------------------------------------------
+def taskdog_create(
+    ueid: str,
+    title: str,
+    due: str | None = None,
+    priority: str | int | None = None,
+    planned_start: str | None = None,
+    planned_end: str | None = None,
+) -> dict[str, Any]:
+    """Create a task. Enqueues a CREATE TaskChange to the review queue.
+
+    Args:
+        ueid: Canonical join key (validated by MCP server).
+        title: Task title (>=5 chars, not 'todo'/'tbd', per agent_consumer).
+        due: Optional YYYY-MM-DD due date.
+        priority: Optional priority as int (1=high, 2=medium, 3=low) or
+            string ("high", "medium", "low").
+        planned_start, planned_end: Optional planned dates (YYYY-MM-DD).
+    """
+    args: dict[str, Any] = {"ueid": ueid, "title": title}
+    if due is not None:
+        args["due"] = due
+    if priority is not None:
+        args["priority"] = priority
+    if planned_start is not None:
+        args["planned_start"] = planned_start
+    if planned_end is not None:
+        args["planned_end"] = planned_end
+    return _call("taskdog_create", args)
+
+
+def taskdog_done(ueid: str) -> dict[str, Any]:
+    """Mark a task as done. Enqueues a DONE TaskChange (no fields).
+
+    Idempotent at the adapter layer — marking an already-done task is a
+    no-op (not an error).
+    """
+    return _call("taskdog_done", {"ueid": ueid})
+
+
+def taskdog_set_status(ueid: str, status: str) -> dict[str, Any]:
+    """Update task status. Enqueues an UPDATE with status=field.
+
+    Allowed: planned, in_progress, done, cancelled. For marking done
+    semantically, prefer `taskdog_done` (takes no fields).
+    """
+    if status not in ("planned", "in_progress", "done", "cancelled"):
+        raise ValueError(
+            f"invalid status {status!r}; "
+            "allowed: planned, in_progress, done, cancelled"
+        )
+    return _call("taskdog_set_status", {"ueid": ueid, "status": status})
+
+
+def taskdog_set_priority(ueid: str, priority: str | int) -> dict[str, Any]:
+    """Update task priority. Enqueues an UPDATE with priority=field.
+
+    Accepts int (1=high, 2=medium, 3=low) or string ("high", "medium",
+    "low"). Adapter normalizes both forms.
+    """
+    return _call("taskdog_set_priority", {"ueid": ueid, "priority": priority})
+
+
+def taskdog_set_due(ueid: str, due: str) -> dict[str, Any]:
+    """Update task due date (YYYY-MM-DD). Enqueues an UPDATE."""
+    return _call("taskdog_set_due", {"ueid": ueid, "due": due})
+
+
+def taskdog_set_planned_dates(
+    ueid: str,
+    planned_start: str,
+    planned_end: str,
+) -> dict[str, Any]:
+    """Update both planned_start and planned_end dates. Enqueues an UPDATE."""
+    return _call(
+        "taskdog_set_planned_dates",
+        {"ueid": ueid, "planned_start": planned_start, "planned_end": planned_end},
+    )
+
+
+def taskdog_cancel(ueid: str) -> dict[str, Any]:
+    """Soft-cancel a task (status='cancelled'). Enqueues an UPDATE.
+
+    For hard removal, use `taskdog_delete` instead.
+    """
+    return _call("taskdog_cancel", {"ueid": ueid})
+
+
+def taskdog_delete(ueid: str) -> dict[str, Any]:
+    """Hard-delete a task from taskdog. Enqueues a DELETE TaskChange.
+
+    Irreversible. Prefer `taskdog_cancel` if you might want to restore.
+    """
+    return _call("taskdog_delete", {"ueid": ueid})
+
+
+def taskdog_search(
+    query: str,
+    status: str | None = None,
+    priority: str | int | None = None,
+    limit: int = 10,
+) -> dict[str, Any]:
+    """Search tasks by substring match on name + filters.
+
+    Read-only — does NOT enqueue anything, hits the adapter directly.
+    Useful for finding tasks before applying mutations.
+    """
+    args: dict[str, Any] = {"query": query, "limit": limit}
+    if status is not None:
+        args["status"] = status
+    if priority is not None:
+        args["priority"] = priority
+    return _call("taskdog_search", args)
+
+
+# ---------------------------------------------------------------------------
 # M145 slice — MCP resource accessors
 # ---------------------------------------------------------------------------
 #

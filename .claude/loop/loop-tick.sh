@@ -395,6 +395,10 @@ if $DRY_RUN; then
   import sys
   sys.path.insert(0, '.claude/loop')
   try:
+      # Import mcp_bridge FIRST so bind_server() can find it via sys.modules
+      # (mcp_runtime._get_mcp_bridge() iterates sys.modules looking for the
+      # bridge file path).
+      import mcp_bridge
       from mcp_runtime import init_observability, bind_server
       init_observability()
       bind_server()
