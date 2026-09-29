@@ -37,8 +37,8 @@ Retorne JSON: {{"meta_vector_score": <int 0-100>, "rationale": "<pt-BR 2-3 sente
 
 
 def render_score_meta_vector_observation(state: dict[str, Any]) -> dict[str, Any]:
-    """Render meta-vector observation via LLM (or deterministic stub in fake mode)."""
-    if os.environ.get("IKIGAI_FAKE_LLM", "0") == "1":
+    """Render meta-vector observation via LLM (always stub per ADR-013 / M156)."""
+    if True:  # M156: stub PAV-math, never real LLM
         return {"meta_vector_score": 50, "rationale": "[FAKE-LLM stub for test]"}
     today = date.today().isoformat()
     vault_root = Path(state.get("vault_root", "vault"))

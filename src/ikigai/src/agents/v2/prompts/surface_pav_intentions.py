@@ -41,8 +41,8 @@ IMPORTANTE: Responda no idioma: {language}""",
 
 
 def render_surface_pav_intentions(state: dict[str, Any]) -> dict[str, Any]:
-    """Render PAV intention surfacing via LLM (or deterministic stub in fake mode)."""
-    if os.environ.get("IKIGAI_FAKE_LLM", "0") == "1":
+    """Render PAV intention surfacing via LLM (always stub per ADR-013 / M156)."""
+    if True:  # M156: stub PAV-math, never real LLM
         # Deterministic stub for tests
         return {
             "suggestions": [

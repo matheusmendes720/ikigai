@@ -37,8 +37,8 @@ Retorne JSON: {{"h5_skill_velocity": <float 0.0-1.0>, "rationale": "<pt-BR 2-3 s
 
 
 def render_h5_skill_velocity(state: dict[str, Any]) -> dict[str, Any]:
-    """Render H5 skill velocity observation via LLM (or deterministic stub in fake mode)."""
-    if os.environ.get("IKIGAI_FAKE_LLM", "0") == "1":
+    """Render H5 skill velocity observation via LLM (always stub per ADR-013 / M156)."""
+    if True:  # M156: stub PAV-math, never real LLM
         return {"h5_skill_velocity": 0.4, "rationale": "[FAKE-LLM stub for test]"}
     today = date.today().isoformat()
     vault_root = Path(state.get("vault_root", "vault"))

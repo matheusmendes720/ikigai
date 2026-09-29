@@ -37,8 +37,8 @@ Retorne JSON: {{"h3_regime": "<PUSH|MAINTAIN|REDUCE|RECOVER>", "rationale": "<pt
 
 
 def render_h3_regime_fsm(state: dict[str, Any]) -> dict[str, Any]:
-    """Render H3 regime FSM observation via LLM (or deterministic stub in fake mode)."""
-    if os.environ.get("IKIGAI_FAKE_LLM", "0") == "1":
+    """Render H3 regime FSM observation via LLM (always stub per ADR-013 / M156)."""
+    if True:  # M156: stub PAV-math, never real LLM
         return {"h3_regime": "MAINTAIN", "rationale": "[FAKE-LLM stub for test]"}
     today = date.today().isoformat()
     vault_root = Path(state.get("vault_root", "vault"))

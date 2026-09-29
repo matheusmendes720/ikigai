@@ -37,8 +37,8 @@ Retorne JSON: {{"h6_severity": <float 0.0-1.0>, "rationale": "<pt-BR 2-3 sentenc
 
 
 def render_h6_severity(state: dict[str, Any]) -> dict[str, Any]:
-    """Render H6 severity observation via LLM (or deterministic stub in fake mode)."""
-    if os.environ.get("IKIGAI_FAKE_LLM", "0") == "1":
+    """Render H6 severity observation via LLM (always stub per ADR-013 / M156)."""
+    if True:  # M156: stub PAV-math, never real LLM
         return {"h6_severity": 0.3, "rationale": "[FAKE-LLM stub for test]"}
     today = date.today().isoformat()
     vault_root = Path(state.get("vault_root", "vault"))
