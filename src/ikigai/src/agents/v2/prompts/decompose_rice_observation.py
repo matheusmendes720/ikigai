@@ -49,6 +49,7 @@ def render_decompose_rice_observation(state: dict[str, Any]) -> dict[str, Any]:
         strategics_excerpt=strategics[:2000],
     )
     try:
+        import agents.v2.langchain_anthropic_shim  # noqa: F401  # M158e
         from langchain_anthropic import ChatAnthropic
 
         model = ChatAnthropic(model=os.environ.get("IKIGAI_MODEL", "MiniMax-M2.7-highspeed"))
