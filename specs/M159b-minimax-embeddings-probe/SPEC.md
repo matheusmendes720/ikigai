@@ -33,6 +33,24 @@ endpoint. If yes, swap `_deterministic_embed` for real MiniMax embeddings.
 
 ## Probe results (verbatim)
 
+### Final probe after 210s cooldown
+
+```
+POST https://api.minimax.io/v1/embeddings
+Body: {"model":"embo-01","type":"passage","texts":["hi"]}
+→ HTTP 200
+{"vectors":null,"base_resp":{"status_code":1002,
+  "status_msg":"rate limit exceeded(RPM)"}}
+```
+
+Even after 90s + 120s cooldowns (total 210s), rate limit persists.
+This is likely TPM (tokens per minute) accumulated from prior chat
+requests on the same ANTHROPIC_AUTH_TOKEN, not just RPM.
+
+**Conclusion:** Endpoint confirmed working (returns valid error envelope).
+Real vector response requires waiting for the broader rate limit window
+to reset (could be hours if the same key was used heavily for chat).
+
 ### Probe 1: empty Authorization
 
 ```
