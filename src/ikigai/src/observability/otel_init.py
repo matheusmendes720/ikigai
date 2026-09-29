@@ -28,7 +28,25 @@ import sys
 import threading
 
 from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+try:
+    # otel-exporter-otlp-proto-http has version-dependent imports that can
+    # fail with "cannot import name 'OTEL_COMPONENT_NAME' from
+    # 'opentelemetry.semconv._incubating.attributes.otel_attributes'"
+    # when the installed otel-semantic-conventions is older than what the
+    # exporter expects (or vice-versa). We treat it as a soft dependency:
+    # if the exporter isn't importable, we fall back to no-op exporters.
+    from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+        OTLPSpanExporter as _OTLPSpanExporter,
+    )
+    OTLPSpanExporter = _OTLPSpanExporter
+    _OTLP_AVAILABLE = True
+except (ImportError, AttributeError) as _otel_err:  # noqa: BLE001
+    OTLPSpanExporter = None  # type: ignore[assignment,misc]
+    _OTLP_AVAILABLE = False
+    print(
+        f"[otel_init] OTLP exporter not available: {type(_otel_err).__name__}: {_otel_err}",
+        file=sys.stderr,
+    )
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -77,10 +95,19 @@ def init_tracing() -> None:
     present in the environment, so this works for local-only development too.
     M107: Set IKIGAI_DISABLE_OTEL=1 to skip init entirely (Windows subprocess
     environments where OTel contrib instrumentors crash on asyncio import).
+    M158c: If OTLP exporter module is unavailable (version mismatch), init a
+    bare TracerProvider with no exporters and no instrumentors. Tracing is
+    silent in this mode but the rest of the app continues to work.
     """
     global _INITIALIZED
     if os.environ.get("IKIGAI_DISABLE_OTEL") == "1":
         _INITIALIZED = True
+        return
+    if not _OTLP_AVAILABLE:
+        # Bare TracerProvider with no exporters — tracing is a no-op.
+        if not _INITIALIZED:
+            trace.set_tracer_provider(TracerProvider())
+            _INITIALIZED = True
         return
     with _INIT_LOCK:
         if _INITIALIZED:

@@ -1,24 +1,54 @@
 #!/usr/bin/env python3
 """td shim — minimal Python launcher for the life-oss taskdog CLI.
 
-Hardcoded repo path (this machine only). For a portable shim, replace
-REPO_ROOT with a search based on sys.argv[0]/sys.executable.
+Hardcoded repo path (this machine only).
 
 Build with:
-    python -m zipapp . -o td.exe -p "C:\Python314\python.exe"
+    python -m zipapp . -o td.exe -p "C:\\Python314\\python.exe"
+
+Path strategy:
+- sys.path naturally includes stdlib + Python 3.14 site-packages (which has
+  pydantic, opentelemetry, langchain, etc). Keep those.
+- Prepend REPO_ROOT paths so our src/mesh/taskdog_cli.py wins over any
+  conflicting same-name module in site-packages.
+- Filter out ONLY paths that contain 'installs' (Hermes venv injection)
+  to avoid mixing incompatible OTEL versions across venvs.
 """
 import sys
 from pathlib import Path
-import os
 
 REPO_ROOT = Path(r'C:\Users\mathe\code_space\life-oss\life')
 if not (REPO_ROOT / 'src' / 'mesh' / 'taskdog_cli.py').exists():
     sys.stderr.write('error: life-oss repo not found at ' + str(REPO_ROOT) + '\n')
     sys.exit(2)
 
-sys.path.insert(0, str(REPO_ROOT / "src"))
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(REPO_ROOT / "src" / "ikigai" / "src"))
+# Drop any path that points into another app's installs/venv (Hermes)
+def _is_safe(p: str) -> bool:
+    if not p:
+        return False
+    p_norm = p.replace('\\', '/').lower()
+    # Hermes injects venvs under Local/hermes/installs/<id>/environments/...
+    if '/hermes/installs/' in p_norm:
+        return False
+    # Drop our own paths from sys.path (we'll re-add at the front)
+    p_path = Path(p)
+    try:
+        if p_path.is_relative_to(REPO_ROOT):
+            return False
+    except (AttributeError, ValueError):  # python<3.9 compat
+        pass
+    return True
+
+# Build a clean sys.path: only stdlib + Python's own site-packages,
+# then prepend REPO_ROOT paths so our src/ wins.
+clean = [p for p in sys.path if _is_safe(p)]
+prepend = [
+    str(REPO_ROOT / 'src'),
+    str(REPO_ROOT),
+    str(REPO_ROOT / 'src' / 'ikigai' / 'src'),
+]
+sys.path = prepend + clean
+
 from src.mesh.taskdog_cli import main
 
 sys.exit(main(sys.argv[1:]))
