@@ -34,6 +34,20 @@ from mcp_server.handlers import _handle_ikigai_decompose
 from mcp_server.investigation_complete import investigation_complete
 from mcp_server.investigation_enqueue import investigation_enqueue
 from mcp_server.investigation_status import investigation_status
+from mcp_server.taskdog_tools import (  # noqa: F401 — M148: re-exports handlers below
+    taskdog_create as _taskdog_create,
+    taskdog_done as _taskdog_done,
+    taskdog_set_status as _taskdog_set_status,
+    taskdog_set_priority as _taskdog_set_priority,
+    taskdog_set_due as _taskdog_set_due,
+    taskdog_set_planned_dates as _taskdog_set_planned_dates,
+    taskdog_cancel as _taskdog_cancel,
+    taskdog_delete as _taskdog_delete,
+    taskdog_search as _taskdog_search,
+    taskdog_read as _taskdog_read,
+    taskdog_list as _taskdog_list,
+    taskdog_supports_field as _taskdog_supports_field,
+)
 from mcp_server.tracing import init_mcp_tracing, traced_tool_dispatch
 
 MCP = FastMCP("ikigai-gateway")
@@ -283,6 +297,130 @@ def ikigai_tag_and_persist(ueid: str) -> dict[str, Any]:
 )
 def ikigai_commit_summary(cycle_id: str) -> dict[str, Any]:
     return {"stub": True, "tool": "ikigai_commit_summary", "cycle_id": cycle_id}
+
+
+# ---------------------------------------------------------------------------
+# M148: taskdog tool re-exports. `taskdog_tools.py` defines its own FastMCP
+# instance (Path 3 architecture, kept for backward-compat with the existing
+# standalone `taskdog-mcp` wiring). To expose the same handlers through the
+# ikigai-gateway FastMCP, we wrap each one with @MCP.tool. The wrapper body
+# is a thin pass-through that preserves the JSON-string return contract.
+# ---------------------------------------------------------------------------
+
+
+@MCP.tool(
+    name="taskdog_read",
+    description="Read a taskdog task by UEID (read-only fork tool).",
+)
+def taskdog_read(ueid: str, db_path: str | None = None) -> str:
+    return _taskdog_read(ueid, db_path)
+
+
+@MCP.tool(
+    name="taskdog_list",
+    description="List taskdog tasks (optionally filter by status / limit).",
+)
+def taskdog_list(
+    status: str | None = None,
+    limit: int | None = None,
+    db_path: str | None = None,
+) -> str:
+    return _taskdog_list(status, limit, db_path)
+
+
+@MCP.tool(
+    name="taskdog_supports_field",
+    description="Check whether a field name is supported by the taskdog adapter.",
+)
+def taskdog_supports_field(field_name: str) -> str:
+    return _taskdog_supports_field(field_name)
+
+
+@MCP.tool(
+    name="taskdog_create",
+    description="Create a task in taskdog. Goes through review queue (ADR-014).",
+)
+def taskdog_create(
+    ueid: str,
+    title: str,
+    due: str | None = None,
+    priority: str | int | None = None,
+    planned_start: str | None = None,
+    planned_end: str | None = None,
+) -> str:
+    return _taskdog_create(ueid, title, due, priority, planned_start, planned_end)
+
+
+@MCP.tool(
+    name="taskdog_done",
+    description="Mark a task as done. Goes through review queue.",
+)
+def taskdog_done(ueid: str) -> str:
+    return _taskdog_done(ueid)
+
+
+@MCP.tool(
+    name="taskdog_set_status",
+    description="Update task status. Goes through review queue.",
+)
+def taskdog_set_status(ueid: str, status: str) -> str:
+    return _taskdog_set_status(ueid, status)
+
+
+@MCP.tool(
+    name="taskdog_set_priority",
+    description="Update task priority. Goes through review queue.",
+)
+def taskdog_set_priority(ueid: str, priority: str | int) -> str:
+    return _taskdog_set_priority(ueid, priority)
+
+
+@MCP.tool(
+    name="taskdog_set_due",
+    description="Update task due date. Goes through review queue.",
+)
+def taskdog_set_due(ueid: str, due: str) -> str:
+    return _taskdog_set_due(ueid, due)
+
+
+@MCP.tool(
+    name="taskdog_set_planned_dates",
+    description="Update task planned start/end dates. Goes through review queue.",
+)
+def taskdog_set_planned_dates(
+    ueid: str, planned_start: str, planned_end: str,
+) -> str:
+    return _taskdog_set_planned_dates(ueid, planned_start, planned_end)
+
+
+@MCP.tool(
+    name="taskdog_cancel",
+    description="Cancel a task (status='cancelled'). Goes through review queue.",
+)
+def taskdog_cancel(ueid: str) -> str:
+    return _taskdog_cancel(ueid)
+
+
+@MCP.tool(
+    name="taskdog_delete",
+    description="Hard-delete a task from taskdog. Goes through review queue. Irreversible.",
+)
+def taskdog_delete(ueid: str) -> str:
+    return _taskdog_delete(ueid)
+
+
+@MCP.tool(
+    name="taskdog_search",
+    description="Search tasks by substring match on name + optional status/priority filters.",
+)
+def taskdog_search(
+    query: str,
+    status: str | None = None,
+    priority: str | int | None = None,
+    limit: int = 10,
+) -> str:
+    return _taskdog_search(query, status, priority, limit)
+
 
 
 # ---------------------------------------------------------------------------
