@@ -38,8 +38,6 @@ Retorne JSON: {{"h4_market_fit": <float 0.0-1.0>, "rationale": "<pt-BR 2-3 sente
 
 def render_h4_market_fit(state: dict[str, Any]) -> dict[str, Any]:
     """Render H4 market fit observation via LLM (always stub per ADR-013 / M156)."""
-    if True:  # M156: stub PAV-math, never real LLM
-        return {"h4_market_fit": 0.5, "rationale": "[FAKE-LLM stub for test]"}
     today = date.today().isoformat()
     vault_root = Path(state.get("vault_root", "vault"))
     cycle_state = _read_vault(vault_root / "ikigai/meta/cycle_state" / f"{today}.md")

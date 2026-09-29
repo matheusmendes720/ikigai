@@ -38,8 +38,6 @@ Retorne JSON: {{"h2_qhe_composite": <float 0.0-1.0>, "rationale": "<pt-BR 2-3 se
 
 def render_h2_qhe_composite(state: dict[str, Any]) -> dict[str, Any]:
     """Render H2 QHE composite observation via LLM (always stub per ADR-013 / M156)."""
-    if True:  # M156: stub PAV-math, never real LLM
-        return {"h2_qhe_composite": 0.65, "rationale": "[FAKE-LLM stub for test]"}
     today = date.today().isoformat()
     vault_root = Path(state.get("vault_root", "vault"))
     cycle_state = _read_vault(vault_root / "ikigai/meta/cycle_state" / f"{today}.md")

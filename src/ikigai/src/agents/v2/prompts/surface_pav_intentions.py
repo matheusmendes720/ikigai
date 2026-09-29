@@ -42,19 +42,6 @@ IMPORTANTE: Responda no idioma: {language}""",
 
 def render_surface_pav_intentions(state: dict[str, Any]) -> dict[str, Any]:
     """Render PAV intention surfacing via LLM (always stub per ADR-013 / M156)."""
-    if True:  # M156: stub PAV-math, never real LLM
-        # Deterministic stub for tests
-        return {
-            "suggestions": [
-                "[FAKE-LLM] Considere revisar tasks com regime RECOVER ativo",
-                "[FAKE-LLM] Vector passion_score baixo — ajustar hábito matinal",
-                "[FAKE-LLM] Q_HE em declínio — priorizar completion de tasks pendentes",
-                "[FAKE-LLM] Verificar alinhamento com SONHO atual",
-            ],
-            "language": "pt-BR",
-            "source": "fake-llm-stub",
-        }
-
     today = date.today().isoformat()
     vault_root = Path(state.get("vault_root", "vault"))
     cycle_state_file = vault_root / "ikigai" / "meta" / "cycle_state" / f"{today}.md"
