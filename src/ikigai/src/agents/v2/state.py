@@ -193,6 +193,14 @@ class IKIGAiStateDict(TypedDict):
     # Fields populated by surface_intentions_node after commit completes.
     # user_suggestions is the primary output (3-5 pt-BR suggestion strings).
     user_suggestions: NotRequired[list[str]]
+
+    # ---- reason_node output (M88) ----------------------------------
+    # The current draft proposal being iterated on by reason<->recall loop.
+    # _route_after_reason checks this field to decide reflect vs recall vs error.
+    # Without this field declared in the TypedDict, LangGraph's state schema
+    # filters it out of node returns — reason's draft_proposal is dropped,
+    # routing always sees None, and the graph loops until MAX_REASON_LOOPS.
+    draft_proposal: NotRequired[dict[str, Any]]
     suggestions_count: NotRequired[int]
     suggestions_language: NotRequired[Literal["pt-BR", "en"]]
 
