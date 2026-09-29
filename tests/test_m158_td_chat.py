@@ -8,6 +8,7 @@ Verifies that td chat:
 - awaits approval
 - exits cleanly on /quit
 """
+import os
 import subprocess
 import sys
 import textwrap
@@ -105,3 +106,28 @@ def test_chat_repl_handles_unknowm_approval():
     )
     assert proc.returncode == 0
     assert "ikigai-chat" in proc.stdout
+
+
+def test_chat_repl_approves_pending_triage_proposal(tmp_path):
+    """When /triage emits a proposal, --approve should apply it.
+
+    Regression for: REPL used to invoke v2 graph instead of applying the
+    pending proposal. Now pending_proposal is set by /triage and /extract
+    shortcuts; --approve/--reject immediately applies or discards.
+    """
+    proc = _run_chat_scripted(["/triage", "--approve", "/quit"], timeout=120)
+    assert proc.returncode == 0
+    assert "PROPOSAL from taskdog-triage" in proc.stdout
+    # The fix: --approve after /triage should NOT trigger v2 graph streaming.
+    # We check that the [observe] node print (which only happens on graph stream)
+    # does NOT appear in stdout, confirming the direct-approval path was taken.
+    assert "[observe]" not in proc.stdout
+    assert "approved" in proc.stdout
+
+
+def test_chat_repl_rejects_pending_triage_proposal():
+    """--reject after /triage should discard without invoking v2 graph."""
+    proc = _run_chat_scripted(["/triage", "--reject", "/quit"], timeout=120)
+    assert proc.returncode == 0
+    assert "rejected" in proc.stdout
+    assert "[observe]" not in proc.stdout
