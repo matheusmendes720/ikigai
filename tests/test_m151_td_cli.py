@@ -253,13 +253,52 @@ def test_propagate_runs_worker_and_reports(clean_queue, tmp_path, monkeypatch):
     conn.close()
 
 
-def test_status_command_reports_zero_when_db_empty():
+def test_status_command_succeeds_with_nonzero_tasks():
+    """Smoke: status command works regardless of task count."""
     proc = _run_cli("status", "--json")
     assert proc.returncode == 0
-    assert "total: 0" in proc.stdout or "\"total\":" in proc.stdout
+    assert "db_path:" in proc.stdout
+    assert "total:" in proc.stdout
 
 
 def test_list_command_handles_empty_db():
     proc = _run_cli("list")
     assert proc.returncode == 0
     # Empty table, no error
+
+
+# M153 — timeline + tui subcommands ----------------------------------------
+def test_timeline_command_handles_existing_tasks():
+    """M153: timeline prints events (created/deadline/no-ts) without crashing."""
+    proc = _run_cli("timeline", "--human")
+    assert proc.returncode == 0
+    # Either shows events or the explicit empty message.
+    assert (
+        "timeline (" in proc.stdout
+        or "no timeline events" in proc.stdout
+    )
+
+
+def test_timeline_json_mode_emits_one_event_per_line():
+    """M153: --json emits a JSON object per line, one per event."""
+    proc = _run_cli("timeline", "--json")
+    assert proc.returncode == 0
+    # Each non-empty line should be a JSON object with timestamp + event.
+    for line in proc.stdout.splitlines():
+        if not line.strip():
+            continue
+        obj = json.loads(line)
+        assert "timestamp" in obj
+        assert "event" in obj
+        assert "ueid" in obj
+
+
+def test_tui_command_renders_without_error():
+    """M153: td tui renders dashboard (Rich layout or plain-text fallback)."""
+    proc = _run_cli("tui")
+    assert proc.returncode == 0
+    # Rich path prints panels; plain-text path prints "=" banner.
+    assert (
+        "life-oss taskdog dashboard" in proc.stdout
+        or "dashboard" in proc.stdout
+    )
