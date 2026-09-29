@@ -49,6 +49,21 @@ prepend = [
 ]
 sys.path = prepend + clean
 
+# Map any available token env-var to ANTHROPIC_API_KEY so langchain-anthropic
+# picks it up. The MiniMax provider reuses ANTHROPIC_API_KEY (the chat session
+# uses ANTHROPIC_AUTH_TOKEN via Claude Code, but langchain_anthropic only
+# reads ANTHROPIC_API_KEY).
+import os as _os
+if "ANTHROPIC_API_KEY" not in _os.environ:
+    for _alt in ("ANTHROPIC_AUTH_TOKEN", "MINIMAX_API_KEY"):
+        if _alt in _os.environ:
+            _os.environ["ANTHROPIC_API_KEY"] = _os.environ[_alt]
+            break
+if "ANTHROPIC_BASE_URL" not in _os.environ:
+    _os.environ["ANTHROPIC_BASE_URL"] = "https://api.minimax.io/anthropic"
+# Default IKIGAI_MODEL for v2 graph nodes
+_os.environ.setdefault("IKIGAI_MODEL", "MiniMax-M2.7-highspeed")
+
 from src.mesh.taskdog_cli import main
 
 sys.exit(main(sys.argv[1:]))

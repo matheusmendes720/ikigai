@@ -71,6 +71,7 @@ def render_surface_pav_intentions(state: dict[str, Any]) -> dict[str, Any]:
         language="pt-BR",
     )
     try:
+        import agents.v2.langchain_anthropic_shim  # noqa: F401  # M158e
         from langchain_anthropic import ChatAnthropic
 
         model = ChatAnthropic(model=os.environ.get("IKIGAI_MODEL", "MiniMax-M2.7-highspeed"))
@@ -96,12 +97,31 @@ def _read_vault(path: Path) -> str:
         return ""
 
 
-def _parse_json(content: str) -> dict[str, Any]:
-    """Parse LLM JSON output; fall back to error dict on parse failure."""
+def _parse_json(content: object) -> dict[str, Any]:
+    """Parse LLM JSON output. M158e: handles list-of-blocks."""
+    # Extract text from list of blocks if needed
+    if isinstance(content, list):
+        text_parts: list[str] = []
+        for block in content:
+            if isinstance(block, dict):
+                if "text" in block:
+                    text_parts.append(block["text"])
+            elif isinstance(block, str):
+                text_parts.append(block)
+        text = "\n".join(text_parts)
+    else:
+        text = str(content)
+    # Strip markdown fences
+    text = text.strip()
+    if text.startswith("```"):
+        lines = text.split("\n")[1:]
+        if lines and lines[-1].strip().startswith("```"):
+            lines = lines[:-1]
+        text = "\n".join(lines)
     try:
-        parsed = json.loads(content)
-        if "suggestions" not in parsed:
-            parsed = {"suggestions": [], "error": "missing_suggestions_field", "raw": content}
+        parsed = json.loads(text)
+        if isinstance(parsed, dict) and "suggestions" not in parsed:
+            parsed["_warning"] = "missing_suggestions_field"
         return parsed
     except json.JSONDecodeError as exc:
-        return {"suggestions": [], "error": "parse_failed", "raw": content, "exception": str(exc)}
+        return {"suggestions": [], "error": "parse_failed", "raw": text[:500], "exception": str(exc)}
