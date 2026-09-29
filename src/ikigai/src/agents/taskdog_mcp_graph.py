@@ -146,13 +146,18 @@ def _build_lc_tools() -> list[Any]:
 def _build_agent() -> Any:
     """Build the ReAct agent with taskdog tools. Returns a compiled graph.
 
-    Returns placeholder if ANTHROPIC_API_KEY isn't set.
+    Returns placeholder if ANTHROPIC_API_KEY isn't set OR if
+    langchain_anthropic has a broken install (M157: catches
+    AttributeError too, e.g. when anthropic SDK is too new and
+    no longer has OverloadedError that langchain_anthropic expects).
     """
     try:
         from langchain_anthropic import ChatAnthropic
         from langgraph.prebuilt import create_react_agent
-    except ImportError as e:
-        return _placeholder_graph(f"missing deps: {e}")
+    except (ImportError, AttributeError) as e:
+        # M157: langchain_anthropic import can fail with AttributeError
+        # when anthropic SDK version is incompatible.
+        return _placeholder_graph(f"missing or broken deps: {e}")
 
     api_key = (
         os.environ.get("MINIMAX_API_KEY")
