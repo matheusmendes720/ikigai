@@ -14,13 +14,32 @@ automaticamente antes de cada reasoning, NUNCA auto-executa, e respeita ADR-013
 
 Você já tem 6.337 LOC de v2 funcionando. O que falta é:
 
-1. **Substituir 14 prompts PAV-math por stubs neutros** (M156, ~300 LOC)
+1. **Substituir 14 prompts PAV-math por stubs neutros** (M156, ~300 LOC) ✅ FEITO
 2. **Fix do import `langchain_anthropic`** que está quebrado (M157, ~50 LOC)
 3. **`td chat` REPL que invoca v2 graph** com streaming de "thinking aloud" (M158, ~150 LOC)
 4. **Cache de embeddings do vault** (ChromaDB, M159, ~100 LOC)
 5. **`td tui` painel "agent thinking"** (M160, ~200 LOC, opcional)
 
 **Total:** ~800 LOC, 3-4 sessões. **SEM rewrite-from-scratch.**
+
+---
+
+## Arquitetura de responsabilidades (decisão M155)
+
+| Camada | Onde mora | O que faz | Quem consome |
+|---|---|---|---|
+| **TUI nativa taskdog** | `src/mesh/taskdog_cli.py` (`td tui`) | Visualização nativa das tasks: status, timeline, prioridades, deadlines | Você, interativamente |
+| **Interfaces internas** | `interfaces/` (CLI v2, TUI, etc) | Outras gestões: chat agent, configuração, debug, health, vault read | Você, desenvolvedor/admin |
+| **Agent layer (v2)** | `src/ikigai/src/agents/v2/` | Deep agent com context awareness, 5 skills, 16 nodes | `td chat` (M158) + Claude Code MCP |
+| **Tool layer (M148)** | `src/mesh/adapters/` + `mcp_bridge.py` | 12 taskdog tools + 8 IKIGAI tools + 3 investigation | v2 nodes, td CLI, MCP server |
+
+**Regra:** `td tui` permanece **NATIVA do taskdog** — não vira painel de
+"agent thinking". O agent aparece em **`td chat`** (REPL) e em
+`./interfaces/cli/v2` (outras gestões). A `td tui` continua sendo a
+visualização direta do fork taskdog.
+
+**TUI nunca vai virar console de agente.** Ela é a interface primária
+do taskdog, ponto.
 
 ---
 
