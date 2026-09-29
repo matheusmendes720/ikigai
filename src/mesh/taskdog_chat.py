@@ -63,6 +63,15 @@ def _summarize_event(node_name: str, node_output: dict[str, Any]) -> str:
         return f"COMMIT: {summary[:100]}"
     if node_name == "error":
         return f"ERROR: {node_output.get('error', '?')}"
+    if node_name == "surface_intentions":
+        suggs = node_output.get("user_suggestions", [])
+        if suggs:
+            # show count + first full suggestion
+            return f"{len(suggs)} suggestions: " + " | ".join(suggs)[:200]
+        err = node_output.get("suggestions_error", "")
+        if err:
+            return f"no suggestions ({err[:80]})"
+        return "0 suggestions"
     # Default: show first value
     if node_output:
         first_key = next(iter(node_output))
@@ -137,6 +146,16 @@ def _print_proposal(result_state: dict[str, Any]) -> None:
     if not proposal:
         return
     print(f"\n{C.BOLD}{C.Y}PROPOSAL:{C.RESET} {proposal}")
+    # Surface user-facing suggestions if any (M158e)
+    suggestions = result_state.get("user_suggestions", [])
+    if suggestions:
+        print(f"\n{C.BOLD}{C.G}LLM Suggestions ({len(suggestions)}):{C.RESET}")
+        for i, s in enumerate(suggestions, 1):
+            print(f"  {C.C}{i}.{C.RESET} {s}")
+    # Surface errors
+    err = result_state.get("suggestions_error") or result_state.get("error")
+    if err:
+        print(f"\n{C.R}error: {err}{C.RESET}")
     changes = result_state.get("pending_changes", [])
     if changes:
         print(f"{C.DIM}  {len(changes)} pending change(s). Reply with:{C.RESET}")
