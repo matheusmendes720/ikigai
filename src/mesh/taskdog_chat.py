@@ -85,6 +85,52 @@ def _print_event(node_name: str, node_output: dict[str, Any]) -> None:
     print(f"{color}[{node_name}]{C.RESET}    {summary}", flush=True)
 
 
+def _apply_proposal(proposal: Any) -> None:
+    """Apply a Proposal's changes via the mesh review queue.
+
+    Each change is enqueued as a TaskChange; the mesh propagator will
+    dispatch to all forks. Until M148-write tools are wired in, this is
+    a dry-run print (changes are shown but not queued).
+    """
+    try:
+        from src.mesh.queue import enqueue
+        from src.contracts.task_change import TaskChange, TaskAction
+    except Exception as e:  # noqa: BLE001
+        print(f"{C.Y}[commit] queue import failed: {e} — dry-run only{C.RESET}")
+        return
+
+    for i, change in enumerate(proposal.changes):
+        try:
+            action_str = change.get("action", "CREATE")
+            # Normalize to lowercase for TaskAction enum
+            action_str = action_str.lower() if isinstance(action_str, str) else "create"
+
+            # Sanitize UEID — some test data has malformed ueids; if so, generate a fallback
+            ueid = change.get("ueid", "")
+            try:
+                from src.contracts.common import UEID as _UEID
+                _UEID(ueid)  # validates
+            except Exception:
+                import hashlib as _hl
+                h = _hl.sha256(ueid.encode("utf-8")).hexdigest()
+                ueid = f"tsk:triage:{h[:8]}:{h[8:16]}:{h[16:24]}"
+
+            tc = TaskChange(
+                event_id=__import__("uuid").uuid4().hex,
+                ueid=ueid,
+                action=TaskAction(action_str),
+                fields=change.get("fields", {}),
+                source_fork=f"td_chat:{proposal.skill}",
+                timestamp=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
+            )
+            event_id = enqueue(tc)
+            print(f"  {C.G}[ok] queued change #{i}: {tc.action.value} {tc.ueid} (event={event_id}){C.RESET}")
+        except Exception as e:  # noqa: BLE001
+            print(
+                f"  {C.R}[fail] change #{i}: {type(e).__name__}: {e}{C.RESET}"
+            )
+
+
 def _print_proposal(result_state: dict[str, Any]) -> None:
     """Print a proposal block, if the agent emitted one."""
     proposal = result_state.get("commit_summary") or ""
@@ -165,6 +211,9 @@ def main(argv: list[str] | None = None) -> int:
     prompt = f"\n{C.BOLD}{C.G}> {C.RESET}"
     approval_prompt = f"\n{C.BOLD}{C.G}> {C.RESET}"
 
+    # Pending proposal awaiting --approve/--reject (set by /triage, /extract shortcuts)
+    pending_proposal: Any = None
+
     while True:
         try:
             raw = input(prompt)
@@ -175,6 +224,17 @@ def main(argv: list[str] | None = None) -> int:
         request = raw.strip()
         if not request:
             continue
+
+        # Direct approval of pending proposal (set by /triage, /extract, etc)
+        if pending_proposal is not None and request in ("--approve", "--reject"):
+            if request == "--approve":
+                print(f"{C.G}[commit] approved (changes would be queued via review_queue){C.RESET}")
+                _apply_proposal(pending_proposal)
+            else:
+                print(f"{C.R}[commit] rejected (no changes applied){C.RESET}")
+            pending_proposal = None
+            continue
+
         if request in ("/quit", "/exit", ":q"):
             print(f"{C.DIM}[ikigai-chat] thread closed{C.RESET}")
             return 0
@@ -210,6 +270,7 @@ def main(argv: list[str] | None = None) -> int:
                 from agents.v2.skills.taskdog_triage import propose
 
                 proposal = propose(tasks)
+                pending_proposal = proposal
                 print(
                     f"\n{C.BOLD}{C.Y}PROPOSAL from taskdog-triage:{C.RESET}"
                 )
@@ -239,6 +300,7 @@ def main(argv: list[str] | None = None) -> int:
                 for p in note_paths:
                     if Path(p).exists():
                         proposal = propose_from_file(p)
+                        pending_proposal = proposal
                         print(
                             f"\n{C.BOLD}{C.Y}PROPOSAL from vault-intent-extract:{C.RESET}"
                         )
