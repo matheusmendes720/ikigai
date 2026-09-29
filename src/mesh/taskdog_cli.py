@@ -652,6 +652,27 @@ def main(argv: list[str] | None = None) -> int:
         help="auto-refresh interval in seconds (default: one-shot, no refresh)",
     )
 
+    # M158: chat REPL (deep agent)
+    chat_p = sub.add_parser(
+        "chat",
+        help="REPL interface for the v2 deep agent graph (context-aware, no auto-exec)",
+    )
+    chat_p.add_argument(
+        "--thread-id",
+        default=None,
+        help="thread ID for the conversation (default: auto-generated)",
+    )
+    chat_p.add_argument(
+        "--model",
+        default="minimax-m3",
+        help="model name (cosmetic; v2 graph uses env vars)",
+    )
+    chat_p.add_argument(
+        "--no-color",
+        action="store_true",
+        help="disable ANSI colors in output",
+    )
+
     # M151: write path via review queue
     add_p = sub.add_parser("add", help="enqueue CREATE TaskChange")
     add_p.add_argument("--ueid", required=True, type=_validate_ueid, help="5-part UEID")
@@ -684,6 +705,17 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_timeline(args)
     if args.command == "tui":
         return cmd_tui(args)
+    if args.command == "chat":
+        # Lazy import to keep --help fast
+        from src.mesh.taskdog_chat import main as chat_main
+
+        return chat_main(
+            [
+                *(["--thread-id", args.thread_id] if args.thread_id else []),
+                *(["--model", args.model] if args.model != "minimax-m3" else []),
+                *(["--no-color"] if args.no_color else []),
+            ]
+        )
     if args.command == "add":
         return cmd_add(args)
     if args.command == "done":
