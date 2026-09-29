@@ -21,6 +21,7 @@ include-package-data = true
 # Console script — `pip install -e .` then `life --help` works.
 [project.scripts]
 life = "life.cli:_main_console"
+td = "src.mesh.taskdog_cli:main"
 
 [project.optional-dependencies]
 mesh = [
@@ -35,6 +36,11 @@ dev = [
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "pyyaml>=6.0.3",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
