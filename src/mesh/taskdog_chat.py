@@ -145,9 +145,18 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     print(f"{C.BOLD}ikigai-chat{C.RESET}  thread_id={thread_id}  model={args.model}")
+    try:
+        from agents.v2.skills import list_skills as _list_skills
+
+        skills_line = ", ".join(_list_skills())
+    except Exception:  # noqa: BLE001
+        skills_line = "taskdog-triage, vault-intent-extract"
     print(
-        f"{C.DIM}  skills: daily, weekly, monthly, quarterly, meta_plan, "
-        f"taskdog-triage, vault-intent-extract{C.RESET}"
+        f"{C.DIM}  skills: {skills_line}, meta_plan{C.RESET}"
+    )
+    print(
+        f"{C.DIM}  shortcuts: /triage (run taskdog-triage), "
+        f"/extract (run vault-intent-extract){C.RESET}"
     )
     print(
         f"{C.DIM}  type your request, or /skill <name> <args>, or /quit to exit{C.RESET}"
@@ -191,6 +200,63 @@ def main(argv: list[str] | None = None) -> int:
             parts = request[len("/skill ") :].split(maxsplit=1)
             skill_name = parts[0]
             request = parts[1] if len(parts) > 1 else ""
+        elif request == "/triage":
+            # M161 shortcut: run taskdog-triage on current taskdog state
+            try:
+                from src.mesh.adapters.taskdog import TaskdogAdapter
+
+                adapter = TaskdogAdapter()
+                tasks = adapter.list_all()
+                from agents.v2.skills.taskdog_triage import propose
+
+                proposal = propose(tasks)
+                print(
+                    f"\n{C.BOLD}{C.Y}PROPOSAL from taskdog-triage:{C.RESET}"
+                )
+                print(proposal.to_json())
+                print(
+                    f"\n{C.DIM}{len(proposal.changes)} change(s) proposed. "
+                    f"Reply with --approve to apply, --reject to discard.{C.RESET}"
+                )
+                continue
+            except Exception as e:  # noqa: BLE001
+                print(f"{C.R}error running triage: {e}{C.RESET}")
+                continue
+        elif request == "/extract":
+            # M161 shortcut: run vault-intent-extract on today's note
+            try:
+                from datetime import date as _date
+
+                from agents.v2.skills.vault_intent_extract import (
+                    propose_from_file,
+                )
+
+                today_iso = _date.today().isoformat()
+                note_paths = [
+                    f"vault/daily/{today_iso}.md",
+                    f"vault/{today_iso}.md",
+                ]
+                for p in note_paths:
+                    if Path(p).exists():
+                        proposal = propose_from_file(p)
+                        print(
+                            f"\n{C.BOLD}{C.Y}PROPOSAL from vault-intent-extract:{C.RESET}"
+                        )
+                        print(proposal.to_json())
+                        print(
+                            f"\n{C.DIM}{len(proposal.changes)} change(s) proposed. "
+                            f"Reply with --approve to apply, --reject to discard.{C.RESET}"
+                        )
+                        break
+                else:
+                    print(
+                        f"{C.DIM}no vault note for today ({today_iso}). "
+                        f"Create vault/daily/{today_iso}.md to enable extraction.{C.RESET}"
+                    )
+                continue
+            except Exception as e:  # noqa: BLE001
+                print(f"{C.R}error running extract: {e}{C.RESET}")
+                continue
 
         # Invoke v2 graph with streaming
         try:
