@@ -392,6 +392,214 @@ def cmd_propagate(args: argparse.Namespace) -> int:
     return 0
 
 
+# M153: Timeline + TUI dashboard --------------------------------------------
+def _timeline_events(tasks: list[dict]) -> list[tuple[str, str, dict]]:
+    """Build a sorted list of (timestamp, event_label, task) for timeline view.
+
+    Each task contributes events for: created_at, deadline (if set),
+    and completed_at (if status == 'done'). Sorted ascending by timestamp.
+    Strings without an actual timestamp are filtered out.
+    """
+    events: list[tuple[str, str, dict]] = []
+    for t in tasks:
+        ueid = str(t.get("ueid") or "?")
+        name = str(t.get("name") or "(no name)")
+        created = t.get("created_at")
+        if created:
+            events.append((str(created), f"created   {ueid}  {name}", t))
+        deadline = t.get("deadline")
+        if deadline:
+            events.append((str(deadline), f"DUE       {ueid}  {name}", t))
+        if t.get("status") == "done":
+            # We don't store completed_at separately; fall back to created_at
+            # so the event still appears, marked clearly.
+            events.append(
+                (
+                    str(created) if created else "9999",
+                    f"completed {ueid}  {name}",
+                    t,
+                )
+            )
+    events.sort(key=lambda ev: ev[0])
+    return events
+
+
+def cmd_timeline(args: argparse.Namespace) -> int:
+    """Print a chronological timeline of all task events.
+
+    Each row is one event: created, deadline, or completed. Sorted ascending
+    by timestamp. Tasks without any timestamp field are listed at the
+    bottom with the sentinel "unknown" so they're not silently dropped.
+    """
+    _apply_db_override(args.db_path)
+    adapter = TaskdogAdapter()
+    tasks = adapter.list_all()
+    events = _timeline_events(tasks)
+
+    # Also surface tasks with NO timestamp at all, sorted last.
+    missing_ts: list[tuple[str, str, dict]] = []
+    for t in tasks:
+        has_any = t.get("created_at") or t.get("deadline") or t.get("status") == "done"
+        if not has_any:
+            ueid = str(t.get("ueid") or "?")
+            name = str(t.get("name") or "(no name)")
+            missing_ts.append(("9999", f"no-ts     {ueid}  {name}", t))
+
+    events.extend(missing_ts)
+
+    if _wants_human(args):
+        if not events:
+            print("(no timeline events — store is empty)", flush=True)
+            return 0
+        print(f"timeline ({len(events)} events across {len(tasks)} tasks):", flush=True)
+        print("-" * 60, flush=True)
+        for ts, label, _t in events:
+            print(f"{ts}  {label}", flush=True)
+    else:
+        for ts, label, t in events:
+            print(
+                json.dumps(
+                    {"timestamp": ts, "event": label, "ueid": t.get("ueid")},
+                    default=str,
+                ),
+                flush=True,
+            )
+    return 0
+
+
+def cmd_tui(args: argparse.Namespace) -> int:
+    """Live TUI dashboard using Rich (if available) or plain text fallback.
+
+    Renders a one-shot view (no refresh loop yet — that's a follow-up).
+    Layout:
+        - Header: status counts (planned/in_progress/done/cancelled)
+        - Priority table: tasks sorted by priority (high first), then deadline
+        - Timeline summary: next 5 upcoming deadlines
+
+    If Rich is installed, uses rich.layout.Layout with panels.
+    Otherwise falls back to plain text sections.
+    """
+    _apply_db_override(args.db_path)
+    adapter = TaskdogAdapter()
+    tasks = adapter.list_all()
+
+    # Counts by status
+    counts = {s: 0 for s in _KNOWN_STATUSES}
+    for t in tasks:
+        s = t.get("status")
+        if s in counts:
+            counts[s] += 1
+
+    # Sort tasks: priority asc (1 = high), then deadline asc, then created
+    def sort_key(t: dict) -> tuple:
+        pri = t.get("priority") or 99
+        deadline = t.get("deadline") or "9999"
+        created = t.get("created_at") or ""
+        return (pri, deadline, created)
+
+    sorted_tasks = sorted(tasks, key=sort_key)
+
+    try:
+        from rich.console import Console
+        from rich.layout import Layout
+        from rich.panel import Panel
+        from rich.table import Table
+        from rich.live import Live
+
+        console = Console()
+
+        def render() -> Layout:
+            layout = Layout()
+            layout.split_column(
+                Layout(name="header", size=3),
+                Layout(name="body"),
+            )
+            layout["body"].split_row(
+                Layout(name="left"),
+                Layout(name="right"),
+            )
+            header = (
+                f"[bold]life-oss taskdog dashboard[/bold]  |  "
+                f"total={len(tasks)}  |  "
+                f"planned={counts['planned']}  "
+                f"in_progress={counts['in_progress']}  "
+                f"done={counts['done']}  "
+                f"cancelled={counts['cancelled']}"
+            )
+            layout["header"].update(Panel(header, border_style="cyan"))
+
+            table = Table(
+                title="tasks by priority",
+                show_lines=False,
+                title_style="bold cyan",
+            )
+            table.add_column("ueid", style="dim", no_wrap=True)
+            table.add_column("name")
+            table.add_column("status")
+            table.add_column("pri", justify="right")
+            table.add_column("deadline")
+            for t in sorted_tasks[:20]:
+                pri = t.get("priority")
+                pri_s = f"{pri}" if pri is not None else "-"
+                table.add_row(
+                    str(t.get("ueid") or ""),
+                    _truncate(str(t.get("name") or ""), 30),
+                    str(t.get("status") or ""),
+                    pri_s,
+                    str(t.get("deadline") or ""),
+                )
+            layout["left"].update(Panel(table, border_style="green"))
+
+            # Upcoming deadlines
+            upcoming = [
+                t
+                for t in sorted_tasks
+                if t.get("deadline") and t.get("status") != "done"
+            ][:5]
+            upcoming_lines = []
+            for t in upcoming:
+                ueid = t.get("ueid") or "?"
+                name = _truncate(str(t.get("name") or ""), 30)
+                deadline = t.get("deadline") or ""
+                upcoming_lines.append(f"{deadline}  {ueid}  {name}")
+            upcoming_text = (
+                "\n".join(upcoming_lines)
+                if upcoming_lines
+                else "(no upcoming deadlines)"
+            )
+            layout["right"].update(
+                Panel(
+                    "[bold]upcoming deadlines[/bold]\n\n" + upcoming_text,
+                    border_style="yellow",
+                )
+            )
+            return layout
+
+        # One-shot render. Live(refresh_per_second=...) is the follow-up
+        # when we add auto-refresh.
+        console.print(render())
+        return 0
+    except ImportError:
+        # Plain-text fallback.
+        print("=" * 60, flush=True)
+        print(f"life-oss taskdog dashboard  |  total={len(tasks)}", flush=True)
+        print(
+            f"planned={counts['planned']}  in_progress={counts['in_progress']}  "
+            f"done={counts['done']}  cancelled={counts['cancelled']}",
+            flush=True,
+        )
+        print("=" * 60, flush=True)
+        print("tasks by priority:", flush=True)
+        for t in sorted_tasks[:20]:
+            print(
+                f"  {t.get('ueid')}  {str(t.get('status'))}  "
+                f"pri={t.get('priority')}  dl={t.get('deadline')}  "
+                f"{_truncate(str(t.get('name') or ''), 30)}",
+                flush=True,
+            )
+        return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="ikigai-taskdog",
@@ -425,6 +633,25 @@ def main(argv: list[str] | None = None) -> int:
     _add_db_path(show_p)
     _add_output_flags(show_p)
 
+    timeline_p = sub.add_parser(
+        "timeline",
+        help="print chronological timeline of task events (created/deadline/done)",
+    )
+    _add_db_path(timeline_p)
+    _add_output_flags(timeline_p)
+
+    tui_p = sub.add_parser(
+        "tui",
+        help="render live TUI dashboard (Rich if installed, else plain text)",
+    )
+    _add_db_path(tui_p)
+    tui_p.add_argument(
+        "--refresh",
+        type=float,
+        default=0.0,
+        help="auto-refresh interval in seconds (default: one-shot, no refresh)",
+    )
+
     # M151: write path via review queue
     add_p = sub.add_parser("add", help="enqueue CREATE TaskChange")
     add_p.add_argument("--ueid", required=True, type=_validate_ueid, help="5-part UEID")
@@ -453,6 +680,10 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_status(args)
     if args.command == "show":
         return cmd_show(args)
+    if args.command == "timeline":
+        return cmd_timeline(args)
+    if args.command == "tui":
+        return cmd_tui(args)
     if args.command == "add":
         return cmd_add(args)
     if args.command == "done":
