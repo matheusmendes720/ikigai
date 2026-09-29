@@ -1,16 +1,27 @@
-"""Read-only ops CLI for the TaskdogAdapter SQLite store.
+"""Read+write ops CLI for the TaskdogAdapter SQLite store.
 
 The TaskdogAdapter is the only-connected MCP fork — it persists tasks
 that flow through the mesh review queue. This CLI is the operator's
 window into that store: list what we have, show details for a single
-UEID. There is no write path here — propagation goes through the
-review queue.
+UEID. **Writes** go through the review queue (ADR-014): the CLI
+enqueues a TaskChange; the worker validates + propagates to all
+adapters.
 
 Subcommands:
     list [--status STATUS] [--limit N] [--db-path PATH] [--human|--json]
         Show task slices (default: all, sorted by created_at DESC).
+    status [--db-path PATH] [--human|--json]
+        Show task counts by status + priority.
     show <ueid> [--db-path PATH] [--human|--json]
         Show the full slice for one task (or "not found").
+    add --ueid UEID --title TITLE [--priority 1|2|3] [--due YYYY-MM-DD]
+        Enqueue a CREATE TaskChange. Returns event_id.
+    done <ueid>
+        Enqueue a DONE TaskChange (idempotent).
+    update <ueid> [--priority N] [--status X] [--due YYYY-MM-DD]
+        Enqueue an UPDATE TaskChange with the provided fields.
+    propagate
+        Run the review queue worker once (consume → validate → propagate).
 
 Output modes:
     Default (TTY): aligned ASCII table with column headers.
@@ -22,15 +33,24 @@ Usage:
     python -m src.mesh.taskdog_cli list
     python -m src.mesh.taskdog_cli list --status planned --limit 10
     python -m src.mesh.taskdog_cli show ikigai:task:abc:1:2
+    python -m src.mesh.taskdog_cli add --ueid ikigai:task:abc:1:2 --title "Buy milk"
+    python -m src.mesh.taskdog_cli done ikigai:task:abc:1:2
+    python -m src.mesh.taskdog_cli update ikigai:task:abc:1:2 --priority 1
+    python -m src.mesh.taskdog_cli propagate
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
+from src.contracts.task_change import TaskAction, TaskChange
+from src.mesh import queue
 from src.mesh.adapters import taskdog as taskdog_mod
 from src.mesh.adapters.taskdog import TaskdogAdapter
 
@@ -226,6 +246,152 @@ def _add_db_path(p: argparse.ArgumentParser) -> None:
     )
 
 
+# M151: UEID validation + helpers for the write path ---------------------------
+# Mirrors the canonical regex in src/contracts/common.py so the CLI accepts the
+# same UEID shapes as the rest of the project.
+_UEID_REGEX = re.compile(
+    r"^(?:"
+    r"[a-z]{2,8}:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9]{4,8}:[a-f0-9]{4,8}"
+    r"|"
+    r"[a-z]{2,8}:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9-]{8,36}:[a-f0-9]{4,64}"
+    r"|"
+    r"[a-z]{2,8}:[a-z_]+:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9]{4,8}:[a-f0-9]{4,8}"
+    r")$"
+)
+_DATE_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _validate_ueid(s: str) -> str:
+    """argparse type= callback. Returns the UEID if valid, raises ArgumentTypeError."""
+    if not _UEID_REGEX.match(s):
+        raise argparse.ArgumentTypeError(
+            f"invalid UEID format: {s!r} (expected <cluster>:<entity>:<id>:<id>:<id>)"
+        )
+    return s
+
+
+def _validate_due(s: str) -> str:
+    """argparse type= callback for YYYY-MM-DD."""
+    if not _DATE_REGEX.match(s):
+        raise argparse.ArgumentTypeError(
+            f"invalid due date: {s!r} (expected YYYY-MM-DD)"
+        )
+    return s
+
+
+def _validate_priority_str(s: str) -> int:
+    """argparse type= callback. Returns int 1/2/3."""
+    try:
+        n = int(s)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"priority must be integer, got {s!r}")
+    if n not in (1, 2, 3):
+        raise argparse.ArgumentTypeError(f"priority must be 1/2/3, got {n}")
+    return n
+
+
+def _enqueue_change(ueid: str, action: TaskAction, fields: dict) -> str:
+    """Build a TaskChange and enqueue it. Returns the event_id."""
+    event = TaskChange(
+        event_id=str(uuid.uuid4()),
+        ueid=ueid,
+        action=action,
+        fields=fields,
+        source_fork="cli",
+        timestamp=datetime.now(timezone.utc),
+        status="pending",
+    )
+    return queue.enqueue(event)
+
+
+def cmd_add(args: argparse.Namespace) -> int:
+    """CREATE via review queue."""
+    # argparse has already validated --ueid / --priority / --due format.
+    # We still check title emptiness here because that's a semantic check,
+    # not a format check.
+    if not args.title or not args.title.strip():
+        print("--title is required and cannot be empty", file=sys.stderr)
+        return 2
+    fields: dict = {"title": args.title.strip()}
+    if args.priority is not None:
+        fields["priority"] = args.priority
+    if args.due is not None:
+        fields["due"] = args.due
+    if args.description is not None:
+        fields["description"] = args.description.strip()
+    event_id = _enqueue_change(args.ueid, TaskAction.CREATE, fields)
+    print(f"enqueued CREATE event {event_id} for ueid {args.ueid}", flush=True)
+    print("Run `td propagate` to apply.", flush=True)
+    return 0
+
+
+def cmd_done(args: argparse.Namespace) -> int:
+    """DONE via review queue (idempotent — sets status='done')."""
+    event_id = _enqueue_change(args.ueid, TaskAction.DONE, {})
+    print(f"enqueued DONE event {event_id} for ueid {args.ueid}", flush=True)
+    print("Run `td propagate` to apply.", flush=True)
+    return 0
+
+
+def cmd_update(args: argparse.Namespace) -> int:
+    """UPDATE via review queue (only the fields provided are changed)."""
+    fields: dict = {}
+    if args.priority is not None:
+        fields["priority"] = args.priority
+    if args.status is not None:
+        if args.status not in _KNOWN_STATUSES:
+            print(
+                f"status must be one of {_KNOWN_STATUSES}, got {args.status!r}",
+                file=sys.stderr,
+            )
+            return 2
+        fields["status"] = args.status
+    if args.due is not None:
+        fields["due"] = args.due
+    if args.title is not None:
+        if not args.title.strip():
+            print("--title cannot be empty", file=sys.stderr)
+            return 2
+        fields["title"] = args.title.strip()
+    if not fields:
+        print(
+            "at least one of --priority/--status/--due/--title required",
+            file=sys.stderr,
+        )
+        return 2
+    event_id = _enqueue_change(args.ueid, TaskAction.UPDATE, fields)
+    print(f"enqueued UPDATE event {event_id} for ueid {args.ueid}", flush=True)
+    print("Run `td propagate` to apply.", flush=True)
+    return 0
+
+
+def cmd_propagate(args: argparse.Namespace) -> int:
+    """Run the review queue worker once.
+
+    M151: this is a thin wrapper over review_queue_worker.run_once().
+    Returns the RunResult summary so the operator can see counts.
+    """
+    # Lazy import to keep startup fast for read-only commands.
+    from src.mesh.review_queue_worker import run_once
+    from src.mesh.adapters.cli import CliAdapter
+    from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
+
+    result = run_once(
+        adapters=[
+            TaskdogAdapter(),
+            CliAdapter(),
+            SolverforgeCalendarAdapter(),
+        ]
+    )
+    print(
+        f"consumed={result.consumed} approved={result.approved} "
+        f"partial={result.partial} rejected={result.rejected} "
+        f"clarified={result.clarified}",
+        flush=True,
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="ikigai-taskdog",
@@ -259,6 +425,26 @@ def main(argv: list[str] | None = None) -> int:
     _add_db_path(show_p)
     _add_output_flags(show_p)
 
+    # M151: write path via review queue
+    add_p = sub.add_parser("add", help="enqueue CREATE TaskChange")
+    add_p.add_argument("--ueid", required=True, type=_validate_ueid, help="5-part UEID")
+    add_p.add_argument("--title", required=True, help="task title (≥1 char)")
+    add_p.add_argument("--priority", type=_validate_priority_str, default=None, help="1=high, 2=medium, 3=low")
+    add_p.add_argument("--due", type=_validate_due, default=None, help="deadline YYYY-MM-DD")
+    add_p.add_argument("--description", default=None, help="optional description")
+
+    done_p = sub.add_parser("done", help="enqueue DONE TaskChange (idempotent)")
+    done_p.add_argument("ueid", type=_validate_ueid, help="UEID to mark done")
+
+    update_p = sub.add_parser("update", help="enqueue UPDATE TaskChange (partial fields)")
+    update_p.add_argument("ueid", type=_validate_ueid, help="UEID to update")
+    update_p.add_argument("--priority", type=_validate_priority_str, default=None, help="1/2/3")
+    update_p.add_argument("--status", default=None, help="planned/in_progress/done/cancelled")
+    update_p.add_argument("--due", type=_validate_due, default=None, help="YYYY-MM-DD")
+    update_p.add_argument("--title", default=None, help="new title")
+
+    sub.add_parser("propagate", help="run review queue worker once (consume → propagate)")
+
     args = parser.parse_args(argv)
 
     if args.command == "list":
@@ -267,6 +453,14 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_status(args)
     if args.command == "show":
         return cmd_show(args)
+    if args.command == "add":
+        return cmd_add(args)
+    if args.command == "done":
+        return cmd_done(args)
+    if args.command == "update":
+        return cmd_update(args)
+    if args.command == "propagate":
+        return cmd_propagate(args)
     parser.error(f"unknown command: {args.command}")
     return 2  # unreachable
 

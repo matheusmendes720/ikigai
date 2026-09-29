@@ -1,0 +1,37 @@
+#!/usr/bin/env python
+"""td — entry point for TaskdogAdapter CLI.
+
+Thin wrapper that delegates to `python -m src.mesh.taskdog_cli <args>`.
+This is the Q4 fresh-start replacement for the upstream `td` binary
+that lived in ~/.local/bin/ (now removed per user decision).
+
+Usage:
+    td list
+    td status
+    td show <ueid>
+    td add --ueid <ueid> --title "..." [--priority 1] [--due YYYY-MM-DD]
+    td done <ueid>
+    td update <ueid> [--priority 1] [--status done] [--due YYYY-MM-DD]
+    td propagate
+
+All writes go through the review queue (ADR-014).
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+# Ensure src/ is on PYTHONPATH so `python -m src.mesh.taskdog_cli` works
+# regardless of where `td` is invoked from.
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_SRC = _REPO_ROOT / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+# Hand off to the CLI module's main().
+from src.mesh.taskdog_cli import main
+
+if __name__ == "__main__":
+    sys.exit(main())
