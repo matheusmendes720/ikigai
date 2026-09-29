@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>IKIGAI · LangGraph Studio (local)</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #1a1f26; --panel2: #222831; --fg: #e6edf3;
+    --muted: #8b949e; --accent: #ff7b00; --accent2: #58a6ff; --ok: #3fb950;
+    --err: #f85149; --border: #30363d;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    font-size: 14px; line-height: 1.5;
+    display: grid; grid-template-columns: 280px 1fr;
+  }
+  aside { background: var(--panel); border-right: 1px solid var(--border);
+          overflow-y: auto; padding: 12px; }
+  main { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; overflow: hidden; }
+  header { padding: 12px 20px; border-bottom: 1px solid var(--border);
+           background: var(--panel); display: flex; align-items: center; gap: 12px; }
+  header h1 { margin: 0; font-size: 16px; font-weight: 600; }
+  header .pill { padding: 2px 8px; border-radius: 12px; font-size: 11px;
+                 background: rgba(255,123,0,.15); color: var(--accent);
+                 border: 1px solid rgba(255,123,0,.3); }
+  header .status { margin-left: auto; font-size: 11px; color: var(--muted); }
+  header .status.ok { color: var(--ok); }
+  header .status.err { color: var(--err); }
+  aside h2 { margin: 4px 0 12px; font-size: 11px; text-transform: uppercase;
+             letter-spacing: 1px; color: var(--muted); font-weight: 600; }
+  .graph { padding: 10px 12px; border-radius: 6px; cursor: pointer;
+           border: 1px solid transparent; margin-bottom: 4px;
+           transition: background .15s; }
+  .graph:hover { background: var(--panel2); }
+  .graph.active { background: var(--panel2); border-color: var(--accent); }
+  .graph .id { font-weight: 600; color: var(--accent2); }
+  .graph .meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  #chat { overflow-y: auto; padding: 20px;
+           background: linear-gradient(180deg, #0f1115, #0a0c0f); }
+  #chat .empty { color: var(--muted); text-align: center; padding: 60px 20px; }
+  .msg { max-width: 800px; margin: 0 auto 16px; padding: 12px 16px;
+         border-radius: 8px; border: 1px solid var(--border);
+         background: var(--panel); }
+  .msg.user { background: rgba(88,166,255,.08); border-color: rgba(88,166,255,.3); }
+  .msg.assistant { background: var(--panel2); }
+  .msg.tool { background: rgba(63,185,80,.06); border-color: rgba(63,185,80,.3);
+              font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 12px; }
+  .msg.system { background: rgba(248,81,73,.06); border-color: rgba(248,81,73,.3);
+                color: var(--muted); font-style: italic; }
+  .msg .role { font-size: 11px; color: var(--muted); margin-bottom: 4px;
+               text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+  .msg pre { white-space: pre-wrap; word-wrap: break-word; margin: 0;
+             font-family: inherit; }
+  .msg.streaming::after { content: "▌"; animation: blink 1s infinite; color: var(--accent); }
+  @keyframes blink { 50% { opacity: 0; } }
+  #input-bar { padding: 12px 20px; border-top: 1px solid var(--border);
+               background: var(--panel); display: flex; gap: 8px; }
+  #input { flex: 1; padding: 10px 12px; border-radius: 6px;
+           border: 1px solid var(--border); background: var(--bg);
+           color: var(--fg); font: inherit; resize: none;
+           max-height: 120px; min-height: 40px; }
+  #input:focus { outline: none; border-color: var(--accent); }
+  #send { padding: 0 18px; border-radius: 6px; border: none;
+          background: var(--accent); color: #000; font-weight: 600;
+          cursor: pointer; font-size: 13px; }
+  #send:disabled { opacity: .5; cursor: not-allowed; }
+  #new-thread { padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border);
+                background: transparent; color: var(--muted); cursor: pointer;
+                font-size: 11px; margin-bottom: 8px; width: 100%; }
+  #new-thread:hover { color: var(--fg); border-color: var(--accent); }
+  #thread-info { font-size: 10px; color: var(--muted); margin-top: 12px;
+                 padding-top: 12px; border-top: 1px solid var(--border);
+                 word-break: break-all; }
+</style>
+</head>
+<body>
+<aside>
+  <h2>Graphs</h2>
+  <button id="new-thread">+ New Thread</button>
+  <div id="graphs"></div>
+  <div id="thread-info"></div>
+</aside>
+<main>
+  <header>
+    <h1>IKIGAI · LangGraph Studio</h1>
+    <span class="pill">local</span>
+    <span id="status" class="status">connecting…</span>
+  </header>
+  <div id="chat">
+    <div class="empty">Select a graph and send a message to start.</div>
+  </div>
+  <div id="input-bar">
+    <textarea id="input" placeholder="Type a message…" rows="1"></textarea>
+    <button id="send">Send</button>
+  </div>
+</main>
+<script>
+const API = '';  // same origin (localhost:2024)
+let selectedAssistant = null;
+let threadId = null;
+const $ = (id) => document.getElementById(id);
+
+async function api(path, opts = {}) {
+  const r = await fetch(API + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  if (!r.ok) {
+    const txt = await r.text();
+    throw new Error(`${r.status}: ${txt}`);
+  }
+  return r.json();
+}
+
+async function loadGraphs() {
+  try {
+    const data = await api('/assistants/search', { method: 'POST', body: '{}' });
+    const graphs = Array.isArray(data) ? data : (data.assistants || []);
+    setStatus('connected', 'ok');
+    return graphs;
+  } catch (e) {
+    setStatus('error: ' + e.message, 'err');
+    return [];
+  }
+}
+
+function setStatus(text, cls) {
+  const el = $('status');
+  el.textContent = text;
+  el.className = 'status ' + (cls || '');
+}
+
+function renderGraphs(graphs) {
+  const el = $('graphs');
+  el.innerHTML = '';
+  if (!graphs.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px;">No graphs registered.</div>';
+    return;
+  }
+  for (const g of graphs) {
+    const div = document.createElement('div');
+    div.className = 'graph';
+    div.innerHTML = `<div class="id">${escape(g.graph_id)}</div>
+                     <div class="meta">${escape(g.name || '')}</div>`;
+    div.onclick = () => selectGraph(g, div);
+    el.appendChild(div);
+  }
+}
+
+function selectGraph(g, el) {
+  selectedAssistant = g.assistant_id;
+  document.querySelectorAll('.graph').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  newThread();
+}
+
+function newThread() {
+  threadId = null;
+  $('thread-info').textContent = '';
+  $('chat').innerHTML = '<div class="empty">New thread — type a message below.</div>';
+}
+
+function appendMsg(role, text) {
+  const chat = $('chat');
+  if (chat.querySelector('.empty')) chat.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.innerHTML = `<div class="role">${role}</div><pre></pre>`;
+  div.querySelector('pre').textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function escape(s) {
+  return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+}
+
+async function ensureThread() {
+  if (threadId) return threadId;
+  const t = await api('/threads', { method: 'POST', body: '{}' });
+  threadId = t.thread_id;
+  $('thread-info').textContent = 'thread: ' + threadId.slice(0, 8);
+  return threadId;
+}
+
+async function send() {
+  const text = $('input').value.trim();
+  if (!text || !selectedAssistant) return;
+  $('send').disabled = true;
+  $('input').value = '';
+  appendMsg('user', text);
+  const aid = appendMsg('assistant', '');
+  aid.classList.add('streaming');
+  let accumulated = '';
+
+  try {
+    const tid = await ensureThread();
+    const r = await fetch(`${API}/threads/${tid}/runs/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+      body: JSON.stringify({
+        assistant_id: selectedAssistant,
+        input: { messages: [{ role: 'human', content: text }] },
+        stream_mode: ['values', 'messages'],
+      }),
+    });
+    if (!r.ok || !r.body) {
+      const errText = await r.text();
+      aid.classList.remove('streaming');
+      aid.querySelector('pre').textContent = 'Error: ' + r.status + ' ' + errText;
+      return;
+    }
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const events = buf.split('\n\n');
+      buf = events.pop() || '';
+      for (const evt of events) {
+        const line = evt.trim();
+        if (!line.startsWith('data:')) continue;
+        const payload = line.slice(5).trim();
+        if (!payload || payload === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(payload);
+          // values event: full state snapshot
+          if (parsed.values?.messages) {
+            const msgs = parsed.values.messages;
+            const last = msgs[msgs.length - 1];
+            if (last?.content && typeof last.content === 'string') {
+              accumulated = last.content;
+              aid.querySelector('pre').textContent = accumulated;
+            }
+          } else if (Array.isArray(parsed) && parsed[1]?.content) {
+            // messages tuple mode: [msg_chunk, metadata]
+            const c = parsed[1].content;
+            if (typeof c === 'string') {
+              accumulated += c;
+              aid.querySelector('pre').textContent = accumulated;
+            }
+          } else if (parsed.event === 'error') {
+            aid.querySelector('pre').textContent = 'Error: ' + JSON.stringify(parsed.data);
+          }
+        } catch {}
+      }
+    }
+    aid.classList.remove('streaming');
+    if (!accumulated) aid.querySelector('pre').textContent = '(no response)';
+  } catch (e) {
+    aid.classList.remove('streaming');
+    aid.querySelector('pre').textContent = 'Error: ' + e.message;
+  } finally {
+    $('send').disabled = false;
+    $('input').focus();
+  }
+}
+
+$('send').onclick = send;
+$('new-thread').onclick = newThread;
+$('input').onkeydown = (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+};
+$('input').oninput = (e) => {
+  e.target.style.height = 'auto';
+  e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+};
+
+(async () => {
+  const graphs = await loadGraphs();
+  renderGraphs(graphs);
+})();
+</script>
+</body>
+</html>
