@@ -1,18 +1,10 @@
-"""M158e — Monkey-patch anthropic.OverloadedError for langchain_anthropic compat.
+"""M158g — langchain_anthropic compat shim.
 
-langchain_anthropic.chat_models:984 defines:
-
-    class AnthropicOverloadedError(anthropic.OverloadedError, ModelAPIError):
-        ...
-
-This class definition fails at module-import time if anthropic<0.40
-(no OverloadedError attribute). We work around by monkey-patching
-the missing attribute before any langchain_anthropic import.
-
-Import this module BEFORE any langchain_anthropic usage:
-
-    import langchain_anthropic_shim  # noqa: F401
-    from langchain_anthropic import ChatAnthropic
+Locked by M158e investigation (2026-09-29). See ../__init__.py for root
+cause + removal plan. Kept here (not deleted) because:
+- This is the ONLY working path for v2 graph on this machine.
+- Anthropic SDK 0.76.0 is pinned by browser-use 0.13.10 (Hermes workflow).
+- Downgrading langchain_anthropic loses LangGraph 1.x compat.
 """
 from __future__ import annotations
 
