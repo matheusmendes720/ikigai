@@ -1293,3 +1293,55 @@ When verifier returns PASS:
 **Why**: Closes the M101c known limitation. Production-readiness ~60% → ~62% (visual debugger now usable for the first time).
 
 **Status**: SHIPPED. Tests: 826+30 ikigai, 27+5 root M97b-M102, 18/18 drift, 60/60 canonical+wiring.
+
+---
+
+## Milestone Status (M148 → M158f) — 2026-09-30
+
+### ✅ FASE B ENTREGUE (deep agent completo)
+
+| M | Status | LOC | O que |
+|---|---|---|---|
+| M148 | ✅ | - | v2 graph audit, BlockingError diagnostic |
+| M151 | ✅ | ~150 | td global CLI + zipapp + shim |
+| M154-AUDIT | ✅ | spec | v2 inventário honesto |
+| M155 | ✅ | spec | TUI nativa vs interfaces internas |
+| M156 | ✅ | - | stub 14 PAV-math prompts (ADR-013) |
+| M157 | ✅ | - | catch ImportError (narrow fix) |
+| M158 | ✅ | ~250 | td chat REPL |
+| M159 | ✅ | 179 | vault embeddings cache (hash local) |
+| M159b | ✅ | spec | probe MiniMax embeddings |
+| M161 | ✅ | ~700 | taskdog-triage + vault-intent-extract skills |
+| M162 | ✅ | ~700 | cadence skills (daily/weekly/monthly/quarterly) |
+| M168 | ✅ | spec | roadmap horizonte A/B/C |
+| M158b | ✅ | ~150 | pending_proposal + _apply_proposal + zipapp |
+| M158c | ✅ | ~50 | OTEL try/except + PYTHONPATH filter |
+| M158d | ✅ | - | remove FAKE-LLM stubs (16 files) |
+| M158e | ✅ | ~80 | langchain_anthropic shim + response normalizer |
+| M158f | ✅ | ~100 | td.cmd/td.bat/td.ps1 shim triple-wrapper |
+
+**Fase B total:** ~2.4k LOC entregues, 128/128 tests, **mas shim frágil**.
+
+### ⚠️ FASE B GAPS
+
+- **Shim frágil (M158g)**: `pip install "anthropic>=0.40"` é o fix limpo. PENDING.
+- **Vault vazio**: cycle_state.md + _strategics_excerpt.md não populados.
+  Sugestões LLM são genéricas ("Defina seu primeiro ciclo...").
+- **Recall lê 0**: `vault (0 lines), taskdog (0 tasks), memory (k=0)`.
+  Recall node não conectado ao SQLite/MD real.
+- **Cada mensagem v2 = 5-14 calls LLM**: caro e lento.
+
+### ❌ FASE A PENDENTE (TUI upstream)
+
+| M | Status | LOC | O que |
+|---|---|---|---|
+| M163 | NOT STARTED | ~300 | schema DB 8 → 30+ colunas (tags/deps/audit_log/started_at/completed_at) |
+| M164 | NOT STARTED | ~500 | subcomandos essenciais (tag/dep/note/pause/reopen/cancel) |
+| M165 | NOT STARTED | ~500 | TUI interativa (panels + gantt + timeline + stats) |
+
+**Fase A total:** ~3.7k LOC, ~5-7 sessões.
+
+### ❌ FASE C INDEFINIDA
+
+Recursive reflection, multi-agent, vision capabilities. NÃO escopado.
+
