@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Life Studio</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="topbar">
+    <h1 class="brand">Life Studio</h1>
+    <div class="drift-badge" id="driftBadge">
+        <span class="drift-dot" id="driftDot"></span>
+        <span id="driftText">drift: loading…</span>
+    </div>
+</header>
+
+<main class="grid">
+    <!-- LEFT: dashboard + task list -->
+    <section class="col col-left">
+        <div class="card counts">
+            <div class="counts-chart">
+                <svg id="pieChart" viewBox="0 0 120 120" width="120" height="120" aria-label="Task status distribution"></svg>
+            </div>
+            <ul class="counts-legend" id="countsLegend"></ul>
+        </div>
+
+        <div class="card tasks">
+            <div class="card-header">
+                <h2>Tasks</h2>
+                <form id="createForm" class="create-form" autocomplete="off">
+                    <input type="text" name="ueid" placeholder="ueid (tsk:slug:hash:seq)" required pattern="[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+">
+                    <input type="text" name="title" placeholder="title" required maxlength="200">
+                    <select name="priority">
+                        <option value="">priority?</option>
+                        <option value="high">high</option>
+                        <option value="medium">medium</option>
+                        <option value="low">low</option>
+                    </select>
+                    <button type="submit">+ add</button>
+                </form>
+            </div>
+            <div class="tasks-toolbar">
+                <label><input type="checkbox" id="refreshToggle" checked> auto-refresh (5s)</label>
+                <span id="taskCount" class="muted"></span>
+            </div>
+            <div class="table-wrap">
+                <table class="tasks-table" id="tasksTable">
+                    <thead>
+                        <tr>
+                            <th>status</th>
+                            <th>ueid</th>
+                            <th>title</th>
+                            <th>priority</th>
+                            <th>actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasksBody">
+                        <tr><td colspan="5" class="muted center">loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- RIGHT: chat -->
+    <section class="col col-right">
+        <div class="card chat">
+            <div class="card-header">
+                <h2>td chat</h2>
+                <button id="clearChat" class="ghost-btn" type="button">clear</button>
+            </div>
+            <div class="chat-thread" id="chatThread" aria-live="polite"></div>
+            <form id="chatForm" class="chat-form" autocomplete="off">
+                <textarea id="chatInput" placeholder="Ask td…" rows="2" required maxlength="4000"></textarea>
+                <button type="submit">send</button>
+            </form>
+            <div id="chatThreadId" class="muted small"></div>
+        </div>
+    </section>
+</main>
+
+<footer class="bottombar">
+    <div class="daemon-pill" id="daemonPill">daemons: ?</div>
+    <div class="invariants" id="invariants">invariants: ?</div>
+</footer>
+
+<script>
+(function () {
+    "use strict";
+
+    const $ = (sel) => document.querySelector(sel);
+    const STATUS_COLORS = {
+        planned: "#5b8def",
+        in_progress: "#f0a93b",
+        done: "#45b76e",
+        cancelled: "#9aa3b2",
+        unknown: "#444a55",
+    };
+    const STATUS_ORDER = ["planned", "in_progress", "done", "cancelled"];
+
+    let pollTimer = null;
+    let threadId = null;
+
+    // ------------------------------------------------------------------
+    // Drift badge
+    // ------------------------------------------------------------------
+    async function refreshMetrics() {
+        try {
+            const r = await fetch("/api/metrics");
+            if (!r.ok) throw new Error("metrics " + r.status);
+            const m = await r.json();
+            const dot = $("#driftDot");
+            const text = $("#driftText");
+            const ok = m.drift_pass !== false;
+            dot.classList.toggle("ok", ok);
+            dot.classList.toggle("fail", !ok);
+            if (m.skipped) {
+                text.textContent = "drift: skipped";
+            } else {
+                text.textContent = "drift: pass";
+            }
+            $("#daemonPill").textContent = "daemons: " + (m.daemons_running ?? 0);
+            $("#invariants").textContent = "invariants: " + (m.invariant_count ?? "?");
+        } catch (err) {
+            $("#driftText").textContent = "drift: offline";
+            $("#driftDot").classList.add("fail");
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Tasks + counts
+    // ------------------------------------------------------------------
+    async function refreshTasks() {
+        try {
+            const r = await fetch("/api/tasks");
+            if (!r.ok) throw new Error("tasks " + r.status);
+            const data = await r.json();
+            renderTasks(data.tasks || []);
+            renderPie(data.by_status || {});
+            $("#taskCount").textContent = data.count + " tasks";
+        } catch (err) {
+            $("#taskCount").textContent = "error: " + err.message;
+        }
+    }
+
+    function renderTasks(tasks) {
+        const tbody = $("#tasksBody");
+        if (!tasks.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="muted center">no tasks</td></tr>';
+            return;
+        }
+        tbody.innerHTML = "";
+        for (const t of tasks) {
+            const tr = document.createElement("tr");
+            tr.dataset.ueid = t.ueid || "";
+            const status = (t.status || "unknown").toLowerCase();
+            tr.appendChild(td(statusBadge(status)));
+            tr.appendChild(td(mono(t.ueid || "")));
+            tr.appendChild(td(t.name || "(untitled)"));
+            tr.appendChild(td(t.priority_label || (t.priority != null ? String(t.priority) : "—")));
+            const actions = document.createElement("td");
+            const doneBtn = document.createElement("button");
+            doneBtn.type = "button";
+            doneBtn.className = "row-btn";
+            doneBtn.textContent = status === "done" ? "✓ done" : "done";
+            doneBtn.disabled = status === "done";
+            doneBtn.addEventListener("click", () => markDone(t.ueid));
+            actions.appendChild(doneBtn);
+            tr.appendChild(actions);
+            tbody.appendChild(tr);
+        }
+    }
+
+    function statusBadge(s) {
+        const span = document.createElement("span");
+        span.className = "status-badge status-" + s;
+        span.textContent = s;
+        return span;
+    }
+
+    function td(content) {
+        const c = document.createElement("td");
+        if (typeof content === "string") c.textContent = content;
+        else c.appendChild(content);
+        return c;
+    }
+
+    function mono(s) {
+        const c = document.createElement("code");
+        c.className = "mono";
+        c.textContent = s;
+        return c;
+    }
+
+    function renderPie(byStatus) {
+        const svg = $("#pieChart");
+        svg.innerHTML = "";
+        const entries = STATUS_ORDER.filter((s) => (byStatus[s] || 0) > 0);
+        if (!entries.length) {
+            entries.push("unknown");
+            byStatus = { unknown: byStatus.unknown || 1 };
+        }
+        const total = entries.reduce((acc, s) => acc + (byStatus[s] || 0), 0);
+        let angle = -Math.PI / 2;
+        const cx = 60, cy = 60, r = 50;
+        for (const status of entries) {
+            const v = byStatus[status] || 0;
+            const slice = (v / total) * Math.PI * 2;
+            const a1 = angle, a2 = angle + slice;
+            const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+            const x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
+            const large = slice > Math.PI ? 1 : 0;
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d",
+                `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`);
+            path.setAttribute("fill", STATUS_COLORS[status] || STATUS_COLORS.unknown);
+            path.setAttribute("stroke", "#0e1116");
+            path.setAttribute("stroke-width", "1");
+            svg.appendChild(path);
+            angle = a2;
+        }
+        // Center label
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", "60"); text.setAttribute("y", "58");
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("fill", "#e8ecf2");
+        text.setAttribute("font-size", "20");
+        text.setAttribute("font-weight", "600");
+        text.textContent = String(total);
+        svg.appendChild(text);
+        const sub = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        sub.setAttribute("x", "60"); sub.setAttribute("y", "74");
+        sub.setAttribute("text-anchor", "middle");
+        sub.setAttribute("fill", "#9aa3b8");
+        sub.setAttribute("font-size", "9");
+        sub.textContent = "tasks";
+        svg.appendChild(sub);
+
+        // Legend
+        const ul = $("#countsLegend");
+        ul.innerHTML = "";
+        for (const status of STATUS_ORDER) {
+            const v = byStatus[status] || 0;
+            const li = document.createElement("li");
+            const dot = document.createElement("span");
+            dot.className = "legend-dot";
+            dot.style.background = STATUS_COLORS[status] || STATUS_COLORS.unknown;
+            li.appendChild(dot);
+            li.appendChild(document.createTextNode(`${status}: ${v}`));
+            ul.appendChild(li);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Task create + done
+    // ------------------------------------------------------------------
+    async function markDone(ueid) {
+        if (!ueid) return;
+        try {
+            const r = await fetch(`/api/tasks/${encodeURIComponent(ueid)}/done`, {
+                method: "POST",
+            });
+            if (!r.ok) {
+                const err = await r.json().catch(() => ({}));
+                throw new Error(err.detail || ("HTTP " + r.status));
+            }
+            await refreshTasks();
+        } catch (err) {
+            alert("done failed: " + err.message);
+        }
+    }
+
+    $("#createForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const body = {
+            ueid: fd.get("ueid"),
+            title: fd.get("title"),
+            priority: fd.get("priority") || null,
+        };
+        try {
+            const r = await fetch("/api/tasks", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+            if (!r.ok) {
+                const err = await r.json().catch(() => ({}));
+                throw new Error(err.detail || ("HTTP " + r.status));
+            }
+            e.target.reset();
+            await refreshTasks();
+        } catch (err) {
+            alert("create failed: " + err.message);
+        }
+    });
+
+    // ------------------------------------------------------------------
+    // Chat
+    // ------------------------------------------------------------------
+    function appendChat(role, text) {
+        const thread = $("#chatThread");
+        const div = document.createElement("div");
+        div.className = "chat-msg chat-" + role;
+        const tag = document.createElement("span");
+        tag.className = "chat-role";
+        tag.textContent = role;
+        div.appendChild(tag);
+        const body = document.createElement("pre");
+        body.className = "chat-body";
+        body.textContent = text;
+        div.appendChild(body);
+        thread.appendChild(div);
+        thread.scrollTop = thread.scrollHeight;
+    }
+
+    $("#chatForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const input = $("#chatInput");
+        const msg = input.value.trim();
+        if (!msg) return;
+        appendChat("you", msg);
+        input.value = "";
+        try {
+            const r = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: msg, thread_id: threadId }),
+            });
+            const data = await r.json().catch(() => ({}));
+            threadId = data.thread_id || threadId;
+            $("#chatThreadId").textContent = "thread: " + (threadId || "—");
+            if (!r.ok || data.ok === false) {
+                appendChat("error", data.error || ("HTTP " + r.status));
+                return;
+            }
+            const reply = extractReply(data.response);
+            appendChat("td", reply);
+        } catch (err) {
+            appendChat("error", err.message);
+        }
+    });
+
+    function extractReply(resp) {
+        if (!resp) return "(empty)";
+        if (typeof resp === "string") return resp;
+        // LangGraph run output often nests messages under `output` or `messages`
+        const o = resp.output || resp;
+        if (Array.isArray(o.messages)) {
+            const last = o.messages[o.messages.length - 1];
+            if (last && typeof last === "object" && last.content) return last.content;
+        }
+        if (typeof o === "object" && o.content) return o.content;
+        try {
+            return JSON.stringify(resp, null, 2);
+        } catch (_) {
+            return String(resp);
+        }
+    }
+
+    $("#clearChat").addEventListener("click", () => {
+        $("#chatThread").innerHTML = "";
+        threadId = null;
+        $("#chatThreadId").textContent = "";
+    });
+
+    // ------------------------------------------------------------------
+    // Auto-refresh
+    // ------------------------------------------------------------------
+    $("#refreshToggle").addEventListener("change", (e) => {
+        if (e.target.checked) startPolling(); else stopPolling();
+    });
+    function startPolling() {
+        stopPolling();
+        pollTimer = setInterval(refreshTasks, 5000);
+    }
+    function stopPolling() {
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = null;
+    }
+
+    // ------------------------------------------------------------------
+    // Boot
+    // ------------------------------------------------------------------
+    refreshMetrics();
+    refreshTasks();
+    startPolling();
+    setInterval(refreshMetrics, 15000);
+})();
+</script>
+</body>
+</html>

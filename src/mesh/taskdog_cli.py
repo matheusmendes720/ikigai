@@ -44,6 +44,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sqlite3
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -53,6 +54,35 @@ from src.contracts.task_change import TaskAction, TaskChange
 from src.mesh import queue
 from src.mesh.adapters import taskdog as taskdog_mod
 from src.mesh.adapters.taskdog import TaskdogAdapter
+from src.mesh.cli.td_advanced import (
+    register_advanced_subparser,
+    run_advanced_command,
+)
+from src.mesh.cli.td_gantt import (
+    register_gantt_subparser,
+    register_optimize_subparser,
+    run_gantt_command,
+    run_optimize_command,
+)
+from src.mesh.cli.td_tag import register_tag_subparser, run_tag_command
+
+
+# --- Reflection hook ---------------------------------------------------------
+# Every mutation appends a Decision to the reflection log so the agent can
+# later review its own behaviour. Failures here MUST NOT block the mutation —
+# the decision log is observational memory, not policy. We swallow exceptions
+# and log to stderr to keep the CLI contract intact.
+def _record_decision(action: str, ueid: str, context: dict | None = None) -> None:
+    try:
+        from src.agents.reflection.recursive import DecisionStore
+
+        DecisionStore().append(action, ueid, context=context)
+    except Exception as exc:  # noqa: BLE001 — observational, never block CLI
+        print(
+            f"warning: reflection log append failed: {exc}",
+            file=sys.stderr,
+        )
+
 
 # Statuses we have seen in the taskdog store so far. Kept loose — the CLI
 # surfaces whatever status the adapter returns, but argparse's --status
@@ -320,6 +350,7 @@ def cmd_add(args: argparse.Namespace) -> int:
     if args.description is not None:
         fields["description"] = args.description.strip()
     event_id = _enqueue_change(args.ueid, TaskAction.CREATE, fields)
+    _record_decision("create", args.ueid, context={"title": fields.get("title", ""), "fields": fields})
     print(f"enqueued CREATE event {event_id} for ueid {args.ueid}", flush=True)
     print("Run `td propagate` to apply.", flush=True)
     return 0
@@ -328,6 +359,7 @@ def cmd_add(args: argparse.Namespace) -> int:
 def cmd_done(args: argparse.Namespace) -> int:
     """DONE via review queue (idempotent — sets status='done')."""
     event_id = _enqueue_change(args.ueid, TaskAction.DONE, {})
+    _record_decision("done", args.ueid, context={})
     print(f"enqueued DONE event {event_id} for ueid {args.ueid}", flush=True)
     print("Run `td propagate` to apply.", flush=True)
     return 0
@@ -360,6 +392,7 @@ def cmd_update(args: argparse.Namespace) -> int:
         )
         return 2
     event_id = _enqueue_change(args.ueid, TaskAction.UPDATE, fields)
+    _record_decision("update", args.ueid, context={"fields": fields})
     print(f"enqueued UPDATE event {event_id} for ueid {args.ueid}", flush=True)
     print("Run `td propagate` to apply.", flush=True)
     return 0
@@ -389,6 +422,197 @@ def cmd_propagate(args: argparse.Namespace) -> int:
         f"clarified={result.clarified}",
         flush=True,
     )
+    return 0
+
+
+# M164: td note subsystem --------------------------------------------
+# Notes are immutable annotations attached to a task's audit trail. They
+# are persisted as rows in the `audit_log` table (sharing the same SQLite
+# DB as the canonical tasks table) so notes stay co-located with their
+# task and benefit from the same atomic-write guarantees. The `action`
+# column discriminates row types; for M164 the only emitted action is
+# 'note', but the schema is open to future audit-event kinds (status
+# change, propagation event, etc.) without breaking the read path.
+#
+# Constraints:
+#   - text ≤ 1024 chars after sanitization (control chars stripped,
+#     newlines kept)
+#   - notes are append-only; there is no update/delete subcommand
+#   - reads filter action='note' so other audit rows stay invisible to
+#     `td note show`
+#
+# Output mode honours the global --json / --human flags; default is
+# auto-detected from TTY (see _wants_human).
+_MAX_NOTE_LEN = 1024
+
+
+def _ensure_audit_log_table(conn: "sqlite3.Connection") -> None:
+    """Create the audit_log table on first use.
+
+    Schema:
+        id         — autoincrement row id
+        ueid       — task UEID (no FK so notes survive task deletes,
+                     matches append-only semantics)
+        timestamp  — ISO8601 UTC, naive datetime (matches _utc_now convention
+                     in contracts/common.py)
+        action     — discriminator; for M164 always 'note'
+        actor      — emitter; for M164 always 'cli'
+        text       — note body (sanitized, ≤ _MAX_NOTE_LEN)
+
+    Idempotent: CREATE IF NOT EXISTS + CREATE INDEX IF NOT EXISTS.
+    """
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ueid TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            action TEXT NOT NULL DEFAULT 'note',
+            actor TEXT NOT NULL DEFAULT 'cli',
+            text TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_audit_log_ueid ON audit_log(ueid);
+        CREATE INDEX IF NOT EXISTS idx_audit_log_ueid_action
+            ON audit_log(ueid, action);
+        """
+    )
+
+
+def _sanitize_note_text(raw: str) -> str:
+    """Strip control chars except newline, cap length.
+
+    Strips ALL C0 control chars (0x00-0x1F) except \\n (0x0A) and \\t (0x09).
+    """
+    # Keep \n (0x0A) and \t (0x09); strip everything else in 0x00-0x1F + 0x7F.
+    cleaned = "".join(
+        ch for ch in raw
+        if ch in ("\n", "\t") or (ord(ch) >= 0x20 and ord(ch) != 0x7F)
+    )
+    if len(cleaned) > _MAX_NOTE_LEN:
+        raise ValueError(
+            f"note text too long: {len(cleaned)} chars "
+            f"(max {_MAX_NOTE_LEN} after sanitization)"
+        )
+    return cleaned
+
+
+def _audit_db_path() -> Path:
+    """Resolve the SQLite path used for both tasks and audit_log.
+
+    The canonical DB is owned by ``src.mesh.adapters.taskdog.TASKDOG_DB``.
+    We reuse it so notes and tasks share a single connection-friendly
+    location; per-task isolation for tests comes from monkeypatching
+    TASKDOG_DB before the CLI runs (same pattern as the rest of the
+    subcommands).
+    """
+    return taskdog_mod.TASKDOG_DB
+
+
+def cmd_note_add(args: argparse.Namespace) -> int:
+    """Append a note row to audit_log for the given UEID.
+
+    Validation:
+        - UEID format checked by argparse (type=_validate_ueid)
+        - text stripped of control chars, must be non-empty after stripping
+        - text length ≤ _MAX_NOTE_LEN
+
+    Output:
+        human:  note added: id=N ueid=X chars=K
+        json:   {"id": N, "ueid": "X", "action": "note", "chars": K}
+    """
+    text = _sanitize_note_text(args.text)
+    if not text.strip():
+        print("note text is empty after sanitization", file=sys.stderr)
+        return 2
+
+    db_path = _audit_db_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db_path)
+    try:
+        _ensure_audit_log_table(conn)
+        ts = datetime.now(timezone.utc).isoformat()
+        cur = conn.execute(
+            "INSERT INTO audit_log (ueid, timestamp, action, actor, text) "
+            "VALUES (?, ?, 'note', 'cli', ?)",
+            (args.ueid, ts, text),
+        )
+        note_id = cur.lastrowid
+        conn.commit()
+    finally:
+        conn.close()
+
+    if _wants_human(args):
+        print(
+            f"note added: id={note_id} ueid={args.ueid} chars={len(text)}",
+            flush=True,
+        )
+    else:
+        print(
+            json.dumps(
+                {
+                    "id": note_id,
+                    "ueid": args.ueid,
+                    "action": "note",
+                    "chars": len(text),
+                }
+            ),
+            flush=True,
+        )
+    return 0
+
+
+def _list_audit_notes(ueid: str) -> list[dict]:
+    """Read all `note` rows for a UEID from audit_log, ordered by id ASC.
+
+    The `id ASC` ordering gives a stable chronological read even when two
+    notes land in the same ISO-second (SQLite timestamp resolution).
+    Returns a list of dicts with keys: id, timestamp, text.
+    """
+    db_path = _audit_db_path()
+    if not db_path.exists():
+        return []
+    conn = sqlite3.connect(db_path)
+    try:
+        _ensure_audit_log_table(conn)
+        cur = conn.execute(
+            "SELECT id, timestamp, text FROM audit_log "
+            "WHERE ueid=? AND action='note' ORDER BY id ASC",
+            (ueid,),
+        )
+        return [
+            {"id": row[0], "timestamp": row[1], "text": row[2]}
+            for row in cur.fetchall()
+        ]
+    finally:
+        conn.close()
+
+
+def cmd_note_show(args: argparse.Namespace) -> int:
+    """List notes attached to a task (audit_log filtered to action='note').
+
+    Output:
+        human:  aligned table of id / timestamp / text
+        json:   one JSON object per line: {"id", "timestamp", "text"}
+        empty:  "(no notes)" (TTY) / nothing (pipe)
+    """
+    notes = _list_audit_notes(args.ueid)
+
+    if _wants_human(args):
+        if not notes:
+            print(f"(no notes for ueid {args.ueid})", flush=True)
+            return 0
+        rows = [
+            [
+                str(n["id"]),
+                str(n["timestamp"]),
+                _truncate(n["text"].replace("\n", " ⏎ "), 60),
+            ]
+            for n in notes
+        ]
+        _render_table(["id", "timestamp", "text"], rows)
+    else:
+        for n in notes:
+            print(json.dumps(n), flush=True)
     return 0
 
 
@@ -693,6 +917,66 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("propagate", help="run review queue worker once (consume → propagate)")
 
+    # M164: dep subsystem — delegates to src/mesh/td_dep.py for the 4 verbs
+    # (add / remove / list / blocked). The verbs are registered here so the
+    # parent help text shows them; parsing + cycle detection + audit happen
+    # in td_dep.main() which receives the inner argv.
+    dep_p = sub.add_parser(
+        "dep",
+        help="manage task dependencies (M164): add/remove/list/blocked",
+    )
+    dep_sub = dep_p.add_subparsers(dest="dep_command", required=True)
+    dep_sub.add_parser("add", help="add dependency: <ueid> blocked-by <other_ueid>")
+    dep_sub.add_parser("remove", help="remove dependency edge")
+    dep_sub.add_parser("list", help="list deps for a task (both directions)")
+    dep_sub.add_parser("blocked", help="list tasks with one or more unmet deps")
+
+    # M164: tag subsystem — delegates to src/mesh/cli/td_tag.py for the 4
+    # verbs (add / remove / list / clear). The argparse sub-subparsers are
+    # wired by register_tag_subparser; dispatch to cmd_* happens via
+    # run_tag_command based on args.tag_command.
+    register_tag_subparser(sub)
+
+    # M167: gantt / optimize — delegates to src/mesh/cli/td_gantt.py.
+    # Two top-level subcommands; each registered as a flat sub-parser
+    # (no nested verbs). Dispatch goes through run_*_command.
+    register_gantt_subparser(sub)
+    register_optimize_subparser(sub)
+
+    # M166: advanced subsystem — delegates to src/mesh/cli/td_advanced.py
+    # for 6 verbs (rm / restore / audit / db / export / stats). The
+    # argparse subparsers are wired by register_advanced_subparser;
+    # dispatch happens via run_advanced_command based on args.command.
+    register_advanced_subparser(sub)
+
+    # M164: td note subsystem (nested sub-app: note add / note show)
+    note_p = sub.add_parser(
+        "note",
+        help="append or list notes attached to a task (audit_log table)",
+    )
+    note_sub = note_p.add_subparsers(dest="note_command", required=True)
+
+    note_add_p = note_sub.add_parser(
+        "add",
+        help="append a note to a task's audit_log",
+    )
+    note_add_p.add_argument("ueid", type=_validate_ueid, help="UEID to attach the note to")
+    note_add_p.add_argument(
+        "text",
+        help=(
+            "note body (sanitized: control chars stripped, newlines kept; "
+            f"max {_MAX_NOTE_LEN} chars)"
+        ),
+    )
+    _add_output_flags(note_add_p)
+
+    note_show_p = note_sub.add_parser(
+        "show",
+        help="list notes for a task (filtered action='note')",
+    )
+    note_show_p.add_argument("ueid", type=_validate_ueid, help="UEID to list notes for")
+    _add_output_flags(note_show_p)
+
     args = parser.parse_args(argv)
 
     if args.command == "list":
@@ -724,6 +1008,35 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_update(args)
     if args.command == "propagate":
         return cmd_propagate(args)
+    if args.command == "dep":
+        # Re-dispatch to td_dep.main() with the inner argv. argparse at the
+        # parent has already consumed `dep`; we hand over everything after it.
+        from src.mesh.td_dep import main as dep_main
+
+        try:
+            dep_idx = sys.argv.index("dep")
+        except ValueError:
+            dep_idx = -1
+        if dep_idx == -1:
+            inner = [args.dep_command]
+        else:
+            inner = sys.argv[dep_idx + 1:]
+        return dep_main(inner)
+    if args.command == "note":
+        if args.note_command == "add":
+            return cmd_note_add(args)
+        if args.note_command == "show":
+            return cmd_note_show(args)
+        parser.error(f"unknown note subcommand: {args.note_command}")
+        return 2  # unreachable
+    if args.command == "tag":
+        return run_tag_command(args)
+    if args.command == "gantt":
+        return run_gantt_command(args)
+    if args.command == "optimize":
+        return run_optimize_command(args)
+    if args.command in ("rm", "restore", "audit", "db", "export", "stats"):
+        return run_advanced_command(args)
     parser.error(f"unknown command: {args.command}")
     return 2  # unreachable
 

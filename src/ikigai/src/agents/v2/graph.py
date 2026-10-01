@@ -27,7 +27,9 @@ from src.ikigai.src.observability.otel_init import get_tracer, init_tracing
 from src.ikigai.src.agents.v2.nodes.balance import balance_node
 from src.ikigai.src.agents.v2.nodes.commit import commit_node
 from src.ikigai.src.agents.v2.nodes.decompose import decompose_node
+from src.ikigai.src.agents.v2.nodes.dep_graph import dep_graph_node
 from src.ikigai.src.agents.v2.nodes.error import error_node
+from src.ikigai.src.agents.v2.nodes.gantt_suggest import gantt_suggest_node
 from src.ikigai.src.agents.v2.nodes.heuristics import heuristics_node
 from src.ikigai.src.agents.v2.nodes.observe import observe_node
 from src.ikigai.src.agents.v2.nodes.plan import plan_node
@@ -37,6 +39,7 @@ from src.ikigai.src.agents.v2.nodes.reflect import reflect_node
 from src.ikigai.src.agents.v2.nodes.score_vectors import score_vectors_node
 from src.ikigai.src.agents.v2.nodes.surface_intentions import surface_intentions_node
 from src.ikigai.src.agents.v2.nodes.tag_and_persist import tag_and_persist_node
+from src.ikigai.src.agents.v2.nodes.tag_propagation import tag_propagation_node
 from src.ikigai.src.agents.v2.state import IKIGAiStateDict
 from src.ikigai.src.agents.v2.subgraph import dispatch_sub_agents
 
@@ -71,6 +74,9 @@ NODES = (
     "commit",
     "dispatch_sub_agents",
     "surface_intentions",
+    "tag_propagation",
+    "dep_graph",
+    "gantt_suggest",
 )
 
 
@@ -258,6 +264,44 @@ def _route_after_dispatch_sub_agents(state: IKIGAiStateDict) -> str:
 
 
 # ---------------------------------------------------------------------------
+# M256: Optional taskdog-graph proposal nodes.
+# Each is triggered by an explicit intent marker in state (set by observe
+# or by an upstream planning skill). They run AFTER surface_intentions
+# (the terminal for the standard pipeline) and only fire when the
+# corresponding marker is present. Per ADR-013 they only PROPOSE — they
+# never auto-execute writes; proposals go to the review queue.
+# ---------------------------------------------------------------------------
+def _has_taskdog_proposal_intent(state: IKIGAiStateDict, key: str) -> bool:
+    """True if state carries a non-empty payload under `key`."""
+    payload = state.get(key)
+    return bool(payload) and isinstance(payload, dict)
+
+
+def _route_after_surface_intentions(
+    state: IKIGAiStateDict,
+) -> Literal[
+    "tag_propagation", "dep_graph", "gantt_suggest", "error"
+]:
+    """After surface_intentions: dispatch to the appropriate proposal node
+    based on which intent marker is populated. Marker precedence:
+      1. tag_propagation_input → tag_propagation
+      2. dep_graph_input       → dep_graph
+      3. gantt_input           → gantt_suggest
+    Falls through (returns the first matching node, or routes via
+    conditional map) — graph terminates via error→END if none match.
+    """
+    if state.get("error_type"):
+        return "error"
+    if _has_taskdog_proposal_intent(state, "tag_propagation_input"):
+        return "tag_propagation"
+    if _has_taskdog_proposal_intent(state, "dep_graph_input"):
+        return "dep_graph"
+    if _has_taskdog_proposal_intent(state, "gantt_input"):
+        return "gantt_suggest"
+    return "error"
+
+
+# ---------------------------------------------------------------------------
 # Graph factory
 # ---------------------------------------------------------------------------
 def _build_v2_graph(
@@ -321,6 +365,11 @@ def _build_v2_graph(
             "surface_intentions", _safe_node("surface_intentions", surface_intentions_node)
         )
         builder.add_node("error", error_node)
+        # M256: optional taskdog-graph proposal nodes (tag_propagation,
+        # dep_graph, gantt_suggest) — pure-Python, ADR-013 compliant.
+        builder.add_node("tag_propagation", _safe_node("tag_propagation", tag_propagation_node))
+        builder.add_node("dep_graph", _safe_node("dep_graph", dep_graph_node))
+        builder.add_node("gantt_suggest", _safe_node("gantt_suggest", gantt_suggest_node))
 
         # Sequential edges
         builder.add_conditional_edges(
@@ -397,6 +446,21 @@ def _build_v2_graph(
         )
 
         builder.add_edge("surface_intentions", END)
+        # M256: route from surface_intentions to a taskdog-graph proposal
+        # node only when an intent marker is populated. Otherwise END.
+        builder.add_conditional_edges(
+            "surface_intentions",
+            _route_after_surface_intentions,
+            {
+                "tag_propagation": "tag_propagation",
+                "dep_graph": "dep_graph",
+                "gantt_suggest": "gantt_suggest",
+                "error": "error",
+            },
+        )
+        builder.add_edge("tag_propagation", END)
+        builder.add_edge("dep_graph", END)
+        builder.add_edge("gantt_suggest", END)
         builder.add_edge("error", END)
         builder.set_entry_point(entry_point)
 

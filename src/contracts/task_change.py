@@ -15,12 +15,22 @@ from .common import UEID
 
 
 class TaskAction(str, Enum):
-    """Action type for task lifecycle."""
+    """Action type for task lifecycle.
+
+    M164: added TAG_ADD / TAG_REMOVE / TAG_CLEAR for the td tag subsystem.
+    These actions target the canonical SQLite `tags` column (JSON array of
+    strings). TAG_LIST is intentionally NOT here — it's a read-only command
+    that bypasses the review queue (it reads tags directly via the adapter).
+    """
 
     CREATE = "create"
     UPDATE = "update"
     DELETE = "delete"
     DONE = "done"
+    # M164 tag subsystem (td tag add/remove/list/clear).
+    TAG_ADD = "tag_add"
+    TAG_REMOVE = "tag_remove"
+    TAG_CLEAR = "tag_clear"
 
 
 TaskStatus = Literal[
