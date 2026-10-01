@@ -1,3 +1,17 @@
+---
+name: M162-cadence
+description: Replace PAV-math in 4 cadence skills (daily/weekly/monthly/quarterly) with vault aggregation. Propose-only.
+status: PENDING
+owner: loop-orchestrator
+created: 2026-09-29
+constitution_refs:
+  - composition_over_inheritance
+  - tests_are_the_contract
+  - reversibility_over_cleverness
+  - state_on_disk_not_conversation
+estimated_cost_usd: 0.40
+---
+
 # M162 — Cadência adaptada (daily/weekly/monthly/quarterly sem PAV-math)
 
 **Status:** 🟡 PLANNED

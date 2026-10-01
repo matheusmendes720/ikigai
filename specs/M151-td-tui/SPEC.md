@@ -1,3 +1,17 @@
+---
+name: M151-td-tui
+description: td tui — Textual dashboard for taskdog adapter (counts, priority table, timeline).
+status: PENDING
+owner: loop-orchestrator
+created: 2026-09-29
+constitution_refs:
+  - composition_over_inheritance
+  - tests_are_the_contract
+  - reversibility_over_cleverness
+  - state_on_disk_not_conversation
+estimated_cost_usd: 0.40
+---
+
 # M151 — `td` TUI textual para TaskdogAdapter
 
 **Status:** 🔵 PLANNED

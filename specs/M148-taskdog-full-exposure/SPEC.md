@@ -1,3 +1,17 @@
+---
+name: M148-taskdog-full-exposure
+description: Full taskdog exposure via IKIGAI bridge — 12 MCP tools. Writes via ADR-014 queue.
+status: PENDING
+owner: loop-orchestrator
+created: 2026-09-29
+constitution_refs:
+  - composition_over_inheritance
+  - tests_are_the_contract
+  - reversibility_over_cleverness
+  - state_on_disk_not_conversation
+estimated_cost_usd: 0.80
+---
+
 # M148 — Full taskdog exposure via IKIGAI bridge
 
 ## Goal

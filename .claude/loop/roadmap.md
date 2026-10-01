@@ -1345,3 +1345,59 @@ When verifier returns PASS:
 
 Recursive reflection, multi-agent, vision capabilities. NÃO escopado.
 
+---
+
+## Tier-1 milestone entries (M142-M168)
+
+### M142 - Loop-side MCP bridge (READ-ONLY slice, 6 IKIGAI tools) (STATUS: PENDING)
+
+Loop orchestrator/worker/verifier get read-only MCP access via `.claude/loop/mcp_bridge.py`. Writes deferred to M144 (preserves planner-only ADR-013).
+
+### M143 - Loop-side OTel wiring (mirrors v2 T-8.3.1) (STATUS: PENDING)
+
+Add OpenTelemetry spans to `.claude/loop/mcp_bridge.py` so loop sub-agent tool calls show up in LangSmith/Langfuse like v2 does. Tracer prefix `loop.mcp.{tool_name}`.
+
+### M144 - Loop-side write tools (6 IKIGAI wrappers) (STATUS: PENDING)
+
+Add vault_read/write, ikigai_write_tasks, investigation_* wrappers so loop workers don't need to fall back to `python -m life.cli ...` for every write.
+
+### M145 - Loop-side taskdog + 6 MCP resource accessors (STATUS: PENDING)
+
+Wrap taskdog_read + taskdog_supports_field + 6 MCP resources in `.claude/loop/mcp_bridge.py`. Lays groundwork for production binding (M146).
+
+### M146 - Loop-side production binding (FastMCP stdio + init_tracing) (STATUS: PENDING)
+
+Replace MagicMock in M142-M145 with real FastMCP stdio client + init_tracing() at loop startup. Closes the bridge chain.
+
+### M147 - Fix Windows MCP stdio transport (BrokenResourceError) (STATUS: PENDING)
+
+Replace `mcp.client.stdio.stdio_client` (anyio-based, hangs on Windows overlapped pipes) with raw subprocess.Popen + thread-based reader.
+
+### M148 - Full taskdog exposure via IKIGAI bridge (STATUS: PENDING)
+
+Expose all taskdog operations to Deep Agent: 12 MCP tools (create/update/done/delete/read/search/filters). Writes route through existing review queue (ADR-014).
+
+### M151 - td tui (Textual dashboard for taskdog) (STATUS: PENDING)
+
+Textual-based TUI: status counts, priority table, timeline, upcoming deadlines. Built on TaskdogAdapter.
+
+### M154 - Honest inventory of v2 deep agent graph (STATUS: PENDING)
+
+Audit what reuses, rewrites, or discards from v2. Output: honest map for M155 deep-agent-min-viable scope decisions.
+
+### M155 - Deep agent minimal viable (vault-aware, no auto-exec) (STATUS: PENDING)
+
+CLI chat that reads vault automatically, NEVER auto-executes, respects ADR-013 planner-only scope.
+
+### M161 - 2 skills: taskdog-triage + vault-intent-extract (STATUS: PENDING)
+
+meta_plan pattern (propose-only, never auto-exec). Cron runner optional later; manual via `td chat /triage` works now.
+
+### M162 - Cadence skills without PAV-math (STATUS: PENDING)
+
+Replace PAV-math in ikigai-daily/weekly/monthly/quarterly with vault aggregation. Pure arithmetic + propose-only.
+
+### M168 - Personal Q4 roadmap (Horizon A/B/C) (STATUS: PENDING)
+
+Planning artifact (not execution). Horizons A/B/C with sequencing for the autonomous loop.
+

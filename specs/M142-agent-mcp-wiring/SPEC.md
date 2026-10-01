@@ -1,6 +1,6 @@
 ---
 name: M142-agent-mcp-wiring
-description: Loop-side MCP bridge for orchestrator/worker/verifier — READ-ONLY slice (6 IKIGAI tools, no vault_write / investigation_* — those are M144)
+description: Loop-side MCP bridge for orchestrator/worker/verifier — READ-ONLY slice (6 IKIGAI tools). Writes deferred to M144.
 status: PENDING
 owner: loop-orchestrator
 created: 2026-09-26

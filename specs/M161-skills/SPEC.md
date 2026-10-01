@@ -1,3 +1,17 @@
+---
+name: M161-skills
+description: 2 new skills (taskdog-triage + vault-intent-extract) — meta_plan pattern, propose-only, never auto-exec.
+status: PENDING
+owner: loop-orchestrator
+created: 2026-09-29
+constitution_refs:
+  - composition_over_inheritance
+  - tests_are_the_contract
+  - reversibility_over_cleverness
+  - state_on_disk_not_conversation
+estimated_cost_usd: 0.50
+---
+
 # M161 — 2 skills novos: taskdog-triage + vault-intent-extract
 
 **Status:** 🟡 PLANNED

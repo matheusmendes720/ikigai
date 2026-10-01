@@ -1,3 +1,17 @@
+---
+name: M168-roadmap
+description: Personal Q4 roadmap — Horizon A/B/C plan with sequencing (planning artifact, not execution).
+status: PENDING
+owner: loop-orchestrator
+created: 2026-09-29
+constitution_refs:
+  - composition_over_inheritance
+  - tests_are_the_contract
+  - reversibility_over_cleverness
+  - state_on_disk_not_conversation
+estimated_cost_usd: 0.00
+---
+
 # M168 — Roadmap personalizado: horizonte A/B/C do Q4 fresh start
 
 **Status:** 🟡 PLANNED (roadmap, não execução)
