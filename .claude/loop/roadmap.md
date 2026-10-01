@@ -734,6 +734,351 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 - **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
 
 
+
+### M98 — feat(cli): add life v2 agent one-shot deep-agent driver (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M99 — feat(cli): add life v2 chat REPL + sys.path bootstrap (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M100 — feat(cli): add life taskdog sub-app with 26 MCP-backed commands (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M103 — docs(loop): M103 — promote 9 PENDING milestones to DONE (M56/M57/M60.1/M62.1/M62.2/M67.1/M70.1/M73.7/template) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M104 — fix(ikigai): M104 — extend LLM key detection chain to CLAUDE_API_KEY (hermes proxy) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M105 — feat(ikigai): M105 — register ikigai_taskdog_mcp graph (26 MCP tools in Studio UI) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M106 — test(drift): M111 — add 5 invariants protecting M97b-M106 surface (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M107 — feat(ikigai): M107 — graceful network fallback + IKIGAI_DISABLE_OTEL escape hatch (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M108 — feat(cli): M108 — register taskdog-mcp in .mcp.json for Claude Code (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M109 — test(ikigai): M109 — OTel emit smoke (7 tests verifying provider + span API) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M110 — feat(cli): M110 — add 'life status' CLI for system health snapshot (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M111 — test(drift): M111 — add 5 invariants protecting M97b-M106 surface (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M112 — feat(task): M112 — task add/start/done/ls use taskdog-server HTTP (10x faster) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M113 — spec(backtest): M113 v2 — role-anchor drilldown from strategics + attribution-design (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M114 — feat(backtest): M114g — run_backtest.sh + backtest_report.py (47/47 tests, full pipeline <5s) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M115 — feat(backtest): M115 — drift detector diffs current vs baseline run (19/19 tests, snapshot mode) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M116 — feat(backtest): M116 — LLM-judge layer (stub default, --use-llm opt-in, 16/16 tests) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M117 — feat(backtest): M117 — wire audit_drift into harness + add to expected_tools (9/9 tests, anchor #7 live) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M118 — feat(backtest): M118 — baseline archive + weekly trend (19/19 tests, ISO-week grouping, first-wins same-day) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M119 — feat(backtest): M119 — LLM-judge drift tracking (.llm.json archives, trend table llm column, 15/15 tests) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M120 — feat(backtest): M121 — CHECKBOX_VAULT_RE matches open form [ ] [vault:...] (10/10 tests, fixes M120 typo bug) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M121 — feat(backtest): M121 — CHECKBOX_VAULT_RE matches open form [ ] [vault:...] (10/10 tests, fixes M120 typo bug) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M122 — feat(backtest): M122 — tag_mismatch drift kind (14/14 tests, 6th kind via  tag, set comparison) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M123 — feat(backtest): M123 — daily cron driver + Windows Task Scheduler setup (8/8 tests) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M124 — feat(backtest): M124 — SHA256 integrity manifest (19/19 tests, sha256sum-compatible, tamper detection) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M125 — feat(backtest): M125 — CHECKBOX_VAULT_RE accepts nested checkboxes (0-4 space/tab indent, 11/11 tests) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M126 — test(llm): M126 — real-LLM smoke test for --use-llm mode (14/14 tests, fallback paths + dispatch + prompt shape) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M127 — chore: gitignore M127 baseline passphrase file (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M128 — feat(v2): M128 — life v2 audit-drift CLI (14/14 tests, audit_drift() now first-class agent/human-callable) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M129 — ci(backtest): M129 — GitHub Actions runs backtest pipeline on every PR (10-step validation, uploads artifacts) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M130 — feat(backtest): M130 — due_date_mismatch drift kind (15/15 tests, 7th drift kind via | due=YYYY-MM-DD) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M131 — feat(v2): M131 — life v2 vault-preview/vault-apply/vault-toggle (25/25 tests, audit-logged mutations with preview gate) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M132 — feat(vault): M132 — audit log rotation (24/24 tests, max_lines=10k, keep_lines=5k, .archived.jsonl chain) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M133 — feat(v2): M133 — life v2 vault-reopen CLI (26/26 tests, inverse toggle with audit log + preview gate) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M134 — feat(backtest): M134 — drift baseline snapshots + ISO-week trend (23/23 tests, tracks 7 drift kinds over time) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M135 — feat(v2): M135 — life v2 vault-rollback CLI (31/31 tests, audit-log replay reverses toggle/reopen; fix toggle_checkbox [ ] bracket bug) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M136 — feat(ci): M136 — drift regression check (26/26 tests, fails CI on >10% drift growth or new drift kind) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M137 — feat(backtest): M137 — drift weekly trend enhancements (16/16 tests, --kind filter + --delta column + --format json) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M138 — feat(cli): M138 — life console-script globally available (7/7 tests, sys.path bootstrap for src/* + interfaces/* so `pip install -e . && life --help` works from any cwd) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M139 — test(llm): M139 — real-LLM smoke test documented-blocked (7 tests, 1 skipped, exposes _is_real_llm_available gate; see docs/M139-blocked.md) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M140 — feat(v2): M140 — life v2 vault-search (37/37 tests, full-text grep with line numbers, glob/kind filters, regex, json output) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M149 — fix(server): M149 — register 12 taskdog tools on ikigai-gateway FastMCP (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
+### M153 — feat(mesh): M153 — td timeline + tui subcommands (Rich dashboard) (STATUS: PENDING — auto-reconciled 2026-10-01)
+- **What:** see commit messages on master
+- **Why:** (pending — human confirmation required)
+- **Acceptance:** (pending — human confirmation required)
+- **Dependencies:** None
+- **Estimated ticks:** 1
+- **Critical-path bypass:** Auto-reconciled by orchestrator per M34; awaiting human review for promotion to DONE
+
 ## Backlog (not yet sequenced)
 
 _(empty — all 5 prior backlog items shipped via M23, M24, M25, M26, M27)_
