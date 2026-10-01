@@ -1408,3 +1408,167 @@ task + spec was sufficient context, same as M142 + M143 + M144)
 - **Cost:** $0.00 (one session, no sub-agents).
 - **Chain status:** M142 → M143 → M144 → M145 → M146 → M147 all on master.
   Bridge chain complete and production-bound.
+
+## Active Tasks (M148 — v2 graph audit + drift investigation)
+
+### M148 — v2 graph end-to-end audit
+- **Spec:** `specs/M148-v2-graph-audit/SPEC.md` (implicit)
+- **State:** SHIPPED ✅
+- **Findings:** BlockingError diagnostic wrong (real was `AttributeError:
+  anthropic.OverloadedError`); langchain_anthropic broken at import-time.
+
+## Active Tasks (M151 — `td` global CLI via zipapp)
+
+### M151 — td shim
+- **State:** SHIPPED ✅
+- **What landed:** `td.bat`/`td.ps1` zipapp com sys.path bootstrap.
+- **Timeline + TUI minimalista** in M153 (commit `1a4e6cf5`).
+
+## Active Tasks (M154-AUDIT)
+
+### M154-AUDIT — v2 deep agent inventário honesto
+- **State:** SHIPPED ✅ (commit `41e544a3`)
+
+## Active Tasks (M155 — spec clarifica arquitetura)
+
+### M155 — TUI nativa vs interfaces internas
+- **State:** SHIPPED ✅ (commit `716686d9` + `8afe0cf7`)
+- **Decisão:** `td tui` = TUI nativa taskdog; `./interfaces/` = chat agent
+  + outras gestões internas. Context awareness SEMPRE consultado.
+
+## Active Tasks (M156 — stub PAV-math)
+
+### M156 — stub 14 PAV-math prompts
+- **State:** SHIPPED ✅ (commit `f5a45019`)
+- **Note:** ADR-013 planner-only. PAV-math removido do agent layer.
+
+## Active Tasks (M157 — catch ImportError)
+
+### M157 — fix langchain_anthropic import
+- **State:** SHIPPED ✅ (commit `16216900`)
+- **Scope narrow:** patched `taskdog_mcp_graph.py:_build_agent` only.
+  16 prompts AINDA com import quebrado → deferred M158g (broad fix).
+
+## Active Tasks (M158 — td chat REPL)
+
+### M158 — td chat REPL (deep agent interface)
+- **State:** SHIPPED ✅
+- **What landed:** `taskdog_chat.py` (~250 LOC) com REPL, color class,
+  PROPOSAL, approval, slash commands.
+
+## Active Tasks (M168 — roadmap horizonte A/B/C)
+
+### M168 — versão simplificada
+- **Spec:** `specs/M168-roadmap/SPEC.md` (268 linhas)
+- **State:** SHIPPED ✅ (commit `026c5ec3`)
+- **Visão:** A (TUI upstream ~3.700 LOC, 5-7 sessões), B (deep agent
+  ~1.500 LOC, 1-2 sessões), C (visionário indefinido).
+- **Sequência:** M159-M162 (B) → M163-M165 (A gradual) → A completo.
+
+## Active Tasks (M159 — vault embeddings cache)
+
+### M159 — vault embeddings cache (JSON-backed, no ChromaDB)
+- **State:** SHIPPED ✅
+- **What landed:** `vault_cache.py` (179 LOC) hash pseudo-embed 384-dim.
+  User escolheu local (não MiniMax).
+
+## Active Tasks (M159b — MiniMax embeddings probe)
+
+### M159b — probe MiniMax embeddings endpoint
+- **State:** SHIPPED ✅ (commits `55b5e765` + `b7849ee4`)
+- **Findings:** `POST https://api.minimax.io/v1/embeddings` existe com
+  schema `{model: "embo-01", type: "query|passage|...", texts: [...]}`
+  mas rate-limited RPM. User rejeitou TPM como desculpa.
+
+## Active Tasks (M161 — 2 skills novos)
+
+### M161 — taskdog-triage + vault-intent-extract
+- **State:** SHIPPED ✅
+- **What landed:** `proposals.py` (84 LOC), `taskdog_triage.py` (150 LOC),
+  `vault_intent_extract.py` (166 LOC), registry em `__init__.py`.
+  37/37 tests + 55/55 suite total.
+
+## Active Tasks (M162 — cadência adaptada)
+
+### M162 — cadence skills (daily/weekly/monthly/quarterly) sem PAV
+- **State:** SHIPPED ✅ (commit `d27b0b6f`)
+- **What landed:** `cadence.py` (247 LOC) helpers compartilhados,
+  4 skills (read-only + 3 WRITE_FILE). Registry com 6 skills total.
+  34/34 tests + 126/126 suite total.
+
+## Active Tasks (M158b — pending_proposal + zipapp)
+
+### M158b — pending_proposal + _apply_proposal + td shim build
+- **State:** SHIPPED ✅ (commit `0a44e940`)
+- **What landed:** `scripts/td_shim_build/__main__.py` (zipapp launcher
+  hardcoded), `taskdog_chat.py` patched com `pending_proposal` +
+  `_apply_proposal()` helper via `enqueue(tc)`. `/triage` + `/extract`
+  shortcuts setam `pending_proposal`, `--approve` aplica sem novo request.
+  8/8 tests + 128/128 suite total.
+
+## Active Tasks (M158c — OTEL graceful fallback)
+
+### M158c — OTEL try/except + PYTHONPATH filter
+- **State:** SHIPPED ✅ (commit `0a72f001`)
+- **Root cause:** `OTEL_COMPONENT_NAME` missing no
+  `opentelemetry-semantic-conventions==0.48b0` corrompido em Python 3.14
+  user site-packages. PowerShell user herda `PYTHONPATH` Hermes venv.
+- **Fix:** `td.exe` filtra `/hermes/installs/` + `otel_init.py` try/except
+  em `OTLPSpanExporter`.
+
+## Active Tasks (M158d — remover FAKE-LLM stubs)
+
+### M158d — remove M156 stubs from 16 prompt files
+- **State:** SHIPPED ✅ (commit `3908dd70`)
+- **What landed:** zero `[FAKE-LLM stub for test]` em 16 prompts.
+  Mas LLM real ainda falha por outro motivo (M158e).
+
+## Active Tasks (M158e — real LLM working)
+
+### M158e — langchain_anthropic shim + response normalizer
+- **State:** SHIPPED ✅ (commit `79154a62`)
+- **Root cause:** `langchain_anthropic.chat_models:984` define
+  `class AnthropicOverloadedError(anthropic.OverloadedError, ModelAPIError)`
+  falha no import-time em `anthropic==0.87.0`. Resposta `response.content`
+  é lista de blocks (langchain 1.x), não string.
+- **Fix:** `langchain_anthropic_shim.py` monkey-patches
+  `anthropic.OverloadedError` + wraps `ChatAnthropic.invoke` para
+  extrair text de list-of-blocks.
+
+## Active Tasks (M158f — Windows-native shim)
+
+### M158f — td.cmd/td.bat/td.ps1 shim triple-wrapper
+- **State:** SHIPPED ✅ (commit `6a26112d`)
+- **Root cause:** PATHEXT tem `.PS1` antes de `.BAT`, PowerShell/CMD
+  pegam `td.ps1` legado (sem shim de ANTHROPIC_API_KEY). PowerShell
+  não honra shebang `td.exe` zipapp.
+- **Fix:** `td.ps1` reescrito pra chamar `python -m scripts.td_shim_build`,
+  `td.cmd` adicionado como wrapper CMD, `td.exe` deletado.
+  PYTHONPATH inclui `$RepoRoot` (não só `$RepoRoot\src`).
+- **Limitação:** Shim frágil. `pip install "anthropic>=0.40"` substituiria.
+
+## Active Tasks (M158g — cleanup shim)
+
+### M158g — limpar shim frágil
+- **State:** PENDING
+- **Goal:** substituir shim triple-wrapper por upgrade direto:
+  `pip install "anthropic>=0.40"` (resolve raiz sem monkey-patch).
+- **Cost:** ~30min se funcionar, ~2h se quebrar dependências.
+
+## Active Tasks (M163-M165 — Fase A)
+
+### M163 — schema DB migration (8 → 30+ colunas)
+- **State:** NOT STARTED
+- **Scope:** `tags`, `deps`, `audit_log`, `started_at`, `completed_at`.
+- **Cost:** ~300 LOC, 2-3h.
+
+### M164 — subcomandos essenciais
+- **State:** NOT STARTED
+- **Scope:** `tag`, `dep`, `note`, `pause/reopen/cancel`.
+- **Cost:** ~500 LOC, 3-4h.
+
+### M165 — TUI upstream completa
+- **State:** NOT STARTED
+- **Scope:** panels + gantt + timeline + stats interativo.
+- **Cost:** ~500 LOC, 4-6h.
+
