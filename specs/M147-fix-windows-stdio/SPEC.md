@@ -1,7 +1,15 @@
 ---
 name: M147-fix-windows-stdio
-description: Replace mcp.client.stdio.stdio_client with raw subprocess.Popen + thread-based reader in mcp_runtime. Fixes Windows BrokenResourceError in M146 handshake.
+description: Replace mcp.client.stdio.stdio_client with subprocess.Popen + thread reader. Fixes Windows BrokenResourceError.
 status: PENDING
+owner: loop-orchestrator
+created: 2026-09-26
+constitution_refs:
+  - composition_over_inheritance
+  - tests_are_the_contract
+  - reversibility_over_cleverness
+  - state_on_disk_not_conversation
+estimated_cost_usd: 0.20
 ---
 
 # M147 — Fix Windows MCP stdio transport

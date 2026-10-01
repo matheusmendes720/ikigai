@@ -1,6 +1,6 @@
 ---
 name: M144-loop-write-tools
-description: Add 6 write-side IKIGAI MCP wrappers to .claude/loop/mcp_bridge.py — vault_write/vault_read, ikigai_write_tasks, investigation_*
+description: 6 write-side IKIGAI MCP wrappers in .claude/loop/mcp_bridge.py — vault_read/write, ikigai_write_tasks, investigation_*.
 status: PENDING
 owner: loop-orchestrator
 created: 2026-09-26

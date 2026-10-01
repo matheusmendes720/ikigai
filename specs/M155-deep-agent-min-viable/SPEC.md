@@ -1,3 +1,17 @@
+---
+name: M155-deep-agent-min-viable
+description: Deep agent minimal viable — vault-aware chat, no auto-exec, respects ADR-013 planner-only scope.
+status: PENDING
+owner: loop-orchestrator
+created: 2026-09-29
+constitution_refs:
+  - composition_over_inheritance
+  - tests_are_the_contract
+  - reversibility_over_cleverness
+  - state_on_disk_not_conversation
+estimated_cost_usd: 0.60
+---
+
 # M155 — Deep agent mínimo viável (sem PAV-math, com context awareness automático)
 
 **Status:** 🟡 PLANNED

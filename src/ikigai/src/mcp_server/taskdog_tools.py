@@ -145,16 +145,6 @@ def taskdog_create(
 
 
 @mcp.tool(
-    name="taskdog_done",
-    description="Mark a task as done. Goes through review queue.",
-)
-def taskdog_done(ueid: str) -> str:
-    """DONE: enqueue a status='done' mutation."""
-    event_id = _build_task_change(TaskAction.DONE, ueid, {})
-    return json.dumps({"event_id": event_id, "action": "done", "ueid": ueid})
-
-
-@mcp.tool(
     name="taskdog_set_status",
     description="Update task status (planned/in_progress/done/cancelled). Goes through review queue.",
 )
@@ -187,17 +177,6 @@ def taskdog_set_due(ueid: str, due: str) -> str:
 
 
 @mcp.tool(
-    name="taskdog_set_planned_dates",
-    description="Update task planned start/end dates. Goes through review queue.",
-)
-def taskdog_set_planned_dates(ueid: str, planned_start: str, planned_end: str) -> str:
-    """UPDATE: set planned_start + planned_end fields."""
-    fields = {"planned_start": planned_start, "planned_end": planned_end}
-    event_id = _build_task_change(TaskAction.UPDATE, ueid, fields)
-    return json.dumps({"event_id": event_id, "action": "update", "fields": fields, "ueid": ueid})
-
-
-@mcp.tool(
     name="taskdog_cancel",
     description="Cancel a task (soft removal: status='cancelled'). Goes through review queue.",
 )
@@ -207,73 +186,14 @@ def taskdog_cancel(ueid: str) -> str:
     return json.dumps({"event_id": event_id, "action": "update", "field": "status", "value": "cancelled", "ueid": ueid})
 
 
-@mcp.tool(
-    name="taskdog_delete",
-    description="Hard-delete a task from taskdog. Goes through review queue. Irreversible.",
-)
-def taskdog_delete(ueid: str) -> str:
-    """DELETE: remove the row entirely. Use taskdog_cancel for soft removal."""
-    event_id = _build_task_change(TaskAction.DELETE, ueid, {})
-    return json.dumps({"event_id": event_id, "action": "delete", "ueid": ueid})
-
-
-@mcp.tool(
-    name="taskdog_search",
-    description="Search tasks by substring match on name + optional status/priority filters.",
-)
-def taskdog_search(
-    query: str,
-    status: str | None = None,
-    priority: str | int | None = None,
-    limit: int = 10,
-) -> str:
-    """Search: substring match on task name (case-insensitive) + filters.
-
-    Read-only — does not enqueue anything, hits the adapter directly.
-    """
-    all_tasks = TaskdogAdapter().list_all()
-    q = query.lower().strip()
-
-    def _matches(t: dict) -> bool:
-        name = (t.get("name") or "").lower()
-        if q and q not in name:
-            return False
-        if status is not None and t.get("status") != status:
-            return False
-        if priority is not None:
-            # Accept both int and string
-            t_pri = t.get("priority")
-            if isinstance(priority, str):
-                m = {"high": 1, "medium": 2, "low": 3}
-                p_int = m.get(priority.lower())
-            else:
-                p_int = priority
-            if t_pri != p_int:
-                return False
-        return True
-
-    matched = [t for t in all_tasks if _matches(t)]
-    matched.sort(key=lambda t: t.get("created_at") or "", reverse=True)
-    if limit > 0:
-        matched = matched[:limit]
-    return json.dumps(
-        {"count": len(matched), "query": query, "tasks": matched},
-        default=str,
-    )
-
-
 __all__ = [
     "mcp",
     "taskdog_list",
     "taskdog_read",
     "taskdog_supports_field",
     "taskdog_create",
-    "taskdog_done",
     "taskdog_set_status",
     "taskdog_set_priority",
     "taskdog_set_due",
-    "taskdog_set_planned_dates",
     "taskdog_cancel",
-    "taskdog_delete",
-    "taskdog_search",
 ]

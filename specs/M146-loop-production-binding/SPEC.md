@@ -1,6 +1,6 @@
 ---
 name: M146-loop-production-binding
-description: Production binding for .claude/loop/mcp_bridge.py — start FastMCP stdio client + init_tracing() at loop startup. Closes the bridge chain.
+description: Production binding for mcp_bridge.py — start FastMCP stdio + init_tracing() at startup. Closes chain.
 status: PENDING
 owner: loop-orchestrator
 created: 2026-09-26

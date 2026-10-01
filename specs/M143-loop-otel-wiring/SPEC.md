@@ -1,6 +1,6 @@
 ---
 name: M143-loop-otel-wiring
-description: OpenTelemetry spans for .claude/loop/mcp_bridge.py — mirrors v2 mcp_bridge T-8.3.1 pattern with tracer name loop.mcp.{tool_name}
+description: OTel spans for .claude/loop/mcp_bridge.py — mirrors v2 T-8.3.1 pattern with tracer name loop.mcp.{tool_name}.
 status: PENDING
 owner: loop-orchestrator
 created: 2026-09-26
