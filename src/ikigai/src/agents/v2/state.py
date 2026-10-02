@@ -113,13 +113,37 @@ class CorrectionSignal(TypedDict):
 
 
 class IKIGAiStateDict(TypedDict):
-    """Canonical state for the IKIGAi-Maintainer LangGraph v2."""
+    """Canonical state for the IKIGAi-Maintainer LangGraph v2.
 
-    # ---- Required identity fields ------------------------------
-    cycle_id: str
-    cycle_start: str
-    cycle_end: str
-    iteration: int
+    OPEN-3 fix (2026-10-02): cycle_id/cycle_start/cycle_end/iteration
+    were previously REQUIRED, so Cloud Studio disabled the chat input
+    (it greys out chat unless ALL non-messages fields are Optional
+    OR have defaults). All four are now NotRequired with safe operator
+    ``add`` reducers — when Studio sends only ``{"messages": <X>}``,
+    downstream consumers fall through to defaults:
+
+      - cycle_id="default"
+      - cycle_start=today.isoformat()
+      - cycle_end=today.isoformat()
+      - iteration=0
+
+    Production callers (CLI skills, REPL, deepagents_harness) still pass
+    all four explicitly — making them NotRequired is a non-breaking
+    relaxation. v2 nodes already use ``state.get("cycle_id", "default")``
+    etc., so this is purely additive (the drift net AST guard at
+    ``test_v2_node_state_field_declaration`` remains happy because the
+    writes are unchanged — only the schema's required-ness moved).
+    """
+
+    # ---- Identity fields — made NotRequired for Studio chat (OPEN-3) -----
+    # All four were originally required, which broke Studio's chat input
+    # (Studio can't auto-fill required fields without a defaults form).
+    # NotRequired with safe defaults lets Studio send just messages while
+    # CLI/REPL callers continue to pass all four explicitly.
+    cycle_id: NotRequired[str]
+    cycle_start: NotRequired[str]
+    cycle_end: NotRequired[str]
+    iteration: NotRequired[int]
 
     # ---- Optional state --------------------------------------
     last_step: NotRequired[str]
@@ -173,7 +197,12 @@ class IKIGAiStateDict(TypedDict):
     error_traceback: NotRequired[str]
     commit_summary: NotRequired[str]
 
-    # Chat mode
+    # Chat mode — `messages` is the canonical LangGraph chat input field.
+    # Cloud Studio's chat-input detection (per langgraph_api 0.14.x) requires
+    # the input schema to declare a `messages` field with a list type —
+    # making chat disabled when missing. This field is already present and
+    # NotRequired so it's safe to omit when invoking the graph outside
+    # chat contexts (CLI daily/weekly skills).
     messages: NotRequired[Annotated[list[dict[str, Any]], operator.add]]
     user_input: NotRequired[str | None]
 

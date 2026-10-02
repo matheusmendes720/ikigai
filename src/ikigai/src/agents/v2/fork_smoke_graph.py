@@ -14,6 +14,12 @@ This is a SMOKE test — it does NOT verify fork logic correctness (that's
 
 Register in langgraph.json:
     "ikigai_fork_smoke": "./src/ikigai/src/agents/v2/fork_smoke_graph.py:make_fork_smoke_graph"
+
+OPEN-3 fix (2026-10-02): the state schema was previously ``dict`` which
+yielded NO fields in input_schema. Cloud Studio requires a `messages`
+field in input_schema to enable chat input. We now use the
+``ForkSmokeStateDict`` TypedDict — `messages` is NotRequired so the
+input is auto-fillable, all output fields are NotRequired with defaults.
 """
 
 from __future__ import annotations
@@ -21,7 +27,7 @@ from __future__ import annotations
 import logging
 import traceback
 from collections.abc import Callable
-from typing import Any, Literal
+from typing import Any, Literal, NotRequired, TypedDict
 
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, StateGraph
@@ -38,8 +44,39 @@ FORK_SMOKE_NODES = ("connect", "call_forks", "disconnect")
 # ---------------------------------------------------------------------------
 # State type for the smoke graph (TypedDict-shaped dict)
 # ---------------------------------------------------------------------------
-# Note: we don't import IKIGAiStateDict to keep this graph self-contained.
-# The smoke graph has its own narrow state shape.
+# OPEN-3 fix (2026-10-02): typed state schema with `messages` field so
+# Cloud Studio's chat-input detection (langgraph_api 0.14.x) recognizes
+# the graph as chat-capable. All output fields are NotRequired with safe
+# defaults — none block Studio's auto-fillable-input flow.
+class ForkSmokeStateDict(TypedDict, total=False):
+    """State for ikigai_fork_smoke. All fields are NotRequired."""
+
+    # ---- Studio chat input ---------------------------------------
+    # Required by langgraph_api for chat-enablement: input_schema must
+    # contain a `messages` field. Studio sends ``{"messages": [...]}``
+    # only; downstream nodes ignore the chat (this is a smoke test, not
+    # a chat agent).
+    messages: NotRequired[list[dict[str, Any]]]
+
+    # ---- connect node output -------------------------------------
+    gateway_initialized: NotRequired[bool]
+    adapters_count: NotRequired[int]
+    gateway_init_error: NotRequired[str]
+
+    # ---- call_forks node output ----------------------------------
+    forks_status: NotRequired[dict[str, str]]
+    forks_reachable_count: NotRequired[int]
+    forks_skipped_count: NotRequired[int]
+
+    # ---- disconnect node output ----------------------------------
+    disconnected: NotRequired[bool]
+
+    # ---- error channel (shared v2 pattern) -----------------------
+    originating_node: NotRequired[str]
+    error_type: NotRequired[str]
+    error_message: NotRequired[str]
+    traceback_str: NotRequired[str]
+    last_step: NotRequired[str]
 
 
 # ---------------------------------------------------------------------------
@@ -183,7 +220,7 @@ def make_fork_smoke_graph(
     # Ensure directory exists
     Path(checkpoint_db).parent.mkdir(parents=True, exist_ok=True)
 
-    builder: StateGraph = StateGraph(dict)
+    builder: StateGraph = StateGraph(ForkSmokeStateDict)
 
     # Add nodes — wrapped in safe_node so exceptions populate error state
     builder.add_node("connect", _safe_node("connect", _connect))

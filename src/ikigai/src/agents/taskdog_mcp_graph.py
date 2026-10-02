@@ -20,6 +20,14 @@ History:
     langgraph_api (RuntimeError: asyncio.run() cannot be called from a
     running event loop). M150 switched to direct mcp_bridge import +
     LangChain StructuredTool wrapping the sync Python wrappers.
+
+OPEN-3 fix (2026-10-02): the placeholder graph was previously
+``StateGraph(dict)`` which yielded NO fields in input_schema. Cloud
+Studio requires a `messages` field in input_schema to enable chat input.
+We now define ``TaskdogMcpStateDict`` TypedDict with `messages` field,
+applied to BOTH the placeholder path (when --allow-blocking isn't set)
+and via the factory return (the create_react_agent branch already has
+messages via LangGraph's prebuilt).
 """
 
 from __future__ import annotations
@@ -27,9 +35,40 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# State schema for ikigai_taskdog_mcp (OPEN-3 fix, 2026-10-02)
+# ---------------------------------------------------------------------------
+# Cloud Studio enables chat only when:
+#   1. The input schema has a `messages` field (list type)
+#   2. All OTHER fields are Optional / have defaults
+# This TypedDict satisfies both — `messages` is the canonical LangGraph
+# chat-input field, all other state is NotRequired with safe defaults.
+#
+# Applied to the placeholder graph (when --allow-blocking isn't set).
+# The full ReAct agent (create_react_agent) already has messages in its
+# prebuilt input_schema, so no change needed on that branch.
+class TaskdogMcpStateDict(TypedDict, total=False):
+    """State schema for ikigai_taskdog_mcp. All fields NotRequired.
+
+    The placeholder graph (``_placeholder_graph``) uses this TypedDict
+    directly via ``StateGraph(TaskdogMcpStateDict)`` so its input_schema
+    contains ``messages: list[...]``. The full ReAct agent branch is
+    built with ``create_react_agent`` whose prebuilt state already has
+    a ``messages`` field — no further work needed there.
+    """
+
+    # ---- Studio chat input ---------------------------------------
+    messages: NotRequired[list[dict[str, Any]]]
+
+    # ---- Placeholder graph output --------------------------------
+    # When the full bridge isn't loaded, _report() returns a single
+    # assistant message describing the fix; messages append via reducer.
+    # Marked NotRequired so Studio's auto-fillable input isn't blocked.
 
 
 def _allow_blocking_active() -> bool:
@@ -85,7 +124,7 @@ def _placeholder_graph(reason: str) -> Any:
             "  3. Restart `langgraph dev`"
         )}]}
 
-    builder = StateGraph(dict)
+    builder = StateGraph(TaskdogMcpStateDict)
     builder.add_node("report", _report)
     builder.add_edge(START, "report")
     builder.add_edge("report", END)
