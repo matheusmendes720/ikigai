@@ -26,9 +26,26 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+def _allow_blocking_active() -> bool:
+    """True iff dev binding should be active.
+
+    OPEN-1 fix (2026-10-02): prefer ``--allow-blocking`` in ``sys.argv``
+    (set by ``langgraph dev --allow-blocking``) so the auto-bind happens
+    whenever the langgraph dev CLI is invoked in blocking-tolerant mode,
+    without requiring the operator to also set ``IKIGAI_TASKDOG_FULL_BRIDGE``.
+
+    Falls back to the legacy env var for callers that set it explicitly
+    (e.g. CI smoke tests, manual boots).
+    """
+    if "--allow-blocking" in sys.argv:
+        return True
+    return os.environ.get("IKIGAI_TASKDOG_FULL_BRIDGE", "").lower() in ("1", "true", "yes")
 
 
 # M150: pre-compute the bridge path at module-import time (NOT inside the
@@ -140,6 +157,26 @@ def _build_lc_tools() -> list[Any]:
             tools.append(tool)
         except Exception as e:
             logger.warning("failed to wrap %s as LC tool: %s", name, e)
+
+    # M50-ultracode: append ikigai_read_vault + ikigai_write_vault so the
+    # ReAct agent can round-trip the vault (read context, write notes).
+    # Both are already LangChain @tool-decorated StructuredTools in
+    # src/ikigai/src/agents/{ikigai_read_vault,ikigai_write_vault}.py —
+    # import the module objects (NOT the bare tool) so we get the
+    # StructuredTool instance with the @tool-decorated signature.
+    try:
+        from src.ikigai.src.agents.ikigai_read_vault import (
+            ikigai_read_vault as _lc_ikigai_read_vault,
+        )
+        from src.ikigai.src.agents.ikigai_write_vault import (
+            ikigai_write_vault as _lc_ikigai_write_vault,
+        )
+        for _lc_tool in (_lc_ikigai_read_vault, _lc_ikigai_write_vault):
+            if _lc_tool is not None:
+                tools.append(_lc_tool)
+    except Exception as e:
+        logger.warning("failed to import ikigai_read_vault / ikigai_write_vault: %s", e)
+
     return tools
 
 
@@ -269,17 +306,35 @@ class _DirectTaskdogServer:
 def _bind_mcp_bridge_server() -> None:
     """Bind mcp_bridge._server to _DirectTaskdogServer. Idempotent.
 
-    2026-09-29: replaces M146 production binding. Runs only when env says so.
+    OPEN-1 fix (2026-10-02): bind at module-load when ``--allow-blocking``
+    is in ``sys.argv`` (the canonical flag passed by ``langgraph dev``)
+    OR when ``IKIGAI_TASKDOG_FULL_BRIDGE`` is set (legacy env path).
+
+    The loaded bridge module is pinned in ``sys.modules`` under the SAME
+    name used by ``_build_lc_tools`` (``"loop_mcp_bridge"``) so a later
+    ``_build_lc_tools`` call returns the SAME module object — without
+    this, ``bridge._server = _DirectTaskdogServer()`` would mutate a
+    throwaway module that no production caller ever sees (dual-module
+    identity bug pattern, see CLAUDE.md "Import-Path Rules").
     """
-    if not os.environ.get("IKIGAI_TASKDOG_FULL_BRIDGE", "").lower() in ("1", "true", "yes"):
+    if not _allow_blocking_active():
         return
     try:
         import importlib.util as _ilu  # noqa: E402
-        spec = _ilu.spec_from_file_location("loop_mcp_bridge_bind", _BRIDGE_PATH)
+        # Must match the name in _build_lc_tools so sys.modules de-dupes.
+        bridge_modname = "loop_mcp_bridge"
+        spec = _ilu.spec_from_file_location(bridge_modname, _BRIDGE_PATH)
         bridge = _ilu.module_from_spec(spec) if spec and spec.loader else None
         if not bridge:
             return
+        # Register in sys.modules BEFORE exec_module so the module
+        # object is the one production callers will import (avoids
+        # dual-module identity split).
+        sys.modules[bridge_modname] = bridge
         spec.loader.exec_module(bridge)
+        # One-shot: never overwrite an already-bound server (tests
+        # monkeypatch bridge._server to a MagicMock per the FakeMcpServer
+        # pattern in mcp_bridge.py docstring).
         if getattr(bridge, "_server", None) is None:
             bridge._server = _DirectTaskdogServer()
     except Exception as exc:  # noqa: BLE001
@@ -339,4 +394,4 @@ try:
 except ImportError:
     pass  # python-dotenv not installed — fall back to process.env only
 
-_ALLOW_BLOCKING = _os.environ.get("IKIGAI_TASKDOG_FULL_BRIDGE", "").lower() in ("1", "true", "yes")
+_ALLOW_BLOCKING = _allow_blocking_active()

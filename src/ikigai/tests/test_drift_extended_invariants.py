@@ -1382,3 +1382,291 @@ def test_no_relative_imports_in_v2_graph() -> None:
     body = "\n".join(body_lines)
     bad = re.findall(r"^from \.\w+", body, flags=re.MULTILINE)
     assert not bad, f"relative imports still present in v2/graph.py: {bad}"
+
+
+# ---------------------------------------------------------------------------
+# v2 node → IKIGAiStateDict field declaration drift guard
+# ---------------------------------------------------------------------------
+#
+# Drift guard (M88 OPEN-1 / document_langgraph-dev-studio-e2e section 3.12):
+# any field a v2 node writes MUST be a declared key of IKIGAiStateDict (or its
+# meta-plan extension MetaPlanStateDict). LangGraph's state schema filter drops
+# fields NOT declared in the TypedDict from node returns, so writing an
+# undeclared field silently breaks routing/decisions downstream.
+#
+# This catches the same class of bug as M88 (reason_node wrote
+# `draft_proposal` but the field wasn't declared in IKIGAiStateDict, so
+# routing always saw None and the graph looped until MAX_REASON_LOOPS).
+# Future v2-node additions must declare the field up front.
+
+
+# Fields written by current v2 nodes that are NOT yet declared in
+# IKIGAiStateDict. Each entry documents WHY it's not declared yet and
+# is a TODO to either declare the field or remove the write. Adding a
+# new legacy entry requires code review.
+_LEGACY_UNDECLARED_V2_NODE_FIELDS: frozenset[str] = frozenset(
+    {
+        # ---- M12 PAV-bridge-removal placeholder outputs ----------------
+        # The bridge wrappers (ikigai_plan, ikigai_reflect, etc.) were
+        # deleted in M12 (T-13.3). The corresponding stub nodes return
+        # a placeholder dict naming the original field as `None` plus an
+        # error_channel entry. When bridges are restored, declare each
+        # field in IKIGAiStateDict and replace the placeholder.
+        "plan",
+        "reflect",
+        "balance",
+        "score_vectors",
+        "heuristics",
+        "decompose",
+        # ---- M12 PAV-bridge-removal error channel ----------------------
+        # Stub nodes write `error_channel: list[str]` to surface the
+        # missing bridge. NOT the same as `error_type` / `error_message`
+        # / `error_traceback` (those are the canonical error fields).
+        # TODO: declare `error_channel` in IKIGAiStateDict as
+        # `NotRequired[Annotated[list[str], operator.add]]` so operators
+        # can append (never overwrite) into it.
+        "error_channel",
+        # ---- commit_node output alongside commit_summary ------------------
+        # commit_node returns the taskdog_results dict under `commit`
+        # alongside the canonical `commit_summary` string. Currently
+        # `commit_summary` is declared and used by downstream consumers;
+        # `commit` is a sibling output not declared in the schema.
+        # TODO: declare `commit` in IKIGAiStateDict (taskdog results
+        # audit trail — useful for ad-hoc #14 retrospective replay).
+        "commit",
+        # ---- recall_node internal scratch state ------------------------
+        # recall_node stores fetched memory_db reads in state["context"].
+        # Not declared because downstream reason_node also reads it via
+        # state.get("context"). Internal scratch space.
+        # TODO: declare `context` in IKIGAiStateDict OR refactor to a
+        # proper scratch memory (e.g., context dict, scratch dict) so
+        # the dependency is explicit.
+        "context",
+        # ---- observe_node output ---------------------------------------
+        # observe_node builds an `updates` dict and returns it. The
+        # primary output is `observation` (None placeholder for PAV
+        # state). Not declared because observation is consumed by
+        # downstream consumers via state.get("observation") which
+        # silently returns None when the field is dropped by the
+        # schema filter — same bug class the test guards against.
+        # TODO: declare `observation` in IKIGAiStateDict.
+        "observation",
+        # ---- reason_node debug field -----------------------------------
+        # reason_node writes `reasoning_chain_stage` as a debug marker
+        # for the chain orchestration. Not declared because it's a
+        # debug-only signal — no downstream consumer.
+        # TODO: declare `reasoning_chain_stage` in IKIGAiStateDict OR
+        # remove the write (the orchestration stage tracks via `record`
+        # not via IKIGAiStateDict).
+        "reasoning_chain_stage",
+        # ---- dep_graph_node plural proposals --------------------------
+        # dep_graph_node writes `proposals` (plural) alongside
+        # `proposal` (singular, declared in MetaPlanStateDict). The
+        # plural form holds the full candidate list; the singular is
+        # the primary proposal forwarded to the executor.
+        # TODO: declare `proposals` in MetaPlanStateDict as
+        # `NotRequired[list[Any]]`.
+        "proposals",
+    }
+)
+
+
+def _extract_declared_state_fields(state_tree: ast.AST) -> set[str]:
+    """Extract all field names declared in IKIGAiStateDict + MetaPlanStateDict.
+
+    Both classes use annotated assignments like ``field_name: type`` —
+    the AST node is ast.AnnAssign with target ast.Name. We walk each
+    class body and collect the names. Inheritance via
+    IKIGAiStateDictWithMetaPlan is implicit (we walk both parents).
+    """
+    declared: set[str] = set()
+    target_classes = {"IKIGAiStateDict", "MetaPlanStateDict"}
+    for node in ast.walk(state_tree):
+        if isinstance(node, ast.ClassDef) and node.name in target_classes:
+            for stmt in node.body:
+                if (
+                    isinstance(stmt, ast.AnnAssign)
+                    and isinstance(stmt.target, ast.Name)
+                ):
+                    declared.add(stmt.target.id)
+    return declared
+
+
+def _find_v2_node_state_writes(func_node: ast.AST) -> dict[str, int]:
+    """Return dict mapping every field name the v2 node writes to its line no.
+
+    A node "writes" a field if any of these AST patterns appear in the
+    node's body (in execution order — Pattern C requires the variable
+    assignment to precede the return that uses it):
+
+    Pattern A — direct subscript assignment:
+        ``state["x"] = value``
+
+    Pattern B — dict literal returned directly:
+        ``return {"x": ..., "y": ..., ...}``
+
+    Pattern C — dict literal assigned to a local variable that is
+    later returned:
+        ``updates = {"x": ..., "y": ...}; ...; return updates``
+
+    Does NOT flag (false-positive guard):
+    - ``state.get("x")`` — attribute access, not subscript assignment
+    - ``state["x"]`` as a value expression — Subscript only, not a target
+    - ``state = dict(state)`` — Name assignment, not Subscript assignment
+    - dict literals in helper functions that are NOT the v2 node itself
+      (callers of the helper do not necessarily merge those keys into
+      state — we only inspect top-level functions whose first parameter
+      is ``state``).
+    """
+    writes: dict[str, int] = {}
+
+    # ---- Pattern A: state["x"] = value (assignment target) -----------
+    for sub in ast.walk(func_node):
+        if isinstance(sub, ast.Assign):
+            for target in sub.targets:
+                if (
+                    isinstance(target, ast.Subscript)
+                    and isinstance(target.value, ast.Name)
+                    and target.value.id == "state"
+                    and isinstance(target.slice, ast.Constant)
+                    and isinstance(target.slice.value, str)
+                ):
+                    field = target.slice.value
+                    # Earlier line wins (avoid redundant lines from nested
+                    # helpers if they happen to match — e.g. tests).
+                    writes.setdefault(field, sub.lineno)
+
+    # ---- Pattern B: return {"x": ..., "y": ...} (dict literal) --------
+    # And Pattern C: dict literal assigned to a local variable that is
+    # later returned.
+    #
+    # We track both dict literals returned directly AND dict literals
+    # assigned to a variable at the function-body top level (direct
+    # children of func_node.body) that the function then returns.
+    dict_literal_vars: dict[str, list[tuple[str, int]]] = {}
+    for stmt in func_node.body:
+        target_name: str | None = None
+        dict_node: ast.Dict | None = None
+        if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.value, ast.Dict):
+            if isinstance(stmt.target, ast.Name):
+                target_name = stmt.target.id
+                dict_node = stmt.value
+        elif isinstance(stmt, ast.Assign) and isinstance(stmt.value, ast.Dict):
+            if len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name):
+                target_name = stmt.targets[0].id
+                dict_node = stmt.value
+        if target_name and dict_node is not None:
+            keys: list[tuple[str, int]] = []
+            for k in dict_node.keys:
+                if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                    keys.append((k.value, k.lineno))
+            dict_literal_vars[target_name] = keys
+
+    # Walk returns — direct dict literals (Pattern B) and variable
+    # references that point to dict literals (Pattern C).
+    for sub in ast.walk(func_node):
+        if not isinstance(sub, ast.Return):
+            continue
+        if isinstance(sub.value, ast.Dict):
+            for k in sub.value.keys:
+                if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                    writes.setdefault(k.value, k.lineno)
+        elif isinstance(sub.value, ast.Name) and sub.value.id in dict_literal_vars:
+            for field, line in dict_literal_vars[sub.value.id]:
+                writes.setdefault(field, line)
+
+    return writes
+
+
+def test_v2_node_state_field_declaration() -> None:
+    """Drift net guard: every field a v2 node writes MUST be declared in
+    IKIGAiStateDict (or its meta-plan extension).
+
+    Prevents the ``draft_proposal`` class of bugs (M88 OPEN-1) where a node
+    returns a field not declared in IKIGAiStateDict, so LangGraph's state
+    schema filter silently drops it from node returns. The classic
+    instance: reason_node's ``draft_proposal`` field wasn't declared, so
+    routing always saw None and the graph looped until MAX_REASON_LOOPS.
+
+    AST-based detector (more robust than regex) covers three write
+    patterns:
+
+    - ``state["x"] = value`` direct subscript assignments
+    - ``return {"x": ..., "y": ...}`` dict literal returns
+    - ``updates = {"x": ...}; return updates`` local-variable-then-return
+
+    Reads are NOT flagged (``state.get("x")``, ``state["x"]`` in
+    expressions). Fields in the legacy allowlist
+    ``_LEGACY_UNDECLARED_V2_NODE_FIELDS`` are NOT flagged — each entry
+    documents why the field is undeclared and is a TODO to either
+    declare it in IKIGAiStateDict or remove the write.
+
+    Failure mode: emits a clear message naming the file + line + field,
+    plus the full declared-field set and legacy allowlist contents.
+    """
+    repo = _resolve_repo_root()
+    v2_nodes_dir = repo / "src" / "ikigai" / "src" / "agents" / "v2" / "nodes"
+    state_file = repo / "src" / "ikigai" / "src" / "agents" / "v2" / "state.py"
+
+    if not v2_nodes_dir.exists():
+        pytest.skip(f"v2 nodes dir not found: {v2_nodes_dir}")
+    if not state_file.exists():
+        pytest.skip(f"v2 state.py not found: {state_file}")
+
+    # ---- Step 1: extract declared fields from IKIGAiStateDict -----------
+    state_tree = ast.parse(state_file.read_text(encoding="utf-8"))
+    declared_fields = _extract_declared_state_fields(state_tree)
+
+    # ---- Step 2: walk each v2 node and collect writes ------------------
+    violations: list[str] = []
+    validated: list[tuple[str, str, str, int]] = []  # (file, func, field, line)
+
+    for node_file in sorted(v2_nodes_dir.glob("*.py")):
+        if node_file.name == "__init__.py":
+            continue
+        try:
+            tree = ast.parse(node_file.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+
+        # Only inspect top-level functions whose first parameter is
+        # ``state`` — these are the v2 graph nodes. Helpers (which may
+        # also build dict literals) are excluded: their dicts are
+        # internal scratch, not writes to graph state.
+        top_level_funcs = [
+            n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        v2_node_funcs = [
+            f for f in top_level_funcs if f.args.args and f.args.args[0].arg == "state"
+        ]
+        if not v2_node_funcs:
+            continue
+
+        for func_node in v2_node_funcs:
+            writes = _find_v2_node_state_writes(func_node)
+            rel_path = _relative_to_repo(node_file)
+            for field, line in sorted(writes.items(), key=lambda kv: kv[1]):
+                validated.append((rel_path, func_node.name, field, line))
+                if field in declared_fields:
+                    continue
+                if field in _LEGACY_UNDECLARED_V2_NODE_FIELDS:
+                    continue
+                violations.append(
+                    f"  {rel_path}:{line}  [{func_node.name}]  "
+                    f"writes '{field}' — not declared in IKIGAiStateDict "
+                    f"and not in legacy allowlist"
+                )
+
+    fields_validated = len(validated)
+    assert not violations, (
+        f"v2 nodes write {len(violations)} field(s) not declared in "
+        "IKIGAiStateDict (and not in the legacy allowlist):\n"
+        + "\n".join(sorted(violations))
+        + f"\n\nTotal field writes validated: {fields_validated}"
+        + f"\nDeclared fields ({len(declared_fields)}): {sorted(declared_fields)}"
+        + f"\nLegacy allowlist ({len(_LEGACY_UNDECLARED_V2_NODE_FIELDS)}): "
+        f"{sorted(_LEGACY_UNDECLARED_V2_NODE_FIELDS)}"
+        + "\n\nFix: declare the field in IKIGAiStateDict (preferred), or "
+        "add to _LEGACY_UNDECLARED_V2_NODE_FIELDS with a comment explaining "
+        "why it's undeclared (each new entry requires code review)."
+    )
