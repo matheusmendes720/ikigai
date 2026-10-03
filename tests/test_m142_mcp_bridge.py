@@ -149,10 +149,12 @@ def test_taskdog_list_with_filters_passes_kwargs(bridge, fake_server):
 # ---------------------------------------------------------------------------
 
 
-def test_drift_count_of_wrapped_tools_is_23(bridge):
-    """Pin the M148 surface to 23 wrappers (M142:6 + M143 OTEL no new wrappers
-    + M144:6 write + M145:2 taskdog rest + M146:5 wrapper renames + M148:9).
-    Adding a 24th requires an explicit spec bump.
+def test_drift_count_of_wrapped_tools_is_36(bridge):
+    """Pin the bridge surface to 36 wrappers (M142:6 + M143 OTEL no new
+    wrappers + M144:6 write + M145:2 taskdog rest + M146:5 wrapper renames
+    + M148:9 taskdog writes + M163/M164:13 taskdog extras: audit, pause,
+    reopen, dep_*, note_*, tag_*).
+    Adding a 37th requires an explicit spec bump.
 
     Counts only the canonical IKIGAI / taskdog wrappers, NOT imports like
     `Status` / `StatusCode` / `get_tracer` (added in M143 for OTel).
@@ -185,6 +187,20 @@ def test_drift_count_of_wrapped_tools_is_23(bridge):
         "taskdog_cancel",
         "taskdog_delete",
         "taskdog_search",
+        # M163/M164 (extended taskdog surface: audit, lifecycle, deps, notes, tags)
+        "taskdog_audit",
+        "taskdog_pause",
+        "taskdog_reopen",
+        "taskdog_dep_add",
+        "taskdog_dep_blocked",
+        "taskdog_dep_list",
+        "taskdog_dep_remove",
+        "taskdog_note_add",
+        "taskdog_note_show",
+        "taskdog_tag_add",
+        "taskdog_tag_clear",
+        "taskdog_tag_list",
+        "taskdog_tag_remove",
     }
     actual = {
         name
@@ -192,10 +208,10 @@ def test_drift_count_of_wrapped_tools_is_23(bridge):
         if hasattr(bridge, name) and callable(getattr(bridge, name))
     }
     assert actual == expected, (
-        f"M148 surface drift: expected={sorted(expected)}, "
+        f"Bridge surface drift: expected={sorted(expected)}, "
         f"present={sorted(actual)}"
     )
-    # And no 24th canonical-style wrapper has been added silently
+    # And no 37th canonical-style wrapper has been added silently
     actual_wrapped = {
         name
         for name in dir(bridge)
@@ -203,12 +219,13 @@ def test_drift_count_of_wrapped_tools_is_23(bridge):
         and name.startswith(("ikigai_", "taskdog_", "vault_", "investigation_"))
         and callable(getattr(bridge, name))
     }
-    # M142 (6 read) + M144 (6 write) + M145 (2 read taskdog) + M148 (9 write) = 23.
+    # M142 (6 read) + M144 (6 write) + M145 (2 read taskdog) + M148 (9 write)
+    # + M163/M164 (13 extras) = 36.
     # Splitting drift detection into read + write subsets lets each
     # milestone evolve independently.
-    assert len(actual_wrapped) == 23, (
-        f"M142+M144+M145+M148 wrapper drift: expected exactly 23 wrappers "
-        f"(14 prior + 9 M148), got {len(actual_wrapped)}: "
+    assert len(actual_wrapped) == 36, (
+        f"M142+M144+M145+M148+M163/M164 wrapper drift: expected exactly 36 "
+        f"wrappers (23 prior + 13 M163/M164), got {len(actual_wrapped)}: "
         f"{sorted(actual_wrapped)}"
     )
 
