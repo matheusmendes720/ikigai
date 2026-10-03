@@ -43,8 +43,12 @@ def tag_and_persist_node(state: IKIGAiStateDict) -> dict[str, Any]:
 
     # M89: lazy-import via proposal_executor (consolidates the
     # wrap_vault_write wiring in one module, easier to patch in tests).
+    # canonical path: src/ikigai/src/agents/v2/nodes/proposal_executor.py
+    # (the v2 module is not a top-level package in this repo)
     try:
-        from v2.nodes.proposal_executor import wrap_vault_write
+        from src.ikigai.src.agents.v2.nodes.proposal_executor import (
+            wrap_vault_write,
+        )
     except ImportError as exc:
         return {
             "persisted": False,
