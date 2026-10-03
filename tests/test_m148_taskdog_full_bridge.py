@@ -60,8 +60,8 @@ def bridge(fake_server):
 # ---------------------------------------------------------------------------
 
 
-def test_m148_total_wrapper_count_is_23(bridge):
-    """M142 (6) + M144 (6) + M145 (2) + M148 (9) = 23 wrappers."""
+def test_m148_total_wrapper_count_is_36(bridge):
+    """M142 (6) + M144 (6) + M145 (2) + M148 (9) + M163/M164 (13) = 36 wrappers."""
     prefixes = ("ikigai_", "taskdog_", "vault_", "investigation_")
     actual = {
         name
@@ -70,8 +70,8 @@ def test_m148_total_wrapper_count_is_23(bridge):
         and name.startswith(prefixes)
         and callable(getattr(bridge, name))
     }
-    assert len(actual) == 23, (
-        f"Expected 23 wrappers (14 prior + 9 M148), got {len(actual)}: "
+    assert len(actual) == 36, (
+        f"Expected 36 wrappers (23 prior + 13 M163/M164), got {len(actual)}: "
         f"{sorted(actual)}"
     )
 
