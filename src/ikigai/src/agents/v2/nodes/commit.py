@@ -52,8 +52,15 @@ def _taskdog_create_task_via_bridge(title: str) -> dict[str, Any]:
 
 
 def _summarize_cycle(state: IKIGAiStateDict) -> str:
-    """Produce canonical commit_summary from cycle state."""
-    cycle_id = state.get("cycle_id", "unknown")
+    """Produce canonical commit_summary from cycle state.
+
+    OPEN-3 fix (2026-10-02): cycle_id was promoted to NotRequired in
+    IKIGAiStateDict to enable Studio chat. When Studio invokes the
+    graph with only ``{"messages": [...]}`` (no cycle_id), this default
+    string is what shows up in the commit_summary. CLI/REPL callers
+    still pass cycle_id explicitly so production summaries are unaffected.
+    """
+    cycle_id = state.get("cycle_id", "default")
     tier = "daily"
     if state.get("active_dream_ueid"):
         tier = "dream"

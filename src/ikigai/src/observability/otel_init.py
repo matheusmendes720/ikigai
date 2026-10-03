@@ -23,11 +23,13 @@ Env vars consumed (see ``.env.example`` for the template):
 from __future__ import annotations
 
 import base64
+import logging
 import os
 import sys
 import threading
 
 from opentelemetry import trace
+
 try:
     # otel-exporter-otlp-proto-http has version-dependent imports that can
     # fail with "cannot import name 'OTEL_COMPONENT_NAME' from
@@ -38,6 +40,7 @@ try:
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
         OTLPSpanExporter as _OTLPSpanExporter,
     )
+
     OTLPSpanExporter = _OTLPSpanExporter
     _OTLP_AVAILABLE = True
 except (ImportError, AttributeError) as _otel_err:  # noqa: BLE001
@@ -59,6 +62,55 @@ _INITIALIZED = False
 _LANGSMITH_OTEL_ENDPOINT_DEFAULT = "https://api.smith.langchain.com/api/v1/otel/v1/traces"
 _LANGFUSE_OTEL_PATH = "/api/public/otel/v1/traces"
 _LANGFUSE_HOST_DEFAULT = "https://cloud.langfuse.com"
+
+# OPEN-4 (per docs/2026-09-29-langgraph-dev-studio-e2e.md §6) — silence three
+# known-noisy NON-FATAL OTel log records. The server runs fine; the logs are
+# just noisy at ERROR level. We attach a filter to the originating loggers so
+# CRITICAL/FATAL records from these loggers still surface.
+_NOISY_OTEL_LOGGERS: tuple[str, ...] = (
+    # opentelemetry/context/__init__.py — logger.exception("Failed to detach context")
+    "opentelemetry.context",
+    # opentelemetry/exporter/otlp/proto/http/trace_exporter/__init__.py —
+    # _logger.error("Failed to export span batch code: %s, reason: %s", ...)
+    "opentelemetry.exporter.otlp.proto.http.trace_exporter",
+    # opentelemetry/sdk/trace/export/__init__.py —
+    # logger.exception("Exception while exporting Span batch.")
+    "opentelemetry.sdk.trace.export",
+)
+_NOISY_MSG_PREFIXES: tuple[str, ...] = (
+    "Failed to detach context",
+    "Failed to export span batch",
+    "Exception while exporting Span batch",
+)
+_NOISE_FILTER_APPLIED = False
+
+
+class _SilenceOTelNoise(logging.Filter):
+    """Drop known-noisy NON-FATAL OTel records. Keeps CRITICAL/FATAL visible.
+
+    The matched records are all at ERROR level and the engine keeps working
+    after they fire — they're status indicators, not actionable failures.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        msg = record.getMessage()
+        return not any(msg.startswith(p) for p in _NOISY_MSG_PREFIXES)
+
+
+def _apply_noise_filter() -> int:
+    """Attach ``_SilenceOTelNoise`` to the 3 noisy OTel loggers.
+
+    Idempotent via the module-level ``_NOISE_FILTER_APPLIED`` flag. Returns the
+    number of loggers the filter was attached to (for verification).
+    """
+    global _NOISE_FILTER_APPLIED
+    if _NOISE_FILTER_APPLIED:
+        return 0
+    noise_filter = _SilenceOTelNoise()
+    for name in _NOISY_OTEL_LOGGERS:
+        logging.getLogger(name).addFilter(noise_filter)
+    _NOISE_FILTER_APPLIED = True
+    return len(_NOISY_OTEL_LOGGERS)
 
 
 def _build_langsmith_exporter() -> OTLPSpanExporter:
@@ -98,6 +150,8 @@ def init_tracing() -> None:
     M158c: If OTLP exporter module is unavailable (version mismatch), init a
     bare TracerProvider with no exporters and no instrumentors. Tracing is
     silent in this mode but the rest of the app continues to work.
+    OPEN-4: also attaches ``_SilenceOTelNoise`` to the 3 noisy exporters so
+    non-fatal batch 404s / detach failures stop polluting server output.
     """
     global _INITIALIZED
     if os.environ.get("IKIGAI_DISABLE_OTEL") == "1":
@@ -131,6 +185,9 @@ def init_tracing() -> None:
             provider.add_span_processor(BatchSpanProcessor(_build_langfuse_exporter()))
 
         trace.set_tracer_provider(provider)
+
+        # OPEN-4 — quiet down non-fatal OTel exporter errors that pollute logs.
+        _apply_noise_filter()
 
         # Auto-instrumentation (best-effort; one missing lib shouldn't kill init).
         _try_instrument("opentelemetry.instrumentation.langchain", "LangchainInstrumentor")

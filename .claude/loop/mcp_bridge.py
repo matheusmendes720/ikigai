@@ -463,6 +463,111 @@ def taskdog_search(
 
 
 # ---------------------------------------------------------------------------
+# M163/M164 slice — full MCP surface for v2 schema (tags, deps, notes,
+# pause/reopen, audit). Mirrors the 13 @mcp.tool functions in
+# `src/ikigai/src/mcp_server/taskdog_tools.py` so `_build_lc_tools()` in
+# `src/ikigai/src/agents/taskdog_mcp_graph.py` exposes them to the
+# ReAct agent.
+#
+# All write tools enqueue a TaskChange to the mesh review queue per
+# ADR-014. Validation happens in agent_consumer; the adapter then
+# mutates the SQLite store on APPROVE.
+#
+# Read-only tools (suffix `_list`, `_show`, `_blocked`, `_audit`) hit
+# the adapter directly and do NOT enqueue anything.
+# ---------------------------------------------------------------------------
+
+
+def taskdog_tag_add(ueid: str, tags: list[str]) -> dict[str, Any]:
+    """Append tags to a task's tag set. Idempotent. Routes through review queue."""
+    return _call("taskdog_tag_add", {"ueid": ueid, "tags": list(tags)})
+
+
+def taskdog_tag_remove(ueid: str, tags: list[str]) -> dict[str, Any]:
+    """Remove tags from a task. Missing tags are no-ops. Routes through review queue."""
+    return _call("taskdog_tag_remove", {"ueid": ueid, "tags": list(tags)})
+
+
+def taskdog_tag_list(ueid: str, db_path: str | None = None) -> dict[str, Any]:
+    """Return the canonical tag list for a task (read-only). Empty list if no tags."""
+    args: dict[str, Any] = {"ueid": ueid}
+    if db_path is not None:
+        args["db_path"] = db_path
+    return _call("taskdog_tag_list", args)
+
+
+def taskdog_tag_clear(ueid: str) -> dict[str, Any]:
+    """Remove all tags from a task. Idempotent. Routes through review queue."""
+    return _call("taskdog_tag_clear", {"ueid": ueid})
+
+
+def taskdog_dep_add(ueid: str, other_ueid: str) -> dict[str, Any]:
+    """Add a dependency: this task depends on `other_ueid` being done.
+
+    Routes through review queue.
+    """
+    return _call("taskdog_dep_add", {"ueid": ueid, "other_ueid": other_ueid})
+
+
+def taskdog_dep_remove(ueid: str, other_ueid: str) -> dict[str, Any]:
+    """Remove a dependency on `other_ueid`. Routes through review queue."""
+    return _call("taskdog_dep_remove", {"ueid": ueid, "other_ueid": other_ueid})
+
+
+def taskdog_dep_list(ueid: str, db_path: str | None = None) -> dict[str, Any]:
+    """Return the dependency list for a task (read-only). Empty list if no deps."""
+    args: dict[str, Any] = {"ueid": ueid}
+    if db_path is not None:
+        args["db_path"] = db_path
+    return _call("taskdog_dep_list", args)
+
+
+def taskdog_dep_blocked(db_path: str | None = None) -> dict[str, Any]:
+    """Return tasks with at least one unmet dependency (read-only).
+
+    Scans all tasks.
+    """
+    args: dict[str, Any] = {}
+    if db_path is not None:
+        args["db_path"] = db_path
+    return _call("taskdog_dep_blocked", args)
+
+
+def taskdog_note_add(ueid: str, text: str) -> dict[str, Any]:
+    """Append a free-text note to a task. Routes through review queue.
+
+    Notes are stored in the audit_log with action='note_add'.
+    """
+    return _call("taskdog_note_add", {"ueid": ueid, "text": text})
+
+
+def taskdog_note_show(ueid: str, db_path: str | None = None) -> dict[str, Any]:
+    """Return the notes (audit_log entries with action='note_add') for a task (read-only)."""
+    args: dict[str, Any] = {"ueid": ueid}
+    if db_path is not None:
+        args["db_path"] = db_path
+    return _call("taskdog_note_show", args)
+
+
+def taskdog_pause(ueid: str) -> dict[str, Any]:
+    """Pause a task (status='paused'). Routes through review queue."""
+    return _call("taskdog_pause", {"ueid": ueid})
+
+
+def taskdog_reopen(ueid: str) -> dict[str, Any]:
+    """Reopen a task (status='planned'). Routes through review queue."""
+    return _call("taskdog_reopen", {"ueid": ueid})
+
+
+def taskdog_audit(ueid: str, db_path: str | None = None) -> dict[str, Any]:
+    """Return the full audit_log array for a task (read-only)."""
+    args: dict[str, Any] = {"ueid": ueid}
+    if db_path is not None:
+        args["db_path"] = db_path
+    return _call("taskdog_audit", args)
+
+
+# ---------------------------------------------------------------------------
 # M145 slice — MCP resource accessors
 # ---------------------------------------------------------------------------
 #
