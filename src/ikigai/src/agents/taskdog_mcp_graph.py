@@ -247,11 +247,26 @@ def _build_agent() -> Any:
     base_url = os.environ.get("ANTHROPIC_BASE_URL", "https://api.minimax.io/anthropic")
     model_name = os.environ.get("ANTHROPIC_MODEL", "MiniMax-M2.7-highspeed")
 
-    llm = ChatAnthropic(
+    # The MiniMax proxy at api.minimax.io/anthropic strictly validates the
+    # X-Api-Key header (camelCase). langchain_anthropic's header plumbing
+    # is unreliable in the langgraph dev server context (proven by 401
+    # errors despite default_headers + extra_headers + auth_token
+    # attempts). WORKAROUND: use the OpenAI-compatible endpoint at
+    # api.minimax.io/v1 (verified 200 OK with Bearer auth) via ChatOpenAI.
+    # The proxy accepts both Anthropic-format and OpenAI-format.
+    from langchain_openai import ChatOpenAI
+    # base_url: env says https://api.minimax.io/anthropic; strip the
+    # /anthropic suffix AND append /v1 so ChatOpenAI hits
+    # /v1/chat/completions (the path the proxy serves on).
+    openai_base_url = base_url.replace("/anthropic", "").rstrip("/") + "/v1"
+    # The OpenAI endpoint expects standard "Authorization: Bearer <key>"
+    # header, which ChatOpenAI sets automatically from api_key=. Do NOT
+    # inject X-Api-Key here — the /v1/chat/completions endpoint will
+    # reject the request as malformed auth.
+    llm = ChatOpenAI(
         model=model_name,
         api_key=api_key,
-        base_url=base_url,
-        default_headers={"x-api-key": api_key},
+        base_url=openai_base_url,
     )
 
     tools = _build_lc_tools()
