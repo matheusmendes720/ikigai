@@ -1550,10 +1550,30 @@ task + spec was sufficient context, same as M142 + M143 + M144)
 ## Active Tasks (M158g — cleanup shim)
 
 ### M158g — limpar shim frágil
-- **State:** PENDING
+- **State:** VERIFIED KEEP (M158g done 2026-10-05, ship 0c51e930)
 - **Goal:** substituir shim triple-wrapper por upgrade direto:
   `pip install "anthropic>=0.40"` (resolve raiz sem monkey-patch).
 - **Cost:** ~30min se funcionar, ~2h se quebrar dependências.
+- **Probe findings (2026-10-05):** shim cannot be removed yet.
+  - `anthropic==0.76.0` is installed (matches browser-use's pin)
+  - `langchain_anthropic.chat_models:984` blows up without the shim
+    with `AttributeError: module 'anthropic' has no attribute 'OverloadedError'`
+  - `browser-use==0.13.9` and `==0.13.10` BOTH exact-pin `anthropic==0.76.0`
+    (`requires_dist` confirmed via pypi.org JSON)
+  - Latest anthropic is 1.11.0 (has OverloadedError, would make shim unnecessary)
+    BUT upgrading anthropic would break browser-use
+  - `pip install --dry-run anthropic>=0.40` is a no-op since 0.76.0 satisfies it
+- **Shipped this session:**
+  - `0c51e930` fix(mesh): force IKIGAi src to sys.path position 0
+    (root-cause fix for one shim fragility)
+  - `6a7e19a8` chore(dev): gitignore langgraph_api + daemon heartbeat + vault
+    events log so the runtime noise around it doesn't show
+- **To retire the shim for real, ONE of:**
+  1. Wait for browser-use to release a version that allows anthropic>=0.77
+  2. Drop browser-use from the agent stack entirely
+  3. Maintain a thin pinned venv for browser-use (separate from agent venv)
+- **Re-evaluate trigger:** when browser-use bumps the pin, OR when we
+  drop browser-use, re-attempt the upgrade and remove the shim triple-wrapper.
 
 ## Active Tasks (M163-M165 — Fase A)
 
