@@ -520,3 +520,30 @@ archive/legacy-pav/src-operational/medic/bin/
 # M127 baseline signing passphrase (auto-generated)
 reports/baselines/.passphrase
 src/ikigai/data/baselines/.passphrase
+
+# ─── Runtime state — daemons / API servers / vault event log ────────
+# M158g cleanup (2026-10-05): three sources of orphan runtime state
+# accumulated since the last working-tree hygiene wave (2026-09-14):
+#
+#   1. LangGraph dev server pickles — written by `langgraph dev`
+#      under .langgraph_api/ when running on :2024 (or any port).
+#      Contents are checkpoints + ops log + vector store; recreatable
+#      from scratch on every server boot. Safe to ignore wholesale.
+#
+#   2. Loop daemon heartbeat — written every tick by the loop-tick
+#      daemon (scripts/loop-tick.sh) at
+#      .claude/loop/.daemon-heartbeat.json. Used only by the watchdog
+#      to detect stuck ticks. Not source content.
+#
+#   3. Vault event log — appended by ikigai_write_vault on every
+#      write. The vault itself is append-only markdown in vault/
+#      (also gitignored); this events log is the structured mirror.
+#      Recreate on import; no reviewable content.
+#
+# Also: ikibai_checkpoints.db is a runtime SQLite mirror of in-flight
+# LangGraph state for the ikigai graph. Treat as data/.
+/.langgraph_api/
+/.claude/loop/.daemon-heartbeat.json
+/vault/.vault_events.jsonl
+/src/data/ikigai_checkpoints.db
+/src/data/
