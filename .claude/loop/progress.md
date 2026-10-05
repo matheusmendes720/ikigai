@@ -18,11 +18,11 @@
 
 ## Aggregate Stats
 
-- **Total ticks:** 11
+- **Total ticks:** 12
 - **Total cost:** $1.80
-- **Avg cost/tick:** $0.16
+- **Avg cost/tick:** $0.15
 - **Pass rate:** 100%
-- **Current streak:** 11
+- **Current streak:** 12
 
 ## Log
 
@@ -36,6 +36,15 @@
 - attempt: 1/1
 - notes: 3 sub-milestones. (a) Updated reports/README.md and reports/M97 with shipped milestones M97b/M98/M99/M100 (status now RESOLVED, not READY FOR VALIDATION). (b) Added `life v2 td *` short alias sub-app in v2.py — `life v2 td list -s PENDING` vs full `life taskdog list-tasks --status PENDING`. 26 aliases via subprocess routing (no re-implementation). IKIGAI_DISABLE_MCP_TASKDOG=1 fallback. (c) Installed `langgraph-cli[inmem]==0.4.31` + `langgraph-api==0.14.3` in src/ikigai/.venv. `langgraph_cli validate` confirms langgraph.json valid (2 graphs: pae_maintainer + ikigai_maintainer_v2). KNOWN LIMITATION: `langgraph dev` boots but crashes at graph-load (relative imports fail when loaded standalone — `from .nodes.balance import balance_node`). Fix tracked separately (needs package-relative imports in src/ikigai/src/agents/v2/graph.py). Tests: 5/5 v2_td_alias + 4/4 langgraph_cli_smoke. Regression: 22/22 new tests + drift 18/18 + canonical 35/35 + MCP wiring 7/7 = 1302+ PASS, 0 FAIL.
 - next_action: M102 candidate: fix v2 graph relative-import issue OR langgraph.json schema cleanup (drop $schema warning)
+
+## 2026-10-05T17:30:00Z | M158g-cleanup | PASS
+- commit: 8 atomic (1d4e6791, 0c51e930, 6a7e19a8, 01d065bb, 39ebb5ac, f9f7a229, e55fda2a, 43feabb9)
+- cost_usd: 0.00
+- duration_min: 90
+- model: sonnet
+- attempt: 1/1
+- notes: Cleanup + M158g probe + path-ordering fix. (1) docs: AGENTS.md swap 44KB→6KB (1d4e6791). (2) fix(mesh): _ensure_ikigai_path() force-promotes IKIGAi src to sys.path[0]; was presence-check that no-op'd when shim had it at position 2 (0c51e930). Added 5-test drift net in tests/test_m158g_ikigai_path.py. (3) chore: gitignore .langgraph_api/, daemon-heartbeat, vault-events log, src/data/ runtime (6a7e19a8). (4) chore: commit .env.example, .claude-code-mcp.example.json, uv.lock for vibe-ops (01d065bb). (5) chore: regenerate b7-4 E2E report (2/2 PASS), trash 10 bash-redirect artifacts + 2 orphan scripts (39ebb5ac). (6) chore: untrack src/data/ikigai_checkpoints.db + remove .backup-v1`` stray (f9f7a229). (7) fix: phantom .backup-v1`` index entry (e55fda2a). (8) docs(loop): M158g probe VERIFIED KEEP (43feabb9) — browser-use==0.13.9 AND 0.13.10 both exact-pin anthropic==0.76.0; without shim, langchain_anthropic.chat_models:984 raises AttributeError. Tests: 8/8 td_chat smoke + 5/5 m158g drift + 12/12 bridge = 25/25 PASS. Working tree clean.
+- next_action: M154-AUDIT (honest inventory of v2 deep agent graph) — user just hit a real path-priority bug, perfect timing for a drift audit
 
 
 ## 2026-09-21T20:42:35Z | M100 | life taskdog * direct MCP commands (no LLM)
@@ -6930,3 +6939,115 @@ to degraded Bash mode.
 
 **Chain status:** M142 → M143 → M144 → M145 → M146 → M147 all on master.
 Bridge chain **complete** — production-bound, end-to-end tested.
+## M158g — 2026-10-05 (path-ordering bug fix + shim-retire probe)
+
+**Goal:** Two intertwined objectives:
+
+1. Fix the production bug the user hit (`td chat` → `error: cannot import v2 graph: No module named 'agents.v2'`)
+2. Probe whether the M158 triple-wrapper shim can be retired
+
+### Root cause (path ordering bug)
+
+`scripts/td_shim_build/__main__.py` (the M158b zipapp launcher) prepends 3 paths to `sys.path` in this order:
+
+```python
+sys.path = [
+    str(REPO_ROOT / 'src'),                  # has src/agents/ (planner-only, per ADR-013)
+    str(REPO_ROOT),                          # for `scripts` package
+    str(REPO_ROOT / 'src' / 'ikigai' / 'src'),   # has src/ikigai/src/agents/v2/
+] + clean
+```
+
+Both `src/agents/` and `src/ikigai/src/agents/` are top-level `agents` packages. Python's importer picks whichever path comes FIRST for the name `agents`. So `import agents` resolved to the parent `src/agents/` (memory, reflection, planner-only) which has NO `v2/` subpackage. Hence `No module named 'agents.v2'`.
+
+`src/mesh/taskdog_chat.py:_ensure_ikigai_path()` was supposed to fix this with a presence check:
+
+```python
+if str(ikigai_src) not in sys.path:
+    sys.path.insert(0, str(ikigai_src))
+```
+
+But the shim had already added `ikigai_src` to sys.path (at position 2). Presence check returned False, insert was skipped, `agents` continued to shadow the wrong way.
+
+### Fix (`0c51e930`)
+
+Rewrite the helper from "insert if absent" to "remove then insert at position 0":
+
+```python
+if ikigai_src_str in sys.path:
+    sys.path.remove(ikigai_src_str)
+sys.path.insert(0, ikigai_src_str)
+```
+
+`IKIGAi src` MUST be at `sys.path[0]` for `agents.v2` to win.
+
+### Drift net (`tests/test_m158g_ikigai_path.py`)
+
+5 new invariants, all PASS:
+
+1. `test_ikigai_src_at_position_zero_after_call` — post-call, IKIGAi src is at sys.path[0]
+2. `test_call_is_idempotent` — no duplicates in sys.path after 2 calls
+3. `test_call_when_path_already_at_zero_is_noop` — already-correct sys.path is preserved
+4. `test_call_when_ikigai_src_absent_inserts_at_zero` — fully absent → inserts at 0
+5. `test_invariant_agents_resolves_to_ikigai_v2_after_call` — `import agents` smoke resolves under `src/ikigai/src/agents/`, not `src/agents/`
+
+Plus the existing 8/8 `tests/test_m158_td_chat.py` smoke tests still PASS.
+
+### Shim retire probe (M158g docs commit `43feabb9`)
+
+**Goal:** try `pip install "anthropic>=0.40"` and see if the triple-wrapper can be replaced with a direct install.
+
+**Findings (all verified):**
+
+1. `anthropic==0.76.0` is installed in user site-packages (`AppData\Roaming\Python\Python314\Site-Packages\`)
+3. WITHOUT the shim:
+   ```
+   from langchain_anthropic.chat_models import AnthropicOverloadedError
+   ```
+   fails at `chat_models.py:984` with
+   ```
+   AttributeError: module 'anthropic' has no attribute 'OverloadedError'
+   ```
+4. `browser-use==0.13.10` AND `==0.13.9` both exact-pin `anthropic==0.76.0` in `requires_dist` (confirmed via pypi.org JSON for 0.13.9)
+5. Latest anthropic is **1.11.0** — has `OverloadedError`, would make the shim unnecessary — but upgrading would break browser-use
+6. `pip install --dry-run "anthropic>=0.40"` is a no-op (0.76.0 already satisfies the constraint)
+
+**Conclusion: M158g stays as VERIFIED KEEP.** The triple-wrapper shim is load-bearing until browser-use relaxes its pin or we drop browser-use from the agent stack.
+
+### To retire the shim for real (one of)
+
+1. Wait for browser-use to release a version that allows `anthropic>=0.77`
+2. Drop browser-use from the agent stack entirely
+3. Maintain a thin pinned venv for browser-use (separate from the agent venv)
+
+### Cleanup sprint (other 7 commits)
+
+- `1d4e6791` — AGENTS.md swap (44 KB → 6 KB compact agents.md standard template)
+- `6a7e19a8` — gitignore `.langgraph_api/`, daemon heartbeat, vault events log, `src/data/`
+- `01d065bb` — commit `.env.example`, `.claude-code-mcp.example.json`, `uv.lock` for vibe-ops
+- `39ebb5ac` — regenerate b7-4 E2E test report (2/2 PASS), trash 10 bash-redirect artifacts + 2 orphan scripts
+- `f9f7a229` — untrack `src/data/ikigai_checkpoints.db`, trash `.backup-v1``
+- `e55fda2a` — clear phantom `.backup-v1`` index entry
+- `43feabb9` — this M158g probe + docs
+
+### Drift net — 25/25 PASS
+
+```
+tests/test_m158_td_chat.py                 8/8 PASS  (existing)
+tests/test_m158g_ikigai_path.py            5/5 PASS  (NEW)
+tests/test_mcp_bridge_taskdog_battery.py  12/12 PASS (existing)
+```
+
+### Honest scope
+
+- ✅ One specific path-ordering bug fixed (root cause addressed, not patched over)
+- ✅ Shim-retire attempt failed with concrete blocker identified (browser-use pin)
+- ✅ Working tree clean (no modified, no untracked)
+- ✅ All M158-g tests green
+- ⚠️ **The other 2 shim layers (td.ps1 + td.cmd) remain** — they're launchers, not the actual bug surface
+- ⚠️ **M97/M98 known limitation still open** — `langgraph dev` crashes on relative imports (unrelated to M158g, tracked separately)
+- ⚠️ **Vault zero-state + recall-zero still open** — FASE B gaps from `roadmap.md` 1672-1676
+
+### Next action
+
+M154-AUDIT (honest inventory of v2 deep agent graph) — the user just hit a real bug in the v2 path, so a fresh audit of all 13 v2 nodes (which are stub, which work, which silently fail) is timely. Then can target the actual fragile nodes for hardening.

@@ -1664,12 +1664,20 @@ When verifier returns PASS:
 | M158d | ✅ | - | remove FAKE-LLM stubs (16 files) |
 | M158e | ✅ | ~80 | langchain_anthropic shim + response normalizer |
 | M158f | ✅ | ~100 | td.cmd/td.bat/td.ps1 shim triple-wrapper |
+| M158g | ✅ | ~30 | path-ordering fix + drift net + shim-retire probe VERIFIED KEEP |
 
-**Fase B total:** ~2.4k LOC entregues, 128/128 tests, **mas shim frágil**.
+**Fase B total:** ~2.45k LOC entregues, 133/133 tests, shim **provably required** (see M158g probe).
 
 ### ⚠️ FASE B GAPS
 
-- **Shim frágil (M158g)**: `pip install "anthropic>=0.40"` é o fix limpo. PENDING.
+- **Shim frágil (M158g)**: `pip install "anthropic>=0.40"` é o fix limpo. ~~PENDING~~ → **VERIFIED KEEP** (2026-10-05).
+  Probe findings (commit `43feabb9`):
+  - `browser-use==0.13.9` AND `==0.13.10` both exact-pin `anthropic==0.76.0`
+  - Without shim: `langchain_anthropic.chat_models:984` raises `AttributeError: module 'anthropic' has no attribute 'OverloadedError'`
+  - Latest anthropic is `1.11.0` (would retire shim) — blocked by browser-use
+  - `pip install --dry-run "anthropic>=0.40"` is a no-op (0.76.0 already satisfies)
+  - **To retire**: wait for browser-use to relax pin OR drop browser-use OR split browser-use into a pinned venv. Re-evaluate when one changes.
+  - Shipped partial fix: `0c51e930` fixed one specific fragility (sys.path ordering).
 - **Vault vazio**: cycle_state.md + _strategics_excerpt.md não populados.
   Sugestões LLM são genéricas ("Defina seu primeiro ciclo...").
 - **Recall lê 0**: `vault (0 lines), taskdog (0 tasks), memory (k=0)`.
@@ -1746,3 +1754,73 @@ Replace PAV-math in ikigai-daily/weekly/monthly/quarterly with vault aggregation
 
 Planning artifact (not execution). Horizons A/B/C with sequencing for the autonomous loop.
 
+### M158g-cleanup - Cleanup sprint + path-ordering bug fix (STATUS: DONE)
+
+8 atomic commits in one session, 2026-10-05. Two intertwined objectives:
+
+1. **Fix the path-ordering bug** that broke `td chat` (user reported: `error: cannot import v2 graph: No module named 'agents.v2'`).
+2. **Probe whether the M158 shim can be retired** — answer: NO, shim is provably required.
+
+**Commits:**
+
+| # | SHA | What |
+|---|---|---|
+| 1 | `1d4e6791` | docs(agents): AGENTS.md swap 44 KB → 6 KB compact template |
+| 2 | `0c51e930` | **fix(mesh): force IKIGAi src to sys.path position 0** + 5-test drift net |
+| 3 | `6a7e19a8` | chore(dev): gitignore `.langgraph_api/`, daemon heartbeat, vault events log, `src/data/` |
+| 4 | `01d065bb` | chore(dev): commit `.env.example`, `.claude-code-mcp.example.json`, `uv.lock` for vibe-ops |
+| 5 | `39ebb5ac` | chore(dev): regenerate b7-4 E2E test report + remove 10 bash-redirect artifacts + 2 orphan scripts |
+| 6 | `f9f7a229` | chore(dev): untrack `src/data/ikigai_checkpoints.db` + remove `.backup-v1`` stray |
+| 7 | `e55fda2a` | fix: clear phantom `.backup-v1`` index entry |
+| 8 | `43feabb9` | **docs(loop): M158g probe verified — shim is genuinely required** |
+
+**Bug root cause (`0c51e930`):**
+
+`scripts/td_shim_build/__main__.py` prepends 3 paths to `sys.path`:
+
+```python
+sys.path = [
+    str(REPO_ROOT / 'src'),                  # has src/agents/  (planner-only, ADR-013)
+    str(REPO_ROOT),                          # for `scripts`
+    str(REPO_ROOT / 'src' / 'ikigai' / 'src'),   # has src/ikigai/src/agents/v2/
+] + clean
+```
+
+Both `src/agents/` and `src/ikigai/src/agents/` are top-level `agents` packages. Python picks the FIRST one on `sys.path`, so `import agents` resolved to the parent planner-only layer (no `v2/`). `_ensure_ikigai_path()` had a presence-check that no-op'd because the shim had already added IKIGAi at position 2.
+
+**Fix:** rewrite `_ensure_ikigai_path()` to remove-then-insert-at-0, force-promoting IKIGAi src to position 0 regardless of where it currently lives.
+
+**Drift net:** `tests/test_m158g_ikigai_path.py` — 5 invariants (path position, no duplicates, noop-when-correct, insert-when-absent, smoke `import agents` resolves to IKIGAi). All PASS.
+
+**M158g probe (`43feabb9`):**
+
+| Check | Result |
+|---|---|
+| `pip show anthropic` | `0.76.0` |
+| `pip show browser-use` | `0.13.10` |
+| Without shim: `from langchain_anthropic.chat_models import AnthropicOverloadedError` | **FAIL** with `AttributeError: module 'anthropic' has no attribute 'OverloadedError'` |
+| `browser-use==0.13.9` `requires_dist` | `anthropic==0.76.0` (exact pin) |
+| `browser-use==0.13.10` `requires_dist` | `anthropic==0.76.0` (exact pin) |
+| Latest anthropic | `1.11.0` (has OverloadedError; would retire shim) — blocked by browser-use |
+| `pip install --dry-run "anthropic>=0.40"` | No-op (0.76.0 already satisfies) |
+
+**Conclusion:** M158g stays as VERIFIED KEEP. Triple-wrapper shim is load-bearing until browser-use relaxes its pin.
+
+**To retire for real (one of):**
+
+1. Wait for browser-use to release a version that allows `anthropic>=0.77`
+2. Drop browser-use from the agent stack entirely
+3. Split browser-use into a thin pinned venv (separate from agent venv)
+
+**Test results:** 8/8 `td_chat` smoke + 5/5 `m158g_ikigai_path` drift + 12/12 `mcp_bridge_taskdog_battery` = **25/25 PASS**.
+
+**Honest scope:**
+
+- ✅ One specific path-ordering bug fixed at root cause (not patched over)
+- ✅ Shim-retire attempt failed with concrete blocker (browser-use pin) — fully documented
+- ✅ Working tree clean (no modified, no untracked)
+- ⚠️ **The 2 other shim layers (td.ps1 + td.cmd) remain** — they're launchers, not the bug surface
+- ⚠️ **FASE B gaps from prior still open** — vault zero-state, recall-zero, 5-14 LLM calls/message
+- ⚠️ **M97/M98 known limitation still open** — `langgraph dev` crashes on relative imports (unrelated)
+
+**Next action:** M154-AUDIT (honest inventory of v2 deep agent graph) — the user just hit a real bug in the v2 path, so a fresh audit of all 13 v2 nodes (which are stub, which work, which silently fail) is timely before more dev work on the v2 layer.
