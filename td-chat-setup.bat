@@ -16,9 +16,16 @@ cd /d "%ROOT%"
 
 echo.
 echo ============================================================
-echo  Life-OSS ^| td chat setup check
+echo  Life-OSS -- td chat setup check
 echo ============================================================
 echo.
+
+REM Locate Python first (used by all checks)
+set "PYTHON="
+if exist "%ROOT%src\ikigai\.venv\Scripts\python.exe" set "PYTHON=%ROOT%src\ikigai\.venv\Scripts\python.exe"
+if "%PYTHON%"=="" (
+    where python >nul 2>&1 && set "PYTHON=python"
+)
 
 set "ISSUES=0"
 
@@ -42,7 +49,7 @@ if not errorlevel 1 (
 ) else (
     echo    BAD .env may be UTF-16LE encoding
     echo      Fix with PowerShell:
-    echo        (Get-Content .env) ^| Set-Content -Encoding utf8 .env
+    echo        ^(Get-Content .env^) ^| Set-Content -Encoding utf8 .env
     set /a ISSUES+=1
 )
 
@@ -70,10 +77,10 @@ REM 2. Python venv check
 REM ------------------------------------------------------------------------
 echo.
 echo [2] Python venv check:
-if exist "%ROOT%src\ikigai\.venv\Scripts\python.exe" (
-    echo    OK venv at src\ikigai\.venv
+if not "%PYTHON%"=="" (
+    echo    OK Python: %PYTHON%
 ) else (
-    echo    MISSING venv
+    echo    MISSING Python
     echo      Run: cd src\ikigai ^&^& uv sync
     set /a ISSUES+=1
     goto skip_venv
@@ -90,7 +97,11 @@ if errorlevel 1 (
 )
 
 "%PYTHON%" -c "import langchain_openai" 2>nul
-if not errorlevel 1 echo    OK langchain-openai installed
+if errorlevel 1 (
+    echo    INFO langchain-openai not installed ^(ok if using Anthropic only^)
+) else (
+    echo    OK langchain-openai installed
+)
 
 "%PYTHON%" -c "import langgraph" 2>nul
 if errorlevel 1 (
@@ -112,7 +123,7 @@ if exist "%ROOT%src\ikigai\scripts\sitecustomize.py" (
     echo    OK sitecustomize.py exists ^(OPEN-2 patch survival^)
 ) else (
     echo    MISSING src\ikigai\scripts\sitecustomize.py
-    echo      Re-run Tier 2 commit: 484b308e
+    echo      Re-run Tier 2 commit
     set /a ISSUES+=1
 )
 
@@ -130,8 +141,8 @@ echo.
 echo ============================================================
 if %ISSUES% EQU 0 (
     echo  STATUS: ALL CHECKS PASSED
-    echo  Next:  td-chat-server.bat ^<enter^>
-    echo          td-chat-client.bat ^<in another terminal^>
+    echo  Next:  td-chat-server.bat
+    echo          td-chat-client.bat  ^(in another terminal^)
 ) else (
     echo  STATUS: %ISSUES% issue^(s^) found - fix the items above
 )

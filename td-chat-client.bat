@@ -40,9 +40,9 @@ echo.
 
 REM Run the chat REPL
 echo ========================================================================
-echo  Life-OSS ^| td chat client
+echo  Life-OSS -- td chat client
 echo  Server: %URL%
-echo  Commands:  /new (new thread) ^| /list (list tasks) ^| Ctrl+C to quit
+echo  Commands:  /new (new thread) -- /list (list tasks) -- Ctrl+C to quit
 echo ========================================================================
 echo.
 

@@ -21,7 +21,7 @@ cd /d "%ROOT%"
 
 echo.
 echo ============================================================
-echo  Life-OSS ^| td chat dev server
+echo  Life-OSS -- td chat dev server
 echo  Root:    %ROOT%
 echo ============================================================
 
@@ -38,7 +38,7 @@ REM Detect UTF-16LE (every other byte is 0x00)
 findstr /R "[0-9a-zA-Z]" "%ROOT%.env" >nul 2>&1
 if errorlevel 1 (
     echo [td-chat-server] ERROR: .env appears to be UTF-16LE encoding.
-    echo   Convert to UTF-8 with:  ^(Get-Content .env^) ^| Set-Content -Encoding utf8 .env
+    echo   Convert to UTF-8 with:  ^(Get-Content .env^) -- Set-Content -Encoding utf8 .env
     exit /b 1
 )
 
