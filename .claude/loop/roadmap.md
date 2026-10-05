@@ -1734,11 +1734,11 @@ Expose all taskdog operations to Deep Agent: 12 MCP tools (create/update/done/de
 
 Textual-based TUI: status counts, priority table, timeline, upcoming deadlines. Built on TaskdogAdapter.
 
-### M154 - Honest inventory of v2 deep agent graph (STATUS: DONE ✅, refresh 2026-10-05)
+### M154 - Honest inventory of v2 deep agent graph (STATUS: DONE)
 
 Audit what reuses, rewrites, or discards from v2. Output: honest map for M155 deep-agent-min-viable scope decisions.
 
-**Refresh output (2026-10-05):** `docs/diagnostics/M154-v2-graph-inventory.md`
+**Refresh (2026-10-05):** `docs/diagnostics/M154-v2-graph-inventory.md`
 
 - 17 functional + 1 error terminal = 18 total nodes
 - 9 WORKS / 6 STUB / 2 PARTIAL / 0 SILENT-FAIL
