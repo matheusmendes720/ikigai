@@ -1,9 +1,10 @@
 ---
 name: M154-v2-audit
 description: Honest inventory of v2 deep agent graph — what to reuse, rewrite, discard.
-status: PENDING
+status: DONE
 owner: loop-orchestrator
 created: 2026-09-29
+shipped: 2026-10-05
 constitution_refs:
   - composition_over_inheritance
   - tests_are_the_contract
