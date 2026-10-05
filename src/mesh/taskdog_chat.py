@@ -33,11 +33,23 @@ class C:
 
 
 def _ensure_ikigai_path() -> None:
-    """Add src/ikigai/src to sys.path if not already there."""
+    """Move src/ikigai/src to the FRONT of sys.path so ``agents.v2`` wins.
+
+    The mesh CLI shim (scripts/td_shim_build/__main__.py) prepends
+    ``REPO_ROOT/src`` before ``REPO_ROOT/src/ikigai/src``. That makes the
+    parent-level ``src/agents/`` (planner-only, per ADR-013) win for the
+    top-level ``agents`` name, shadowing ``src/ikigai/src/agents/v2/`` and
+    breaking ``td chat`` with ``No module named 'agents.v2'``.
+
+    Promote IKIGAi src to position 0 regardless of where it currently
+    lives in sys.path — presence is not enough, ordering is.
+    """
     repo_root = Path(__file__).resolve().parents[2]  # .../life-oss/life
     ikigai_src = repo_root / "src" / "ikigai" / "src"
-    if str(ikigai_src) not in sys.path:
-        sys.path.insert(0, str(ikigai_src))
+    ikigai_src_str = str(ikigai_src)
+    if ikigai_src_str in sys.path:
+        sys.path.remove(ikigai_src_str)
+    sys.path.insert(0, ikigai_src_str)
 
 
 def _summarize_event(node_name: str, node_output: dict[str, Any]) -> str:
