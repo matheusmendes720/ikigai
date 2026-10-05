@@ -1734,9 +1734,25 @@ Expose all taskdog operations to Deep Agent: 12 MCP tools (create/update/done/de
 
 Textual-based TUI: status counts, priority table, timeline, upcoming deadlines. Built on TaskdogAdapter.
 
-### M154 - Honest inventory of v2 deep agent graph (STATUS: PENDING)
+### M154 - Honest inventory of v2 deep agent graph (STATUS: DONE ✅, refresh 2026-10-05)
 
 Audit what reuses, rewrites, or discards from v2. Output: honest map for M155 deep-agent-min-viable scope decisions.
+
+**Refresh output (2026-10-05):** `docs/diagnostics/M154-v2-graph-inventory.md`
+
+- 17 functional + 1 error terminal = 18 total nodes
+- 9 WORKS / 6 STUB / 2 PARTIAL / 0 SILENT-FAIL
+- Stubs write explicit `error_channel` (no silent failures)
+- `surface_intentions` (LLM) reads empty vault → falls back to empty
+- `tools_v2.py` IKIGAI_NODE_TOOLS = 8 (PAV-math, **separate from drift list**)
+- `mcp_bridge.py` graph-facing wrappers = 1 (was 9 pre-M12)
+- Drift net: 60/60 canonical+wiring, 18/18 drift, 826+30 ikigai tests
+- **Largest gap:** no test calls `graph.invoke({...})` — execution semantics untested
+
+**Decision:** Path A++ (revive incrementally). The 6 mid-graph stubs
+(score_vectors/heuristics/balance/plan/reflect) reference deleted PAV
+orchestrators and are load-bearing for the security story (drift
+net protects). The 9 WORKING nodes already power `td chat`. No rewrite.
 
 ### M155 - Deep agent minimal viable (vault-aware, no auto-exec) (STATUS: PENDING)
 
