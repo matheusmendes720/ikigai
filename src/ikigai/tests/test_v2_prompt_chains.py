@@ -133,34 +133,6 @@ def test_v2_prompts_fake_llm_mode() -> None:
         os.environ.pop("IKIGAI_FAKE_LLM", None)
 
 
-def test_v2_tools_v2_imports() -> None:
-    """tools_v2.py imports and exposes 8 IKIGAI_NODE_TOOLS."""
-    os.environ["IKIGAI_FAKE_LLM"] = "1"
-    try:
-        from agents.v2.tools_v2 import IKIGAI_NODE_TOOLS
-
-        assert isinstance(IKIGAI_NODE_TOOLS, list), "IKIGAI_NODE_TOOLS must be a list"
-        assert len(IKIGAI_NODE_TOOLS) == 8, (
-            f"IKIGAI_NODE_TOOLS must have 8 entries, got {len(IKIGAI_NODE_TOOLS)}"
-        )
-    finally:
-        os.environ.pop("IKIGAI_FAKE_LLM", None)
-
-
-def test_v2_node_tools_have_tool_decorator() -> None:
-    """Each tool in IKIGAI_NODE_TOOLS has a .name attribute (LangChain @tool marker)."""
-    os.environ["IKIGAI_FAKE_LLM"] = "1"
-    try:
-        from agents.v2.tools_v2 import IKIGAI_NODE_TOOLS
-
-        for tool in IKIGAI_NODE_TOOLS:
-            assert hasattr(tool, "name"), (
-                f"Tool {tool} missing .name attribute (LangChain @tool marker required)"
-            )
-    finally:
-        os.environ.pop("IKIGAI_FAKE_LLM", None)
-
-
 def test_v2_drift_detector_count_unaffected() -> None:
     """IKIGAI_TOOLS=12 count is unaffected by tools_v2.py."""
     tools_path = IKIGAI_SRC / "agents" / "tools.py"

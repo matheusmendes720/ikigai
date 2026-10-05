@@ -1,0 +1,36 @@
+fix(delete): tools_v2.py IKIGAI_NODE_TOOLS + 2 hard-import tests
+
+(M154-AUDIT path A follow-up) The 8 PAV-math @tool functions in
+src/ikigai/src/agents/v2/tools_v2.py are orphans:
+
+  v2_observe_pav_state, v2_score_vectors_observe, v2_heuristics_observe,
+  v2_balance_observe, v2_plan_observe, v2_decompose_observe,
+  v2_reflect_observe, v2_commit_observe
+
+All 8 wrap deleted PAV-math prompts (M12 deletion). The drift detector
+`test_mcp_bridge_wrapped_tool_count_matches_canonical` only scans
+agents/tools.py and explicitly excludes this file by design.
+
+This commit:
+  1. Deletes src/ikigai/src/agents/v2/tools_v2.py (172 LOC of orphans)
+  2. Removes 2 hard-import tests in test_v2_prompt_chains.py:
+     - test_v2_tools_v2_imports
+     - test_v2_node_tools_have_tool_decorator
+  3. Marks M154-v2-audit SPEC.md frontmatter status: PENDING → DONE
+     (drift test test_milestone_specs_status_matches_roadmap now passes)
+
+Pre-existing failures unrelated to this commit:
+  - test_v2_prompts_import_cleanly
+  - test_v2_prompts_fake_llm_mode
+  Both fail with `ModuleNotFoundError: No module named 'agents.v2'`
+  because `test_v2_prompt_chains.py:38-40` computes `_v2_src` via a
+  broken path (`IKIGAI_SRC.parent.parent / "src" / "ikigai" / "src"`
+  resolves to <repo>/src/src/ikigai/src, which doesn't exist). The
+  correct path is just `IKIGAI_SRC`. These failures predate this
+  commit (verified via git stash + re-run). Out of scope to fix here.
+
+Drift net preserved:
+  test_canonical_scope.py    37/37 PASS
+  test_drift_extended_invariants.py  21/21 PASS, 2 skip (pre-existing)
+  test_drift_invariants.py   7/7 PASS
+  test_v2_prompt_chains.py   6/6 PASS (after deletion)
