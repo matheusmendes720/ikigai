@@ -1428,6 +1428,12 @@ task + spec was sufficient context, same as M142 + M143 + M144)
 
 ### M154-AUDIT — v2 deep agent inventário honesto
 - **State:** SHIPPED ✅ (commit `41e544a3`)
+- **Refresh:** 2026-10-05 (M154-REFRESH) — `docs/diagnostics/M154-v2-graph-inventory.md`
+  - 17 functional nodes (was 15 in the 2026-09-29 audit)
+  - 9 WORKS / 6 STUB / 2 PARTIAL / 0 SILENT-FAIL
+  - Stubs write explicit `error_channel`; drift net catches bridge/server drift
+  - Largest gap: NO test calls `graph.invoke({...})` — execution semantics untested
+  - See: `docs/diagnostics/M154-v2-graph-inventory.md` (full 17.7 KB inventory)
 
 ## Active Tasks (M155 — spec clarifica arquitetura)
 
