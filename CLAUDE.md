@@ -8,136 +8,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Algorithmic Life OS** — a personal productivity orchestration system, 100% local, single-user, append-only.
 
-**Three architectural layers:**
+**Three layers:**
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  INTERFACE LAYER  —  CLI/TUI consumers (Gantt, Kanban,   │
-│  Calendar, Daily View) — read from data/, write feedback   │
+│  INTERFACE LAYER  —  CLI/TUI consumers (CLI v2, Textual   │
+│  5-tab TUI) — read from data/, write feedback               │
 └──────────────────────────────┬──────────────────────────────┘
                                │ MCP / stdio
 ┌──────────────────────────────▼──────────────────────────────┐
 │  AGENT LAYER  —  Deep Agent (carro-chefe)                 │
 │  Reads vault/ → applies strategics + planning → writes     │
-│  tasks to data/ → observes planned vs actual → updates    │
-│  vault (PAE math stripped per ADR-013 — planner-only)     │
+│  tasks to data/ → observes planned vs actual → updates     │
+│  vault (PAE math stripped per ADR-013 — planner-only)      │
 └──────────────────────────────┬──────────────────────────────┘
                                │ contracts (Pydantic)
 ┌──────────────────────────────▼──────────────────────────────┐
-│  DATA LAYER  —  vault/ + data/ + vibe-ops/               │
+│  DATA LAYER  —  vault/ + data/ + vibe-ops/                │
 │  vault/: markdown source of truth (Obsidian-style)         │
 │  data/: runtime state (SQLite, chroma, boulder.json)       │
 │  vibe-ops/: cybernetic engine (vector store + evidence)    │
-└──────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Canonical flow:**
-```
-vault (NL planning)
-  → Deep Agent (interpreta, aplica strategics + planning, gera tasks)
-    → MCP Gateway (sincroniza vault ↔ interfaces)
-      → Interfaces preenchem com tasks ricas pro usuário marcar
-        → Input manual (burndown, execution rate)
-          → Deep Agent observa gap
-            → Atualiza planejamento
-              → ciclo contínuo
-```
+**Canonical flow:** `vault` (NL planning) → Deep Agent → MCP Gateway → interfaces → manual feedback → Deep Agent observes gap → updates `vault`.
 
 **Repo:** github.com/matheusmendes720/ikigai
 **Project Board:** github.com/users/matheusmendes720/projects/5
-
----
-
-## Repository Structure
-
-```
-life/
-├── src/
-│   ├── contracts/              ← CANONICAL Pydantic contracts
-│   │   ├── common.py           UEID, Period, Priority, EntityType, RegimeState
-│   │   ├── task.py            Task, Subtask, ChecklistItem, Project, Milestone, Deliverable
-│   │   ├── task_change.py     TaskChange, PropagationEvent, TaskAction (Phase 3 v1)
-│   │   ├── planning.py        PlanningCycle, Wave, Sprint, VaultEvent
-│   │   └── metrics.py         Burndown, ExecutionRate, QHEScore
-│   ├── mesh/                   ← DATA MESH (Phase 3 v1 — create action)
-│   │   ├── queue.py           Filesystem append-only review queue (atomic writes)
-│   │   ├── agent_consumer.py  Deep Agent validation (PAE rules: APPROVE/REJECT/CLARIFY)
-│   │   ├── agent_propagator.py Deep Agent propagation (per-adapter failure isolation)
-│   │   └── adapters/
-│   │       ├── base.py        ForkAdapter Protocol (@runtime_checkable)
-│   │       ├── cli.py         CliAdapter (data/tasks.jsonl)
-│   │       ├── taskdog.py     TaskdogAdapter (SQLite UPSERT on ueid)
-│   │       └── solverforge_calendar.py SolverforgeCalendarAdapter (UPI ueid column)
-│   ├── ikigai/                ← Deep Agent + MCP gateway (FastMCP server)
-│   │   └── src/
-│   │       ├── agents/         v2 LangGraph graph (9 nodes + subgraphs)
-│   │       └── mcp_server/     15 @MCP.tool + 6 @MCP.resource
-│   ├── life_tatics/            ← was life-ops/life_tatics/
-│   └── planner/                ← was life-ops/planner/
-│
-├── sys_ikigai/                 ← was src/ikigai/src/ikigai/ (renamed 2026-09-05, commit 685dec5)
-│   ├── entities/              Pydantic v2 strict: UEID, Task, Project, Regime, Score…
-│   ├── gateway/               Fork clients (CLI / taskdog / solverforge_calendar / tuiboard)
-│   ├── state_machines/        Dream / Goal / Objective / Project / Task / Habit / Routine / Deliverable FSMs
-│   ├── propagation/           MarkdownDB + frontmatter + sqlite_adapter + triagem
-│   ├── vault/                 VaultLock + vault_write (sole vault writer per ADR-012)
-│   ├── security/              kill_switch + transition_validator
-│   └── adapters/              drift_detector + checkpoint + sqlite_bridge + state_reducer
-│
-├── vibe-ops/                   cybernetic engine (Target→Sensor→Adjuster)
-│   ├── src/
-│   └── vibeops-tui/           Rust TUI (ratatui)
-│
-├── vault/                      ← PRIMARY NOTES LAYER (was .omo/)
-│   ├── ikigai/closing-2026/   planning cycles (Q3, Q4, archive)
-│   ├── ikigai/meta/           MOCs, indexes, dashboards
-│   ├── ikigai/mock-datasets/
-│   ├── drafts/evidence/       PAE coverage, evidence trail
-│   ├── plans/                  plan specs
-│   └── run-continuation/       session resumption JSON
-│
-├── data/                       ← RUNTIME DATA (was at repo root)
-│   ├── vibe_ops.db
-│   ├── vibe_mesh.db
-│   ├── boulder.json
-│   ├── chroma_db/
-│   ├── test-fixtures/          test databases
-│   └── session-*.md            session transcripts
-│
-├── interfaces/                  INTERFACE LAYER (consumers)
-│   ├── cli/                   Typer CLI — `life v2 daily/weekly/...`, `life mesh show`, kill_switch
-│   │                           v2.py split into 6 modules (commit 11f463b, max 267L)
-│   └── tui/
-│       └── operator/          Textual 4-tab TUI (Chat / Tasks / State / KillSwitch) — `life tui`
-│
-├── strategics/                  STRATEGIC KNOWLEDGE (PT-BR, read-only)
-│   ├── Hierarquia de Objetivos.md
-│   ├── Planejamento (Estratégico e Tático).md
-│   ├── Modelagem Operacional.md
-│   └── planning-with-files/    vendored skill plugin
-│
-├── docs/                       ARCHITECTURE DOCS
-│   ├── ARCHITECTURE_INDEX.md
-│   ├── SYSTEMS_TOPOLOGY.md
-│   ├── CONCEPTUAL_MODEL.md
-│   ├── CLUSTER_PLAN.md
-│   ├── CLUSTER_PROJ.md
-│   ├── CLUSTER_STUDY.md
-│   ├── PAV_INVENTORY.md
-│   └── LANGRAPH_DEV.md
-│
-├── code-docs/                  ADRs, BRDs, PRDs, RDs
-├── specs/                      formal specifications
-├── diagrams/                   Mermaid + drawio source
-├── taskwarrior/                TW binary + scripts + config
-├── logs/
-│
-├── .claude/                    Claude Code config
-├── .github/                    CI workflows
-├── Makefile                    LangGraph dev server
-├── langgraph.json              5 registered LangGraph graphs (see "LangGraph Graphs" section below)
-└── CLAUDE.md
-```
 
 ---
 
@@ -145,170 +42,172 @@ life/
 
 | Rule | What it forbids |
 |------|----------------|
-| **Deep Agent is the only writer to vault/** | Interfaces only read vault; write goes to data/feedback |
-| **Append-only** | Never delete/prune in vault/, vibe-ops/, strategics/ |
-| **Contracts in src/contracts/** | Pydantic models imported from src/contracts/ everywhere |
+| **Deep Agent is the only writer to `vault/`** | Interfaces only read vault; user feedback goes to `data/feedback.jsonl`, fork writes go to `data/review_queue/` (TaskChange events awaiting Agent validation) |
+| **Append-only** | Never delete/prune in `vault/`, `vibe-ops/`, `strategics/` |
+| **Contracts in `src/contracts/`** | Pydantic v2 strict (`frozen=True`, `extra="forbid"`) imported from one place |
 | **Zero LLM in pipeline** | Daily/weekly pipelines are pure arithmetic |
-| **`--json` everywhere** | Every CLI command supports --json |
-| **Pydantic v2 strict** | frozen=True, extra="forbid" |
+| **`--json` everywhere** | Every CLI command supports `--json` |
 | **Fully local** | SQLite + filesystem only, zero cloud deps |
+
+---
+
+## Current Mode
+
+**Data-first methodology** — IKIGAI is paused for *new algorithm decisions* (M01/N01/A02/A06, IKIGAI vector weights). Do not write new algorithm code until 5+ SONHO logs land in `vault/ikigai/closing-2026/<quarter>/04-relatórios-diários/`. The "pausado" directive applies to **algorithm decisions only** — agent/harness plumbing and Drift net work are NOT paused.
+
+### Planning Note channel (human → agent)
+
+- **Template:** `vault/ikigai/templates/sonho-log.md` (1 section: `## Mudança`)
+- **Trigger:** manual only, after any planning delta
+- **Cadence:** event-driven (NOT daily). 1–3 bullets per note, <2 min
+- **Where:** `vault/ikigai/closing-2026/<quarter>/04-relatórios-diários/YYYY-MM-DD.md`
+
+### Where shipped-wave history lives
+
+Wave 3/4/5, Plan C/D, W6.X, drift ship dates, commit hashes, PASS counts → `~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/`. **CLAUDE.md is the durable contract; memory holds the audit trail.** Add a one-line memory entry per shipped wave and link from `MEMORY.md`.
 
 ---
 
 ## Build / Run / Test
 
-### Test discovery & sys.path
+### Tests
 
-`tests/conftest.py` (repo root) is the single source of truth for test
-imports. It:
+`tests/conftest.py` (repo root) is the single source of truth for test imports. It:
 
-- Adds `<repo>/` to `sys.path` (resolves BOTH `from src.contracts.X` via `<repo>/src/` AND `from sys_ikigai.X` via `<repo>/sys_ikigai/`).
-- Redirects `tempfile.tempdir` + `TMPDIR`/`TEMP`/`TMP` to `data/pytest-tmp/` (gitignored) to dodge Windows `PermissionError [WinError 5]` on stale `AppData\Local\Temp\pytest-of-<user>\` dirs.
+- Adds `<repo>/` to `sys.path` (resolves BOTH `from src.contracts.X` via `<repo>/src/` AND `from sys_ikigai.X` via `<repo>/sys_ikigai/`)
+- Redirects `tempfile.tempdir` + `TMPDIR`/`TEMP`/`TMP` to `data/pytest-tmp/` to dodge Windows `PermissionError [WinError 5]`
 
-`mypy.ini` lives at repo root with `mypy_path = src .. ../..` and
-`explicit_package_bases = True` (closes W6.X item 5 dup-source error).
+**Root-level pytest** (interactive only) needs system Python with `pip install -c constraints.txt` (installs `mcp<2`). CI uses submodule `uv sync` with its own pin (`mcp = "^1.1"` in `src/ikigai/pyproject.toml`). Canonical test entry per CI quality-gates (`.github/workflows/ci.yml`): `uv run pytest -m "not e2e"` from inside each matrix package. Single-test example: `pytest src/ikigai/tests/test_drift_invariants.py::test_ueid_regex`.
 
-### Run root-level pytest (interactive only)
+**`pytest.ini`** at repo root: `pythonpath = src src/ikigai/src` + `testpaths = tests` — this is what makes root-level `from src.contracts.X` and `from src.ikigai.X` resolve. `make test` runs only `vibe-ops/tests/`, `archive/legacy-pav/src-operational/tests/`, and `langgraph_tests/` (NOT the full CI matrix).
 
-Root-level pytest uses system Python, not the submodule venv. To make root
-pytest work after a fresh setup, install the root constraints:
+**`mypy.ini`** at repo root has `mypy_path = src .. ../..` + `explicit_package_bases = True` (closes W6.X item 5 dup-source error). The ~542 remaining `[import-not-found]` errors are pre-existing stub-resolution issues, separate scope.
+
+### Lint / format / typecheck (CI quality-gates)
 
 ```bash
-pip install -c constraints.txt
+uv run ruff check                        # lint (5 matrix packages in CI)
+uv run ruff format --check               # format check
+uv run mypy                              # typecheck
+pre-commit run --all-files               # .pre-commit-config.yaml hooks
 ```
 
-This installs `mcp<2` (and any other root-only deps) before tests run. CI
-uses submodule `uv sync` which has its own pin in `src/ikigai/pyproject.toml`
-(`mcp = "^1.1"`), so `constraints.txt` is only needed for interactive
-root-level testing.
+These run across all 5 CI matrix packages (`ikigai`, `vibe-ops`, `interfaces-cli`, `src-contracts`, `src-mesh`) per `.github/workflows/ci.yml` quality-gates job. Python version: `.python-version` pins 3.11 (matches `langgraph.json` `python_version`).
 
-### Cross-platform loop tick (Windows + macOS + Linux)
+### Cross-platform loop tick
 
-The loop tick has a **Deno TypeScript entry point** that works on all three
-operating systems without WSL or git-bash (M25, shipped 2026-09-14):
-
-- **Bash version** (Linux/macOS native, canonical): `bash .claude/loop/loop-tick.sh`
-- **TypeScript version** (cross-platform, all 3 OSes): `deno run --allow-all .claude/loop/loop-tick.ts`
+- **Bash** (Linux/macOS native, canonical): `bash .claude/loop/loop-tick.sh`
+- **TypeScript** (cross-platform, requires Deno 1.40+): `deno run --allow-all .claude/loop/loop-tick.ts`
 - **Windows .bat** (legacy, Git Bash required): `.claude/loop/loop-tick.bat`
 
-The TypeScript version is a **thin wrapper** — it parses flags, then
-delegates to `loop-tick.sh` for the inner orchestrator/worker/verifier
-logic (the proven ~19.5 KB bash implementation stays unchanged). The TS
-entry exists so Windows + macOS-native users don't need WSL/git-bash.
-
-Deno 1.40+ is required for the TS entry. Install via:
+The TS entry is a thin wrapper that parses flags then delegates to `loop-tick.sh` for the orchestrator/worker/verifier logic. Same flags: `--dry-run`, `--cost-cap`, `--max-runtime`, `--graph <name>`, `--auto-cleanup`. On Windows the TS entry falls back to `C:\Program Files\Git\bin\bash.exe` when no `bash` is on `PATH`. Deno install:
 
 - Windows (PowerShell): `irm https://deno.land/install.ps1 | iex`
 - macOS / Linux: `curl -fsSL https://deno.land/install.sh | sh`
 
-Both versions accept the same flags (`--dry-run`, `--cost-cap`,
-`--max-runtime`, `--graph <name>`, `--auto-cleanup`). On Windows the TS
-entry falls back to `C:\Program Files\Git\bin\bash.exe` when no `bash` is
-on `PATH`.
-
 ### PAV kernel — ARCHIVED 2026-08-31
 
-The Produtividade Algorítmica Visual (PAV) kernel — pure-arithmetic business
-logic (Q_HE, regime FSM, habit engine) — has been archived to
-`archive/legacy-pav/src-operational/`. See
-[`archive/legacy-pav/SUPERSEDED.md`](archive/legacy-pav/SUPERSEDED.md) for the
-canonical reasoning and [ADR-013](../code-docs/adr/ADR-013-canonical-scope-discipline.md)
-for scope discipline.
+The Produtividade Algorítmica Visual (PAV) kernel — pure-arithmetic business logic (Q_HE, regime FSM, habit engine) — is archived to `archive/legacy-pav/src-operational/`. See `archive/legacy-pav/SUPERSEDED.md` and [ADR-013](code-docs/adr/ADR-013-canonical-scope-discipline.md). The IKIGAI agent layer is **planner-only** — math/policy/scoring tools are NOT in `IKIGAI_TOOLS` (12 tools, drift-enforced in `src/ikigai/tests/test_canonical_scope.py`). To revive: `cd archive/legacy-pav/src-operational/ && uv sync && uv run pytest`.
 
-To revive (re-attach math/policy execution if needed):
+### IKIGAI Deep Agent (`src/ikigai/`)
+
 ```bash
-cd archive/legacy-pav/src-operational/
-uv sync && uv run pytest
+cd src/ikigai && uv sync                 # uv-managed (NOT poetry)
+ikigai.bat mcp                            # Windows: start FastMCP gateway
+src/ikigai/start_mcp_gateway.sh          # POSIX equivalent
+ikigai.bat agent <thread>                 # run agent on a thread
+ikigai.bat chat <thread>                  # chat with a thread
+
+# REPL — soul-aware agent shell (M16)
+python scripts/chat_repl.py              # /profile switching + chat persistence + SSE events
 ```
 
-The IKIGAI agent layer (`src/ikigai/`) is **planner-only** —
-math/policy/scoring tools are not in `IKIGAI_TOOLS` (12 tools, see
-`src/ikigai/tests/test_canonical_scope.py` for the drift detector).
-
-### IKIGAi Deep Agent (src/ikigai/)
+### Interfaces (CLI + TUI)
 
 ```bash
-cd src/ikigai
-uv sync                 # uv-managed (NOT poetry — see q3-q4-resolved memory)
-# IKIGAI_TOOLS = 12 planning tools (see src/ikigai/tests/test_canonical_scope.py)
-# Phase A SHIPPED 7 fork MCP tools (sf_* + tuiboard_*) in SEPARATE UnifiedMCPGateway
-# Total gateway surface = 22 tools (12 IKIGAI FastMCP + 7 fork HTTP+SSE) + 6 resources
-# (corrected 2026-09-04 per Diag 02 — NOT 19 tools as previously claimed)
-ikigai.bat mcp          # start MCP server (15 @MCP.tool + 6 @MCP.resource on FastMCP)
-ikigai.bat agent <thread>
-ikigai.bat chat <thread>
-```
+# CLI — V5: single v2.py (1042 lines); only `v2 plan` retained
+# Module is `interfaces.cli` (via `__main__.py` shim), not `interfaces.cli.main`
+python -m interfaces.cli v2 plan
+python -m interfaces.cli mesh-show <ueid>
+python -m interfaces.cli task-add ...
+python -m interfaces.cli kill-switch status|pause|resume
 
-### Interfaces (interfaces/cli/ + interfaces/tui/)
-
-```bash
-# CLI — v2 split into 6 modules (commit 11f463b, max 267L in _v2_primitives.py)
-python -m interfaces.cli.main v2 daily       # daily run → invoke_skill path
-python -m interfaces.cli.main v2 weekly      # weekly run → invoke_skill path
-python -m interfaces.cli.main v2 plan        # meta-planner (Plan D SHIPPED 2026-09-04)
-python -m interfaces.cli.main mesh show <ueid>
-python -m interfaces.cli.main task add ...
-python -m interfaces.cli.main kill_switch status|pause|resume  # W5.3 SHIPPED 2026-09-05
-
-# TUI — Textual 4-tab operator (Chat / Tasks / State / KillSwitch)
-python -m interfaces.tui.operator.main
+# TUI — Textual 5-tab operator (Tasks / Adapters / Backend / Queue / KillSwitch)
+python -m interfaces.tui.operator
 # or: life tui
 ```
 
-The `kill_switch` lives at `sys_ikigai/security/kill_switch.py` and is
-the canonical way to pause/resume the cybernetic engine without killing
-the daemon process. Both CLI subcommand and 5th TUI tab were added in
-W5.3 (commit batch, 7 new files + 2 edits, 13/13 PASS).
+The `kill_switch` at `sys_ikigai/security/kill_switch.py` pauses/resumes the cybernetic engine without killing the daemon.
 
-### Phase B3 — MCP Gateway
+### MCP Gateway contract test
 
 ```bash
-# Contract test — enumerates tools + resources via stdio handshake
-# (corrected 2026-09-04: 15 tools + 6 resources on FastMCP gateway; 7 more fork tools in UnifiedMCPGateway)
 make mcp-inspect              # POSIX (uses system python)
 scripts/mcp-inspect.bat       # Windows cmd/PowerShell wrapper
 python scripts/mcp_inspect.py # Direct invocation (any platform)
-
-# Optional flags
-python scripts/mcp_inspect.py --tool-count 15 --resource-count 6
 ```
+
+Enumerates tools + resources via stdio handshake. Use `--tool-count N --resource-count M` to assert the contract.
 
 ### Vibe-ops
 
 ```bash
+# Run from inside life/ — vibe-ops/ is a child of life/, not a peer
 cd vibe-ops
-python src/main.py run-daily [--date YYYY-MM-DD]
-python src/vibe_cli.py hybrid_search "query"
-cd vibeops-tui && cargo run
+python src/vibe_cli.py hybrid_search "query"   # only extant script (main.py was retired)
+cd vibeops-tui && cargo run       # Rust TUI (ratatui) — polls ../data/vibe_ops.db
 ```
 
 ### LangGraph dev
 
 ```bash
-make dev          # langgraph dev server on :2024
+make dev                          # langgraph dev server on :2024
 make test
+make dev-graph NAME=ikigai_maintainer_v2   # one graph
 ```
+
+`langgraph.json` registers **5 graphs** (all in `src/ikigai/src/agents/`):
+
+| Graph | Entry |
+|-------|-------|
+| `ikigai_maintainer_v2` | `src/ikigai/src/agents/v2/graph.py:make_v2_graph` |
+| `ikigai_fork_smoke` | `src/ikigai/src/agents/v2/fork_smoke_graph.py:make_fork_smoke_graph` |
+| `ikigai_taskdog_mcp` | `src/ikigai/src/agents/taskdog_mcp_graph.py:make_taskdog_mcp_graph_sync` |
+| `ikigai_paperclip` | `src/ikigai/src/agents/paperclip/graph.py:make_paperclip_graph` |
+| `ikigai_dynamic` | `src/ikigai/src/agents/paperclip_dynamic/graph.py:make_dynamic_graph` |
+
+The v2 graph wires 8/16 NODES to real MCP calls via `mcp_bridge.py` (PAV-flavored wrappers removed in M12; only `ikigai_decompose` survives). The remaining 8 NODES are either prompt-chain stubs (`surface_intentions`), read-only (`tag_and_persist` — vault_write is separate work), or not yet wired (`tag_propagation`, `dep_graph`, `gantt_suggest`, `score_vectors`, `balance`, `dispatch_sub_agents`). NODES tuple is in `src/ikigai/src/agents/v2/graph.py`.
+
+### Paperclip Meta-Orchestrator (`src/ikigai/src/agents/paperclip/`)
+
+Meta-orchestrator layer that lets the IKIGAI agent *delegate* work to other LLM agents (Claude / Pi / omo / OpenClaw / mmx-cli / hermes — last two remain stubs). **6th daemon in the loop fleet** (auto-spawner polls `.claude/loop/inbox/` every 5m).
+
+**The 4-nested-loops framework** ([ADR-036](code-docs/adr/ADR-036-paperclip-four-nested-loops.md)):
+1. LLM decides **what** to do (intent extraction)
+2. Paperclip decides **who** does it (adapter router, priority pi>omo>openclaw>claude)
+3. Three auto-throttles gate **how much**: `CostGate` (M173, fail-open, $5/day) → `WallClockGate` (M175, fail-open, 3600s) → `RiskGate` (M176, fail-CLOSED, 18 keywords)
+4. Worktree-isolated execute → HIL pause (`interrupt()`) → merge → cleanup
+
+**Key entry points:**
+- `paperclip` Typer CLI (M177): `paperclip status|run|spec|validate`
+- `scripts/paperclip-spawner.sh` — bash auto-prompt loop (206L, polls inbox, `which <adapter>` health probe)
+- `scripts/paperclip-dashboard.py` + `scripts/paperclip_heartbeat_http.py` — observability
+- `policy.py` — `CostGate` / `WallClockGate` / `RiskGate` classes
+- `router.py` — Pydantic v2 adapter router, fail-CLOSED on cost, fail-OPEN on missing health
+
+**5th graph `ikigai_dynamic`** (M191): 4 nested loops framework skeleton with fan-out to N parallel subagents per spec.
+
+**Drift net touches:** 72 → 79 (canonical HTTP adapter per M190, workspace template per M180, paperclip-cli + 6th daemon inv per M177).
 
 ---
 
 ## Architecture — Key Pieces
 
-### Deep Agent Harness (src/ikigai/src/agents/)
+---
 
-The **carro-chefe**. Reads vault markdown → applies strategics + planning
-(planner-only per ADR-013; PAE math stripped from agent layer) → writes
-structured tasks to data/ → interfaces consume from data/ → observes planned
-vs actual → updates vault.
+## Architecture — Key Pieces
 
-### MCP Gateway (src/ikigai/MCP_GATEWAY.md)
-
-Exposes tools:
-- `read_vault(path)` → NL content
-- `write_planning(cycle_id, tasks)` → updates vault
-- `sync_interfaces()` → propagates to data/
-- `get_metrics()` → reads feedback
-
-### Canonical Contracts (src/contracts/)
+### Canonical Contracts (`src/contracts/`)
 
 Shared Pydantic v2 models. All layers import from here.
 
@@ -320,193 +219,50 @@ Shared Pydantic v2 models. All layers import from here.
 | `planning.py` | `PlanningCycle`, `Wave`, `Sprint`, `VaultEvent` |
 | `metrics.py` | `Burndown`, `ExecutionRate`, `QHEScore` |
 
-### Data Mesh (src/mesh/) — Phase 3 v1
+### Data Mesh (`src/mesh/`) — Phase 3 v1
 
 Cross-fork task view + bidirectional sync via Deep Agent gateway. **v1 scope = `create` action only.**
 
-- **UEID** is the canonical join key across all forks (**4-part** regex `^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$` per `code-docs/adr/ADR-014-ueid-canonical-format.md`; supersedes the 2026-08-31 5-part claim)
-- **Write path**: fork → CLI enqueues `TaskChange` to `data/review_queue/` → Agent validates → propagates `PropagationEvent` to all forks
-- **Read path**: `life mesh show <ueid>` joins slices from all 3 adapters (CLI / taskdog / UPI)
-- **3 adapters** (all implement `ForkAdapter` Protocol): `CliAdapter`, `TaskdogAdapter`, `SolverforgeCalendarAdapter`
-- **Phase A SHIPPED (2026-08-30)**: 4 tuiboard fork MCP tools (`tuiboard_create_task` etc.) — tuiboard adapter is live as MCP fork, no longer "out of scope"
-- **v1.2+ (still out of scope)**: `update`, `delete`, `done` actions; LLM-driven validation
+- **UEID** is the canonical join key: 4-part regex `^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$` per [ADR-014](code-docs/adr/ADR-014-ueid-canonical-format.md) (supersedes 5-part claim)
+- **Write path:** fork → CLI enqueues `TaskChange` to `data/review_queue/` → Agent validates → propagates `PropagationEvent` to all forks
+- **Read path:** `life mesh show <ueid>` joins slices from all 3 adapters
+- **3 adapters** (all implement `ForkAdapter` Protocol): `CliAdapter` (`data/tasks.jsonl`), `TaskdogAdapter` (SQLite UPSERT on ueid), `SolverforgeCalendarAdapter` (UPI ueid column)
+- **Phase A fork MCP tools** (live, in separate `UnifiedMCPGateway`): 2 `sf_*` + 4 `tuiboard_*` + 4 `taskdog_*` (taskdog wrappers are read-only — Path 3; canonical write is Path 1: harness `@tool` → subprocess → `taskdog.exe`)
+- **v1.2+ still out of scope:** `update`, `delete`, `done` actions; LLM-driven validation
+- **Minor known issues (non-blocking):** UPI `id` churn on UPSERT conflict; `propagate()` doesn't auto-ack `partial_propagation` status
+- **Investigation queue** (`data/investigation_queue/`): `enqueue`/`status`/`complete` MCP tools + TUI read-only browse. Drift-enforced via `test_drift_extended_invariants.py`
 
 ### Vibe-ops: Target-Sensor-Adjuster Loop
 
-`vibe-ops/src/cybernetics/daily_loop.py`: TARGET → SENSOR → ADJUSTER → PERSIST → SYNC → INDEX
-(composition paths raise `NotImplementedError` per attribution §3; IKIGAI agent does NOT execute this loop — it observes feedback only)
-`SyncEngine` (`vibe-ops/src/middleware/sync_engine.py`): Obsidian ↔ SQLite ↔ Taskwarrior.
-UEID format: `<CLUSTER>:<ENTITY>:<HASH>:<SEQ>` (**4-part canonical per ADR-014**; the 2026-08-31 5-part claim is superseded).
+`vibe-ops/src/cybernetics/engine.py` is the current cybernetic kernel (TARGET → SENSOR → ADJUSTER → PERSIST → SYNC → INDEX; composition paths raise `NotImplementedError` per attribution §3).
+`SyncEngine` (`vibe-ops/src/middleware/sync_engine.py`): Obsidian ↔ SQLite ↔ Taskwarrior. UEID format `<CLUSTER>:<ENTITY>:<HASH>:<SEQ>` (4-part canonical per ADR-014).
+PolicyEngine states: PUSH / MAINTAIN / REDUCE / RECOVER with hysteresis.
+IKIGAI agent does **not** execute this loop — it observes feedback only.
 
-PolicyEngine states (PUSH / MAINTAIN / REDUCE / RECOVER) with hysteresis.
+### MCP Gateway
 
----
-
-## Application Status
-
-What the Algorithmic Life OS **does today** — separate from the loop engineering infrastructure (M0–M17 below) that operates the system.
-
-### ✅ Working end-to-end
-
-- **CLI consumer** (`python -m interfaces.cli.main ...`): `v2 daily/weekly/plan`, `task add`, `mesh show <ueid>`, `kill_switch status|pause|resume`
-- **TUI operator** (`python -m interfaces.tui.operator.main`): Textual 4 tabs (Chat / Tasks / State / KillSwitch)
-- **Data mesh read**: `life mesh show <ueid>` joins CLI / taskdog / solverforge_calendar forks via 3 adapters (`ForkAdapter` Protocol)
-- **Data mesh write** (Phase 3 v1, `create` only): fork → CLI enqueues `TaskChange` to `data/review_queue/` → Agent validates → `PropagationEvent` to all forks
-- **MCP Gateway** (`ikigai.bat mcp`): 11 IKIGAI tools + 7 fork tools (`sf_*` + `tuiboard_*`) + 6 resources = 18 tools + 6 resources
-- **Drift net**: 53 invariants across 3 test files (`test_canonical_scope.py` 35 + `test_drift_invariants.py` 7 + `test_drift_extended_invariants.py` 11); 8 chat_repl smoke tests + 354+ total tests passing
-- **Kill switch**: pause/resume cybernetic engine without killing daemon (CLI subcommand + 5th TUI tab)
-- **Investigation queue**: `enqueue/status/complete` MCP tools + drift 42/42 + TUI read-only browse
-- **REPL end-to-end** (`scripts/chat_repl.py`): soul-aware agent shell with /profile switching + chat persistence + SSE events
-- **Phase 9 Option A** (2026-09-03): operator TUI + drift detector + Path 3 taskdog MCP (read-only)
-- **V5 bundle** (2026-09-07): CLI inlined (4 files deleted, v2.py split into 6 modules)
-- **Phase A** (2026-08-30): 7 fork MCP tools live (sf_create_event etc.)
-- **Phase 8.2 — v2 graph MCP wiring** (2026-09-08): 8/11 v2 graph nodes wired to real MCP tool calls via `mcp_bridge.py` (9 PAV-flavored wrappers removed in M12; only `ikigai_decompose` survives)
-- **M11 IKIGAI System Review** (2026-09-12): 41 gaps across 10 layers consolidated in `docs/superpowers/specs/2026-09-10-system-review-diagnosis.md`
-- **M12 P0 Attribution Fixes** (2026-09-13): mcp_bridge.py wrappers 9→1; sys_ikigai/entities/ueid.py 5-part → 4-part canonical
-- **M13 V2-Node/Bridge Alignment** (2026-09-13): 8 dead v2-node call sites → explicit error_channel writes; 5 PAV-importer tests deleted
-- **M14 MCP v2 Migration** (2026-09-13): durable `constraints.txt` pins mcp<2
-- **M15 M11 Priority 2 Drift Tests** (2026-09-13): langgraph registry drift test + vibe-ops PAV-constant renames + strategics hierarchy reconcile
-- **M16 REPL End-to-End** (2026-09-14): `scripts/chat_repl.py` soul-aware agent shell
-- **M17 REPL Coverage + Remaining Drift Tests** (2026-09-14): chat_repl.py smoke tests + taskdog_tools read-only contract + investigation_queue presence
-
-### ⚠️ Stubs / partial
-
-- **Deep Agent v2 graph** (`ikigai_maintainer_v2` in `langgraph.json`): 11-node graph (1 added since M0, recall_node). 8/11 nodes wire to real MCP calls via `mcp_bridge`; remaining partials: `surface_intentions` still prompt-chain stub (PAV-written state); `tag_and_persist` READ-ONLY (vault_write is separate work)
-- **Path 1 taskdog write** (canonical): `harness @tool → subprocess → taskdog_cli.py` exists but harness isn't wired to call it
-- **Path 3 taskdog MCP**: 3 read-only tools — zero write surface (drift net enforces via `test_taskdog_tools_read_only_contract`)
-- **Phase 8.3 backlog**: real observability/OTel tracing on top of `mcp_bridge`; production binding of `_server` to FastMCP client
-
-### ❌ Not started / deferred
-
-- **Phase 3 v1.2-v1.4**: `update`/`delete`/`done` mesh actions (gated on user adjudication)
-- **Deep Agent fills interfaces**: explicitly NOT priority per 2026-09-06 user pivot
-- **LLM-driven mesh validation**: gated
-- **PAV math in agent layer**: PAV archived 2026-08-31; agent is planner-only per ADR-013
-- **M9 (Production mode)**: 7-day unattended streak target — gated on user authorization
-
-### 🐛 Pre-existing bugs (flagged, non-blocking)
-
-- `scripts/mcp_inspect.py` PYTHONPATH bug (Windows parity)
-- `tests/test_tui_operator` rglob false-flake
-- 4 zero-byte artifacts no repo root (bash redirect pattern)
-- `strategics/planning-with-files` submodule dirty (modified content, no commit) — M20 T-20.2 diagnosis (2026-09-14): HEAD = `8f5a3c2`, parent-recorded = `8f5a3c2` (NO pointer drift). 55 files with uncommitted local edits (~2928+, 2117-, mostly quote-style normalization across IDE adapters + tests). Treated as **vendored third-party skill plugin** (remote = `https://github.com/matheusmendes720/planning-with-files.git`, user's own fork). **Do not commit** submodule contents — leave dirty. Drift net 53/53 PASS preserved.
-
----
-
-## Current Mode
-
-**Data-first methodology** — IKIGAi está pausado para *novas decisões de
-algoritmo* (M01/N01/A02/A06, IKIGAI vector weights). Não escrever código de
-algoritmo novo até 5+ SONHO logs manuais
-(`vault/ikigai/closing-2026/01-q3-2026/04-relatórios-diários/`). Decisões de
-algoritmo deferidas até evidência empírica. The "pausado" directive applies
-to **algorithm decisions only** — agent/harness plumbing and Drift net work
-are not paused.
-
-### Planning Note channel (human → agent)
-
-Lightweight canal for planning changes. **Not** a ritual, **not** a gate —
-the original "5+ SONHO logs" framing gated Wave 5 Scenario C, which was
-dropped 2026-09-03 per
-`~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/algorithm-gate-dropped-2026-09-03.md`;
-the template was repurposed for the human→agent channel that the agent
-layer will consume when it goes operational.
-
-- **Template:** `vault/ikigai/templates/sonho-log.md` (filename retained for path stability — only CONTENT was repurposed; 1 section: `## Mudança`)
-- **Trigger:** manual only — after any planning delta (sprint boundary, goal change, project pivot, scope refinement)
-- **Cadence:** event-driven (NOT daily). 1–3 bullets per note, <2 min.
-- **Where:** `vault/ikigai/closing-2026/<quarter>/04-relatórios-diários/YYYY-MM-DD.md`
-- **Atrito-alvo:** zero — só registra o delta, sem análise ou refinamento
-
-### Where shipped-wave history lives
-
-Wave 3 / Wave 4 / Wave 5 / Plan C / Plan D / W6.X hygiene milestones,
-commit hashes, PASS counts, and ADR-acceptance states all live in
-`~/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/` —
-not here. CLAUDE.md is the durable-contract file; memory holds the
-audit trail. Add a one-line memory entry per shipped wave and link it
-from `MEMORY.md`.
-
-## Root Layout (não-`src/`)
-
-Post-M60 (2026-09-18) the `life` Typer CLI lives as a meta-package in
-a real directory at the repo root:
-
-- `life/__init__.py` — `__version__ = "0.1.0"`. Makes `import life` work.
-- `life/cli/` — entrypoints do CLI raiz (`cli.py`, `config.py`, `log.py`,
-  `test_runner.py`, plus a `_main_console()` for the `life` console script)
-- `life/cli/__main__.py` — entry point for `python -m life.cli`.
-- `life/centrals/` — registradores top-level (task / knowledge / research)
-- `life/handlers/` — orquestram centrals via re-invoke
-- `life/plugins/` — extensões carregadas pelo plugin loader
-- `pyproject.toml` — declares `life` package + `life` console script
-- `.python-version` — pins Python 3.11
-- `pytest.ini` — sets `pythonpath = src` so `from src.mesh.X import Y` works
-- `tests/` — root-level integration tests (Phase 3 mesh + contracts + adapters)
-- `openwiki/` — workspace parasita (≠ `.openwiki/` que é cache/config)
-
-Pastas `.` de tooling no root (não interferem no runtime, ignore):
-`.agents`, `.atl`, `.claude-flow`, `.codex`, `.gitnexus`, `.hermes`,
-`.hypothesis`, `.life`, `.openwiki`, `.pi`.
-
-A legacy `__init__.py` at the repo root survives as a 2-line stub kept
-for git-blame continuity — it is NOT a valid Python package (regular
-packages require a directory, not a lone file). `python -m life.cli`
-resolves through `life/`, not through this stub.
-
-**Zero-byte artifacts untracked** (5): `0`, `14`, `agent('Execute`, `int`,
-`None`. Causa provável: redirecionamento bash malformado
-(`> agent('Execute')` virou arquivo em vez de string). Recomenda-se adicionar
-ao `.gitignore` antes do próximo commit.
-
-## LangGraph Graphs (vibe-ops, não src/)
-
-Os 5 graphs registrados em `langgraph.json` montam em
-`./vibe-ops/src/langgraph_entry.py` (`ikigai_maintainer` foi removido no
-attribution §3 — `make_ikigai_graph` factory no longer exists):
-
-| Graph | Entry factory |
-|-------|---------------|
-| `pae_maintainer` | `make_pae_graph` |
-| `quarterly_replan` | `make_replan_graph` |
-| `correction_protocol` | `make_correction_graph` |
-| `dream_falsification` | `make_falsification_graph` |
-| `test_de_fogo_rollup` | `make_rollup_graph` |
-
-Para subir um graph específico: `make dev-graph NAME=pae_maintainer`.
-
-> **Phase 8.1 (commit `fb41578`)** restaurou recovered IKIGAI architecture as
-> `src/ikigai/src/agents/v2/` (parallel branch — `graph.py` + 9 nodes) but did
-> **not** add a new graph entry to `langgraph.json`. The v2 graph code exists
-> but is not registered as a LangGraph runtime graph.
-
----
+`src/ikigai/MCP_GATEWAY.md` documents the surface. Key tools: `read_vault(path)`, `write_planning(cycle_id, tasks)`, `sync_interfaces()`, `get_metrics()`. The agent is the **sole** vault writer (ADR-012). The `vault_write` function in `sys_ikigai/vault/` is the canonical entry point.
 
 ---
 
 ## Drift Invariants & Tests
 
-The Drift net is the regression guard for canonical contracts. If a
-contributor changes a load-bearing invariant without explicitly bumping
-the contract version, CI fails.
+The Drift net is the regression guard for canonical contracts. **If a contributor changes a load-bearing invariant without explicitly bumping the contract version, CI fails.**
 
-| File | Purpose | Approx lines |
-|------|---------|--------------|
-| `src/ikigai/tests/test_canonical_scope.py` | IKIGAI_TOOLS count, planner-only scope (no PAE math), fork MCP surface | 1586 |
-| `src/ikigai/tests/test_drift_invariants.py` | UEID 4-part regex, append-only invariants, dual-tree identity | 297 |
-| `src/ikigai/tests/test_drift_extended_invariants.py` | Wave 3+ invariants (a-h): canonical_scope, investigation_queue, dual-module identity, cross-pollution | growing |
+| File | Purpose |
+|------|---------|
+| `src/ikigai/tests/test_canonical_scope.py` | IKIGAI_TOOLS count, planner-only scope (no PAE math), fork MCP surface |
+| `src/ikigai/tests/test_drift_invariants.py` | UEID 4-part regex, append-only invariants, dual-tree identity |
+| `src/ikigai/tests/test_drift_extended_invariants.py` | Wave 3+ invariants (a-h): canonical_scope, investigation_queue, dual-module identity, cross-pollution |
 
 **Invariant categories:**
 
-1. **canonical_scope** — IKIGAI agent must remain planner-only (no PAE math execution; math/policy/scoring tools are explicitly forbidden per ADR-013).
-2. **drift_invariants** — UEID 4-part canonical format (ADR-014); vault/strategics/vibe-ops append-only; vault_write is sole vault writer (ADR-012).
-3. **dual_module_identity** — guards the `src.X` vs `X` import split that surfaced via taskdog CLI test failures (W6.X item 3). Tests must patch BOTH identities or `monkeypatch.setattr` silently no-ops.
-4. **cross_pollution** — flags state pollution between test modules (e.g. shared filesystem fixtures leaking across boundaries). Same root cause as W6.X deferred finding.
+1. **canonical_scope** — IKIGAI agent must remain planner-only per ADR-013 (math/policy/scoring tools explicitly forbidden)
+2. **drift_invariants** — UEID 4-part format (ADR-014); vault/strategics/vibe-ops append-only; `vault_write` is sole vault writer (ADR-012)
+3. **dual_module_identity** — guards the `src.X` vs `X` import split (see "Import-Path Rules" below)
+4. **cross_pollution** — flags state pollution between test modules (shared filesystem fixtures leaking across boundaries)
 
-**When you add a feature that crosses an invariant boundary**, the right
-move is to add a new test in `test_drift_extended_invariants.py` rather
-than weakening an existing one. Drift tests are append-only — they grow
-with the system but never get deleted.
+**Drift tests are append-only — they grow with the system but never get deleted.** When you add a feature that crosses an invariant boundary, add a new test in `test_drift_extended_invariants.py` rather than weakening an existing one.
 
 ---
 
@@ -519,47 +275,23 @@ Two import styles coexist, and mixing them silently breaks tests:
 | `src/contracts/`, `src/mesh/`, `src/ikigai/` (agents/MCP) | dotted-prefix | `from src.contracts.sonho import ...` | `<repo>/src/` |
 | `sys_ikigai/` (entities, gateway, state_machines, vault, security) | bare namespace | `from sys_ikigai.entities.task import Task` | `<repo>/sys_ikigai/` |
 
-Both resolve from `<repo>/` after the 2026-09-05 namespace rename
-(`src/ikigai/src/ikigai/` → `sys_ikigai/`, commit `685dec5`). The
-`tests/conftest.py` setup adds `<repo>/` to `sys.path` once, and both
-styles work.
+Both resolve from `<repo>/` after the 2026-09-05 namespace rename (`src/ikigai/src/ikigai/` → `sys_ikigai/`, commit `685dec5`). The `tests/conftest.py` setup adds `<repo>/` to `sys.path` once, and both styles work.
 
 **Why this matters — dual-module identity bug class:**
 
-If production code uses dotted-prefix (`from src.contracts.X`) but a test
-monkeypatches the bare module (`monkeypatch.setattr(sys.modules["contracts.X"], ...)`),
-the patch silently no-ops because `sys.modules["src.contracts.X"]` is
-the *actual* module instance the production code holds. The test
-passes its assertion against an unpatched object. The first hit was
-`test_taskdog_cli.py` (W6.X item 3, commit `3a4ed8c`); the structural
-fix was the sys_ikigai rename which made the dotted-prefix pattern
-explicit. **Rule: when monkeypatching, patch BOTH identities.**
+If production code uses dotted-prefix (`from src.contracts.X`) but a test monkeypatches the bare module (`monkeypatch.setattr(sys.modules["contracts.X"], ...)`), the patch silently no-ops because `sys.modules["src.contracts.X"]` is the *actual* module instance the production code holds. The test passes its assertion against an unpatched object. The first hit was `test_taskdog_cli.py` (W6.X item 3, commit `3a4ed8c`); the structural fix was the `sys_ikigai` rename which made the dotted-prefix pattern explicit. **Rule: when monkeypatching, patch BOTH identities.**
 
 ---
 
 ## Windows Quirks
 
-A handful of Windows-only bugs have shipped and stayed fixed. If you
-hit them again, the fix is already known:
+A handful of Windows-only bugs have shipped and stayed fixed. If you hit them again, the fix is already known:
 
 | Bug | Fix | Commit |
 |-----|-----|--------|
 | `sys.stdin.readline()` HANGS on Windows pipes (MCP stdio handshake) | Use `sys.stdin.buffer.readline()` | `b93a1f3` |
-| pytest-asyncio raises `PermissionError [WinError 5]` on stale `AppData\Local\Temp\pytest-of-<user>\` dirs | `tests/conftest.py` redirects `tempfile.tempdir` + `TMPDIR`/`TEMP`/`TMP` to `data/pytest-tmp/` | `ff3037f` |
-| Empty directory locked by another process (e.g. `__pycache__` mid-collect) | Mark for deletion via `PendingFileRenameOperations` registry, finishes on next reboot | per Windows orphan-dir memory |
-
-**`mypy.ini`** lives at repo root (`mypy_path = src .. ../..` + `explicit_package_bases = True`, commit `39fd55a`) — the dup-source resolution closes the W6.X item 5 finding. The 542 remaining `[import-not-found]` errors are pre-existing stub-resolution issues, separate scope.
-
----
-
-## What Is Broken / TODO
-
-- **Deep Agent harness exists but doesn't fill interfaces yet — current state, NOT implicit roadmap.** v2 graph code lives at `src/ikigai/src/agents/v2/` but is not registered as a LangGraph runtime graph (Phase 8.1, commit `fb41578`). User scope (2026-09-06 pivot): agent **operates the interface** and **reasons about planning context** (SONHOS / metas / objetivos across projects/tasks). Filling interface fields automatically from agent output is **NOT the priority** and should not be re-introduced as a roadmap item without explicit user demand.
-- **`vibe_ops.db` lives in `data/`** (Phase 0 audit-closure 2026-08-31) — some code paths may still reference old root location
-- **Phase 3 v1 ships `create` only** for the data mesh; `update`/`delete`/`done` deferred. v1.2-v1.4 is **NOT a roadmap item** — only proceeds if user adjudicates (data-first SONHO-log gate was DROPPED 2026-09-03 per [[algorithm-gate-dropped-2026-09-03]]). Phase A extended fork side via MCP tools; Phase 8 restored agent v2 plumbing.
-- **Phase 3 minor findings (logged, non-blocking)**: UPI `id` churn on UPSERT conflict; `propagate()` doesn't auto-ack `partial_propagation` status
-- **MCP Gateway ✅ wired as code** — 15 IKIGAI_TOOLS + 7 fork tools (`sf_*` + `tuiboard_*`) in UnifiedMCPGateway + 6 resources (corrected 2026-09-04 per Diag 02); `vault_write` is the sole vault writer (ADR-012)
-- **Path 3 taskdog MCP shipped (read-only)** — commit `6b9c9d1`. Canonical write path is still Path 1 (harness @tool → subprocess → taskdog.exe). See `docs/design-system/24-taskdog-paths-architecture.md`.
+| pytest-asyncio `PermissionError [WinError 5]` on stale `AppData\Local\Temp\pytest-of-<user>\` dirs | `tests/conftest.py` redirects `tempfile.tempdir` + `TMPDIR`/`TEMP`/`TMP` to `data/pytest-tmp/` | `ff3037f` |
+| Empty directory locked by another process (e.g. `__pycache__` mid-collect) | Mark for deletion via `PendingFileRenameOperations` registry, finishes on next reboot | — |
 
 ---
 
@@ -567,35 +299,37 @@ hit them again, the fix is already known:
 
 | Task | Start here |
 |------|-----------|
-| Using mesh | `python -m interfaces.cli.main mesh show <ueid>` (after `task add ...`) |
-| Building interfaces | `interfaces/cli/` (split 6 modules) or `interfaces/tui/operator/` (Textual 4-tab) |
-| Deep Agent development | `src/ikigai/src/agents/` (v2 graph + 9 nodes) + `vault/` |
+| Using mesh | `python -m interfaces.cli mesh-show <ueid>` (after `task-add ...`) |
+| Building interfaces | `interfaces/cli/v2.py` (1042 lines) or `interfaces/tui/operator/` (Textual 5-tab) |
+| Deep Agent development | `src/ikigai/src/agents/v2/` (registered in `langgraph.json` as `ikigai_maintainer_v2`) + `vault/` |
 | Unifying contracts | `src/contracts/` + `src/mesh/` (Phase 3 DONE) |
 | MCP Gateway integration | `src/ikigai/MCP_GATEWAY.md` |
 | Understanding the system | `docs/ARCHITECTURE_INDEX.md` |
-| Kill switch (pause/resume engine) | `sys_ikigai/security/kill_switch.py` + CLI `kill_switch status\|pause\|resume` + 5th TUI tab |
+| Kill switch | `sys_ikigai/security/kill_switch.py` + CLI `kill-switch status\|pause\|resume` + TUI tab |
 | Drift net / invariant work | `src/ikigai/tests/test_canonical_scope.py` + `test_drift_invariants.py` + `test_drift_extended_invariants.py` |
-| Phase 3 spec/plan | `docs/superpowers/specs/` + `docs/superpowers/plans/` (2026-08-28) |
+| Phase 3 spec/plan | `docs/superpowers/specs/` + `docs/superpowers/plans/` |
+| Paperclip work | `src/ikigai/src/agents/paperclip/` (graph + policy/router) + `specs/M169-paperclip/...M193` + [ADR-036](code-docs/adr/ADR-036-paperclip-four-nested-loops.md) |
 
 ---
 
 ## Refactor Protocol
 
-If touching vault/, vibe-ops/, or strategics/: stop → propose Action Plan → wait for explicit "go" → verify every pre-existing string survives.
+If touching `vault/`, `vibe-ops/`, or `strategics/`: **stop** → propose Action Plan → wait for explicit "go" → verify every pre-existing string survives.
 
 ---
 
 ## Pitfalls
 
-- **Don't restore old PAV TUI/CLI** — apps/cli and apps/tui were deleted intentionally; build new interfaces under interfaces/
-- **Deep Agent writes vault; interfaces don't** — interfaces only read from data/
-- **Append-only rule** enforced on vault/, vibe-ops/, strategics/, AND `data/review_queue/`
-- **vibe_ops.db lives in data/** — update any code paths that reference it at the old root location
-- **v1 mesh scope = create only** — adapters early-return on non-create actions; do not add update/delete/done logic until v1.2
+- **Don't restore old PAV TUI/CLI** — `apps/cli` and `apps/tui` were deleted intentionally; build new interfaces under `interfaces/`
+- **Deep Agent writes vault; interfaces don't** — interfaces only read from `data/`
+- **Append-only** enforced on `vault/`, `vibe-ops/`, `strategics/`, AND `data/review_queue/`
+- **`vibe_ops.db` lives in `data/`** — not at the old root location
+- **v1 mesh scope = `create` only** — adapters early-return on non-create actions; don't add update/delete/done logic until v1.2
+- **IKIGAI agent is planner-only** — don't re-introduce PAV math into `src/ikigai/` (drift net enforces)
+- **Deep Agent harness does NOT fill interface fields automatically** — explicit 2026-09-06 user pivot. Agent reasons about planning context (SONHOS / metas / objetivos), not interface rendering
+- **Submodule `strategics/planning-with-files` is intentionally dirty** — vendored third-party (user's own fork), do not commit. Treated as immutable
 
 ---
-
-*Algorithmic Life OS — CLAUDE.md — 2026-09-03 (audit cleanup)*
 
 <!-- OPENWIKI:START -->
 
@@ -604,3 +338,5 @@ If touching vault/, vibe-ops/, or strategics/: stop → propose Action Plan → 
 See [AGENTS.md](AGENTS.md) for OpenWiki agent instructions.
 
 <!-- OPENWIKI:END -->
+
+*Algorithmic Life OS — CLAUDE.md — 2026-10-12 (paperclip + dynamic-workflows graphs documented)*
