@@ -547,3 +547,13 @@ src/ikigai/data/baselines/.passphrase
 /vault/.vault_events.jsonl
 /src/data/ikigai_checkpoints.db
 /src/data/
+.atlas/
+
+# ─── Shell redirect artifacts (0-byte noise) ──────────────────────────
+COST_THRESHOLD_USD``
+MAX_GAP_LOOPS
+None``
+RunRecord
+start
+threshold
+threshold_seconds``.,+,+
