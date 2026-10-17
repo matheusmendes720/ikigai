@@ -1,0 +1,2 @@
+- [2026-10-13T14:41:24.621953+00:00] event=issue_created entityId=test-123 source=paperclipai
+- [2026-10-13T14:42:24.276607+00:00] event=final_test entityId=ft-999 source=paperclipai

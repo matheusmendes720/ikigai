@@ -1,0 +1,23 @@
+{
+  "name": "@life-oss/paperclipai",
+  "version": "0.1.0",
+  "description": "Bridge PaperclipAI agents to the life-oss LangGraph system",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "dev": "tsc --project tsconfig.json --watch",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "dependencies": {
+    "@paperclipai/plugin-sdk": "^2026.1012.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
