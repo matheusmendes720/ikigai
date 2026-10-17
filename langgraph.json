@@ -6,7 +6,9 @@
   "graphs": {
     "ikigai_maintainer_v2": "./src/ikigai/src/agents/v2/graph.py:make_v2_graph",
     "ikigai_fork_smoke": "./src/ikigai/src/agents/v2/fork_smoke_graph.py:make_fork_smoke_graph",
-    "ikigai_taskdog_mcp": "./src/ikigai/src/agents/taskdog_mcp_graph.py:make_taskdog_mcp_graph_sync"
+    "ikigai_taskdog_mcp": "./src/ikigai/src/agents/taskdog_mcp_graph.py:make_taskdog_mcp_graph_sync",
+    "ikigai_paperclip": "./src/ikigai/src/agents/paperclip/graph.py:make_paperclip_graph",
+    "ikigai_dynamic": "./src/ikigai/src/agents/paperclip_dynamic/graph.py:make_dynamic_graph"
   },
   "env": ".env",
   "python_version": "3.11"

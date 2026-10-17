@@ -1770,6 +1770,50 @@ Replace PAV-math in ikigai-daily/weekly/monthly/quarterly with vault aggregation
 
 Planning artifact (not execution). Horizons A/B/C with sequencing for the autonomous loop.
 
+### M169 - Paperclip meta-orchestrator graph (MVP) (STATUS: DONE)
+
+Fourth LangGraph graph in langgraph.json (after ikigai_maintainer_v2 / ikigai_fork_smoke / ikigai_taskdog_mcp). Spec -> HIL pause -> worktree -> agent -> merge. 9 nodes, 6 agent adapters (1 real + 5 stubs), drift 68 -> 70. See specs/M169-paperclip/SPEC.md.
+
+### M170 - Paperclip Pi real adapter (STATUS: DONE)
+
+`src/ikigai/src/agents/paperclip/agents/pi.py` — 109-line real subprocess wrapper for `pi` 1.1.0 CLI (mirrors ClaudeAdapter exactly: `subprocess.run(["pi", prompt], ...)`, COLUMNS=200 LINES=50 env fix, TimeoutExpired/FileNotFoundError → frozen AgentResult, never raises). 2 new tests (test_pi_adapter_protocol + test_pi_adapter_runs_subprocess via monkeypatch). Drift preserved 70/70.
+
+### M171 - Paperclip omo real adapter (STATUS: DONE)
+
+`src/ikigai/src/agents/paperclip/agents/omo.py` — 108-line real subprocess wrapper for `omo` CLI (omo is a fork of Pi with identical CLI shape `omo [options] [@files...] [messages...]`). Same template as Claude/Pi. 2 new tests. Drift preserved.
+
+### M172 - Paperclip OpenClaw real adapter (STATUS: DONE)
+
+`src/ikigai/src/agents/paperclip/agents/openclaw.py` — 123-line real subprocess wrapper for OpenClaw 2026.7.1-2. Subcommand-style discovery: `openclaw agent --local --no-color --message <prompt>` (the agent has NO positional prompt arg). 2 new tests verifying the discovered argv shape. Drift preserved.
+
+### M173 - Paperclip cost gate (STATUS: DONE)
+
+`src/ikigai/src/agents/paperclip/policy.py` — `CostGate` class with fail-open semantics (missing/malformed `data/cost-today.json` → allowed=True). Threshold from env `PAPERCLIP_COST_THRESHOLD_USD` (default $5.00/day). Wired into `nodes/implement.py` (consulted BEFORE agent invocation; `error_type="CostGateExceeded"` when blocked). 5 new tests in `test_cost_gate.py`. **First auto-throttle in Paperclip architecture.** Drift preserved.
+
+### M174 - Paperclip auto-spawner daemon (STATUS: DONE)
+
+Self-managed auto-prompting loop. 4 files ship: `scripts/paperclip-spawner.sh` (206L bash daemon polling `.claude/loop/inbox/` + dispatching to Paperclip via Python helper), `src/ikigai/src/agents/paperclip/router.py` (419L Pydantic v2 strict `pick_adapter(spec, health) -> RouterDecision` with priority order pi > omo > openclaw > claude), `tests/test_router.py` (201L, 5 unit tests), `specs/M174-paperclip-auto-spawner/SPEC.md`. Drift +2 (70→72); schedules.json +1 entry (5m cadence, $0.05 cap). 6th daemon added to the loop fleet (lifecycle is loop-tick → hill-climb → cost-dashboard → streak-tracker → daemon-watchdog → **paperclip-auto-spawner**).
+
+### M175 - Paperclip wall-clock gate (STATUS: DONE)
+
+`src/ikigai/src/agents/paperclip/policy.py` — extended with `WallClockGate` class (fail-open semantics like `CostGate`). Threshold from env `PAPERCLIP_WALL_CLOCK_THRESHOLD_S` (default 3600s = 1 hour). Wired into `nodes/implement.py` (consulted AFTER cost gate, BEFORE agent invocation; `error_type="WallClockGateExceeded"` when blocked). `task_started_at` set in `read_spec_node`. 5 new tests in `test_wall_clock_gate.py`; 1 new drift test. **Second auto-throttle in Paperclip architecture.** Drift 72 → 73.
+
+### M176 - Paperclip risk gate (STATUS: DONE)
+
+`src/ikigai/src/agents/paperclip/policy.py` — extended with `RiskGate` class (fail-CLOSED on dangerous keyword match, unlike M173/M175 which fail-open). 18 default keywords (rm -rf, drop database, git push --force, .env, secrets, private_key, id_rsa, ~/.ssh, password=, etc.). Override via env `PAPERCLIP_RISK_KEYWORDS` (comma-separated). Wired into `nodes/implement.py` AFTER wall-clock gate, BEFORE agent invocation; `error_type="RiskGateExceeded"` when blocked. 5 new tests + 1 new drift test. **Third auto-throttle; first fail-CLOSED gate.** Drift 73 → 74.
+
+### M178 - Paperclip worktree MSYS bash path fix (STATUS: DONE)
+
+`src/ikigai/src/agents/paperclip/nodes/worktree.py` — added `_to_posix_path(Path) -> str` helper that converts Windows paths to POSIX via `cygpath -u` before handing them to MSYS bash. Wired into both `worktree_create_node` and `worktree_cleanup_node` (the only two nodes that shell out to `bash scripts/worktree-helper.sh`). Without this, `paperclip run --spec ...` failed on Windows with `WorktreeCreateError: /bin/bash: C:Usersmathecode_spacelife-osslifescriptsworktree-helper.sh: No such file or directory` — MSYS bash mangled the backslash-separated absolute path. Helper gates on `sys.platform == "win32"` AND `shutil.which("cygpath")` so Linux/macOS users are unaffected and Windows boxes without Git for Windows degrade gracefully (falls back to `str(path)`). 3 new unit tests in `test_worktree_path.py` + 1 new drift test (`test_paperclip_worktree_path_helper_exists`). **Unblocks LIVE RUN end-to-end on Windows.** Drift 74 → 75.
+
+### M191 - Paperclip Dynamic Workflows skeleton (STATUS: DONE)
+
+`src/ikigai/src/agents/paperclip_dynamic/` — NEW package, 9-node graph (classify → planner → harness_builder → 3 sub-agent slots → per-sub-agent verifier → global_evaluator → synthesizer). Implements Anthropic's "Dynamic Workflows" pattern (per `deep-dive-dynamic-workflows.md`). Mock LLM calls for MVP; real LLM wiring in followup. Static fan-out of 3 sub-agent slots in MVP (Send API in N+1). Registered as `ikigai_dynamic` in `langgraph.json` (5th graph). 7 unit tests + 1 drift test. See specs/M191-paperclip-dynamic-workflows/SPEC.md.
+
+### M183 - Paperclip state persistence (STATUS: DONE)
+
+`src/ikigai/src/agents/paperclip/persistence.py` (~240 LOC) — `RunRecord` dataclass + `persist_run()` (atomic write via `.tmp` + `os.replace`, ISO 8601 timestamp filename, GC at `MAX_RUNS=100`) + `list_recent_runs()` (newest-first reverse-lexical sort) + `load_run()` + `build_record_from_state()` helper. CLI `paperclip run` calls `persist_run` after EVERY invocation (success OR failure) — post-mortem is most valuable when things go wrong. New CLI subcommand `paperclip runs [--limit N] [--json]` lists persisted snapshots. 5 new unit tests + 1 new drift test. **First durable post-mortem layer for Paperclip; unblocks spawner history** (M174). Drift 74 → 75.
+
 ### M158g-cleanup - Cleanup sprint + path-ordering bug fix (STATUS: DONE)
 
 8 atomic commits in one session, 2026-10-05. Two intertwined objectives:
@@ -1840,3 +1884,37 @@ Both `src/agents/` and `src/ikigai/src/agents/` are top-level `agents` packages.
 - ⚠️ **M97/M98 known limitation still open** — `langgraph dev` crashes on relative imports (unrelated)
 
 **Next action:** M154-AUDIT (honest inventory of v2 deep agent graph) — the user just hit a real bug in the v2 path, so a fresh audit of all 13 v2 nodes (which are stub, which work, which silently fail) is timely before more dev work on the v2 layer.
+
+### M180 - Paperclip HIL resume machinery (STATUS: DONE)
+
+10-node graph (was 9) — new `hil_apply_user_resolution` node sits between `hil_pause` and `merge_user_resolution` to apply the `Command(resume=...)` payload: increments `hil_resume_count` + stamps `hil_last_resume_at` for audit, writes a structured system message to the `messages` channel. The actual spec-text merge is delegated to `merge_user_resolution_node` (unchanged) so the two nodes form one readable pipeline (apply → merge → spec_analyzer).
+
+State changes (`state.py`): +2 new `NotRequired` fields (`hil_resume_count: int`, `hil_last_resume_at: str | None`). New routing function `_route_after_hil_apply` (mirrors `_route_after_hil_pause` shape). `NODES` tuple re-ordered so `hil_apply_user_resolution` sits between `hil_pause` and `merge_user_resolution`.
+
+**Audit-trail surface:** triagers can read `messages` channel + `hil_resume_count` + `hil_last_resume_at` to reconstruct how many user resumes happened and what payload each carried (answer length + whether `rewritten_spec` was provided).
+
+Tests: 5 new in `test_hil_pause.py` (count increment, audit message, spec-rewrite path, answer-only path, graph registration topology). 1 new drift in `test_paperclip_drift.py` (`test_paperclip_hil_apply_user_resolution_node_exists` — locks in callable + smoke invocation with partial state). 1 smoke update in `test_graph_smoke.py` (`EXPECTED_NODES` set grew from 9 → 10, docstring updated). Drift 72 → 75.
+
+**Files changed:**
+- `src/ikigai/src/agents/paperclip/state.py` (+2 fields)
+- `src/ikigai/src/agents/paperclip/nodes/hil_pause.py` (+`hil_apply_user_resolution_node`)
+- `src/ikigai/src/agents/paperclip/graph.py` (`NODES` +1, new `_route_after_hil_apply`, edge wiring)
+- `src/ikigai/src/agents/paperclip/tests/test_hil_pause.py` (+5 tests)
+- `src/ikigai/src/agents/paperclip/tests/test_graph_smoke.py` (`EXPECTED_NODES` +1, comment)
+- `src/ikigai/tests/test_paperclip_drift.py` (+1 drift)
+- `specs/M180-paperclip-hil-resume/SPEC.md` (new)
+
+**Note on `hil_pause_node` itself:** unchanged. The fallback `RuntimeError("PAPERCLIP_HIL_PAUSE: ...")` path is preserved (it's the load-bearing fallback when `langgraph_sdk` isn't importable). M180 adds a CONSUMER node (`hil_apply_user_resolution`) for the resume payload — the INTERFACE for resume is what changed in this milestone.
+
+### M190 - Paperclip canonical HTTP adapter (STATUS: DONE)
+
+`specs/M190-paperclip-canonical-adapter/SPEC.md` — spec for wrapping our LangGraph Paperclip graph as an HTTP adapter inside paperclipai/paperclip (67k⭐). `scripts/paperclip_heartbeat_http.py` — minimal HTTP server (~50 LOC) accepting canonical Paperclip's POST payload, calling `graph.ainvoke`, returning RunHandle shape. Phase 1 of the migration path documented in `paperclip-orchestrator-specs.md` §9.3. 3 unit tests + 1 drift test. Drift 77 → 78.
+
+### M193 - Paperclip 8-stacks comparison matrix (STATUS: DONE)
+
+`specs/M193-paperclip-stacks-comparison/SPEC.md` — research artifact mapping life-oss to the 8-family loop engineering taxonomy (Ralph / Karpathy / TheBotCo / AOrchestra / LangChain / Osmani / Gas Town / SDD). Documents where life-oss sits (Families 3+6+1+8+5-partial hybrid), why we skip Families 2/4/7, decision tree with life-oss answers marked, and the migration path to canonical Paperclip (M190). +1 drift test in `src/ikigai/tests/test_paperclip_drift.py::test_paperclip_stacks_comparison_exists` (asserts SPEC exists + all 8 family names + life-oss reference + DONE status).
+
+### M192 - Paperclip ADR-036: 4 nested loops framework (STATUS: DONE)
+
+`code-docs/adr/ADR-036-paperclip-four-nested-loops.md` — ACCEPTED 2026-10-12. Documents life-oss's adoption of the LangChain 4 nested loops framework as the primary lens for loop engineering. Maps each existing cron/daemon to one of the 4 loops (Agent / Verification / Event-driven / Hill-climbing) and the 5 risks matrix from Ronacher + Osmani. **Numbering deviation:** M192 prompt requested `ADR-026` but that's taken (Sub-Agent Dispatch Protocol, 2026-09-05); used `ADR-036` per `code-docs/adr/README.md §Maintenance` numbering rule. Drift invariant guard: `test_paperclip_adr_036_exists` (forthcoming, +1 drift test).
+

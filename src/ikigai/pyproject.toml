@@ -4,7 +4,15 @@ version = "0.1.0"
 description = "Standalone IKIGAi meta-brain for the Algorithmic Life OS"
 authors = ["Matheus + AI Agent"]
 readme = "README.md"
-packages = [{include = "ikigai", from = "src"}, {include = "mcp_server", from = "src"}, {include = "agents", from = "src"}]
+packages = [
+    {include = "agents", from = "src"},
+    {include = "chat", from = "src"},
+    {include = "mcp_server", from = "src"},
+    {include = "observability", from = "src"},
+    {include = "strategics", from = "src"},
+    {include = "ikigai_wrapper.py", from = "src"},
+    {include = "plugins", from = "src"},
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -38,9 +46,20 @@ deepagents = ">=0.7"
 # LangChain Anthropic provider — used by the deep agent chat path.
 langchain-anthropic = ">=0.3"
 
+# Paperclip FastAPI dashboard (M176/M178). Optional — the dashboard
+# script can be run from `scripts/paperclip-dashboard.py` directly without
+# the CLI invoking it. Listed here so the CLI's deps match the runtime.
+fastapi = ">=0.115"
+uvicorn = ">=0.30"
+sse-starlette = ">=2.0"
+
 [tool.poetry.scripts]
 ikigai-maintainer-mcp = "run_mcp_server:main"
 ikigai-deep-agent = "agents.deepagents_harness:main"
+# Paperclip meta-orchestrator CLI (M169-M176).
+paperclip = "agents.paperclip.cli:main"
+# PaperclipAI ↔ life-oss bridge server.
+paperclipai-bridge = "plugins.paperclipai_bridge.main:app"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
@@ -66,6 +85,11 @@ target-version = "py310"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "PT", "RUF"]
 ignore = ["E501"]
+# B008 (function call in default argument) is Typer's documented pattern
+# for `typer.Option(...)` / `typer.Argument(...)` — false positive in this CLI module.
+[tool.ruff.lint.per-file-ignores]
+"src/agents/paperclip/cli.py" = ["B008"]
+"src/agents/paperclip_dynamic/cli.py" = ["B008"]
 
 [tool.mypy]
 python_version = "3.11"
