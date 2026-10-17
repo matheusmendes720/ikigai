@@ -161,9 +161,15 @@ cd vibeops-tui && cargo run       # Rust TUI (ratatui) — polls ../data/vibe_op
 ### LangGraph dev
 
 ```bash
-make dev                          # langgraph dev server on :2024
-make test
+# First-time setup (requires Python 3.13):
+py -3.13 -m pip install langgraph-cli
+
+# Start the dev server:
+scripts\langgraph-dev.bat           # langgraph dev server on :2024 (Python 3.13)
+# Or with make (if make is on PATH):
+make dev
 make dev-graph NAME=ikigai_maintainer_v2   # one graph
+make test
 ```
 
 `langgraph.json` registers **5 graphs** (all in `src/ikigai/src/agents/`):
