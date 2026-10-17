@@ -322,7 +322,7 @@ class _RawTransport:
         _time.sleep(5.0)
         # If the subprocess dies in that window, surface the stderr.
         if proc.poll() is not None:
-            err = proc.stderr.read1(2000).decode("utf-8", errors="replace") if proc.stderr else ""
+            err = proc.stderr.read(2000).decode("utf-8", errors="replace") if proc.stderr else ""
             raise RuntimeError(
                 f"MCP server subprocess exited during startup (code={proc.returncode}). "
                 f"stderr: {err[:500]}"
@@ -458,16 +458,33 @@ def bind_server(*, ikigai_python: str | None = None) -> None:
     mcp_bridge = _get_mcp_bridge()
 
     python = ikigai_python or _resolve_ikigai_python()
+    # Determine the venv's site-packages so `mcp` and other venv-installed
+    # packages are found. We call the venv's python with -c "import site; print(site.getsitepackages()[0])"
+    # to get the canonical path (handles both venv and uv/poetry layouts).
+    _venv_site_packages: str | None = None
+    try:
+        import site
+        _sp = subprocess.run(
+            [python, "-c", "import site; print(site.getsitepackages()[0])"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if _sp.returncode == 0:
+            _venv_site_packages = _sp.stdout.strip()
+    except Exception:
+        pass
     # PYTHONPATH mirrors `.mcp.json` so the server's `from src.mesh.X`
     # imports resolve. Absolute paths (relative paths are resolved against
     # the subprocess's cwd, not ours).
+    _pythonpath_parts = [
+        str(REPO_ROOT),
+        str(REPO_ROOT / "src"),
+        str(IKIGAI_SRC_DIR),
+    ]
+    if _venv_site_packages:
+        _pythonpath_parts.append(_venv_site_packages)
     env = {
         **os.environ,
-        "PYTHONPATH": os.pathsep.join([
-            str(REPO_ROOT),
-            str(REPO_ROOT / "src"),
-            str(IKIGAI_SRC_DIR),
-        ]),
+        "PYTHONPATH": os.pathsep.join(_pythonpath_parts),
     }
 
     client = _RawTransport.start(python, str(IKIGAI_SRC_DIR), env)

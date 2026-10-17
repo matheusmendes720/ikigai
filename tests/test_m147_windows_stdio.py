@@ -27,6 +27,28 @@ RUNTIME_PATH = REPO_ROOT / ".claude" / "loop" / "mcp_runtime.py"
 IKIGAI_PYTHON = REPO_ROOT / "src" / "ikigai" / ".venv" / "Scripts" / "python.exe"
 
 
+def _mcp_not_in_venv(python_exe: Path) -> bool:
+    """Return True if `mcp` cannot be imported from the given venv python."""
+    import subprocess
+    r = subprocess.run(
+        [str(python_exe), "-c", "import mcp"],
+        capture_output=True, timeout=10,
+    )
+    return r.returncode != 0
+
+
+def _venv_site_packages(python_exe: Path) -> str | None:
+    """Return the venv's site-packages path, or None if not determinable."""
+    import subprocess
+    r = subprocess.run(
+        [str(python_exe), "-c", "import site; print(site.getsitepackages()[0])"],
+        capture_output=True, text=True, timeout=10,
+    )
+    if r.returncode == 0:
+        return r.stdout.strip()
+    return None
+
+
 def _load_module(name: str, path: Path):
     spec = importlib.util.spec_from_file_location(name, path)
     mod = importlib.util.module_from_spec(spec)
@@ -169,8 +191,8 @@ class TestEndToEnd:
     """End-to-end smoke tests against the real MCP server subprocess."""
 
     @pytest.mark.skipif(
-        not IKIGAI_PYTHON.exists(),
-        reason=f"IKIGAI venv python not found at {IKIGAI_PYTHON}",
+        not IKIGAI_PYTHON.exists() or _mcp_not_in_venv(IKIGAI_PYTHON),
+        reason=f"IKIGAI venv python or `mcp` not available at {IKIGAI_PYTHON}",
     )
     def test_bind_server_completes_handshake(self, runtime):
         """bind_server() successfully completes the MCP handshake against
@@ -181,7 +203,7 @@ class TestEndToEnd:
             client = runtime._RawTransport.start(
                 str(IKIGAI_PYTHON),
                 str(runtime.IKIGAI_SRC_DIR),
-                _build_env(),
+                _build_env(IKIGAI_PYTHON),
             )
             # Handshake should complete in <15s on a healthy machine
             elapsed = time.time() - start
@@ -196,15 +218,15 @@ class TestEndToEnd:
                 pass
 
     @pytest.mark.skipif(
-        not IKIGAI_PYTHON.exists(),
-        reason=f"IKIGAI venv python not found at {IKIGAI_PYTHON}",
+        not IKIGAI_PYTHON.exists() or _mcp_not_in_venv(IKIGAI_PYTHON),
+        reason=f"IKIGAI venv python or `mcp` not available at {IKIGAI_PYTHON}",
     )
     def test_bind_then_call_ikigai_health_returns_valid_dict(self, runtime):
         """End-to-end: bind_server → call ikigai_health → dict with name/version."""
         client = runtime._RawTransport.start(
             str(IKIGAI_PYTHON),
             str(runtime.IKIGAI_SRC_DIR),
-            _build_env(),
+            _build_env(IKIGAI_PYTHON),
         )
         try:
             result = client.call_tool("ikigai_health", {})
@@ -219,13 +241,19 @@ class TestEndToEnd:
                 pass
 
 
-def _build_env() -> dict[str, str]:
+
+def _build_env(python_exe: Path | None = None) -> dict[str, str]:
     """Build the subprocess env (matches `_RawTransport.start`)."""
+    parts = [
+        str(REPO_ROOT),
+        str(REPO_ROOT / "src"),
+        str(REPO_ROOT / "src" / "ikigai" / "src"),
+    ]
+    if python_exe:
+        sp = _venv_site_packages(python_exe)
+        if sp:
+            parts.append(sp)
     return {
         **os.environ,
-        "PYTHONPATH": os.pathsep.join([
-            str(REPO_ROOT),
-            str(REPO_ROOT / "src"),
-            str(REPO_ROOT / "src" / "ikigai" / "src"),
-        ]),
+        "PYTHONPATH": os.pathsep.join(parts),
     }
