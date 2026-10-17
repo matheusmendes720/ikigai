@@ -183,8 +183,64 @@ def taskdog_set_due(ueid: str, due: str) -> str:
 )
 def taskdog_cancel(ueid: str) -> str:
     """UPDATE: set status='cancelled' (soft removal). For hard delete, use taskdog_delete."""
+    ok, err = _validate_ueid(ueid)
+    if not ok:
+        return json.dumps({"error": err})
     event_id = _build_task_change(TaskAction.UPDATE, ueid, {"status": "cancelled"})
     return json.dumps({"event_id": event_id, "action": "update", "field": "status", "value": "cancelled", "ueid": ueid})
+
+
+@mcp.tool(
+    name="taskdog_done",
+    description="Mark a task as done. Goes through review queue.",
+)
+def taskdog_done(ueid: str) -> str:
+    """DONE: set status='done' via TaskAction.DONE (idempotent)."""
+    ok, err = _validate_ueid(ueid)
+    if not ok:
+        return json.dumps({"error": err})
+    event_id = _build_task_change(TaskAction.DONE, ueid, {})
+    return json.dumps({"event_id": event_id, "action": "done", "ueid": ueid})
+
+
+@mcp.tool(
+    name="taskdog_set_planned_dates",
+    description="Update task planned start/end dates. Goes through review queue.",
+)
+def taskdog_set_planned_dates(
+    ueid: str,
+    planned_start: str | None = None,
+    planned_end: str | None = None,
+) -> str:
+    """UPDATE: set planned_start and/or planned_end."""
+    ok, err = _validate_ueid(ueid)
+    if not ok:
+        return json.dumps({"error": err})
+    fields: dict[str, str] = {}
+    if planned_start is not None:
+        fields["planned_start"] = planned_start
+    if planned_end is not None:
+        fields["planned_end"] = planned_end
+    if not fields:
+        return json.dumps({"error": "at least one of planned_start or planned_end must be provided"})
+    event_id = _build_task_change(TaskAction.UPDATE, ueid, fields)
+    return json.dumps({
+        "event_id": event_id, "action": "update",
+        "fields": fields, "ueid": ueid,
+    })
+
+
+@mcp.tool(
+    name="taskdog_delete",
+    description="Hard-delete a task from taskdog. Goes through review queue. Irreversible.",
+)
+def taskdog_delete(ueid: str) -> str:
+    """DELETE: remove the row. Refuses if task is already done."""
+    ok, err = _validate_ueid(ueid)
+    if not ok:
+        return json.dumps({"error": err})
+    event_id = _build_task_change(TaskAction.DELETE, ueid, {})
+    return json.dumps({"event_id": event_id, "action": "delete", "ueid": ueid})
 
 
 # ---------------------------------------------------------------------------
@@ -537,6 +593,36 @@ def taskdog_audit(ueid: str, db_path: str | None = None) -> str:
     )
 
 
+@mcp.tool(
+    name="taskdog_search",
+    description="Search tasks by substring match on name + optional status/priority filters.",
+)
+def taskdog_search(
+    query: str,
+    status: str | None = None,
+    priority: str | int | None = None,
+    limit: int = 10,
+) -> str:
+    """READ: substring match on name + optional filters. Bypasses queue (read-only)."""
+    tasks = TaskdogAdapter().list_all()
+    q = query.lower()
+    matched = [
+        t for t in tasks
+        if q in (t.get("name") or "").lower()
+    ]
+    if status is not None:
+        matched = [t for t in matched if t.get("status") == status]
+    if priority is not None:
+        p = int(priority) if isinstance(priority, str) and priority.isdigit() else priority
+        matched = [t for t in matched if t.get("priority") == p]
+    matched.sort(key=lambda t: t.get("created_at") or "", reverse=True)
+    matched = matched[:limit] if limit > 0 else matched
+    return json.dumps(
+        {"query": query, "count": len(matched), "tasks": matched},
+        default=str,
+    )
+
+
 __all__ = [
     "mcp",
     "taskdog_list",
@@ -546,7 +632,11 @@ __all__ = [
     "taskdog_set_status",
     "taskdog_set_priority",
     "taskdog_set_due",
+    "taskdog_set_planned_dates",
     "taskdog_cancel",
+    "taskdog_done",
+    "taskdog_delete",
+    "taskdog_search",
     # M163/M164 surface
     "taskdog_tag_add",
     "taskdog_tag_remove",
