@@ -1,0 +1,13 @@
+{
+  "categories": {
+    "quick": {
+      "model": "minimax/MiniMax-M3"
+    },
+    "unspecified-low": {
+      "model": "minimax/MiniMax-M3"
+    },
+    "unspecified-high": {
+      "model": "minimax/MiniMax-M3"
+    }
+  }
+}
