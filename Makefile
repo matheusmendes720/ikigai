@@ -19,10 +19,12 @@ help:
 	@echo "  make clean            - Clear state + checkpoints"
 
 dev:
-	uv run langgraph dev
+	@REM Uses Python 3.13 langgraph.exe to avoid protobuf crash on Python 3.14
+	"C:\Users\mathe\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\Scripts\langgraph.exe" dev
 
 dev-graph:
-	uv run langgraph dev --graph $(NAME)
+	@REM Uses Python 3.13 langgraph.exe to avoid protobuf crash on Python 3.14
+	"C:\Users\mathe\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\Scripts\langgraph.exe" dev --graph $(NAME)
 
 install-langgraph:
 	uv add "langgraph-cli[inmem]"
