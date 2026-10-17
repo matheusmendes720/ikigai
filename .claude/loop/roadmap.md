@@ -1726,9 +1726,16 @@ Replace MagicMock in M142-M145 with real FastMCP stdio client + init_tracing() a
 
 Replace `mcp.client.stdio.stdio_client` (anyio-based, hangs on Windows overlapped pipes) with raw subprocess.Popen + thread-based reader.
 
-### M148 - Full taskdog exposure via IKIGAI bridge (STATUS: PENDING)
+### M148 - Full taskdog exposure via IKIGAI bridge (STATUS: DONE)
 
-Expose all taskdog operations to Deep Agent: 12 MCP tools (create/update/done/delete/read/search/filters). Writes route through existing review queue (ADR-014).
+All 9 taskdog MCP tools wired in `tools_v2.py` → `server.py`: `taskdog_list`, `taskdog_get`, `taskdog_create`, `taskdog_done`, `taskdog_delete`, `taskdog_search`, `taskdog_set_planned_dates`, `taskdog_get_with_filters`, `taskdog_supports_field`. Writes route through review queue (ADR-014). `server.py` was blocking on 4 missing sync wrappers — committed `37787a68`.
+
+- **Acceptance:**
+  - [x] All 9 tools present in `tools_v2.py` + `server.py`
+  - [x] Phase 3 mesh: 187/187 PASS
+  - [x] Drift preserved
+  - [x] Commit `37787a68`
+- **Completed:** 2026-10-17
 
 ### M151 - td tui (Textual dashboard for taskdog) (STATUS: PENDING)
 
