@@ -1639,6 +1639,8 @@ When verifier returns PASS:
 
 **Status**: SHIPPED. Tests: 826+30 ikigai, 27+5 root M97b-M102, 18/18 drift, 60/60 canonical+wiring.
 
+**Regressed 2026-10-17**: Python 3.14 + protobuf 4.x are incompatible (`Metaclasses with custom tp_new not supported` → `TypeError` at import). The system `langgraph` CLI resolves to Python 3.14 and crashes on `langgraph dev`. Fix: `scripts/langgraph-dev.bat` routes to Python 3.13's `langgraph.exe` (0.4.36 + langgraph-api 0.16.1). Verified boot: `http://127.0.0.1:2024` with 5 graphs registered. Commit `b6fd5e56`.
+
 ---
 
 ## Milestone Status (M148 → M158f) — 2026-09-30
