@@ -13,6 +13,9 @@
 #
 # Environment:
 #   REFLECT_LOOKBACK_DAYS — default 14
+#   REFLECT_TODAY         — optional YYYY-MM-DD anchor for the lookback
+#                           window (defaults to the newest day present in
+#                           the decision log)
 #
 # Exit codes:
 #   0 — wrote reflection (or dry-run succeeded)

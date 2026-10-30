@@ -98,6 +98,8 @@ def propose(tasks, today=None):
   must have `ueid`, may have `status`, `priority`, `deadline`, `planned_start`,
   `description`, `blocked_since`, `paused_since`.
 - `today: date | None` — defaults to `date.today()`. Override for testing.
+  `propose()` and `run_skill()` both accept it (`run_skill(tasks=..., today=...)`);
+  without it, `run_skill` scans for the real current date.
 
 **Outputs:**
 - `Proposal` with `approval_state="pending"`. The skill NEVER calls
