@@ -1,228 +1,146 @@
-# AGENTS.md
+# PROJECT KNOWLEDGE BASE
 
-Algorithmic Life OS — a personal productivity orchestration system, 100% local, single-user, append-only at the vault layer.
+**Generated:** 2026-10-30T13:39:29Z
+**Commit:** a264877
+**Branch:** master
 
-## What This Repo Is
+## OVERVIEW
 
-**Algorithmic Life OS** — a personal productivity orchestration system, 100% local, single-user, append-only.
+Algorithmic Life OS — a personal productivity orchestration system: 100% local, single-user, append-only at the vault layer, no cloud dependencies (SQLite + filesystem only).
 
-**Three layers:**
+Three layers: **INTERFACE** (CLI v2, FastAPI Studio, Textual 5-tab TUI) → **AGENT** (Deep Agent "carro-chefe", planner-only per ADR-013) → **DATA** (`vault/` markdown source of truth, `data/` runtime state, `vibe-ops/` cybernetic engine). Daily/weekly pipelines are pure arithmetic — zero LLM in the pipeline.
+
+Canonical flow: `vault` (NL planning) → Deep Agent → MCP Gateway → interfaces → manual feedback → Deep Agent observes the gap → updates `vault`.
+
+Repo: `github.com/matheusmendes720/ikigai` · Board: `github.com/users/matheusmendes720/projects/5`
+
+**Current mode — data-first.** IKIGAI is paused for *new algorithm decisions* (M01/N01/A02/A06, IKIGAI vector weights): write no new algorithm code until 5+ SONHO logs land in `vault/ikigai/closing-2026/<quarter>/04-relatórios-diários/`. The "pausado" directive covers **algorithm decisions only** — agent/harness plumbing and Drift net work are NOT paused.
+
+**Planning Note channel (human → agent).** Template `vault/ikigai/templates/sonho-log.md` (1 section: `## Mudança`); manual trigger after any planning delta; event-driven, not daily; 1–3 bullets per note, <2 min; lands in `vault/ikigai/closing-2026/<quarter>/04-relatórios-diários/YYYY-MM-DD.md`.
+
+## STRUCTURE
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  INTERFACE LAYER  —  CLI/TUI consumers (CLI v2, Textual   │
-│  5-tab TUI) — read from data/, write feedback              │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ MCP / stdio
-┌──────────────────────────────▼──────────────────────────────┐
-│  AGENT LAYER  —  Deep Agent (carro-chefe)                 │
-│  Reads vault/ → applies strategics + planning → writes     │
-│  tasks to data/ → observes planned vs actual → updates     │
-│  vault (PAE math stripped per ADR-013 — planner-only)       │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ contracts (Pydantic)
-┌──────────────────────────────▼──────────────────────────────┐
-│  DATA LAYER  —  vault/ + data/ + vibe-ops/               │
-│  vault/: markdown source of truth (Obsidian-style)         │
-│  data/: runtime state (SQLite, chroma, boulder.json)       │
-│  vibe-ops/: cybernetic engine (vector store + evidence)    │
-└─────────────────────────────────────────────────────────────┘
+{root}/
+├── src/ikigai/            # Poetry: MCP gateway, v2 agent, Paperclip, drift net
+├── src/mesh/              # Phase 3 cross-fork mesh (plain Python; needs src/ on PYTHONPATH)
+├── src/contracts/         # canonical Pydantic v2 contracts (own hatchling dist + uv.lock)
+├── src/agents/            # planner agent layer; merged with src/ikigai/src/agents
+├── src/tuiboard/ src/solverforge_calendar/  # kanban + calendar fork MCP servers
+├── src/planner/ src/life_tatics/            # planner core / stub (not wired to a CLI)
+├── sys_ikigai/            # bare-namespace kernel: entities, vault, security, gateway, FSMs
+├── vibe-ops/              # uv-only cybernetic engine (Target→Sensor→Adjuster, SQLite, ChromaDB)
+├── interfaces/            # cli/ (uv, standalone), studio/ (FastAPI), tui/operator/ (Textual)
+├── life/                  # meta-package: cli→centrals→handlers→plugins (git-ignored!)
+├── tools/                 # standalone CLI tooling; backtest/ holds the real vault-write engine
+├── tests/                 # root suite; dual-import bootstrap in conftest.py
+├── vault/                 # primary notes layer (Obsidian-style markdown, append-only)
+├── data/                  # runtime state: vibe_ops.db, vibe_mesh.db, boulder.json, chroma_db/, review_queue/
+├── scripts/ .github/ taskwarrior/  # dev entry points, CI/automation, Taskwarrior config
+├── code-docs/ docs/ diagrams/ specs/ examples/ reports/ notes/ openwiki/ logs/ strategics/  # PRD/BRD/ADR/ARD, docs, supporting
+└── archive/legacy-pav/    # superseded PAV kernel — do not edit
 ```
 
-**Canonical flow:** `vault` (NL planning) → Deep Agent → MCP Gateway → interfaces → manual feedback → Deep Agent observes gap → updates `vault`.
+## WHERE TO LOOK
 
-**Repo:** github.com/matheusmendes720/ikigai
-**Project Board:** github.com/users/matheusmendes720/projects/5
+| Task | Location | Notes |
+|------|----------|-------|
+| Mesh read path | `life mesh show <ueid>` → `interfaces/cli/` | joins CliAdapter + TaskdogAdapter + SolverforgeCalendarAdapter |
+| Building interfaces | `interfaces/cli/v2.py`, `interfaces/tui/operator/` | `interfaces/cli` is a standalone uv project with its own ruff/mypy/pytest config |
+| Deep Agent dev | `src/ikigai/src/agents/v2/` | graph `ikigai_maintainer_v2` in root `langgraph.json` |
+| Canonical contracts | `src/contracts/` + `src/mesh/` | single source of truth for `UEID`/`Task`/`TaskChange`; 91 import sites |
+| Vault writes | `sys_ikigai/vault/vault_write.py` behind `sys_ikigai/security/vault_write_wrapper.py` | outside the agent: `tools/backtest/vault_propagation.py` |
+| MCP surface | `src/ikigai/src/mcp_server/server.py` | 8 `ikigai_*` stub tools + `FastMCP("taskdog")` with 26 `taskdog_*` tools |
+| Kill switch | `sys_ikigai/security/kill_switch.py` | env → `vault/.kill_switch.md` → `data/.kill_switch` |
+| Drift net | `src/ikigai/tests/test_canonical_scope.py`, `test_drift_invariants.py`, `test_drift_extended_invariants.py` | append-only — add, never weaken |
+| Paperclip | `src/ikigai/src/agents/paperclip/` + `specs/M169-paperclip/...M193` + ADR-036 | 10-node graph with cost/risk gates |
+| Understanding the system | `docs/ARCHITECTURE_INDEX.md`, `code-docs/adr/` | canonical ADRs live in `code-docs/adr/` |
 
-## Global Conventions
+## CODE MAP
 
-| Rule | What it forbids |
-|------|----------------|
-| **Deep Agent is the only writer to `vault/`** | Interfaces only read vault; user feedback goes to `data/feedback.jsonl`, fork writes go to `data/review_queue/` |
-| **Append-only** | Never delete/prune in `vault/`, `vibe-ops/`, `strategics/` |
-| **Contracts in `src/contracts/`** | Pydantic v2 strict (`frozen=True`, `extra="forbid"`) imported from one place |
-| **Zero LLM in pipeline** | Daily/weekly pipelines are pure arithmetic |
-| **`--json` everywhere** | Every CLI command supports `--json` |
-| **Fully local** | SQLite + filesystem only, zero cloud deps |
+Repo-wide reference counts, measured. Subdirectory files carry the detail; this table is the hot core only.
 
-## Current Mode
+| Symbol | Type | Location | Refs | Role |
+|--------|------|----------|------|------|
+| `vault_read` | function | `sys_ikigai/vault/` | 147 | vault read mirror |
+| `IKIGAiRecord` | model | `sys_ikigai/entities/` | 137 | polymorphic record root (`extra="allow"`, not frozen) |
+| `audit_drift` | function | `tools/backtest/vault_propagation.py` | 106 | vault drift audit — the most-referenced symbol in the tree |
+| `StdioAdapter` / `EventLog` / `UnifiedMCPGateway` | class | `sys_ikigai/gateway/` | 69 / 54 | hand-rolled JSON-RPC 2.0 stdio transport, append-only event log, pure-stdlib HTTP+SSE gateway (`POST /call`, `GET /health`, `GET /events`) |
+| `StateMachine` | class | `sys_ikigai/state_machines/` | 61 | phase transitions |
+| `SQLiteAdapter` | class | `sys_ikigai/propagation/` | 54 | append-only SQLite mirror (delete/update triggers abort) |
+| `BidirectionalSync` | class | `vibe-ops/src/middleware/` | 52 | vault↔code sync engine (9 files) |
+| `vault_write_wrapper` | function | `sys_ikigai/security/` | 28 | ADR-029 8-step enforcement ladder |
 
-**Data-first methodology** — IKIGAI is paused for *new algorithm decisions* (M01/N01/A02/A06, IKIGAI vector weights). Do not write new algorithm code until 5+ SONHO logs land in `vault/ikigai/closing-2026/<quarter>/04-relatórios-diários/`. The "pausado" directive applies to **algorithm decisions only** — agent/harness plumbing and Drift net work are NOT paused.
+## CONVENTIONS
 
-### Planning Note channel (human → agent)
+- Python 3.11+ (see `.python-version`); `from __future__ import annotations` at the top of every module (missing from several `life/` and `interfaces/` `__init__.py`).
+- Pydantic v2 strict `frozen=True, extra="forbid"` in `src/contracts/` — deliberately **inverted** in `vibe-ops/src/models/` (5 modules `extra="allow"`, none forbid) and in the `sys_ikigai/entities/` polymorphic roots, so user-authored frontmatter survives validation. `TimestampMixin` is the one contract model that is not frozen.
+- Shared models live in `src/contracts/{common,task,task_change,planning,metrics}.py` — never re-define `UEID`, `Task`, `TaskChange`. Canonical UEID is 4-part (`src/contracts/common.py`, ADR-014). `src/ikigai/contracts/` is only the Meta-Planner `Proposal` vocabulary, NOT the canonical package.
+- Deprecated shims — do not extend: `sys_ikigai/entities/plan/`, `sys_ikigai/types.py` (legacy 5-part UEID), `sys_ikigai/adapters/sqlite_bridge.py`, `sys_ikigai/gateway/downstream.py`.
+- CLI: Typer sub-apps, `--json` everywhere feasible. `tools/vault/` exit codes: 0 success, 1 refused/no match, 2 usage/runtime error; the Bash loop tools use exit 2 as a cost/streak threshold break.
+- Windows-first runtime: atomic write = temp file in the same directory + `os.replace()` (never `Path.rename()`); `msvcrt`/`fcntl` dual lock; WAL journal mode.
+- Add a test for every new behavior in the same package as the code. No secrets in the repo — `.env` is gitignored, `.env.example` is the template.
 
-- **Template:** `vault/ikigai/templates/sonho-log.md` (1 section: `## Mudança`)
-- **Trigger:** manual only, after any planning delta
-- **Cadence:** event-driven (NOT daily). 1–3 bullets per note, <2 min
-- **Where:** `vault/ikigai/closing-2026/<quarter>/04-relatórios-diários/YYYY-MM-DD.md`
+## ANTI-PATTERNS (THIS PROJECT)
 
-## Setup commands
+- **Never** write to `vault/`, `vibe-ops/`, `strategics/` outside the sanctioned path. Append-only — never delete or prune. Refactor protocol: stop → propose an Action Plan → wait for an explicit "go" → verify every pre-existing string survives.
+- **Never** add PAV/IKIGAI scoring math to the agent layer or `vibe-ops/` (ADR-013): `compute_score`, `compute_qhe`, `compute_meta_vector`, `IkigaiScorer`, `cybernetics.daily_loop` imports fail CI.
+- **Never** let interfaces write the vault — they read only. Feedback → `data/feedback.jsonl`; fork writes → `data/review_queue/`.
+- **Never** delete or weaken a drift test. Crossing an invariant boundary means adding a test to `test_drift_extended_invariants.py`.
+- **Never** import `vibe_ops.*` — the dotted path cannot exist (hyphenated directory); `vibe-ops/src` goes on `sys.path` and modules import top-level.
+- **Never** use `tmp_path_factory.mktemp()` (Windows `PermissionError [WinError 5]`) — use `tmp_path`.
+- **Never** mutate the user's live Taskwarrior config; `taskwarrior/config/taskrc.template` is copied to `~/.taskrc`.
+- **Never** write into `data/` or `src/ikigai/data/` — gitignored runtime state.
+- **Never** source the MCP tool surface from `src/ikigai/MCP_GATEWAY.md` — it advertises a different tool set than `src/ikigai/src/mcp_server/server.py`.
 
-- Python: 3.11+ (see `.python-version`)
-- Editable install: `pip install -e ".[dev,mesh]"` (root)
-- `src/ikigai/` (Poetry): `cd src/ikigai && poetry install`
-- `vibe-ops/` (uv): `cd vibe-ops && uv sync`
-- Run the CLI: `python -m life.cli --help` (or `life` after editable install)
-- LangGraph dev: `make install && make dev` (port 2024)
+## UNIQUE STYLES
 
-## Build / Test / Lint
+- **Mesh write path:** fork → CLI enqueues a `TaskChange` to `data/review_queue/` → agent validates → propagates a `PropagationEvent` to every fork; the read path joins all three adapters. `TaskdogAdapter` handles all 7 `TaskAction` values; `CliAdapter` and `SolverforgeCalendarAdapter` still return early on non-`create` (the "v1 = create only" rule is stale for taskdog).
+- **Append-only is enforced twice:** every record in `vault/.vault_events.jsonl` carries `invariant: "VAULT_WRITE_INVARIANT"` (only `vault.toggle_applied` / `vault.reopen_applied` have inverses — rollback writes a NEW event), and `sys_ikigai/propagation/sqlite_adapter.py` installs `plan_entities_no_delete` / `plan_entities_no_update` triggers that `RAISE(ABORT)` (the only allowed UPDATE is archival, `archived_at`).
+- **Single enforcement point:** `sys_ikigai/security/vault_write_wrapper.py` is the only sanctioned write path (ADR-029 §S2/R2) — kill switch → rate limit → actor validation → transition validator → legal-caller whitelist → pre-audit → `vault_write` → post-audit. `LEGAL_CALLERS` = `memory_write_atomic`, `dispatch_sub_agents`, `tag_and_persist`, `skill_orchestrator`; actors are `user | agent | system`.
+- **Drift tests are AST scans, not runtime probes.** Forbidden-symbol frozensets live inside the test files and helpers are deliberately duplicated per file so the drift tests stay independent. `src/ikigai/tests` uses 63 `pytest.skip` + 8 `skipif` and 0 `xfail` — unfinished work parks as a skip.
+- **Two `agents` packages, merged on purpose:** `src/agents/` (planner) and `src/ikigai/src/agents/` extend each other's `__path__`; 63 files import the `agents` namespace. A one-sided change hides the other half.
+- **`tools/backtest/` is production code:** `tools/backtest/vault_propagation.py` (828 LOC) is the vault-write engine outside the Deep Agent; `tools/vault/` is a thin CLI facade over it.
+- **Contract catalog rule:** a breaking change means a new version, never a silent mutation (`vibe-ops/src/contracts/registry.yaml`, ADR-001 §2.1). `SyncContractV1` requires `idempotency_key == "upstream_id"`.
+- **Two import identities per layer:** dotted `from src.X import ...` and bare `from X import ...` coexist (`src.contracts` vs `contracts`, `src.ikigai.src.agents` vs `agents`, `src.mesh` vs `mesh`). **When monkeypatching, patch BOTH** — patching one identity silently no-ops. `tests/mesh/test_taskdog_cli.py` and `tests/mesh/test_td_dep.py` are the worked examples.
+- **Two UEID formats live in the tree:** canonical is 4-part (`src/contracts/common.py`, ADR-014); `sys_ikigai/types.py` keeps a legacy 5-part alias and `vibe-ops/src/storage/ueid.py` a 3-part local one. The local ones must never leak into mesh payloads or `data/review_queue/`.
 
-- Build: setuptools auto-discovery via `pyproject.toml` (`packages = ["life", ...]`)
-- Test: `pytest tests/ -v` (root; Phase 3 mesh + contracts + integration). Submodule suites: `cd src/ikigai && poetry run pytest`, `cd vibe-ops && uv run pytest`
-- Phase 3 v1 e2e driver: `bash scripts/smoke/phase3_v1.sh` (or `scripts\smoke\phase3_v1.bat` on Windows)
-- Lint: `ruff check .` (`[tool.ruff]` in `pyproject.toml`)
-- Typecheck: `mypy .` (`mypy.ini` at root, `mypy_path = src .. ../..`)
-- Pre-commit: `pre-commit run --all-files` (`.pre-commit-config.yaml` at root)
-- Console scripts declared in root `pyproject.toml`: `life` → `life.cli:_main_console`, `td` → `src.mesh.taskdog_cli:main`
+## COMMANDS
 
-## Project layout
+```bash
+# install
+pip install -e ".[dev,mesh]"           # root: setuptools installs only life*; src/* resolves via PYTHONPATH=src
+cd src/ikigai && poetry install        # Poetry: agents, chat, mcp_server, observability, strategics, plugins
+cd src/contracts && uv sync            # hatchling dist with its own lockfile + .venv
+cd vibe-ops && uv sync                 # uv; puts vibe-ops/src on sys.path
+cd interfaces/cli && uv sync           # uv; standalone CLI project
+# test
+pytest tests/ -v                       # root suite: 1,281 collected; 1,229 test functions in 143 files
+cd src/ikigai && poetry run pytest     # drift-net suite (1,332 tests)
+cd vibe-ops && uv run pytest
+cd interfaces/cli && uv run pytest
+bash scripts/smoke/phase3_v1.sh        # Phase 3 e2e in an isolated temp tree — never touches real data/
+# lint / types
+ruff check .                           # root has NO [tool.ruff]; policy: src/mesh/ruff.toml + src/contracts/pyproject.toml
+mypy .                                 # root mypy.ini (mypy_path = src .. ../..)
+cd src/ikigai && poetry run mypy -p src.ikigai.src   # by module identity, never by path
+pre-commit run --all-files
+# run
+python -m life.cli --help              # or `life` after editable install
+life mesh show <ueid>
+python -m sys_ikigai.cli.app --help    # vault|vector|regime|phase|sync, --json everywhere
+make install && make dev               # LangGraph dev server on port 2024
+```
 
-- `life/` — meta-package (`cli/`, `centrals/`, `handlers/`, `plugins/`, `plugins/builtin/`)
-- `src/` — three independent Python subpackages: `ikigai/` (Poetry, MCP/deep-agent), `mesh/` (uv, Phase 3 data mesh), `contracts/` (canonical Pydantic v2), `life_tatics/`, `planner/`
-- `sys_ikigai/` — bare-namespace entities, gateway, state machines, vault, security, adapters
-- `vibe-ops/` — cybernetic engine (Target→Sensor→Adjuster loop, SQLite, ChromaDB)
-- `interfaces/{cli,tui}/` — consumer surfaces
-- `vault/` — primary notes layer (Obsidian-style markdown, append-only)
-- `data/` — runtime state (`vibe_ops.db`, `vibe_mesh.db`, `boulder.json`, `chroma_db/`, `review_queue/`)
-- `scripts/smoke/` — Phase 3 v1 driver + other smoke tests
-- `code-docs/{prd,brd,adr,ard}/`, `docs/`, `diagrams/`, `specs/` — requirements + architecture
-- `archive/legacy-pav/` — superseded PAV kernel (do not edit)
-- `strategics/`, `taskwarrior/`, `tools/`, `examples/`, `reports/`, `notes/`, `openwiki/`, `logs/` — supporting
+Console scripts: `life` → `life.cli:_main_console` (root `pyproject.toml`) and `interfaces.cli.read_tasks:app` (`interfaces/cli`); `td` → `src.mesh.taskdog_cli:main`, which only works when `src/` is on `PYTHONPATH`.
 
-## Tooling split (do not mix)
+## NOTES
 
-| Subpath | Build system | Notes |
-|---|---|---|
-| root + `src/contracts/`, `src/mesh/`, `src/life_tatics/` | setuptools / plain Python | `src/` on `PYTHONPATH` (set by `pytest.ini`) |
-| `src/ikigai/` | Poetry | has its own venv; launcher `ikigai.bat` |
-| `vibe-ops/` | uv | owns its own lockfile |
-| `archive/legacy-pav/src-operational/` | archived | do not revive |
-
-## Code style
-
-- Python 3.11+, `from __future__ import annotations` at top of every module
-- Pydantic v2 strict: `frozen=True`, `extra="forbid"` for all shared contracts in `src/contracts/`
-- Single source of truth for shared models: `src/contracts/{common,task,task_change,planning,metrics}.py` — never re-define `UEID`, `Task`, `TaskChange`, etc.
-- CLI: Typer sub-apps, `--json` everywhere feasible
-- UEID format: 4-part `^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$` per `code-docs/adr/ADR-014-ueid-canonical-format.md`
-
-## Testing instructions
-
-- Unit + integration: `pytest tests/ -v` from repo root (120 root tests, Phase 3 scope)
-- Submodule suites: `cd src/ikigai && poetry run pytest`, `cd vibe-ops && uv run pytest`
-- Drift net: `src/ikigai/tests/test_canonical_scope.py` + `test_drift_invariants.py` + `test_drift_extended_invariants.py` — invariant tests are append-only, never delete
-- E2E: `bash scripts/smoke/phase3_v1.sh` (isolated temp dir, does not touch real `data/`)
-- Add a test for every new behavior in the same package as the code
-
-## Architectural rules (load-bearing)
-
-- **Append-only:** `vault/`, `vibe-ops/`, `strategics/` — never delete or prune. Refactor protocol: stop → propose Action Plan → wait for "go" → only then mutate
-- **IKIGAI is planner-only** per ADR-013 — no PAV math/policy/scoring tools in agent layer (`IKIGAI_TOOLS` count guarded by drift test)
-- **Deep Agent is the sole writer to `vault/`** (per ADR-012) — interfaces read only
-- **Phase 3 mesh v1** ships `create` action only; `update`/`delete`/`done` are out of scope
-- **Vault dual-tree identity:** `from src.contracts.X` vs `from sys_ikigai.X` resolve through `<repo>/src` and `<repo>/sys_ikigai` respectively; both work via `tests/conftest.py`. When monkeypatching in tests, patch BOTH
-- **No secrets in repo** — `.env` is gitignored; `.env.example` is the template
-
-## PR & commit conventions
-
-- Branch from `main`; never push to it directly
-- Conventional commits: `feat:` / `fix:` / `docs:` / `refactor:` / `chore:` / `test:`
-- Drift tests are append-only — when crossing an invariant boundary, add a test in `test_drift_extended_invariants.py` instead of weakening an existing one
-
-## Pitfalls
-
-- `make test` is partially broken — it references removed `langgraph_tests/` and `src/operational/`. Use `pytest tests/ -v` directly
-- Zero-byte root artifacts (`0`, `14`, `agent('Execute`, etc.) are stray bash-redirect typos — do not edit, leave gitignored
-- `strategics/planning-with-files` submodule is intentionally dirty (vendored third-party); do not commit its contents
-- Root `CLAUDE.md` and archived `archive/legacy-pav/src-operational/CLAUDE.md` describe overlapping scopes; verify against `git log -- <path>` for ground truth
-
-## Architecture — Key Pieces
-
-### Canonical Contracts (`src/contracts/`)
-
-Shared Pydantic v2 models. All layers import from here.
-
-| Module | Models |
-|--------|--------|
-| `common.py` | `UEID`, `Period`, `Priority`, `EntityType`, `RegimeState` |
-| `task.py` | `Task`, `Subtask`, `ChecklistItem`, `Project`, `Milestone`, `Deliverable` |
-| `task_change.py` | `TaskChange`, `PropagationEvent`, `TaskAction` (Phase 3 v1) |
-| `planning.py` | `PlanningCycle`, `Wave`, `Sprint`, `VaultEvent` |
-| `metrics.py` | `Burndown`, `ExecutionRate`, `QHEScore` |
-
-### Data Mesh (`src/mesh/`) — Phase 3 v1
-
-Cross-fork task view + bidirectional sync via Deep Agent gateway. **v1 scope = `create` action only.**
-
-- **UEID** is the canonical join key: 4-part regex `^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$` per ADR-014
-- **Write path:** fork → CLI enqueues `TaskChange` to `data/review_queue/` → Agent validates → propagates `PropagationEvent` to all forks
-- **Read path:** `life mesh show <ueid>` joins slices from all 3 adapters
-- **3 adapters** (all implement `ForkAdapter` Protocol): `CliAdapter` (`data/tasks.jsonl`), `TaskdogAdapter` (SQLite UPSERT on ueid), `SolverforgeCalendarAdapter` (UPI ueid column)
-- **v1.2+ still out of scope:** `update`, `delete`, `done` actions
-
-### Vibe-ops: Target-Sensor-Adjuster Loop
-
-`vibe-ops/src/cybernetics/engine.py` is the current cybernetic kernel (TARGET → SENSOR → ADJUSTER → PERSIST → SYNC → INDEX).
-PolicyEngine states: PUSH / MAINTAIN / REDUCE / RECOVER with hysteresis.
-IKIGAI agent does **not** execute this loop — it observes feedback only.
-
-### MCP Gateway
-
-`src/ikigai/MCP_GATEWAY.md` documents the surface. Key tools: `read_vault(path)`, `write_planning(cycle_id, tasks)`, `sync_interfaces()`, `get_metrics()`. The agent is the **sole** vault writer (ADR-012).
-
-## Drift Invariants & Tests
-
-The Drift net is the regression guard for canonical contracts. **If a contributor changes a load-bearing invariant without explicitly bumping the contract version, CI fails.**
-
-| File | Purpose |
-|------|---------|
-| `src/ikigai/tests/test_canonical_scope.py` | IKIGAI_TOOLS count, planner-only scope (no PAE math), fork MCP surface |
-| `src/ikigai/tests/test_drift_invariants.py` | UEID 4-part regex, append-only invariants, dual-tree identity |
-| `src/ikigai/tests/test_drift_extended_invariants.py` | Wave 3+ invariants (a-h): canonical_scope, investigation_queue, dual-module identity, cross-pollution |
-
-**Invariant categories:**
-
-1. **canonical_scope** — IKIGAI agent must remain planner-only per ADR-013 (math/policy/scoring tools explicitly forbidden)
-2. **drift_invariants** — UEID 4-part format (ADR-014); vault/strategics/vibe-ops append-only; `vault_write` is sole vault writer (ADR-012)
-3. **dual_module_identity** — guards the `src.X` vs `X` import split
-4. **cross_pollution** — flags state pollution between test modules
-
-**Drift tests are append-only — they grow with the system but never get deleted.** When you add a feature that crosses an invariant boundary, add a new test in `test_drift_extended_invariants.py` rather than weakening an existing one.
-
-## Import-Path Rules
-
-Two import styles coexist, and mixing them silently breaks tests:
-
-| Layer | Style | Example | Resolves via |
-|-------|-------|---------|--------------|
-| `src/contracts/`, `src/mesh/`, `src/ikigai/` (agents/MCP) | dotted-prefix | `from src.contracts.sonho import ...` | `<repo>/src/` |
-| `sys_ikigai/` (entities, gateway, state_machines, vault, security) | bare namespace | `from sys_ikigai.entities.task import Task` | `<repo>/sys_ikigai/` |
-
-**Rule: when monkeypatching, patch BOTH identities.** If production code uses dotted-prefix (`from src.contracts.X`) but a test monkeypatches the bare module (`monkeypatch.setattr(sys.modules["contracts.X"], ...)`), the patch silently no-ops.
-
-## Windows Quirks
-
-| Bug | Fix | Commit |
-|-----|-----|--------|
-| `sys.stdin.readline()` HANGS on Windows pipes (MCP stdio handshake) | Use `sys.stdin.buffer.readline()` | `b93a1f3` |
-| pytest-asyncio `PermissionError [WinError 5]` on stale temp dirs | `tests/conftest.py` redirects `tempfile.tempdir` to `data/pytest-tmp/` | `ff3037f` |
-| Empty directory locked by another process | Mark for deletion via `PendingFileRenameOperations` registry | — |
-
-## Refactor Protocol
-
-If touching `vault/`, `vibe-ops/`, or `strategics/`: **stop** → propose Action Plan → wait for explicit "go" → verify every pre-existing string survives.
-
-## Where to Start
-
-| Task | Start here |
-|------|-----------|
-| Using mesh | `python -m interfaces.cli mesh-show <ueid>` (after `task-add ...`) |
-| Building interfaces | `interfaces/cli/v2.py` (1042 lines) or `interfaces/tui/operator/` (Textual 5-tab) |
-| Deep Agent development | `src/ikigai/src/agents/v2/` (registered as `ikigai_maintainer_v2` in `langgraph.json`) + `vault/` |
-| Unifying contracts | `src/contracts/` + `src/mesh/` (Phase 3 DONE) |
-| MCP Gateway integration | `src/ikigai/MCP_GATEWAY.md` |
-| Understanding the system | `docs/ARCHITECTURE_INDEX.md` |
-| Kill switch | `sys_ikigai/security/kill_switch.py` + CLI `kill-switch status\|pause\|resume` + TUI tab |
-| Drift net / invariant work | `src/ikigai/tests/test_canonical_scope.py` + `test_drift_invariants.py` + `test_drift_extended_invariants.py` |
-| Phase 3 spec/plan | `docs/superpowers/specs/` + `docs/superpowers/plans/` |
-| Paperclip work | `src/ikigai/src/agents/paperclip/` (graph + policy/router) + `specs/M169-paperclip/...M193` + ADR-036 |
+- **Windows quirks:** `sys.stdin.readline()` HANGS on Windows pipes during the MCP stdio handshake — use `sys.stdin.buffer.readline()` (`b93a1f3`); pytest-asyncio hits `PermissionError [WinError 5]` on stale temp dirs — `tests/conftest.py` redirects `tempfile.tempdir` to `data/pytest-tmp/` (`ff3037f`); an empty directory locked by another process is marked for deletion via the `PendingFileRenameOperations` registry. The ambient `python` is 3.14 and `pytest` cannot start (langsmith → opentelemetry `StopIteration` at import) — `src/ikigai/.venv/Scripts/python.exe` (3.11.16) runs the suite green.
+- **`.gitignore` hides four-letter top-level directories:** the rule at `.gitignore:507` matches `life`, `docs`, `logs`, `data` (also `open`, `test`, `main`, `core`), so every NEW file below them is silently untracked. `!/src/` exists at `:514`; there is no `!/life/` — force-add with `git add -f life/AGENTS.md` or fix the rule.
+- **`make test` is partially broken** — it references the removed `langgraph_tests/` and `src/operational/`; use `pytest tests/ -v`. Zero-byte root artifacts (`0`, `14`, `agent('Execute`, …) are stray bash-redirect typos — gitignored, leave them. The `strategics/planning-with-files` submodule is intentionally dirty (vendored third-party) — never commit its contents.
+- **Overlapping docs:** root `CLAUDE.md` and `archive/legacy-pav/src-operational/CLAUDE.md` describe overlapping scopes — check `git log -- <path>` for ground truth. `docs/` mixes Portuguese and English and keeps historical plans — read `SUPERSEDED`/`PENDING`/dated markers; `openwiki/` and `docs/openwiki-visualizer/` are generated output.
+- **Known broken on disk** (documented, not silently patched): `life/centrals/task.py::_run_task` references an undefined `TASK_BIN` — the swallowed `NameError` makes `life task today` return an error dict; `vibe-ops/src/agents/pae_maintainer/channels.py` imports a nonexistent `.state`; vibe-ops PowerShell scripts invoke the removed `src/main.py`; `.github/scripts/type_review.py` has a duplicate `text=True` and cannot parse; `src/life_tatics/` is a placeholder (`cmd_routine` returns `{"status": "pending_implementation"}`).
+- **`plugins/paperclipai` is the repo's only TypeScript.** Its README drifts from the code (`LIFE_PAPERCLIP_PORT` vs the documented `LIFE_PAPERCLIP_BRIDGE_PORT`, stdlib server vs uvicorn, `vault/paperclipai_issues/` vs `vault/paperclipai_sync/`), and `_handle_issue_sync` writes into `vault/` — an unresolved ADR-012 ownership question.
+- **Env vars:** `IKIGAI_FAKE_LLM`, `IKIGAI_MODEL` (default `MiniMax-M2.7-highspeed`), `IKIGAI_DISABLE_OTEL`, `IKIGAI_DEV_MODE`, `IKIGAI_VAULT_ROOT`, `LIFE_VAULT_ROOT`, `IKIGAI_KILL_SWITCH`, `TASKDOG_HTTP_ENABLED` (must be 0 in tests), `LIFE_PAPERCLIP_BRIDGE_PORT` (8741), `PAPERCLIP_*` cost/risk thresholds.
+- **Commits:** branch off the default branch (`master` here), never push to it directly; conventional commits `feat:` / `fix:` / `docs:` / `refactor:` / `chore:` / `test:`.
