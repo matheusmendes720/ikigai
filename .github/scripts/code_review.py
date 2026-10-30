@@ -31,17 +31,14 @@ Use --gate to enforce in CI. Use --review-format for human output.
 
 from __future__ import annotations
 
-import os
-import sys
-import json
-import subprocess
 import argparse
+import json
 import re
-from pathlib import Path
+import subprocess
+import sys
 from dataclasses import dataclass, field
-from collections import defaultdict
 from enum import Enum, auto
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CHECKS_DIR = Path(__file__).resolve().parents[1] / "scripts"
@@ -80,8 +77,9 @@ class ReviewReport:
 
 
 def run(cmd: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, cwd=cwd or ROOT,
-                          capture_output=True, text=True, text=True)
+    return subprocess.run(
+        cmd, check=False, cwd=cwd or ROOT, capture_output=True, text=True
+    )
 
 
 def get_changed_files(base_ref: str) -> tuple[list[Path], list[Path]]:
@@ -89,26 +87,45 @@ def get_changed_files(base_ref: str) -> tuple[list[Path], list[Path]]:
     result = run(["git", "diff", "--name-only", f"{base_ref}...HEAD"])
     all_changed = [ROOT / f for f in result.stdout.strip().splitlines() if f]
 
-    source = [f for f in all_changed
-              if f.suffix == ".py" and "/tests/" not in str(f)
-              and not f.name.startswith("test_") and f.exists()]
-    tests = [f for f in all_changed
-             if f.suffix == ".py" and (f.name.startswith("test_") or "/tests/" in str(f))
-             and f.exists()]
+    source = [
+        f
+        for f in all_changed
+        if f.suffix == ".py"
+        and "/tests/" not in str(f)
+        and not f.name.startswith("test_")
+        and f.exists()
+    ]
+    tests = [
+        f
+        for f in all_changed
+        if f.suffix == ".py"
+        and (f.name.startswith("test_") or "/tests/" in str(f))
+        and f.exists()
+    ]
     return source, tests
 
 
 # ─── Individual Checks ────────────────────────────────────────────────────────
+
 
 def check_mypy(source_files: list[Path], strict: bool = False) -> CheckResult:
     """Run mypy on changed files."""
     if not source_files:
         return CheckResult("type-check", CheckStatus.SKIP, "No source files changed")
 
-    result = run(["uv", "run", "mypy", "--strict" if strict else "--no-strict",
-                  "--output=json", "--no-error-summary",
-                  "--show-error-codes", "--show-column-numbers",
-                  *[str(f) for f in source_files]])
+    result = run(
+        [
+            "uv",
+            "run",
+            "mypy",
+            "--strict" if strict else "--no-strict",
+            "--output=json",
+            "--no-error-summary",
+            "--show-error-codes",
+            "--show-column-numbers",
+            *[str(f) for f in source_files],
+        ]
+    )
 
     try:
         output = json.loads(result.stdout) if result.stdout.strip() else {"files": []}
@@ -127,10 +144,15 @@ def check_mypy(source_files: list[Path], strict: bool = False) -> CheckResult:
             code = err.get("code", "")
             msg = err.get("message", "")
             errors.append(f"  {rel}:{line}  [{code}] {msg}")
-            annotations.append({
-                "path": rel, "line": line, "severity": "error",
-                "title": code, "message": msg
-            })
+            annotations.append(
+                {
+                    "path": rel,
+                    "line": line,
+                    "severity": "error",
+                    "title": code,
+                    "message": msg,
+                }
+            )
 
     status = CheckStatus.FAIL if errors else CheckStatus.PASS
     summary = f"{len(errors)} error(s)" if errors else "Clean"
@@ -144,18 +166,25 @@ def check_ruff(source_files: list[Path]) -> CheckResult:
     if not source_files:
         return CheckResult("ruff-lint", CheckStatus.SKIP, "No files changed")
 
-    result = run([
-        "uv", "run", "ruff", "check",
-        "--output-format=concise",
-        *[str(f) for f in source_files]
-    ])
+    result = run(
+        [
+            "uv",
+            "run",
+            "ruff",
+            "check",
+            "--output-format=concise",
+            *[str(f) for f in source_files],
+        ]
+    )
 
     output = result.stdout.strip()
     if not output:
         return CheckResult("ruff-lint", CheckStatus.PASS, "No lint errors")
 
     lines = output.splitlines()[:20]
-    return CheckResult("ruff-lint", CheckStatus.FAIL, f"{len(lines)} lint error(s)", lines)
+    return CheckResult(
+        "ruff-lint", CheckStatus.FAIL, f"{len(lines)} lint error(s)", lines
+    )
 
 
 def check_naming(source_files: list[Path]) -> CheckResult:
@@ -170,10 +199,21 @@ def check_naming(source_files: list[Path]) -> CheckResult:
 
         # Check for snake_case violations in function/def names (simple check)
         # Allow class names, CapWords, and known exceptions
-        bad_defines = re.findall(r"^(?!def |class |async def |#|_)\S+[A-Z]\S*$", content, re.MULTILINE)
-        # Check for camelCase variables (simple heuristic: varName not var_name)
-        bad_vars = re.findall(r"(?<!from |import |class |def )(?<!\w)[a-z]+[A-Z][a-zA-Z]*(?:\s*=\s*(?!=))",
-                               content)
+        bad_defines = re.findall(
+            r"^(?!def |class |async def |#|_)\S+[A-Z]\S*$", content, re.MULTILINE
+        )
+        # Check for camelCase variables (simple heuristic: varName not var_name).
+        # NOTE: variable-width look-behind is not supported by `re`, so the
+        # negative look-behinds are expressed with a single fixed-width class.
+        raw_vars = re.finditer(
+            r"(?<![\w.])([a-z]+[A-Z][a-zA-Z]*)(\s*=\s*)(?!=)", content
+        )
+        bad_vars = []
+        for m in raw_vars:
+            prefix = content[max(0, m.start() - 12) : m.start()]
+            if re.search(r"(?:from|import|class|def)\s+$", prefix):
+                continue
+            bad_vars.append(m.group(0))
 
         for match in bad_defines[:3]:
             issues.append(f"  {rel}: suspicious name '{match}' (consider snake_case)")
@@ -183,18 +223,25 @@ def check_naming(source_files: list[Path]) -> CheckResult:
     # Also check file names
     for f in source_files:
         rel = str(f.relative_to(ROOT))
-        if re.search(r"[A-Z]", f.name) and f.suffix == ".py":
-            if f.name not in ["__init__.py", "__main__.py"]:
-                issues.append(f"  {rel}: file name contains capitals (use snake_case.py)")
+        if (
+            re.search(r"[A-Z]", f.name)
+            and f.suffix == ".py"
+            and f.name not in ["__init__.py", "__main__.py"]
+        ):
+            issues.append(f"  {rel}: file name contains capitals (use snake_case.py)")
 
     status = CheckStatus.FAIL if issues else CheckStatus.PASS
-    return CheckResult("naming", status,
-                       f"{len(issues)} naming issue(s)" if issues else "All names clean",
-                       issues[:15])
+    return CheckResult(
+        "naming",
+        status,
+        f"{len(issues)} naming issue(s)" if issues else "All names clean",
+        issues[:15],
+    )
 
 
-def check_pytest(source_files: list[Path], test_files: list[Path],
-                 package_path: Path) -> CheckResult:
+def check_pytest(
+    source_files: list[Path], test_files: list[Path], package_path: Path
+) -> CheckResult:
     """Run pytest on changed test files."""
     if not test_files:
         # Find tests for changed source
@@ -211,15 +258,24 @@ def check_pytest(source_files: list[Path], test_files: list[Path],
                     break
 
         if not test_map:
-            return CheckResult("tests", CheckStatus.SKIP, "No test files changed or found")
+            return CheckResult(
+                "tests", CheckStatus.SKIP, "No test files changed or found"
+            )
         test_files = test_map
 
-    result = run([
-        "uv", "run", "pytest",
-        "--tb=short", "-v", "--no-header",
-        "-q", "--ignore=scratch",
-        *[str(f) for f in test_files]
-    ])
+    result = run(
+        [
+            "uv",
+            "run",
+            "pytest",
+            "--tb=short",
+            "-v",
+            "--no-header",
+            "-q",
+            "--ignore=scratch",
+            *[str(f) for f in test_files],
+        ]
+    )
 
     output = result.stdout + result.stderr
 
@@ -232,8 +288,11 @@ def check_pytest(source_files: list[Path], test_files: list[Path],
         details.append(match.group(0)[:300])
 
     total = len(passes) + len(failures) + len(errors)
-    summary = f"{len(failures)} failure(s), {len(passes)} passed" if failures else \
-             f"{total} test(s) passing"
+    summary = (
+        f"{len(failures)} failure(s), {len(passes)} passed"
+        if failures
+        else f"{total} test(s) passing"
+    )
     if errors:
         summary += f", {len(errors)} error(s)"
 
@@ -261,12 +320,16 @@ def check_missing_tests(source_files: list[Path], package_path: Path) -> CheckRe
             untested.append(str(sf.relative_to(ROOT)))
 
     status = CheckStatus.WARN if untested else CheckStatus.PASS
-    return CheckResult("test-coverage", status,
-                       f"{len(untested)} file(s) without tests" if untested else "All tested",
-                       [f"  • {u}" for u in untested[:10]])
+    return CheckResult(
+        "test-coverage",
+        status,
+        f"{len(untested)} file(s) without tests" if untested else "All tested",
+        [f"  • {u}" for u in untested[:10]],
+    )
 
 
 # ─── Report Formatters ────────────────────────────────────────────────────────
+
 
 def format_review_report(report: ReviewReport) -> str:
     """Human-readable review report."""
@@ -275,7 +338,9 @@ def format_review_report(report: ReviewReport) -> str:
     lines.append("=" * 70)
     lines.append("  CODE REVIEW — Pre-Merge Check Suite")
     lines.append("=" * 70)
-    lines.append(f"  Base: {report.base_ref}  |  Changed: {report.files_changed} file(s)")
+    lines.append(
+        f"  Base: {report.base_ref}  |  Changed: {report.files_changed} file(s)"
+    )
     lines.append("-" * 70)
 
     all_ok = report.all_passed()
@@ -314,30 +379,49 @@ def format_github_annotations(report: ReviewReport) -> str:
 
 # ─── Main ──────────────────────────────────────────────────────────────────────
 
+
 def main():
     parser = argparse.ArgumentParser(description="Master code review orchestrator")
-    parser.add_argument("--base", default="main",
-                        help="Base branch (default: main)")
-    parser.add_argument("--files", nargs="+", type=Path, metavar="F",
-                        help="Specific files to review (overrides --base diff)")
-    parser.add_argument("--type-only", action="store_true",
-                        help="Run type check only")
-    parser.add_argument("--test-only", action="store_true",
-                        help="Run test suite check only")
-    parser.add_argument("--strict", action="store_true",
-                        help="Use mypy --strict")
-    parser.add_argument("--review-format", action="store_true",
-                        help="Full human-readable report")
-    parser.add_argument("--github-annotations", action="store_true",
-                        help="Output GitHub Actions annotations format")
-    parser.add_argument("--open-issues", action="store_true",
-                        help="Show only open issues (errors + warnings)")
-    parser.add_argument("--gate", action="store_true",
-                        help="Exit code = pass/fail (for CI)")
-    parser.add_argument("--json", action="store_true",
-                        help="JSON output")
-    parser.add_argument("--package", default="src/operational",
-                        help="Package path for pytest (default: src/operational)")
+    parser.add_argument("--base", default="main", help="Base branch (default: main)")
+    parser.add_argument(
+        "--files",
+        nargs="+",
+        type=Path,
+        metavar="F",
+        help="Specific files to review (overrides --base diff)",
+    )
+    parser.add_argument("--type-only", action="store_true", help="Run type check only")
+    parser.add_argument(
+        "--test-only", action="store_true", help="Run test suite check only"
+    )
+    parser.add_argument("--strict", action="store_true", help="Use mypy --strict")
+    parser.add_argument(
+        "--review-format", action="store_true", help="Full human-readable report"
+    )
+    parser.add_argument(
+        "--github-annotations",
+        action="store_true",
+        help="Output GitHub Actions annotations format",
+    )
+    parser.add_argument(
+        "--open-issues",
+        action="store_true",
+        help="Show only open issues (errors + warnings)",
+    )
+    parser.add_argument(
+        "--missing",
+        action="store_true",
+        help="Also report source files without a matching test (alias used by CI)",
+    )
+    parser.add_argument(
+        "--gate", action="store_true", help="Exit code = pass/fail (for CI)"
+    )
+    parser.add_argument("--json", action="store_true", help="JSON output")
+    parser.add_argument(
+        "--package",
+        default="src/operational",
+        help="Package path for pytest (default: src/operational)",
+    )
     args = parser.parse_args()
 
     source_files: list[Path] = []
@@ -367,7 +451,7 @@ def main():
     # Tests
     if not args.type_only:
         report.results.append(check_pytest(source_files, test_files, package_path))
-        if args.open_issues:
+        if args.open_issues or args.missing:
             report.results.append(check_missing_tests(source_files, package_path))
 
     # Output
@@ -376,16 +460,25 @@ def main():
     elif args.review_format:
         print(format_review_report(report))
     elif args.json:
-        print(json.dumps({
-            "all_passed": report.all_passed(),
-            "base_ref": report.base_ref,
-            "files_changed": report.files_changed,
-            "checks": [
-                {"name": r.name, "status": r.status.name,
-                 "summary": r.summary, "details": r.details}
-                for r in report.results
-            ]
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "all_passed": report.all_passed(),
+                    "base_ref": report.base_ref,
+                    "files_changed": report.files_changed,
+                    "checks": [
+                        {
+                            "name": r.name,
+                            "status": r.status.name,
+                            "summary": r.summary,
+                            "details": r.details,
+                        }
+                        for r in report.results
+                    ],
+                },
+                indent=2,
+            )
+        )
     else:
         # Concise summary
         if report.all_passed():
