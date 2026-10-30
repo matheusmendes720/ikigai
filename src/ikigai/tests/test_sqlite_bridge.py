@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import shutil
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -43,8 +43,8 @@ def record() -> IKIGAiRecord:
             "title": "Close first remote role by Q3 2026",
             "description": "Land a remote BI/data role paying ≥R$12k/mo",
             "status": "active",
-            "created_at": datetime(2026, 7, 1, tzinfo=timezone.utc),
-            "updated_at": datetime(2026, 7, 15, tzinfo=timezone.utc),
+            "created_at": datetime(2026, 7, 1, tzinfo=UTC),
+            "updated_at": datetime(2026, 7, 15, tzinfo=UTC),
             "source_md_path": Path("data/matheus/dreams/2026-q3.md"),
             "ikigai_vectors": ["passion", "skill", "market", "revenue"],
             "vector_scores": {
@@ -121,8 +121,8 @@ def test_bridge_accepts_polymorphic_entity_type(tmp_db: Path) -> None:
             "title": "Cycle 2026-08-26",
             "status": "active",
             "is_placeholder": True,
-            "created_at": datetime(2026, 8, 26, tzinfo=timezone.utc),
-            "updated_at": datetime(2026, 8, 26, tzinfo=timezone.utc),
+            "created_at": datetime(2026, 8, 26, tzinfo=UTC),
+            "updated_at": datetime(2026, 8, 26, tzinfo=UTC),
             "source_md_path": Path("data/matheus/ikigai_state/cycle-2026-08-26.md"),
         }
     )

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -12,7 +12,7 @@ from sys_ikigai.entities.override import OverrideRecord
 class TestOverrideRecord:
     def test_round_trip(self) -> None:
         o = OverrideRecord(
-            at=datetime(2026, 8, 26, tzinfo=timezone.utc),
+            at=datetime(2026, 8, 26, tzinfo=UTC),
             by="human:matheus",
             field_path="regime.levels[0].regime",
             previous_value="maintain",
@@ -25,7 +25,7 @@ class TestOverrideRecord:
     def test_extra_forbid(self) -> None:
         with pytest.raises(ValidationError):
             OverrideRecord(
-                at=datetime(2026, 8, 26, tzinfo=timezone.utc),
+                at=datetime(2026, 8, 26, tzinfo=UTC),
                 by="agent",
                 field_path="x",
                 previous_value=1,

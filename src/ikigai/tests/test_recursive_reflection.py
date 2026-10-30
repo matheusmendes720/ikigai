@@ -12,24 +12,15 @@ Mirrors the test patterns of test_m161_taskdog_triage / test_m161_vault_intent_e
 from __future__ import annotations
 
 import json
-import shutil
-import subprocess
-import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import pytest
-
 from src.agents.reflection.patterns import (
-    FAST_FINISH_HOURS,
-    FAST_FINISH_MIN_RATIO,
-    FAST_FINISH_MIN_SAMPLE,
     UNDERESTIMATION_MIN_SAMPLE,
-    UNDERESTIMATION_RATIO,
     Finding,
 )
 from src.agents.reflection.recursive import (
-    Decision,
     DecisionStore,
     Reflector,
 )
@@ -59,7 +50,7 @@ def reflections_dir(tmp_path: Path) -> Path:
 
 def test_append_creates_dated_jsonl_file(store: DecisionStore) -> None:
     """append() writes to <base>/<YYYY-MM-DD>.jsonl and creates the file."""
-    ts = datetime(2026, 9, 30, 12, 0, tzinfo=timezone.utc)
+    ts = datetime(2026, 9, 30, 12, 0, tzinfo=UTC)
     path = store.append("create", "ik:tsk:abc:1111", {"title": "buy milk"}, timestamp=ts)
     assert path.name == "2026-09-30.jsonl"
     assert path.exists()
@@ -75,7 +66,7 @@ def test_append_creates_dated_jsonl_file(store: DecisionStore) -> None:
 
 def test_append_concatenates_to_same_day(store: DecisionStore) -> None:
     """Multiple appends in the same day land on one line per call."""
-    ts = datetime(2026, 9, 30, 12, 0, tzinfo=timezone.utc)
+    ts = datetime(2026, 9, 30, 12, 0, tzinfo=UTC)
     store.append("create", "ik:tsk:abc:1111", {"title": "buy milk"}, timestamp=ts)
     store.append("done", "ik:tsk:abc:1111", {"actual_minutes": 30}, timestamp=ts)
     out = store.read(lookback_days=1, today=date(2026, 9, 30))
@@ -87,14 +78,62 @@ def test_append_concatenates_to_same_day(store: DecisionStore) -> None:
 def test_read_respects_lookback_window(store: DecisionStore) -> None:
     """read() returns decisions from the last N days inclusive of today."""
     today = date(2026, 9, 30)
-    old_ts = datetime(2026, 8, 1, tzinfo=timezone.utc)  # way older than 7 days
-    new_ts = datetime(2026, 9, 25, tzinfo=timezone.utc)  # within window
+    old_ts = datetime(2026, 8, 1, tzinfo=UTC)  # way older than 7 days
+    new_ts = datetime(2026, 9, 25, tzinfo=UTC)  # within window
     store.append("create", "ik:tsk:abc:1111", {}, timestamp=old_ts)
     store.append("create", "ik:tsk:abc:2222", {}, timestamp=new_ts)
     out = store.read(lookback_days=7, today=today)
     ueids = {d.ueid for d in out}
     assert "ik:tsk:abc:2222" in ueids
     assert "ik:tsk:abc:1111" not in ueids
+
+
+def test_read_excludes_days_after_window_end(store: DecisionStore) -> None:
+    """Days newer than the window end are outside the lookback."""
+    today = date(2026, 9, 30)
+    store.append("create", "ik:tsk:abc:1111", {}, timestamp=datetime(2026, 9, 20, tzinfo=UTC))
+    store.append("create", "ik:tsk:abc:2222", {}, timestamp=datetime(2026, 10, 5, tzinfo=UTC))
+    out = store.read(lookback_days=14, today=today)
+    ueids = {d.ueid for d in out}
+    assert "ik:tsk:abc:1111" in ueids
+    assert "ik:tsk:abc:2222" not in ueids
+
+
+def test_resolve_window_end_anchors_on_latest_log_day(store: DecisionStore) -> None:
+    """Without an explicit anchor the window ends on the newest logged day.
+
+    The reflection's subject is the decision log. Anchoring the window on
+    wall-clock "now" made a log that stopped being written look empty —
+    the report came out with 0 findings even though the log held patterns.
+    """
+    store.append(
+        "create",
+        "ik:tsk:abc:1111",
+        {},
+        timestamp=datetime(2026, 9, 30, tzinfo=UTC),
+    )
+    assert store.latest_decision_date() == date(2026, 9, 30)
+    assert store.resolve_window_end() == date(2026, 9, 30)
+    # An explicit anchor still wins.
+    assert store.resolve_window_end(date(2026, 10, 5)) == date(2026, 10, 5)
+
+
+def test_resolve_window_end_falls_back_to_today_when_log_empty(store: DecisionStore) -> None:
+    """An empty log anchors on today so the report still describes a window."""
+    assert store.latest_decision_date() is None
+    assert store.resolve_window_end() == datetime.now(UTC).date()
+
+
+def test_read_uses_latest_log_day_when_no_anchor_given(store: DecisionStore) -> None:
+    """A stale log is still analysed — its own newest day ends the window."""
+    store.append(
+        "create",
+        "ik:tsk:abc:1111",
+        {},
+        timestamp=datetime(2026, 9, 30, tzinfo=UTC),
+    )
+    out = store.read(lookback_days=14)
+    assert [d.ueid for d in out] == ["ik:tsk:abc:1111"]
 
 
 def test_read_handles_malformed_lines(store: DecisionStore) -> None:
@@ -136,7 +175,7 @@ def test_append_defaults_to_current_utc(store: DecisionStore) -> None:
 
 def _seed_underestimations(store: DecisionStore, n: int, today: date) -> None:
     """Seed n synthetic ueids whose actual time is 3x the estimate."""
-    base = datetime(today.year, today.month, today.day, 9, tzinfo=timezone.utc)
+    base = datetime(today.year, today.month, today.day, 9, tzinfo=UTC)
     for i in range(n):
         ueid = f"ik:tsk:est:{i:04d}:0001"
         store.append(
@@ -155,7 +194,7 @@ def _seed_underestimations(store: DecisionStore, n: int, today: date) -> None:
 
 def _seed_on_target(store: DecisionStore, n: int, today: date) -> None:
     """Seed n synthetic ueids that hit estimate exactly (control group)."""
-    base = datetime(today.year, today.month, today.day, 9, tzinfo=timezone.utc)
+    base = datetime(today.year, today.month, today.day, 9, tzinfo=UTC)
     for i in range(n):
         ueid = f"ik:tsk:on:{i:04d}:0001"
         store.append(
@@ -215,7 +254,7 @@ def _seed_fast_finish(
     hours_to_done: float,
     today: date,
 ) -> None:
-    base = datetime(today.year, today.month, today.day, 9, tzinfo=timezone.utc)
+    base = datetime(today.year, today.month, today.day, 9, tzinfo=UTC)
     for i in range(count):
         ueid = f"ik:tsk:ff:{tags[0]}:{i:04d}"
         store.append(
@@ -238,7 +277,7 @@ def _seed_slow_finish(
     count: int,
     today: date,
 ) -> None:
-    base = datetime(today.year, today.month, today.day, 9, tzinfo=timezone.utc)
+    base = datetime(today.year, today.month, today.day, 9, tzinfo=UTC)
     for i in range(count):
         ueid = f"ik:tsk:sf:{tags[0]}:{i:04d}"
         store.append(
@@ -257,9 +296,7 @@ def _seed_slow_finish(
 
 def test_reflector_detects_fast_finish_tag_combo(store: DecisionStore) -> None:
     today = date(2026, 9, 30)
-    _seed_fast_finish(
-        store, tags=("quick", "doc"), count=4, hours_to_done=1.0, today=today
-    )
+    _seed_fast_finish(store, tags=("quick", "doc"), count=4, hours_to_done=1.0, today=today)
     _seed_slow_finish(store, tags=("slow", "big"), count=4, today=today)
     reflector = Reflector(store=store)
     findings = reflector.analyze(lookback_days=14, today=today)
@@ -274,9 +311,7 @@ def test_reflector_detects_fast_finish_tag_combo(store: DecisionStore) -> None:
 def test_reflector_no_fast_finish_below_ratio(store: DecisionStore) -> None:
     today = date(2026, 9, 30)
     # 2 fast, 2 slow (50% — below FAST_FINISH_MIN_RATIO)
-    _seed_fast_finish(
-        store, tags=("mixed",), count=2, hours_to_done=1.0, today=today
-    )
+    _seed_fast_finish(store, tags=("mixed",), count=2, hours_to_done=1.0, today=today)
     _seed_slow_finish(store, tags=("mixed",), count=2, today=today)
     reflector = Reflector(store=store)
     findings = reflector.analyze(lookback_days=14, today=today)
@@ -286,7 +321,7 @@ def test_reflector_no_fast_finish_below_ratio(store: DecisionStore) -> None:
 
 def test_reflector_detects_priority_churn(store: DecisionStore) -> None:
     today = date(2026, 9, 30)
-    base = datetime(today.year, today.month, today.day, 9, tzinfo=timezone.utc)
+    base = datetime(today.year, today.month, today.day, 9, tzinfo=UTC)
     for i in range(3):
         ueid = f"ik:tsk:pc:{i:04d}:0001"
         store.append(
@@ -364,6 +399,31 @@ def test_render_reflection_includes_finding_block() -> None:
     assert "confidence 80%" in body
 
 
+def test_render_reflection_reports_actual_window_end() -> None:
+    """The "Lookback" line describes the window the findings came from."""
+    body = render_reflection(
+        [], today=date(2026, 10, 29), lookback_days=14, window_end=date(2026, 9, 30)
+    )
+    assert "Lookback: 2026-09-17 … 2026-09-30 (14 days)" in body
+
+
+def test_write_reflection_uses_window_end_for_lookback_line(
+    store: DecisionStore, reflections_dir: Path
+) -> None:
+    today = date(2026, 9, 30)
+    _seed_underestimations(store, n=5, today=today)
+    reflector = Reflector(store=store)
+    findings = reflector.analyze(lookback_days=14, today=today)
+    target = write_reflection(
+        findings,
+        target=reflections_dir / "2026-09-30.md",
+        today=today,
+        window_end=today,
+    )
+    body = target.read_text(encoding="utf-8")
+    assert "Lookback: 2026-09-17 … 2026-09-30 (14 days)" in body
+
+
 def test_write_reflection_writes_markdown(store: DecisionStore, reflections_dir: Path) -> None:
     today = date(2026, 9, 30)
     _seed_underestimations(store, n=5, today=today)
@@ -401,7 +461,7 @@ def test_main_runs_end_to_end_via_subprocess(tmp_path: Path, monkeypatch) -> Non
 
     # Seed via the public API (which uses _DECISIONS_DIR through DecisionStore())
     today = date(2026, 9, 30)
-    base = datetime(today.year, today.month, today.day, 9, tzinfo=timezone.utc)
+    base = datetime(today.year, today.month, today.day, 9, tzinfo=UTC)
     for i in range(5):
         ueid = f"ik:tsk:cron:{i:04d}:0001"
         recursive.DecisionStore().append(
@@ -418,12 +478,14 @@ def test_main_runs_end_to_end_via_subprocess(tmp_path: Path, monkeypatch) -> Non
         )
 
     # Invoke the CLI entry directly (in-process to avoid sys.path quirks)
-    rc = recursive.main([
-        "--lookback-days",
-        "14",
-        "--out",
-        str(reflections_dir / "cron.md"),
-    ])
+    rc = recursive.main(
+        [
+            "--lookback-days",
+            "14",
+            "--out",
+            str(reflections_dir / "cron.md"),
+        ]
+    )
     assert rc == 0
     out_path = reflections_dir / "cron.md"
     assert out_path.exists()
@@ -431,11 +493,84 @@ def test_main_runs_end_to_end_via_subprocess(tmp_path: Path, monkeypatch) -> Non
     assert "underestimation_2x" in body
 
 
+def test_main_today_flag_pins_the_lookback_window(tmp_path: Path, monkeypatch) -> None:
+    """--today anchors the window explicitly, independent of wall-clock time."""
+    import src.agents.reflection.recursive as recursive
+    import src.agents.reflection.writer as writer
+
+    decisions_dir = tmp_path / "decisions"
+    reflections_dir = tmp_path / "reflections"
+    decisions_dir.mkdir()
+    reflections_dir.mkdir()
+    monkeypatch.setattr(recursive, "_DECISIONS_DIR", decisions_dir)
+    monkeypatch.setattr(writer, "_REFLECTIONS_DIR", reflections_dir)
+
+    base = datetime(2026, 9, 30, 9, tzinfo=UTC)
+    for i in range(5):
+        ueid = f"ik:tsk:cron:{i:04d}:0001"
+        recursive.DecisionStore().append(
+            "create",
+            ueid,
+            {"title": f"cron task {i}", "estimated_minutes": 30},
+            timestamp=base,
+        )
+        recursive.DecisionStore().append(
+            "done",
+            ueid,
+            {"actual_minutes": 90},
+            timestamp=base + timedelta(hours=2),
+        )
+
+    rc = recursive.main(
+        [
+            "--lookback-days",
+            "14",
+            "--today",
+            "2026-09-30",
+            "--out",
+            str(reflections_dir / "pinned.md"),
+        ]
+    )
+    assert rc == 0
+    body = (reflections_dir / "pinned.md").read_text(encoding="utf-8")
+    assert "underestimation_2x" in body
+    assert "Lookback: 2026-09-17 … 2026-09-30 (14 days)" in body
+
+
+def test_main_json_flag_reports_window_end(tmp_path: Path, monkeypatch, capsys) -> None:
+    """The JSON payload states the window the findings were derived from."""
+    import src.agents.reflection.recursive as recursive
+
+    decisions_dir = tmp_path / "decisions"
+    decisions_dir.mkdir()
+    monkeypatch.setattr(recursive, "_DECISIONS_DIR", decisions_dir)
+
+    base = datetime(2026, 9, 30, 9, tzinfo=UTC)
+    for i in range(5):
+        ueid = f"ik:tsk:cron:{i:04d}:0001"
+        recursive.DecisionStore().append(
+            "create",
+            ueid,
+            {"title": f"cron task {i}", "estimated_minutes": 30},
+            timestamp=base,
+        )
+        recursive.DecisionStore().append(
+            "done",
+            ueid,
+            {"actual_minutes": 90},
+            timestamp=base + timedelta(hours=2),
+        )
+
+    rc = recursive.main(["--json"])
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["window_end"] == "2026-09-30"
+    assert any(f["pattern"] == "underestimation_2x" for f in payload["findings"])
+
+
 def test_main_json_flag_returns_json_payload(store: DecisionStore, capsys) -> None:
     today = date(2026, 9, 30)
     _seed_underestimations(store, n=4, today=today)
-
-    import src.agents.reflection.recursive as recursive
 
     # DecisionStore in this test is bound to the tmp_path fixture, not the
     # module default. Invoke analyze() directly to keep the test isolated.
@@ -480,9 +615,12 @@ def test_no_llm_in_reflection_pipeline() -> None:
 def test_append_only_semantics(store: DecisionStore, tmp_path: Path) -> None:
     """DecisionStore must never truncate an existing file."""
     p = store.base_dir / "2026-09-30.jsonl"
-    p.write_text('{"timestamp":"2026-09-30T09:00:00+00:00","action":"create","ueid":"ik:tsk:abc:1111","context":{}}\n', encoding="utf-8")
+    p.write_text(
+        '{"timestamp":"2026-09-30T09:00:00+00:00","action":"create","ueid":"ik:tsk:abc:1111","context":{}}\n',
+        encoding="utf-8",
+    )
     before = p.read_text(encoding="utf-8")
-    ts = datetime(2026, 9, 30, 10, 0, tzinfo=timezone.utc)
+    ts = datetime(2026, 9, 30, 10, 0, tzinfo=UTC)
     store.append("done", "ik:tsk:abc:1111", {}, timestamp=ts)
     after = p.read_text(encoding="utf-8")
     assert after.startswith(before)

@@ -26,7 +26,7 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +48,7 @@ from src.mesh.cli import td_tag
 # ----------------------------------------------------------------------
 # Fixtures
 # ----------------------------------------------------------------------
+
 
 @pytest.fixture
 def tag_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
@@ -77,8 +78,7 @@ def tag_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         conn.execute(
             "INSERT INTO tasks (ueid, name, status, priority, created_at) "
             "VALUES (?, ?, 'planned', ?, ?)",
-            ("ikigai:task:deadbeef:1234", "Tag test task", 2,
-             datetime.now(timezone.utc).isoformat()),
+            ("ikigai:task:deadbeef:1234", "Tag test task", 2, datetime.now(UTC).isoformat()),
         )
         conn.commit()
     finally:
@@ -94,8 +94,7 @@ def tag_db_with_tags(tag_db: Path) -> Path:
     try:
         conn.execute(
             "UPDATE tasks SET tags=? WHERE ueid=?",
-            (json.dumps(["backend", "urgent"]),
-             "ikigai:task:deadbeef:1234"),
+            (json.dumps(["backend", "urgent"]), "ikigai:task:deadbeef:1234"),
         )
         conn.commit()
     finally:
@@ -106,6 +105,7 @@ def tag_db_with_tags(tag_db: Path) -> Path:
 # ----------------------------------------------------------------------
 # Validation regex
 # ----------------------------------------------------------------------
+
 
 class TestTagValidation:
     def test_valid_tags(self) -> None:
@@ -126,8 +126,7 @@ class TestTagValidation:
         assert not taskdog_mod._is_valid_tag(" ")
 
     def test_invalid_with_punctuation(self) -> None:
-        for bad in ["foo!", "foo@bar", "foo#bar", "foo/bar", "foo.bar",
-                    "foo,bar", "foo:bar"]:
+        for bad in ["foo!", "foo@bar", "foo#bar", "foo/bar", "foo.bar", "foo,bar", "foo:bar"]:
             assert not taskdog_mod._is_valid_tag(bad), f"expected invalid: {bad!r}"
 
     def test_invalid_non_string(self) -> None:
@@ -149,6 +148,7 @@ class TestTagValidation:
 # Module-level helpers: add_tags / remove_tags / clear_tags / get_tags
 # ----------------------------------------------------------------------
 
+
 class TestAddTags:
     def test_add_appends_unique(self, tag_db: Path) -> None:
         result = add_tags("ikigai:task:deadbeef:1234", ["backend", "urgent"])
@@ -166,7 +166,8 @@ class TestAddTags:
     def test_add_is_idempotent(self, tag_db_with_tags: Path) -> None:
         """Adding an already-present tag is a no-op (set semantics)."""
         result = add_tags(
-            "ikigai:task:deadbeef:1234", ["backend", "frontend", "urgent"],
+            "ikigai:task:deadbeef:1234",
+            ["backend", "frontend", "urgent"],
         )
         # `frontend` is new; `backend` and `urgent` are deduped.
         assert result == ["backend", "frontend", "urgent"]
@@ -206,11 +207,10 @@ class TestRemoveTags:
         result = remove_tags("ikigai:task:deadbeef:1234", ["nonexistent"])
         assert result == ["backend", "urgent"]
 
-    def test_remove_mixed_present_and_missing(
-        self, tag_db_with_tags: Path
-    ) -> None:
+    def test_remove_mixed_present_and_missing(self, tag_db_with_tags: Path) -> None:
         result = remove_tags(
-            "ikigai:task:deadbeef:1234", ["backend", "nonexistent", "urgent"],
+            "ikigai:task:deadbeef:1234",
+            ["backend", "nonexistent", "urgent"],
         )
         assert result == []
 
@@ -261,6 +261,7 @@ class TestGetTags:
 # Audit log: every mutation writes an entry
 # ----------------------------------------------------------------------
 
+
 class TestAuditLog:
     def test_add_writes_audit_entry(self, tag_db: Path) -> None:
         add_tags("ikigai:task:deadbeef:1234", ["backend", "urgent"])
@@ -300,7 +301,10 @@ class TestAuditLog:
         clear_tags("ikigai:task:deadbeef:1234")
         audit = _read_audit_log(tag_db)
         assert [e["action"] for e in audit] == [
-            "tag_add", "tag_add", "tag_remove", "tag_clear",
+            "tag_add",
+            "tag_add",
+            "tag_remove",
+            "tag_clear",
         ]
 
     def test_idempotent_add_no_audit_entry(self, tag_db_with_tags: Path) -> None:
@@ -322,6 +326,7 @@ class TestAuditLog:
 # ----------------------------------------------------------------------
 # JSON serialization roundtrip
 # ----------------------------------------------------------------------
+
 
 class TestJsonRoundtrip:
     def test_tags_persist_as_json(self, tag_db: Path) -> None:
@@ -378,6 +383,7 @@ class TestJsonRoundtrip:
 # ----------------------------------------------------------------------
 # CLI dispatch (subprocess-style integration)
 # ----------------------------------------------------------------------
+
 
 class TestCliDispatch:
     """Tests for the td_tag cmd_* handlers invoked directly (not via main)."""
@@ -472,6 +478,7 @@ class TestCliDispatch:
 # Propagation through apply_change (review queue → adapter dispatch)
 # ----------------------------------------------------------------------
 
+
 class TestApplyChangeDispatch:
     def test_apply_change_tag_add(self, tag_db: Path) -> None:
         event = PropagationEvent(
@@ -479,7 +486,7 @@ class TestApplyChangeDispatch:
             ueid="ikigai:task:deadbeef:1234",
             action=TaskAction.TAG_ADD,
             fields={"tags": ["backend", "urgent"]},
-            approved_at=datetime.now(timezone.utc),
+            approved_at=datetime.now(UTC),
             source_fork="test",
         )
         TaskdogAdapter().apply_change(event)
@@ -491,7 +498,7 @@ class TestApplyChangeDispatch:
             ueid="ikigai:task:deadbeef:1234",
             action=TaskAction.TAG_REMOVE,
             fields={"tags": ["backend"]},
-            approved_at=datetime.now(timezone.utc),
+            approved_at=datetime.now(UTC),
             source_fork="test",
         )
         TaskdogAdapter().apply_change(event)
@@ -503,7 +510,7 @@ class TestApplyChangeDispatch:
             ueid="ikigai:task:deadbeef:1234",
             action=TaskAction.TAG_CLEAR,
             fields={},
-            approved_at=datetime.now(timezone.utc),
+            approved_at=datetime.now(UTC),
             source_fork="test",
         )
         TaskdogAdapter().apply_change(event)
@@ -515,7 +522,7 @@ class TestApplyChangeDispatch:
             ueid="ikigai:task:deadbeef:1234",
             action=TaskAction.TAG_ADD,
             fields={"tags": "not-a-list"},  # bad type
-            approved_at=datetime.now(timezone.utc),
+            approved_at=datetime.now(UTC),
             source_fork="test",
         )
         with pytest.raises(ValueError, match="must be list"):
@@ -525,6 +532,7 @@ class TestApplyChangeDispatch:
 # ----------------------------------------------------------------------
 # TaskAction enum (contract-level)
 # ----------------------------------------------------------------------
+
 
 class TestTaskActionEnum:
     def test_tag_actions_present(self) -> None:
@@ -544,9 +552,11 @@ class TestTaskActionEnum:
 # Helpers
 # ----------------------------------------------------------------------
 
+
 def argparse_namespace(**kwargs: Any) -> Any:
     """Build an argparse.Namespace-compatible object without argparse."""
     from argparse import Namespace
+
     return Namespace(**kwargs)
 
 
