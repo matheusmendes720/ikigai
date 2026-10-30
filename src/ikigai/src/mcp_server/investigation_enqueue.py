@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal, cast
 
 from contracts.investigation import Investigation
 from pydantic import ValidationError
@@ -32,7 +32,7 @@ def investigation_enqueue(
     try:
         inv = Investigation(
             inq_id=inq_id,
-            source=source,  # type: ignore[arg-type]
+            source=cast(Literal["agent", "user", "external"], source),
             payload=payload,
             created_at=datetime.now(),
             updated_at=datetime.now(),

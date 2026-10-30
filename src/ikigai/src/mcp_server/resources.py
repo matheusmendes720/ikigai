@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from contracts.common import UEID
 from src.mesh import queue as _queue  # M73.3 dual-identity fix
@@ -94,7 +94,7 @@ def queue_event_resource(event_id: str) -> str:
 # ---------------------------------------------------------------------------
 def health_resource() -> str:
     """Gateway heartbeat (mirrors ikigai_health tool output)."""
-    return ikigai_health()
+    return cast(str, ikigai_health())
 
 
 # ---------------------------------------------------------------------------

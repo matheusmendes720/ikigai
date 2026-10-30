@@ -11,7 +11,7 @@ import json
 import os
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from langchain_core.prompts import PromptTemplate
 
@@ -41,7 +41,21 @@ IMPORTANTE: Responda no idioma: {language}""",
 
 
 def render_surface_pav_intentions(state: dict[str, Any]) -> dict[str, Any]:
-    """Render PAV intention surfacing via LLM (always stub per ADR-013 / M156)."""
+    """Render PAV intention surfacing via LLM (real LLM; deterministic stub when IKIGAI_FAKE_LLM=1)."""
+
+    if os.environ.get("IKIGAI_FAKE_LLM", "0") == "1":
+        # Deterministic stub for tests
+        return {
+            "suggestions": [
+                "[FAKE-LLM] Considere revisar tasks com regime RECOVER ativo",
+                "[FAKE-LLM] Vector passion_score baixo — ajustar hábito matinal",
+                "[FAKE-LLM] Q_HE em declínio — priorizar completion de tasks pendentes",
+                "[FAKE-LLM] Verificar alinhamento com SONHO atual",
+            ],
+            "language": "pt-BR",
+            "source": "fake-llm-stub",
+        }
+
     today = date.today().isoformat()
     vault_root = Path(state.get("vault_root", "vault"))
     cycle_state_file = vault_root / "ikigai" / "meta" / "cycle_state" / f"{today}.md"
@@ -71,10 +85,20 @@ def render_surface_pav_intentions(state: dict[str, Any]) -> dict[str, Any]:
         language="pt-BR",
     )
     try:
-        import agents.v2.langchain_anthropic_shim  # noqa: F401  # M158e
+        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+        # time. Keep this import first (isort block order is intentional).
+        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
         from langchain_anthropic import ChatAnthropic
 
-        model = ChatAnthropic(model=os.environ.get("IKIGAI_MODEL", "MiniMax-M2.7-highspeed"))
+        # `model` is a pydantic field whose alias is `model_name`; the kwargs dict
+        # keeps the runtime spelling `model=` (accepted via populate_by_name) while
+        # satisfying mypy, whose dataclass_transform view of __init__ only exposes
+        # the alias.
+        llm_kwargs: dict[str, Any] = {
+            "model": os.environ.get("IKIGAI_MODEL", "MiniMax-M2.7-highspeed")
+        }
+        model = ChatAnthropic(**llm_kwargs)
         response = model.invoke(prompt)
         parsed = _parse_json(response.content)
         parsed["language"] = "pt-BR"
@@ -122,6 +146,11 @@ def _parse_json(content: object) -> dict[str, Any]:
         parsed = json.loads(text)
         if isinstance(parsed, dict) and "suggestions" not in parsed:
             parsed["_warning"] = "missing_suggestions_field"
-        return parsed
+        return cast(dict[str, Any], parsed)
     except json.JSONDecodeError as exc:
-        return {"suggestions": [], "error": "parse_failed", "raw": text[:500], "exception": str(exc)}
+        return {
+            "suggestions": [],
+            "error": "parse_failed",
+            "raw": text[:500],
+            "exception": str(exc),
+        }

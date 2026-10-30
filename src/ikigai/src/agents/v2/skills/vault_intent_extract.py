@@ -14,6 +14,7 @@ Emits a Proposal with CREATE actions. NUNCA executes. User approves via
 Cron: 0 22 * * *
 Slash: /extract
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -23,7 +24,6 @@ from pathlib import Path
 from typing import Any
 
 from agents.v2.proposals import Proposal
-
 
 # Patterns: (regex, due_offset_days_or_None, due_explicit_group_or_None)
 INTENT_PATTERNS: list[tuple[str, int | None, str | None]] = [
@@ -80,9 +80,7 @@ def _gen_ueid(task_text: str) -> str:
     return f"tsk:intention:{h[:8]}:{h[8:16]}:{h[16:24]}"
 
 
-def extract_candidates(
-    markdown: str, today: date | None = None
-) -> list[dict[str, Any]]:
+def extract_candidates(markdown: str, today: date | None = None) -> list[dict[str, Any]]:
     """Scan markdown text and return a list of CREATE-candidate dicts."""
     today = today or date.today()
     seen: set[str] = set()
@@ -143,9 +141,7 @@ def propose(
     )
 
 
-def propose_from_file(
-    file_path: str | Path, today: date | None = None
-) -> Proposal:
+def propose_from_file(file_path: str | Path, today: date | None = None) -> Proposal:
     """Read a vault note and propose from it. Empty note → empty proposal."""
     p = Path(file_path)
     if not p.exists():

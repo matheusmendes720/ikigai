@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 
 def _atomic_write_text(target: Path, content: str) -> None:
@@ -35,7 +36,7 @@ def _atomic_write_text(target: Path, content: str) -> None:
         raise
 
 
-def _detect_signature(args, kwargs):
+def _detect_signature(args: tuple[Any, ...], kwargs: dict[str, Any]) -> tuple[Any, Any]:
     """Resolve to (entry, base_dir) regardless of signature style.
 
     New style: entry=Proposal/Entry, base_dir=Path
@@ -68,7 +69,7 @@ def _detect_signature(args, kwargs):
     )
 
 
-def write_entry(*args, **kwargs):
+def write_entry(*args: Any, **kwargs: Any) -> Path:
     """Persist a chat entry. See module docstring for signature styles."""
     entry, base_dir = _detect_signature(args, kwargs)
     if base_dir is None:
@@ -106,7 +107,7 @@ def write_entry(*args, **kwargs):
     return target
 
 
-def write_proposal(*args, **kwargs):
+def write_proposal(*args: Any, **kwargs: Any) -> Path:
     """Persist a Proposal. Same dual-signature style as write_entry."""
     # Same resolver
     if "proposal" in kwargs and "base_dir" in kwargs:
@@ -159,7 +160,7 @@ def write_proposal(*args, **kwargs):
 
     # Sidecar JSON at base/{thread_id}/chat.json so read_thread can enumerate
     sidecar = base / thread_id / "chat.json"
-    payload = {"proposals": {}}
+    payload: dict[str, Any] = {"proposals": {}}
     if sidecar.exists():
         try:
             payload = json.loads(sidecar.read_text(encoding="utf-8"))

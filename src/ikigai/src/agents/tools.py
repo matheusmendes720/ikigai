@@ -461,7 +461,7 @@ def _VAULT_DIR() -> _Path:  # noqa: N802
     return _Path(__file__).resolve().parent.parent.parent.parent.parent / "vault"
 
 
-def _read_checkpoint_data(thread_id: str = "default") -> dict:
+def _read_checkpoint_data(thread_id: str = "default") -> dict[str, Any]:
     """Stub checkpoint reader — tests override via monkeypatch."""
     return {
         "cycle_id": f"{thread_id}-cycle",

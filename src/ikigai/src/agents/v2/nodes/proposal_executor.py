@@ -18,8 +18,9 @@ harness's ``sys.path`` setup).
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 from src.ikigai.contracts.proposal import (
     ExecutionReport,
@@ -80,9 +81,11 @@ def taskdog_create_task(*args: Any, **kwargs: Any) -> Any:
 
     Tests patch this name at the module level to assert routing.
     """
-    from src.ikigai.src.agents.tools import taskdog_create_task as _real
+    from src.ikigai.src.agents.tools import (  # type: ignore[attr-defined]
+        taskdog_create_task as _real,
+    )
 
-    return _real(*args, **kwargs)
+    return cast(Callable[..., Any], _real)(*args, **kwargs)
 
 
 # Module-level sentinel — exists ONLY so drift tests can
@@ -159,6 +162,7 @@ def execute_proposal(proposal: Proposal) -> ExecutionReport:
             if "KillSwitch" in type(exc).__name__:
                 raise
 
+    status: Literal["ok", "partial", "failed"]
     if ops_failed == 0:
         status = "ok"
     elif ops_completed == 0:

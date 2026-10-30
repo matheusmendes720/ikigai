@@ -11,14 +11,13 @@ Emits a Proposal (NEVER executes directly). User approves via --approve.
 Cron: 0 9 * * *
 Slash: /triage
 """
+
 from __future__ import annotations
 
 from datetime import date
-from pathlib import Path
 from typing import Any
 
 from agents.v2.proposals import Proposal
-
 
 # Configurable thresholds
 DEADLINE_WINDOW_DAYS = 2
@@ -34,9 +33,7 @@ def _parse_iso_date(s: str | None) -> date | None:
         return None
 
 
-def detect_changes(
-    tasks: list[dict[str, Any]], today: date | None = None
-) -> list[dict[str, Any]]:
+def detect_changes(tasks: list[dict[str, Any]], today: date | None = None) -> list[dict[str, Any]]:
     """Detect triage-worthy changes in a list of task dicts.
 
     Each task is expected to have: ueid, status, priority, deadline,
@@ -95,13 +92,11 @@ def detect_changes(
                     "ueid": ueid,
                     "fields": {
                         "description": (
-                            f"(auto-flagged {today.isoformat()}: "
-                            "needs human description)"
+                            f"(auto-flagged {today.isoformat()}: needs human description)"
                         )
                     },
                     "rationale": (
-                        f"description is {len(description)} chars "
-                        f"(min {DESCRIPTION_MIN_LEN})"
+                        f"description is {len(description)} chars (min {DESCRIPTION_MIN_LEN})"
                     ),
                 }
             )
@@ -137,13 +132,18 @@ def propose(
 SKILL_NAME = "taskdog-triage"
 
 
-def run_skill(tasks: list[dict[str, Any]] | None = None) -> Proposal:
+def run_skill(tasks: list[dict[str, Any]] | None = None, today: date | None = None) -> Proposal:
     """Entry point invoked by /skill taskdog-triage.
 
     If `tasks` is None, the skill would normally fetch from the
     TaskdogAdapter. We don't import the adapter here to keep this module
     dependency-free and easy to test.
+
+    `today` mirrors propose()'s override — it defaults to date.today() at
+    runtime and exists so the entry point stays deterministically testable
+    (same pattern as the ikigai_daily/weekly/monthly/quarterly run_skill
+    wrappers).
     """
     if tasks is None:
         tasks = []  # caller should fetch
-    return propose(tasks)
+    return propose(tasks, today=today)

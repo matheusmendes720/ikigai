@@ -29,7 +29,7 @@ from __future__ import annotations
 import logging
 import re
 import time
-from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
 
 from .prompts.load_constants import get as _algo_const
 
@@ -714,10 +714,10 @@ def make_meta_plan_subgraph() -> Any:
         proposal = _generate_proposal(state)
         return {"proposal": proposal, "proposal_pending": True}
 
-    sg = StateGraph(dict)
-    sg.add_node("classify_intent", _classify)
-    sg.add_node("fetch_context", _fetch)
-    sg.add_node("generate_proposal", _generate)
+    sg = StateGraph(cast(Any, dict))
+    sg.add_node("classify_intent", cast(Any, _classify))
+    sg.add_node("fetch_context", cast(Any, _fetch))
+    sg.add_node("generate_proposal", cast(Any, _generate))
     sg.set_entry_point("classify_intent")
     sg.add_edge("classify_intent", "fetch_context")
     sg.add_edge("fetch_context", "generate_proposal")
@@ -736,11 +736,13 @@ def make_meta_plan_subgraph() -> Any:
 # the source of truth.
 # ---------------------------------------------------------------------------
 try:
-    from .graph import NODES as _GRAPH_NODES  # type: ignore[attr-defined]
+    from .graph import NODES as _GRAPH_NODES
 
-    if "meta_plan" not in _GRAPH_NODES:
-        _GRAPH_NODES = (*_GRAPH_NODES, "meta_plan")  # type: ignore[assignment]
-        NODES = _GRAPH_NODES  # type: ignore[assignment]
+    _nodes = tuple(cast(Any, _GRAPH_NODES))  # type: ignore[has-type]
+    if "meta_plan" not in _nodes:
+        _nodes = (*_nodes, "meta_plan")
+        _GRAPH_NODES = _nodes
+        NODES = _nodes
 except (ImportError, NameError):
     # graph.py not yet imported (circular import window) or NODES not
     # defined in scope. graph.py remains the canonical source.

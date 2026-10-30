@@ -3,9 +3,11 @@
 These helpers are extracted so each skill stays small and testable.
 They have NO side effects on vault or taskdog (read-only).
 """
+
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from collections.abc import Callable
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -19,9 +21,7 @@ def _parse_iso_date(s: str | None) -> date | None:
         return None
 
 
-def was_done_in_window(
-    task: dict[str, Any], start: date, end: date
-) -> bool:
+def was_done_in_window(task: dict[str, Any], start: date, end: date) -> bool:
     """Heuristic: was this task completed in [start, end]?
 
     Since our schema doesn't always have `completed_at`, we use:
@@ -39,9 +39,7 @@ def was_done_in_window(
     return task.get("created_at") is None
 
 
-def was_created_in_window(
-    task: dict[str, Any], start: date, end: date
-) -> bool:
+def was_created_in_window(task: dict[str, Any], start: date, end: date) -> bool:
     """Heuristic: was this task created in [start, end]?"""
     created = _parse_iso_date(task.get("created_at"))
     if not created:
@@ -58,7 +56,9 @@ def read_vault_note(path: str | Path) -> str:
 
 
 def list_vault_notes_in_range(
-    pattern_fn, start: date, end: date
+    pattern_fn: Callable[[date], Path],
+    start: date,
+    end: date,
 ) -> list[tuple[date, str]]:
     """List (date, content) tuples for notes matching pattern_fn(date) → Path.
 
@@ -161,9 +161,7 @@ def render_weekly_review(
     return "\n".join(lines)
 
 
-def render_monthly_review(
-    today: date, weekly_reviews: list[tuple[date, str]]
-) -> str:
+def render_monthly_review(today: date, weekly_reviews: list[tuple[date, str]]) -> str:
     """Build the monthly review markdown."""
     lines: list[str] = [
         f"# Monthly Review — {today.year}-{today.month:02d}",

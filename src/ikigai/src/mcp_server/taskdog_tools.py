@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from contracts.common import UEID
 from mcp.server.fastmcp import FastMCP
@@ -106,11 +106,14 @@ from contracts.task_change import TaskAction, TaskChange
 from src.mesh.queue import enqueue as _enqueue_task_change
 
 
-def _build_task_change(action: TaskAction, ueid: str, fields: dict, *, source: str = "deep_agent") -> str:
+def _build_task_change(
+    action: TaskAction, ueid: str, fields: dict[str, Any], *, source: str = "deep_agent"
+) -> str:
     """Build a TaskChange and enqueue it. Returns the event_id."""
     event = TaskChange(
         event_id=str(_uuid.uuid4()),
-        ueid=ueid,  # type: ignore[arg-type] — UEID validated by Pydantic at construction
+        # UEID validated by Pydantic at construction.
+        ueid=cast(UEID, ueid),
         action=action,
         fields=fields,
         source_fork=source,
@@ -152,9 +155,13 @@ def taskdog_create(
 def taskdog_set_status(ueid: str, status: str) -> str:
     """UPDATE: set status field."""
     if status not in ("planned", "in_progress", "done", "cancelled"):
-        return json.dumps({"error": f"invalid status {status!r}; allowed: planned, in_progress, done, cancelled"})
+        return json.dumps(
+            {"error": f"invalid status {status!r}; allowed: planned, in_progress, done, cancelled"}
+        )
     event_id = _build_task_change(TaskAction.UPDATE, ueid, {"status": status})
-    return json.dumps({"event_id": event_id, "action": "update", "field": "status", "value": status, "ueid": ueid})
+    return json.dumps(
+        {"event_id": event_id, "action": "update", "field": "status", "value": status, "ueid": ueid}
+    )
 
 
 @mcp.tool(
@@ -164,7 +171,15 @@ def taskdog_set_status(ueid: str, status: str) -> str:
 def taskdog_set_priority(ueid: str, priority: str | int) -> str:
     """UPDATE: set priority field."""
     event_id = _build_task_change(TaskAction.UPDATE, ueid, {"priority": priority})
-    return json.dumps({"event_id": event_id, "action": "update", "field": "priority", "value": priority, "ueid": ueid})
+    return json.dumps(
+        {
+            "event_id": event_id,
+            "action": "update",
+            "field": "priority",
+            "value": priority,
+            "ueid": ueid,
+        }
+    )
 
 
 @mcp.tool(
@@ -174,7 +189,9 @@ def taskdog_set_priority(ueid: str, priority: str | int) -> str:
 def taskdog_set_due(ueid: str, due: str) -> str:
     """UPDATE: set due/deadline field."""
     event_id = _build_task_change(TaskAction.UPDATE, ueid, {"due": due})
-    return json.dumps({"event_id": event_id, "action": "update", "field": "due", "value": due, "ueid": ueid})
+    return json.dumps(
+        {"event_id": event_id, "action": "update", "field": "due", "value": due, "ueid": ueid}
+    )
 
 
 @mcp.tool(
@@ -187,7 +204,15 @@ def taskdog_cancel(ueid: str) -> str:
     if not ok:
         return json.dumps({"error": err})
     event_id = _build_task_change(TaskAction.UPDATE, ueid, {"status": "cancelled"})
-    return json.dumps({"event_id": event_id, "action": "update", "field": "status", "value": "cancelled", "ueid": ueid})
+    return json.dumps(
+        {
+            "event_id": event_id,
+            "action": "update",
+            "field": "status",
+            "value": "cancelled",
+            "ueid": ueid,
+        }
+    )
 
 
 @mcp.tool(
@@ -222,12 +247,18 @@ def taskdog_set_planned_dates(
     if planned_end is not None:
         fields["planned_end"] = planned_end
     if not fields:
-        return json.dumps({"error": "at least one of planned_start or planned_end must be provided"})
+        return json.dumps(
+            {"error": "at least one of planned_start or planned_end must be provided"}
+        )
     event_id = _build_task_change(TaskAction.UPDATE, ueid, fields)
-    return json.dumps({
-        "event_id": event_id, "action": "update",
-        "fields": fields, "ueid": ueid,
-    })
+    return json.dumps(
+        {
+            "event_id": event_id,
+            "action": "update",
+            "fields": fields,
+            "ueid": ueid,
+        }
+    )
 
 
 @mcp.tool(
@@ -278,8 +309,7 @@ def _validate_tags(tags: Any) -> tuple[bool, str | None]:
             return False, f"each tag must be a string, got {type(t).__name__}"
         if not _TAG_REGEX.match(t):
             return False, (
-                f"invalid tag {t!r} (max {_MAX_TAG_LEN} chars, "
-                "alphanumeric+hyphen+underscore)"
+                f"invalid tag {t!r} (max {_MAX_TAG_LEN} chars, alphanumeric+hyphen+underscore)"
             )
     return True, None
 
@@ -302,9 +332,7 @@ def taskdog_tag_add(ueid: str, tags: list[str]) -> str:
     if not ok_t:
         return json.dumps({"error": err_t})
     event_id = _build_task_change(TaskAction.TAG_ADD, ueid, {"tags": list(tags)})
-    return json.dumps(
-        {"event_id": event_id, "action": "tag_add", "ueid": ueid, "tags": list(tags)}
-    )
+    return json.dumps({"event_id": event_id, "action": "tag_add", "ueid": ueid, "tags": list(tags)})
 
 
 @mcp.tool(
@@ -335,13 +363,11 @@ def taskdog_tag_list(ueid: str, db_path: str | None = None) -> str:
     ok, parsed_or_err = _validate_ueid(ueid)
     if not ok:
         return json.dumps({"error": parsed_or_err})
-    slice_ = TaskdogAdapter().read(parsed_or_err)
+    slice_ = TaskdogAdapter().read(cast(UEID, parsed_or_err))
     if slice_ is None:
         return json.dumps({"error": "ueid not found", "ueid": str(parsed_or_err)})
     tags = slice_.get("tags") or []
-    return json.dumps(
-        {"ueid": str(parsed_or_err), "count": len(tags), "tags": tags}, default=str
-    )
+    return json.dumps({"ueid": str(parsed_or_err), "count": len(tags), "tags": tags}, default=str)
 
 
 @mcp.tool(
@@ -395,11 +421,15 @@ def taskdog_dep_add(ueid: str, other_ueid: str) -> str:
     p2 = _parsed_safe(other_ueid)
     if p1 is not None and p2 is not None and str(p1) == str(p2):
         return json.dumps({"error": "ueid and other_ueid must differ (no self-deps)"})
-    event_id = _build_task_change(
-        TaskAction.UPDATE, ueid, {"deps_add": [other_ueid]}
-    )
+    event_id = _build_task_change(TaskAction.UPDATE, ueid, {"deps_add": [other_ueid]})
     return json.dumps(
-        {"event_id": event_id, "action": "update", "field": "deps_add", "ueid": ueid, "other_ueid": other_ueid}
+        {
+            "event_id": event_id,
+            "action": "update",
+            "field": "deps_add",
+            "ueid": ueid,
+            "other_ueid": other_ueid,
+        }
     )
 
 
@@ -412,11 +442,15 @@ def taskdog_dep_remove(ueid: str, other_ueid: str) -> str:
     ok, err = _validate_two_ueids(ueid, other_ueid)
     if not ok:
         return json.dumps({"error": err})
-    event_id = _build_task_change(
-        TaskAction.UPDATE, ueid, {"deps_remove": [other_ueid]}
-    )
+    event_id = _build_task_change(TaskAction.UPDATE, ueid, {"deps_remove": [other_ueid]})
     return json.dumps(
-        {"event_id": event_id, "action": "update", "field": "deps_remove", "ueid": ueid, "other_ueid": other_ueid}
+        {
+            "event_id": event_id,
+            "action": "update",
+            "field": "deps_remove",
+            "ueid": ueid,
+            "other_ueid": other_ueid,
+        }
     )
 
 
@@ -430,13 +464,11 @@ def taskdog_dep_list(ueid: str, db_path: str | None = None) -> str:
     ok, parsed_or_err = _validate_ueid(ueid)
     if not ok:
         return json.dumps({"error": parsed_or_err})
-    slice_ = TaskdogAdapter().read(parsed_or_err)
+    slice_ = TaskdogAdapter().read(cast(UEID, parsed_or_err))
     if slice_ is None:
         return json.dumps({"error": "ueid not found", "ueid": str(parsed_or_err)})
     deps = slice_.get("deps") or []
-    return json.dumps(
-        {"ueid": str(parsed_or_err), "count": len(deps), "deps": deps}, default=str
-    )
+    return json.dumps({"ueid": str(parsed_or_err), "count": len(deps), "deps": deps}, default=str)
 
 
 @mcp.tool(
@@ -447,30 +479,25 @@ def taskdog_dep_blocked(db_path: str | None = None) -> str:
     """Find tasks whose deps include at least one UEID whose status != 'done'."""
     _apply_db_override(db_path)
     tasks = TaskdogAdapter().list_all()
-    by_ueid: dict[str, dict[str, Any]] = {
-        str(t.get("ueid")): t for t in tasks if t.get("ueid")
-    }
+    by_ueid: dict[str, dict[str, Any]] = {str(t.get("ueid")): t for t in tasks if t.get("ueid")}
     blocked: list[dict[str, Any]] = []
     for t in tasks:
         ueid_str = str(t.get("ueid") or "")
         deps = t.get("deps") or []
         if not deps:
             continue
-        unmet = [
-            d for d in deps
-            if d not in by_ueid or by_ueid[d].get("status") != "done"
-        ]
+        unmet = [d for d in deps if d not in by_ueid or by_ueid[d].get("status") != "done"]
         if unmet:
-            blocked.append({
-                "ueid": ueid_str,
-                "name": t.get("name"),
-                "status": t.get("status"),
-                "deps": list(deps),
-                "unmet_deps": unmet,
-            })
-    return json.dumps(
-        {"count": len(blocked), "blocked": blocked}, default=str
-    )
+            blocked.append(
+                {
+                    "ueid": ueid_str,
+                    "name": t.get("name"),
+                    "status": t.get("status"),
+                    "deps": list(deps),
+                    "unmet_deps": unmet,
+                }
+            )
+    return json.dumps({"count": len(blocked), "blocked": blocked}, default=str)
 
 
 # ---------------------------------------------------------------------------
@@ -493,11 +520,15 @@ def taskdog_note_add(ueid: str, text: str) -> str:
         return json.dumps({"error": "text must not be empty"})
     if len(text) > _MAX_NOTE_LEN:
         return json.dumps({"error": f"text exceeds {_MAX_NOTE_LEN} chars"})
-    event_id = _build_task_change(
-        TaskAction.UPDATE, ueid, {"note": text}
-    )
+    event_id = _build_task_change(TaskAction.UPDATE, ueid, {"note": text})
     return json.dumps(
-        {"event_id": event_id, "action": "update", "field": "note", "ueid": ueid, "length": len(text)}
+        {
+            "event_id": event_id,
+            "action": "update",
+            "field": "note",
+            "ueid": ueid,
+            "length": len(text),
+        }
     )
 
 
@@ -511,14 +542,11 @@ def taskdog_note_show(ueid: str, db_path: str | None = None) -> str:
     ok, parsed_or_err = _validate_ueid(ueid)
     if not ok:
         return json.dumps({"error": parsed_or_err})
-    slice_ = TaskdogAdapter().read(parsed_or_err)
+    slice_ = TaskdogAdapter().read(cast(UEID, parsed_or_err))
     if slice_ is None:
         return json.dumps({"error": "ueid not found", "ueid": str(parsed_or_err)})
     audit = slice_.get("audit_log") or []
-    notes = [
-        e for e in audit
-        if isinstance(e, dict) and e.get("action") == "note_add"
-    ]
+    notes = [e for e in audit if isinstance(e, dict) and e.get("action") == "note_add"]
     return json.dumps(
         {"ueid": str(parsed_or_err), "count": len(notes), "notes": notes},
         default=str,
@@ -549,7 +577,13 @@ def taskdog_pause(ueid: str) -> str:
         return json.dumps({"error": err})
     event_id = _build_task_change(TaskAction.UPDATE, ueid, {"status": _PAUSE_STATUS})
     return json.dumps(
-        {"event_id": event_id, "action": "update", "field": "status", "value": _PAUSE_STATUS, "ueid": ueid}
+        {
+            "event_id": event_id,
+            "action": "update",
+            "field": "status",
+            "value": _PAUSE_STATUS,
+            "ueid": ueid,
+        }
     )
 
 
@@ -564,7 +598,13 @@ def taskdog_reopen(ueid: str) -> str:
         return json.dumps({"error": err})
     event_id = _build_task_change(TaskAction.UPDATE, ueid, {"status": _REOPEN_STATUS})
     return json.dumps(
-        {"event_id": event_id, "action": "update", "field": "status", "value": _REOPEN_STATUS, "ueid": ueid}
+        {
+            "event_id": event_id,
+            "action": "update",
+            "field": "status",
+            "value": _REOPEN_STATUS,
+            "ueid": ueid,
+        }
     )
 
 
@@ -583,7 +623,7 @@ def taskdog_audit(ueid: str, db_path: str | None = None) -> str:
     ok, parsed_or_err = _validate_ueid(ueid)
     if not ok:
         return json.dumps({"error": parsed_or_err})
-    slice_ = TaskdogAdapter().read(parsed_or_err)
+    slice_ = TaskdogAdapter().read(cast(UEID, parsed_or_err))
     if slice_ is None:
         return json.dumps({"error": "ueid not found", "ueid": str(parsed_or_err)})
     audit = slice_.get("audit_log") or []
@@ -606,10 +646,7 @@ def taskdog_search(
     """READ: substring match on name + optional filters. Bypasses queue (read-only)."""
     tasks = TaskdogAdapter().list_all()
     q = query.lower()
-    matched = [
-        t for t in tasks
-        if q in (t.get("name") or "").lower()
-    ]
+    matched = [t for t in tasks if q in (t.get("name") or "").lower()]
     if status is not None:
         matched = [t for t in matched if t.get("status") == status]
     if priority is not None:
@@ -625,30 +662,30 @@ def taskdog_search(
 
 __all__ = [
     "mcp",
-    "taskdog_list",
-    "taskdog_read",
-    "taskdog_supports_field",
-    "taskdog_create",
-    "taskdog_set_status",
-    "taskdog_set_priority",
-    "taskdog_set_due",
-    "taskdog_set_planned_dates",
+    "taskdog_audit",
     "taskdog_cancel",
-    "taskdog_done",
+    "taskdog_create",
     "taskdog_delete",
-    "taskdog_search",
-    # M163/M164 surface
-    "taskdog_tag_add",
-    "taskdog_tag_remove",
-    "taskdog_tag_list",
-    "taskdog_tag_clear",
     "taskdog_dep_add",
-    "taskdog_dep_remove",
-    "taskdog_dep_list",
     "taskdog_dep_blocked",
+    "taskdog_dep_list",
+    "taskdog_dep_remove",
+    "taskdog_done",
+    "taskdog_list",
     "taskdog_note_add",
     "taskdog_note_show",
     "taskdog_pause",
+    "taskdog_read",
     "taskdog_reopen",
-    "taskdog_audit",
+    "taskdog_search",
+    "taskdog_set_due",
+    "taskdog_set_planned_dates",
+    "taskdog_set_priority",
+    "taskdog_set_status",
+    "taskdog_supports_field",
+    # M163/M164 surface
+    "taskdog_tag_add",
+    "taskdog_tag_clear",
+    "taskdog_tag_list",
+    "taskdog_tag_remove",
 ]

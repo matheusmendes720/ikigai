@@ -17,7 +17,7 @@ from .schema import Entry, EntryRole, Proposal
 _ENTRY_HEADER_RE = re.compile(r"^##\s*\[([^\]]+)\]\s+(\S+)\s*$", re.MULTILINE)
 
 
-def read_thread(thread_id: str, *, base_dir) -> tuple[list[Entry], list[Proposal]]:
+def read_thread(thread_id: str, *, base_dir: Path | str) -> tuple[list[Entry], list[Proposal]]:
     """Read all entries + proposals for a thread.
 
     Returns ([Entry, ...], [Proposal, ...]). Empty lists when thread directory is missing.

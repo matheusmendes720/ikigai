@@ -25,7 +25,7 @@ from __future__ import annotations
 import argparse
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import yaml
@@ -88,7 +88,7 @@ def load_entities(vault_root: Path) -> list[Entity]:
             created_at = (
                 created_at_raw
                 if created_at_raw.tzinfo
-                else created_at_raw.replace(tzinfo=timezone.utc)
+                else created_at_raw.replace(tzinfo=UTC)
             )
         else:
             # String form — handle Z suffix
@@ -96,7 +96,7 @@ def load_entities(vault_root: Path) -> list[Entity]:
             try:
                 created_at = datetime.fromisoformat(created_at_str)
             except ValueError:
-                created_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
+                created_at = datetime(2026, 1, 1, tzinfo=UTC)
         entities.append(
             Entity(
                 ueid=meta["ueid"],

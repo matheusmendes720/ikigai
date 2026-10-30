@@ -10,7 +10,7 @@ the canonical write path so failures should surface, not crash).
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from ..state import IKIGAiStateDict
 
@@ -69,7 +69,7 @@ def tag_and_persist_node(state: IKIGAiStateDict) -> dict[str, Any]:
             actor=actor,
             vault_path=vault_path,
             fields=fields,
-            rationale=state.get("user_request", "")[:200],
+            rationale=cast(str, state.get("user_request", ""))[:200],
         )
 
         # wrap_vault_write returns ExecutionReport-like; normalize.

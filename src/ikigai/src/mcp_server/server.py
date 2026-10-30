@@ -34,18 +34,44 @@ from mcp_server.handlers import _handle_ikigai_decompose
 from mcp_server.investigation_complete import investigation_complete
 from mcp_server.investigation_enqueue import investigation_enqueue
 from mcp_server.investigation_status import investigation_status
-from mcp_server.taskdog_tools import (  # noqa: F401 — M148: re-exports handlers below
-    taskdog_create as _taskdog_create,
-    taskdog_done as _taskdog_done,
-    taskdog_set_status as _taskdog_set_status,
-    taskdog_set_priority as _taskdog_set_priority,
-    taskdog_set_due as _taskdog_set_due,
-    taskdog_set_planned_dates as _taskdog_set_planned_dates,
+
+# M148: re-exports handlers below. Ruff's isort splits aliased imports
+# into separate statements (combine-as-imports is off), so keep the alias
+# form and let the formatter keep the block tidy.
+from mcp_server.taskdog_tools import (
     taskdog_cancel as _taskdog_cancel,
+)
+from mcp_server.taskdog_tools import (
+    taskdog_create as _taskdog_create,
+)
+from mcp_server.taskdog_tools import (
     taskdog_delete as _taskdog_delete,
-    taskdog_search as _taskdog_search,
-    taskdog_read as _taskdog_read,
+)
+from mcp_server.taskdog_tools import (
+    taskdog_done as _taskdog_done,
+)
+from mcp_server.taskdog_tools import (
     taskdog_list as _taskdog_list,
+)
+from mcp_server.taskdog_tools import (
+    taskdog_read as _taskdog_read,
+)
+from mcp_server.taskdog_tools import (
+    taskdog_search as _taskdog_search,
+)
+from mcp_server.taskdog_tools import (
+    taskdog_set_due as _taskdog_set_due,
+)
+from mcp_server.taskdog_tools import (
+    taskdog_set_planned_dates as _taskdog_set_planned_dates,
+)
+from mcp_server.taskdog_tools import (
+    taskdog_set_priority as _taskdog_set_priority,
+)
+from mcp_server.taskdog_tools import (
+    taskdog_set_status as _taskdog_set_status,
+)
+from mcp_server.taskdog_tools import (
     taskdog_supports_field as _taskdog_supports_field,
 )
 from mcp_server.tracing import init_mcp_tracing, traced_tool_dispatch
@@ -105,7 +131,7 @@ def ikigai_read_tasks(
 def _ikigai_mesh_show_tool(ueid: str) -> str:
     from mcp_server.tools_mesh import ikigai_mesh_show
 
-    return ikigai_mesh_show(ueid=ueid)
+    return cast(str, ikigai_mesh_show(ueid=ueid))
 
 
 @MCP.tool(
@@ -120,11 +146,14 @@ def _ikigai_task_create_tool(
 ) -> str:
     from mcp_server.tools_mesh import ikigai_task_create
 
-    return ikigai_task_create(
-        ueid=ueid,
-        fields=fields,
-        source_fork=source_fork,
-        action=action,
+    return cast(
+        str,
+        ikigai_task_create(
+            ueid=ueid,
+            fields=fields,
+            source_fork=source_fork,
+            action=action,
+        ),
     )
 
 
@@ -135,7 +164,7 @@ def _ikigai_task_create_tool(
 def _ikigai_health_tool() -> str:
     from mcp_server.tools_mesh import ikigai_health
 
-    return ikigai_health()
+    return cast(str, ikigai_health())
 
 
 @MCP.tool(
@@ -197,7 +226,7 @@ def _tool_investigation_enqueue(
     tags: list[str] | None = None,
     actor: str = "agent",
 ) -> dict[str, Any]:
-    return investigation_enqueue(inq_id, source, payload, tags, actor)
+    return cast(dict[str, Any], investigation_enqueue(inq_id, source, payload, tags, actor))
 
 
 @MCP.tool(
@@ -205,7 +234,7 @@ def _tool_investigation_enqueue(
     description="Fetch the status of one investigation (by inq_id) or a summary across all statuses.",
 )
 def _tool_investigation_status(inq_id: str | None = None) -> dict[str, Any]:
-    return investigation_status(inq_id)
+    return cast(dict[str, Any], investigation_status(inq_id))
 
 
 @MCP.tool(
@@ -218,7 +247,7 @@ def _tool_investigation_complete(
     actor: str = "agent",
     inq_ueid: str | None = None,
 ) -> dict[str, Any]:
-    return investigation_complete(inq_id, final_status, actor, inq_ueid)  # type: ignore[arg-type]
+    return cast(dict[str, Any], investigation_complete(inq_id, final_status, actor, inq_ueid))
 
 
 # ---------------------------------------------------------------------------
@@ -313,7 +342,7 @@ def ikigai_commit_summary(cycle_id: str) -> dict[str, Any]:
     description="Read a taskdog task by UEID (read-only fork tool).",
 )
 def taskdog_read(ueid: str, db_path: str | None = None) -> str:
-    return _taskdog_read(ueid, db_path)
+    return cast(str, _taskdog_read(ueid, db_path))
 
 
 @MCP.tool(
@@ -325,7 +354,7 @@ def taskdog_list(
     limit: int | None = None,
     db_path: str | None = None,
 ) -> str:
-    return _taskdog_list(status, limit, db_path)
+    return cast(str, _taskdog_list(status, limit, db_path))
 
 
 @MCP.tool(
@@ -333,7 +362,7 @@ def taskdog_list(
     description="Check whether a field name is supported by the taskdog adapter.",
 )
 def taskdog_supports_field(field_name: str) -> str:
-    return _taskdog_supports_field(field_name)
+    return cast(str, _taskdog_supports_field(field_name))
 
 
 @MCP.tool(
@@ -348,7 +377,7 @@ def taskdog_create(
     planned_start: str | None = None,
     planned_end: str | None = None,
 ) -> str:
-    return _taskdog_create(ueid, title, due, priority, planned_start, planned_end)
+    return cast(str, _taskdog_create(ueid, title, due, priority, planned_start, planned_end))
 
 
 @MCP.tool(
@@ -356,7 +385,7 @@ def taskdog_create(
     description="Mark a task as done. Goes through review queue.",
 )
 def taskdog_done(ueid: str) -> str:
-    return _taskdog_done(ueid)
+    return cast(str, _taskdog_done(ueid))
 
 
 @MCP.tool(
@@ -364,7 +393,7 @@ def taskdog_done(ueid: str) -> str:
     description="Update task status. Goes through review queue.",
 )
 def taskdog_set_status(ueid: str, status: str) -> str:
-    return _taskdog_set_status(ueid, status)
+    return cast(str, _taskdog_set_status(ueid, status))
 
 
 @MCP.tool(
@@ -372,7 +401,7 @@ def taskdog_set_status(ueid: str, status: str) -> str:
     description="Update task priority. Goes through review queue.",
 )
 def taskdog_set_priority(ueid: str, priority: str | int) -> str:
-    return _taskdog_set_priority(ueid, priority)
+    return cast(str, _taskdog_set_priority(ueid, priority))
 
 
 @MCP.tool(
@@ -380,7 +409,7 @@ def taskdog_set_priority(ueid: str, priority: str | int) -> str:
     description="Update task due date. Goes through review queue.",
 )
 def taskdog_set_due(ueid: str, due: str) -> str:
-    return _taskdog_set_due(ueid, due)
+    return cast(str, _taskdog_set_due(ueid, due))
 
 
 @MCP.tool(
@@ -388,9 +417,11 @@ def taskdog_set_due(ueid: str, due: str) -> str:
     description="Update task planned start/end dates. Goes through review queue.",
 )
 def taskdog_set_planned_dates(
-    ueid: str, planned_start: str, planned_end: str,
+    ueid: str,
+    planned_start: str,
+    planned_end: str,
 ) -> str:
-    return _taskdog_set_planned_dates(ueid, planned_start, planned_end)
+    return cast(str, _taskdog_set_planned_dates(ueid, planned_start, planned_end))
 
 
 @MCP.tool(
@@ -398,7 +429,7 @@ def taskdog_set_planned_dates(
     description="Cancel a task (status='cancelled'). Goes through review queue.",
 )
 def taskdog_cancel(ueid: str) -> str:
-    return _taskdog_cancel(ueid)
+    return cast(str, _taskdog_cancel(ueid))
 
 
 @MCP.tool(
@@ -406,7 +437,7 @@ def taskdog_cancel(ueid: str) -> str:
     description="Hard-delete a task from taskdog. Goes through review queue. Irreversible.",
 )
 def taskdog_delete(ueid: str) -> str:
-    return _taskdog_delete(ueid)
+    return cast(str, _taskdog_delete(ueid))
 
 
 @MCP.tool(
@@ -419,8 +450,7 @@ def taskdog_search(
     priority: str | int | None = None,
     limit: int = 10,
 ) -> str:
-    return _taskdog_search(query, status, priority, limit)
-
+    return cast(str, _taskdog_search(query, status, priority, limit))
 
 
 # ---------------------------------------------------------------------------
@@ -482,32 +512,32 @@ from mcp_server.resources import (  # noqa: E402
 
 @MCP.resource("ueid://{ueid}")
 def _ueid_resource(ueid: str) -> str:
-    return ueid_resource(ueid)
+    return cast(str, ueid_resource(ueid))
 
 
 @MCP.resource("queue://pending")
 def _queue_pending_resource() -> str:
-    return queue_pending_resource()
+    return cast(str, queue_pending_resource())
 
 
 @MCP.resource("queue://events/{event_id}")
 def _queue_event_resource(event_id: str) -> str:
-    return queue_event_resource(event_id)
+    return cast(str, queue_event_resource(event_id))
 
 
 @MCP.resource("health://gateway")
 def _health_resource() -> str:
-    return health_resource()
+    return cast(str, health_resource())
 
 
 @MCP.resource("plans://cycles")
 def _plans_cycles_resource() -> str:
-    return plans_cycles_resource()
+    return cast(str, plans_cycles_resource())
 
 
 @MCP.resource("plans://cycles/{cycle_id}")
 def _plans_cycle_resource(cycle_id: str) -> str:
-    return plans_cycle_resource(cycle_id)
+    return cast(str, plans_cycle_resource(cycle_id))
 
 
 # Backward-compat TOOLS list

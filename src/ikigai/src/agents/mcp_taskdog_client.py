@@ -19,6 +19,7 @@ Failures fall back to IKIGAI_TOOLS only (4 taskdog @tool wrappers), so
 the harness always boots even if MCP is unavailable (e.g. CI without
 taskdog-mcp on PATH).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -75,7 +76,7 @@ def get_taskdog_tools() -> list[Any]:
         tools = asyncio.run(_async_get_taskdog_tools())
         logger.info("loaded %d tools from taskdog-mcp", len(tools))
         return tools
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("failed to load taskdog-mcp tools: %s", exc)
         return []
 

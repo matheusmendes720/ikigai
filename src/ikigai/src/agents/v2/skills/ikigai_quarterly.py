@@ -7,6 +7,7 @@ PLUS CREATE OKRs as taskdog tasks.
 Cron: 0 11 1 1,4,7,10 *
 Slash: /ikigai-quarterly
 """
+
 from __future__ import annotations
 
 from datetime import date, timedelta
@@ -21,7 +22,6 @@ from agents.v2.skills.cadence import (
     render_quarterly_review,
     weekly_path,
 )
-
 
 SKILL_NAME = "ikigai-quarterly"
 
@@ -67,7 +67,7 @@ def propose(today: date | None = None) -> Proposal:
                     "title": okr["title"],
                     "priority": okr.get("priority", 2),
                 },
-                "rationale": f"OKR extracted from quarterly review",
+                "rationale": "OKR extracted from quarterly review",
             }
         )
 

@@ -28,9 +28,9 @@ Architectural reference:
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from .memory_schema import (
     MEMORY_TABLE_DAILY,
@@ -66,7 +66,7 @@ def _date_to_epoch(d: date) -> float:
     for SQL ``BETWEEN`` filtering. Per ADR-028 R5: ts is REAL (Unix epoch
     seconds); date boundaries are inclusive at midnight UTC.
     """
-    return datetime(d.year, d.month, d.day, tzinfo=timezone.utc).timestamp()
+    return datetime(d.year, d.month, d.day, tzinfo=UTC).timestamp()
 
 
 # ---------------------------------------------------------------------------
@@ -81,7 +81,7 @@ def _read_records(
     ts_start: float,
     ts_end: float,
     actor: str | None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Query rows from a memory table within a ts range, optionally filtered by actor.
 
     Returns a list of dict-shaped records (TypedDict-compatible) ordered
@@ -160,7 +160,7 @@ def read_daily_intentions(
         ts_end=ts_end_exclusive,
         actor=actor,
     )
-    return [DailyIntentionRecord(**r) for r in rows]  # type: ignore[misc]
+    return [DailyIntentionRecord(**r) for r in rows]  # type: ignore[typeddict-item]
 
 
 def read_weekly_aggregations(
@@ -191,7 +191,7 @@ def read_weekly_aggregations(
         ts_end=ts_end_exclusive,
         actor=actor,
     )
-    return [WeeklyAggregation(**r) for r in rows]  # type: ignore[misc]
+    return [WeeklyAggregation(**r) for r in rows]  # type: ignore[typeddict-item]
 
 
 def read_monthly_syntheses(
@@ -222,7 +222,7 @@ def read_monthly_syntheses(
         ts_end=ts_end_exclusive,
         actor=actor,
     )
-    return [MonthlySynthesis(**r) for r in rows]  # type: ignore[misc]
+    return [MonthlySynthesis(**r) for r in rows]  # type: ignore[typeddict-item]
 
 
 def read_quarterly_strategies(
@@ -253,7 +253,7 @@ def read_quarterly_strategies(
         ts_end=ts_end_exclusive,
         actor=actor,
     )
-    return [QuarterlyStrategy(**r) for r in rows]  # type: ignore[misc]
+    return [QuarterlyStrategy(**r) for r in rows]  # type: ignore[typeddict-item]
 
 
 __all__ = [

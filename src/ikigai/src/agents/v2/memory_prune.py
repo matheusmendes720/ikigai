@@ -36,7 +36,7 @@ from __future__ import annotations
 import logging
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from .memory_schema import (
     ALL_MEMORY_TABLES,
@@ -311,7 +311,7 @@ def prune_on_write(
     retention_days = int(raw_value)
 
     prune_fn = _PRUNE_DISPATCH[table]
-    return prune_fn(memory_db, retention_days, now_epoch=now_epoch)
+    return cast(int, prune_fn(memory_db, retention_days, now_epoch=now_epoch))
 
 
 __all__ = [

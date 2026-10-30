@@ -103,8 +103,7 @@ def _apply_staticfiles_patch() -> bool:
     StaticFiles.__init__ = _patched_init  # type: ignore[assignment]
     _PATCH_APPLIED = True
     logger.info(
-        "[sitecustomize] langgraph_api Mount() patch APPLIED: "
-        "StaticFiles.html default -> True"
+        "[sitecustomize] langgraph_api Mount() patch APPLIED: StaticFiles.html default -> True"
     )
     return True
 
@@ -144,9 +143,7 @@ class _LanggraphApiImportHook:
             try:
                 _apply_staticfiles_patch()
             except Exception as exc:  # pragma: no cover — defensive
-                logger.warning(
-                    "[sitecustomize] retry StaticFiles patch failed: %s", exc
-                )
+                logger.warning("[sitecustomize] retry StaticFiles patch failed: %s", exc)
         return None
 
 

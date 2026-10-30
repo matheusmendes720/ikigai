@@ -26,7 +26,7 @@ Drift invariants enforced:
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from .checkpoint_types import SCHEMA_CONTROL_KEYS, VaultWriteRecord
 
@@ -99,7 +99,7 @@ def deserialize_checkpoint(blob: bytes) -> dict[str, Any]:
     Returns:
         Reconstructed state dict (including schema-control fields).
     """
-    return json.loads(blob.decode("utf-8"))
+    return cast(dict[str, Any], json.loads(blob.decode("utf-8")))
 
 
 __all__ = [

@@ -6,20 +6,22 @@ Each skill is a module that exposes:
 
 Skills emit Proposals; never execute directly.
 """
+
 from __future__ import annotations
 
 from typing import Any
 
-from agents.v2.proposals import Proposal
+from agents.v2.proposals import Proposal as Proposal  # re-export: public API of this package
 
 # Import skills so SKILL_NAME is discoverable
-from agents.v2.skills import taskdog_triage  # noqa: F401
-from agents.v2.skills import vault_intent_extract  # noqa: F401
-from agents.v2.skills import ikigai_daily  # noqa: F401
-from agents.v2.skills import ikigai_weekly  # noqa: F401
-from agents.v2.skills import ikigai_monthly  # noqa: F401
-from agents.v2.skills import ikigai_quarterly  # noqa: F401
-
+from agents.v2.skills import (
+    ikigai_daily,
+    ikigai_monthly,
+    ikigai_quarterly,
+    ikigai_weekly,
+    taskdog_triage,
+    vault_intent_extract,
+)
 
 SKILL_REGISTRY: dict[str, Any] = {
     taskdog_triage.SKILL_NAME: taskdog_triage,

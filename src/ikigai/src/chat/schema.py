@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -68,7 +68,7 @@ class Entry(BaseModel):
     thread_id: str
     role: EntryRole = EntryRole.USER
     content: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     entity_type: str = "entry"  # marker for tests asserted in M58
 
 
@@ -83,7 +83,7 @@ class Proposal(BaseModel):
 
     @field_validator("status", mode="before")
     @classmethod
-    def _coerce_status(cls, v):
+    def _coerce_status(cls, v: Any) -> Any:
         # Accept StrEnum members, strings (case-sensitive), or plain str literals.
         # Coerce "open" -> _ProposalStatusEnum.OPEN, "OPEN" -> .OPEN, etc.
         from .schema import _ProposalStatusEnum as _PSE

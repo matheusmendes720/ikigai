@@ -43,7 +43,7 @@ try:
 
     OTLPSpanExporter = _OTLPSpanExporter
     _OTLP_AVAILABLE = True
-except (ImportError, AttributeError) as _otel_err:  # noqa: BLE001
+except (ImportError, AttributeError) as _otel_err:
     OTLPSpanExporter = None  # type: ignore[assignment,misc]
     _OTLP_AVAILABLE = False
     print(

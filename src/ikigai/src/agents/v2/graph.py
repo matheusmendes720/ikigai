@@ -15,11 +15,10 @@ from __future__ import annotations
 import logging
 import traceback
 from collections.abc import Callable
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
 
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, StateGraph
-from src.ikigai.src.observability.otel_init import get_tracer, init_tracing
 
 # Absolute imports (M102) so langgraph_api can load graph.py standalone
 # without parent package. Previously used relative imports (`.nodes.X`)
@@ -42,6 +41,7 @@ from src.ikigai.src.agents.v2.nodes.tag_and_persist import tag_and_persist_node
 from src.ikigai.src.agents.v2.nodes.tag_propagation import tag_propagation_node
 from src.ikigai.src.agents.v2.state import IKIGAiStateDict
 from src.ikigai.src.agents.v2.subgraph import dispatch_sub_agents
+from src.ikigai.src.observability.otel_init import get_tracer, init_tracing
 
 _init_tracing_ok = True
 try:
@@ -85,15 +85,24 @@ NODES = (
 # partial state instead of crashing. The terminal `error_node` consumes this
 # state to produce a failed commit_summary.
 # ---------------------------------------------------------------------------
-def _safe_node(name: str, fn: Callable[[IKIGAiStateDict], dict[str, Any]]) -> Any:
+# Node state parameter type. Some v2 nodes declare `IKIGAiStateDict`, others
+# the looser `dict[str, Any]`; the wrapper is generic over both.
+_StateT = TypeVar("_StateT")
+
+
+def _safe_node(name: str, fn: Callable[[_StateT], dict[str, Any]]) -> Any:
     """Wrap a node function so exceptions populate error-channel state.
 
     Returns a wrapper with the same signature; when fn() raises, the wrapper
     returns a dict with originating_node/error_type/error_message/traceback_str
     fields. Routing after `commit` checks these fields to decide END vs error.
+
+    `_StateT` is bound to the node's own state-parameter type: some v2 nodes
+    declare `IKIGAiStateDict` while others declare the looser `dict[str, Any]`.
+    The wrapper forwards whatever it receives, so both are accepted verbatim.
     """
 
-    def wrapper(state: IKIGAiStateDict) -> dict[str, Any]:
+    def wrapper(state: _StateT) -> dict[str, Any]:
         try:
             return fn(state)
         except Exception as exc:
@@ -279,9 +288,7 @@ def _has_taskdog_proposal_intent(state: IKIGAiStateDict, key: str) -> bool:
 
 def _route_after_surface_intentions(
     state: IKIGAiStateDict,
-) -> Literal[
-    "tag_propagation", "dep_graph", "gantt_suggest", "error"
-]:
+) -> Literal["tag_propagation", "dep_graph", "gantt_suggest", "error"] | Literal["__end__"]:
     """After surface_intentions: dispatch to the appropriate proposal node
     based on which intent marker is populated. Marker precedence:
       1. tag_propagation_input → tag_propagation
@@ -298,7 +305,10 @@ def _route_after_surface_intentions(
         return "dep_graph"
     if _has_taskdog_proposal_intent(state, "gantt_input"):
         return "gantt_suggest"
-    return "error"
+    # No proposal intent: surface_intentions already produced user_suggestions;
+    # terminate gracefully — error_node is for genuine errors, not no-op fallbacks.
+    # END is the literal "__end__" sentinel; cast pins it to the declared Literal.
+    return cast(Literal["__end__"], END)
 
 
 # ---------------------------------------------------------------------------
@@ -330,7 +340,7 @@ def _build_v2_graph(
         raise ValueError(f"Invalid entry_point {entry_point!r}. Must be one of: {', '.join(NODES)}")
 
     if checkpoint_db is None:
-        _project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
+        _project_root = Path(__file__).parent.parent.parent.parent.parent
         checkpoint_db = str(_project_root / "data" / "ikigai_checkpoints.db")
 
     # Ensure directory exists
@@ -456,6 +466,10 @@ def _build_v2_graph(
                 "dep_graph": "dep_graph",
                 "gantt_suggest": "gantt_suggest",
                 "error": "error",
+                # No proposal intent -> terminate the graph gracefully.
+                # LangGraph requires every possible router return value to be
+                # a key of this map, otherwise it raises KeyError at runtime.
+                END: END,
             },
         )
         builder.add_edge("tag_propagation", END)
@@ -492,14 +506,28 @@ def _build_v2_graph(
 
 
 # Import concrete types up-front so langgraph_api can resolve annotations.
-try:
-    from langgraph_sdk.runtime import ServerRuntime as _ServerRuntime  # noqa: E402
-    from langgraph_sdk.schema import Config as _RunnableConfig  # noqa: E402
+#
+# TYPE_CHECKING branch: give mypy a concrete, fully-parameterized
+# `ServerRuntime` alias (`ServerRuntime` is a generic TypeAliasType, so a bare
+# `_ServerRuntime | None` annotation trips the type-arg check). The runtime
+# branch keeps the original try/except so an env without langgraph_sdk still
+# imports cleanly.
+if TYPE_CHECKING:
+    from langgraph_sdk.runtime import ServerRuntime as _ServerRuntimeT
+    from langgraph_sdk.schema import Config as _RunnableConfig
+
+    _ServerRuntime = _ServerRuntimeT[Any]
     _HAS_SDK_TYPES = True
-except ImportError:  # langgraph_sdk not installed in some envs
-    _ServerRuntime = None  # type: ignore[assignment]
-    _RunnableConfig = None  # type: ignore[assignment]
-    _HAS_SDK_TYPES = False
+else:
+    try:
+        from langgraph_sdk.runtime import ServerRuntime as _ServerRuntime
+        from langgraph_sdk.schema import Config as _RunnableConfig
+
+        _HAS_SDK_TYPES = True
+    except ImportError:  # langgraph_sdk not installed in some envs
+        _ServerRuntime = None
+        _RunnableConfig = None
+        _HAS_SDK_TYPES = False
 
 
 # M102: `os` needed by make_v2_graph (was imported later for the singleton).
@@ -507,8 +535,8 @@ import os  # noqa: E402
 
 
 def make_v2_graph(
-    runtime: "_ServerRuntime | None" = None,
-    config: "_RunnableConfig | None" = None,
+    runtime: _ServerRuntime | None = None,
+    config: _RunnableConfig | None = None,
 ) -> Any:
     """LangGraph-API-compatible factory for the IKIGAi Maintainer v2 graph.
 
@@ -542,7 +570,6 @@ def make_v2_graph(
 # ---------------------------------------------------------------------------
 # Module-level singleton for langgraph dev
 # ---------------------------------------------------------------------------
-import os  # noqa: E402
 
 _graph_instance = None
 

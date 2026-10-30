@@ -9,14 +9,24 @@ Constitutional references:
 - state_on_disk_not_conversation: Proposal is persisted to vault_log
 - tests_are_the_contract: Proposal.validate() catches malformed inputs
 """
+
 from __future__ import annotations
 
 import json
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+
+def _vault_root() -> Path:
+    """Resolve the vault root (repo root / ``vault``).
+
+    ``src/ikigai/src/agents/v2/proposals.py`` → 5 parents up is the
+    repository root, matching ``agents/ikigai_write_vault._get_vault_dir``.
+    """
+    return Path(__file__).resolve().parents[5] / "vault"
 
 
 @dataclass
@@ -73,11 +83,39 @@ class Proposal:
                 errors.append(f"change #{i} missing 'ueid'")
         return errors
 
-    def write_to_vault(self, vault_dir: str = "vault/proposals") -> str:
-        """Persist the proposal to disk as a JSON file. Returns path."""
-        path = Path(vault_dir)
-        path.mkdir(parents=True, exist_ok=True)
-        file_path = path / f"{self.proposal_id}.json"
-        file_path.write_text(self.to_json(), encoding="utf-8")
-        self.vault_log_path = str(file_path)
-        return str(file_path)
+    def write_to_vault(self, vault_dir: str = "proposals") -> str:
+        """Persist the proposal through the canonical vault writer.
+
+        The vault has a single writer (``sys_ikigai.vault.vault_write``)
+        per the attribution report §7 — this method must not write
+        into the vault by itself.
+
+        The proposal is stored as a markdown note: metadata goes to the
+        frontmatter, the proposed changes go to the body as JSON.
+
+        Args:
+            vault_dir: directory inside the vault root (default
+                ``"proposals"``).
+
+        Returns:
+            The absolute path of the written note.
+        """
+        from sys_ikigai.vault.vault_write import vault_write
+
+        vault_root = _vault_root()
+        rel_path = f"{vault_dir.strip('/')}/{self.proposal_id}.md"
+        result = vault_write(
+            vault_root,
+            rel_path,
+            {
+                "skill": self.skill,
+                "approval_state": self.approval_state,
+                "created_at": self.created_at,
+                "applied_at": self.applied_at,
+                "proposal_id": self.proposal_id,
+            },
+            json.dumps(self.changes, indent=2, default=str),
+            actor="agent",
+        )
+        self.vault_log_path = str(vault_root / str(result["vault_path"]))
+        return self.vault_log_path

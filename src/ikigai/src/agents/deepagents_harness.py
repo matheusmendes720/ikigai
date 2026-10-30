@@ -216,6 +216,7 @@ def _make_agent(
 
     # Load IKIGAi tools (+ optional MCP taskdog tools, M97b)
     from .mcp_taskdog_client import build_agent_tools
+
     all_tools = build_agent_tools()  # 12 IKIGAI_TOOLS + 0-26 MCP taskdog tools
 
     # LLM — initialize ChatAnthropic with MiniMax / Anthropic / Claude-proxy credentials
@@ -253,7 +254,7 @@ def _make_agent(
     ):
         model_name = "claude-3-5-haiku-latest"  # proxy default
 
-    llm = ChatAnthropic(
+    llm = cast(Any, ChatAnthropic)(
         model=model_name,
         api_key=api_key,
         base_url=base_url,
@@ -269,7 +270,7 @@ def _make_agent(
             tools=all_tools,
             system_prompt=_SYSTEM_PROMPT,
             checkpointer=checkpointer,
-            interrupt_on=interrupt_on,
+            interrupt_on=cast(Any, interrupt_on),
             name="ikigai-maintainer",
             backend=backend,  # enables built-in ls/read_file/write_file/edit_file/glob/grep
         )
@@ -396,7 +397,7 @@ def _invoke_agent_or_fallback(
     # M107: catch langchain_core ModelConnectionError / ModelError (network, proxy down).
     # AnthropicConnectionError inherits from anthropic.APIConnectionError → ModelConnectionError
     # but NOT OSError, so it slipped through the narrow catch above.
-    except Exception as exc:  # noqa: BLE001 — intentional broad catch for graceful fallback
+    except Exception as exc:  # intentional broad catch for graceful fallback
         # Re-raise control-flow exceptions.
         if isinstance(exc, (KeyboardInterrupt, SystemExit, GeneratorExit)):
             raise
@@ -405,6 +406,164 @@ def _invoke_agent_or_fallback(
         print(f"[invoke-fallback-broad] {type(exc).__name__}: {exc}", flush=True)
         _tb.print_exc()
         return None
+
+
+# ---------------------------------------------------------------------------
+# M106 — REPL shell helpers (readline setup, built-in commands, history).
+# ---------------------------------------------------------------------------
+
+_CHAT_COMMANDS: tuple[str, ...] = (
+    "/help",
+    "/exit",
+    "/quit",
+    "/thread",
+    "/reset",
+    "/history",
+    "/clear",
+)
+_HISTORY_MAX = 500
+
+
+def _print_banner() -> None:
+    """Print the chat REPL banner."""
+    print("IKIGAi Conversational Agent — powered by deepagents")
+    print("Ctrl+C to exit | ↑/↓ for history | Tab for completion\n")
+    print("Free-form chat only — algorithm code is archived per the")
+    print("attribution spec; strategic instructions live in ./strategics/.\n")
+
+
+def _load_readline() -> Any:
+    """Return the readline-like module (Unix readline / Windows pyreadline3) or None."""
+    try:
+        import readline  # noqa: F401  (Unix)
+        import readline as _rl
+
+        return _rl
+    except ImportError:
+        try:
+            import pyreadline3  # type: ignore[import-not-found]  # noqa: F401  (Windows)
+            import pyreadline3 as _rl_win
+
+            return _rl_win
+        except ImportError:
+            return None
+
+
+def _complete_commands(text: str, state: int) -> str:
+    """Tab-completer for the built-in REPL commands."""
+    if not text:
+        # No prefix — list all commands on first Tab.
+        if state == 0:
+            return "/"
+        return ""
+    options = [c for c in _CHAT_COMMANDS if c.startswith(text)]
+    if state < len(options):
+        return options[state]
+    return ""
+
+
+def _setup_history(rl: Any, history_path: Path) -> None:
+    """Load persisted history and install tab completion (no-op without readline)."""
+    if rl is None:
+        return
+    try:
+        history_path.parent.mkdir(parents=True, exist_ok=True)
+        if history_path.exists():
+            rl.read_history_file(str(history_path))
+    except OSError:
+        pass
+    rl.set_history_length(_HISTORY_MAX)
+    # Basic completion: empty input + Tab → list commands.
+    try:
+        rl.set_completer(_complete_commands)
+        rl.parse_and_bind("tab: complete")
+    except Exception:
+        pass
+
+
+def _save_history(rl: Any, history_path: Path, user_input: str) -> None:
+    """Append one input line to the in-memory and on-disk history."""
+    if rl is None:
+        return
+    try:
+        rl.add_history(user_input)
+        rl.write_history_file(str(history_path))
+    except OSError:
+        pass
+
+
+def _flush_history(rl: Any, history_path: Path) -> None:
+    """Final history flush at REPL exit."""
+    if rl is None:
+        return
+    try:
+        rl.write_history_file(str(history_path))
+    except OSError:
+        pass
+
+
+def _print_history_entries(rl: Any) -> None:
+    """Print the last 10 readline history entries."""
+    if rl is None:
+        print("(history unavailable)")
+        return
+    length = rl.get_history_length()
+    start = max(1, length - 9)
+    for i in range(start, length + 1):
+        try:
+            item = rl.get_history_item(i)
+            if item:
+                print(f"  {i}: {item}")
+        except Exception:
+            break
+
+
+def _clear_screen() -> None:
+    """Clear the terminal screen (cls on Windows, clear elsewhere)."""
+    import os as _os
+
+    _os.system("cls" if _os.name == "nt" else "clear")
+
+
+def _handle_builtin_command(
+    user_input: str,
+    thread_id: str,
+    messages: list[dict[str, Any]],
+    rl: Any,
+) -> tuple[str, list[dict[str, Any]]]:
+    """Process a built-in REPL command (these never go through the agent).
+
+    Returns ``(status, messages)`` where status is:
+    - ``"agent"``    — not a built-in command; forward the input to the agent
+    - ``"continue"`` — handled; keep the REPL loop going
+    - ``"exit"``     — handled; leave the REPL
+    """
+    if user_input in ("/exit", "/quit"):
+        print("Goodbye.")
+        return "exit", messages
+    if user_input == "/help":
+        print("\nBuilt-in commands:")
+        print("  /help                show this message")
+        print("  /exit, /quit         exit the REPL")
+        print("  /thread              show current thread_id")
+        print("  /reset               clear conversation history")
+        print("  /history             show last 10 input lines")
+        print("  /clear               clear the screen")
+        print("\nAnything else: send to the deep agent.\n")
+        return "continue", messages
+    if user_input == "/thread":
+        print(f"thread_id = {thread_id}")
+        return "continue", messages
+    if user_input == "/reset":
+        print("(conversation cleared)")
+        return "continue", []
+    if user_input == "/history":
+        _print_history_entries(rl)
+        return "continue", messages
+    if user_input == "/clear":
+        _clear_screen()
+        return "continue", messages
+    return "agent", messages
 
 
 def run_chat(agent: Any, thread_id: str) -> None:
@@ -420,58 +579,15 @@ def run_chat(agent: Any, thread_id: str) -> None:
     neutral and routes user input directly to the deep agent.
 
     M106: REPL history + tab completion (readline on Unix, pyreadline3
-    on Windows). History persisted to .life/chat_history (one line per
-    entry, deduplicated, max 500 entries). Tab completion suggests
-    common commands (help, exit, /thread, /reset, etc.).
+    on Windows); history persisted to .life/chat_history (max 500 entries).
     """
-    print("IKIGAi Conversational Agent — powered by deepagents")
-    print("Ctrl+C to exit | ↑/↓ for history | Tab for completion\n")
-    print("Free-form chat only — algorithm code is archived per the")
-    print("attribution spec; strategic instructions live in ./strategics/.\n")
+    _print_banner()
 
     # M106: history + tab completion setup (readline on Unix, pyreadline3 on Windows)
-    _HISTORY_PATH = Path(".life/chat_history")
-    _HISTORY_MAX = 500
-    rl: Any = None
-    try:
-        import readline  # noqa: F401  (Unix)
-        import readline as _rl
-        rl = _rl
-    except ImportError:
-        try:
-            import pyreadline3  # noqa: F401  (Windows)
-            import pyreadline3 as _rl
-            rl = _rl
-        except ImportError:
-            rl = None
-    if rl is not None:
-        try:
-            _HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
-            if _HISTORY_PATH.exists():
-                rl.read_history_file(str(_HISTORY_PATH))
-        except OSError:
-            pass
-        rl.set_history_length(_HISTORY_MAX)
-        # Basic completion: empty input + Tab → list commands.
-        _COMMANDS = ("/help", "/exit", "/quit", "/thread", "/reset", "/history", "/clear")
-
-        def _complete(text: str, state: int) -> str:
-            if not text:
-                # No prefix — list all commands on first Tab.
-                if state == 0:
-                    return "/"
-                return ""
-            options = [c for c in _COMMANDS if c.startswith(text)]
-            if state < len(options):
-                return options[state]
-            return ""
-
-        try:
-            rl.set_completer(_complete)
-            rl.parse_and_bind("tab: complete")
-        except Exception:
-            pass
-    else:
+    history_path = Path(".life/chat_history")
+    rl: Any = _load_readline()
+    _setup_history(rl, history_path)
+    if rl is None:
         print("(history/tab-completion unavailable — install pyreadline3 for Windows)\n")
 
     config: dict[str, Any] = {"configurable": {"thread_id": thread_id}}
@@ -487,53 +603,14 @@ def run_chat(agent: Any, thread_id: str) -> None:
             continue
 
         # Built-in REPL commands (don't go through the agent)
-        if user_input in ("/exit", "/quit"):
-            print("Goodbye.")
+        status, messages = _handle_builtin_command(user_input, thread_id, messages, rl)
+        if status == "exit":
             break
-        if user_input == "/help":
-            print("\nBuilt-in commands:")
-            print("  /help                show this message")
-            print("  /exit, /quit         exit the REPL")
-            print("  /thread              show current thread_id")
-            print("  /reset               clear conversation history")
-            print("  /history             show last 10 input lines")
-            print("  /clear               clear the screen")
-            print("\nAnything else: send to the deep agent.\n")
-            continue
-        if user_input == "/thread":
-            print(f"thread_id = {thread_id}")
-            continue
-        if user_input == "/reset":
-            messages = []
-            print("(conversation cleared)")
-            continue
-        if user_input == "/history":
-            if rl is None:
-                print("(history unavailable)")
-            else:
-                # Walk back through readline history (last 10 entries).
-                length = rl.get_history_length()
-                start = max(1, length - 9)
-                for i in range(start, length + 1):
-                    try:
-                        item = rl.get_history_item(i)
-                        if item:
-                            print(f"  {i}: {item}")
-                    except Exception:
-                        break
-            continue
-        if user_input == "/clear":
-            import os as _os
-            _os.system("cls" if _os.name == "nt" else "clear")
+        if status == "continue":
             continue
 
         # Save to history (after command filter so /help etc. don't pollute).
-        if rl is not None:
-            try:
-                rl.add_history(user_input)
-                rl.write_history_file(str(_HISTORY_PATH))
-            except OSError:
-                pass
+        _save_history(rl, history_path, user_input)
 
         messages.append({"role": "user", "content": user_input})
         result = _invoke_agent_or_fallback(agent, messages, config, thread_id)
@@ -545,11 +622,7 @@ def run_chat(agent: Any, thread_id: str) -> None:
         print(assistant_text)
 
     # Final history flush.
-    if rl is not None:
-        try:
-            rl.write_history_file(str(_HISTORY_PATH))
-        except OSError:
-            pass
+    _flush_history(rl, history_path)
     # Flush any pending spans to both exporters before the process exits.
     shutdown_tracing()
 

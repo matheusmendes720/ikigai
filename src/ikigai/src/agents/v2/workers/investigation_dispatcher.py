@@ -41,7 +41,7 @@ def _is_stale(inv: Investigation, now: datetime | None = None) -> bool:
     if inv.status != "in_progress":
         return False
     now = now or datetime.now()
-    return (now - inv.updated_at) > timedelta(days=STALE_THRESHOLD_DAYS)
+    return bool((now - inv.updated_at) > timedelta(days=STALE_THRESHOLD_DAYS))
 
 
 def _has_crystallized(inv: Investigation) -> bool:
@@ -73,7 +73,7 @@ def dispatch_once(now: datetime | None = None) -> dict[str, Any]:
     }
 
     for status in ("open", "in_progress"):
-        for inv in list_by_status(status):  # type: ignore[arg-type]
+        for inv in list_by_status(status):
             try:
                 summary["processed"] += 1
                 # 1. Stale → archive

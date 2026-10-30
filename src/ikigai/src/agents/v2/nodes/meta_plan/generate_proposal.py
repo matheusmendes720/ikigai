@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 from src.ikigai.contracts.proposal import (
     HierarchyContext,
@@ -113,7 +113,9 @@ def generate_proposal(state: dict[str, Any]) -> Proposal:
     hierarchy_match: HierarchyMatch = state.get("hierarchy_matches") or HierarchyMatch()
 
     # Build operations
-    vault_ops = _build_vault_writes(user_request, hierarchy_match, intent)
+    vault_ops = _build_vault_writes(
+        user_request, hierarchy_match, cast(IntentClassification, intent)
+    )
     taskdog_ops = _build_taskdog_creates(user_request, hierarchy_match)
     operations = vault_ops + taskdog_ops
 

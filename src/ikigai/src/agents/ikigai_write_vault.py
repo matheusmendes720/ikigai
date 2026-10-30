@@ -28,7 +28,6 @@ from pathlib import Path
 from typing import Any
 
 from langchain_core.tools import tool
-
 from sys_ikigai.vault.vault_read import vault_read
 from sys_ikigai.vault.vault_write import vault_write
 
@@ -72,11 +71,13 @@ def ikigai_write_vault(
     in the vault audit log.
     """
     if mode not in _VALID_MODES:
-        return json.dumps({
-            "ok": False,
-            "error": f"invalid mode {mode!r}; must be one of {list(_VALID_MODES)}",
-            "vault_path": vault_path,
-        })
+        return json.dumps(
+            {
+                "ok": False,
+                "error": f"invalid mode {mode!r}; must be one of {list(_VALID_MODES)}",
+                "vault_path": vault_path,
+            }
+        )
 
     vault_root = _get_vault_dir()
     fm_input: dict[str, Any] = frontmatter or {}
@@ -87,11 +88,13 @@ def ikigai_write_vault(
         if mode == "create":
             target = (vault_root / vault_path).resolve()
             if target.exists():
-                return json.dumps({
-                    "ok": False,
-                    "error": f"file already exists: {vault_path!r}",
-                    "vault_path": vault_path,
-                })
+                return json.dumps(
+                    {
+                        "ok": False,
+                        "error": f"file already exists: {vault_path!r}",
+                        "vault_path": vault_path,
+                    }
+                )
 
         # "append" mode: read existing, append body, merge frontmatter.
         # If file does not exist, treat as a fresh write (same as create).
@@ -135,20 +138,24 @@ def ikigai_write_vault(
         target_path = vault_root / vault_path
         mtime = target_path.stat().st_mtime if target_path.exists() else 0.0
 
-        return json.dumps({
-            "ok": True,
-            "path": vault_path,
-            "sha256": result["sha256"],
-            "mtime": mtime,
-        })
+        return json.dumps(
+            {
+                "ok": True,
+                "path": vault_path,
+                "sha256": result["sha256"],
+                "mtime": mtime,
+            }
+        )
     except ValueError as e:
         return json.dumps({"ok": False, "error": str(e), "vault_path": vault_path})
     except Exception as e:  # pragma: no cover — defensive guard
-        return json.dumps({
-            "ok": False,
-            "error": f"unexpected error: {type(e).__name__}: {e}",
-            "vault_path": vault_path,
-        })
+        return json.dumps(
+            {
+                "ok": False,
+                "error": f"unexpected error: {type(e).__name__}: {e}",
+                "vault_path": vault_path,
+            }
+        )
 
 
 __all__ = ["ikigai_write_vault"]

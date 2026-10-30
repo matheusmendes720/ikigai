@@ -10,7 +10,7 @@ import json
 import os
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from langchain_core.prompts import PromptTemplate
 
@@ -37,7 +37,10 @@ Retorne JSON: {{"h5_skill_velocity": <float 0.0-1.0>, "rationale": "<pt-BR 2-3 s
 
 
 def render_h5_skill_velocity(state: dict[str, Any]) -> dict[str, Any]:
-    """Render H5 skill velocity observation via LLM (always stub per ADR-013 / M156)."""
+    """Render H5 skill velocity observation via LLM (real LLM; deterministic stub when IKIGAI_FAKE_LLM=1)."""
+
+    if os.environ.get("IKIGAI_FAKE_LLM", "0") == "1":
+        return {"h5_skill_velocity": 0.4, "rationale": "[FAKE-LLM stub for test]"}
     today = date.today().isoformat()
     vault_root = Path(state.get("vault_root", "vault"))
     cycle_state = _read_vault(vault_root / "ikigai/meta/cycle_state" / f"{today}.md")
@@ -49,12 +52,24 @@ def render_h5_skill_velocity(state: dict[str, Any]) -> dict[str, Any]:
         strategics_excerpt=strategics[:2000],
     )
     try:
-        import agents.v2.langchain_anthropic_shim  # noqa: F401  # M158e
+        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+        # time. Keep this import first (isort block order is intentional).
+        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
         from langchain_anthropic import ChatAnthropic
 
-        model = ChatAnthropic(model=os.environ.get("IKIGAI_MODEL", "MiniMax-M2.7-highspeed"))
+        # `model` is a pydantic field whose alias is `model_name`; the kwargs dict
+        # keeps the runtime spelling `model=` (accepted via populate_by_name) while
+        # satisfying mypy, whose dataclass_transform view of __init__ only exposes
+        # the alias.
+        llm_kwargs: dict[str, Any] = {
+            "model": os.environ.get("IKIGAI_MODEL", "MiniMax-M2.7-highspeed")
+        }
+        model = ChatAnthropic(**llm_kwargs)
         response = model.invoke(prompt)
-        return _parse_json(response.content)
+        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+        # rewrites response.content to a plain str before it reaches us.
+        return _parse_json(cast(str, response.content))
     except Exception as exc:
         return {"error": "llm_call_failed", "exception": str(exc)}
 
@@ -68,6 +83,6 @@ def _read_vault(path: Path) -> str:
 
 def _parse_json(content: str) -> dict[str, Any]:
     try:
-        return json.loads(content)
+        return cast(dict[str, Any], json.loads(content))
     except json.JSONDecodeError as exc:
         return {"error": "parse_failed", "raw": content, "exception": str(exc)}

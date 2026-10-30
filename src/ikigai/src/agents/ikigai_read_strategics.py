@@ -13,7 +13,7 @@ from pathlib import Path
 
 from langchain_core.tools import tool
 
-from strategics.loader import load_strategics
+from strategics.loader import load_strategics  # type: ignore[import-untyped]
 
 
 def _get_vault_dir() -> Path:

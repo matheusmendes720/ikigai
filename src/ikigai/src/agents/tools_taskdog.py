@@ -44,6 +44,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+from typing import Any, cast
 
 from langchain_core.tools import tool
 
@@ -73,7 +74,9 @@ _taskdog_cb_config = CircuitBreakerConfig(
 )
 
 
-def _run_export(status_filter: str | None = None, include_archived: bool = False) -> list[dict]:
+def _run_export(
+    status_filter: str | None = None, include_archived: bool = False
+) -> list[dict[str, Any]]:
     """Run `taskdog export --format json` and parse to list[dict].
 
     Returns [] when taskdog is unavailable (binary not installed / server
@@ -89,7 +92,7 @@ def _run_export(status_filter: str | None = None, include_archived: bool = False
         raise ConnectionError(f"taskdog error: {(proc.stderr or proc.stdout).strip()}")
     if not proc.stdout.strip():
         return []
-    return json.loads(proc.stdout)
+    return cast(list[dict[str, Any]], json.loads(proc.stdout))
 
 
 def _missing_taskdog_msg(err: Exception) -> str:

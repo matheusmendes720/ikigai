@@ -35,7 +35,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +100,7 @@ def _allow_blocking_active() -> bool:
 # walk 5 levels up with os.path.dirname(). cwd is read once at module
 # import time (blocking-safe — this runs before the event loop starts).
 import os as _os_for_path
+
 _FILE_ABS = _os_for_path.path.abspath(__file__)  # absolute path to this .py
 # Walk 4 levels up from this file: agents -> src -> ikigai -> src -> life (workspace root)
 _DIR = _os_for_path.path.dirname(_FILE_ABS)
@@ -115,14 +116,21 @@ def _placeholder_graph(reason: str) -> Any:
     """
     from langgraph.graph import END, START, StateGraph
 
-    def _report(state: dict) -> dict:
-        return {"messages": [{"role": "assistant", "content": (
-            f"⚠️ taskdog-mcp graph unavailable: {reason}\n\n"
-            "Fix:\n"
-            "  1. Set ANTHROPIC_API_KEY (or MINIMAX_API_KEY) in .env\n"
-            "  2. Make sure .claude/loop/mcp_bridge.py is importable\n"
-            "  3. Restart `langgraph dev`"
-        )}]}
+    def _report(state: TaskdogMcpStateDict) -> dict[str, Any]:
+        return {
+            "messages": [
+                {
+                    "role": "assistant",
+                    "content": (
+                        f"⚠️ taskdog-mcp graph unavailable: {reason}\n\n"
+                        "Fix:\n"
+                        "  1. Set ANTHROPIC_API_KEY (or MINIMAX_API_KEY) in .env\n"
+                        "  2. Make sure .claude/loop/mcp_bridge.py is importable\n"
+                        "  3. Restart `langgraph dev`"
+                    ),
+                }
+            ]
+        }
 
     builder = StateGraph(TaskdogMcpStateDict)
     builder.add_node("report", _report)
@@ -165,14 +173,16 @@ def _build_lc_tools() -> list[Any]:
     # object (otherwise _DirectTaskdogServer binding would be lost).
     bridge_modname = "loop_mcp_bridge"
     spec = importlib.util.spec_from_file_location(bridge_modname, bridge_path)
-    bridge = importlib.util.module_from_spec(spec)
+    spec_obj = cast(Any, spec)
+    bridge = importlib.util.module_from_spec(spec_obj)
     _sys.modules[bridge_modname] = bridge  # pin before exec_module
-    spec.loader.exec_module(bridge)
+    spec_obj.loader.exec_module(bridge)
 
     # 2026-09-29: bind _server to our direct adapter-backed implementation
     # so the ReAct agent's tool calls (taskdog_list etc.) have a real backend.
-    if getattr(bridge, "_server", None) is None:
-        bridge._server = _DirectTaskdogServer()
+    bridge_any = cast(Any, bridge)
+    if getattr(bridge_any, "_server", None) is None:
+        bridge_any._server = _DirectTaskdogServer()
 
     # Enumerate taskdog_* wrappers
     tools: list[Any] = []
@@ -210,6 +220,7 @@ def _build_lc_tools() -> list[Any]:
         from src.ikigai.src.agents.ikigai_write_vault import (
             ikigai_write_vault as _lc_ikigai_write_vault,
         )
+
         for _lc_tool in (_lc_ikigai_read_vault, _lc_ikigai_write_vault):
             if _lc_tool is not None:
                 tools.append(_lc_tool)
@@ -242,7 +253,9 @@ def _build_agent() -> Any:
         or ""
     )
     if not api_key:
-        return _placeholder_graph("no API key set (MINIMAX_API_KEY / ANTHROPIC_API_KEY / CLAUDE_API_KEY)")
+        return _placeholder_graph(
+            "no API key set (MINIMAX_API_KEY / ANTHROPIC_API_KEY / CLAUDE_API_KEY)"
+        )
 
     # If ANTHROPIC_API_KEY is set explicitly (without MINIMAX_API_KEY
     # taking precedence), default to the official Anthropic endpoint.
@@ -261,9 +274,9 @@ def _build_agent() -> Any:
     # langchain_anthropic + langgraph dev server combo drops the header
     # in some paths. Set BOTH X-Api-Key (proxy) and x-api-key (Anthropic
     # SDK) for compatibility.
-    llm = ChatAnthropic(
+    llm = ChatAnthropic(  # type: ignore[call-arg]
         model=model_name,
-        api_key=api_key,
+        api_key=api_key,  # type: ignore[arg-type]
         base_url=base_url,
         default_headers={"X-Api-Key": api_key, "x-api-key": api_key},
     )
@@ -307,14 +320,16 @@ class _DirectTaskdogServer:
         if self._adapter is None:
             # 2026-09-29: ensure src/ is on sys.path so 'contracts' package
             # resolves when langgraph spawns this module without PYTHONPATH.
-            import sys as _sys
             import pathlib as _pathlib
+            import sys as _sys
+
             # file: src/ikigai/src/agents/taskdog_mcp_graph.py
             # parents[3] = .../src
             _src = str(_pathlib.Path(__file__).resolve().parents[3])
             if _src not in _sys.path:
                 _sys.path.insert(0, _src)
-            from src.mesh.adapters.taskdog import TaskdogAdapter  # noqa: E402
+            from src.mesh.adapters.taskdog import TaskdogAdapter
+
             self._adapter = TaskdogAdapter()
         return self._adapter
 
@@ -331,14 +346,16 @@ class _DirectTaskdogServer:
                     rows = rows[:limit]
                 return {"ok": True, "tasks": rows, "count": len(rows)}
             if tool_name == "taskdog_read":
-                from contracts.common import UEID  # noqa: E402
+                from contracts.common import UEID
+
                 ueid = UEID(args["ueid"])
                 row = self._get_adapter().read(ueid)
                 return {"ok": row is not None, "task": row}
             if tool_name == "taskdog_create":
                 # Hand-off to mesh review queue (canonical write path per ADR-014)
-                from src.mesh.queue import enqueue_change  # type: ignore  # noqa: E402
-                from contracts.task_change import TaskChange, TaskAction  # type: ignore
+                from contracts.task_change import TaskAction, TaskChange
+                from src.mesh.queue import enqueue_change  # type: ignore
+
                 ch = TaskChange(
                     ueid=args["ueid"],
                     action=TaskAction.CREATE,
@@ -347,12 +364,17 @@ class _DirectTaskdogServer:
                 enqueue_change(ch)
                 return {"ok": True, "queued": True, "ueid": args["ueid"]}
             if tool_name == "taskdog_supports_field":
-                return {"ok": True, "supported": self._get_adapter().supports_field(args["field_name"])}
+                return {
+                    "ok": True,
+                    "supported": self._get_adapter().supports_field(args["field_name"]),
+                }
             # Everything else (vault_*, ikigai_*, investigation_*) → not implemented yet
-            raise KeyError(f"_DirectTaskdogServer: tool {tool_name!r} not implemented in dev binding")
+            raise KeyError(
+                f"_DirectTaskdogServer: tool {tool_name!r} not implemented in dev binding"
+            )
         except KeyError:
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # intentional broad catch for graceful fallback
             return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
 
@@ -373,7 +395,8 @@ def _bind_mcp_bridge_server() -> None:
     if not _allow_blocking_active():
         return
     try:
-        import importlib.util as _ilu  # noqa: E402
+        import importlib.util as _ilu
+
         # Must match the name in _build_lc_tools so sys.modules de-dupes.
         bridge_modname = "loop_mcp_bridge"
         spec = _ilu.spec_from_file_location(bridge_modname, _BRIDGE_PATH)
@@ -384,13 +407,14 @@ def _bind_mcp_bridge_server() -> None:
         # object is the one production callers will import (avoids
         # dual-module identity split).
         sys.modules[bridge_modname] = bridge
-        spec.loader.exec_module(bridge)
+        cast(Any, spec).loader.exec_module(bridge)
         # One-shot: never overwrite an already-bound server (tests
         # monkeypatch bridge._server to a MagicMock per the FakeMcpServer
         # pattern in mcp_bridge.py docstring).
-        if getattr(bridge, "_server", None) is None:
-            bridge._server = _DirectTaskdogServer()
-    except Exception as exc:  # noqa: BLE001
+        bridge_any = cast(Any, bridge)
+        if getattr(bridge_any, "_server", None) is None:
+            bridge_any._server = _DirectTaskdogServer()
+    except Exception as exc:  # intentional broad catch: binding must never crash startup
         if os.environ.get("IKIGAI_DEBUG"):
             print(f"[taskdog_mcp_graph] bind failed: {exc}")
 
@@ -400,16 +424,16 @@ _bind_mcp_bridge_server()
 
 # ---------------------------------------------------------------------------
 try:
-    from langgraph_sdk.runtime import ServerRuntime as _ServerRuntime  # noqa: E402
-    from langgraph_sdk.schema import Config as _RunnableConfig  # noqa: E402
+    from langgraph_sdk.runtime import ServerRuntime as _ServerRuntime
+    from langgraph_sdk.schema import Config as _RunnableConfig
 except ImportError:
-    _ServerRuntime = None  # type: ignore[assignment]
-    _RunnableConfig = None  # type: ignore[assignment]
+    _ServerRuntime = None  # type: ignore[assignment, misc]
+    _RunnableConfig = None  # type: ignore[assignment, misc]
 
 
-def make_taskdog_mcp_graph_sync(  # type: ignore[no-redef]
-    runtime: "_ServerRuntime | None" = None,
-    config: "_RunnableConfig | None" = None,
+def make_taskdog_mcp_graph_sync(
+    runtime: _ServerRuntime | None = None,  # type: ignore[type-arg]
+    config: _RunnableConfig | None = None,
 ) -> Any:
     """Sync factory for langgraph_api. No asyncio.run() — works inside event loop.
 
@@ -425,9 +449,13 @@ def make_taskdog_mcp_graph_sync(  # type: ignore[no-redef]
     # Default to placeholder graph to avoid BlockingError under the
     # ASGI event loop. Users who need the full taskdog toolset should
     # run with --allow-blocking (dev-only).
-    return _build_agent() if _ALLOW_BLOCKING else _placeholder_graph(
-        "ikigai-taskdog graph requires --allow-blocking on `langgraph dev`. "
-        "Restart with: langgraph dev --allow-blocking --port 2027"
+    return (
+        _build_agent()
+        if _ALLOW_BLOCKING
+        else _placeholder_graph(
+            "ikigai-taskdog graph requires --allow-blocking on `langgraph dev`. "
+            "Restart with: langgraph dev --allow-blocking --port 2027"
+        )
     )
 
 
@@ -439,10 +467,10 @@ def make_taskdog_mcp_graph_sync(  # type: ignore[no-redef]
 # + IKIGAI_TASKDOG_FULL_BRIDGE were never reaching os.environ when the
 # process was spawned by the bg-watcher. Auto-load .env from CWD on import
 # so any caller (watcher, manual, future boots) gets the keys.
-import os as _os
 
 try:
     from dotenv import load_dotenv as _load_dotenv
+
     _load_dotenv()  # idempotent: leaves process.env intact if already set
 except ImportError:
     pass  # python-dotenv not installed — fall back to process.env only

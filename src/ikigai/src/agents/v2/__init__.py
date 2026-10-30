@@ -34,6 +34,8 @@ REMOVAL PLAN: when browser-use 0.13.10+ supports anthropic>=0.120.0, this
 shim can be deleted. Until then, every v2 graph entry point must import
 this module (or rely on this __init__.py to do it).
 """
-from .langchain_anthropic_shim import _ensure_overloaded_error, install_response_normalizer  # noqa: F401
+
+from .langchain_anthropic_shim import _ensure_overloaded_error, install_response_normalizer
+
 _ensure_overloaded_error()
 install_response_normalizer()

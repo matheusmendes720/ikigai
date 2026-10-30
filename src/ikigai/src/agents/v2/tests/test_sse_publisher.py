@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from src.ikigai.src.agents.v2.sse_publisher import (
     EVENT_TAXONOMY,
     AgentSSEPublisher,
@@ -18,10 +20,10 @@ class FakeGateway:
     """Canned-response mock that records every publish_event call."""
 
     def __init__(self) -> None:
-        self.calls: list[tuple[str, dict]] = []
+        self.calls: list[tuple[str, dict[str, Any]]] = []
         self.raise_on_publish: bool = False
 
-    def publish_event(self, event: str, payload: dict) -> None:
+    def publish_event(self, event: str, payload: dict[str, Any]) -> None:
         if self.raise_on_publish:
             raise RuntimeError("downstream gateway is broken")
         self.calls.append((event, dict(payload)))

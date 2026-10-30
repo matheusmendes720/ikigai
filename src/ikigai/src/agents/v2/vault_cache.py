@@ -29,13 +29,14 @@ fallback so tests are reproducible without an external model. Once a real
 embedding backend is chosen (MiniMax probe, sentence-transformers, OpenAI),
 swap `_deterministic_embed()`.
 """
+
 from __future__ import annotations
 
 import hashlib
 import json
 import struct
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 _CACHE_FILENAME = "vault_cache.json"
 _EMBED_DIM = 384
@@ -100,9 +101,7 @@ class VaultEmbeddingCache:
 
     def _save(self) -> None:
         try:
-            self._cache_path.write_text(
-                json.dumps(self._data), encoding="utf-8"
-            )
+            self._cache_path.write_text(json.dumps(self._data), encoding="utf-8")
         except OSError:
             pass
 
@@ -119,7 +118,7 @@ class VaultEmbeddingCache:
         if cached and cached.get("mtime") == mtime:
             emb = cached.get("embedding")
             if emb and len(emb) == _EMBED_DIM:
-                return emb
+                return cast(list[float], emb)
         # Cache miss: compute and persist
         text = p.read_text(encoding="utf-8", errors="replace")
         embedding = self._embed(text)
@@ -132,9 +131,7 @@ class VaultEmbeddingCache:
         self._save()
         return embedding
 
-    def similarity_to(
-        self, query: str, top_k: int = 5
-    ) -> list[tuple[str, float]]:
+    def similarity_to(self, query: str, top_k: int = 5) -> list[tuple[str, float]]:
         """Return top_k (file_path, similarity) for a query string."""
         qvec = self._embed(query)
         scored: list[tuple[str, float]] = []

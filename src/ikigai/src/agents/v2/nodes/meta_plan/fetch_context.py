@@ -45,7 +45,7 @@ def recall_memory(query: str, top_k: int = 5) -> list[MemoryRef]:
     callers should expect this fallback to fire only in test environments.
     """
     try:
-        from src.ikigai.agents.v2.memory_read import query_memory  # type: ignore[import-not-found]
+        from src.ikigai.agents.v2.memory_read import query_memory
 
         results = query_memory(query=query, top_k=top_k)
         return [
@@ -70,7 +70,7 @@ def external_folder_read(path: str, reason: str) -> FolderReadOp:
     before passing them downstream (see ``fetch_context``).
     """
     try:
-        from src.ikigai.security.external_folder_read import (  # type: ignore[import-not-found]
+        from src.ikigai.security.external_folder_read import (
             external_folder_read as _read,
         )
 

@@ -18,7 +18,7 @@ and tests rely on.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from ..state import IKIGAiStateDict
 
@@ -86,7 +86,7 @@ def commit_node(state: IKIGAiStateDict) -> dict[str, Any]:
     - terminated: True (signals graph should wind down)
     - last_step: "commit"
     """
-    state = dict(state)
+    state = cast(IKIGAiStateDict, dict(state))
     proposal = state.get("draft_proposal") or {}
     operations = proposal.get("operations") if isinstance(proposal, dict) else None
 

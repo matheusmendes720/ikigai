@@ -103,9 +103,7 @@ def get_gateway_client() -> GatewayClient:
         # Local-only fallback so dev/test runs never spawn the gateway
         # subprocess. Imported lazily to avoid a hard dep on the
         # agents/v2 test fixture path from this module-level location.
-        from src.ikigai.src.agents.v2.tests.fixtures.fake_mcp_server import (  # type: ignore[import-not-found]
-            FakeMcpServer,
-        )
+        from src.ikigai.src.agents.v2.tests.fixtures.fake_mcp_server import FakeMcpServer
 
         client.bind(FakeMcpServer())
     _client = client

@@ -44,8 +44,9 @@ import logging
 import re
 import sqlite3
 import threading
+from datetime import UTC
 from pathlib import Path
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, cast
 
 # ---------------------------------------------------------------------------
 # Logger
@@ -310,7 +311,7 @@ def deserialize_checkpoint(blob: bytes) -> dict[str, Any]:
     Returns:
         Reconstructed state dict (including schema-control fields).
     """
-    return json.loads(blob.decode("utf-8"))
+    return cast(dict[str, Any], json.loads(blob.decode("utf-8")))
 
 
 # ---------------------------------------------------------------------------
@@ -658,9 +659,9 @@ def _iso_utc_now() -> str:
     is intentionally avoided (deprecated in 3.12+); we compute UTC from
     ``datetime.now(timezone.utc)``.
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 __all__ = [

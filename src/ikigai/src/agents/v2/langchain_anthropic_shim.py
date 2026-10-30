@@ -6,15 +6,19 @@ cause + removal plan. Kept here (not deleted) because:
 - Anthropic SDK 0.76.0 is pinned by browser-use 0.13.10 (Hermes workflow).
 - Downgrading langchain_anthropic loses LangGraph 1.x compat.
 """
+
 from __future__ import annotations
 
-import anthropic  # noqa: F401
+from typing import Any
+
+import anthropic
 
 
 def _ensure_overloaded_error() -> None:
     """Add a stub OverloadedError to anthropic if missing."""
     if not hasattr(anthropic, "OverloadedError"):
-        class OverloadedError(anthropic.APIError):  # type: ignore[misc, valid-type]
+
+        class OverloadedError(anthropic.APIError):
             """Stub OverloadedError for anthropic<0.40 compatibility.
 
             Real anthropic>=0.40 has this. We provide a no-op subclass
@@ -23,15 +27,15 @@ def _ensure_overloaded_error() -> None:
             """
 
             def __init__(self, message: str = "API overloaded") -> None:
-                super().__init__(message=message)
+                super().__init__(message=message)  # type: ignore[call-arg]
 
-        anthropic.OverloadedError = OverloadedError  # type: ignore[attr-defined]
+        anthropic.OverloadedError = OverloadedError  # type: ignore[misc, assignment]
 
 
 _ensure_overloaded_error()
 
 
-def _extract_text(content) -> str:
+def _extract_text(content: Any) -> str:
     """M158e: Extract plain text from langchain-anthropic 1.x response.
 
     langchain-anthropic 1.x returns content as a LIST of blocks like:
@@ -74,17 +78,17 @@ def install_response_normalizer() -> None:
     So callers can do: json.loads(response.content) without worrying
     about the content type.
     """
-    from langchain_anthropic import ChatAnthropic  # noqa
+    from langchain_anthropic import ChatAnthropic
 
     _original_invoke = ChatAnthropic.invoke
 
-    def _patched_invoke(self, *args, **kwargs):
+    def _patched_invoke(self: Any, *args: Any, **kwargs: Any) -> Any:
         response = _original_invoke(self, *args, **kwargs)
         try:
             text = _extract_text(response.content)
             response.content = _strip_markdown_fences(text)
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         return response
 
-    ChatAnthropic.invoke = _patched_invoke
+    ChatAnthropic.invoke = _patched_invoke  # type: ignore[method-assign]

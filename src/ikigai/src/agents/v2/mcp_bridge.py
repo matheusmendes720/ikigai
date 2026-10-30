@@ -42,7 +42,7 @@ import hashlib
 import json
 import time
 import traceback
-from typing import Any
+from typing import Any, cast
 
 from opentelemetry.trace import Status, StatusCode
 from src.ikigai.src.observability.otel_init import get_tracer
@@ -87,7 +87,7 @@ def _call(tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
             result = _server.call(tool_name, args)
             span.set_attribute("tool.duration_ms", (time.perf_counter() - start) * 1000)
             span.set_status(Status(StatusCode.OK))
-            return result
+            return cast(dict[str, Any], result)
         except Exception as exc:
             span.set_status(Status(StatusCode.ERROR, str(exc)))
             span.set_attribute("tool.error.class", type(exc).__name__)

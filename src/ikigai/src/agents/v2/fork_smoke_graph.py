@@ -82,10 +82,10 @@ class ForkSmokeStateDict(TypedDict, total=False):
 # ---------------------------------------------------------------------------
 # Safe-node wrapper (mirrors v2/graph.py pattern)
 # ---------------------------------------------------------------------------
-def _safe_node(name: str, fn: Callable[[dict], dict[str, Any]]) -> Any:
+def _safe_node(name: str, fn: Callable[[dict[str, Any]], dict[str, Any]]) -> Any:
     """Wrap a node function so exceptions populate error-channel state."""
 
-    def wrapper(state: dict) -> dict[str, Any]:
+    def wrapper(state: dict[str, Any]) -> dict[str, Any]:
         try:
             return fn(state)
         except Exception as exc:
@@ -104,7 +104,7 @@ def _safe_node(name: str, fn: Callable[[dict], dict[str, Any]]) -> Any:
 # ---------------------------------------------------------------------------
 # Node implementations
 # ---------------------------------------------------------------------------
-def _connect(state: dict) -> dict[str, Any]:
+def _connect(state: dict[str, Any]) -> dict[str, Any]:
     """Initialize UnifiedMCPGateway; record startup result."""
     from sys_ikigai.gateway import UnifiedMCPGateway
 
@@ -123,7 +123,7 @@ def _connect(state: dict) -> dict[str, Any]:
         }
 
 
-def _call_forks(state: dict) -> dict[str, Any]:
+def _call_forks(state: dict[str, Any]) -> dict[str, Any]:
     """Invoke each of 4 forks; record per-fork status {ok, skipped, error}."""
     forks_status: dict[str, str] = {}
 
@@ -158,7 +158,7 @@ def _call_forks(state: dict) -> dict[str, Any]:
     }
 
 
-def _disconnect(state: dict) -> dict[str, Any]:
+def _disconnect(state: dict[str, Any]) -> dict[str, Any]:
     """Cleanup — no resources held in this smoke graph; just record completion."""
     return {
         "disconnected": True,
@@ -169,7 +169,7 @@ def _disconnect(state: dict) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Conditional edge routing
 # ---------------------------------------------------------------------------
-def _route_after_connect(state: dict) -> Literal["call_forks", "error"]:
+def _route_after_connect(state: dict[str, Any]) -> Literal["call_forks", "error"]:
     """After connect: always proceed to call_forks (graceful on init failure)."""
     # Even if gateway init failed, we proceed — call_forks will skip all
     # unreachable forks and record skipped status.
@@ -178,7 +178,7 @@ def _route_after_connect(state: dict) -> Literal["call_forks", "error"]:
     return "call_forks"
 
 
-def _route_after_call_forks(state: dict) -> Literal["disconnect", "error"]:
+def _route_after_call_forks(state: dict[str, Any]) -> Literal["disconnect", "error"]:
     """After call_forks: always proceed to disconnect unless upstream error."""
     if state.get("error_type"):
         return "error"
@@ -220,7 +220,7 @@ def make_fork_smoke_graph(
     # Ensure directory exists
     Path(checkpoint_db).parent.mkdir(parents=True, exist_ok=True)
 
-    builder: StateGraph = StateGraph(ForkSmokeStateDict)
+    builder: StateGraph[ForkSmokeStateDict] = StateGraph(ForkSmokeStateDict)
 
     # Add nodes — wrapped in safe_node so exceptions populate error state
     builder.add_node("connect", _safe_node("connect", _connect))
@@ -264,11 +264,11 @@ def make_fork_smoke_graph(
 # here under _build_fork_smoke_graph() and expose a typed shim.
 # ---------------------------------------------------------------------------
 try:
-    from langgraph_sdk.runtime import ServerRuntime as _ServerRuntime  # noqa: E402
-    from langgraph_sdk.schema import Config as _RunnableConfig  # noqa: E402
+    from langgraph_sdk.runtime import ServerRuntime as _ServerRuntime
+    from langgraph_sdk.schema import Config as _RunnableConfig
 except ImportError:  # langgraph_sdk not installed in some envs
-    _ServerRuntime = None  # type: ignore[assignment]
-    _RunnableConfig = None  # type: ignore[assignment]
+    _ServerRuntime = None  # type: ignore[assignment, misc]
+    _RunnableConfig = None  # type: ignore[assignment, misc]
 
 
 # M102: rename the original factory to `_build_fork_smoke_graph` so the
@@ -277,8 +277,8 @@ _build_fork_smoke_graph = make_fork_smoke_graph  # keep the original logic acces
 
 
 def make_fork_smoke_graph(  # type: ignore[no-redef]
-    runtime: "_ServerRuntime | None" = None,
-    config: "_RunnableConfig | None" = None,
+    runtime: _ServerRuntime[Any] | None = None,
+    config: _RunnableConfig | None = None,
 ) -> Any:
     """LangGraph-API-compatible factory for the ikigai_fork_smoke graph.
 

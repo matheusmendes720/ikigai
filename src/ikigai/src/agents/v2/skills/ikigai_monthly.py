@@ -6,10 +6,10 @@ Emits Proposal with WRITE_FILE change to vault/monthly/{yyyy-mm}.md.
 Cron: 0 10 1 * *
 Slash: /ikigai-monthly
 """
+
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Any
 
 from agents.v2.proposals import Proposal
 from agents.v2.skills.cadence import (
@@ -18,7 +18,6 @@ from agents.v2.skills.cadence import (
     render_monthly_review,
     weekly_path,
 )
-
 
 SKILL_NAME = "ikigai-monthly"
 
