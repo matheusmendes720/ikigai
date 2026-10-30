@@ -1,6 +1,6 @@
 # Backtest Drift Report
 
-_Generated: 2026-09-22T02:21:21_
+_Generated: 2026-10-30T13:23:15_
 
 ## ➡️  STABLE — total score delta = +0.00
 
@@ -36,7 +36,7 @@ _Generated: 2026-09-22T02:21:21_
 **Newly missing**: 0
 
 
-**Unchanged**: 27
+**Unchanged**: 28
 
 ## Gap drift
 
