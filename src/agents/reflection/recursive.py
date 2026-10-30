@@ -27,10 +27,11 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .patterns import (
     Finding,
@@ -45,9 +46,9 @@ __all__ = [
     "DecisionStore",
     "Finding",
     "Reflector",
+    "main",
     "render_reflection",
     "write_reflection",
-    "main",
 ]
 
 
@@ -103,9 +104,9 @@ class DecisionStore:
 
         Returns the path of the file written to.
         """
-        ts = timestamp or datetime.now(timezone.utc)
+        ts = timestamp or datetime.now(UTC)
         if ts.tzinfo is None:
-            ts = ts.replace(tzinfo=timezone.utc)
+            ts = ts.replace(tzinfo=UTC)
         decision = Decision(
             timestamp=ts,
             action=action,
@@ -126,16 +127,51 @@ class DecisionStore:
             fh.flush()
         return target
 
+    def latest_decision_date(self) -> date | None:
+        """Newest calendar day present in the log, or None when empty."""
+        if not self.base_dir.exists():
+            return None
+        latest: date | None = None
+        for path in self.base_dir.glob("*.jsonl"):
+            try:
+                file_date = date.fromisoformat(path.stem)
+            except ValueError:
+                continue
+            if latest is None or file_date > latest:
+                latest = file_date
+        return latest
+
+    def resolve_window_end(self, today: date | None = None) -> date:
+        """Resolve the last day of the analysis window.
+
+        An explicit ``today`` always wins. Otherwise the window is anchored
+        on the newest day present in the log rather than on wall-clock time:
+        the log is the subject of the reflection, so a log that stopped
+        being written must not silently yield an empty report. The anchor
+        never exceeds the current UTC date, so a future-dated log entry
+        cannot drag the window past today.
+        """
+        if today is not None:
+            return today
+        now = datetime.now(UTC).date()
+        latest = self.latest_decision_date()
+        if latest is None:
+            return now
+        return min(latest, now)
+
     def read(
         self,
         lookback_days: int = 14,
-        today: Any = None,  # date | None — avoid extra import here
+        today: date | None = None,
     ) -> list[Decision]:
-        """Read all decisions across the last ``lookback_days`` days."""
-        from datetime import date, timedelta
+        """Read all decisions across the last ``lookback_days`` days.
 
-        today = today or datetime.now(timezone.utc).date()
-        cutoff = today - timedelta(days=lookback_days - 1)
+        The window is ``[window_end - lookback_days + 1, window_end]``
+        inclusive, where ``window_end`` is ``today`` when given, otherwise
+        the newest day present in the log (see :meth:`resolve_window_end`).
+        """
+        window_end = self.resolve_window_end(today)
+        cutoff = window_end - timedelta(days=lookback_days - 1)
         out: list[Decision] = []
         if not self.base_dir.exists():
             return out
@@ -144,7 +180,7 @@ class DecisionStore:
                 file_date = date.fromisoformat(path.stem)
             except ValueError:
                 continue
-            if file_date < cutoff:
+            if file_date < cutoff or file_date > window_end:
                 continue
             out.extend(self._read_file(path))
         return out
@@ -185,7 +221,7 @@ class Reflector:
     def analyze(
         self,
         lookback_days: int = 14,
-        today: Any = None,
+        today: date | None = None,
     ) -> list[Finding]:
         decisions = self.store.read(lookback_days=lookback_days, today=today)
         if not decisions:
@@ -221,24 +257,45 @@ def main(argv: list[str] | None = None) -> int:
         help="Optional override for the reflection markdown path.",
     )
     parser.add_argument(
+        "--today",
+        type=date.fromisoformat,
+        default=None,
+        help=(
+            "Anchor the lookback window on this YYYY-MM-DD date. "
+            "Defaults to the newest day present in the decision log "
+            "(or today, when the log is empty)."
+        ),
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         help="Emit findings as JSON instead of writing markdown.",
     )
     args = parser.parse_args(argv)
 
+    today = args.today
+    if today is None and os.environ.get("REFLECT_TODAY"):
+        today = date.fromisoformat(os.environ["REFLECT_TODAY"])
+
     reflector = Reflector()
-    findings = reflector.analyze(lookback_days=args.lookback_days)
+    window_end = reflector.store.resolve_window_end(today)
+    findings = reflector.analyze(lookback_days=args.lookback_days, today=window_end)
 
     if args.json:
         payload = {
             "lookback_days": args.lookback_days,
+            "window_end": window_end.isoformat(),
             "findings": [asdict(f) for f in findings],
         }
         print(json.dumps(payload, default=str, indent=2))
         return 0
 
-    target = write_reflection(findings, target=args.out, lookback_days=args.lookback_days)
+    target = write_reflection(
+        findings,
+        target=args.out,
+        lookback_days=args.lookback_days,
+        window_end=window_end,
+    )
     print(f"wrote reflection: {target} ({len(findings)} findings)")
     return 0
 
