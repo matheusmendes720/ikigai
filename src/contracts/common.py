@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from enum import StrEnum
-from typing import Literal
+from typing import Literal, Self
 
 from pydantic import BaseModel, Field
 
@@ -30,7 +30,6 @@ __all__ = [
 
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import CoreSchema, core_schema
-from typing_extensions import Self
 
 # M73: triple-pattern (4-part short OR 4-part long-uuid OR 5-part legacy).
 # Anchored on both ends. Accepts both fixture variants in production tests.
@@ -125,8 +124,8 @@ class UEID(str):
             return cls(value)
 
         # Legacy 2-part underscore format: type_slug
-        LEGACY_PATTERN = re.compile(r"^[a-z]{2,5}_[a-z0-9][a-z0-9_-]*$")
-        if LEGACY_PATTERN.match(value):
+        legacy_pattern = re.compile(r"^[a-z]{2,5}_[a-z0-9][a-z0-9_-]*$")
+        if legacy_pattern.match(value):
             type_part, slug_part = value.split("_", 1)
             canonical = (
                 f"{type_part}:"

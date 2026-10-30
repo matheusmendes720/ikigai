@@ -73,7 +73,8 @@ class Task(BaseModel):
         return self.model_copy(
             update={
                 "done": True,
-                "done_at": datetime.utcnow(),  # noqa: DTZ003 — naive UTC matches project-wide convention (see investigation.py:54)
+                # naive UTC matches project-wide convention (see investigation.py:54)
+                "done_at": datetime.utcnow(),
             }
         )
 
