@@ -1,10 +1,10 @@
 {
   "scores": {
     "anchor_pass_rate_pct": 95.8,
-    "tool_coverage_pct": 100.0,
+    "tool_coverage_pct": 94.7,
     "schema_valid_pct": 100.0,
     "scenario_pass_rate_pct": 89.0,
-    "total_score": 96.1
+    "total_score": 94.5
   },
   "weights": {
     "anchor_pass_rate": 0.4,
@@ -104,7 +104,7 @@
   },
   "tools": {
     "expected_total": 97,
-    "actual_total": 101,
+    "actual_total": 103,
     "expected_unique_tools": 26,
     "actual_unique_tools": 21,
     "missing_tools": [
@@ -113,9 +113,11 @@
       "taskdog_get_execution_rate",
       "taskdog_get_executive_summary",
       "taskdog_get_q_high_e_low_metrics",
+      "taskdog_remove_dependency",
       "taskdog_search_tasks"
     ],
     "unexpected_tools": [
+      "taskdog_audit_drift",
       "taskdog_create_subtask"
     ],
     "by_tool": {
@@ -128,6 +130,11 @@
         "expected": 3,
         "actual": 3,
         "covered": true
+      },
+      "taskdog_audit_drift": {
+        "expected": 0,
+        "actual": 3,
+        "covered": false
       },
       "taskdog_bulk_archive": {
         "expected": 3,
@@ -221,8 +228,8 @@
       },
       "taskdog_remove_dependency": {
         "expected": 3,
-        "actual": 1,
-        "covered": true
+        "actual": 0,
+        "covered": false
       },
       "taskdog_reopen": {
         "expected": 3,
@@ -257,7 +264,7 @@
     }
   },
   "schema": {
-    "known_tools_count": 26,
+    "known_tools_count": 27,
     "unknown_tools_referenced": [],
     "schema_valid": true
   },
@@ -286,6 +293,11 @@
       "kind": "tool_server_missing",
       "tool": "taskdog_get_q_high_e_low_metrics",
       "detail": "Tool is in MCP spec but no HTTP endpoint on live taskdog-server. Either add endpoint, or mark tool as retired in spec."
+    },
+    {
+      "kind": "tool_under_exercised",
+      "tool": "taskdog_remove_dependency",
+      "detail": "Harness did not call this expected tool; add action coverage."
     },
     {
       "kind": "tool_server_missing",

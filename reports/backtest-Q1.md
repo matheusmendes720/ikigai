@@ -1,6 +1,6 @@
 # Backtest Q1 — 2026-09-22 → 2026-10-19
 
-_Generated: 2026-09-22T02:14:49_
+_Generated: 2026-10-30T13:23:15_
 
 ## TL;DR
 
@@ -11,9 +11,9 @@ _Generated: 2026-09-22T02:14:49_
 | Scenarios PASS | 65 |
 | Scenarios SKIP | 8 (lifecycle-blocked, expected) |
 | Scenarios ERROR | 0 |
-| Tools exercised | 20 unique |
+| Tools exercised | 21 unique |
 | Anchors met | 11 of 11 |
-| Elapsed | 3.325s |
+| Elapsed | 4.354s |
 
 ## Score breakdown
 
@@ -47,6 +47,7 @@ Coverage matrix: which tools the corpus expected vs. which the harness called.
 
 | Tool | Expected | Actual | Covered |
 |------|----------|--------|---------|
+| `taskdog_audit_drift` | 0 | 3 | ✗ |
 | `taskdog_bulk_archive` | 3 | 0 | ✗ |
 | `taskdog_bulk_complete` | 3 | 0 | ✗ |
 | `taskdog_create_subtask` | 0 | 4 | ✗ |
@@ -75,7 +76,7 @@ Coverage matrix: which tools the corpus expected vs. which the harness called.
 | `taskdog_set_tags` | 3 | 3 | ✓ |
 | `taskdog_update_task` | 3 | 3 | ✓ |
 
-**Coverage**: 26 expected tools, 20 actually exercised, 7 missing.
+**Coverage**: 26 expected tools, 21 actually exercised, 7 missing.
 
 ## Tool invocation totals (from harness run)
 
@@ -83,6 +84,7 @@ Coverage matrix: which tools the corpus expected vs. which the harness called.
 |------|--------------|
 | `taskdog_add_dependency` | 4 |
 | `taskdog_archive` | 3 |
+| `taskdog_audit_drift` | 3 |
 | `taskdog_cancel` | 3 |
 | `taskdog_complete_task` | 3 |
 | `taskdog_create_note` | 3 |
