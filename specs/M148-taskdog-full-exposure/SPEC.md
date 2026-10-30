@@ -1,7 +1,7 @@
 ---
 name: M148-taskdog-full-exposure
 description: Full taskdog exposure via IKIGAI bridge — 12 MCP tools. Writes via ADR-014 queue.
-status: PENDING
+status: DONE
 owner: loop-orchestrator
 created: 2026-09-29
 constitution_refs:
@@ -13,6 +13,12 @@ estimated_cost_usd: 0.80
 ---
 
 # M148 — Full taskdog exposure via IKIGAI bridge
+
+**Status:** 🟢 DONE
+**Date:** 2026-10-17
+**Author:** loop-orchestrator
+**Roadmap:** `.claude/loop/roadmap.md` §M148 (STATUS: DONE, completed 2026-10-17)
+**Commit:** `37787a68` — feat(m148): implement 4 missing taskdog MCP tools
 
 ## Goal
 Expose all taskdog operations to Deep Agent via IKIGAI MCP bridge. Every write routes through the existing review queue (ADR-014 intact). Agent_consumer validates, propagator fans out to the 3 forks (CLI + taskdog + calendar).
