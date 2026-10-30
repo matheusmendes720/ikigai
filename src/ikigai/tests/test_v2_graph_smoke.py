@@ -3,13 +3,14 @@
 Per W3.3 brief (sdd/w33-smoke-brief.md) + W4.4 B-N10 dispatch node + recall/reason wiring:
 - Builds v2 graph via _build_v2_graph(checkpoint_db=...)
 - Invokes with stub state in FAKE_LLM mode
-- Asserts all 13 nodes run sequentially
+- Asserts all 16 nodes run sequentially
 - Includes API 529 retry logic (Diag 03 risk flag)
 - Exits 0 under pytest
 
-NODES tuple (13 entries) at graph.py:59-73:
+NODES tuple (16 entries) at graph.py:59-73:
     observe, recall, reason, score_vectors, heuristics, balance, decompose, plan,
-    tag_and_persist, reflect, commit, dispatch_sub_agents, surface_intentions
+    tag_and_persist, reflect, commit, dispatch_sub_agents, surface_intentions,
+    tag_propagation, dep_graph, gantt_suggest
 """
 
 from __future__ import annotations
@@ -131,11 +132,11 @@ def test_v2_graph_imports():
     from agents.v2.graph import NODES, _build_v2_graph
 
     assert callable(_build_v2_graph), "_build_v2_graph must be callable"
-    assert len(NODES) == 13, f"Expected 13 nodes (recall+reason added post-W4.4), got {len(NODES)}"
+    assert len(NODES) == 16, f"Expected 16 nodes, got {len(NODES)}"
 
 
 def test_v2_graph_named_nodes():
-    """All 13 expected node names are present."""
+    """All 16 expected node names are present, in order."""
     from agents.v2.graph import NODES
 
     expected = (
@@ -152,6 +153,9 @@ def test_v2_graph_named_nodes():
         "commit",
         "dispatch_sub_agents",
         "surface_intentions",
+        "tag_propagation",
+        "dep_graph",
+        "gantt_suggest",
     )
     assert NODES == expected, f"NODES = {NODES}"
 
@@ -209,7 +213,7 @@ def test_v2_graph_smoke_entry_point_observe(tmp_path, monkeypatch):
     ],
 )
 def test_v2_graph_smoke_all_entry_points(tmp_path, monkeypatch, entry_point):
-    """Each of the 13 NODES is a valid entry point."""
+    """Each of the 16 NODES is a valid entry point."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     from agents.v2.graph import NODES, _build_v2_graph
 
@@ -231,7 +235,7 @@ def test_v2_graph_invalid_entry_point_raises():
 
 
 def test_v2_graph_sequential_node_invocation(tmp_path, monkeypatch):
-    """Verify all 13 NODES are reachable as entry points (sequential coverage)."""
+    """Verify all 16 NODES are reachable as entry points (sequential coverage)."""
     monkeypatch.setenv("IKIGAI_FAKE_LLM", "1")
     from agents.v2.graph import NODES, _build_v2_graph
 

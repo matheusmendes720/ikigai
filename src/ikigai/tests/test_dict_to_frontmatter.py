@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sys_ikigai.entities.ikigai_record import IKIGAiRecord
@@ -26,8 +26,8 @@ def _record() -> IKIGAiRecord:
                 "revenue": 0.20,
                 "course": 0.20,
             },
-            "created_at": datetime(2026, 7, 3, 0, 0, 0, tzinfo=timezone.utc),
-            "updated_at": datetime(2026, 7, 3, 0, 0, 0, tzinfo=timezone.utc),
+            "created_at": datetime(2026, 7, 3, 0, 0, 0, tzinfo=UTC),
+            "updated_at": datetime(2026, 7, 3, 0, 0, 0, tzinfo=UTC),
             "source_md_path": Path("data/matheus/dreams/vaga-remota-2026.md"),
             "custom": {"verticals": ["data-analytics", "ai-llm-tooling"]},
         }

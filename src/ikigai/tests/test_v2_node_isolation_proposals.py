@@ -189,10 +189,9 @@ def _register_fake_v2_proposal_executor(monkeypatch):
 def test_tag_and_persist_node_isolation_with_vault_write(monkeypatch):
     """tag_and_persist_node invokes wrap_vault_write and reports ok=True."""
     from src.ikigai.src.agents.v2.nodes import proposal_executor as real_pe
+
     fake_report = {"ok": True, "error": ""}
-    monkeypatch.setattr(
-        real_pe, "wrap_vault_write", lambda **kw: fake_report, raising=False
-    )
+    monkeypatch.setattr(real_pe, "wrap_vault_write", lambda **kw: fake_report, raising=False)
 
     from src.ikigai.src.agents.v2.nodes import tag_and_persist as tap_mod
 
@@ -214,10 +213,9 @@ def test_tag_and_persist_node_isolation_with_vault_write(monkeypatch):
 def test_tag_and_persist_node_isolation_vault_write_fails(monkeypatch):
     """tag_and_persist_node surfaces error when wrap_vault_write returns ok=False."""
     from src.ikigai.src.agents.v2.nodes import proposal_executor as real_pe
+
     fake_report = {"ok": False, "error": "rate_limit_exceeded"}
-    monkeypatch.setattr(
-        real_pe, "wrap_vault_write", lambda **kw: fake_report, raising=False
-    )
+    monkeypatch.setattr(real_pe, "wrap_vault_write", lambda **kw: fake_report, raising=False)
 
     from src.ikigai.src.agents.v2.nodes import tag_and_persist as tap_mod
 
@@ -240,15 +238,12 @@ def test_tag_and_persist_node_isolation_real_import_works(monkeypatch):
     which fails because v2 is not a top-level package in this repo. This test
     asserts that the real import path works without sys.modules hacks.
     """
-    import importlib
     import src.ikigai.src.agents.v2.nodes.tag_and_persist as tap_mod
     from src.ikigai.src.agents.v2.nodes import proposal_executor as real_pe
 
     # Mock the REAL wrap_vault_write so we don't write to the real vault.
     fake_report = {"ok": True, "error": ""}
-    monkeypatch.setattr(
-        real_pe, "wrap_vault_write", lambda **kw: fake_report, raising=False
-    )
+    monkeypatch.setattr(real_pe, "wrap_vault_write", lambda **kw: fake_report, raising=False)
 
     # Force re-evaluation of the inner `from ... import wrap_vault_write`:
     # the node does the import inside the function, so as long as the module

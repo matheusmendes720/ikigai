@@ -1,13 +1,13 @@
 # Phase B7.4 E2E Round-trip Trace Artifact
 
-**Generated:** 2026-10-01T21:58:58.337106+00:00
+**Generated:** 2026-10-30T16:38:28.992193+00:00
 **Format:** Implementer Report (B3-B4 precedent)
-**Test count:** 2
+**Test count:** 5
 
 ## Status
 
-- Total tests: 2
-- Passed: 2
+- Total tests: 5
+- Passed: 5
 - Failed: 0
 
 ## Test Results (verbatim)
@@ -15,6 +15,9 @@
 ```
 PASSED   test_vault_task_round_trips_through_taskdog
 PASSED   test_vault_read_after_taskdog_status_change
+PASSED   test_strategics_loader_serves_vault_strategics
+PASSED   test_mcp_handles_absent_vault_file_gracefully
+PASSED   test_e2e_trace_artifact_is_generated
 ```
 
 ## Artifacts

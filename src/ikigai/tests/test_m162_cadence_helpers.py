@@ -1,12 +1,10 @@
 """Tests for M162 — cadence helpers (daily/weekly/monthly/quarterly)."""
+
 from __future__ import annotations
 
 from datetime import date
 
-import pytest
-
 from agents.v2.skills import cadence
-
 
 # ---------------------------------------------------------------------------
 # date helpers
@@ -156,9 +154,7 @@ def test_render_weekly_review_handles_no_data():
 
 def test_render_monthly_review_includes_summary():
     """render_monthly_review has Summary section."""
-    md = cadence.render_monthly_review(
-        today=date(2026, 9, 29), weekly_reviews=[]
-    )
+    md = cadence.render_monthly_review(today=date(2026, 9, 29), weekly_reviews=[])
     assert "## Summary" in md
     assert "Weekly reviews: 0" in md
 

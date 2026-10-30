@@ -25,11 +25,10 @@ Run::
 
 from __future__ import annotations
 
+import ast
 import sys
 from pathlib import Path
-from typing import Any, get_args, get_origin
-
-import pytest
+from typing import Any
 
 THIS_FILE = Path(__file__).resolve()
 IKIGAI_TESTS = THIS_FILE.parent
@@ -66,7 +65,6 @@ def _field_is_optional(annotations: dict[str, Any], field_name: str) -> bool:
     ``ast.Subscript`` with func ``"NotRequired"``, the field is
     Optional. Otherwise, it's REQUIRED and Studio would disable chat.
     """
-    import ast
 
     # Caller passes the source path so we can locate the field in its
     # declaring class. We fall back to assuming required if the field
@@ -117,8 +115,6 @@ def _ast_field_is_not_required(source: Path, field_name: str) -> bool:
 
 def _class_is_total_false(tree: ast.AST, class_name: str) -> bool:
     """True iff `class X(TypedDict, total=False)` is in tree."""
-    import ast
-
     for node in ast.walk(tree):
         if not isinstance(node, ast.ClassDef):
             continue
@@ -158,7 +154,7 @@ class TestIKIGAIMaintainerV2:
 
     def test_input_schema_has_messages(self) -> None:
         """IKIGAiStateDict declares a `messages` field (Studio chat detect)."""
-        from src.ikigai.src.agents.v2.state import IKIGAiStateDict  # noqa: F401
+        from src.ikigai.src.agents.v2.state import IKIGAiStateDict
 
         annotations = IKIGAiStateDict.__annotations__
         assert _has_messages_field(annotations), (
@@ -207,7 +203,7 @@ class TestIKIGAIForkSmoke:
 
     def test_input_schema_has_messages(self) -> None:
         """ForkSmokeStateDict declares a `messages` field."""
-        from src.ikigai.src.agents.v2.fork_smoke_graph import ForkSmokeStateDict  # noqa: F401
+        from src.ikigai.src.agents.v2.fork_smoke_graph import ForkSmokeStateDict
 
         annotations = ForkSmokeStateDict.__annotations__
         assert _has_messages_field(annotations), (
@@ -237,7 +233,7 @@ class TestIKIGAITaskdogMcp:
 
     def test_input_schema_has_messages(self) -> None:
         """TaskdogMcpStateDict declares a `messages` field."""
-        from src.ikigai.src.agents.taskdog_mcp_graph import TaskdogMcpStateDict  # noqa: F401
+        from src.ikigai.src.agents.taskdog_mcp_graph import TaskdogMcpStateDict
 
         annotations = TaskdogMcpStateDict.__annotations__
         assert _has_messages_field(annotations), (
@@ -253,7 +249,7 @@ class TestIKIGAITaskdogMcp:
         here. Both branches must accept ``{"messages": [...]}`` input
         without filtering (the schema guard's purpose).
         """
-        from src.ikigai.src.agents.taskdog_mcp_graph import TaskdogMcpStateDict  # noqa: F401
+        from src.ikigai.src.agents.taskdog_mcp_graph import TaskdogMcpStateDict
 
         annotations = TaskdogMcpStateDict.__annotations__
         # Either "messages"-only (placeholder minimal) or "messages"+others
@@ -263,9 +259,7 @@ class TestIKIGAITaskdogMcp:
         )
         # All declared fields must be NotRequired / total=False
         # (We rely on the source-level AST check below.)
-        assert _class_is_total_false(
-            _ast_parse(TASKDOG_MCP_PY), "TaskdogMcpStateDict"
-        ), (
+        assert _class_is_total_false(_ast_parse(TASKDOG_MCP_PY), "TaskdogMcpStateDict"), (
             "TaskdogMcpStateDict must use `total=False` or NotRequired so "
             "Studio chat input isn't blocked by required fields."
         )
@@ -287,9 +281,9 @@ def test_all_graphs_chat_enabled() -> None:
     condition, this fails — preventing a partial fix that only enables
     chat on 2 of 3 graphs.
     """
+    from src.ikigai.src.agents.taskdog_mcp_graph import TaskdogMcpStateDict
     from src.ikigai.src.agents.v2.fork_smoke_graph import ForkSmokeStateDict
     from src.ikigai.src.agents.v2.state import IKIGAiStateDict
-    from src.ikigai.src.agents.taskdog_mcp_graph import TaskdogMcpStateDict
 
     pairs = [
         ("ikigai_maintainer_v2", IKIGAiStateDict, IKIGAI_STATE_PY),
@@ -301,8 +295,7 @@ def test_all_graphs_chat_enabled() -> None:
         annotations = td.__annotations__
         if not _has_messages_field(annotations):
             failures.append(
-                f"  {name}: input_schema missing `messages` field — "
-                f"got {sorted(annotations)}"
+                f"  {name}: input_schema missing `messages` field — got {sorted(annotations)}"
             )
             continue
         # For ikigai_maintainer_v2, the four identity fields must each be
@@ -323,6 +316,5 @@ def test_all_graphs_chat_enabled() -> None:
                 )
 
     assert not failures, (
-        "Studio chat is disabled for some graphs (OPEN-3 fix regression):\n"
-        + "\n".join(failures)
+        "Studio chat is disabled for some graphs (OPEN-3 fix regression):\n" + "\n".join(failures)
     )

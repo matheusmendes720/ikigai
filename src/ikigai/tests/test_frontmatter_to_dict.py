@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import shutil
 import tempfile
+from datetime import UTC
 from pathlib import Path
 
 import pytest
@@ -56,12 +57,12 @@ def test_round_trip_preserves_null(dream_md: Path) -> None:
 
 def test_round_trip_preserves_datetime(dream_md: Path) -> None:
     """RT-04: re-parsed datetime carries tzinfo (parsed back to datetime object)."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     d = frontmatter_to_dict(dream_md)
     assert isinstance(d["created_at"], datetime)
     assert d["created_at"].tzinfo is not None
-    assert d["created_at"].astimezone(timezone.utc) == datetime(2026, 7, 3, tzinfo=timezone.utc)
+    assert d["created_at"].astimezone(UTC) == datetime(2026, 7, 3, tzinfo=UTC)
 
 
 def test_round_trip_preserves_extra(dream_md: Path) -> None:

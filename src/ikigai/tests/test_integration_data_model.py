@@ -20,7 +20,7 @@ import os
 import shutil
 import tempfile
 from collections.abc import Iterator
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -63,8 +63,8 @@ def _load_record(path: Path) -> IKIGAiRecord:
         raw["status"] = raw["status"].lower()
     if not raw.get("source_md_path"):
         raw["source_md_path"] = path.as_posix()
-    raw.setdefault("created_at", datetime(2026, 7, 3, tzinfo=timezone.utc))
-    raw.setdefault("updated_at", datetime(2026, 7, 3, tzinfo=timezone.utc))
+    raw.setdefault("created_at", datetime(2026, 7, 3, tzinfo=UTC))
+    raw.setdefault("updated_at", datetime(2026, 7, 3, tzinfo=UTC))
     return IKIGAiRecord.model_validate(raw)
 
 
@@ -84,7 +84,7 @@ def tmp_dir() -> Iterator[Path]:
 
 
 def _base_payload(**over: Any) -> dict[str, Any]:
-    now = datetime(2026, 8, 1, 12, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
     payload: dict[str, Any] = {
         "ueid": "ikigai:dream:probe:00000001:00000002",
         "entity_type": "dream",
@@ -247,7 +247,7 @@ def test_su04_score_value_equality() -> None:
 def test_ov01_override_record_round_trips() -> None:
     """OV-01: OverrideRecord survives a record round-trip inside audit_trail."""
     ov = OverrideRecord(
-        at=datetime(2026, 8, 1, tzinfo=timezone.utc),
+        at=datetime(2026, 8, 1, tzinfo=UTC),
         by="human:matheus",
         field_path="regime.levels.0.regime",
         previous_value="maintain",
@@ -264,7 +264,7 @@ def test_ov01_override_record_round_trips() -> None:
 def test_ov02_override_values_preserved_verbatim() -> None:
     """OV-02: previous/new values (Any) survive round-trip unchanged."""
     ov = OverrideRecord(
-        at=datetime(2026, 8, 1, tzinfo=timezone.utc),
+        at=datetime(2026, 8, 1, tzinfo=UTC),
         by="agent",
         field_path="q_he_score.value",
         previous_value=0.4,
@@ -392,7 +392,7 @@ def test_sa03_drift_detector_flags_markdown_newer(tmp_dir: Path) -> None:
     md.parent.mkdir(parents=True, exist_ok=True)
     md.write_text("# probe\n", encoding="utf-8")
     adapter, rec = _mirror(tmp_dir, md)
-    fut = (datetime.now(timezone.utc) + timedelta(seconds=120)).timestamp()
+    fut = (datetime.now(UTC) + timedelta(seconds=120)).timestamp()
     os.utime(md, (fut, fut))
     findings = list(DriftDetector(adapter)._collect(vault))
     mine = [f for f in findings if f.ueid == rec.ueid]
@@ -457,7 +457,7 @@ def test_ph01_placeholder_and_phase_snapshot_round_trip() -> None:
         phase="fundacao",
         iteration=1,
         weights={"passion": 0.2, "skill": 0.2, "market": 0.2, "revenue": 0.2, "course": 0.2},
-        created_at=datetime(2026, 8, 1, tzinfo=timezone.utc),
+        created_at=datetime(2026, 8, 1, tzinfo=UTC),
     )
     again_snap = PhaseSnapshot.model_validate(snap.model_dump())
     assert again_snap == snap

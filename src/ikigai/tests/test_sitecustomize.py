@@ -47,9 +47,8 @@ def _load_sitecustomize_fresh(module_name: str = "sitecustomize_test_under_test"
         pytest.skip(f"sitecustomize.py not found at {SITECUSTOMIZE_PATH}")
 
     spec = importlib.util.spec_from_file_location(module_name, SITECUSTOMIZE_PATH)
-    assert spec is not None and spec.loader is not None, (
-        f"Could not load spec for {SITECUSTOMIZE_PATH}"
-    )
+    assert spec is not None, f"Could not load spec for {SITECUSTOMIZE_PATH}"
+    assert spec.loader is not None, f"No loader for {SITECUSTOMIZE_PATH}"
     module = importlib.util.module_from_spec(spec)
     # Register in sys.modules so that nested imports (eg the
     # meta_path hook) behave like a real import.
@@ -115,7 +114,7 @@ def test_staticfiles_default_html_is_true_after_patch() -> None:
     ``html=True`` injected as a kwarg when the caller omits it.
     """
     starlette = pytest.importorskip("starlette")
-    mod = _load_sitecustomize_fresh("sitecustomize_test_default_html")
+    _mod = _load_sitecustomize_fresh("sitecustomize_test_default_html")
     try:
         # Build a StaticFiles instance without an html kwarg. Use a
         # directory that doesn't have to exist on disk for this test —
@@ -136,12 +135,10 @@ def test_staticfiles_default_html_is_true_after_patch() -> None:
 def test_staticfiles_explicit_html_false_is_preserved() -> None:
     """Explicit ``html=False`` must NOT be overridden by the patch."""
     starlette = pytest.importorskip("starlette")
-    mod = _load_sitecustomize_fresh("sitecustomize_test_explicit_html")
+    _mod = _load_sitecustomize_fresh("sitecustomize_test_explicit_html")
     try:
         # Pass html=False explicitly — patch should preserve it.
-        app = starlette.staticfiles.StaticFiles(
-            directory=".", check_dir=False, html=False
-        )
+        app = starlette.staticfiles.StaticFiles(directory=".", check_dir=False, html=False)
         assert app is not None
     finally:
         _restore_staticfiles_init(starlette)
@@ -193,7 +190,7 @@ def test_reimporting_module_does_not_stack_wrappers() -> None:
         # global). But _apply_staticfiles_patch detects that
         # _ORIGINAL_STATICFILES_INIT is already set to the original
         # (not the wrapped) function — it should NOT re-wrap.
-        mod2 = _load_sitecustomize_fresh("sitecustomize_test_reimport_2")
+        _mod2 = _load_sitecustomize_fresh("sitecustomize_test_reimport_2")
         try:
             # mod2 has its own _PATCH_APPLIED flag, but the global
             # StaticFiles.__init__ must not be double-wrapped.

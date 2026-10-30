@@ -6,7 +6,7 @@ the root itself rather than its child entities.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -52,8 +52,8 @@ def _minimal_record(**overrides: Any) -> IKIGAiRecord:
         "entity_type": EntityType.DREAM,
         "slug": "vaga-remota-2026",
         "title": "Vaga remota 2026",
-        "created_at": datetime(2026, 8, 26, tzinfo=timezone.utc),
-        "updated_at": datetime(2026, 8, 26, tzinfo=timezone.utc),
+        "created_at": datetime(2026, 8, 26, tzinfo=UTC),
+        "updated_at": datetime(2026, 8, 26, tzinfo=UTC),
         "source_md_path": Path("data/matheus/dreams/vaga-remota-2026.md"),
         "regime": _regime(),
         "q_he_score": _q_he(),
@@ -148,7 +148,7 @@ class TestIKIGAiRecordAggregates:
                     target_ueid=None,
                     urgency="high",
                     metadata={},
-                    created_at=datetime(2026, 8, 26, tzinfo=timezone.utc),
+                    created_at=datetime(2026, 8, 26, tzinfo=UTC),
                 ),
             ]
         )

@@ -1,17 +1,15 @@
 """Tests for M162 — 4 cadence skills (daily/weekly/monthly/quarterly)."""
+
 from __future__ import annotations
 
 from datetime import date
 
-import pytest
-
 from agents.v2.skills import (
     ikigai_daily,
-    ikigai_weekly,
     ikigai_monthly,
     ikigai_quarterly,
+    ikigai_weekly,
 )
-
 
 # ---------------------------------------------------------------------------
 # ikigai-daily

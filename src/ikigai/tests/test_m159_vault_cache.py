@@ -1,4 +1,5 @@
 """Tests for M159 vault embeddings cache."""
+
 from __future__ import annotations
 
 import os
@@ -93,7 +94,7 @@ def test_cosine_empty_input_returns_zero():
 def test_cache_creates_persist_dir(tmp_cache_dir):
     """Constructor creates the cache directory if it doesn't exist."""
     target = os.path.join(tmp_cache_dir, "deep", "nested", "chroma")
-    cache = VaultEmbeddingCache(persist_dir=target)
+    VaultEmbeddingCache(persist_dir=target)
     assert Path(target).exists()
 
 

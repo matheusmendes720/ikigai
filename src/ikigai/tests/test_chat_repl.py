@@ -25,6 +25,12 @@ import pytest
 
 DEVNULL_PATH = os.devnull  # '/dev/null' on POSIX, 'nul' on Windows
 
+# The REPL subprocess imports the full agent stack (langchain/langgraph/otel),
+# so cold start can exceed 10s on a loaded CI machine. The timeout guards
+# against a hang, not against slowness — 30s keeps the test deterministic
+# without masking a genuine deadlock.
+SUBPROCESS_TIMEOUT = 30
+
 
 # Repo layout: src/ikigai/tests/test_chat_repl.py → repo root is 3 parents up.
 REPO = Path(__file__).resolve().parents[3]
@@ -54,7 +60,7 @@ class TestChatReplCli:
             [sys.executable, str(CHAT_REPL), "--help"],
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=SUBPROCESS_TIMEOUT,
         )
         assert result.returncode == 0, (
             f"--help exited non-zero: rc={result.returncode}\nstderr={result.stderr}"
@@ -73,7 +79,7 @@ class TestChatReplCli:
             [sys.executable, str(CHAT_REPL)],
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=SUBPROCESS_TIMEOUT,
         )
         # argparse exits 2 for missing required args
         assert result.returncode != 0, (
@@ -103,7 +109,7 @@ class TestChatReplCli:
                 stdin=devnull,
                 capture_output=True,
                 text=True,
-                timeout=10,
+                timeout=SUBPROCESS_TIMEOUT,
             )
         # arg parse must succeed (rc != 2 from argparse); remaining output is
         # the soul summary. We only assert NO argparse error.
@@ -131,7 +137,7 @@ class TestChatReplEofHandling:
                 stdin=devnull,
                 capture_output=True,
                 text=True,
-                timeout=10,
+                timeout=SUBPROCESS_TIMEOUT,
             )
         combined = result.stdout + result.stderr
         assert "Traceback" not in combined, (
@@ -151,7 +157,7 @@ class TestChatReplEofHandling:
             ],
             capture_output=True,
             text=True,
-            timeout=15,
+            timeout=SUBPROCESS_TIMEOUT,
             input="hello\n",
         )
         combined = result.stdout + result.stderr
@@ -180,7 +186,7 @@ class TestChatReplSoulAware:
                 stdin=devnull,
                 capture_output=True,
                 text=True,
-                timeout=10,
+                timeout=SUBPROCESS_TIMEOUT,
             )
         combined = result.stdout + result.stderr
         # M16 soul-aware REPL prints the soul summary at startup (banner).

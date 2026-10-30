@@ -12,17 +12,17 @@ Run::
 
     cd src/ikigai && uv run pytest tests/skills/test_vault_intent_extract.py -v
 """
+
 from __future__ import annotations
 
 import json
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
 import pytest
-
 
 _FIXED_TODAY = date(2026, 10, 1)
 
@@ -130,10 +130,7 @@ class TestLembrarPattern:
 class TestDedup:
     def test_duplicate_within_note_dedupes(self, skill: Any) -> None:
         # Same captured task text twice → deduped to 1 candidate.
-        md = (
-            "amanhã eu faço o relatório\n"
-            "amanhã eu faço o relatório\n"
-        )
+        md = "amanhã eu faço o relatório\namanhã eu faço o relatório\n"
         cands = skill.extract_candidates(md, today=_FIXED_TODAY)
         assert len(cands) == 1
 
@@ -208,9 +205,7 @@ class TestProposeFromFile:
         assert proposal.changes[0]["fields"]["title"] == "rebuild cache"
 
     def test_missing_file_returns_empty(self, skill: Any, tmp_path: Path) -> None:
-        proposal = skill.propose_from_file(
-            tmp_path / "does-not-exist.md", today=_FIXED_TODAY
-        )
+        proposal = skill.propose_from_file(tmp_path / "does-not-exist.md", today=_FIXED_TODAY)
         assert proposal.changes == []
         assert "not found" in proposal.reasoning
 
@@ -249,7 +244,7 @@ class TestReviewQueueIntegration:
                 action=TaskAction.CREATE,
                 fields=c["fields"],
                 source_fork=f"td_chat:{skill.SKILL_NAME}",
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
             )
             queue_mod.enqueue(tc)
 
@@ -280,12 +275,8 @@ class TestErrorHandling:
             skill.propose("TODO: rebuild cache", today=_FIXED_TODAY)
             mock_write.assert_not_called()
 
-    def test_propose_from_file_handles_missing_gracefully(
-        self, skill: Any, tmp_path: Path
-    ) -> None:
-        proposal = skill.propose_from_file(
-            tmp_path / "missing.md", today=_FIXED_TODAY
-        )
+    def test_propose_from_file_handles_missing_gracefully(self, skill: Any, tmp_path: Path) -> None:
+        proposal = skill.propose_from_file(tmp_path / "missing.md", today=_FIXED_TODAY)
         assert proposal.skill == "vault-intent-extract"
         assert proposal.changes == []
 

@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Generator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -103,7 +103,7 @@ def write_b7_4_report(test_results: list[dict], artifacts: dict) -> Path:
     """
     _REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     report_path = _REPORTS_DIR / "b7-4-report.md"
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     parts = [
         "# Phase B7.4 E2E Round-trip Trace Artifact",

@@ -1,12 +1,10 @@
 """Tests for M161 — vault-intent-extract skill."""
+
 from __future__ import annotations
 
 from datetime import date, timedelta
 
-import pytest
-
 from agents.v2.skills import vault_intent_extract
-
 
 # ---------------------------------------------------------------------------
 # Pattern matching — individual patterns
@@ -230,5 +228,6 @@ def test_run_skill_with_empty_string():
 def test_skill_registered_in_registry():
     """vault_intent-extract is registered in the skills registry."""
     from agents.v2.skills import list_skills
+
     assert "vault-intent-extract" in list_skills()
     assert "taskdog-triage" in list_skills()

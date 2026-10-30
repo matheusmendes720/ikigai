@@ -12,17 +12,17 @@ Run::
 
     cd src/ikigai && uv run pytest tests/skills/test_taskdog_triage.py -v
 """
+
 from __future__ import annotations
 
 import json
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
 import pytest
-
 
 # The skills module imports agents.v2.proposals.Proposal — that import chain
 # requires src/ on sys.path, which conftest.py already arranges. We still
@@ -119,9 +119,9 @@ class TestOverdue:
     def test_past_planned_start_moves_to_in_progress(self, skill: Any) -> None:
         tasks = [_task(planned_start=(_FIXED_TODAY - timedelta(days=3)).isoformat())]
         changes = skill.detect_changes(tasks, today=_FIXED_TODAY)
-        assert any(
-            c["fields"] == {"status": "in_progress"} for c in changes
-        ), f"expected status=in_progress change, got {changes}"
+        assert any(c["fields"] == {"status": "in_progress"} for c in changes), (
+            f"expected status=in_progress change, got {changes}"
+        )
 
     def test_in_progress_status_not_re_flagged(self, skill: Any) -> None:
         tasks = [
@@ -155,8 +155,7 @@ class TestMissingDescription:
         tasks = [_task(description="x" * 50)]
         changes = skill.detect_changes(tasks, today=_FIXED_TODAY)
         assert all(
-            not (c["fields"].get("description", "").startswith("(auto-flagged"))
-            for c in changes
+            not (c["fields"].get("description", "").startswith("(auto-flagged")) for c in changes
         )
 
 
@@ -229,7 +228,7 @@ class TestPropose:
     def test_run_skill_entry_point(self, skill: Any) -> None:
         """run_skill is the canonical entry for /skill taskdog-triage."""
         tasks = [_task(deadline=(_FIXED_TODAY + timedelta(days=1)).isoformat())]
-        proposal = skill.run_skill(tasks=tasks)
+        proposal = skill.run_skill(tasks=tasks, today=_FIXED_TODAY)
         assert proposal.skill == "taskdog-triage"
         assert len(proposal.changes) >= 1
 
@@ -268,7 +267,7 @@ class TestReviewQueueIntegration:
                 action=TaskAction.UPDATE,
                 fields=c["fields"],
                 source_fork=f"td_chat:{skill.SKILL_NAME}",
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
             )
             event_id = queue_mod.enqueue(tc)
             assert event_id == tc.event_id
@@ -328,8 +327,8 @@ def test_run_skill_idempotent_across_calls(skill: Any) -> None:
     identical proposals (ignoring created_at / proposal_id which are
     timestamp-derived)."""
     tasks = [_task(deadline=(_FIXED_TODAY + timedelta(days=1)).isoformat())]
-    p1 = skill.run_skill(tasks=tasks)
-    p2 = skill.run_skill(tasks=tasks)
+    p1 = skill.run_skill(tasks=tasks, today=_FIXED_TODAY)
+    p2 = skill.run_skill(tasks=tasks, today=_FIXED_TODAY)
     # Compare the deterministic content only
     assert p1.skill == p2.skill
     assert p1.reasoning == p2.reasoning

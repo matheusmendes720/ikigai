@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -145,7 +145,7 @@ def test_roundtrip_done_status_propagates_back_to_vault(fresh_env, monkeypatch):
         action=TaskAction.DONE,
         fields=event_data["fields"],
         source_fork="vault",  # vault-bound: triggers vault_write in propagate()
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         status="pending",
     )
     validation = ValidationResult(

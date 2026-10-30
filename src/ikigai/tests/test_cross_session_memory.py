@@ -47,6 +47,7 @@ from agents.memory.cross_session import (  # noqa: E402
     SessionSummarizer,
     summarize_and_store,
 )
+
 from agents.v2.vault_cache import VaultEmbeddingCache  # noqa: E402
 
 # ---------------------------------------------------------------------------

@@ -3,18 +3,20 @@
 Per docs/superpowers/specs/2026-08-29-algorithm-attribution-design.md §7:
     "vault_write is the ONLY vault writer."
 
-The vault module (`src/ikigai/src/ikigai/vault/`) encapsulates ALL writes to
-`vault/`. Any code outside the allowlist that opens/writes files under the
-vault root violates this invariant.
+The canonical vault writer lives in the repo-root `sys_ikigai/vault/` package
+(it is packaged into the Ikigai Poetry project as `sys_ikigai`). Any code
+outside the allowlist that opens/writes files under the vault root violates
+this invariant.
 
 Allowlist (the legitimate vault writers):
+- sys_ikigai/vault/vault_write.py — the underlying implementation (sole writer)
+- sys_ikigai/vault/__init__.py — public re-exports
+- sys_ikigai/vault/vault_read.py — read-only (no write calls)
+- sys_ikigai/vault/path_utils.py — path resolution only
 - src/ikigai/src/mcp_server/tools_vault.py — registers the MCP tool
-- src/ikigai/src/ikigai/vault/vault_write.py — the underlying implementation
-- src/ikigai/src/ikigai/vault/__init__.py — public re-exports
-- src/ikigai/src/ikigai/vault/vault_read.py — read-only (no write calls)
-- src/ikigai/src/ikigai/vault/path_utils.py — path resolution only
 
-Any OTHER file in `src/ikigai/src/{agents,mcp_server,ikigai}/` that:
+Any OTHER file in `src/ikigai/src/{agents,mcp_server}/` or in `sys_ikigai/`
+that:
     (a) opens a file for writing AND
     (b) the path resolves under vault/
 
@@ -25,6 +27,7 @@ analog for write-path drift.
 
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 
@@ -85,18 +88,61 @@ def _is_allowlisted(rel_path: Path) -> bool:
     # src/ikigai/src/mcp_server/tools_vault.py
     if parts == ("src", "ikigai", "src", "mcp_server", "tools_vault.py"):
         return True
-    # src/ikigai/src/ikigai/vault/<anything>.py
-    if len(parts) >= 5 and parts[:4] == ("src", "ikigai", "src", "ikigai") and parts[4] == "vault":
+    # sys_ikigai/vault/<anything>.py — the canonical writer package
+    if len(parts) >= 3 and parts[:2] == ("sys_ikigai", "vault"):
         return True
     return False
 
 
+def _split_docstrings(src: str) -> tuple[str, list[str]]:
+    """Return ``(code_without_docstrings, docstrings)``.
+
+    A docstring is documentation, not an executed write target. We keep
+    them separate so that a docstring which itself documents a vault WRITE
+    (e.g. ``open("vault/x.md", "w")``) is still reported, while a docstring
+    that merely mentions a vault path (e.g. a cache key example) is not.
+    """
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return src, []
+
+    spans: list[tuple[int, int]] = []
+    docs: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        body = getattr(node, "body", [])
+        if not body:
+            continue
+        first = body[0]
+        if (
+            isinstance(first, ast.Expr)
+            and isinstance(first.value, ast.Constant)
+            and isinstance(first.value.value, str)
+        ):
+            spans.append((first.lineno, first.end_lineno or first.lineno))
+            docs.append(first.value.value)
+
+    if not spans:
+        return src, docs
+
+    lines = src.splitlines(keepends=True)
+    for start, end in spans:
+        for idx in range(start - 1, min(end, len(lines))):
+            lines[idx] = "\n"
+    return "".join(lines), docs
+
+
 def _strip_comments_and_strings_relaxed(src: str) -> str:
     """Best-effort strip of Python comments — naive but adequate for the
-    grep-test. Docstrings and triple-quoted strings are NOT stripped (we
-    want to catch vault write attempts even in docstring examples)."""
+    grep-test. Docstrings are blanked out here (they are scanned
+    separately by ``_docstring_targets_vault``); remaining string literals
+    are NOT stripped, so a real path literal feeding a write call is
+    still detected."""
+    code, _docs = _split_docstrings(src)
     out_lines = []
-    for line in src.splitlines():
+    for line in code.splitlines():
         # Strip trailing line comments
         if "#" in line:
             # Naive: '# ' introduces a comment, but '#' can also appear in
@@ -111,9 +157,25 @@ def _strip_comments_and_strings_relaxed(src: str) -> str:
     return "\n".join(out_lines)
 
 
+def _docstring_targets_vault(doc: str) -> bool:
+    """Return True if a docstring documents a write into vault/."""
+    body = _strip_comments_and_strings_relaxed(doc)
+    if not (_RE_VAULT_STRING.search(body) is not None or _RE_PATH_VAULT.search(body) is not None):
+        return False
+    return (
+        _RE_OPEN_WRITE.search(body) is not None
+        or _RE_PATH_WRITE_METHODS.search(body) is not None
+        or _RE_ATOMIC_RENAME.search(body) is not None
+        or _RE_WITH_OPEN.search(body) is not None
+    )
+
+
 def _file_targets_vault(src: str) -> bool:
     """Return True if `src` contains a write operation targeting vault/."""
     body = _strip_comments_and_strings_relaxed(src)
+    _code, docs = _split_docstrings(src)
+    if any(_docstring_targets_vault(d) for d in docs):
+        return True
 
     has_vault_path = (
         _RE_VAULT_STRING.search(body) is not None or _RE_PATH_VAULT.search(body) is not None
@@ -141,10 +203,11 @@ def test_vault_write_is_sole_writer() -> None:
     ikigai_src = repo_root / "src" / "ikigai" / "src"
 
     # Scan the canonical-scope subtree (mirrors test_canonical_scope.py)
+    # plus the repo-root sys_ikigai package, which holds the canonical writer.
     scan_roots = [
         ikigai_src / "agents",
         ikigai_src / "mcp_server",
-        ikigai_src / "ikigai",
+        repo_root / "sys_ikigai",
     ]
 
     violations: list[tuple[Path, str]] = []
@@ -192,9 +255,9 @@ def test_vault_module_is_allowlisted() -> None:
     """Sanity check: the allowlist itself contains the vault module so
     legitimate writers are not flagged. If this fails, the allowlist is
     stale and drift detector + vault_write test are inconsistent."""
-    assert _is_allowlisted(Path("src/ikigai/src/ikigai/vault/vault_write.py"))
-    assert _is_allowlisted(Path("src/ikigai/src/ikigai/vault/__init__.py"))
-    assert _is_allowlisted(Path("src/ikigai/src/ikigai/vault/vault_read.py"))
+    assert _is_allowlisted(Path("sys_ikigai/vault/vault_write.py"))
+    assert _is_allowlisted(Path("sys_ikigai/vault/__init__.py"))
+    assert _is_allowlisted(Path("sys_ikigai/vault/vault_read.py"))
     assert _is_allowlisted(Path("src/ikigai/src/mcp_server/tools_vault.py"))
     # Negative: a known non-allowlisted file
     assert not _is_allowlisted(Path("src/ikigai/src/agents/deepagents_harness.py"))

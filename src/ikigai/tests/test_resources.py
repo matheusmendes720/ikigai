@@ -99,13 +99,24 @@ def test_queue_event_resource_missing_returns_error() -> None:
 
 
 def test_health_resource_matches_tool() -> None:
-    """health://gateway resource must return identical data to ikigai_health tool."""
+    """health://gateway resource must return identical data to ikigai_health tool.
+
+    ``uptime_s`` is recomputed on every call (a live wall-clock delta), so the
+    two snapshots are taken microseconds apart and can straddle a rounding
+    boundary. Every other field must match exactly; ``uptime_s`` must agree
+    within a small tolerance instead of bit-exactly.
+    """
     from mcp_server.resources import health_resource
     from mcp_server.tools_mesh import ikigai_health
 
     resource_result = json.loads(health_resource())
     tool_result = json.loads(ikigai_health())
-    assert resource_result == tool_result
+
+    assert set(resource_result) == set(tool_result)
+    volatile = {"uptime_s"}
+    for key in set(resource_result) - volatile:
+        assert resource_result[key] == tool_result[key], f"field {key!r} differs"
+    assert abs(resource_result["uptime_s"] - tool_result["uptime_s"]) < 1.0
 
 
 # === plans://cycles ===

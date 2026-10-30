@@ -25,6 +25,7 @@ Run::
 from __future__ import annotations
 
 import ast
+import json
 import re
 import sys
 from pathlib import Path
@@ -660,63 +661,185 @@ class TestInvestigationQueueTools:
 
 
 def test_taskdog_tools_read_only_contract() -> None:
-    """Drift net guard (M17 T-17.1): taskdog_tools.py MCP surface must be
-    READ-ONLY per ADR-024 (PAV archival) + Path 3 taskdog architecture.
+    """Drift net guard (M17 T-17.1, updated for M163/M164): the taskdog MCP
+    surface may expose write tools — but ONLY if every write is queued as a
+    TaskChange in the mesh review queue (ADR-014).
 
-    Per docs/design-system/24-taskdog-paths-architecture.md, Path 3 is the
-    read-only MCP surface. The canonical write path is Path 1 (harness
-    subprocess → taskdog_cli.py); Path 2 is the operator CLI. Adding any
-    write operation to taskdog_tools.py would silently break the
-    read-only contract because MCP-tool consumers (Claude agents,
-    external MCP clients) call @mcp.tool directly without going through
-    the review queue.
+    History: Path 3 started read-only (ADR-024 / docs/design-system/
+    24-taskdog-paths-architecture.md) with exactly 3 tools. M163/M164
+    intentionally grew the surface to the full taskdog tool set (tags, deps,
+    notes, audit, delete, done, search, set_planned_dates, reopen, pause,
+    ...). The invariant that still holds is NOT "the surface is read-only" —
+    it is "no write bypasses the review queue":
 
-    Only these 3 tools are permitted:
-    - taskdog_read
-    - taskdog_list
-    - taskdog_supports_field
-
-    Any write operation (create, update, delete, archive) here would
-    silently leak writes out of the canonical Path 1 surface — drift net
-    catches this.
+      1. The original 3 read-only tools are still exposed. The read-only set
+         is a SUBSET of the exposed surface, not the whole surface.
+      2. Every write tool routes through _build_task_change ->
+         _enqueue_task_change (src.mesh.queue.enqueue → data/review_queue/)
+         instead of touching SQLite itself.
+      3. No MCP tool imports sqlite3, runs a direct SQL statement
+         (execute/executemany/executescript/commit) or calls the adapter's
+         mutators (apply_change/add_tags/remove_tags/clear_tags) directly.
     """
-    import re
-
     repo = REPO_ROOT
     taskdog_tools = repo / "src" / "ikigai" / "src" / "mcp_server" / "taskdog_tools.py"
     if not taskdog_tools.exists():
         pytest.skip(f"taskdog_tools.py not found: {taskdog_tools}")
 
-    text = taskdog_tools.read_text(encoding="utf-8")
+    tree = ast.parse(taskdog_tools.read_text(encoding="utf-8"))
 
-    # Extract all @mcp.tool-decorated function names (decorator uses
-    # lowercase `mcp` — the local FastMCP instance — not @MCP.tool).
-    declared_tools: set[str] = set()
-    for match in re.finditer(
-        r"@mcp\.tool\(?[^)]*?\)?\s*(?:async\s+)?def\s+(\w+)",
-        text,
-    ):
-        declared_tools.add(match.group(1))
+    # --- registered tools (@mcp.tool) and their exposed names --------------
+    tools: dict[str, ast.AST] = {}
+    descriptions: dict[str, str] = {}
+    for node in tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for dec in node.decorator_list:
+            target = dec.func if isinstance(dec, ast.Call) else dec
+            if not (
+                isinstance(target, ast.Attribute)
+                and target.attr == "tool"
+                and isinstance(target.value, ast.Name)
+                and target.value.id == "mcp"
+            ):
+                continue
+            exposed = node.name
+            if isinstance(dec, ast.Call):
+                for kw in dec.keywords:
+                    if kw.arg == "name" and isinstance(kw.value, ast.Constant):
+                        exposed = str(kw.value.value)
+                    elif kw.arg == "description" and isinstance(kw.value, ast.Constant):
+                        descriptions[exposed] = str(kw.value.value)
+            tools[exposed] = node
 
-    # Permitted set per Path 3 read-only contract.
-    ALLOWED: frozenset[str] = frozenset(  # noqa: N806 — local test constant
+    def _calls(fn: ast.AST) -> set[str]:
+        names: set[str] = set()
+        for sub in ast.walk(fn):
+            if isinstance(sub, ast.Call):
+                target = sub.func
+                if isinstance(target, ast.Name):
+                    names.add(target.id)
+                elif isinstance(target, ast.Attribute):
+                    names.add(target.attr)
+        return names
+
+    def _refs(fn: ast.AST) -> set[str]:
+        return {n.id for n in ast.walk(fn) if isinstance(n, ast.Name)}
+
+    def _str_consts(fn: ast.AST) -> set[str]:
+        return {
+            c.value
+            for c in ast.walk(fn)
+            if isinstance(c, ast.Constant) and isinstance(c.value, str)
+        }
+
+    def _is_write_tool(name: str, fn: ast.AST) -> bool:
+        """True when the tool mutates taskdog state.
+
+        This is deliberately a UNION of independent signals rather than a
+        single marker:
+
+          S1 — the body constructs a TaskChange / references TaskAction
+          S2 — the body produces the queue receipt token ``event_id``
+          S3 — the registered description advertises review-queue routing
+
+        A UNION matters: if the classification relied on S1 alone, then a
+        production regression that removes the TaskChange construction
+        would silently re-label that write tool as read-only and make the
+        queue-routing assertion below vacuous for it. With a union, any
+        one surviving signal keeps the tool classified as a write tool.
+        """
+        return (
+            bool(_refs(fn) & {"TaskAction", "TaskChange"})
+            or "event_id" in _refs(fn)
+            or "event_id" in _str_consts(fn)
+            or "review queue" in descriptions.get(name, "").lower()
+        )
+
+    # --- (1) the read-only core is still exposed (subset, not equality) ---
+    read_only: frozenset[str] = frozenset(
         {
             "taskdog_read",
             "taskdog_list",
             "taskdog_supports_field",
         }
     )
+    missing = read_only - tools.keys()
+    assert not missing, (
+        "Path 3 read-only core tools missing from taskdog_tools.py:\n"
+        + "\n".join(f"  - {tool}" for tool in sorted(missing))
+        + f"\n\nRegistered tools: {sorted(tools)}"
+    )
 
-    unexpected = declared_tools - ALLOWED
-    # Note: not asserting missing == set() — Path 3 contract allows
-    # for missing tools during transitions (we only enforce that
-    # nothing extra has been added).
+    # --- (2) every write tool must go through the review queue -------------
+    # A write tool is classified by the union of independent signals (see
+    # _is_write_tool): it builds a TaskChange, it returns a queue receipt
+    # token, and/or its description advertises review-queue routing.
+    write_tools = {name: fn for name, fn in tools.items() if _is_write_tool(name, fn)}
+    assert write_tools, (
+        "no write tools found on the taskdog MCP surface — M163/M164 expects "
+        "the full tool set (tags, deps, notes, audit, delete, done, search, "
+        "set_planned_dates, reopen, pause, ...)"
+    )
+    unqueued = sorted(
+        name
+        for name, fn in write_tools.items()
+        if not ({"_build_task_change", "_enqueue_task_change"} & _calls(fn))
+    )
+    assert not unqueued, (
+        "write tools must enqueue a TaskChange via _build_task_change/"
+        "_enqueue_task_change (mesh review queue) — these bypass it:\n"
+        + "\n".join(f"  - {tool}" for tool in unqueued)
+    )
 
-    assert not unexpected, (
-        "taskdog_tools.py exposes WRITE operations (forbidden per Path 3 contract):\n"
-        + "\n".join(f"  - {tool}" for tool in sorted(unexpected))
-        + f"\n\nDeclared tools: {sorted(declared_tools)}\n"
-        + f"Allowed tools (Path 3 read-only): {sorted(ALLOWED)}"
+    builders = [
+        n
+        for n in tree.body
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == "_build_task_change"
+    ]
+    assert builders, "_build_task_change() helper missing from taskdog_tools.py"
+    assert "_enqueue_task_change" in _calls(builders[0]), (
+        "_build_task_change() must enqueue through _enqueue_task_change()"
+    )
+
+    queue_alias = any(
+        isinstance(n, ast.ImportFrom)
+        and n.module == "src.mesh.queue"
+        and any(a.name == "enqueue" and a.asname == "_enqueue_task_change" for a in n.names)
+        for n in tree.body
+    )
+    assert queue_alias, (
+        "_enqueue_task_change must be the mesh review-queue enqueue "
+        "(from src.mesh.queue import enqueue as _enqueue_task_change)"
+    )
+
+    # --- (3) no direct SQLite writes from the MCP surface ------------------
+    forbidden_calls: frozenset[str] = frozenset(
+        {
+            "execute",
+            "executemany",
+            "executescript",
+            "commit",
+            "apply_change",
+            "add_tags",
+            "remove_tags",
+            "clear_tags",
+        }
+    )
+    direct_sql = sorted(
+        f"{name}.{call}" for name, fn in tools.items() for call in _calls(fn) & forbidden_calls
+    )
+    assert not direct_sql, "MCP tools must not write SQLite directly (ADR-014):\n" + "\n".join(
+        f"  - {entry}" for entry in direct_sql
+    )
+
+    imports_sqlite3 = any(
+        (isinstance(n, ast.Import) and any(a.name.split(".")[0] == "sqlite3" for a in n.names))
+        or (isinstance(n, ast.ImportFrom) and (n.module or "").split(".")[0] == "sqlite3")
+        for n in tree.body
+    )
+    assert not imports_sqlite3, (
+        "taskdog_tools.py must not import sqlite3 — MCP writes go through the mesh review queue"
     )
 
 
@@ -1288,17 +1411,13 @@ def test_mcp_taskdog_client_wired_in_deep_agent() -> None:
 
     Without this, the deep-agent would fall back to 12 IKIGAI_TOOLS only (not 38).
     """
-    harness_file = (
-        Path(__file__).parent.parent / "src" / "agents" / "deepagents_harness.py"
-    )
+    harness_file = Path(__file__).parent.parent / "src" / "agents" / "deepagents_harness.py"
     text = harness_file.read_text(encoding="utf-8")
     assert "from .mcp_taskdog_client import build_agent_tools" in text, (
         "deepagents_harness.py missing mcp_taskdog_client import — "
         "agent regressed to 12 IKIGAI_TOOLS only (was 38 with MCP)"
     )
-    assert "build_agent_tools()" in text, (
-        "deepagents_harness.py not calling build_agent_tools()"
-    )
+    assert "build_agent_tools()" in text, "deepagents_harness.py not calling build_agent_tools()"
 
 
 def test_langgraph_json_has_three_graphs() -> None:
@@ -1333,20 +1452,14 @@ def test_harness_supports_claude_api_key_fallback() -> None:
 
     Users with hermes-agent proxy tokens (sk-cp-*) need this fallback.
     """
-    harness_file = (
-        Path(__file__).parent.parent / "src" / "agents" / "deepagents_harness.py"
-    )
+    harness_file = Path(__file__).parent.parent / "src" / "agents" / "deepagents_harness.py"
     text = harness_file.read_text(encoding="utf-8")
-    assert "CLAUDE_API_KEY" in text, (
-        "deepagents_harness.py missing CLAUDE_API_KEY fallback (M104)"
-    )
+    assert "CLAUDE_API_KEY" in text, "deepagents_harness.py missing CLAUDE_API_KEY fallback (M104)"
 
 
 def test_run_chat_has_builtin_commands() -> None:
     """M106: run_chat() in deepagents_harness.py exposes 7 built-in REPL commands."""
-    harness_file = (
-        Path(__file__).parent.parent / "src" / "agents" / "deepagents_harness.py"
-    )
+    harness_file = Path(__file__).parent.parent / "src" / "agents" / "deepagents_harness.py"
     text = harness_file.read_text(encoding="utf-8")
     for cmd in ("/help", "/exit", "/quit", "/thread", "/reset", "/history", "/clear"):
         assert cmd in text, f"REPL command {cmd} missing from run_chat (M106)"
@@ -1356,9 +1469,7 @@ def test_factory_shims_have_typed_signatures() -> None:
     """M102: make_v2_graph and make_fork_smoke_graph have typed parameters
     (ServerRuntime | None + RunnableConfig | None) so langgraph_api can load them.
     """
-    graph_file = (
-        Path(__file__).parent.parent / "src" / "agents" / "v2" / "graph.py"
-    )
+    graph_file = Path(__file__).parent.parent / "src" / "agents" / "v2" / "graph.py"
     text = graph_file.read_text(encoding="utf-8")
     assert "ServerRuntime | None" in text, (
         "v2 graph factory missing ServerRuntime | None annotation (M102)"
@@ -1370,15 +1481,10 @@ def test_factory_shims_have_typed_signatures() -> None:
 
 def test_no_relative_imports_in_v2_graph() -> None:
     """M102: v2/graph.py doesn't use `from .nodes.X` (broke langgraph_api loader)."""
-    graph_file = (
-        Path(__file__).parent.parent / "src" / "agents" / "v2" / "graph.py"
-    )
+    graph_file = Path(__file__).parent.parent / "src" / "agents" / "v2" / "graph.py"
     text = graph_file.read_text(encoding="utf-8")
     # Strip comments (single-line only — v2/graph.py has no triple-quoted docstrings in body).
-    body_lines = [
-        line for line in text.splitlines()
-        if not line.strip().startswith("#")
-    ]
+    body_lines = [line for line in text.splitlines() if not line.strip().startswith("#")]
     body = "\n".join(body_lines)
     bad = re.findall(r"^from \.\w+", body, flags=re.MULTILINE)
     assert not bad, f"relative imports still present in v2/graph.py: {bad}"
@@ -1484,10 +1590,7 @@ def _extract_declared_state_fields(state_tree: ast.AST) -> set[str]:
     for node in ast.walk(state_tree):
         if isinstance(node, ast.ClassDef) and node.name in target_classes:
             for stmt in node.body:
-                if (
-                    isinstance(stmt, ast.AnnAssign)
-                    and isinstance(stmt.target, ast.Name)
-                ):
+                if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
                     declared.add(stmt.target.id)
     return declared
 

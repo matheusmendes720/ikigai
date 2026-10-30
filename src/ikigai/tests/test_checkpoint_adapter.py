@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import shutil
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -33,8 +33,8 @@ def record() -> IKIGAiRecord:
             "slug": "2026-08-26",
             "title": "Cycle 2026-08-26",
             "status": "active",
-            "created_at": datetime(2026, 8, 26, tzinfo=timezone.utc),
-            "updated_at": datetime(2026, 8, 26, tzinfo=timezone.utc),
+            "created_at": datetime(2026, 8, 26, tzinfo=UTC),
+            "updated_at": datetime(2026, 8, 26, tzinfo=UTC),
             "source_md_path": Path("data/matheus/ikigai_state/cycle-2026-08-26.md"),
         }
     )

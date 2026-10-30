@@ -226,9 +226,8 @@ def test_every_tool_has_name_and_description() -> None:
         if not desc or not isinstance(desc, str):
             bad.append((name, "missing/invalid description"))
 
-    assert not bad, (
-        f"{len(bad)} tool(s) violate the StructuredTool contract:\n"
-        + "\n".join(f"  - {name}: {reason}" for name, reason in bad)
+    assert not bad, f"{len(bad)} tool(s) violate the StructuredTool contract:\n" + "\n".join(
+        f"  - {name}: {reason}" for name, reason in bad
     )
 
 
@@ -250,12 +249,10 @@ def test_vault_tools_present_in_tool_surface() -> None:
     names = {t.name for t in tools}
 
     assert "ikigai_read_vault" in names, (
-        f"ikigai_read_vault missing from _build_lc_tools() surface. "
-        f"Got: {sorted(names)}"
+        f"ikigai_read_vault missing from _build_lc_tools() surface. Got: {sorted(names)}"
     )
     assert "ikigai_write_vault" in names, (
-        f"ikigai_write_vault missing from _build_lc_tools() surface. "
-        f"Got: {sorted(names)}"
+        f"ikigai_write_vault missing from _build_lc_tools() surface. Got: {sorted(names)}"
     )
 
 
@@ -285,9 +282,7 @@ def test_tool_names_only_taskdog_or_ikigai_prefix() -> None:
         )
     ]
 
-    assert not bad, (
-        f"tool names with unexpected prefix (not taskdog_ or ikigai_): {bad}"
-    )
+    assert not bad, f"tool names with unexpected prefix (not taskdog_ or ikigai_): {bad}"
 
 
 # ---------------------------------------------------------------------------
@@ -326,15 +321,11 @@ def test_build_agent_returns_compiled_graph() -> None:
     # Type check distinguishes them — placeholder = StateGraph compiled
     # with TaskdogMcpStateDict (chat-input schema), real = CompiledStateGraph
     # from create_react_agent.
-    assert hasattr(agent, "invoke"), (
-        f"agent has no .invoke(); type={type(agent).__name__}"
-    )
+    assert hasattr(agent, "invoke"), f"agent has no .invoke(); type={type(agent).__name__}"
     # Surface-level smoke: a real agent should NOT be the placeholder —
     # the placeholder's input_schema only carries `messages`. The real
     # ReAct agent exposes `messages` + tool-binding state. We don't
     # inspect state (that's covered by test_studio_chat_schema); we assert
     # type is a CompiledStateGraph (LangGraph prebuilt base class).
     type_name = type(agent).__name__
-    assert "Compiled" in type_name or "Graph" in type_name, (
-        f"unexpected agent type: {type_name}"
-    )
+    assert "Compiled" in type_name or "Graph" in type_name, f"unexpected agent type: {type_name}"

@@ -33,7 +33,7 @@ from __future__ import annotations
 import subprocess
 import sys
 import time
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 from unittest import mock
@@ -66,7 +66,7 @@ _ANCHOR_DATE = date(2026, 9, 4)  # Friday — Q3 2026, week 36 (ISO)
 
 def _epoch(d: date) -> float:
     """Convert date → Unix epoch seconds (UTC midnight). Mirrors memory_read."""
-    return datetime(d.year, d.month, d.day, tzinfo=timezone.utc).timestamp()
+    return datetime(d.year, d.month, d.day, tzinfo=UTC).timestamp()
 
 
 # 4-part canonical UEIDs (ADR-014). One per skill level + sub-agent.
@@ -661,20 +661,31 @@ def test_multi_level_subagent_dispatch_in_quarterly(memory_db: str, checkpoint_d
 
 
 # ---------------------------------------------------------------------------
-# Test 6 — drift detector remains green (canonical_scope 38 + data-model 10 = 48)
+# Test 6 — drift detector remains green (canonical_scope + data-model drift)
 # ---------------------------------------------------------------------------
 
 
 def test_multi_level_drift_detector_remains_green() -> None:
-    """Run the full drift-detector suite and assert all 48 invariants PASS.
+    """Run the full drift-detector suite and assert every invariant PASSes.
 
-    Composition per brief:
-      - test_canonical_scope.py (38 invariants per brief, exact count varies
-        as parametrized cases expand — we assert >= 35)
-      - test_drift_detector.py (4 tests)
-      - test_drift_extended_invariants.py (5 tests)
+    Composition per brief (current):
+      - test_canonical_scope.py (35 invariants per brief, exact count varies
+        as parametrized cases expand)
+      - test_drift_detector.py (5 tests)
+      - test_drift_extended_invariants.py (26 tests — includes the taskdog
+        MCP tool-surface guard: write tools must route through the mesh
+        review queue, never straight into SQLite)
       - test_drift_state.py (1 test)
-      Total data-model drift: 10/10
+
+    The taskdog MCP surface is NOT read-only since M163/M164: it exposes the
+    original Path 3 read-only trio PLUS the full write surface (tags, deps,
+    notes, audit, delete, done, search, set_planned_dates, reopen, pause,
+    ...). The tool count is intentionally NOT asserted here — it changes as
+    the surface grows. What still holds is the safety property — every write
+    tool enqueues a TaskChange to the mesh review queue and no MCP tool
+    writes SQLite directly — and the read-only trio remains a SUBSET of the
+    exposed surface. Both are asserted below, both in-process and via the
+    drift suite (which carries the same guard as a drift net).
     """
     ikigai_tests = _THIS.parent  # <repo-root>/src/ikigai/tests/
 
@@ -708,7 +719,7 @@ def test_multi_level_drift_detector_remains_green() -> None:
     output = proc.stdout + proc.stderr
     # Parse last PASS/FAIL line.
     last_line = output.strip().splitlines()[-1] if output.strip() else ""
-    # Expect something like "===== 48 passed in 12.34s =====" or "X failed".
+    # Expect something like "===== 65 passed, 2 skipped in 12.34s =====" or "X failed".
     assert proc.returncode == 0, (
         f"drift detector failed (rc={proc.returncode}):\n"
         f"--- stdout ---\n{proc.stdout[-2000:]}\n"
@@ -717,15 +728,73 @@ def test_multi_level_drift_detector_remains_green() -> None:
     assert " failed" not in last_line.lower() or "passed" in last_line.lower(), (
         f"unexpected last line: {last_line!r}"
     )
-    # Assert at least 48 passed (canonical_scope + data-model drift).
+    # Assert the drift suite still passes at least the known-good floor
+    # (67 collected today; 2 are environment-dependent skips).
     import re as _re
 
     m = _re.search(r"(\d+)\s+passed", last_line)
     assert m is not None, f"could not parse pass count from: {last_line!r}"
     n_passed = int(m.group(1))
-    assert n_passed >= 48, (
-        f"expected >=48 drift-detector PASS (canonical_scope + 10 data-model), "
+    assert n_passed >= 60, (
+        f"expected >=60 drift-detector PASS (canonical_scope + data-model), "
         f"got {n_passed}. Last line: {last_line!r}"
+    )
+
+    # --- taskdog MCP tool-surface contract (M163/M164) --------------------
+    # The exposed surface grew past the original Path 3 read-only trio, but
+    # every write tool must still route through the mesh review queue and no
+    # MCP tool may write SQLite directly.
+    import inspect
+
+    from src.ikigai.src.mcp_server import taskdog_tools
+
+    registry = taskdog_tools.mcp._tool_manager._tools
+    registered = {t.name for t in registry.values()}
+    read_only = {"taskdog_read", "taskdog_list", "taskdog_supports_field"}
+    assert read_only <= registered, (
+        f"Path 3 read-only core missing from the taskdog MCP surface: "
+        f"{sorted(read_only - registered)}"
+    )
+    assert len(registered) > len(read_only), (
+        "taskdog MCP surface regressed to the read-only trio — M163/M164 "
+        "grew it to the full write surface (tags, deps, notes, audit, "
+        "delete, done, search, set_planned_dates, reopen, pause, ...)"
+    )
+
+    # A write tool is classified by a UNION of independent signals, so that
+    # breaking one of them cannot silently re-label a write tool as
+    # read-only (which would make the assertions below vacuous):
+    #   S1 — the source builds a TaskChange / references TaskAction
+    #   S2 — the source produces the queue receipt token `event_id`
+    #   S3 — the registered description advertises review-queue routing
+    write_tools = []
+    for name in sorted(registered):
+        tool = registry[name]
+        fn = getattr(tool, "fn", None) or getattr(taskdog_tools, name, None)
+        if fn is None:
+            continue
+        source = inspect.getsource(fn)
+        description = str(getattr(tool, "description", "") or "")
+        is_write = (
+            "TaskAction" in source
+            or "TaskChange" in source
+            or "event_id" in source
+            or "review queue" in description.lower()
+        )
+        if not is_write:
+            continue
+        write_tools.append(name)
+        assert "_build_task_change" in source or "_enqueue_task_change" in source, (
+            f"{name} builds a TaskChange without routing through the review queue"
+        )
+        assert "apply_change" not in source, f"{name} writes SQLite directly"
+        assert ".execute(" not in source, f"{name} runs SQL directly"
+
+    assert write_tools, "no write tools found on the taskdog MCP surface"
+
+    module_source = inspect.getsource(taskdog_tools)
+    assert "import sqlite3" not in module_source, (
+        "taskdog_tools.py must not import sqlite3 — MCP writes go through the mesh review queue"
     )
 
 

@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import sys
+from datetime import UTC
 from pathlib import Path
 
 import pytest
@@ -408,7 +409,7 @@ def test_daily_to_weekly_rollup_visible(in_memory_db: str) -> None:
 def test_full_pyramid_chain_reconstructable(in_memory_db: str) -> None:
     """Weekly -> monthly -> quarterly chain must be reconstructable via reads."""
     from datetime import date as _date
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from agents.v2.memory_read import (
         read_daily_intentions,
@@ -427,9 +428,7 @@ def test_full_pyramid_chain_reconstructable(in_memory_db: str) -> None:
     # Anchor: 2026-09-04 00:00:00 UTC. Compute ts via the same logic
     # memory_read uses (so the test never drifts from real date math).
     anchor_date = _date(2026, 9, 4)
-    ts_base = datetime(
-        anchor_date.year, anchor_date.month, anchor_date.day, tzinfo=timezone.utc
-    ).timestamp()
+    ts_base = datetime(anchor_date.year, anchor_date.month, anchor_date.day, tzinfo=UTC).timestamp()
     memory_write(
         memory_db=in_memory_db,
         table=MEMORY_TABLE_DAILY,
@@ -511,7 +510,7 @@ def test_full_pyramid_chain_reconstructable(in_memory_db: str) -> None:
 def test_actor_scoping_filters_by_actor(in_memory_db: str) -> None:
     """read_daily_intentions with actor='user' MUST filter out agent-written rows."""
     from datetime import date as _date
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from agents.v2.memory_read import read_daily_intentions
     from agents.v2.memory_schema import MEMORY_TABLE_DAILY
@@ -519,9 +518,7 @@ def test_actor_scoping_filters_by_actor(in_memory_db: str) -> None:
 
     # Use the same date math the read function uses.
     anchor_date = _date(2026, 9, 4)
-    ts_base = datetime(
-        anchor_date.year, anchor_date.month, anchor_date.day, tzinfo=timezone.utc
-    ).timestamp()
+    ts_base = datetime(anchor_date.year, anchor_date.month, anchor_date.day, tzinfo=UTC).timestamp()
     memory_write(
         memory_db=in_memory_db,
         table=MEMORY_TABLE_DAILY,

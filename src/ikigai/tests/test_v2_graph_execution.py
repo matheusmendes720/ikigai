@@ -46,7 +46,10 @@ def _invoke(graph: Any, state: dict[str, Any], *, thread_id: str = "exec-test") 
         except Exception as exc:
             last_exc = exc
             msg = str(exc).lower()
-            if not any(s in msg for s in ("529", "overloaded", "rate_limit", "timeout")) or attempt == 3:
+            if (
+                not any(s in msg for s in ("529", "overloaded", "rate_limit", "timeout"))
+                or attempt == 3
+            ):
                 raise
             time.sleep(0.5 * (2 ** (attempt - 1)))
     raise last_exc  # pragma: no cover
@@ -75,7 +78,7 @@ def _wrap_node(
         if args and isinstance(args[0], dict) and inject_into_state:
             state = dict(args[0])
             state.update(inject_into_state)
-            args = (state,) + args[1:]
+            args = (state, *args[1:])
         result = original(*args, **kwargs)
         capture_log.append(result)
         return result
@@ -188,8 +191,13 @@ def test_reason_node_proposes_from_context(tmp_path, monkeypatch) -> None:
         inject_into_state={
             "context": {
                 "recent_intentions": [
-                    {"ueid": ueid, "ts": 1_700_000_000.0, "vault_path": "vault/test.md",
-                     "body_markdown": "BYD case study deep-dive", "actor": "user"}
+                    {
+                        "ueid": ueid,
+                        "ts": 1_700_000_000.0,
+                        "vault_path": "vault/test.md",
+                        "body_markdown": "BYD case study deep-dive",
+                        "actor": "user",
+                    }
                 ]
             },
             "user_request": "",
@@ -244,7 +252,9 @@ def test_decompose_node_calls_mcp_bridge(tmp_path, monkeypatch) -> None:
     )
     _force_route_to_tag_propagation(monkeypatch)
 
-    graph = _build_v2_graph(checkpoint_db=str(tmp_path / "decompose_ckpt.db"), entry_point="decompose")
+    graph = _build_v2_graph(
+        checkpoint_db=str(tmp_path / "decompose_ckpt.db"), entry_point="decompose"
+    )
     _invoke(graph, _base_state(), thread_id="decompose-test")
 
     assert len(cap) == 1
@@ -272,11 +282,17 @@ def test_tag_and_persist_writes_to_vault(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(pe, "wrap_vault_write", _fake_wrap_vault_write, raising=False)
     _force_route_to_tag_propagation(monkeypatch)
 
-    graph = _build_v2_graph(checkpoint_db=str(tmp_path / "tag_persist_ckpt.db"), entry_point="tag_and_persist")
+    graph = _build_v2_graph(
+        checkpoint_db=str(tmp_path / "tag_persist_ckpt.db"), entry_point="tag_and_persist"
+    )
     result = _invoke(
         graph,
         _base_state(
-            proposed_entity={"tier": "daily", "title": "exec test entity", "ueid": "ts:dia:exec:0001"},
+            proposed_entity={
+                "tier": "daily",
+                "title": "exec test entity",
+                "ueid": "ts:dia:exec:0001",
+            },
             vault_path="ikigai/exec-test.md",
             actor="agent",
             user_request="exec test rationale",
@@ -342,7 +358,9 @@ def test_dispatch_sub_agents_empty_passthrough(tmp_path, monkeypatch) -> None:
     )
     _force_route_to_tag_propagation(monkeypatch)
 
-    graph = _build_v2_graph(checkpoint_db=str(tmp_path / "dispatch_ckpt.db"), entry_point="dispatch_sub_agents")
+    graph = _build_v2_graph(
+        checkpoint_db=str(tmp_path / "dispatch_ckpt.db"), entry_point="dispatch_sub_agents"
+    )
     result = _invoke(graph, _base_state(), thread_id="dispatch-test")
 
     assert len(cap) == 1
@@ -379,7 +397,9 @@ def test_tag_propagation_proposes_reachable_tasks(tmp_path, monkeypatch) -> None
         },
     )
 
-    graph = _build_v2_graph(checkpoint_db=str(tmp_path / "tag_prop_ckpt.db"), entry_point="tag_propagation")
+    graph = _build_v2_graph(
+        checkpoint_db=str(tmp_path / "tag_prop_ckpt.db"), entry_point="tag_propagation"
+    )
     _invoke(graph, _base_state(), thread_id="tag-prop-test")
 
     assert len(cap) == 1
@@ -420,7 +440,9 @@ def test_dep_graph_proposes_siblings_without_cycle(tmp_path, monkeypatch) -> Non
         },
     )
 
-    graph = _build_v2_graph(checkpoint_db=str(tmp_path / "dep_graph_ckpt.db"), entry_point="dep_graph")
+    graph = _build_v2_graph(
+        checkpoint_db=str(tmp_path / "dep_graph_ckpt.db"), entry_point="dep_graph"
+    )
     _invoke(graph, _base_state(), thread_id="dep-graph-test")
 
     assert len(cap) == 1
@@ -458,7 +480,9 @@ def test_gantt_suggests_topological_order(tmp_path, monkeypatch) -> None:
         },
     )
 
-    graph = _build_v2_graph(checkpoint_db=str(tmp_path / "gantt_ckpt.db"), entry_point="gantt_suggest")
+    graph = _build_v2_graph(
+        checkpoint_db=str(tmp_path / "gantt_ckpt.db"), entry_point="gantt_suggest"
+    )
     _invoke(graph, _base_state(), thread_id="gantt-test")
 
     assert len(cap) == 1

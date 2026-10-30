@@ -22,10 +22,10 @@ for _p in (_REPO_ROOT, _REPO_ROOT / "src"):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
+import src.ikigai.src.agents.ikigai_write_vault as ikigai_write_vault_mod  # noqa: E402
 from src.ikigai.src.agents.ikigai_write_vault import (  # noqa: E402
     ikigai_write_vault,
 )
-import src.ikigai.src.agents.ikigai_write_vault as ikigai_write_vault_mod  # noqa: E402
 
 
 @pytest.fixture

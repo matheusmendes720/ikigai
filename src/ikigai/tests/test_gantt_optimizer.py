@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
@@ -151,9 +151,7 @@ def five_task_fixture() -> list[dict[str, Any]]:
 class TestGanttAscii:
     """ASCII renderer: box-drawing snapshot."""
 
-    def test_five_tasks_three_deps_snapshot(
-        self, five_task_fixture: list[dict[str, Any]]
-    ) -> None:
+    def test_five_tasks_three_deps_snapshot(self, five_task_fixture: list[dict[str, Any]]) -> None:
         cfg = GanttConfig(mode="ascii", day_width=3, title="Build Gantt")
         out = GanttEngine(five_task_fixture).render(cfg)
 
@@ -203,9 +201,7 @@ class TestGanttAscii:
 class TestGanttHtml:
     """HTML renderer: well-formed HTML5."""
 
-    def test_html_output_parses(
-        self, five_task_fixture: list[dict[str, Any]]
-    ) -> None:
+    def test_html_output_parses(self, five_task_fixture: list[dict[str, Any]]) -> None:
         cfg = GanttConfig(mode="html", title="Build Gantt")
         out = GanttEngine(five_task_fixture).render(cfg)
 
@@ -241,9 +237,7 @@ class TestGanttHtml:
 class TestGanttJson:
     """JSON renderer: structured data."""
 
-    def test_json_shape_and_content(
-        self, five_task_fixture: list[dict[str, Any]]
-    ) -> None:
+    def test_json_shape_and_content(self, five_task_fixture: list[dict[str, Any]]) -> None:
         cfg = GanttConfig(mode="json", title="Build Gantt")
         out = GanttEngine(five_task_fixture).render(cfg)
         data = json.loads(out)
@@ -308,9 +302,7 @@ class TestOptimizer:
                     f"appeared before its dep {dep} (pos {pos[dep]})"
                 )
 
-    def test_priority_weighted_formula(
-        self, five_task_fixture: list[dict[str, Any]]
-    ) -> None:
+    def test_priority_weighted_formula(self, five_task_fixture: list[dict[str, Any]]) -> None:
         """weight = priority_score x (1 + blocker_count).
 
         priority_score = high=3, medium=2, low=1.
@@ -341,13 +333,9 @@ class TestOptimizer:
 
         # Rationale strings mention "priority" (and, for blockers, "blocks N others").
         for t in result.ordered:
-            assert "priority" in t.rationale, (
-                f"rationale missing 'priority': {t.rationale!r}"
-            )
+            assert "priority" in t.rationale, f"rationale missing 'priority': {t.rationale!r}"
 
-    def test_fifo_respects_deps_too(
-        self, five_task_fixture: list[dict[str, Any]]
-    ) -> None:
+    def test_fifo_respects_deps_too(self, five_task_fixture: list[dict[str, Any]]) -> None:
         cfg = OptimizeConfig(strategy=OptimizeStrategy.FIFO)
         result = Optimizer(five_task_fixture).optimize(cfg)
         assert not result.has_cycle
@@ -368,15 +356,11 @@ class TestOptimizer:
         assert len(result.ordered) == 5
         # Foundation has the longest critical path (downstream chain).
         pos = {t.ueid: t.position for t in result.ordered}
-        foundation_ueid = (
-            "tsk:foundation:11111111-1111-1111-1111-111111111111:1111111111111111"
-        )
+        foundation_ueid = "tsk:foundation:11111111-1111-1111-1111-111111111111:1111111111111111"
         # Foundation has cp_len = 3 (chain to painting).
         # Painting has cp_len = 0 (source of its chain when reversed).
         foundation_pos = pos[foundation_ueid]
-        painting_pos = pos[
-            "tsk:painting:55555555-5555-5555-5555-555555555555:5555555555555555"
-        ]
+        painting_pos = pos["tsk:painting:55555555-5555-5555-5555-555555555555:5555555555555555"]
         assert foundation_pos < painting_pos
 
 
@@ -402,9 +386,7 @@ class TestCycleDetection:
 
 
 @pytest.fixture
-def taskdog_db(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> Path:
+def taskdog_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Mirror tests/mesh/test_taskdog_cli.py — tmp DB on both module identities."""
     db_path = tmp_path / "tasks.db"
     conn = sqlite3.connect(db_path)
@@ -434,6 +416,7 @@ def taskdog_db(
     original_src = taskdog_mod.TASKDOG_DB
     taskdog_mod.TASKDOG_DB = db_path
     from mesh.adapters import taskdog as taskdog_mod_for_main
+
     original_main = taskdog_mod_for_main.TASKDOG_DB
     taskdog_mod_for_main.TASKDOG_DB = db_path
 
@@ -449,7 +432,7 @@ def _seed_event(ueid: str, title: str, due: str, priority: int = 2) -> Propagati
         ueid=ueid,
         action=TaskAction.CREATE,
         fields={"title": title, "due": due, "priority": priority},
-        approved_at=datetime(2026, 9, 1, 12, 0, tzinfo=timezone.utc),
+        approved_at=datetime(2026, 9, 1, 12, 0, tzinfo=UTC),
         source_fork="interfaces/cli",
     )
 

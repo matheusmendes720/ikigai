@@ -9,7 +9,10 @@ with mocked adapter.
 End-to-end checks:
   1. The server module imports cleanly and exposes its FastMCP instance.
   2. The MCP handshake (initialize → notifications/initialized) completes.
-  3. tools/list returns exactly the 3 read-only Path 3 tools.
+  3. tools/list returns exactly the tools registered in taskdog_tools.py.
+     The expected set is derived from the production source (AST scan of
+     the @mcp.tool registrations) instead of a hard-coded list, so the
+     M163/M164 write surface is covered without freezing its size here.
   4. tools/call round-trips: taskdog_supports_field, taskdog_list,
      taskdog_read (with isolated temp DB so the test does not touch
      data/taskdog/tasks.db on the host).
@@ -22,6 +25,7 @@ cleanup is the only reliable path on this host.
 
 from __future__ import annotations
 
+import ast
 import json
 import queue
 import shutil
@@ -245,20 +249,65 @@ def _new_runner() -> Path:
 # ──────── Tests ────────
 
 
+def _registered_tool_names() -> set[str]:
+    """Return the tool names registered in the production taskdog_tools.py.
+
+    Derived from the source (AST scan of the ``@mcp.tool`` decorators and
+    their explicit ``name=`` arguments) rather than hard-coded, so the
+    M163/M164 write surface (tags, deps, notes, audit, delete, done, search,
+    set_planned_dates, reopen, pause, ...) is covered without freezing its
+    size in the test.
+    """
+    source = REPO / "src" / "ikigai" / "src" / "mcp_server" / "taskdog_tools.py"
+    tree = ast.parse(source.read_text(encoding="utf-8"))
+    names: set[str] = set()
+    for node in tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for dec in node.decorator_list:
+            target = dec.func if isinstance(dec, ast.Call) else dec
+            if not (
+                isinstance(target, ast.Attribute)
+                and target.attr == "tool"
+                and isinstance(target.value, ast.Name)
+                and target.value.id == "mcp"
+            ):
+                continue
+            exposed = node.name
+            if isinstance(dec, ast.Call):
+                for kw in dec.keywords:
+                    if kw.arg == "name" and isinstance(kw.value, ast.Constant):
+                        exposed = str(kw.value.value)
+            names.add(exposed)
+    return names
+
+
 def test_server_launches_and_lists_three_read_only_tools() -> None:
-    """Real stdio handshake + tools/list — proves the server is runnable."""
+    """Real stdio handshake + tools/list — proves the server is runnable.
+
+    The exposed tool set must match the tools actually registered in
+    taskdog_tools.py (the M163/M164 full surface). The original Path 3
+    read-only trio is still expected to be a SUBSET of it.
+    """
     runner = _new_runner()
     client = StdioMCPClient(runner)
     try:
-        tools = client.list_tools()
-        assert set(tools) == {
-            "taskdog_read",
-            "taskdog_list",
-            "taskdog_supports_field",
-        }, f"unexpected tool set: {tools}"
-        # Read-only contract: no apply_change / write surface.
-        forbidden = [t for t in tools if "apply_change" in t or "write" in t.lower()]
-        assert not forbidden, f"read-only contract violated: {forbidden}"
+        tools = set(client.list_tools())
+        expected = _registered_tool_names()
+        assert expected, "no @mcp.tool registrations found in taskdog_tools.py"
+        assert tools == expected, (
+            "stdio tools/list does not match the registrations in "
+            f"taskdog_tools.py:\n  only over the wire: {sorted(tools - expected)}\n"
+            f"  only in taskdog_tools.py: {sorted(expected - tools)}"
+        )
+        # Path 3 read-only core is still exposed (subset of the full surface).
+        read_only = {"taskdog_read", "taskdog_list", "taskdog_supports_field"}
+        assert read_only <= tools, f"missing read-only core tools: {sorted(read_only - tools)}"
+        # No raw mutation entry point is exposed — every MCP write tool must
+        # enqueue a TaskChange to the mesh review queue (ADR-014), so the
+        # adapter's apply_change must not be reachable as a tool.
+        forbidden = [t for t in tools if "apply_change" in t]
+        assert not forbidden, f"direct mutation tool exposed: {forbidden}"
     finally:
         client.close()
         shutil.rmtree(runner.parent, ignore_errors=True)

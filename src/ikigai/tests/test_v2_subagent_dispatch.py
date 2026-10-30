@@ -75,16 +75,16 @@ def _stub_spec(**overrides) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def test__build_v2_graph_has_13_nodes() -> None:
-    """_build_v2_graph returns a 13-node graph (11 → 13 after recall+reason wiring).
+def test__build_v2_graph_has_16_nodes() -> None:
+    """_build_v2_graph returns a 16-node graph.
 
-    W4.4 brought the graph to 11 nodes (dispatch_sub_agents as the 11th).
-    The new observe -> recall -> reason -> reflect -> commit chain adds
-    recall and reason at tuple positions 1 and 2.
+    History: 11 nodes (W4.4 dispatch_sub_agents), then 13 after the
+    observe -> recall -> reason -> reflect -> commit chain, then 16 with
+    tag_propagation + dep_graph + gantt_suggest (M256).
     """
     from agents.v2.graph import NODES, _build_v2_graph
 
-    assert len(NODES) == 13, f"Expected 13 nodes, got {len(NODES)}"
+    assert len(NODES) == 16, f"Expected 16 nodes, got {len(NODES)}"
     assert "dispatch_sub_agents" in NODES
     assert "recall" in NODES
     assert "reason" in NODES
@@ -95,7 +95,7 @@ def test__build_v2_graph_has_13_nodes() -> None:
 
     graph = _build_v2_graph(checkpoint_db=":memory:")
     # LangGraph compiled graph has a `.nodes` mapping (dict of name → runnable)
-    # of the nodes added to the builder. The `error` node + 13 named nodes = 14.
+    # of the nodes added to the builder. The `error` node + 16 named nodes = 17.
     assert "dispatch_sub_agents" in graph.nodes
     # Confirm both surface_intentions and commit remain reachable.
     assert "commit" in graph.nodes
@@ -103,7 +103,7 @@ def test__build_v2_graph_has_13_nodes() -> None:
 
 
 def test_nodes_tuple_includes_recall_reason_in_correct_position() -> None:
-    """NODES tuple is exactly 13 elements; recall+reason at positions 1, 2; dispatch at 11."""
+    """NODES tuple is exactly 16 elements; recall+reason at positions 1, 2; dispatch at 11."""
     from agents.v2.graph import NODES
 
     expected = (
@@ -120,6 +120,9 @@ def test_nodes_tuple_includes_recall_reason_in_correct_position() -> None:
         "commit",
         "dispatch_sub_agents",
         "surface_intentions",
+        "tag_propagation",
+        "dep_graph",
+        "gantt_suggest",
     )
     assert NODES == expected, f"NODES mismatch: {NODES}"
 

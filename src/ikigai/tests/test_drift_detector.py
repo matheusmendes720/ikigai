@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import shutil
 import tempfile
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -54,8 +54,8 @@ def test_detector_reports_in_sync(vault_and_db: Path) -> None:
             "slug": "2026-q3",
             "title": "x",
             "status": "active",
-            "created_at": datetime(2026, 7, 1, tzinfo=timezone.utc),
-            "updated_at": datetime(2026, 7, 1, tzinfo=timezone.utc),
+            "created_at": datetime(2026, 7, 1, tzinfo=UTC),
+            "updated_at": datetime(2026, 7, 1, tzinfo=UTC),
             "source_md_path": md,
         }
     )
@@ -80,7 +80,7 @@ def test_detector_reports_markdown_newer(vault_and_db: Path) -> None:
     md = vault / "data/matheus/dreams/2026-q3.md"
     _write(md)
     # Future the .md timestamp so it is strictly newer than any row.
-    fut = datetime.now(timezone.utc) + timedelta(seconds=60)
+    fut = datetime.now(UTC) + timedelta(seconds=60)
     import os
 
     os.utime(md, (fut.timestamp(), fut.timestamp()))
@@ -96,8 +96,8 @@ def test_detector_reports_markdown_newer(vault_and_db: Path) -> None:
             "slug": "2026-q3",
             "title": "x",
             "status": "active",
-            "created_at": datetime(2026, 7, 1, tzinfo=timezone.utc),
-            "updated_at": datetime(2026, 7, 1, tzinfo=timezone.utc),
+            "created_at": datetime(2026, 7, 1, tzinfo=UTC),
+            "updated_at": datetime(2026, 7, 1, tzinfo=UTC),
             "source_md_path": md,
         }
     )
