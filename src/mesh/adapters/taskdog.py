@@ -50,7 +50,7 @@ import re
 import sqlite3
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -91,7 +91,7 @@ def _http_get(path: str) -> dict | list | None:
     try:
         with urllib.request.urlopen(url, timeout=TASKDOG_HTTP_TIMEOUT) as resp:
             return json.loads(resp.read().decode("utf-8"))
-    except (urllib.error.URLError, OSError, json.JSONDecodeError) as exc:
+    except (urllib.error.URLError, OSError, json.JSONDecodeError):
         # Caller checks None and falls back to SQLite — silent by design
         # (reads are best-effort with SQLite as the canonical fallback).
         return None
@@ -119,10 +119,20 @@ SUPPORTED_FIELDS = {
 # SQLite column set (must match the table definition below).
 # Schema v2 = original 8 columns + 6 M163 columns = 14.
 _SQLITE_COLUMNS = (
-    "ueid", "name", "status", "priority",
-    "planned_start", "planned_end", "deadline", "created_at",
-    "tags", "deps", "audit_log",
-    "started_at", "completed_at", "priority_label",
+    "ueid",
+    "name",
+    "status",
+    "priority",
+    "planned_start",
+    "planned_end",
+    "deadline",
+    "created_at",
+    "tags",
+    "deps",
+    "audit_log",
+    "started_at",
+    "completed_at",
+    "priority_label",
 )
 
 
@@ -211,7 +221,7 @@ def _append_tag_audit_file(ueid: str, action: str, details: dict) -> None:
     style used by the dep subsystem's audit log. Failures swallowed.
     """
     try:
-        ts = datetime.now(timezone.utc).isoformat()
+        ts = datetime.now(UTC).isoformat()
         line = f"{ts}|{ueid}|{action}|{json.dumps(details, sort_keys=True)}\n"
         TASKDOG_DB.parent.mkdir(parents=True, exist_ok=True)
         with (TASKDOG_DB.parent / ".tag_audit.log").open("a", encoding="utf-8") as f:
@@ -249,7 +259,7 @@ def _ensure_tasks_table(conn: sqlite3.Connection) -> None:
     # M163 lazy migration: ALTER any columns missing on legacy DBs.
     cur = conn.execute("PRAGMA table_info(tasks)")
     existing = {row[1] for row in cur.fetchall()}
-    _ADD_SPECS: dict[str, str] = {
+    _add_specs: dict[str, str] = {
         "tags": "TEXT NOT NULL DEFAULT '[]'",
         "deps": "TEXT NOT NULL DEFAULT '[]'",
         "audit_log": "TEXT NOT NULL DEFAULT '[]'",
@@ -257,7 +267,7 @@ def _ensure_tasks_table(conn: sqlite3.Connection) -> None:
         "completed_at": "TEXT",
         "priority_label": "TEXT NOT NULL DEFAULT 'P2'",
     }
-    for col, ddl in _ADD_SPECS.items():
+    for col, ddl in _add_specs.items():
         if col in existing:
             continue
         try:
@@ -292,6 +302,7 @@ def _is_valid_ueid_str(s: Any) -> bool:
 # Public module-level tag operations — used by td tag add/remove/list/clear
 # ----------------------------------------------------------------------
 
+
 def add_tags(
     ueid: str,
     tags: list[str],
@@ -312,8 +323,7 @@ def add_tags(
     for t in tags:
         if not _is_valid_tag(t):
             raise ValueError(
-                f"invalid tag: {t!r} (max {_MAX_TAG_LEN} chars, "
-                "alphanumeric+hyphen+underscore)"
+                f"invalid tag: {t!r} (max {_MAX_TAG_LEN} chars, alphanumeric+hyphen+underscore)"
             )
         cleaned.append(t)
     if not cleaned:
@@ -326,9 +336,7 @@ def add_tags(
         _ensure_tasks_table(conn)
         cur = conn.execute("SELECT 1 FROM tasks WHERE ueid=?", (ueid,))
         if cur.fetchone() is None:
-            raise LookupError(
-                f"add_tags target ueid={ueid!r} not found in taskdog"
-            )
+            raise LookupError(f"add_tags target ueid={ueid!r} not found in taskdog")
         current = _read_tags_for(conn, ueid)
         added = [t for t in cleaned if t not in current]
         new_tags = sorted(list(current) + added)
@@ -339,7 +347,7 @@ def add_tags(
             ueid,
             new_tags,
             {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "action": "tag_add",
                 "actor": "cli",
                 "fields_diff": {
@@ -352,9 +360,7 @@ def add_tags(
         conn.commit()
     finally:
         conn.close()
-    _append_tag_audit_file(
-        ueid, "tag_add", {"added": added, "before": current, "after": new_tags}
-    )
+    _append_tag_audit_file(ueid, "tag_add", {"added": added, "before": current, "after": new_tags})
     return new_tags
 
 
@@ -377,8 +383,7 @@ def remove_tags(
     for t in tags:
         if not _is_valid_tag(t):
             raise ValueError(
-                f"invalid tag: {t!r} (max {_MAX_TAG_LEN} chars, "
-                "alphanumeric+hyphen+underscore)"
+                f"invalid tag: {t!r} (max {_MAX_TAG_LEN} chars, alphanumeric+hyphen+underscore)"
             )
         cleaned.append(t)
     if not cleaned:
@@ -391,9 +396,7 @@ def remove_tags(
         _ensure_tasks_table(conn)
         cur = conn.execute("SELECT 1 FROM tasks WHERE ueid=?", (ueid,))
         if cur.fetchone() is None:
-            raise LookupError(
-                f"remove_tags target ueid={ueid!r} not found in taskdog"
-            )
+            raise LookupError(f"remove_tags target ueid={ueid!r} not found in taskdog")
         current = _read_tags_for(conn, ueid)
         removed = [t for t in cleaned if t in current]
         new_tags = sorted(t for t in current if t not in cleaned)
@@ -404,7 +407,7 @@ def remove_tags(
             ueid,
             new_tags,
             {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "action": "tag_remove",
                 "actor": "cli",
                 "fields_diff": {
@@ -444,9 +447,7 @@ def clear_tags(
         _ensure_tasks_table(conn)
         cur = conn.execute("SELECT 1 FROM tasks WHERE ueid=?", (ueid,))
         if cur.fetchone() is None:
-            raise LookupError(
-                f"clear_tags target ueid={ueid!r} not found in taskdog"
-            )
+            raise LookupError(f"clear_tags target ueid={ueid!r} not found in taskdog")
         current = _read_tags_for(conn, ueid)
         if not current:
             return current  # idempotent: already empty
@@ -455,7 +456,7 @@ def clear_tags(
             ueid,
             [],
             {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "action": "tag_clear",
                 "actor": "cli",
                 "fields_diff": {"before": current, "after": []},
@@ -464,9 +465,7 @@ def clear_tags(
         conn.commit()
     finally:
         conn.close()
-    _append_tag_audit_file(
-        ueid, "tag_clear", {"before": current, "after": []}
-    )
+    _append_tag_audit_file(ueid, "tag_clear", {"before": current, "after": []})
     return []
 
 
@@ -492,9 +491,7 @@ def get_tags(
         _ensure_tasks_table(conn)
         cur = conn.execute("SELECT 1 FROM tasks WHERE ueid=?", (ueid,))
         if cur.fetchone() is None:
-            raise LookupError(
-                f"get_tags target ueid={ueid!r} not found in taskdog"
-            )
+            raise LookupError(f"get_tags target ueid={ueid!r} not found in taskdog")
         return _read_tags_for(conn, ueid)
     finally:
         conn.close()
@@ -557,8 +554,7 @@ class TaskdogAdapter:
         if _http_enabled():
             payload = _http_get("/api/v1/tasks")
             if isinstance(payload, list):
-                return [_normalize_http_task(t) for t in payload
-                        if isinstance(t, dict)]
+                return [_normalize_http_task(t) for t in payload if isinstance(t, dict)]
             # Server unreachable or bad payload — fall through to SQLite.
         return self._sqlite_list_all()
 
@@ -599,9 +595,13 @@ class TaskdogAdapter:
             if row is None:
                 return None
             return {
-                "ueid": row[0], "name": row[1], "status": row[2],
-                "priority": row[3], "planned_start": row[4],
-                "planned_end": row[5], "deadline": row[6],
+                "ueid": row[0],
+                "name": row[1],
+                "status": row[2],
+                "priority": row[3],
+                "planned_start": row[4],
+                "planned_end": row[5],
+                "deadline": row[6],
                 "created_at": row[7],
                 "tags": _safe_json_list(row[8]),
                 "deps": _safe_json_list(row[9]),
@@ -647,18 +647,24 @@ class TaskdogAdapter:
             )
             out = []
             for r in cur.fetchall():
-                out.append({
-                    "ueid": r[0], "name": r[1], "status": r[2],
-                    "priority": r[3], "planned_start": r[4],
-                    "planned_end": r[5], "deadline": r[6],
-                    "created_at": r[7],
-                    "tags": _safe_json_list(r[8]),
-                    "deps": _safe_json_list(r[9]),
-                    "audit_log": _safe_json_list(r[10]),
-                    "started_at": r[11],
-                    "completed_at": r[12],
-                    "priority_label": r[13] or "P2",
-                })
+                out.append(
+                    {
+                        "ueid": r[0],
+                        "name": r[1],
+                        "status": r[2],
+                        "priority": r[3],
+                        "planned_start": r[4],
+                        "planned_end": r[5],
+                        "deadline": r[6],
+                        "created_at": r[7],
+                        "tags": _safe_json_list(r[8]),
+                        "deps": _safe_json_list(r[9]),
+                        "audit_log": _safe_json_list(r[10]),
+                        "started_at": r[11],
+                        "completed_at": r[12],
+                        "priority_label": r[13] or "P2",
+                    }
+                )
             return out
         finally:
             conn.close()
@@ -668,7 +674,10 @@ class TaskdogAdapter:
     # ------------------------------------------------------------------
     # M148: apply_change expanded for UPDATE/DONE/DELETE actions.
     _WRITE_STATUSES: tuple[str, ...] = (
-        "planned", "in_progress", "done", "cancelled",
+        "planned",
+        "in_progress",
+        "done",
+        "cancelled",
     )
     _WRITE_PRIORITIES: tuple[int, ...] = (1, 2, 3)
 
@@ -716,18 +725,14 @@ class TaskdogAdapter:
         """
         tags = event.fields.get("tags") or []
         if not isinstance(tags, list):
-            raise ValueError(
-                f"TAG_ADD fields.tags must be list[str], got {type(tags).__name__}"
-            )
+            raise ValueError(f"TAG_ADD fields.tags must be list[str], got {type(tags).__name__}")
         add_tags(str(event.ueid), tags)
 
     def _apply_tag_remove(self, event: PropagationEvent) -> None:
         """TAG_REMOVE: drop tags from event.fields['tags'] (list[str])."""
         tags = event.fields.get("tags") or []
         if not isinstance(tags, list):
-            raise ValueError(
-                f"TAG_REMOVE fields.tags must be list[str], got {type(tags).__name__}"
-            )
+            raise ValueError(f"TAG_REMOVE fields.tags must be list[str], got {type(tags).__name__}")
         remove_tags(str(event.ueid), tags)
 
     def _apply_tag_clear(self, event: PropagationEvent) -> None:
@@ -776,7 +781,7 @@ class TaskdogAdapter:
         cur = conn.execute("PRAGMA table_info(tasks)")
         existing = {row[1] for row in cur.fetchall()}
 
-        _ADD_SPECS: dict[str, str] = {
+        _add_specs: dict[str, str] = {
             "tags": "TEXT NOT NULL DEFAULT '[]'",
             "deps": "TEXT NOT NULL DEFAULT '[]'",
             "audit_log": "TEXT NOT NULL DEFAULT '[]'",
@@ -784,7 +789,7 @@ class TaskdogAdapter:
             "completed_at": "TEXT",
             "priority_label": "TEXT NOT NULL DEFAULT 'P2'",
         }
-        for col, ddl in _ADD_SPECS.items():
+        for col, ddl in _add_specs.items():
             if col in existing:
                 continue
             try:
@@ -801,9 +806,7 @@ class TaskdogAdapter:
             # Backfill: defensive — DEFAULT clause should already cover
             # NOT NULL constraints, but be explicit for visibility.
             if col in ("tags", "deps", "audit_log"):
-                conn.execute(
-                    f"UPDATE tasks SET {col}='[]' WHERE {col} IS NULL"
-                )
+                conn.execute(f"UPDATE tasks SET {col}='[]' WHERE {col} IS NULL")
                 conn.commit()
 
     def _apply_create(self, event: PropagationEvent) -> None:
@@ -827,15 +830,18 @@ class TaskdogAdapter:
             deps_raw = event.fields.get("deps")
             audit_raw = event.fields.get("audit_log")
             tags_json = (
-                json.dumps(tags_raw) if isinstance(tags_raw, list)
+                json.dumps(tags_raw)
+                if isinstance(tags_raw, list)
                 else (tags_raw if isinstance(tags_raw, str) else "[]")
             )
             deps_json = (
-                json.dumps(deps_raw) if isinstance(deps_raw, list)
+                json.dumps(deps_raw)
+                if isinstance(deps_raw, list)
                 else (deps_raw if isinstance(deps_raw, str) else "[]")
             )
             audit_json = (
-                json.dumps(audit_raw) if isinstance(audit_raw, list)
+                json.dumps(audit_raw)
+                if isinstance(audit_raw, list)
                 else (audit_raw if isinstance(audit_raw, str) else "[]")
             )
             priority_label = event.fields.get("priority_label") or "P2"
@@ -860,9 +866,17 @@ class TaskdogAdapter:
                        started_at=COALESCE(excluded.started_at, started_at),
                        completed_at=COALESCE(excluded.completed_at, completed_at)""",
                 (
-                    event.ueid, title, priority, due, approved_at,
-                    tags_json, deps_json, audit_json, priority_label,
-                    started_at, completed_at,
+                    event.ueid,
+                    title,
+                    priority,
+                    due,
+                    approved_at,
+                    tags_json,
+                    deps_json,
+                    audit_json,
+                    priority_label,
+                    started_at,
+                    completed_at,
                 ),
             )
             conn.commit()
@@ -883,13 +897,11 @@ class TaskdogAdapter:
             self._ensure_table(conn)
             cur = conn.execute("SELECT 1 FROM tasks WHERE ueid=?", (event.ueid,))
             if cur.fetchone() is None:
-                raise LookupError(
-                    f"UPDATE target ueid={event.ueid!r} not found in taskdog"
-                )
+                raise LookupError(f"UPDATE target ueid={event.ueid!r} not found in taskdog")
             if not clean:
                 return  # all fields filtered out → no-op
             set_clauses = ", ".join(f"{k}=?" for k in clean.keys())
-            params = list(clean.values()) + [event.ueid]
+            params = [*clean.values(), event.ueid]
             conn.execute(
                 f"UPDATE tasks SET {set_clauses} WHERE ueid=?",
                 params,
@@ -904,14 +916,10 @@ class TaskdogAdapter:
         conn = sqlite3.connect(TASKDOG_DB)
         try:
             self._ensure_table(conn)
-            cur = conn.execute(
-                "SELECT status FROM tasks WHERE ueid=?", (event.ueid,)
-            )
+            cur = conn.execute("SELECT status FROM tasks WHERE ueid=?", (event.ueid,))
             row = cur.fetchone()
             if row is None:
-                raise LookupError(
-                    f"DONE target ueid={event.ueid!r} not found in taskdog"
-                )
+                raise LookupError(f"DONE target ueid={event.ueid!r} not found in taskdog")
             if row[0] == "done":
                 return  # idempotent: already done
             conn.execute(
@@ -930,9 +938,7 @@ class TaskdogAdapter:
             self._ensure_table(conn)
             cur = conn.execute("SELECT 1 FROM tasks WHERE ueid=?", (event.ueid,))
             if cur.fetchone() is None:
-                raise LookupError(
-                    f"DELETE target ueid={event.ueid!r} not found in taskdog"
-                )
+                raise LookupError(f"DELETE target ueid={event.ueid!r} not found in taskdog")
             conn.execute("DELETE FROM tasks WHERE ueid=?", (event.ueid,))
             conn.commit()
         finally:

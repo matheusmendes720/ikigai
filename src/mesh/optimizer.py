@@ -5,7 +5,7 @@ Three strategies (selectable via ``strategy=``):
   - ``critical_path``   topological order weighted by critical-path length
                         (a task that gates many downstream tasks floats up).
   - ``priority_weighted`` Kahn's algorithm + per-task weight
-                          ``priority_score × (1 + blocker_count)``.
+                          ``priority_score x (1 + blocker_count)``.
   - ``fifo``            plain FIFO over creation order, deps respected.
 
 All strategies honor the dep graph as a hard constraint: a task never
@@ -33,12 +33,13 @@ Usage::
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Iterable
+from enum import StrEnum
+from typing import Any
 
 
-class OptimizeStrategy(str, Enum):
+class OptimizeStrategy(StrEnum):
     """Strategy for the optimizer.
 
     Stored as ``str`` so it round-trips through ``argparse`` cleanly.
@@ -180,34 +181,34 @@ def _detect_cycle(
     set of edges that close a back-edge (best-effort — at least one
     edge from each detected cycle is reported).
     """
-    WHITE, GRAY, BLACK = 0, 1, 2
-    color: dict[str, int] = {u: WHITE for u in down}
+    white, gray, black = 0, 1, 2
+    color: dict[str, int] = dict.fromkeys(down, white)
     cycle_edges: list[tuple[str, str]] = []
     found = False
 
     for start in list(down.keys()):
-        if color[start] != WHITE:
+        if color[start] != white:
             continue
         stack: list[tuple[str, list[str]]] = [(start, sorted(down[start]))]
-        color[start] = GRAY
+        color[start] = gray
         while stack:
             node, children = stack[-1]
             if not children:
-                color[node] = BLACK
+                color[node] = black
                 stack.pop()
                 continue
             nxt = children.pop(0)
             if nxt not in color:
                 # Reference to unknown node — skip defensively.
                 continue
-            if color[nxt] == GRAY:
+            if color[nxt] == gray:
                 # Back-edge → cycle.
                 found = True
                 cycle_edges.append((node, nxt))
                 # Don't traverse further on this branch.
                 continue
-            if color[nxt] == WHITE:
-                color[nxt] = GRAY
+            if color[nxt] == white:
+                color[nxt] = gray
                 stack.append((nxt, sorted(down[nxt])))
         # Continue the outer for-loop if no cycle on this DFS tree.
 

@@ -50,7 +50,6 @@ from src.mesh.optimizer import (
     OptimizeStrategy,
 )
 
-
 # Output mode choices (closed set so argparse --help is clean).
 _GANTT_MODES: tuple[str, ...] = ("ascii", "html", "json")
 _OPTIMIZE_STRATEGIES: tuple[str, ...] = ("critical_path", "priority_weighted", "fifo")
@@ -160,8 +159,7 @@ def cmd_optimize(args: argparse.Namespace) -> int:
     if _wants_human(args):
         if result.has_cycle:
             print(
-                f"cycle detected ({len(result.cycle_edges)} back-edges); "
-                "cannot optimize.",
+                f"cycle detected ({len(result.cycle_edges)} back-edges); cannot optimize.",
                 flush=True,
             )
             for src, dst in result.cycle_edges:
@@ -176,8 +174,7 @@ def cmd_optimize(args: argparse.Namespace) -> int:
         # Render a compact table of position / ueid / weight / rationale.
         for row in result.ordered:
             print(
-                f"{row.position:>3}  {row.ueid}  w={row.weight:>5g}  "
-                f"{row.rationale}",
+                f"{row.position:>3}  {row.ueid}  w={row.weight:>5g}  {row.rationale}",
                 flush=True,
             )
         return 0
@@ -263,7 +260,8 @@ def register_optimize_subparser(
         description=(
             "Reorder tasks using a topological sort. Strategy selects "
             "the weighting: critical_path (longest path first), "
-            "priority_weighted (priority × blocker_count), or fifo."
+            # The visible multiplication sign is intentional in the help text.
+            "priority_weighted (priority × blocker_count), or fifo."  # noqa: RUF001
         ),
     )
     opt_p.add_argument(
@@ -300,10 +298,10 @@ def run_optimize_command(args: argparse.Namespace) -> int:
 
 
 __all__ = [
+    "cmd_gantt",
+    "cmd_optimize",
     "register_gantt_subparser",
     "register_optimize_subparser",
     "run_gantt_command",
     "run_optimize_command",
-    "cmd_gantt",
-    "cmd_optimize",
 ]

@@ -104,6 +104,7 @@ def _emit_change(
 # Subcommand handlers
 # ----------------------------------------------------------------------
 
+
 def cmd_tag_add(args: argparse.Namespace) -> int:
     """Append tags to a task. Idempotent on already-present tags."""
     _apply_db_override(args.db_path)
@@ -132,9 +133,7 @@ def cmd_tag_remove(args: argparse.Namespace) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     removed = [t for t in args.tag if t not in set(new_tags)]
-    _emit_change(
-        args, args.ueid, "tag_remove", new_tags, fields_diff={"removed": removed}
-    )
+    _emit_change(args, args.ueid, "tag_remove", new_tags, fields_diff={"removed": removed})
     return 0
 
 
@@ -172,6 +171,7 @@ def cmd_tag_clear(args: argparse.Namespace) -> int:
 # Parser wiring — called from taskdog_cli.main()
 # ----------------------------------------------------------------------
 
+
 def register_tag_subparser(
     sub: argparse._SubParsersAction,
 ) -> argparse.ArgumentParser:
@@ -206,9 +206,7 @@ def register_tag_subparser(
         default=str(taskdog_mod.TASKDOG_DB),
         help="path to taskdog SQLite DB (default: production DB)",
     )
-    add_p.add_argument(
-        "--json", action="store_true", help="force JSON output"
-    )
+    add_p.add_argument("--json", action="store_true", help="force JSON output")
 
     # tag remove <ueid> <tag1> [tag2 ...]
     rm_p = tag_sub.add_parser(
@@ -228,9 +226,7 @@ def register_tag_subparser(
         default=str(taskdog_mod.TASKDOG_DB),
         help="path to taskdog SQLite DB (default: production DB)",
     )
-    rm_p.add_argument(
-        "--json", action="store_true", help="force JSON output"
-    )
+    rm_p.add_argument("--json", action="store_true", help="force JSON output")
 
     # tag list <ueid>
     list_p = tag_sub.add_parser("list", help="list tags on a task")
@@ -241,9 +237,7 @@ def register_tag_subparser(
         default=str(taskdog_mod.TASKDOG_DB),
         help="path to taskdog SQLite DB (default: production DB)",
     )
-    list_p.add_argument(
-        "--json", action="store_true", help="force JSON output"
-    )
+    list_p.add_argument("--json", action="store_true", help="force JSON output")
 
     # tag clear <ueid>
     clear_p = tag_sub.add_parser("clear", help="remove all tags from a task")
@@ -254,9 +248,7 @@ def register_tag_subparser(
         default=str(taskdog_mod.TASKDOG_DB),
         help="path to taskdog SQLite DB (default: production DB)",
     )
-    clear_p.add_argument(
-        "--json", action="store_true", help="force JSON output"
-    )
+    clear_p.add_argument("--json", action="store_true", help="force JSON output")
 
     return tag_p
 

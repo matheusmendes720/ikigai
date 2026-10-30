@@ -2,7 +2,7 @@
 
 Per audit B5.0-F13: queue.enqueue() and ack() are wrapped with retry decorators
 to handle transient filesystem errors (EBUSY on Windows, NFS stale handles, etc.).
-"""
+"""  # noqa: A005 — module name `queue` is the public `src.mesh.queue` API; renaming breaks importers
 
 import logging
 import os
@@ -11,9 +11,8 @@ from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any, TypeVar
 
-from pydantic import ValidationError
-
 from contracts.task_change import TaskChange, TaskStatus
+from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
 

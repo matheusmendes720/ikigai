@@ -12,6 +12,7 @@ Kept self-contained (no import from ``taskdog.py``) to avoid circular
 imports — the adapter reads ``sqlite3.Row``-shaped dicts and converts
 into these models at the boundary.
 """
+
 from __future__ import annotations
 
 import json
@@ -120,4 +121,4 @@ class TaskdogSlice(BaseModel):
         return out
 
 
-__all__ = ["TaskdogAuditEntry", "TaskdogSlice", "PriorityLabel"]
+__all__ = ["PriorityLabel", "TaskdogAuditEntry", "TaskdogSlice"]

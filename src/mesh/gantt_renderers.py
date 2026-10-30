@@ -54,7 +54,7 @@ def _html_escape(s: str) -> str:
 # ─────────────────────────────────────────────────────────────────────
 
 
-def render_ascii(plan: "GanttPlan") -> str:
+def render_ascii(plan: GanttPlan) -> str:
     """Render ``plan`` as a box-drawing chart.
 
     Layout::
@@ -75,33 +75,33 @@ def render_ascii(plan: "GanttPlan") -> str:
     arrow_col = 24 if cfg.show_dep_arrows else 0
 
     # Box-drawing characters (light set).
-    H, V = "─", "│"
+    h, v = "─", "│"
 
     def _join(cells: list[str], t_char: str, l_char: str, r_char: str) -> str:
         return l_char + t_char.join(cells) + r_char
 
     def top() -> str:
-        cells = [H * ueid_col, H * name_col]
+        cells = [h * ueid_col, h * name_col]
         for _ in range(n_days):
-            cells.append(H * day_width)
+            cells.append(h * day_width)
         if arrow_col:
-            cells.append(H * arrow_col)
+            cells.append(h * arrow_col)
         return _join(cells, "┬", "┌", "┐")
 
     def mid() -> str:
-        cells = [H * ueid_col, H * name_col]
+        cells = [h * ueid_col, h * name_col]
         for _ in range(n_days):
-            cells.append(H * day_width)
+            cells.append(h * day_width)
         if arrow_col:
-            cells.append(H * arrow_col)
+            cells.append(h * arrow_col)
         return _join(cells, "┼", "├", "┤")
 
     def bot() -> str:
-        cells = [H * ueid_col, H * name_col]
+        cells = [h * ueid_col, h * name_col]
         for _ in range(n_days):
-            cells.append(H * day_width)
+            cells.append(h * day_width)
         if arrow_col:
-            cells.append(H * arrow_col)
+            cells.append(h * arrow_col)
         return _join(cells, "┴", "└", "┘")
 
     lines: list[str] = []
@@ -117,7 +117,7 @@ def render_ascii(plan: "GanttPlan") -> str:
         header_cells.append(f"D{i + 1}".center(day_width))
     if arrow_col:
         header_cells.append("deps".ljust(arrow_col))
-    lines.append(V + V.join(header_cells) + V)
+    lines.append(v + v.join(header_cells) + v)
     lines.append(mid())
 
     # Data rows.
@@ -125,22 +125,18 @@ def render_ascii(plan: "GanttPlan") -> str:
         ueid_cell = _truncate(r.ueid, ueid_col).ljust(ueid_col)
         name_cell = _truncate(r.name, name_col).ljust(name_col)
         glyph_cells = [g.center(day_width) for g in r.glyphs]
-        row_cells = [ueid_cell, name_cell] + glyph_cells
+        row_cells = [ueid_cell, name_cell, *glyph_cells]
         if arrow_col:
             arrow_bits: list[str] = []
             if r.deps_down:
-                arrow_bits.append(
-                    "↓" + ",".join(_truncate(d, 6) for d in r.deps_down)
-                )
+                arrow_bits.append("↓" + ",".join(_truncate(d, 6) for d in r.deps_down))
             if r.deps_out:
-                arrow_bits.append(
-                    "→" + ",".join(_truncate(d, 6) for d in r.deps_out)
-                )
+                arrow_bits.append("→" + ",".join(_truncate(d, 6) for d in r.deps_out))
             if r.overdue:
                 arrow_bits.append("OVERDUE")
             arrow_text = " ".join(arrow_bits) or "-"
             row_cells.append(arrow_text.ljust(arrow_col)[:arrow_col])
-        lines.append(V + V.join(row_cells) + V)
+        lines.append(v + v.join(row_cells) + v)
 
     lines.append(bot())
 
@@ -148,8 +144,8 @@ def render_ascii(plan: "GanttPlan") -> str:
     if plan.days:
         date_row = " " * (ueid_col + 1) + " " * (name_col + 1)
         for iso in plan.days:
-            date_row += iso.center(day_width) + V
-        lines.append(date_row.rstrip(V))
+            date_row += iso.center(day_width) + v
+        lines.append(date_row.rstrip(v))
         # Legend.
         lines.append(
             "legend: ░ planned   █ in_progress   ✓ done   ✗ cancelled   ! overdue   "
@@ -163,7 +159,7 @@ def render_ascii(plan: "GanttPlan") -> str:
 # ─────────────────────────────────────────────────────────────────────
 
 
-def render_html(plan: "GanttPlan") -> str:
+def render_html(plan: GanttPlan) -> str:
     """Render ``plan`` as a self-contained HTML5 <table> with embedded CSS.
 
     No external resources are required. Each task is one row; the day
@@ -222,21 +218,15 @@ def render_html(plan: "GanttPlan") -> str:
             f'<td class="gantt-ueid">{_html_escape(_truncate(r.ueid, cfg.ueid_width))}</td>'
         )
         parts.append(f"<td>{_html_escape(_truncate(r.name, cfg.name_width))}</td>")
-        cls = "gantt-overdue" if r.overdue else status_class.get(
-            r.status, "gantt-empty"
-        )
+        cls = "gantt-overdue" if r.overdue else status_class.get(r.status, "gantt-empty")
         for glyph in r.glyphs:
             parts.append(f'<td class="{cls}">{_html_escape(glyph)}</td>')
         if cfg.show_dep_arrows:
             bits: list[str] = []
             if r.deps_down:
-                bits.append(
-                    "↓ " + ", ".join(_html_escape(d) for d in r.deps_down)
-                )
+                bits.append("↓ " + ", ".join(_html_escape(d) for d in r.deps_down))
             if r.deps_out:
-                bits.append(
-                    "→ " + ", ".join(_html_escape(d) for d in r.deps_out)
-                )
+                bits.append("→ " + ", ".join(_html_escape(d) for d in r.deps_out))
             if r.overdue:
                 bits.append("OVERDUE")
             dep_text = " ".join(bits) or "-"

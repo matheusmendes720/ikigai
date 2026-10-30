@@ -16,9 +16,8 @@ from __future__ import annotations
 import json
 
 import pytest
-from pydantic import ValidationError
-
 from contracts.common import UEID
+from pydantic import ValidationError
 from src.mesh.adapters.a2ui_schema import (
     A2UIError,
     A2UINotification,
@@ -37,9 +36,7 @@ VALID_UEID = UEID("tsk:foo:11111111-1111-1111-1111-111111111111:1111111111111111
 
 def test_request_minimal_roundtrip() -> None:
     """mesh.read with bare params dict still validates."""
-    req = A2UIRequest(
-        id="req-001", method="mesh.read", params={"ueid": str(VALID_UEID)}
-    )
+    req = A2UIRequest(id="req-001", method="mesh.read", params={"ueid": str(VALID_UEID)})
     as_json = req.model_dump_json()
     restored = A2UIRequest.model_validate_json(as_json)
     assert restored.id == "req-001"
@@ -83,9 +80,7 @@ def test_response_success_roundtrip() -> None:
 def test_response_error_roundtrip() -> None:
     resp = A2UIResponse(
         id="req-001",
-        error=A2UIError(
-            code=-32602, message="Invalid UEID", data={"ueid": "bad-input"}
-        ),
+        error=A2UIError(code=-32602, message="Invalid UEID", data={"ueid": "bad-input"}),
     )
     as_json = resp.model_dump_json()
     restored = A2UIResponse.model_validate_json(as_json)
@@ -236,8 +231,6 @@ def test_full_request_response_cycle_via_json() -> None:
     assert server_params.fields["title"] == "Hello"
 
     # Server side: build response
-    resp = A2UIResponse(
-        id="req-007", result={"event_id": "evt_abc", "status": "pending"}
-    )
+    resp = A2UIResponse(id="req-007", result={"event_id": "evt_abc", "status": "pending"})
     wire_resp = resp.model_dump_json()
     assert json.loads(wire_resp)["result"]["status"] == "pending"

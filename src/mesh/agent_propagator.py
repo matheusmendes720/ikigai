@@ -46,7 +46,7 @@ def propagate(
         try:
             adapter.apply_change(propagation)
             results.append(PropagationResult(fork_name=adapter.name, success=True))
-        except Exception as e:  # noqa: BLE001 — adapter failures are isolated per spec; narrowing risks hiding runtime plugin errors. Error captured in PropagationResult for caller visibility.
+        except Exception as e:
             results.append(
                 PropagationResult(
                     fork_name=adapter.name,
@@ -88,10 +88,8 @@ def propagate(
                 },
                 body=f"# {event.fields.get('title', '')}\n\nStatus: `{event.fields.get('status', 'planned')}`\n",
             )
-            logger.info(
-                "vault write ok: %s (sha256=%s)", result["vault_path"], result["sha256"]
-            )
-        except Exception as exc:  # noqa: BLE001 — vault_write_impl can raise ImportError, OSError, ValidationError, etc.; broad catch is intentional because vault write is best-effort and must never crash propagation (per spec §Q1=B)
+            logger.info("vault write ok: %s (sha256=%s)", result["vault_path"], result["sha256"])
+        except Exception as exc:
             # Best-effort: vault write failures must not crash propagation
             logger.error("vault write failed for %s: %s", event.ueid, exc)
 

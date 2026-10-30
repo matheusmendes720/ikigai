@@ -9,14 +9,14 @@ UEID collision check). UPDATE, DONE, DELETE get their own focused rules.
 import logging
 from dataclasses import dataclass
 from datetime import date
-from enum import Enum
+from enum import StrEnum
 
 from contracts.task_change import TaskAction, TaskChange
 
 logger = logging.getLogger(__name__)
 
 
-class Decision(str, Enum):
+class Decision(StrEnum):
     APPROVE = "approve"
     REJECT = "reject"
     CLARIFY = "clarify"
@@ -38,8 +38,7 @@ def _validate_create(event: TaskChange) -> ValidationResult:
     if not title or title.lower().strip() in VAGUE_TITLES or len(title.strip()) < 5:
         return ValidationResult(
             Decision.CLARIFY,
-            "Title too vague. Provide a specific, actionable title "
-            "(>=5 chars, not 'todo'/'tbd').",
+            "Title too vague. Provide a specific, actionable title (>=5 chars, not 'todo'/'tbd').",
         )
 
     if "due" in event.fields:
@@ -48,14 +47,12 @@ def _validate_create(event: TaskChange) -> ValidationResult:
             if due < date.today():
                 return ValidationResult(
                     Decision.REJECT,
-                    f"Due date {due} is in the past. "
-                    "Use a future date or remove due field.",
+                    f"Due date {due} is in the past. Use a future date or remove due field.",
                 )
         except (ValueError, TypeError):
             return ValidationResult(
                 Decision.REJECT,
-                f"Invalid due date format: {event.fields['due']!r}. "
-                "Use YYYY-MM-DD.",
+                f"Invalid due date format: {event.fields['due']!r}. Use YYYY-MM-DD.",
             )
 
     return ValidationResult(Decision.APPROVE, approved_fields=event.fields)
@@ -66,8 +63,7 @@ def _validate_update(event: TaskChange) -> ValidationResult:
     if "ueid" in event.fields:
         return ValidationResult(
             Decision.REJECT,
-            "UPDATE cannot change ueid (use CREATE + DELETE if you need "
-            "to change identity).",
+            "UPDATE cannot change ueid (use CREATE + DELETE if you need to change identity).",
         )
     if not event.fields:
         return ValidationResult(
@@ -102,8 +98,7 @@ def _validate_delete(event: TaskChange) -> ValidationResult:
     if event.fields:
         return ValidationResult(
             Decision.REJECT,
-            "DELETE takes no fields; use UPDATE to set status='cancelled' "
-            "for soft-removal.",
+            "DELETE takes no fields; use UPDATE to set status='cancelled' for soft-removal.",
         )
     return ValidationResult(Decision.APPROVE, approved_fields=event.fields)
 
@@ -125,8 +120,7 @@ def _check_ueid_collision(event: TaskChange) -> ValidationResult | None:
             ):
                 return ValidationResult(
                     Decision.REJECT,
-                    f"UEID collision: {event.ueid} already exists with "
-                    "different content.",
+                    f"UEID collision: {event.ueid} already exists with different content.",
                 )
     except (ImportError, AttributeError) as exc:
         # Per B5.0-F6: was a silent pass before; now log a warning so this
@@ -144,11 +138,7 @@ def validate(event: TaskChange) -> ValidationResult:
 
     M148: dispatches on event.action to a per-action validator.
     """
-    action = (
-        event.action
-        if isinstance(event.action, TaskAction)
-        else TaskAction(event.action)
-    )
+    action = event.action if isinstance(event.action, TaskAction) else TaskAction(event.action)
 
     if action == TaskAction.CREATE:
         result = _validate_create(event)

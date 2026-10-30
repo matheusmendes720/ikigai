@@ -52,19 +52,19 @@ def _truncate(s: str, n: int) -> str:
     return s[: n - 1] + "…"
 
 
-def _summarize(slice: dict) -> str:
+def _summarize(slice_spec: dict) -> str:
     """One JSON line per task for `list` (JSON mode)."""
-    return json.dumps(slice, default=str)
+    return json.dumps(slice_spec, default=str)
 
 
-def _list_row(slice: dict) -> list[str]:
+def _list_row(slice_spec: dict) -> list[str]:
     """Compact cells for one task in human-readable table mode."""
     return [
-        _truncate(str(slice.get("ueid") or ""), _MAX_UEID),
-        _truncate(str(slice.get("title") or ""), _MAX_TITLE),
-        str(slice.get("priority") or ""),
-        str(slice.get("due") or ""),
-        str(slice.get("source_fork") or ""),
+        _truncate(str(slice_spec.get("ueid") or ""), _MAX_UEID),
+        _truncate(str(slice_spec.get("title") or ""), _MAX_TITLE),
+        str(slice_spec.get("priority") or ""),
+        str(slice_spec.get("due") or ""),
+        str(slice_spec.get("source_fork") or ""),
     ]
 
 
@@ -177,7 +177,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 
     # Initialize counts with zeros so the table always renders the same
     # shape even on empty/partial files.
-    priority_counts: dict[str, int] = {p: 0 for p in _KNOWN_PRIORITIES}
+    priority_counts: dict[str, int] = dict.fromkeys(_KNOWN_PRIORITIES, 0)
     for task in tasks:
         p = task.get("priority")
         if p in priority_counts:
