@@ -12,13 +12,13 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-
-from interfaces.cli.read_tasks import show_mesh
 from src.contracts.common import UEID
 from src.contracts.task_change import PropagationEvent, TaskAction
 from src.mesh.adapters.cli import CliAdapter
 from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
 from src.mesh.adapters.taskdog import TaskdogAdapter
+
+from interfaces.cli.read_tasks import show_mesh
 
 
 def test_show_mesh_empty_returns_null_slices(tmp_data_dir) -> None:
@@ -41,9 +41,7 @@ def test_show_mesh_finds_task_in_cli_slice(tmp_data_dir) -> None:
             ueid=ueid,
             action=TaskAction.CREATE,
             fields={"title": "visible in cli slice", "due": None, "priority": "low"},
-            approved_at=__import__("datetime").datetime.now(
-                __import__("datetime").timezone.utc
-            ),
+            approved_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
             source_fork="test",
         )
     )
@@ -66,9 +64,7 @@ def test_show_mesh_finds_task_in_taskdog_slice(tmp_data_dir) -> None:
             ueid=ueid,
             action=TaskAction.CREATE,
             fields={"title": "in taskdog", "due": None, "priority": "medium"},
-            approved_at=__import__("datetime").datetime.now(
-                __import__("datetime").timezone.utc
-            ),
+            approved_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
             source_fork="test",
         )
     )
@@ -89,9 +85,7 @@ def test_show_mesh_finds_task_in_calendar_slice(tmp_data_dir) -> None:
             ueid=ueid,
             action=TaskAction.CREATE,
             fields={"title": "in calendar", "due": None, "priority": "high"},
-            approved_at=__import__("datetime").datetime.now(
-                __import__("datetime").timezone.utc
-            ),
+            approved_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
             source_fork="test",
         )
     )

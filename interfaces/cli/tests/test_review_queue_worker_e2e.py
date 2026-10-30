@@ -15,14 +15,13 @@ TASKS_JSONL for the CliAdapter write so production data is not polluted.
 from __future__ import annotations
 
 import json
+import sqlite3
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import pytest
-import sqlite3
-
 from src.contracts.common import UEID
 from src.contracts.task_change import (
     PropagationEvent,
@@ -32,7 +31,6 @@ from src.contracts.task_change import (
 )
 from src.mesh import queue as queue_mod
 from src.mesh import review_queue_worker as worker_mod
-
 
 # === Stub adapter (Protocol-conformant) ===
 
@@ -60,9 +58,13 @@ class StubAdapter:
 # === Helpers ===
 
 
+# Module-level singleton: avoids B008 (function call in argument default).
+_DEFAULT_UEID = UEID("tsk:abc:a1b2:c3d4")
+
+
 def _make_event(
     event_id: str = "test-evt-001",
-    ueid: UEID = "tsk:abc:a1b2:c3d4",
+    ueid: UEID = _DEFAULT_UEID,
     title: str = "Build the thing",
     due: str | None = None,
     source_fork: str = "cli",
@@ -72,7 +74,7 @@ def _make_event(
         due = (datetime.now() + timedelta(days=30)).date().isoformat()
     return TaskChange(
         event_id=event_id,
-        ueid=ueid,  # type: ignore[arg-type]
+        ueid=ueid,
         action=TaskAction.CREATE,
         fields={"title": title, "due": due, "priority": "high"},
         source_fork=source_fork,
@@ -223,7 +225,7 @@ def test_end_to_end_with_cli_adapter_writes_real_file(
 
     event = _make_event(
         event_id="e2e-cli-001",
-        ueid="tsk:cli:a1b2:c3d4",
+        ueid=UEID("tsk:cli:a1b2:c3d4"),
         title="Real CLI write test",
         source_fork="mcp_gateway",
     )
@@ -262,7 +264,7 @@ def test_end_to_end_with_taskdog_adapter_writes_real_db(
 
     event = _make_event(
         event_id="e2e-taskdog-001",
-        ueid="tsk:taskdog:b1c2:d3e4",
+        ueid=UEID("tsk:taskdog:b1c2:d3e4"),
         title="Real taskdog UPSERT test",
         source_fork="mcp_gateway",
     )
@@ -312,7 +314,7 @@ def test_end_to_end_with_solverforge_calendar_adapter_writes_real_upi(
 
     event = _make_event(
         event_id="e2e-upi-001",
-        ueid="tsk:upi:b1c2:d3e4",
+        ueid=UEID("tsk:upi:b1c2:d3e4"),
         title="Real UPI write test",
         source_fork="mcp_gateway",
     )
@@ -341,7 +343,8 @@ def test_end_to_end_with_solverforge_calendar_adapter_writes_real_upi(
             assert ueid_val == "tsk:upi:b1c2:d3e4"
             assert status_val == "planned"
             # id is a UUID string (TEXT PRIMARY KEY)
-            assert isinstance(pk_id, str) and len(pk_id) > 0
+            assert isinstance(pk_id, str)
+            assert len(pk_id) > 0
 
             # ikigai column is JSON with the expected fields
             ikigai = json.loads(ikigai_json)
@@ -398,7 +401,7 @@ def test_propagator_vault_target_invokes_vault_write(
 
     event = TaskChange(
         event_id="vault-target-001",
-        ueid="tsk:abc:a1b2:c3d4",  # 4-part UEID
+        ueid=UEID("tsk:abc:a1b2:c3d4"),  # 4-part UEID
         action=TaskAction.DONE,
         fields={
             "status": "done",
@@ -427,7 +430,6 @@ def test_propagator_non_vault_target_does_not_touch_vault(
 ) -> None:
     """source_fork=='taskdog' means propagate() MUST NOT call vault_write."""
     from src.mesh import agent_propagator
-
     from sys_ikigai.vault import vault_write as vw
 
     called = {"n": 0}
@@ -440,7 +442,7 @@ def test_propagator_non_vault_target_does_not_touch_vault(
 
     event = TaskChange(
         event_id="non-vault-001",
-        ueid="tsk:taskdog:a1b2:c3d4",  # 4-part UEID, hex-only
+        ueid=UEID("tsk:taskdog:a1b2:c3d4"),  # 4-part UEID, hex-only
         action=TaskAction.UPDATE,
         fields={"status": "in_progress", "title": "Taskdog Task"},
         source_fork="taskdog",
@@ -453,6 +455,4 @@ def test_propagator_non_vault_target_does_not_touch_vault(
         adapters=[],
     )
 
-    assert called["n"] == 0, (
-        f"vault_write should NOT be called for taskdog, got {called['n']}"
-    )
+    assert called["n"] == 0, f"vault_write should NOT be called for taskdog, got {called['n']}"

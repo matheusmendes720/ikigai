@@ -9,13 +9,13 @@ from __future__ import annotations
 import threading
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
-
 from src.contracts.common import UEID
 from src.contracts.task_change import TaskAction, TaskChange
 from src.mesh import queue as _queue
+from src.mesh.adapters.base import ForkAdapter
 from src.mesh.review_queue_worker import (
     RunResult,
     run_once,
@@ -77,12 +77,10 @@ def make_event(
 # === Tests ===
 def test_run_once_empty_queue(tmp_data_dir: Path) -> None:
     """No events → all counts zero."""
-    adapters = [StubAdapter("test")]
+    adapters = cast("list[ForkAdapter]", [StubAdapter("test")])
     result = run_once(adapters)
 
-    assert result == RunResult(
-        consumed=0, approved=0, rejected=0, clarified=0, partial=0
-    )
+    assert result == RunResult(consumed=0, approved=0, rejected=0, clarified=0, partial=0)
 
 
 def test_run_once_approved_event(tmp_data_dir: Path) -> None:
@@ -91,7 +89,7 @@ def test_run_once_approved_event(tmp_data_dir: Path) -> None:
     event = make_event("evt-001", "e5f6a7b8", fields={"title": "Buy groceries"})
     _queue.enqueue(event)
 
-    adapters = [StubAdapter("test")]
+    adapters = cast("list[ForkAdapter]", [StubAdapter("test")])
     result = run_once(adapters)
 
     assert result.consumed == 1
@@ -111,12 +109,10 @@ def test_run_once_rejected_event(tmp_data_dir: Path) -> None:
     yesterday = (date.today()).isoformat()
     # Create a truly past date by using 2 days ago
     past_date = "2020-01-01"
-    event = make_event(
-        "evt-002", "a1b2c3d4", fields={"title": "Overdue task", "due": past_date}
-    )
+    event = make_event("evt-002", "a1b2c3d4", fields={"title": "Overdue task", "due": past_date})
     _queue.enqueue(event)
 
-    adapters = [StubAdapter("test")]
+    adapters = cast("list[ForkAdapter]", [StubAdapter("test")])
     result = run_once(adapters)
 
     assert result.consumed == 1
@@ -135,7 +131,7 @@ def test_run_once_clarified_event(tmp_data_dir: Path) -> None:
     event = make_event("evt-003", "b2c3d4e5", fields={"title": "todo"})
     _queue.enqueue(event)
 
-    adapters = [StubAdapter("test")]
+    adapters = cast("list[ForkAdapter]", [StubAdapter("test")])
     result = run_once(adapters)
 
     assert result.consumed == 1
@@ -154,7 +150,9 @@ def test_run_once_partial_propagation(tmp_data_dir: Path) -> None:
     event = make_event("evt-004", "c3d4e5f6", fields={"title": "Partial test"})
     _queue.enqueue(event)
 
-    adapters = [StubAdapter("good"), StubAdapter("bad", should_fail=True)]
+    adapters = cast(
+        "list[ForkAdapter]", [StubAdapter("good"), StubAdapter("bad", should_fail=True)]
+    )
     result = run_once(adapters)
 
     assert result.consumed == 1
@@ -201,7 +199,7 @@ def test_stop_worker_idempotent(tmp_data_dir: Path) -> None:
 def test_start_worker_writes_pidfile(tmp_data_dir: Path) -> None:
     """Use a fake adapter list, start in background thread, verify pidfile created then removed."""
     pidfile = tmp_data_dir / "worker.pid"
-    adapters = [StubAdapter("test")]
+    adapters = cast("list[ForkAdapter]", [StubAdapter("test")])
 
     # Track whether worker has run once
     run_completed = threading.Event()

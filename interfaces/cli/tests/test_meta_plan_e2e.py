@@ -1,4 +1,5 @@
 """E2E tests for life plan CLI (Plan D Task E.2)."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -44,8 +45,10 @@ def test_run_plan_happy_path():
 
     fake_compiled = MagicMock()
     fake_compiled.invoke.return_value = {"proposal": _dict_to_proposal(fake_proposal_dict)}
-    with patch("src.ikigai.src.agents.v2.subgraph.make_meta_plan_subgraph") as mock_mksg, \
-         patch("src.ikigai.src.agents.v2.nodes.proposal_executor.execute_proposal") as mock_exec:
+    with (
+        patch("src.ikigai.src.agents.v2.subgraph.make_meta_plan_subgraph") as mock_mksg,
+        patch("src.ikigai.src.agents.v2.nodes.proposal_executor.execute_proposal") as mock_exec,
+    ):
         mock_mksg.return_value = fake_compiled
         mock_exec.return_value = _fake_report()
 
@@ -98,11 +101,14 @@ def _fake_proposal():
         Proposal,
         Traceability,
     )
+
     return Proposal(
         id="prop:test01:01:0001",
         created_at="2026-09-04T00:00:00",
         source_request="test",
-        hierarchy_context=HierarchyContext(matched_sonho=None, matched_objetivo=None, matched_meta=None, matched_projeto=None),
+        hierarchy_context=HierarchyContext(
+            matched_sonho=None, matched_objetivo=None, matched_meta=None, matched_projeto=None
+        ),
         operations=[],
         traceability=Traceability(memory_refs=[], folder_reads=[], adrs_consulted=[]),
         approval_state="pending",

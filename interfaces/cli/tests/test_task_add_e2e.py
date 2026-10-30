@@ -15,10 +15,10 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
-
-from interfaces.cli.read_tasks import do_task_add
 from src.contracts.common import UEID
 from src.contracts.task_change import TaskAction, TaskChange
+
+from interfaces.cli.read_tasks import do_task_add
 
 
 def _parse_iso(ts: str) -> datetime:
@@ -30,6 +30,7 @@ def _parse_iso(ts: str) -> datetime:
 def clean_console(monkeypatch):
     """Silence Rich console output during tests."""
     import os
+
     from rich.console import Console
 
     monkeypatch.setattr(
@@ -102,9 +103,7 @@ def test_task_add_idempotent_per_title(tmp_data_dir, clean_console) -> None:
     assert len(lines) == 2
     first = json.loads(lines[0])
     second = json.loads(lines[1])
-    assert first["ueid"] != second["ueid"], (
-        "two tasks with same title must have distinct UEIDs"
-    )
+    assert first["ueid"] != second["ueid"], "two tasks with same title must have distinct UEIDs"
 
 
 def test_task_add_preserves_existing_tasks(tmp_data_dir, clean_console) -> None:

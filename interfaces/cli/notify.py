@@ -31,10 +31,9 @@ from __future__ import annotations
 import json
 import os
 import sys
-import time
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -42,12 +41,12 @@ DEFAULT_LOG = Path(".life/logs/notifications.log")
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _level_icon(level: str) -> str:
     return {
-        "info": "ℹ️",
+        "info": "ℹ️",  # noqa: RUF001  # intentional unicode info glyph in CLI output
         "success": "✅",
         "warning": "⚠️",
         "error": "❌",
@@ -79,7 +78,7 @@ def notify(
 
     message = f"{icon} *{title}*\n{body_text}{payload_text}\n_{timestamp}_"
 
-    result = {
+    result: dict[str, Any] = {
         "title": title,
         "level": level,
         "timestamp": timestamp,
@@ -109,7 +108,7 @@ def notify(
         try:
             _send_telegram(token, chat_id, message)
             result["channels"].append("telegram")
-        except Exception as exc:  # noqa: BLE001 — surface all errors
+        except Exception as exc:
             result["telegram_error"] = f"{type(exc).__name__}: {exc}"
 
     return result
@@ -118,12 +117,14 @@ def notify(
 def _send_telegram(token: str, chat_id: str, message: str) -> None:
     """Post a message to Telegram via Bot API (urllib stdlib, no deps)."""
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = json.dumps({
-        "chat_id": chat_id,
-        "text": message,
-        "parse_mode": "Markdown",
-        "disable_web_page_preview": True,
-    }).encode("utf-8")
+    payload = json.dumps(
+        {
+            "chat_id": chat_id,
+            "text": message,
+            "parse_mode": "Markdown",
+            "disable_web_page_preview": True,
+        }
+    ).encode("utf-8")
     req = urllib.request.Request(
         url,
         data=payload,
@@ -145,8 +146,7 @@ def health() -> dict[str, Any]:
         "file": str(DEFAULT_LOG),
         "file_writable": _is_writable(DEFAULT_LOG),
         "telegram_configured": bool(
-            os.environ.get("TELEGRAM_BOT_TOKEN")
-            and os.environ.get("TELEGRAM_CHAT_ID")
+            os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID")
         ),
         "verbose": os.environ.get("NOTIFY_VERBOSE") == "1",
     }
@@ -162,4 +162,4 @@ def _is_writable(path: Path) -> bool:
         return False
 
 
-__all__ = ["notify", "health"]
+__all__ = ["health", "notify"]

@@ -12,9 +12,11 @@ Usage:
 
 from __future__ import annotations
 
+import builtins
 import json
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 import typer
 from rich.console import Console
@@ -37,7 +39,7 @@ def _feedback_path() -> Path:
 def _read_tasks(
     horizon: str | None = None,
     done: bool | None = None,
-) -> list[dict]:
+) -> builtins.list[dict]:
     path = _tasks_path()
     if not path.exists():
         return []
@@ -64,19 +66,15 @@ def _read_tasks(
 
 
 @app.command()
-def list(
+def list(  # noqa: A001
     horizon: str | None = typer.Option(
         None,
         "--horizon",
         "-h",
         help="Filter by horizon (today, this_week, onda, sprint, etc.)",
     ),
-    done: bool | None = typer.Option(
-        None, "--done", "-d", help="Filter by done status"
-    ),
-    json_output: bool = typer.Option(
-        False, "--json", help="Machine-readable JSON output"
-    ),
+    done: bool | None = typer.Option(None, "--done", "-d", help="Filter by done status"),
+    json_output: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
     limit: int = typer.Option(50, "--limit", "-n", help="Max tasks to show"),
 ) -> None:
     """List tasks from data/tasks.jsonl."""
@@ -111,9 +109,7 @@ def list(
 
 @app.command()
 def done(
-    task_id: str = typer.Argument(
-        ..., help="Task ID (first 8 chars of the record uuid)"
-    ),
+    task_id: str = typer.Argument(..., help="Task ID (first 8 chars of the record uuid)"),
 ) -> None:
     """Mark a task as done and append feedback to data/feedback.jsonl."""
     path = _tasks_path()
@@ -122,7 +118,7 @@ def done(
         raise typer.Exit(1)
 
     # Find and update the task
-    updated_lines: list[str] = []
+    updated_lines: builtins.list[str] = []
     found = False
     today = date.today().isoformat()
 
@@ -218,16 +214,16 @@ def stats() -> None:
 
 # === Phase 3: mesh show + task_add commands ===
 
-import uuid as uuid_lib
 import re
-from datetime import datetime, timezone
+import uuid as uuid_lib
+from datetime import UTC, datetime
 
 from src.contracts.common import UEID
-from src.contracts.task_change import TaskChange, PropagationEvent, TaskAction
-from src.mesh.adapters.cli import CliAdapter
-from src.mesh.adapters.taskdog import TaskdogAdapter
-from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
+from src.contracts.task_change import PropagationEvent, TaskAction, TaskChange
 from src.mesh import queue
+from src.mesh.adapters.cli import CliAdapter
+from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
+from src.mesh.adapters.taskdog import TaskdogAdapter
 
 # W5.3 — kill switch consumer UX sub-app
 from interfaces.cli.kill_switch import app as kill_switch_app
@@ -239,13 +235,13 @@ def show_mesh(ueid: str) -> dict:
     """Show cross-fork view for one UEID. Returns status matrix + slices."""
     parsed_ueid = UEID(ueid)  # validates format
 
-    adapters = {
+    adapters: dict[str, Any] = {
         "cli": CliAdapter(),
         "taskdog": TaskdogAdapter(),
         "solverforge_calendar": SolverforgeCalendarAdapter(),
     }
 
-    view = {}
+    view: dict[str, Any] = {}
     for name, adapter in adapters.items():
         try:
             view[name] = adapter.read(parsed_ueid)
@@ -253,9 +249,7 @@ def show_mesh(ueid: str) -> dict:
             view[name] = {"error": str(e)}
 
     # Detect mismatches
-    statuses = [
-        v.get("status") for v in view.values() if isinstance(v, dict) and "status" in v
-    ]
+    statuses = [v.get("status") for v in view.values() if isinstance(v, dict) and "status" in v]
     mismatches = []
     if len(set(statuses)) > 1:
         mismatches.append(f"Status differs across forks: {statuses}")
@@ -313,7 +307,7 @@ def do_task_add(title: str, due: str | None, priority: str) -> dict:
         action=TaskAction.CREATE,
         fields={"title": title, "due": due, "priority": priority},
         source_fork="interfaces/cli",
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
     )
     cli_adapter.apply_change(
         PropagationEvent(
@@ -403,7 +397,7 @@ def plan_list(
             console.print("[dim]No tasks found.[/dim]")
         return
 
-    rows: list[dict] = []
+    rows: builtins.list[dict] = []
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line:
@@ -415,7 +409,7 @@ def plan_list(
 
     if all_forks:
         # Mesh join — proves the sync cycle read path
-        joined: list[dict] = []
+        joined: builtins.list[dict] = []
         for row in rows[:limit]:
             ueid = row.get("ueid")
             if not ueid:
@@ -446,9 +440,7 @@ def plan_list(
                     sf_ok,
                 )
             console.print(table)
-            mismatches_flat = [
-                m for j in joined for m in j.get("_mesh", {}).get("mismatches", [])
-            ]
+            mismatches_flat = [m for j in joined for m in j.get("_mesh", {}).get("mismatches", [])]
             if mismatches_flat:
                 console.print("\n[yellow]Mismatches detected:[/yellow]")
                 for m in mismatches_flat:
@@ -485,9 +477,7 @@ def _is_deep_agent_task(task: dict) -> bool:
 
 @app.command(name="deep-agent-tasks")
 def deep_agent_tasks(
-    json_output: bool = typer.Option(
-        False, "--json", help="Machine-readable JSON output"
-    ),
+    json_output: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
     limit: int = typer.Option(50, "--limit", "-n", help="Max tasks to show"),
 ) -> None:
     """Show tasks written by the Deep Agent (source_fork=deep_agent or agent_id present)."""

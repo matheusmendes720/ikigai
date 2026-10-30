@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import datetime as _dt
 import hashlib
-import json
 import logging
 import os
 import uuid
@@ -56,7 +55,15 @@ def _find_default_skills_dir() -> Path:
         if candidate.exists():
             return candidate
     # Fallback: derive from file path
-    return file_path.parent.parent.parent.parent / "src" / "ikigai" / "src" / "agents" / "v2" / "skills"
+    return (
+        file_path.parent.parent.parent.parent
+        / "src"
+        / "ikigai"
+        / "src"
+        / "agents"
+        / "v2"
+        / "skills"
+    )
 
 
 def _resolve_skills_dir() -> Path:
@@ -92,7 +99,7 @@ def _parse_frontmatter(text: str) -> dict[str, Any]:
     block = text[3:end].strip()
     out: dict[str, Any] = {}
     current_key: str | None = None
-    current_list: list[str] | None = None
+    current_list: list[Any] | None = None
     for line in block.split("\n"):
         # List item: `  - value` or `  - key: value`
         if line.startswith("  - ") and current_list is not None:
@@ -155,7 +162,7 @@ def load_skill_manifest(name: str) -> dict[str, Any]:
     skills_dir = _resolve_skills_dir()
     candidates = [skills_dir / f"{name}.md"]
     if name.startswith("ikigai-"):
-        candidates.append(skills_dir / f"{name[len('ikigai-'):]}.md")
+        candidates.append(skills_dir / f"{name[len('ikigai-') :]}.md")
     for md_path in candidates:
         if md_path.exists():
             return _parse_frontmatter(md_path.read_text(encoding="utf-8"))
@@ -220,8 +227,16 @@ def _real_llm_dispatch(manifest: dict[str, Any]) -> dict[str, Any]:
     try:
         # Pass api_key explicitly - ChatAnthropic checks ANTHROPIC_API_KEY
         # by default, not CLAUDE_API_KEY. We accept either alias.
-        llm = ChatAnthropic(model=model_name, temperature=0, api_key=api_key)
-    except Exception as exc:  # noqa: BLE001
+        from pydantic import SecretStr
+
+        llm = ChatAnthropic(
+            model_name=model_name,
+            temperature=0,
+            api_key=SecretStr(api_key),
+            timeout=None,
+            stop=None,
+        )
+    except Exception as exc:
         logger.warning("ChatAnthropic init failed: %s", exc)
         return _fake_llm_dispatch(manifest) | {
             "llm_stub": False,
@@ -255,7 +270,15 @@ def _real_llm_dispatch(manifest: dict[str, Any]) -> dict[str, Any]:
 
     try:
         response = llm.invoke([sys_msg, user_msg])
-        raw = (response.content or "").strip()
+        content = response.content
+        if isinstance(content, str):
+            raw = content.strip()
+        else:
+            # Content blocks (Anthropic-style list of dicts) -> flat text.
+            raw = "".join(
+                block.get("text", "") if isinstance(block, dict) else str(block)
+                for block in content
+            ).strip()
         if raw.startswith("```"):
             raw = raw.strip("`")
             if raw.startswith("json"):
@@ -279,7 +302,7 @@ def _real_llm_dispatch(manifest: dict[str, Any]) -> dict[str, Any]:
                 "next_action": next_action,
             },
         }
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("LLM dispatch failed: %s", exc)
         return _fake_llm_dispatch(manifest) | {
             "llm_stub": False,
@@ -309,6 +332,7 @@ def _fire_taskdog(description: str, skill_name: str) -> dict[str, Any]:
     Returns {"ok": False, "error": <exc>} on failure.
     """
     from interfaces.cli._skill_outputs import _derive_taskdog_title
+
     title = _derive_taskdog_title(skill_name, description)
     try:
         # Import inside function: tests monkeypatch the `agents.tools`
@@ -323,11 +347,13 @@ def _fire_taskdog(description: str, skill_name: str) -> dict[str, Any]:
         )
         if tools_mod is None:
             # Fallback: import via the dual-path module-level name
-            from src.ikigai.src.agents import tools as tools_mod  # type: ignore[no-redef]
+            from src.ikigai.src.agents import tools as _tools_fallback
+
+            tools_mod = _tools_fallback
 
         result = tools_mod.taskdog_create_task.invoke({"name": title})
         return {"ok": True, "result": str(result)}
-    except Exception as exc:  # noqa: BLE001 - surface all errors
+    except Exception as exc:
         return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
 
@@ -343,12 +369,12 @@ def _enqueue_review_queue(
     Mirrors the canonical TaskChange shape (mesh/queue.py:enqueue).
     Tests check fields.target_fork / actor / error / created_at.
     """
-    from contracts.task_change import TaskAction, TaskChange, TaskStatus
+    from contracts.task_change import TaskAction, TaskChange
     from src.mesh import queue as queue_mod
 
     event_id = f"evt_{uuid.uuid4().hex[:12]}"
     ueid = f"tsk:{skill_name}:{hashlib.sha256(title_or_name(skill_name, description).encode()).hexdigest()[:8]}:{hashlib.sha256(error_msg.encode()).hexdigest()[:8]}"
-    now = _dt.datetime.now(_dt.timezone.utc)
+    now = _dt.datetime.now(_dt.UTC)
     fields = {
         "target_fork": "taskdog",
         "actor": "agent",
@@ -408,18 +434,22 @@ def invoke_skill(
 
     # M94: validate entry_point against the graph's declared NODES.
     # Lazy import: tests monkeypatch the source module path.
+    _valid_nodes: tuple[str, ...] = ()
     try:
-        from src.ikigai.src.agents.v2.graph import NODES as _VALID_NODES
+        from src.ikigai.src.agents.v2.graph import NODES
+
+        _valid_nodes = NODES
     except ImportError:
         try:
-            from agents.v2.graph import NODES as _VALID_NODES  # type: ignore[no-redef]
-        except ImportError:
-            _VALID_NODES = ()  # empty fallback - accept any
+            from agents.v2.graph import NODES  # type: ignore[no-redef]
 
-    if entry_point not in _VALID_NODES:
+            _valid_nodes = NODES
+        except ImportError:
+            pass  # empty fallback - accept any
+
+    if entry_point not in _valid_nodes:
         raise ValueError(
-            f"Invalid entry_point {entry_point!r} - "
-            f"must be one of: {', '.join(_VALID_NODES)}"
+            f"Invalid entry_point {entry_point!r} - must be one of: {', '.join(_valid_nodes)}"
         )
 
     # M94: log warning when entry_point_override differs from manifest default.
@@ -428,13 +458,9 @@ def invoke_skill(
     import logging as _logging
 
     _logger = _logging.getLogger(__name__)
-    if (
-        entry_point_override is not None
-        and entry_point_override != manifest.get("entry_point")
-    ):
+    if entry_point_override is not None and entry_point_override != manifest.get("entry_point"):
         _logger.warning(
-            "entry_point override=%r differs from manifest default %r; "
-            "running pipeline from %r",
+            "entry_point override=%r differs from manifest default %r; running pipeline from %r",
             entry_point_override,
             manifest.get("entry_point"),
             entry_point,
@@ -470,7 +496,7 @@ def invoke_skill(
             }
         }
         graph_result = graph.invoke(graph_state, config=graph_config)
-    except Exception as exc:  # noqa: BLE001 - graph run is best-effort
+    except Exception as exc:
         # Graph run failure shouldn't crash invoke_skill — fall through
         # to post-processors. Surface the error in graph_state for
         # diagnostics.
@@ -479,7 +505,12 @@ def invoke_skill(
 
     # M94: extract user_suggestions + other graph outputs
     if isinstance(graph_result, dict):
-        for k in ("user_suggestions", "suggestions_count", "suggestions_language", "commit_summary"):
+        for k in (
+            "user_suggestions",
+            "suggestions_count",
+            "suggestions_language",
+            "commit_summary",
+        ):
             if k in graph_result and k not in graph_result.get("graph_state", {}):
                 # M94: surface graph outputs at top level (so tests can
                 # assert without diving into graph_state).
@@ -493,7 +524,12 @@ def invoke_skill(
     combined_graph_state: dict[str, Any] = dict(llm_state.get("graph_state") or {})
     if isinstance(graph_result, dict):
         # Promote user-facing fields to top of graph_state
-        for k in ("user_suggestions", "suggestions_count", "suggestions_language", "commit_summary"):
+        for k in (
+            "user_suggestions",
+            "suggestions_count",
+            "suggestions_language",
+            "commit_summary",
+        ):
             if k in graph_result:
                 combined_graph_state[k] = graph_result[k]
         # Track last_step from graph if available
@@ -547,6 +583,7 @@ def invoke_skill(
     outputs = manifest.get("outputs", []) or []
     # Detect taskdog output declaration
     from interfaces.cli._skill_outputs import _manifest_declares_taskdog
+
     taskdog_desc = _manifest_declares_taskdog(outputs)
 
     if taskdog_desc is None:
@@ -555,6 +592,7 @@ def invoke_skill(
 
     # Compose taskdog title from description (or skill name fallback)
     from interfaces.cli._skill_outputs import _derive_taskdog_title
+
     title = _derive_taskdog_title(manifest.get("name", name), taskdog_desc)
     params = {"name": title}
 
@@ -587,7 +625,7 @@ def invoke_skill(
                 queue_dir=review_queue,
             )
             result["taskdog_pending_review_queue"] = True
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             result["taskdog_pending_review_queue"] = True
             result["taskdog_review_queue_error"] = f"{type(exc).__name__}: {exc}"
         result["outputs_fired"].append("taskdog_create_task_failed")
@@ -596,7 +634,7 @@ def invoke_skill(
 
 
 __all__ = [
+    "_resolve_skills_dir",
     "invoke_skill",
     "load_skill_manifest",
-    "_resolve_skills_dir",
 ]

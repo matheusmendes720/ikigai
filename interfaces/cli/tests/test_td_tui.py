@@ -20,6 +20,7 @@ import json
 import sqlite3
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -27,7 +28,8 @@ import pytest
 # unrelated mcp-runtime chain that breaks in this sandbox.
 _TD_TUI_PATH = Path(__file__).resolve().parents[1] / "td_tui.py"
 _spec = importlib.util.spec_from_file_location("_td_tui_under_test", str(_TD_TUI_PATH))
-assert _spec and _spec.loader
+assert _spec
+assert _spec.loader
 t = importlib.util.module_from_spec(_spec)
 sys.modules["_td_tui_under_test"] = t
 _spec.loader.exec_module(t)
@@ -81,7 +83,7 @@ def _make_app(
     taskdog_db: Path | None,
     upi_db: Path | None,
     queue_dir: Path | None,
-) -> t.TaskdogTUI:
+) -> Any:
     """Build a TaskdogTUI instance with the given data paths."""
     return t.TaskdogTUI(
         taskdog_db=taskdog_db,
@@ -109,9 +111,15 @@ def test_load_taskdog_rows_with_seed(tmp_path: Path) -> None:
         db,
         [
             {"ueid": "u:1", "name": "Alpha", "status": "planned", "priority": 1},
-            {"ueid": "u:2", "name": "Beta", "status": "done", "priority": 2,
-             "planned_start": "2026-01-01", "planned_end": "2026-01-10",
-             "deadline": "2026-01-15"},
+            {
+                "ueid": "u:2",
+                "name": "Beta",
+                "status": "done",
+                "priority": 2,
+                "planned_start": "2026-01-01",
+                "planned_end": "2026-01-10",
+                "deadline": "2026-01-15",
+            },
         ],
     )
     rows = t._load_taskdog_rows(db)
@@ -131,12 +139,22 @@ def test_load_activity_rows_with_seed(tmp_path: Path) -> None:
     _seed_activity(
         qd,
         [
-            {"event_id": "ev-old", "ueid": "u:1", "action": "create",
-             "source_fork": "cli", "timestamp": "2026-01-01T00:00:00Z",
-             "status": "pending"},
-            {"event_id": "ev-new", "ueid": "u:2", "action": "done",
-             "source_fork": "taskdog", "timestamp": "2026-09-15T12:00:00Z",
-             "status": "approved"},
+            {
+                "event_id": "ev-old",
+                "ueid": "u:1",
+                "action": "create",
+                "source_fork": "cli",
+                "timestamp": "2026-01-01T00:00:00Z",
+                "status": "pending",
+            },
+            {
+                "event_id": "ev-new",
+                "ueid": "u:2",
+                "action": "done",
+                "source_fork": "taskdog",
+                "timestamp": "2026-09-15T12:00:00Z",
+                "status": "approved",
+            },
         ],
     )
     rows = t._load_activity_rows(qd)
@@ -213,17 +231,29 @@ async def test_app_loads_seeded_data(tmp_path: Path) -> None:
     _seed_taskdog_db(
         db,
         [
-            {"ueid": "ikigai:task:abcd1234:abcd5678", "name": "Real task",
-             "status": "in_progress", "priority": 1,
-             "planned_start": "2026-09-01", "planned_end": "2026-09-30"},
+            {
+                "ueid": "ikigai:task:abcd1234:abcd5678",
+                "name": "Real task",
+                "status": "in_progress",
+                "priority": 1,
+                "planned_start": "2026-09-01",
+                "planned_end": "2026-09-30",
+            },
         ],
     )
     qd = tmp_path / "q"
     _seed_activity(
         qd,
-        [{"event_id": "ev-1", "ueid": "ikigai:task:abcd1234:abcd5678",
-          "action": "create", "source_fork": "cli",
-          "timestamp": "2026-09-15T12:00:00Z", "status": "pending"}],
+        [
+            {
+                "event_id": "ev-1",
+                "ueid": "ikigai:task:abcd1234:abcd5678",
+                "action": "create",
+                "source_fork": "cli",
+                "timestamp": "2026-09-15T12:00:00Z",
+                "status": "pending",
+            }
+        ],
     )
     app = _make_app(db, None, qd)
     async with app.run_test() as pilot:
@@ -240,8 +270,15 @@ async def test_mode_cycling(tmp_path: Path) -> None:
     db = tmp_path / "t.db"
     _seed_taskdog_db(
         db,
-        [{"ueid": "u:1", "name": "Task one", "status": "planned",
-          "planned_start": "2026-09-01", "planned_end": "2026-09-10"}],
+        [
+            {
+                "ueid": "u:1",
+                "name": "Task one",
+                "status": "planned",
+                "planned_start": "2026-09-01",
+                "planned_end": "2026-09-10",
+            }
+        ],
     )
     app = _make_app(db, None, tmp_path / "q")
     async with app.run_test() as pilot:
@@ -368,10 +405,14 @@ async def test_render_dashboard_shows_counts(tmp_path: Path) -> None:
         assert isinstance(screen, t.DashboardScreen)
         screen.refresh_data()
         # Pull the rendered header text via the Static widget.
-        from textual.widgets import Static as _Static  # noqa: PLC0415
+        from textual.widgets import Static as _Static
 
         header_widget = screen.query_one("#dash-header", _Static)
-        rendered = header_widget.renderable if hasattr(header_widget, "renderable") else str(header_widget.render())
+        rendered = (
+            header_widget.renderable
+            if hasattr(header_widget, "renderable")
+            else str(header_widget.render())
+        )
         rendered_str = str(rendered)
         assert "total" in rendered_str
         assert "planned" in rendered_str
@@ -385,8 +426,13 @@ async def test_render_timeline_shows_window(tmp_path: Path) -> None:
     _seed_taskdog_db(
         db,
         [
-            {"ueid": "u:1", "name": "t1", "status": "planned",
-             "planned_start": "2026-09-01", "planned_end": "2026-09-10"},
+            {
+                "ueid": "u:1",
+                "name": "t1",
+                "status": "planned",
+                "planned_start": "2026-09-01",
+                "planned_end": "2026-09-10",
+            },
         ],
     )
     app = _make_app(db, None, tmp_path / "q")
@@ -395,7 +441,7 @@ async def test_render_timeline_shows_window(tmp_path: Path) -> None:
         await pilot.press("tab")  # → timeline
         assert isinstance(app.screen, t.TimelineScreen)
         app.screen.refresh_data()
-        from textual.widgets import Static as _Static  # noqa: PLC0415
+        from textual.widgets import Static as _Static
 
         body = app.screen.query_one("#timeline-body", _Static)
         body_str = str(body.renderable if hasattr(body, "renderable") else body.render())
@@ -418,7 +464,7 @@ async def test_render_gantt_shows_boxes(tmp_path: Path) -> None:
         await pilot.press("tab")  # → gantt
         assert isinstance(app.screen, t.GanttScreen)
         app.screen.refresh_data()
-        from textual.widgets import Static as _Static  # noqa: PLC0415
+        from textual.widgets import Static as _Static
 
         body = app.screen.query_one("#gantt-body", _Static)
         body_str = str(body.renderable if hasattr(body, "renderable") else body.render())

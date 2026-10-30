@@ -27,11 +27,11 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-
-from .mcp_runtime import _ensure_ikigai_src_on_path
 from typing import Any
 
 import typer
+
+from .mcp_runtime import _ensure_ikigai_src_on_path
 
 # Ensure `life/` is on sys.path so `from src.X` and `from agents.X`
 # resolve when this CLI is invoked via `python -m interfaces.cli.main`.
@@ -97,7 +97,7 @@ def _run_plan(
                 "status": "executed",
                 "report": report.model_dump(),
             }
-        except Exception as exc:  # noqa: BLE001 — executor may raise anything
+        except Exception as exc:
             return {
                 "status": "failed",
                 "error": str(exc),
@@ -142,8 +142,7 @@ def _format_proposal(proposal: Any) -> str:
     lines.extend(
         [
             "",
-            "Review and approve with --approve, "
-            "or reject a specific field with --reject <field>.",
+            "Review and approve with --approve, or reject a specific field with --reject <field>.",
         ]
     )
     return "\n".join(lines)
@@ -289,8 +288,6 @@ def register_graph_aliases(app: typer.Typer) -> None:
             typer.echo(json.dumps(result, indent=2, default=str))
 
 
-
-
 def register_invoke_skill(app: typer.Typer) -> None:
     """Register the `invoke-skill` command on a Typer sub-app.
 
@@ -362,8 +359,8 @@ def register_skill_list(app: typer.Typer) -> None:
     @app.command(name="skill-list")
     def skill_list_cmd() -> None:
         """List available skill manifests (W3.5)."""
-        from .invoke_skill import _resolve_skills_dir, load_skill_manifest
         from ._skill_outputs import _manifest_declares_taskdog
+        from .invoke_skill import _resolve_skills_dir, load_skill_manifest
 
         skills_dir = _resolve_skills_dir()
         rows: list[dict[str, object]] = []
@@ -398,8 +395,8 @@ def register_skill_show(app: typer.Typer) -> None:
         json_out: bool = typer.Option(False, "--json", help="Emit JSON instead of pretty-print."),
     ) -> None:
         """Show details for a single skill manifest."""
-        from .invoke_skill import load_skill_manifest
         from ._skill_outputs import _manifest_declares_taskdog
+        from .invoke_skill import load_skill_manifest
 
         manifest = load_skill_manifest(name)
         if not manifest:
@@ -523,10 +520,10 @@ def register_agent(app: typer.Typer) -> None:
         # resolves (strategics lives at src/ikigai/src/strategics/, not under repo root).
         _ensure_ikigai_src_on_path()
         try:
-            from ikigai.src.agents.deepagents_harness import _make_agent
             from ikigai.src.agents.deepagents_harness import (
-                _invoke_agent_or_fallback,
                 _extract_assistant_text,
+                _invoke_agent_or_fallback,
+                _make_agent,
             )
         except ImportError as exc:
             typer.echo(
@@ -539,7 +536,7 @@ def register_agent(app: typer.Typer) -> None:
                     indent=2,
                 )
             )
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1) from None
 
         agent, agent_thread_id = _make_agent(
             thread_id=thread_id,
@@ -563,7 +560,7 @@ def register_agent(app: typer.Typer) -> None:
                     indent=2,
                 )
             )
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1) from None
 
         # Extract the final assistant message text + tool call trace
         response_text = _extract_assistant_text(result)
@@ -576,8 +573,12 @@ def register_agent(app: typer.Typer) -> None:
                 for c in tc:
                     tool_calls.append(
                         {
-                            "name": c.get("name") if isinstance(c, dict) else getattr(c, "name", None),
-                            "args": c.get("args") if isinstance(c, dict) else getattr(c, "args", None),
+                            "name": c.get("name")
+                            if isinstance(c, dict)
+                            else getattr(c, "name", None),
+                            "args": c.get("args")
+                            if isinstance(c, dict)
+                            else getattr(c, "args", None),
                         }
                     )
 
@@ -655,7 +656,7 @@ def register_chat(app: typer.Typer) -> None:
                     indent=2,
                 )
             )
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1) from None
 
         agent, agent_thread_id = _make_agent(
             thread_id=thread_id,
@@ -710,15 +711,30 @@ def register_td_alias(app: typer.Typer) -> None:
         app.add_typer(_placeholder, name="td")
         return
 
-    # Discover MCP tools and register short-name commands
+    # Discover MCP tools and register short-name commands.
+    # Failure must NOT abort the whole `life v2` app: register a placeholder
+    # sub-app that reports the error on invocation instead of raising at
+    # import time (an import-time typer.Exit took down every `life v2 *`
+    # command whenever the MCP server was unreachable).
     try:
         from .mcp_runtime import get_mcp_tools_sync
+
         tools = get_mcp_tools_sync()
-    except Exception as exc:  # noqa: BLE001
-        typer.echo(
-            json.dumps({"ok": False, "error": f"MCP discovery failed: {exc}"}, indent=2)
+    except Exception as exc:
+        _unavailable = typer.Typer(
+            name="td",
+            help="Short alias for `taskdog *` (MCP discovery failed).",
+            no_args_is_help=True,
         )
-        raise typer.Exit(code=1)
+        _error_msg = f"MCP discovery failed: {exc}"
+
+        @_unavailable.callback(invoke_without_command=True)
+        def _td_unavailable(ctx: typer.Context) -> None:
+            typer.echo(json.dumps({"ok": False, "error": _error_msg}, indent=2))
+            raise typer.Exit(code=1)
+
+        app.add_typer(_unavailable, name="td")
+        return
 
     _td_app = typer.Typer(
         name="td",
@@ -830,6 +846,7 @@ def register_audit_drift(app: typer.Typer) -> None:
         ),
     ) -> None:
         from tools.vault.audit_drift_cli import main as ad_main
+
         rc = ad_main(
             json_output=json_output,
             kind_filter=kind_filter,
@@ -870,8 +887,10 @@ def register_vault_toggle(app: typer.Typer) -> None:
         json_output: bool = typer.Option(False, "--json"),
     ) -> None:
         from tools.vault.apply_toggle_cli import main as at_main
-        rc = at_main("preview", rel_path=plan_path, line=line,
-                     expected=expected, json_output=json_output)
+
+        rc = at_main(
+            "preview", rel_path=plan_path, line=line, expected=expected, json_output=json_output
+        )
         raise typer.Exit(code=rc)
 
     @app.command(name="vault-apply")
@@ -881,13 +900,23 @@ def register_vault_toggle(app: typer.Typer) -> None:
         expected: str = typer.Option(..., "--expected", "-e"),
         reason: str = typer.Option(..., "--reason", "-r", help="Free-text reason (audit-logged)."),
         actor: str = typer.Option("cli", "--actor", help="Who is doing this (audit-logged)."),
-        skip_preview: bool = typer.Option(False, "--skip-preview", help="Skip preview gate (trusted scripts only)."),
+        skip_preview: bool = typer.Option(
+            False, "--skip-preview", help="Skip preview gate (trusted scripts only)."
+        ),
         json_output: bool = typer.Option(False, "--json"),
     ) -> None:
         from tools.vault.apply_toggle_cli import main as at_main
-        rc = at_main("apply", rel_path=plan_path, line=line, expected=expected,
-                     actor=actor, reason=reason, skip_preview=skip_preview,
-                     json_output=json_output)
+
+        rc = at_main(
+            "apply",
+            rel_path=plan_path,
+            line=line,
+            expected=expected,
+            actor=actor,
+            reason=reason,
+            skip_preview=skip_preview,
+            json_output=json_output,
+        )
         raise typer.Exit(code=rc)
 
     @app.command(name="vault-toggle")
@@ -900,8 +929,16 @@ def register_vault_toggle(app: typer.Typer) -> None:
         json_output: bool = typer.Option(False, "--json"),
     ) -> None:
         from tools.vault.apply_toggle_cli import main as at_main
-        rc = at_main("toggle", rel_path=plan_path, line=line, expected=expected,
-                     actor=actor, reason=reason, json_output=json_output)
+
+        rc = at_main(
+            "toggle",
+            rel_path=plan_path,
+            line=line,
+            expected=expected,
+            actor=actor,
+            reason=reason,
+            json_output=json_output,
+        )
         raise typer.Exit(code=rc)
 
     # M133: inverse of toggle — reopen a closed checkbox.
@@ -916,36 +953,49 @@ def register_vault_toggle(app: typer.Typer) -> None:
         json_output: bool = typer.Option(False, "--json"),
     ) -> None:
         from tools.vault.reopen_cli import main as ro_main
-        rc = ro_main(rel_path=plan_path, line=line, expected=expected,
-                     actor=actor, reason=reason, skip_preview=skip_preview,
-                     json_output=json_output)
+
+        rc = ro_main(
+            rel_path=plan_path,
+            line=line,
+            expected=expected,
+            actor=actor,
+            reason=reason,
+            skip_preview=skip_preview,
+            json_output=json_output,
+        )
         raise typer.Exit(code=rc)
 
     # M135: rollback recent toggle/reopen events from the audit log.
     @app.command(name="vault-rollback")
     def rollback_cmd(
-        since_hours: float = typer.Option(None, "--since-hours",
-                                          help="Only rollback events newer than N hours."),
-        actor: str = typer.Option(None, "--actor",
-                                   help="Only rollback events from this actor."),
-        event: str = typer.Option(None, "--event",
-                                   help="Only rollback events of this type."),
-        limit: int = typer.Option(1, "--limit", "-n",
-                                   help="Rollback this many most-recent matching events."),
+        since_hours: float = typer.Option(
+            None, "--since-hours", help="Only rollback events newer than N hours."
+        ),
+        actor: str = typer.Option(None, "--actor", help="Only rollback events from this actor."),
+        event: str = typer.Option(None, "--event", help="Only rollback events of this type."),
+        limit: int = typer.Option(
+            1, "--limit", "-n", help="Rollback this many most-recent matching events."
+        ),
         reason: str = typer.Option("user rollback", "--reason", "-r"),
         actor_name: str = typer.Option("cli-rollback", "--actor-name"),
         dry_run: bool = typer.Option(False, "--dry-run"),
-        list_only: bool = typer.Option(False, "--list",
-                                        help="List matching events without rolling back."),
+        list_only: bool = typer.Option(
+            False, "--list", help="List matching events without rolling back."
+        ),
         json_output: bool = typer.Option(False, "--json"),
     ) -> None:
-        from tools.vault.rollback import list_events, main as rb_main
         import sys as _sys
+
+        from tools.vault.rollback import list_events
+        from tools.vault.rollback import main as rb_main
+
         if list_only:
-            events = list_events(since_hours=since_hours, actor=actor,
-                                 event_type=event, limit=limit)
+            events = list_events(
+                since_hours=since_hours, actor=actor, event_type=event, limit=limit
+            )
             if json_output:
                 import json as _json
+
                 print(_json.dumps(events, indent=2, default=str))
             else:
                 for e in events:
@@ -960,13 +1010,17 @@ def register_vault_toggle(app: typer.Typer) -> None:
             raise typer.Exit(code=0)
         # Delegate to the underlying CLI for the actual rollback.
         _sys.argv = [
-            "rollback", "undo",
+            "rollback",
+            "undo",
             *(["--since-hours", str(since_hours)] if since_hours else []),
             *(["--actor", actor] if actor else []),
             *(["--event", event] if event else []),
-            "--limit", str(limit),
-            "--reason", reason,
-            "--actor-name", actor_name,
+            "--limit",
+            str(limit),
+            "--reason",
+            reason,
+            "--actor-name",
+            actor_name,
             *(["--dry-run"] if dry_run else []),
             *(["--json"] if json_output else []),
         ]
@@ -992,8 +1046,10 @@ def register_vault_search(app: typer.Typer) -> None:
         fmt: str = typer.Option("content", "--format", help="content | paths | json"),
         case_sensitive: bool = typer.Option(False, "--case-sensitive"),
     ) -> None:
-        from tools.vault.search import main as _vault_search_main  # lazy import
         import sys as _sys
+
+        from tools.vault.search import main as _vault_search_main  # lazy import
+
         argv: list[str] = [query]
         if regex:
             argv.append("--regex")
@@ -1024,17 +1080,16 @@ register_vault_search(app)
 
 # Re-export invoke_skill so ``from interfaces.cli.v2 import invoke_skill``
 # works (W3.5/W3.6 skill manifest loader + taskdog post-processor).
-from .invoke_skill import invoke_skill, load_skill_manifest  # noqa: E402,F401
-
+from .invoke_skill import invoke_skill, load_skill_manifest  # noqa: E402
 
 __all__ = [
-    "app",
-    "v2_app",
-    "register_plan",
-    "_run_plan",
     "_format_proposal",
+    "_run_plan",
+    "app",
     "invoke_skill",
     "load_skill_manifest",
+    "register_plan",
+    "v2_app",
 ]
 
 

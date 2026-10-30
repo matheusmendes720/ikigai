@@ -35,12 +35,12 @@ Exit codes (per design §3.5):
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Literal
 
 import typer
 from rich.console import Console
 from rich.table import Table
-
 from sys_ikigai.security.kill_switch import (
     DATA_KILL_SWITCH_FILENAME,
     ENV_VAR_NAME,
@@ -67,8 +67,8 @@ if TYPE_CHECKING:
 # Action constants + exit codes (inlined from _kill_switch_actions.py)
 # ===========================================================================
 
-_AUDIT_ACTION_PAUSE = "kill_switch_pause"
-_AUDIT_ACTION_RESUME = "kill_switch_resume"
+_AUDIT_ACTION_PAUSE: Literal["kill_switch_pause"] = "kill_switch_pause"
+_AUDIT_ACTION_RESUME: Literal["kill_switch_resume"] = "kill_switch_resume"
 
 EXIT_OK = 0
 EXIT_ACTIVE_OR_REFUSED = 1
@@ -108,11 +108,7 @@ def activate_data_file(
     """
     reason = reason.strip()
     status_obj = check_kill_switch(_vault_root(), _data_root())
-    if (
-        status_obj.is_active
-        and not force
-        and status_obj.active_reason in ("env_var", "vault_file")
-    ):
+    if status_obj.is_active and not force and status_obj.active_reason in ("env_var", "vault_file"):
         msg = (
             f"Refused: kill switch already active via {status_obj.active_reason}. "
             "That mechanism is owned by the shell (env_var) or vault_write "
@@ -214,7 +210,7 @@ def recover_kill_switch_and_audit(
 def render_status(
     console: Console,
     *,
-    status_obj: "KillSwitchActivationStatus",
+    status_obj: KillSwitchActivationStatus,
     rate_limit: dict[str, int],
     env_var_name: str,
     vault_filename: str,
@@ -240,7 +236,7 @@ def render_status(
 def render_status_table(
     console: Console,
     *,
-    status_obj: "KillSwitchActivationStatus",
+    status_obj: KillSwitchActivationStatus,
     rate_limit: dict[str, int],
 ) -> None:
     """Rich table form for the `status` verb (human-readable)."""
@@ -317,9 +313,7 @@ def _require_nonempty(reason: str) -> str:
 
 @app.command()
 def status(
-    json_output: bool = typer.Option(
-        False, "--json", help="Machine-readable JSON output"
-    ),
+    json_output: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
 ) -> None:
     """Print kill switch activation status across all 3 mechanisms (design §3.1)."""
     repo_root = __import__("pathlib").Path(__file__).resolve().parents[2]
@@ -349,12 +343,8 @@ def status(
 
 @app.command()
 def history(
-    limit: int = typer.Option(
-        10, "--limit", "-n", help="Max entries to show (default 10)"
-    ),
-    json_output: bool = typer.Option(
-        False, "--json", help="Machine-readable JSON output"
-    ),
+    limit: int = typer.Option(10, "--limit", "-n", help="Max entries to show (default 10)"),
+    json_output: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
 ) -> None:
     """Show recent kill_switch events from data/review_queue/ (design §3.1)."""
     rows = read_kill_switch_history(limit=limit)
@@ -385,9 +375,7 @@ def pause(
         "--force",
         help="Override env_var/vault_file refusal (still does NOT set them)",
     ),
-    json_output: bool = typer.Option(
-        False, "--json", help="Machine-readable JSON output"
-    ),
+    json_output: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
 ) -> None:
     """Activate the DATA kill switch + append audit entry (design §3.5)."""
     reason = _require_nonempty(reason)
@@ -404,10 +392,8 @@ def pause(
                     {
                         "refused": True,
                         "reason": check_kill_switch(
-                            __import__("pathlib").Path(__file__).resolve().parents[2]
-                            / "vault",
-                            __import__("pathlib").Path(__file__).resolve().parents[2]
-                            / "data",
+                            __import__("pathlib").Path(__file__).resolve().parents[2] / "vault",
+                            __import__("pathlib").Path(__file__).resolve().parents[2] / "data",
                         ).active_reason,
                         "message": "see non-JSON output above",
                     }
@@ -445,18 +431,14 @@ def do_resume(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Print the recovery plan without executing"
     ),
-    json_output: bool = typer.Option(
-        False, "--json", help="Machine-readable JSON output"
-    ),
+    json_output: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
 ) -> None:
     """Clear all 3 kill switch mechanisms + append audit entry (design §3.5)."""
     reason = _require_nonempty(reason)
 
     if not confirm:
         if json_output:
-            console.print_json(
-                json.dumps({"confirm_required": True, **resume_plan_dict()})
-            )
+            console.print_json(json.dumps({"confirm_required": True, **resume_plan_dict()}))
         else:
             console.print(resume_plan_message())
         raise typer.Exit(EXIT_CONFIRM_REQUIRED)
@@ -486,16 +468,12 @@ def do_recover(
     confirm: bool = typer.Option(
         False, "--confirm", help="Required confirmation (alias for resume --confirm)"
     ),
-    json_output: bool = typer.Option(
-        False, "--json", help="Machine-readable JSON output"
-    ),
+    json_output: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
 ) -> None:
     """Alias for `resume --reason <text> --confirm` (design §2.2)."""
     reason = _require_nonempty(reason)
     if not confirm:
-        console.print(
-            "[red]--confirm required (alias: `recover --reason <text> --confirm`)[/red]"
-        )
+        console.print("[red]--confirm required (alias: `recover --reason <text> --confirm`)[/red]")
         raise typer.Exit(EXIT_CONFIRM_REQUIRED)
 
     result = recover_kill_switch_and_audit(reason, json_extra={"alias": "recover"})
@@ -504,9 +482,7 @@ def do_recover(
     else:
         cleared = result["recovered"]
         mark = (
-            "[green]Recovered.[/green]"
-            if cleared
-            else "[yellow]Recovery returned False.[/yellow]"
+            "[green]Recovered.[/green]" if cleared else "[yellow]Recovery returned False.[/yellow]"
         )
         console.print(f"{mark} audit_entry={result['audit_entry']}")
 

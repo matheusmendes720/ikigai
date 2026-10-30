@@ -19,6 +19,7 @@ Implementation notes:
 - IKIGAI_DISABLE_MCP_TASKDOG=1 escape hatch returns an error
 - taskdog-mcp binary required on PATH (verified by _check_mcp())
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -142,14 +143,14 @@ def _make_command(tool_name: str, args_schema: dict[str, Any] | None) -> Any:
         try:
             result = asyncio.run(_invoke_tool(tool_name, **call_args))
             typer.echo(_format_result(result))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             typer.echo(
                 json.dumps(
                     {"ok": False, "error": str(exc), "tool": tool_name, "args": call_args},
                     indent=2,
                 )
             )
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1) from None
 
     cmd_with_annotations.__name__ = tool_name
     cmd_with_annotations.__doc__ = f"Invoke MCP tool `{tool_name}` (M100)."
@@ -211,7 +212,7 @@ def register_taskdog_app(app_instance: typer.Typer) -> None:
     # Async discovery → sync wrapper
     try:
         tools = asyncio.run(get_mcp_tools_async())
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         typer.echo(
             json.dumps(
                 {
@@ -222,7 +223,7 @@ def register_taskdog_app(app_instance: typer.Typer) -> None:
                 indent=2,
             )
         )
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     # Register each tool as a Typer command
     for tool in tools:

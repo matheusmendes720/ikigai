@@ -10,9 +10,9 @@ indirectly via the generate_ueid() helper.
 from __future__ import annotations
 
 import pytest
+from src.contracts.common import UEID
 
 from interfaces.cli.read_tasks import generate_ueid
-from src.contracts.common import UEID
 
 
 @pytest.mark.parametrize(
@@ -40,9 +40,7 @@ def test_title_produces_valid_ueid(title: str) -> None:
     type_, slug, uuid_, hash_ = parts
     assert type_ == "tsk"
     # slug must be [a-z0-9-]+ (no +, no spaces, no parens)
-    assert all(c.isalnum() or c == "-" for c in slug), (
-        f"slug has invalid chars: {slug!r}"
-    )
+    assert all(c.isalnum() or c == "-" for c in slug), f"slug has invalid chars: {slug!r}"
     assert uuid_  # non-empty
     assert hash_  # non-empty
 

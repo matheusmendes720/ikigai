@@ -49,10 +49,6 @@ def tmp_data_dir(tmp_path, monkeypatch):
     Returns the tmp data root (use as `data/` substitute).
     """
     # Deferred imports so sys.path fixup above is already applied.
-    import src.mesh.adapters.cli as _cli_adapter
-    import src.mesh.adapters.taskdog as _taskdog_adapter
-    import src.mesh.adapters.solverforge_calendar as _upi_adapter
-    import src.mesh.queue as _queue
     # OUT OF SCOPE for 2026-09-05 sys_ikigai rename: `src/mesh/review_queue_worker.py`
     # imports `from mesh import queue` (bare, no `src.` prefix). Because both
     # `life/` and `life/src/` are on sys.path, `mesh` and `src.mesh` resolve to
@@ -61,6 +57,10 @@ def tmp_data_dir(tmp_path, monkeypatch):
     # `mesh.queue.QUEUE_DIR`, so run_once() finds nothing. Track for follow-up:
     # the structural fix would change production code to `from src.mesh import queue`.
     import mesh.queue as _queue_pkg
+    import src.mesh.adapters.cli as _cli_adapter
+    import src.mesh.adapters.solverforge_calendar as _upi_adapter
+    import src.mesh.adapters.taskdog as _taskdog_adapter
+    import src.mesh.queue as _queue
 
     data_root = tmp_path / "data"
     data_root.mkdir(parents=True, exist_ok=True)

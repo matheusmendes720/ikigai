@@ -22,7 +22,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
-
 # ---------------------------------------------------------------------------
 # Audit entry model — local Pydantic v2 strict (mirrors TaskChange shape)
 # ---------------------------------------------------------------------------
@@ -199,11 +198,11 @@ def append_audit_entry(
 
 __all__ = [
     "KillSwitchAuditEntry",
-    "repo_root",
-    "review_queue_dir",
-    "read_kill_switch_history",
-    "compute_rate_limit",
     "append_audit_entry",
     "atomic_write_json",
     "audit_killswitch_ueid",
+    "compute_rate_limit",
+    "read_kill_switch_history",
+    "repo_root",
+    "review_queue_dir",
 ]

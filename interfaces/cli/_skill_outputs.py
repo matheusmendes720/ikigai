@@ -12,7 +12,6 @@ These helpers extract info from that structure for downstream consumers
 from __future__ import annotations
 
 from datetime import date
-from typing import Any
 
 
 def _manifest_declares_taskdog(outputs: list | None) -> str | None:
@@ -47,4 +46,4 @@ def _derive_taskdog_title(skill_name: str, description: str) -> str:
     return f"{title} {date.today().isoformat()}"
 
 
-__all__ = ["_manifest_declares_taskdog", "_derive_taskdog_title"]
+__all__ = ["_derive_taskdog_title", "_manifest_declares_taskdog"]

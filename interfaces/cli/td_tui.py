@@ -2,6 +2,7 @@
 dashboard (counts+table+activity), timeline (one bar per task),
 gantt (boxes + blocked_by arrows). Keys: q/r/tab/+/d/t//.
 Replaces the one-shot Rich `cmd_tui` in src/mesh/taskdog_cli.py."""
+
 from __future__ import annotations
 
 import json
@@ -9,13 +10,14 @@ import re
 import sqlite3
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar, cast
 
 from textual.app import App, ComposeResult
-from textual.binding import Binding
+from textual.binding import Binding, BindingType
 from textual.containers import Container, Vertical
+from textual.coordinate import Coordinate
 from textual.reactive import reactive
 from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Header, Input, Static
@@ -35,14 +37,18 @@ REFRESH_SECONDS: float = 5.0
 MAX_ACTIVITY_ROWS: int = 10
 MAX_TASKS_TABLE: int = 50
 
-_TASKDOG_SCHEMA = ("CREATE TABLE IF NOT EXISTS tasks ("
+_TASKDOG_SCHEMA = (
+    "CREATE TABLE IF NOT EXISTS tasks ("
     "id INTEGER PRIMARY KEY AUTOINCREMENT,"
     "ueid TEXT UNIQUE, name TEXT, status TEXT, priority INTEGER,"
-    "planned_start TEXT, planned_end TEXT, deadline TEXT, created_at TEXT)")
-_UPI_SCHEMA = ("CREATE TABLE IF NOT EXISTS unified_planning_items ("
+    "planned_start TEXT, planned_end TEXT, deadline TEXT, created_at TEXT)"
+)
+_UPI_SCHEMA = (
+    "CREATE TABLE IF NOT EXISTS unified_planning_items ("
     "id INTEGER PRIMARY KEY AUTOINCREMENT, ueid TEXT, status TEXT,"
     "start_at TEXT, end_at TEXT, blocked_by TEXT, tags TEXT,"
-    "ikigai TEXT, provenance TEXT)")
+    "ikigai TEXT, provenance TEXT)"
+)
 
 
 # -- Data loaders (defensive) ---------------------------------------------
@@ -53,7 +59,7 @@ def _truncate(s: str, n: int) -> str:
 
 
 def _status_counts(rows: list[dict[str, Any]]) -> dict[str, int]:
-    counts: dict[str, int] = {s: 0 for s in KNOWN_STATUSES}
+    counts: dict[str, int] = dict.fromkeys(KNOWN_STATUSES, 0)
     for r in rows:
         s = str(r.get("status") or "")
         counts[s] = counts.get(s, 0) + 1
@@ -68,9 +74,9 @@ def _apply_filter(rows: list[dict[str, Any]], pattern: str | None) -> list[dict[
     except re.error:
         return []
     return [
-        r for r in rows
-        if rx.search(str(r.get("name") or ""))
-        or rx.search(str(r.get("status") or ""))
+        r
+        for r in rows
+        if rx.search(str(r.get("name") or "")) or rx.search(str(r.get("status") or ""))
     ]
 
 
@@ -91,9 +97,15 @@ def _load_taskdog_rows(db_path: Path = TASKDOG_DB) -> list[dict[str, Any]]:
         )
         rows = [
             {
-                "ueid": r[0], "name": r[1], "status": r[2], "priority": r[3],
-                "planned_start": r[4], "planned_end": r[5], "deadline": r[6],
-                "created_at": r[7], "blocked_by": [],
+                "ueid": r[0],
+                "name": r[1],
+                "status": r[2],
+                "priority": r[3],
+                "planned_start": r[4],
+                "planned_end": r[5],
+                "deadline": r[6],
+                "created_at": r[7],
+                "blocked_by": [],
             }
             for r in cur.fetchall()
         ]
@@ -174,9 +186,7 @@ def _spawn_subprocess(cmd: list[str]) -> int:
 
 
 def _mark_done(ueid: str) -> int:
-    return _spawn_subprocess(
-        [sys.executable, "-m", "src.mesh.taskdog_cli", "done", ueid]
-    )
+    return _spawn_subprocess([sys.executable, "-m", "src.mesh.taskdog_cli", "done", ueid])
 
 
 def _ts_to_epoch(ts: str) -> float:
@@ -184,11 +194,9 @@ def _ts_to_epoch(ts: str) -> float:
         return datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp()
     except ValueError:
         try:
-            return datetime.strptime(ts[:10], "%Y-%m-%d").replace(
-                tzinfo=timezone.utc
-            ).timestamp()
+            return datetime.strptime(ts[:10], "%Y-%m-%d").replace(tzinfo=UTC).timestamp()
         except ValueError:
-            raise ValueError(f"bad timestamp: {ts!r}")
+            raise ValueError(f"bad timestamp: {ts!r}") from None
 
 
 def _clamp_index(ts: str, min_ts: str, max_ts: str, width: int) -> int:
@@ -205,12 +213,12 @@ def _clamp_index(ts: str, min_ts: str, max_ts: str, width: int) -> int:
 
 
 class DashboardScreen(Screen[None]):
-    BINDINGS = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         Binding("d", "mark_done", "Done"),
         Binding("slash", "focus_filter", "Filter"),
     ]
 
-    def __init__(self, app: "TaskdogTUI") -> None:
+    def __init__(self, app: TaskdogTUI) -> None:
         super().__init__()
         self._app_ref = app
 
@@ -250,9 +258,7 @@ class DashboardScreen(Screen[None]):
             if self._app_ref.filter_pattern
             else ""
         )
-        summary.update(
-            f"[dim]Showing {len(rows)} task(s) (max {MAX_TASKS_TABLE}){flt}[/dim]"
-        )
+        summary.update(f"[dim]Showing {len(rows)} task(s) (max {MAX_TASKS_TABLE}){flt}[/dim]")
         table.clear(columns=True)
         table.add_columns("UEID", "Name", "Status", "Priority", "Due")
         for r in rows[:MAX_TASKS_TABLE]:
@@ -287,8 +293,10 @@ class DashboardScreen(Screen[None]):
         if cursor_row is None or cursor_row < 0:
             return
         try:
-            row_key = table.coordinate_to_cell_key((cursor_row, 0)).row_key
-            index = int(row_key.value)
+            row_key = table.coordinate_to_cell_key(Coordinate(cursor_row, 0)).row_key
+            # value is typed str | None; int(None) raises TypeError which the
+            # surrounding except already handles, so the cast preserves behavior.
+            index = int(cast(str, row_key.value))
         except Exception:
             return
         rows = self._app_ref.filtered_rows()
@@ -302,9 +310,9 @@ class DashboardScreen(Screen[None]):
 
 
 class TimelineScreen(Screen[None]):
-    BINDINGS = [Binding("slash", "focus_filter", "Filter")]
+    BINDINGS: ClassVar[list[BindingType]] = [Binding("slash", "focus_filter", "Filter")]
 
-    def __init__(self, app: "TaskdogTUI") -> None:
+    def __init__(self, app: TaskdogTUI) -> None:
         super().__init__()
         self._app_ref = app
 
@@ -323,9 +331,7 @@ class TimelineScreen(Screen[None]):
         except Exception:
             return
 
-        header.update(
-            f"[bold]timeline[/bold]  ·  [dim]{len(rows)} task(s) plotted by date[/dim]"
-        )
+        header.update(f"[bold]timeline[/bold]  ·  [dim]{len(rows)} task(s) plotted by date[/dim]")
         dated = [
             (
                 str(r.get("planned_start") or ""),
@@ -368,9 +374,9 @@ class TimelineScreen(Screen[None]):
 
 
 class GanttScreen(Screen[None]):
-    BINDINGS = [Binding("slash", "focus_filter", "Filter")]
+    BINDINGS: ClassVar[list[BindingType]] = [Binding("slash", "focus_filter", "Filter")]
 
-    def __init__(self, app: "TaskdogTUI") -> None:
+    def __init__(self, app: TaskdogTUI) -> None:
         super().__init__()
         self._app_ref = app
 
@@ -409,16 +415,10 @@ class GanttScreen(Screen[None]):
             box = f"[{status or '—'}]  {name}"
             lines.append(f"┌─ {ueid:<24}  {box}")
             if deps:
-                lines.append(
-                    "│   depends on: "
-                    + ", ".join(_truncate(d, 20) for d in deps)
-                )
+                lines.append("│   depends on: " + ", ".join(_truncate(d, 20) for d in deps))
             children = dependents.get(ueid, [])
             if children:
-                lines.append(
-                    "│   blocks:     "
-                    + ", ".join(_truncate(c, 20) for c in children)
-                )
+                lines.append("│   blocks:     " + ", ".join(_truncate(c, 20) for c in children))
             lines.append("└" + "─" * 60)
         if not rows:
             lines.append("[dim](no tasks to render)[/dim]")
@@ -431,12 +431,12 @@ class GanttScreen(Screen[None]):
 
 
 class FilterModal(Screen[None]):
-    BINDINGS = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         Binding("escape", "dismiss_modal", "Cancel"),
         Binding("enter", "submit", "Apply"),
     ]
 
-    def __init__(self, app: "TaskdogTUI") -> None:
+    def __init__(self, app: TaskdogTUI) -> None:
         super().__init__()
         self._app_ref = app
 
@@ -450,9 +450,7 @@ class FilterModal(Screen[None]):
         self.query_one("#filter-input", Input).focus()
 
     def action_submit(self) -> None:
-        self._app_ref.filter_pattern = self.query_one(
-            "#filter-input", Input
-        ).value.strip()
+        self._app_ref.filter_pattern = self.query_one("#filter-input", Input).value.strip()
         self.dismiss(None)
 
     def action_dismiss_modal(self) -> None:
@@ -468,7 +466,7 @@ class TaskdogTUI(App[None]):
     TITLE = "taskdog TUI"
     SUB_TITLE = "live dashboard"
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         Binding("q", "quit", "Quit", priority=True),
         Binding("r", "refresh_now", "Refresh"),
         Binding("tab", "cycle_mode", "Mode", priority=True),
@@ -554,14 +552,10 @@ class TaskdogTUI(App[None]):
         self.refresh_data()
 
     def action_open_add(self) -> None:
-        _spawn_subprocess(
-            [sys.executable, "-m", "src.mesh.taskdog_cli", "add", "--help"]
-        )
+        _spawn_subprocess([sys.executable, "-m", "src.mesh.taskdog_cli", "add", "--help"])
 
     def action_open_tag(self) -> None:
-        _spawn_subprocess(
-            [sys.executable, "-m", "src.mesh.taskdog_cli", "update", "--help"]
-        )
+        _spawn_subprocess([sys.executable, "-m", "src.mesh.taskdog_cli", "update", "--help"])
 
     def action_mark_done_global(self) -> None:
         screen = self.screen
@@ -580,21 +574,21 @@ def main(argv: list[str] | None = None) -> int:
     app = TaskdogTUI()
     try:
         app.run()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"[td_tui] failed to start: {exc}", file=sys.stderr)
         return 1
     return 0
 
 
 __all__ = [
-    "TaskdogTUI",
-    "DashboardScreen",
-    "TimelineScreen",
-    "GanttScreen",
-    "FilterModal",
     "MODES",
-    "main",
-    "_load_taskdog_rows",
-    "_load_activity_rows",
+    "DashboardScreen",
+    "FilterModal",
+    "GanttScreen",
+    "TaskdogTUI",
+    "TimelineScreen",
     "_apply_filter",
+    "_load_activity_rows",
+    "_load_taskdog_rows",
+    "main",
 ]

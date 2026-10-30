@@ -19,16 +19,16 @@ import time
 from pathlib import Path
 
 import pytest
+import typer
 
 from interfaces.cli.server import (
     ADAPTER_REGISTRY,
-    AdapterInfo,
     BACKEND_PROCESSES,
+    AdapterInfo,
     backend_status,
     get_adapter,
     list_adapters,
 )
-
 
 # === Registry tests ===
 
@@ -181,15 +181,14 @@ def test_backend_status_shape_is_stable() -> None:
 def test_backend_status_mcp_gateway_uses_pidfile(monkeypatch) -> None:
     """When pidfile points to a live PID (current process), mcp_gateway.running=True."""
     import tempfile
+
     from interfaces.cli import server as srv
 
     with tempfile.TemporaryDirectory() as tmpdir:
         pidfile = Path(tmpdir) / "mcp_gateway.pid"
         pidfile.write_text(str(os.getpid()))
         # Patch the BACKEND_PROCESSES dict entry directly (it's used at runtime)
-        monkeypatch.setitem(
-            srv.BACKEND_PROCESSES["mcp_gateway"], "pidfile_path", pidfile
-        )
+        monkeypatch.setitem(srv.BACKEND_PROCESSES["mcp_gateway"], "pidfile_path", pidfile)
 
         snapshot = backend_status()
     row = next(r for r in snapshot if r["name"] == "mcp_gateway")
@@ -200,6 +199,7 @@ def test_backend_status_mcp_gateway_uses_pidfile(monkeypatch) -> None:
 def test_backend_status_mcp_gateway_no_pidfile(monkeypatch) -> None:
     """When pidfile missing, mcp_gateway.running=False."""
     import tempfile
+
     from interfaces.cli import server as srv
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -235,9 +235,7 @@ def clean_main_console(monkeypatch):
     )
 
 
-def test_ls_command_renders_table(
-    tmp_data_dir, clean_console, clean_main_console
-) -> None:
+def test_ls_command_renders_table(tmp_data_dir, clean_console, clean_main_console) -> None:
     """ls should not raise; prints table with 4 rows."""
     from interfaces.cli.server import ls
 
@@ -251,9 +249,7 @@ def test_ls_command_json(tmp_data_dir, clean_console, clean_main_console) -> Non
     ls(json_output=True)
 
 
-def test_inspect_command_each_adapter(
-    tmp_data_dir, clean_console, clean_main_console
-) -> None:
+def test_inspect_command_each_adapter(tmp_data_dir, clean_console, clean_main_console) -> None:
     from interfaces.cli.server import inspect
 
     for name in ("cli", "taskdog", "solverforge_calendar", "a2ui"):
@@ -266,20 +262,15 @@ def test_inspect_command_json(tmp_data_dir, clean_console, clean_main_console) -
     inspect(name="a2ui", json_output=True)
 
 
-def test_inspect_unknown_adapter_exits(
-    tmp_data_dir, clean_console, clean_main_console
-) -> None:
+def test_inspect_unknown_adapter_exits(tmp_data_dir, clean_console, clean_main_console) -> None:
     """Unknown adapter name should raise typer.Exit(1), not crash."""
-    import click
     from interfaces.cli.server import inspect
 
-    with pytest.raises(click.exceptions.Exit):
+    with pytest.raises(typer.Exit):
         inspect(name="bogus", json_output=False)
 
 
-def test_status_command_renders_table(
-    tmp_data_dir, clean_console, clean_main_console
-) -> None:
+def test_status_command_renders_table(tmp_data_dir, clean_console, clean_main_console) -> None:
     from interfaces.cli.server import status
 
     status(json_output=False)
@@ -291,13 +282,10 @@ def test_status_command_json(tmp_data_dir, clean_console, clean_main_console) ->
     status(json_output=True)
 
 
-def test_start_unknown_process_exits(
-    tmp_data_dir, clean_console, clean_main_console
-) -> None:
-    import click
+def test_start_unknown_process_exits(tmp_data_dir, clean_console, clean_main_console) -> None:
     from interfaces.cli.server import start
 
-    with pytest.raises(click.exceptions.Exit):
+    with pytest.raises(typer.Exit):
         start(name="bogus")
 
 
@@ -308,30 +296,25 @@ def test_start_agent_consumer_is_not_standalone(
 
     `start` should print an informative message and exit 0 (not raise).
     """
-    import click
     from interfaces.cli.server import start
 
-    # typer.Exit(0) raises click.exceptions.Exit — must NOT crash with exit 1
-    try:
+    # typer.Exit(0) raises typer.Exit — must NOT crash with exit 1
+    with pytest.raises(typer.Exit) as excinfo:
         start(name="agent_consumer")
-    except click.exceptions.Exit as e:
-        assert e.exit_code == 0, f"expected exit 0, got {e.exit_code}"
+    assert excinfo.value.exit_code == 0, f"expected exit 0, got {excinfo.value.exit_code}"
 
 
 def test_start_rejects_already_running(
     tmp_data_dir, clean_console, clean_main_console, monkeypatch, tmp_path
 ) -> None:
     """When pidfile points to a live PID, start refuses and exits 1."""
-    import click
     from interfaces.cli import server as srv
 
     pidfile = tmp_path / "review_queue_worker.pid"
     pidfile.write_text(str(os.getpid()))  # current process is alive
-    monkeypatch.setitem(
-        srv.BACKEND_PROCESSES["review_queue_worker"], "pidfile_path", pidfile
-    )
+    monkeypatch.setitem(srv.BACKEND_PROCESSES["review_queue_worker"], "pidfile_path", pidfile)
 
-    with pytest.raises(click.exceptions.Exit) as exc_info:
+    with pytest.raises(typer.Exit) as exc_info:
         srv.start(name="review_queue_worker")
     assert exc_info.value.exit_code == 1
     # Pidfile should still exist (we did NOT overwrite)
@@ -413,7 +396,7 @@ def test_stop_kills_live_pid(
     from interfaces.cli import server as srv
 
     # Spawn a long-lived child so we have a safe target to kill
-    child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])  # noqa: S603
+    child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
     try:
         pidfile = tmp_path / "child.pid"
         pidfile.write_text(str(child.pid))
@@ -439,7 +422,9 @@ def test_stop_kills_live_pid(
                 else:
                     import signal
 
-                    os.kill(child.pid, signal.SIGKILL)
+                    # SIGKILL does not exist on Windows (mypy: attr-defined).
+                    kill_sig = getattr(signal, "SIGKILL", signal.SIGTERM)
+                    os.kill(child.pid, kill_sig)
         except OSError:
             pass
 
@@ -463,22 +448,17 @@ def test_stop_agent_consumer_is_not_standalone(
     tmp_data_dir, clean_console, clean_main_console
 ) -> None:
     """agent_consumer + agent_propagator have no pidfile; stop prints informative message."""
-    import click
     from interfaces.cli.server import stop
 
-    try:
+    with pytest.raises(typer.Exit) as excinfo:
         stop(name="agent_propagator")
-    except click.exceptions.Exit as e:
-        assert e.exit_code == 0, f"expected exit 0, got {e.exit_code}"
+    assert excinfo.value.exit_code == 0, f"expected exit 0, got {excinfo.value.exit_code}"
 
 
-def test_stop_unknown_process_exits(
-    tmp_data_dir, clean_console, clean_main_console
-) -> None:
-    import click
+def test_stop_unknown_process_exits(tmp_data_dir, clean_console, clean_main_console) -> None:
     from interfaces.cli.server import stop
 
-    with pytest.raises(click.exceptions.Exit) as exc_info:
+    with pytest.raises(typer.Exit) as exc_info:
         stop(name="bogus")
     assert exc_info.value.exit_code == 1
 
@@ -547,6 +527,4 @@ def test_main_app_still_has_existing_commands() -> None:
         if c.callback is not None
     ]
     for cmd in ("list", "done", "stats", "mesh-show", "task-add"):
-        assert cmd in cmd_names, (
-            f"{cmd} missing after adding server sub-app; got {cmd_names}"
-        )
+        assert cmd in cmd_names, f"{cmd} missing after adding server sub-app; got {cmd_names}"

@@ -33,8 +33,7 @@ for p in (_REPO_ROOT, _SRC_ROOT):
 # Import the kill_switch app directly (bypasses interfaces.cli.__init__ —
 # which requires full PYTHONPATH setup for src.contracts + src.mesh).
 # ---------------------------------------------------------------------------
-from interfaces.cli.kill_switch import app as kill_switch_app  # noqa: E402
-
+from interfaces.cli.kill_switch import app as kill_switch_app
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -65,8 +64,8 @@ def cli_paths(monkeypatch, tmp_path):
     fake_dir = fake_root / "interfaces" / "cli"
     fake_dir.mkdir(parents=True, exist_ok=True)
 
-    import interfaces.cli.kill_switch as _ks
     import interfaces.cli._kill_switch_helpers as _helpers
+    import interfaces.cli.kill_switch as _ks
 
     monkeypatch.setattr(_ks, "__file__", str(fake_dir / "kill_switch.py"))
     monkeypatch.setattr(_helpers, "__file__", str(fake_dir / "_kill_switch_helpers.py"))
@@ -192,10 +191,7 @@ def test_resume_refuses_without_confirm(cli_paths) -> None:
     result = cli_paths["run_cli"](["resume", "--reason", "manual override"])
 
     assert result.exit_code == 2, f"resume exited {result.exit_code}: {result.output}"
-    assert (
-        "Kill switch recovery will" in result.output
-        or "confirm" in result.output.lower()
-    )
+    assert "Kill switch recovery will" in result.output or "confirm" in result.output.lower()
 
 
 def test_resume_refuses_empty_reason(cli_paths) -> None:
@@ -222,9 +218,7 @@ def test_audit_entry_written(cli_paths) -> None:
 
     qdir = cli_paths["review_queue"]
     audit_files = list(qdir.glob("*.json"))
-    assert len(audit_files) >= 1, (
-        f"expected ≥1 audit entry in {qdir}, found {len(audit_files)}"
-    )
+    assert len(audit_files) >= 1, f"expected ≥1 audit entry in {qdir}, found {len(audit_files)}"
 
     found_pause = False
     for f in audit_files:
