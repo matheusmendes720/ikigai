@@ -1,23 +1,43 @@
-import yaml
 import re
-from typing import Any, Dict, Optional, Type
+from typing import Any, ClassVar
+
+import yaml
 from pydantic import BaseModel, ValidationError
+
 from models import (
-    Wave, Cycle, Phase, Habit, StudyMaterial, StudyTopic,
-    StudySession, Project, Skill, RoadmapItem,
-    BacklogTask, ChangelogEntry, SleepRecord, HealthMetrics,
-    DailyMetrics, ReviewEvent, PolicyDecision, DecisionRecord, TimeBlock,
-    StudyProject, PeriodReport,
-    FalsifiableHypothesis, HypothesisEvaluation,
+    BacklogTask,
+    ChangelogEntry,
+    Cycle,
+    DailyMetrics,
+    DecisionRecord,
     Dream,
+    FalsifiableHypothesis,
+    Habit,
+    HealthMetrics,
+    HypothesisEvaluation,
+    PeriodReport,
+    Phase,
+    PolicyDecision,
+    Project,
+    ReviewEvent,
+    RoadmapItem,
+    Skill,
+    SleepRecord,
+    StudyMaterial,
+    StudyProject,
+    StudySession,
+    StudyTopic,
+    TimeBlock,
+    Wave,
 )
+
 
 class FrontmatterParser:
     """
     Parser para extrair e validar metadados YAML de arquivos Markdown.
     """
-    
-    MODEL_MAP: Dict[str, Type[BaseModel]] = {
+
+    MODEL_MAP: ClassVar[dict[str, type[BaseModel]]] = {
         "wave": Wave,
         "cycle": Cycle,
         "phase": Phase,
@@ -44,38 +64,38 @@ class FrontmatterParser:
         "dream": Dream,
     }
 
-    FRONTMATTER_PATTERN = re.compile(r'^---\s*\n(.*?)\n---\s*\n', re.DOTALL)
+    FRONTMATTER_PATTERN = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
     @classmethod
-    def parse_file(cls, file_path: str) -> Optional[BaseModel]:
+    def parse_file(cls, file_path: str) -> BaseModel | None:
         """
         Lê um arquivo .md, extrai o frontmatter e valida contra o modelo Pydantic.
         """
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
-            
+
         match = cls.FRONTMATTER_PATTERN.match(content)
         if not match:
             return None
-            
+
         try:
             raw_data = yaml.safe_load(match.group(1))
             if not isinstance(raw_data, dict):
                 return None
-                
+
             entity_type = raw_data.get("entity_type")
             if not entity_type or entity_type not in cls.MODEL_MAP:
                 return None
-                
+
             model_cls = cls.MODEL_MAP[entity_type]
             return model_cls(**raw_data)
-            
+
         except (yaml.YAMLError, ValidationError) as e:
             print(f"Erro ao processar {file_path}: {e}")
             return None
-            
+
     @classmethod
-    def extract_raw(cls, content: str) -> Optional[Dict[str, Any]]:
+    def extract_raw(cls, content: str) -> dict[str, Any] | None:
         """Apenas extrai o dicionário YAML sem validar."""
         match = cls.FRONTMATTER_PATTERN.match(content)
         if match:

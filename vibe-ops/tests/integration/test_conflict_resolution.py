@@ -8,14 +8,15 @@ D3 conflict policy:
     policy_severity, policy_recommendations, policy_alerts, rice_score)
   - Ambiguous fields (not in either set) -> written to .sync-conflicts.md
 """
+
 from __future__ import annotations
 
 import json
 import shutil
 import sqlite3
 import sys
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 import frontmatter
 import pytest
@@ -66,8 +67,7 @@ def _insert_policy(db_path: Path, policy: str = "PUSH", qhe: float = 0.85) -> No
             "hardwork_budget_hours, pause_duration_minutes, sleep_target_hours, "
             "recomendacoes, alertas, computed_at) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            ("2026-06-30", policy, qhe, 4.0, 15, 8.0, "[]", "[]",
-             "2026-06-30T12:00:00"),
+            ("2026-06-30", policy, qhe, 4.0, 15, 8.0, "[]", "[]", "2026-06-30T12:00:00"),
         )
         conn.commit()
 
@@ -98,6 +98,7 @@ class TestConflictScenarios:
                 ("proj_p1",),
             ).fetchone()
         import json
+
         assert json.loads(row[0])["xp_points"] == 9999
 
     def test_scenario2_code_wins_for_computed_field(self, workspace):
@@ -154,13 +155,27 @@ class TestPropertyBasedConflictResolution:
         """100 random modifications resolve per D3 policy without exception."""
         vault, db, sync = workspace
         import random
-        manual_fields = ["xp_points", "mastery_level", "subject",
-                         "learning_phase", "tech_stack", "milestone",
-                         "deliverable", "commercial_goal"]
-        computed_fields = ["regime", "hardwork_budget_hours",
-                           "pause_minutes", "sleep_target_hours",
-                           "qhe_target", "policy_decision_at",
-                           "policy_severity", "rice_score"]
+
+        manual_fields = [
+            "xp_points",
+            "mastery_level",
+            "subject",
+            "learning_phase",
+            "tech_stack",
+            "milestone",
+            "deliverable",
+            "commercial_goal",
+        ]
+        computed_fields = [
+            "regime",
+            "hardwork_budget_hours",
+            "pause_minutes",
+            "sleep_target_hours",
+            "qhe_target",
+            "policy_decision_at",
+            "policy_severity",
+            "rice_score",
+        ]
         all_fields = manual_fields + computed_fields + ["custom_field"]
 
         for _ in range(100):

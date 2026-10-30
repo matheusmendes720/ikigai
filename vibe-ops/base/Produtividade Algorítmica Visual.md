@@ -210,55 +210,51 @@ vamos diagnosticar ate aqui para passar ate as proximas tarefas do dia-a-dia.. a
 ```python
 # PSEUDOCÓDIGO COM SWITCH-CASE
 
+
 def validar_horario_acordar(hora_acordou: int) -> dict:
     """
     Valida se o horário de acordar está dentro do padrão ouro (3-5am)
     Retorna status, mensagem e ação corretiva
     """
-    
-    resultado = {
-        'status': None,
-        'mensagem': '',
-        'acao': '',
-        'desvio_minutos': 0
-    }
-    
+
+    resultado = {"status": None, "mensagem": "", "acao": "", "desvio_minutos": 0}
+
     match hora_acordou:
         case 3 | 4 | 5:
-            resultado['status'] = '✅ OPTIMAL'
-            resultado['mensagem'] = 'Horário dentro do padrão ouro!'
-            resultado['acao'] = 'Continuar rotina normal'
-            resultado['desvio_minutos'] = 0
-            
+            resultado["status"] = "✅ OPTIMAL"
+            resultado["mensagem"] = "Horário dentro do padrão ouro!"
+            resultado["acao"] = "Continuar rotina normal"
+            resultado["desvio_minutos"] = 0
+
         case 6:
-            resultado['status'] = '⚠️ LEVE DESVIO'
-            resultado['mensagem'] = '1 hora além do limite máximo'
-            resultado['acao'] = 'Compensar com pausa extra no período 1'
-            resultado['desvio_minutos'] = 60
-            
+            resultado["status"] = "⚠️ LEVE DESVIO"
+            resultado["mensagem"] = "1 hora além do limite máximo"
+            resultado["acao"] = "Compensar com pausa extra no período 1"
+            resultado["desvio_minutos"] = 60
+
         case 7:
-            resultado['status'] = '⚠️ DESVIO MODERADO'
-            resultado['mensagem'] = '2 horas além do limite máximo'
-            resultado['acao'] = 'Reduzir pomodoros do período 1 em 1 round'
-            resultado['desvio_minutos'] = 120
-            
+            resultado["status"] = "⚠️ DESVIO MODERADO"
+            resultado["mensagem"] = "2 horas além do limite máximo"
+            resultado["acao"] = "Reduzir pomodoros do período 1 em 1 round"
+            resultado["desvio_minutos"] = 120
+
         case h if h >= 8:
-            resultado['status'] = '🚨 DESVIO CRÍTICO'
-            resultado['mensagem'] = f'{h-5} horas além do limite!'
-            resultado['acao'] = 'Reiniciar ciclo: ajustar horário de dormir hoje'
-            resultado['desvio_minutos'] = (h - 5) * 60
-            
+            resultado["status"] = "🚨 DESVIO CRÍTICO"
+            resultado["mensagem"] = f"{h - 5} horas além do limite!"
+            resultado["acao"] = "Reiniciar ciclo: ajustar horário de dormir hoje"
+            resultado["desvio_minutos"] = (h - 5) * 60
+
         case h if h < 3:
-            resultado['status'] = '🚨 IMPOSSÍVEL'
-            resultado['mensagem'] = 'Horário inválido (antes de 3am)'
-            resultado['acao'] = 'Verificar erro de registro'
-            resultado['desvio_minutos'] = -999
-            
+            resultado["status"] = "🚨 IMPOSSÍVEL"
+            resultado["mensagem"] = "Horário inválido (antes de 3am)"
+            resultado["acao"] = "Verificar erro de registro"
+            resultado["desvio_minutos"] = -999
+
         case _:
-            resultado['status'] = '❌ ERROR'
-            resultado['mensagem'] = 'Valor não numérico ou fora de range'
-            resultado['acao'] = 'Raise ValueError'
-    
+            resultado["status"] = "❌ ERROR"
+            resultado["mensagem"] = "Valor não numérico ou fora de range"
+            resultado["acao"] = "Raise ValueError"
+
     return resultado
 ```
 
@@ -7239,6 +7235,7 @@ import json
 
 class MetricType(Enum):
     """Types of metrics tracked in the system"""
+
     TIME_WORK = auto()
     TIME_STUDY = auto()
     TIME_REST = auto()
@@ -7252,6 +7249,7 @@ class MetricType(Enum):
 
 class PriorityLevel(Enum):
     """Task priority levels for meta-heuristics"""
+
     CRITICAL = 1
     HIGH = 2
     MEDIUM = 3
@@ -7262,47 +7260,47 @@ class PriorityLevel(Enum):
 @dataclass(frozen=True)
 class TimeConstants:
     """Immutable time-related constants"""
-    
+
     # Sleep windows (hours in decimal format)
-    BEDTIME_IDEAL_MIN: float = 18.0      # 18:00
-    BEDTIME_IDEAL_MAX: float = 21.0      # 21:00
-    BEDTIME_HARD_LIMIT: float = 23.0     # 23:00
-    
-    WAKEUP_IDEAL_MIN: float = 3.0        # 03:00
-    WAKEUP_IDEAL_MAX: float = 5.0        # 05:00
-    WAKEUP_HARD_LIMIT: float = 6.0       # 06:00
-    
+    BEDTIME_IDEAL_MIN: float = 18.0  # 18:00
+    BEDTIME_IDEAL_MAX: float = 21.0  # 21:00
+    BEDTIME_HARD_LIMIT: float = 23.0  # 23:00
+
+    WAKEUP_IDEAL_MIN: float = 3.0  # 03:00
+    WAKEUP_IDEAL_MAX: float = 5.0  # 05:00
+    WAKEUP_HARD_LIMIT: float = 6.0  # 06:00
+
     # Sleep duration targets (hours)
     SLEEP_OPTIMAL: float = 8.0
     SLEEP_MINIMUM: float = 7.0
     SLEEP_CRITICAL: float = 4.0
-    
+
     # Work session constants (minutes)
     POMODORO_WORK: int = 50
     POMODORO_BREAK: int = 10
     POMODORO_LONG_BREAK: int = 30
     POMODORO_ROUNDS_MIN: int = 3
     POMODORO_ROUNDS_MAX: int = 4
-    
+
     # Meal timing (hours)
     LUNCH_START: float = 12.0
     LUNCH_END: float = 14.0
-    LUNCH_EAT_BUDGET: int = 5      # minutes
-    LUNCH_REST_BUDGET: int = 30    # minutes
-    DINNER_CUTOFF: float = 18.0    # 18:00
-    
+    LUNCH_EAT_BUDGET: int = 5  # minutes
+    LUNCH_REST_BUDGET: int = 30  # minutes
+    DINNER_CUTOFF: float = 18.0  # 18:00
+
     # Blue light cutoff
     BLUE_LIGHT_CUTOFF: float = 18.0
-    
+
     # Transition times (minutes)
     TRANSITION_STANDARD: int = 15
     TRANSITIONS_PER_DAY: int = 9
-    
+
     @property
     def sleep_window_ideal(self) -> Tuple[float, float]:
         """Returns ideal sleep window"""
         return (self.BEDTIME_IDEAL_MIN, self.BEDTIME_IDEAL_MAX)
-    
+
     @property
     def wakeup_window_ideal(self) -> Tuple[float, float]:
         """Returns ideal wakeup window"""
@@ -7312,30 +7310,30 @@ class TimeConstants:
 @dataclass(frozen=True)
 class BudgetConstants:
     """Budget targets and variance thresholds"""
-    
+
     # Daily work budgets (minutes)
-    WORK_BUDGET_WITH_COURSE: int = 240      # 4 hours
-    WORK_BUDGET_NO_COURSE: int = 540        # 9 hours
-    WORK_BUDGET_WEEKLY: int = 1980          # 33 hours
-    WORK_BUDGET_MONTHLY: int = 7920         # 132 hours
-    
+    WORK_BUDGET_WITH_COURSE: int = 240  # 4 hours
+    WORK_BUDGET_NO_COURSE: int = 540  # 9 hours
+    WORK_BUDGET_WEEKLY: int = 1980  # 33 hours
+    WORK_BUDGET_MONTHLY: int = 7920  # 132 hours
+
     # Study budgets (minutes)
-    STUDY_BUDGET_DAILY: int = 360           # 6 hours (course)
-    STUDY_BUDGET_WEEKLY: int = 1800         # 30 hours
-    
+    STUDY_BUDGET_DAILY: int = 360  # 6 hours (course)
+    STUDY_BUDGET_WEEKLY: int = 1800  # 30 hours
+
     # Variance thresholds (percentage)
-    VARIANCE_ACCEPTABLE: float = 10.0       # ±10%
-    VARIANCE_WARNING: float = 25.0          # ±25%
-    VARIANCE_CRITICAL: float = 50.0         # ±50%
-    
+    VARIANCE_ACCEPTABLE: float = 10.0  # ±10%
+    VARIANCE_WARNING: float = 25.0  # ±25%
+    VARIANCE_CRITICAL: float = 50.0  # ±50%
+
     # Efficiency targets (percentage)
     EFFICIENCY_TARGET_MIN: float = 80.0
     EFFICIENCY_TARGET_IDEAL: float = 95.0
-    
+
     # Productivity targets (percentage)
     PRODUCTIVITY_TARGET_MIN: float = 70.0
     PRODUCTIVITY_TARGET_IDEAL: float = 90.0
-    
+
     def get_variance_status(self, variance_percent: float) -> str:
         """Classifies variance level"""
         abs_variance = abs(variance_percent)
@@ -7350,25 +7348,25 @@ class BudgetConstants:
 @dataclass
 class SystemConfig:
     """Mutable system configuration"""
-    
+
     time: TimeConstants = field(default_factory=TimeConstants)
     budget: BudgetConstants = field(default_factory=BudgetConstants)
-    
+
     # User preferences
     timezone: str = "UTC-3"
     language: str = "pt-BR"
     notifications_enabled: bool = True
-    
+
     # Adaptive thresholds
-    fatigue_threshold: float = 7.0          # 1-10 scale
-    stress_threshold: float = 8.0           # 1-10 scale
+    fatigue_threshold: float = 7.0  # 1-10 scale
+    stress_threshold: float = 8.0  # 1-10 scale
     burnout_consecutive_days: int = 3
-    
+
     # Recovery rules
     recovery_sleep_hours: float = 9.0
     recovery_days_after_hardcore: int = 2
     max_consecutive_hardcore_days: int = 2
-    
+
     def to_dict(self) -> dict:
         """Serialize config to dictionary"""
         return {
@@ -7379,25 +7377,25 @@ class SystemConfig:
             "stress_threshold": self.stress_threshold,
             "recovery_sleep_hours": self.recovery_sleep_hours,
         }
-    
+
     @classmethod
-    def from_dict(cls,  dict) -> "SystemConfig":
+    def from_dict(cls, dict) -> "SystemConfig":
         """Deserialize config from dictionary"""
         config = cls()
         for key, value in data.items():
             if hasattr(config, key):
                 setattr(config, key, value)
         return config
-    
+
     def save(self, path: str) -> None:
         """Save config to JSON file"""
-        with open(path, 'w', encoding='utf-8') as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, indent=2, ensure_ascii=False)
-    
+
     @classmethod
     def load(cls, path: str) -> "SystemConfig":
         """Load config from JSON file"""
-        with open(path, 'r', encoding='utf-8') as f:
+        with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         return cls.from_dict(data)
 ```
@@ -7422,72 +7420,80 @@ import re
 
 class ValidationResult:
     """Result of a validation operation"""
-    
+
     def __init__(self, is_valid: bool, errors: List[str] = None, warnings: List[str] = None):
         self.is_valid = is_valid
         self.errors = errors or []
         self.warnings = warnings or []
-    
+
     def __bool__(self) -> bool:
         return self.is_valid
-    
+
     def __repr__(self) -> str:
         status = "✓ VALID" if self.is_valid else "✗ INVALID"
-        return f"ValidationResult({status}, errors={len(self.errors)}, warnings={len(self.warnings)})"
-    
+        return (
+            f"ValidationResult({status}, errors={len(self.errors)}, warnings={len(self.warnings)})"
+        )
+
     def merge(self, other: "ValidationResult") -> "ValidationResult":
         """Merge two validation results"""
         return ValidationResult(
             is_valid=self.is_valid and other.is_valid,
             errors=self.errors + other.errors,
-            warnings=self.warnings + other.warnings
+            warnings=self.warnings + other.warnings,
         )
 
 
 def validator(func: Callable) -> Callable:
     """Decorator for validation methods"""
+
     def wrapper(self, *args, **kwargs):
         result = func(self, *args, **kwargs)
         if not isinstance(result, ValidationResult):
             raise TypeError(f"Validator {func.__name__} must return ValidationResult")
         return result
+
     return wrapper
 
 
 @dataclass
 class BaseEntity:
     """Base entity with common fields and methods"""
-    
+
     id: UUID = field(default_factory=uuid4)
     timestamp: datetime = field(default_factory=datetime.now)
     created_by: str = "system"
     version: int = 1
-    
+
     def validate(self) -> ValidationResult:
         """Base validation - always valid"""
         return ValidationResult(is_valid=True)
-    
+
     def serialize(self) -> dict:
         """Serialize to dictionary"""
         return {
             "id": str(self.id),
             "timestamp": self.timestamp.isoformat(),
             "created_by": self.created_by,
-            "version": self.version
+            "version": self.version,
         }
-    
+
     @classmethod
-    def deserialize(cls,  dict) -> "BaseEntity":
+    def deserialize(cls, dict) -> "BaseEntity":
         """Deserialize from dictionary"""
         data["id"] = UUID(data["id"]) if isinstance(data["id"], str) else data["id"]
-        data["timestamp"] = datetime.fromisoformat(data["timestamp"]) if isinstance(data["timestamp"], str) else data["timestamp"]
+        data["timestamp"] = (
+            datetime.fromisoformat(data["timestamp"])
+            if isinstance(data["timestamp"], str)
+            else data["timestamp"]
+        )
         return cls(**data)
 
 
 @dataclass
 class TimeBlock(BaseEntity):
     """Represents a time block with budget tracking"""
-    
+
     start_time: datetime = field(default_factory=datetime.now)
     end_time: Optional[datetime] = None
     block_type: str = "WORK"
@@ -7495,7 +7501,7 @@ class TimeBlock(BaseEntity):
     actual_minutes: int = 0
     tags: List[str] = field(default_factory=list)
     notes: str = ""
-    
+
     @property
     def duration_minutes(self) -> int:
         """Calculate actual duration in minutes"""
@@ -7503,19 +7509,19 @@ class TimeBlock(BaseEntity):
             delta = self.end_time - self.start_time
             return int(delta.total_seconds() / 60)
         return self.actual_minutes
-    
+
     @property
     def variance_minutes(self) -> int:
         """Calculate variance from budget"""
         return self.actual_minutes - self.budget_minutes
-    
+
     @property
     def variance_percent(self) -> float:
         """Calculate variance percentage"""
         if self.budget_minutes == 0:
             return 0.0
         return (self.variance_minutes / self.budget_minutes) * 100
-    
+
     @property
     def status(self) -> str:
         """Get budget status"""
@@ -7526,31 +7532,27 @@ class TimeBlock(BaseEntity):
             return "WARNING"
         else:
             return "CRITICAL"
-    
+
     @validator
     def validate(self) -> ValidationResult:
         """Validate time block"""
         errors = []
         warnings = []
-        
+
         if self.end_time and self.end_time < self.start_time:
             errors.append("end_time cannot be before start_time")
-        
+
         if self.budget_minutes <= 0:
             errors.append("budget_minutes must be positive")
-        
+
         if self.actual_minutes < 0:
             errors.append("actual_minutes cannot be negative")
-        
+
         if self.variance_percent > 50:
             warnings.append(f"High variance detected: {self.variance_percent:.1f}%")
-        
-        return ValidationResult(
-            is_valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings
-        )
-    
+
+        return ValidationResult(is_valid=len(errors) == 0, errors=errors, warnings=warnings)
+
     def close(self, end_time: datetime = None) -> None:
         """Close the time block"""
         self.end_time = end_time or datetime.now()
@@ -7560,7 +7562,7 @@ class TimeBlock(BaseEntity):
 @dataclass
 class SleepRecord(BaseEntity):
     """Sleep tracking with quality metrics"""
-    
+
     date: date = field(default_factory=date.today)
     bedtime_hour: float = 0.0
     wakeup_hour: float = 0.0
@@ -7570,7 +7572,7 @@ class SleepRecord(BaseEntity):
     factors: List[str] = field(default_factory=list)
     dreams_noted: str = ""
     violation_type: str = "NONE"
-    
+
     @property
     def sleep_hours(self) -> float:
         """Calculate sleep hours"""
@@ -7578,7 +7580,7 @@ class SleepRecord(BaseEntity):
             # Crossed midnight
             return (24 - self.bedtime_hour) + self.wakeup_hour
         return self.wakeup_hour - self.bedtime_hour
-    
+
     @property
     def quality_level(self) -> str:
         """Classify sleep quality"""
@@ -7595,43 +7597,43 @@ class SleepRecord(BaseEntity):
             return "CRITICAL"
         else:
             return "EMERGENCY"
-    
+
     @property
     def has_violation(self) -> bool:
         """Check if sleep violation occurred"""
         return self.violation_type != "NONE"
-    
+
     @validator
     def validate(self) -> ValidationResult:
         """Validate sleep record"""
         errors = []
         warnings = []
-        
+
         if not (0 <= self.bedtime_hour <= 24):
             errors.append("bedtime_hour must be between 0 and 24")
-        
+
         if not (0 <= self.wakeup_hour <= 24):
             errors.append("wakeup_hour must be between 0 and 24")
-        
+
         if self.sleep_hours < 0 or self.sleep_hours > 24:
             errors.append("calculated sleep hours invalid")
-        
+
         if not (1 <= self.quality_score <= 10):
             errors.append("quality_score must be between 1 and 10")
-        
+
         if self.interruptions < 0:
             errors.append("interruptions cannot be negative")
-        
+
         # Warnings
         if self.sleep_hours < 7:
             warnings.append(f"Sleep deficit: {self.sleep_hours:.1f}h (recommended: 7-9h)")
-        
+
         if self.bedtime_hour > 21:
             warnings.append(f"Late bedtime: {self.bedtime_hour:.1f}h (recommended: before 21h)")
-        
+
         if self.wakeup_hour > 6:
             warnings.append(f"Late wakeup: {self.wakeup_hour:.1f}h (recommended: before 6h)")
-        
+
         # Determine violation type
         if self.wakeup_hour > 7:
             self.violation_type = "WAKEUP_LATE_GRAVE"
@@ -7643,18 +7645,14 @@ class SleepRecord(BaseEntity):
             self.violation_type = "BEDTIME_LATE_LIGHT"
         elif self.sleep_hours < 4:
             self.violation_type = "SLEEP_CRITICAL"
-        
-        return ValidationResult(
-            is_valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings
-        )
+
+        return ValidationResult(is_valid=len(errors) == 0, errors=errors, warnings=warnings)
 
 
 @dataclass
 class WorkSession(BaseEntity):
     """Work session with Pomodoro tracking"""
-    
+
     date: date = field(default_factory=date.today)
     period: str = "MORNING"
     session_number: int = 1
@@ -7669,77 +7667,75 @@ class WorkSession(BaseEntity):
     tasks_pending: List[str] = field(default_factory=list)
     blocks_encountered: List[str] = field(default_factory=list)
     notes: str = ""
-    
+
     @property
     def total_minutes(self) -> int:
         """Total session minutes"""
         return self.focus_minutes + self.break_minutes
-    
+
     @property
     def efficiency(self) -> float:
         """Calculate session efficiency"""
         if self.total_minutes == 0:
             return 0.0
         return (self.focus_minutes / self.total_minutes) * 100
-    
+
     @property
     def energy_degradation(self) -> float:
         """Calculate energy change"""
         return self.energy_start - self.energy_end
-    
+
     @property
     def fatigue_detected(self) -> bool:
         """Detect if fatigue occurred"""
         return self.energy_degradation > 3.0
-    
+
     @validator
     def validate(self) -> ValidationResult:
         """Validate work session"""
         errors = []
         warnings = []
-        
+
         if self.pomodoro_rounds < 0:
             errors.append("pomodoro_rounds cannot be negative")
-        
+
         if self.focus_minutes < 0:
             errors.append("focus_minutes cannot be negative")
-        
+
         if self.break_minutes < 0:
             errors.append("break_minutes cannot be negative")
-        
+
         if self.interruptions < 0:
             errors.append("interruptions cannot be negative")
-        
+
         if not (1 <= self.energy_start <= 10):
             errors.append("energy_start must be between 1 and 10")
-        
+
         if not (1 <= self.energy_end <= 10):
             errors.append("energy_end must be between 1 and 10")
-        
+
         if not (1 <= self.focus_score <= 10):
             errors.append("focus_score must be between 1 and 10")
-        
+
         # Warnings
         if self.fatigue_detected:
-            warnings.append(f"Fatigue detected: energy dropped {self.energy_degradation:.1f} points")
-        
+            warnings.append(
+                f"Fatigue detected: energy dropped {self.energy_degradation:.1f} points"
+            )
+
         if self.interruptions > 2:
             warnings.append(f"High interruptions: {self.interruptions}")
-        
+
         if self.efficiency < 70:
             warnings.append(f"Low efficiency: {self.efficiency:.1f}%")
-        
-        return ValidationResult(
-            is_valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings
-        )
+
+        return ValidationResult(is_valid=len(errors) == 0, errors=errors, warnings=warnings)
 
 
 @dataclass
 class HealthMetrics(BaseEntity):
     """Health and wellness metrics"""
-    
+
     date: date = field(default_factory=date.today)
     workout_completed: bool = False
     workout_type: str = ""
@@ -7752,7 +7748,7 @@ class HealthMetrics(BaseEntity):
     fatigue_level: int = 5
     mood_score: int = 5
     notes: str = ""
-    
+
     @property
     def wellness_score(self) -> float:
         """Calculate overall wellness score"""
@@ -7761,18 +7757,18 @@ class HealthMetrics(BaseEntity):
             self.hydration_level,
             (10 - self.stress_level),
             (10 - self.fatigue_level),
-            self.mood_score
+            self.mood_score,
         ]
         wellness = sum(scores) / len(scores)
-        
+
         # Bonuses
         if self.workout_completed:
             wellness += 1.0
         if self.meditation_completed:
             wellness += 0.5
-        
+
         return min(10.0, wellness)
-    
+
     @property
     def burnout_risk(self) -> bool:
         """Assess burnout risk"""
@@ -7780,48 +7776,44 @@ class HealthMetrics(BaseEntity):
         high_fatigue = self.fatigue_level >= 8
         low_mood = self.mood_score <= 3
         no_recovery = not (self.workout_completed or self.meditation_completed)
-        
+
         return (high_stress and high_fatigue) or (low_mood and no_recovery)
-    
+
     @validator
     def validate(self) -> ValidationResult:
         """Validate health metrics"""
         errors = []
         warnings = []
-        
+
         int_fields = [
             ("nutrition_score", self.nutrition_score),
             ("hydration_level", self.hydration_level),
             ("stress_level", self.stress_level),
             ("fatigue_level", self.fatigue_level),
-            ("mood_score", self.mood_score)
+            ("mood_score", self.mood_score),
         ]
-        
+
         for field_name, value in int_fields:
             if not (1 <= value <= 10):
                 errors.append(f"{field_name} must be between 1 and 10")
-        
+
         if self.workout_duration < 0:
             errors.append("workout_duration cannot be negative")
-        
+
         if self.meditation_duration < 0:
             errors.append("meditation_duration cannot be negative")
-        
+
         # Warnings
         if self.burnout_risk:
             warnings.append("⚠️ BURNOUT RISK DETECTED - Immediate recovery recommended")
-        
+
         if self.stress_level >= 7:
             warnings.append(f"High stress level: {self.stress_level}/10")
-        
+
         if self.fatigue_level >= 7:
             warnings.append(f"High fatigue level: {self.fatigue_level}/10")
-        
-        return ValidationResult(
-            is_valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings
-        )
+
+        return ValidationResult(is_valid=len(errors) == 0, errors=errors, warnings=warnings)
 ```
 
 ---
@@ -7849,236 +7841,254 @@ logger = logging.getLogger(__name__)
 def validate_input(validation_func: Callable) -> Callable:
     """
     Decorator for input validation before function execution
-    
+
     Args:
         validation_func: Function that validates input and returns ValidationResult
-    
+
     Returns:
         Decorated function with validation
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Run validation
             result = validation_func(*args, **kwargs)
-            
+
             if not result.is_valid:
                 error_msg = f"Validation failed: {', '.join(result.errors)}"
                 logger.error(error_msg)
                 raise ValueError(error_msg)
-            
+
             # Log warnings
             for warning in result.warnings:
                 logger.warning(f"Validation warning: {warning}")
-            
+
             return func(*args, **kwargs)
-        
+
         return wrapper
+
     return decorator
 
 
 def cache_result(ttl_seconds: int = 300) -> Callable:
     """
     Decorator for caching function results
-    
+
     Args:
         ttl_seconds: Time to live for cache in seconds
-    
+
     Returns:
         Decorated function with caching
     """
     cache: Dict[str, tuple] = {}
-    
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Create cache key
-            key = f"{func.__name__}:{json.dumps(args, default=str)}:{json.dumps(kwargs, default=str)}"
-            
+            key = (
+                f"{func.__name__}:{json.dumps(args, default=str)}:{json.dumps(kwargs, default=str)}"
+            )
+
             # Check cache
             if key in cache:
                 result, timestamp = cache[key]
                 if time.time() - timestamp < ttl_seconds:
                     logger.debug(f"Cache hit for {func.__name__}")
                     return result
-            
+
             # Execute and cache
             logger.debug(f"Cache miss for {func.__name__}")
             result = func(*args, **kwargs)
             cache[key] = (result, time.time())
-            
+
             return result
-        
+
         return wrapper
+
     return decorator
 
 
 def log_execution(log_level: str = "INFO") -> Callable:
     """
     Decorator for logging function execution
-    
+
     Args:
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
-    
+
     Returns:
         Decorated function with logging
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             start_time = time.time()
-            
+
             logger.log(getattr(logging, log_level), f"Starting {func.__name__}")
             logger.log(getattr(logging, log_level), f"Args: {args}, Kwargs: {kwargs}")
-            
+
             try:
                 result = func(*args, **kwargs)
                 elapsed = time.time() - start_time
-                
-                logger.log(getattr(logging, log_level), 
-                          f"Completed {func.__name__} in {elapsed:.3f}s")
-                
+
+                logger.log(
+                    getattr(logging, log_level), f"Completed {func.__name__} in {elapsed:.3f}s"
+                )
+
                 return result
-            
+
             except Exception as e:
                 elapsed = time.time() - start_time
-                
+
                 logger.error(f"Error in {func.__name__} after {elapsed:.3f}s: {str(e)}")
                 raise
-        
+
         return wrapper
+
     return decorator
 
 
 def retry_on_failure(max_retries: int = 3, delay_seconds: float = 1.0) -> Callable:
     """
     Decorator for retrying function on failure
-    
+
     Args:
         max_retries: Maximum number of retries
         delay_seconds: Delay between retries
-    
+
     Returns:
         Decorated function with retry logic
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             last_exception = None
-            
+
             for attempt in range(max_retries):
                 try:
                     return func(*args, **kwargs)
                 except Exception as e:
                     last_exception = e
                     logger.warning(f"Attempt {attempt + 1}/{max_retries} failed: {str(e)}")
-                    
+
                     if attempt < max_retries - 1:
                         time.sleep(delay_seconds)
-            
+
             logger.error(f"All {max_retries} attempts failed")
             raise last_exception
-        
+
         return wrapper
+
     return decorator
 
 
 def measure_performance(metric_name: str = None) -> Callable:
     """
     Decorator for measuring function performance
-    
+
     Args:
         metric_name: Name for the metric (defaults to function name)
-    
+
     Returns:
         Decorated function with performance measurement
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             start_time = time.time()
             result = func(*args, **kwargs)
             elapsed = time.time() - start_time
-            
+
             name = metric_name or func.__name__
             logger.info(f"PERF_METRIC [{name}]: {elapsed:.3f}s")
-            
+
             # Store in function attribute for later analysis
-            if not hasattr(wrapper, 'performance_metrics'):
+            if not hasattr(wrapper, "performance_metrics"):
                 wrapper.performance_metrics = []
-            wrapper.performance_metrics.append({
-                'timestamp': datetime.now().isoformat(),
-                'elapsed': elapsed,
-                'args_count': len(args),
-                'kwargs_count': len(kwargs)
-            })
-            
+            wrapper.performance_metrics.append(
+                {
+                    "timestamp": datetime.now().isoformat(),
+                    "elapsed": elapsed,
+                    "args_count": len(args),
+                    "kwargs_count": len(kwargs),
+                }
+            )
+
             return result
-        
+
         return wrapper
+
     return decorator
 
 
 def require_context(required_keys: List[str]) -> Callable:
     """
     Decorator for requiring specific context keys
-    
+
     Args:
         required_keys: List of required context keys
-    
+
     Returns:
         Decorated function with context validation
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, context: Optional[Dict] = None, **kwargs):
             if context is None:
                 context = {}
-            
+
             missing_keys = [key for key in required_keys if key not in context]
-            
+
             if missing_keys:
                 raise ValueError(f"Missing required context keys: {missing_keys}")
-            
+
             return func(*args, context=context, **kwargs)
-        
+
         return wrapper
+
     return decorator
 
 
 def transactional(rollback_func: Callable = None) -> Callable:
     """
     Decorator for transactional operations
-    
+
     Args:
         rollback_func: Function to call on rollback
-    
+
     Returns:
         Decorated function with transaction support
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             logger.info(f"Starting transaction: {func.__name__}")
-            
+
             try:
                 result = func(*args, **kwargs)
                 logger.info(f"Transaction committed: {func.__name__}")
                 return result
-            
+
             except Exception as e:
                 logger.error(f"Transaction rolled back: {func.__name__} - {str(e)}")
-                
+
                 if rollback_func:
                     try:
                         rollback_func(*args, **kwargs)
                         logger.info("Rollback completed successfully")
                     except Exception as rollback_error:
                         logger.error(f"Rollback failed: {str(rollback_error)}")
-                
+
                 raise
-        
+
         return wrapper
+
     return decorator
 ```
 
@@ -8095,14 +8105,12 @@ Purpose: Comprehensive unit tests with fixtures
 import pytest
 from datetime import datetime, date, timedelta
 from uuid import uuid4
-from models.core import (
-    TimeBlock, SleepRecord, WorkSession, HealthMetrics,
-    ValidationResult
-)
+from models.core import TimeBlock, SleepRecord, WorkSession, HealthMetrics, ValidationResult
 from config.constants import TimeConstants, BudgetConstants, SystemConfig
 
 
 # ============== FIXTURES ==============
+
 
 @pytest.fixture
 def time_constants() -> TimeConstants:
@@ -8127,7 +8135,7 @@ def valid_time_block() -> TimeBlock:
     """Fixture for valid time block"""
     start = datetime.now()
     end = start + timedelta(minutes=50)
-    
+
     return TimeBlock(
         start_time=start,
         end_time=end,
@@ -8135,7 +8143,7 @@ def valid_time_block() -> TimeBlock:
         budget_minutes=50,
         actual_minutes=50,
         tags=["focus", "deep-work"],
-        notes="Test session"
+        notes="Test session",
     )
 
 
@@ -8144,11 +8152,11 @@ def valid_sleep_record() -> SleepRecord:
     """Fixture for valid sleep record"""
     return SleepRecord(
         date=date.today(),
-        bedtime_hour=20.5,      # 20:30
-        wakeup_hour=4.5,        # 04:30
+        bedtime_hour=20.5,  # 20:30
+        wakeup_hour=4.5,  # 04:30
         quality_score=8,
         interruptions=1,
-        factors=["good diet", "no screens"]
+        factors=["good diet", "no screens"],
     )
 
 
@@ -8168,7 +8176,7 @@ def valid_work_session() -> WorkSession:
         focus_score=8.5,
         tasks_completed=["task-1", "task-2"],
         tasks_pending=[],
-        blocks_encountered=[]
+        blocks_encountered=[],
     )
 
 
@@ -8186,132 +8194,131 @@ def valid_health_metrics() -> HealthMetrics:
         hydration_level=8,
         stress_level=3,
         fatigue_level=3,
-        mood_score=8
+        mood_score=8,
     )
 
 
 # ============== TIME BLOCK TESTS ==============
 
+
 class TestTimeBlock:
     """Test suite for TimeBlock class"""
-    
+
     def test_duration_calculation(self, valid_time_block: TimeBlock):
         """Test duration calculation"""
         assert valid_time_block.duration_minutes == 50
-    
+
     def test_variance_calculation(self, valid_time_block: TimeBlock):
         """Test variance calculation"""
         assert valid_time_block.variance_minutes == 0
         assert valid_time_block.variance_percent == 0.0
-    
+
     def test_status_on_budget(self, valid_time_block: TimeBlock):
         """Test status when on budget"""
         assert valid_time_block.status == "ON_BUDGET"
-    
+
     def test_status_warning(self):
         """Test status when in warning range"""
         block = TimeBlock(
             budget_minutes=50,
-            actual_minutes=60  # 20% over
+            actual_minutes=60,  # 20% over
         )
         assert block.status == "WARNING"
-    
+
     def test_status_critical(self):
         """Test status when critical"""
         block = TimeBlock(
             budget_minutes=50,
-            actual_minutes=80  # 60% over
+            actual_minutes=80,  # 60% over
         )
         assert block.status == "CRITICAL"
-    
+
     def test_validation_valid(self, valid_time_block: TimeBlock):
         """Test validation of valid block"""
         result = valid_time_block.validate()
         assert result.is_valid is True
         assert len(result.errors) == 0
-    
+
     def test_validation_invalid_end_before_start(self):
         """Test validation with end before start"""
         block = TimeBlock(
             start_time=datetime.now() + timedelta(hours=1),
             end_time=datetime.now(),
             budget_minutes=50,
-            actual_minutes=50
+            actual_minutes=50,
         )
         result = block.validate()
         assert result.is_valid is False
         assert "end_time cannot be before start_time" in result.errors
-    
+
     def test_validation_negative_budget(self):
         """Test validation with negative budget"""
-        block = TimeBlock(
-            budget_minutes=-50,
-            actual_minutes=50
-        )
+        block = TimeBlock(budget_minutes=-50, actual_minutes=50)
         result = block.validate()
         assert result.is_valid is False
         assert "budget_minutes must be positive" in result.errors
-    
+
     def test_close_block(self):
         """Test closing a time block"""
         block = TimeBlock(budget_minutes=50)
         assert block.end_time is None
-        
+
         block.close()
-        
+
         assert block.end_time is not None
         assert block.actual_minutes > 0
 
 
 # ============== SLEEP RECORD TESTS ==============
 
+
 class TestSleepRecord:
     """Test suite for SleepRecord class"""
-    
+
     def test_sleep_hours_calculation_crossing_midnight(self, valid_sleep_record: SleepRecord):
         """Test sleep hours when crossing midnight"""
         # bedtime: 20:30, wakeup: 04:30 = 8 hours
         assert valid_sleep_record.sleep_hours == 8.0
-    
+
     def test_sleep_hours_calculation_same_day(self):
         """Test sleep hours same day (rare)"""
         record = SleepRecord(
-            bedtime_hour=1.0,   # 01:00
-            wakeup_hour=9.0     # 09:00
+            bedtime_hour=1.0,  # 01:00
+            wakeup_hour=9.0,  # 09:00
         )
         assert record.sleep_hours == 8.0
-    
+
     def test_quality_level_excellent(self):
         """Test excellent quality level"""
         record = SleepRecord(bedtime_hour=20.0, wakeup_hour=5.0)
         assert record.quality_level == "EXCELLENT"
-    
+
     def test_quality_level_good(self):
         """Test good quality level"""
         record = SleepRecord(bedtime_hour=21.0, wakeup_hour=5.0)
         assert record.quality_level == "GOOD"
-    
+
     def test_quality_level_acceptable(self):
         """Test acceptable quality level"""
         record = SleepRecord(bedtime_hour=22.0, wakeup_hour=5.0)
         assert record.quality_level == "ACCEPTABLE"
-    
+
     def test_quality_level_critical(self):
         """Test critical quality level"""
         record = SleepRecord(bedtime_hour=23.0, wakeup_hour=4.0)
         assert record.quality_level == "CRITICAL"
-    
+
     def test_violation_detection_wakeup_late(self):
         """Test violation detection for late wakeup"""
         record = SleepRecord(bedtime_hour=20.0, wakeup_hour=8.0)
         assert record.has_violation is True
         assert "WAKEUP_LATE" in record.violation_type
-    
+
     def test_validation_valid(self, valid_sleep_record: SleepRecord):
         """Test validation of valid record"""
         result = valid_sleep_record.validate()
         assert result.is_valid is True
-    
+
     def test_validation_invalid_bedtime(self):
         """Test validation with invalid bedtime"""
         record = SleepRecord(bedtime_hour=25.0, wakeup_hour=4.0)
@@ -8322,61 +8329,60 @@ class TestSleepRecord:
 
 # ============== WORK SESSION TESTS ==============
 
+
 class TestWorkSession:
     """Test suite for WorkSession class"""
-    
+
     def test_total_minutes(self, valid_work_session: WorkSession):
         """Test total minutes calculation"""
         assert valid_work_session.total_minutes == 240
-    
+
     def test_efficiency_calculation(self, valid_work_session: WorkSession):
         """Test efficiency calculation"""
         # 200 focus / 240 total = 83.3%
         assert abs(valid_work_session.efficiency - 83.33) < 0.1
-    
+
     def test_energy_degradation(self, valid_work_session: WorkSession):
         """Test energy degradation calculation"""
         assert valid_work_session.energy_degradation == 1.0
-    
+
     def test_fatigue_detected(self):
         """Test fatigue detection"""
         session = WorkSession(
             energy_start=9.0,
-            energy_end=4.0  # 5 point drop
+            energy_end=4.0,  # 5 point drop
         )
         assert session.fatigue_detected is True
-    
+
     def test_fatigue_not_detected(self, valid_work_session: WorkSession):
         """Test no fatigue detection"""
         assert valid_work_session.fatigue_detected is False
-    
+
     def test_validation_valid(self, valid_work_session: WorkSession):
         """Test validation of valid session"""
         result = valid_work_session.validate()
         assert result.is_valid is True
-    
+
     def test_validation_fatigue_warning(self):
         """Test fatigue warning in validation"""
-        session = WorkSession(
-            energy_start=9.0,
-            energy_end=4.0
-        )
+        session = WorkSession(energy_start=9.0, energy_end=4.0)
         result = session.validate()
         assert "Fatigue detected" in result.warnings[0]
 
 
 # ============== HEALTH METRICS TESTS ==============
 
+
 class TestHealthMetrics:
     """Test suite for HealthMetrics class"""
-    
+
     def test_wellness_score_calculation(self, valid_health_metrics: HealthMetrics):
         """Test wellness score calculation"""
         # Base: (8+8+7+7+8)/5 = 7.6
         # Bonuses: +1 (workout) + 0.5 (meditation) = 9.1
         score = valid_health_metrics.wellness_score
         assert 9.0 <= score <= 9.2
-    
+
     def test_wellness_score_max_cap(self):
         """Test wellness score is capped at 10"""
         metrics = HealthMetrics(
@@ -8386,10 +8392,10 @@ class TestHealthMetrics:
             fatigue_level=1,
             mood_score=10,
             workout_completed=True,
-            meditation_completed=True
+            meditation_completed=True,
         )
         assert metrics.wellness_score == 10.0
-    
+
     def test_burnout_risk_detection(self):
         """Test burnout risk detection"""
         metrics = HealthMetrics(
@@ -8397,104 +8403,102 @@ class TestHealthMetrics:
             fatigue_level=8,
             mood_score=5,
             workout_completed=False,
-            meditation_completed=False
+            meditation_completed=False,
         )
         assert metrics.burnout_risk is True
-    
+
     def test_no_burnout_risk(self, valid_health_metrics: HealthMetrics):
         """Test no burnout risk"""
         assert valid_health_metrics.burnout_risk is False
-    
+
     def test_validation_valid(self, valid_health_metrics: HealthMetrics):
         """Test validation of valid metrics"""
         result = valid_health_metrics.validate()
         assert result.is_valid is True
-    
+
     def test_validation_burnout_warning(self):
         """Test burnout warning in validation"""
-        metrics = HealthMetrics(
-            stress_level=8,
-            fatigue_level=8
-        )
+        metrics = HealthMetrics(stress_level=8, fatigue_level=8)
         result = metrics.validate()
         assert any("BURNOUT RISK" in warning for warning in result.warnings)
 
 
 # ============== DECORATOR TESTS ==============
 
+
 class TestDecorators:
     """Test suite for decorators"""
-    
+
     def test_validate_input_decorator_valid(self):
         """Test validate_input decorator with valid input"""
         from decorators.validation import validate_input
-        
+
         def validator(*args, **kwargs):
             return ValidationResult(is_valid=True)
-        
+
         @validate_input(validator)
         def test_func(value):
             return value * 2
-        
+
         assert test_func(5) == 10
-    
+
     def test_validate_input_decorator_invalid(self):
         """Test validate_input decorator with invalid input"""
         from decorators.validation import validate_input
-        
+
         def validator(*args, **kwargs):
             return ValidationResult(is_valid=False, errors=["Invalid input"])
-        
+
         @validate_input(validator)
         def test_func(value):
             return value * 2
-        
+
         with pytest.raises(ValueError):
             test_func(5)
-    
+
     def test_cache_result_decorator(self):
         """Test cache_result decorator"""
         from decorators.validation import cache_result
         import time
-        
+
         call_count = 0
-        
+
         @cache_result(ttl_seconds=1)
         def expensive_func(x):
             nonlocal call_count
             call_count += 1
             return x * 2
-        
+
         # First call
         result1 = expensive_func(5)
         assert result1 == 10
         assert call_count == 1
-        
+
         # Cached call
         result2 = expensive_func(5)
         assert result2 == 10
         assert call_count == 1  # Should not increment
-        
+
         # Wait for cache to expire
         time.sleep(1.1)
-        
+
         # Cache expired
         result3 = expensive_func(5)
         assert result3 == 10
         assert call_count == 2  # Should increment
-    
+
     def test_measure_performance_decorator(self):
         """Test measure_performance decorator"""
         from decorators.validation import measure_performance
-        
+
         @measure_performance("test_metric")
         def slow_func():
             time.sleep(0.1)
             return 42
-        
+
         result = slow_func()
         assert result == 42
-        assert hasattr(slow_func, 'performance_metrics')
+        assert hasattr(slow_func, "performance_metrics")
 ```
 
 ---
@@ -9296,8 +9300,10 @@ import json
 
 # ============== SUB-MÓDULO 2.1: VALIDATION ENGINE ==============
 
+
 class ValidationSeverity(Enum):
     """Severity levels for validation results"""
+
     INFO = auto()
     WARNING = auto()
     ERROR = auto()
@@ -9307,13 +9313,13 @@ class ValidationSeverity(Enum):
 @dataclass
 class ValidationMessage:
     """Individual validation message"""
-    
+
     severity: ValidationSeverity
     field: str
     message: str
     code: str
     suggestion: str = ""
-    
+
     def __str__(self) -> str:
         icon = {"INFO": "ℹ️", "WARNING": "⚠️", "ERROR": "❌", "CRITICAL": "🚨"}
         return f"{icon.get(self.severity.name, '❓')} [{self.code}] {self.field}: {self.message}"
@@ -9322,64 +9328,71 @@ class ValidationMessage:
 @dataclass
 class ValidationResult:
     """Comprehensive validation result"""
-    
+
     is_valid: bool = True
     messages: List[ValidationMessage] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     @property
     def errors(self) -> List[ValidationMessage]:
         """Get all error messages"""
-        return [m for m in self.messages if m.severity in (ValidationSeverity.ERROR, ValidationSeverity.CRITICAL)]
-    
+        return [
+            m
+            for m in self.messages
+            if m.severity in (ValidationSeverity.ERROR, ValidationSeverity.CRITICAL)
+        ]
+
     @property
     def warnings(self) -> List[ValidationMessage]:
         """Get all warning messages"""
         return [m for m in self.messages if m.severity == ValidationSeverity.WARNING]
-    
+
     @property
     def info(self) -> List[ValidationMessage]:
         """Get all info messages"""
         return [m for m in self.messages if m.severity == ValidationSeverity.INFO]
-    
+
     def add_error(self, field: str, message: str, code: str, suggestion: str = "") -> None:
         """Add an error message"""
         self.is_valid = False
-        self.messages.append(ValidationMessage(
-            severity=ValidationSeverity.ERROR,
-            field=field,
-            message=message,
-            code=code,
-            suggestion=suggestion
-        ))
-    
+        self.messages.append(
+            ValidationMessage(
+                severity=ValidationSeverity.ERROR,
+                field=field,
+                message=message,
+                code=code,
+                suggestion=suggestion,
+            )
+        )
+
     def add_warning(self, field: str, message: str, code: str, suggestion: str = "") -> None:
         """Add a warning message"""
-        self.messages.append(ValidationMessage(
-            severity=ValidationSeverity.WARNING,
-            field=field,
-            message=message,
-            code=code,
-            suggestion=suggestion
-        ))
-    
+        self.messages.append(
+            ValidationMessage(
+                severity=ValidationSeverity.WARNING,
+                field=field,
+                message=message,
+                code=code,
+                suggestion=suggestion,
+            )
+        )
+
     def add_info(self, field: str, message: str, code: str) -> None:
         """Add an info message"""
-        self.messages.append(ValidationMessage(
-            severity=ValidationSeverity.INFO,
-            field=field,
-            message=message,
-            code=code
-        ))
-    
+        self.messages.append(
+            ValidationMessage(
+                severity=ValidationSeverity.INFO, field=field, message=message, code=code
+            )
+        )
+
     def merge(self, other: "ValidationResult") -> "ValidationResult":
         """Merge two validation results"""
         return ValidationResult(
             is_valid=self.is_valid and other.is_valid,
             messages=self.messages + other.messages,
-            metadata={**self.metadata, **other.metadata}
+            metadata={**self.metadata, **other.metadata},
         )
-    
+
     def to_dict(self) -> dict:
         """Convert to dictionary"""
         return {
@@ -9387,196 +9400,202 @@ class ValidationResult:
             "errors": [str(e) for e in self.errors],
             "warnings": [str(w) for w in self.warnings],
             "info": [str(i) for i in self.info],
-            "message_count": len(self.messages)
+            "message_count": len(self.messages),
         }
 
 
 # ============== SUB-MÓDULO 2.2: VALIDATION DECORATORS ==============
 
+
 def validate_field(field_name: str, validation_func: Callable) -> Callable:
     """Decorator for field-level validation"""
+
     def decorator(cls):
-        original_validate = getattr(cls, 'validate', None)
-        
+        original_validate = getattr(cls, "validate", None)
+
         def new_validate(self) -> ValidationResult:
             result = original_validate() if original_validate else ValidationResult()
             field_result = validation_func(getattr(self, field_name))
-            
+
             if not field_result.is_valid:
                 result = result.merge(field_result)
-            
+
             return result
-        
+
         cls.validate = new_validate
         return cls
-    
+
     return decorator
 
 
 def validate_range(field_name: str, min_val: Any, max_val: Any) -> Callable:
     """Decorator for range validation"""
+
     def validator(value: Any) -> ValidationResult:
         result = ValidationResult()
-        
+
         if value < min_val:
             result.add_error(
                 field=field_name,
                 message=f"Value {value} is below minimum {min_val}",
                 code="RANGE_BELOW_MIN",
-                suggestion=f"Set value to at least {min_val}"
+                suggestion=f"Set value to at least {min_val}",
             )
-        
+
         if value > max_val:
             result.add_error(
                 field=field_name,
                 message=f"Value {value} is above maximum {max_val}",
                 code="RANGE_ABOVE_MAX",
-                suggestion=f"Set value to at most {max_val}"
+                suggestion=f"Set value to at most {max_val}",
             )
-        
+
         return result
-    
+
     return validate_field(field_name, validator)
 
 
 def validate_required(field_name: str) -> Callable:
     """Decorator for required field validation"""
+
     def validator(value: Any) -> ValidationResult:
         result = ValidationResult()
-        
+
         if value is None or value == "":
             result.add_error(
                 field=field_name,
                 message=f"Field {field_name} is required",
                 code="FIELD_REQUIRED",
-                suggestion=f"Provide a value for {field_name}"
+                suggestion=f"Provide a value for {field_name}",
             )
-        
+
         return result
-    
+
     return validate_field(field_name, validator)
 
 
 def validate_pattern(field_name: str, pattern: str, description: str) -> Callable:
     """Decorator for regex pattern validation"""
+
     def validator(value: str) -> ValidationResult:
         result = ValidationResult()
-        
+
         if not re.match(pattern, value):
             result.add_error(
                 field=field_name,
                 message=f"Value does not match required pattern: {description}",
                 code="PATTERN_MISMATCH",
-                suggestion=f"Follow pattern: {description}"
+                suggestion=f"Follow pattern: {description}",
             )
-        
+
         return result
-    
+
     return validate_field(field_name, validator)
 
 
 # ============== SUB-MÓDULO 2.3: NLP TEXT PROCESSING ==============
 
+
 class TextAnalyzer:
     """NLP-based text analysis for manual inputs"""
-    
+
     SENTIMENT_KEYWORDS = {
         "positive": ["bom", "excelente", "ótimo", "produtivo", "energizado", "focado"],
         "negative": ["ruim", "cansado", "frustrado", "difícil", "estressante", "falhei"],
-        "neutral": ["normal", "regular", "ok", "padrão", "comum"]
+        "neutral": ["normal", "regular", "ok", "padrão", "comum"],
     }
-    
+
     PATTERN_INDICATORS = {
         "procrastination": ["depois", "mais tarde", "amanhã", "quando puder", "se der tempo"],
         "perfectionism": ["perfeito", "impecável", "sem erros", "preciso", "exato"],
         "avoidance": ["evitar", "pular", "ignorar", "deixar para", "não quero"],
-        "commitment": ["vou fazer", "compromisso", "obrigação", "preciso", "devo"]
+        "commitment": ["vou fazer", "compromisso", "obrigação", "preciso", "devo"],
     }
-    
+
     @classmethod
     def analyze_sentiment(cls, text: str) -> Dict[str, float]:
         """Analyze sentiment of text"""
         text_lower = text.lower()
         scores = {"positive": 0.0, "negative": 0.0, "neutral": 0.0}
-        
+
         for sentiment, keywords in cls.SENTIMENT_KEYWORDS.items():
             for keyword in keywords:
                 if keyword in text_lower:
                     scores[sentiment] += 1.0
-        
+
         total = sum(scores.values())
         if total > 0:
             scores = {k: v / total for k, v in scores.items()}
-        
+
         return scores
-    
+
     @classmethod
     def detect_patterns(cls, text: str) -> List[str]:
         """Detect behavioral patterns in text"""
         text_lower = text.lower()
         detected = []
-        
+
         for pattern, indicators in cls.PATTERN_INDICATORS.items():
             for indicator in indicators:
                 if indicator in text_lower:
                     detected.append(pattern)
                     break
-        
+
         return detected
-    
+
     @classmethod
     def extract_metrics(cls, text: str) -> Dict[str, Any]:
         """Extract numerical metrics from text"""
         metrics = {}
-        
+
         # Extract numbers with context
-        number_pattern = r'(\d+(?:\.\d+)?)\s*(horas|h|minutos|min|pontos|pts|%)?'
+        number_pattern = r"(\d+(?:\.\d+)?)\s*(horas|h|minutos|min|pontos|pts|%)?"
         matches = re.findall(number_pattern, text.lower())
-        
+
         for value, unit in matches:
             value = float(value)
-            if unit in ['horas', 'h']:
-                metrics['hours'] = value
-            elif unit in ['minutos', 'min']:
-                metrics['minutes'] = value
-            elif unit in ['pontos', 'pts', '%']:
-                metrics['score'] = value
+            if unit in ["horas", "h"]:
+                metrics["hours"] = value
+            elif unit in ["minutos", "min"]:
+                metrics["minutes"] = value
+            elif unit in ["pontos", "pts", "%"]:
+                metrics["score"] = value
             else:
-                metrics['raw_number'] = value
-        
+                metrics["raw_number"] = value
+
         return metrics
-    
+
     @classmethod
-    def validate_text_input(cls, text: str, min_length: int = 10, max_length: int = 500) -> ValidationResult:
+    def validate_text_input(
+        cls, text: str, min_length: int = 10, max_length: int = 500
+    ) -> ValidationResult:
         """Validate text input with NLP analysis"""
         result = ValidationResult()
-        
+
         # Length validation
         if len(text) < min_length:
             result.add_error(
                 field="text",
                 message=f"Text too short ({len(text)} chars, minimum {min_length})",
                 code="TEXT_TOO_SHORT",
-                suggestion=f"Add more details (at least {min_length - len(text)} more characters)"
+                suggestion=f"Add more details (at least {min_length - len(text)} more characters)",
             )
-        
+
         if len(text) > max_length:
             result.add_warning(
                 field="text",
                 message=f"Text very long ({len(text)} chars, recommended {max_length})",
                 code="TEXT_TOO_LONG",
-                suggestion="Consider breaking into multiple entries"
+                suggestion="Consider breaking into multiple entries",
             )
-        
+
         # Sentiment analysis
         sentiment = cls.analyze_sentiment(text)
         if sentiment["negative"] > 0.7:
             result.add_info(
-                field="text",
-                message="High negative sentiment detected",
-                code="NEGATIVE_SENTIMENT"
+                field="text", message="High negative sentiment detected", code="NEGATIVE_SENTIMENT"
             )
-        
+
         # Pattern detection
         patterns = cls.detect_patterns(text)
         for pattern in patterns:
@@ -9584,9 +9603,9 @@ class TextAnalyzer:
                 field="text",
                 message=f"Potential {pattern} pattern detected",
                 code=f"PATTERN_{pattern.upper()}",
-                suggestion="Review this thought pattern"
+                suggestion="Review this thought pattern",
             )
-        
+
         return result
 ```
 
@@ -9657,155 +9676,169 @@ logger = logging.getLogger(__name__)
 
 # ============== SUB-MÓDULO 3.1: ADVANCED VALIDATION DECORATORS ==============
 
+
 def validate_with_schema(schema: Dict[str, Any]) -> Callable:
     """
     Decorator for schema-based validation
-    
+
     Args:
         schema: Dictionary defining validation rules
-    
+
     Returns:
         Decorated function with schema validation
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Validate kwargs against schema
             for field, rules in schema.items():
                 value = kwargs.get(field)
-                
-                if rules.get('required', False) and value is None:
+
+                if rules.get("required", False) and value is None:
                     raise ValueError(f"Required field missing: {field}")
-                
+
                 if value is not None:
-                    if 'type' in rules and not isinstance(value, rules['type']):
+                    if "type" in rules and not isinstance(value, rules["type"]):
                         raise TypeError(f"Field {field} must be {rules['type'].__name__}")
-                    
-                    if 'min' in rules and value < rules['min']:
+
+                    if "min" in rules and value < rules["min"]:
                         raise ValueError(f"Field {field} must be >= {rules['min']}")
-                    
-                    if 'max' in rules and value > rules['max']:
+
+                    if "max" in rules and value > rules["max"]:
                         raise ValueError(f"Field {field} must be <= {rules['max']}")
-                    
-                    if 'pattern' in rules and not re.match(rules['pattern'], str(value)):
+
+                    if "pattern" in rules and not re.match(rules["pattern"], str(value)):
                         raise ValueError(f"Field {field} does not match pattern")
-            
+
             return func(*args, **kwargs)
-        
+
         return wrapper
+
     return decorator
 
 
 def validate_return_type(return_type: Type) -> Callable:
     """
     Decorator for return type validation
-    
+
     Args:
         return_type: Expected return type
-    
+
     Returns:
         Decorated function with return type validation
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             result = func(*args, **kwargs)
-            
+
             if not isinstance(result, return_type):
                 raise TypeError(
                     f"Function {func.__name__} returned {type(result).__name__}, "
                     f"expected {return_type.__name__}"
                 )
-            
+
             return result
-        
+
         return wrapper
+
     return decorator
 
 
 # ============== SUB-MÓDULO 3.2: PERFORMANCE DECORATORS ==============
 
+
 def rate_limit(calls: int, period: float) -> Callable:
     """
     Decorator for rate limiting function calls
-    
+
     Args:
         calls: Maximum number of calls allowed
         period: Time period in seconds
-    
+
     Returns:
         Decorated function with rate limiting
     """
+
     def decorator(func: Callable) -> Callable:
         timestamps = []
         lock = threading.Lock()
-        
+
         @wraps(func)
         def wrapper(*args, **kwargs):
             with lock:
                 now = time.time()
                 timestamps[:] = [t for t in timestamps if now - t < period]
-                
+
                 if len(timestamps) >= calls:
                     wait_time = period - (now - timestamps[0])
                     logger.warning(f"Rate limit exceeded, waiting {wait_time:.2f}s")
                     time.sleep(wait_time)
-                
+
                 timestamps.append(now)
-            
+
             return func(*args, **kwargs)
-        
+
         return wrapper
+
     return decorator
 
 
 def async_cache(ttl_seconds: int = 300) -> Callable:
     """
     Decorator for async function caching
-    
+
     Args:
         ttl_seconds: Time to live for cache
-    
+
     Returns:
         Decorated async function with caching
     """
+
     def decorator(func: Callable) -> Callable:
         cache = {}
         timestamps = {}
-        
+
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            key = f"{func.__name__}:{json.dumps(args, default=str)}:{json.dumps(kwargs, default=str)}"
+            key = (
+                f"{func.__name__}:{json.dumps(args, default=str)}:{json.dumps(kwargs, default=str)}"
+            )
             now = time.time()
-            
+
             if key in cache and now - timestamps[key] < ttl_seconds:
                 logger.debug(f"Cache hit for {func.__name__}")
                 return cache[key]
-            
+
             logger.debug(f"Cache miss for {func.__name__}")
             result = await func(*args, **kwargs)
             cache[key] = result
             timestamps[key] = now
-            
+
             return result
-        
+
         return wrapper
+
     return decorator
 
 
 # ============== SUB-MÓDULO 3.3: ERROR HANDLING DECORATORS ==============
 
+
 def handle_exception(default_value: Any = None, log_exception: bool = True) -> Callable:
     """
     Decorator for exception handling with default value
-    
+
     Args:
         default_value: Value to return on exception
         log_exception: Whether to log the exception
-    
+
     Returns:
         Decorated function with exception handling
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -9816,61 +9849,66 @@ def handle_exception(default_value: Any = None, log_exception: bool = True) -> C
                     logger.error(f"Exception in {func.__name__}: {str(e)}")
                     logger.debug(traceback.format_exc())
                 return default_value
-        
+
         return wrapper
+
     return decorator
 
 
-def retry_with_backoff(max_retries: int = 3, base_delay: float = 1.0, 
-                       max_delay: float = 60.0, exponential: bool = True) -> Callable:
+def retry_with_backoff(
+    max_retries: int = 3, base_delay: float = 1.0, max_delay: float = 60.0, exponential: bool = True
+) -> Callable:
     """
     Decorator for retry with exponential backoff
-    
+
     Args:
         max_retries: Maximum number of retries
         base_delay: Base delay between retries
         max_delay: Maximum delay between retries
         exponential: Use exponential backoff
-    
+
     Returns:
         Decorated function with retry logic
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             last_exception = None
-            
+
             for attempt in range(max_retries):
                 try:
                     return func(*args, **kwargs)
                 except Exception as e:
                     last_exception = e
                     logger.warning(f"Attempt {attempt + 1}/{max_retries} failed: {str(e)}")
-                    
+
                     if attempt < max_retries - 1:
                         if exponential:
-                            delay = min(base_delay * (2 ** attempt), max_delay)
+                            delay = min(base_delay * (2**attempt), max_delay)
                         else:
                             delay = base_delay
-                        
+
                         logger.info(f"Retrying in {delay:.2f}s")
                         time.sleep(delay)
-            
+
             logger.error(f"All {max_retries} attempts failed")
             raise last_exception
-        
+
         return wrapper
+
     return decorator
 
 
 # ============== SUB-MÓDULO 3.4: META-PROGRAMMING UTILITIES ==============
 
+
 class SingletonMeta(type):
     """Metaclass for singleton pattern"""
-    
+
     _instances = {}
     _lock = threading.Lock()
-    
+
     def __call__(cls, *args, **kwargs):
         with cls._lock:
             if cls not in cls._instances:
@@ -9880,9 +9918,10 @@ class SingletonMeta(type):
 
 def singleton(cls: Type) -> Type:
     """Decorator for singleton pattern"""
+
     class SingletonClass(cls, metaclass=SingletonMeta):
         pass
-    
+
     SingletonClass.__name__ = cls.__name__
     return SingletonClass
 
@@ -9890,46 +9929,47 @@ def singleton(cls: Type) -> Type:
 def dataclass_with_validation(cls: Type) -> Type:
     """Decorator to add validation to dataclass"""
     original_init = cls.__init__
-    
+
     @wraps(original_init)
     def new_init(self, *args, **kwargs):
         original_init(self, *args, **kwargs)
-        
-        if hasattr(self, 'validate'):
+
+        if hasattr(self, "validate"):
             result = self.validate()
             if not result.is_valid:
                 errors = [str(e) for e in result.errors]
                 raise ValueError(f"Validation failed: {', '.join(errors)}")
-    
+
     cls.__init__ = new_init
     return cls
 
 
 # ============== SUB-MÓDULO 3.5: OBSERVER PATTERN ==============
 
+
 class Observer:
     """Observer interface for event system"""
-    
-    def update(self, event: str,  Any) -> None:
+
+    def update(self, event: str, Any) -> None:
         """Called when observed event occurs"""
         pass
 
 
 class Observable:
     """Observable subject for event system"""
-    
+
     def __init__(self):
         self._observers = defaultdict(list)
-    
+
     def subscribe(self, event: str, observer: Observer) -> None:
         """Subscribe to an event"""
         self._observers[event].append(observer)
-    
+
     def unsubscribe(self, event: str, observer: Observer) -> None:
         """Unsubscribe from an event"""
         if observer in self._observers[event]:
             self._observers[event].remove(observer)
-    
+
     def notify(self, event: str, data: Any = None) -> None:
         """Notify all observers of an event"""
         for observer in self._observers[event]:
@@ -9941,17 +9981,19 @@ class Observable:
 
 def observe_event(event_name: str) -> Callable:
     """Decorator to mark method as event observer"""
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             result = func(self, *args, **kwargs)
-            
-            if hasattr(self, '_observable'):
+
+            if hasattr(self, "_observable"):
                 self._observable.notify(event_name, result)
-            
+
             return result
-        
+
         return wrapper
+
     return decorator
 ```
 
@@ -10008,20 +10050,33 @@ import json
 import random
 
 from models.core import (
-    TimeBlock, SleepRecord, WorkSession, StudySession,
-    HealthMetrics, DecisionRecord, ValidationResult
+    TimeBlock,
+    SleepRecord,
+    WorkSession,
+    StudySession,
+    HealthMetrics,
+    DecisionRecord,
+    ValidationResult,
 )
 from config.constants import (
-    TimeConstants, BudgetConstants, AdaptiveThresholds,
-    ProfileConfig, ProfileType, ConfigManager
+    TimeConstants,
+    BudgetConstants,
+    AdaptiveThresholds,
+    ProfileConfig,
+    ProfileType,
+    ConfigManager,
 )
 from decorators.validation import (
-    validate_input, cache_result, measure_performance,
-    retry_on_failure, rate_limit
+    validate_input,
+    cache_result,
+    measure_performance,
+    retry_on_failure,
+    rate_limit,
 )
 
 
 # ============== SUB-MÓDULO 4.1: ADVANCED FIXTURES ==============
+
 
 @pytest.fixture(scope="session")
 def time_constants() -> TimeConstants:
@@ -10052,7 +10107,7 @@ def valid_time_block() -> TimeBlock:
     """Fixture for valid time block"""
     start = datetime.now()
     end = start + timedelta(minutes=50)
-    
+
     return TimeBlock(
         start_time=start,
         end_time=end,
@@ -10060,7 +10115,7 @@ def valid_time_block() -> TimeBlock:
         budget_minutes=50,
         actual_minutes=50,
         tags=["focus", "deep-work"],
-        notes="Test session"
+        notes="Test session",
     )
 
 
@@ -10068,30 +10123,18 @@ def valid_time_block() -> TimeBlock:
 def invalid_time_blocks() -> List[TimeBlock]:
     """Fixture for various invalid time blocks"""
     now = datetime.now()
-    
+
     return [
         # End before start
         TimeBlock(
-            start_time=now + timedelta(hours=1),
-            end_time=now,
-            budget_minutes=50,
-            actual_minutes=50
+            start_time=now + timedelta(hours=1), end_time=now, budget_minutes=50, actual_minutes=50
         ),
         # Negative budget
-        TimeBlock(
-            budget_minutes=-50,
-            actual_minutes=50
-        ),
+        TimeBlock(budget_minutes=-50, actual_minutes=50),
         # Negative actual
-        TimeBlock(
-            budget_minutes=50,
-            actual_minutes=-50
-        ),
+        TimeBlock(budget_minutes=50, actual_minutes=-50),
         # Zero budget
-        TimeBlock(
-            budget_minutes=0,
-            actual_minutes=50
-        )
+        TimeBlock(budget_minutes=0, actual_minutes=50),
     ]
 
 
@@ -10099,10 +10142,10 @@ def invalid_time_blocks() -> List[TimeBlock]:
 def valid_sleep_records() -> List[SleepRecord]:
     """Fixture for various valid sleep records"""
     return [
-        SleepRecord(bedtime_hour=20.0, wakeup_hour=4.0),   # 8h - Excellent
-        SleepRecord(bedtime_hour=21.0, wakeup_hour=5.0),   # 8h - Good
-        SleepRecord(bedtime_hour=22.0, wakeup_hour=5.0),   # 7h - Acceptable
-        SleepRecord(bedtime_hour=20.5, wakeup_hour=4.5),   # 8h - With interruptions
+        SleepRecord(bedtime_hour=20.0, wakeup_hour=4.0),  # 8h - Excellent
+        SleepRecord(bedtime_hour=21.0, wakeup_hour=5.0),  # 8h - Good
+        SleepRecord(bedtime_hour=22.0, wakeup_hour=5.0),  # 7h - Acceptable
+        SleepRecord(bedtime_hour=20.5, wakeup_hour=4.5),  # 8h - With interruptions
     ]
 
 
@@ -10110,7 +10153,7 @@ def valid_sleep_records() -> List[SleepRecord]:
 def invalid_sleep_records() -> List[SleepRecord]:
     """Fixture for various invalid sleep records"""
     return [
-        SleepRecord(bedtime_hour=25.0, wakeup_hour=4.0),   # Invalid bedtime
+        SleepRecord(bedtime_hour=25.0, wakeup_hour=4.0),  # Invalid bedtime
         SleepRecord(bedtime_hour=20.0, wakeup_hour=26.0),  # Invalid wakeup
         SleepRecord(bedtime_hour=20.0, wakeup_hour=19.0),  # Negative sleep
     ]
@@ -10120,10 +10163,10 @@ def invalid_sleep_records() -> List[SleepRecord]:
 def edge_case_sleep_records() -> List[SleepRecord]:
     """Fixture for edge case sleep records"""
     return [
-        SleepRecord(bedtime_hour=0.0, wakeup_hour=0.0),    # Midnight edge
-        SleepRecord(bedtime_hour=23.99, wakeup_hour=0.01), # Near midnight
+        SleepRecord(bedtime_hour=0.0, wakeup_hour=0.0),  # Midnight edge
+        SleepRecord(bedtime_hour=23.99, wakeup_hour=0.01),  # Near midnight
         SleepRecord(bedtime_hour=12.0, wakeup_hour=12.0),  # Same time
-        SleepRecord(bedtime_hour=6.0, wakeup_hour=6.0),    # Exact limit
+        SleepRecord(bedtime_hour=6.0, wakeup_hour=6.0),  # Exact limit
     ]
 
 
@@ -10137,7 +10180,7 @@ def valid_work_sessions() -> List[WorkSession]:
             focus_minutes=200,
             break_minutes=40,
             energy_start=8.0,
-            energy_end=7.0
+            energy_end=7.0,
         ),
         WorkSession(
             period="AFTERNOON",
@@ -10145,7 +10188,7 @@ def valid_work_sessions() -> List[WorkSession]:
             focus_minutes=150,
             break_minutes=30,
             energy_start=7.0,
-            energy_end=6.0
+            energy_end=6.0,
         ),
     ]
 
@@ -10153,75 +10196,86 @@ def valid_work_sessions() -> List[WorkSession]:
 @pytest.fixture(scope="function")
 def health_metrics_generator() -> Callable:
     """Factory fixture for health metrics"""
+
     def create_metrics(
-        stress: int = 5,
-        fatigue: int = 5,
-        workout: bool = True,
-        meditation: bool = True
+        stress: int = 5, fatigue: int = 5, workout: bool = True, meditation: bool = True
     ) -> HealthMetrics:
         return HealthMetrics(
             stress_level=stress,
             fatigue_level=fatigue,
             workout_completed=workout,
-            meditation_completed=meditation
+            meditation_completed=meditation,
         )
-    
+
     return create_metrics
 
 
 # ============== SUB-MÓDULO 4.2: PARAMETRIZED TESTS ==============
 
+
 class TestParametrized:
     """Test suite with parametrized tests"""
-    
-    @pytest.mark.parametrize("bedtime,wakeup,expected_hours", [
-        (20.0, 4.0, 8.0),
-        (21.0, 5.0, 8.0),
-        (22.0, 5.0, 7.0),
-        (23.0, 4.0, 5.0),
-        (18.0, 3.0, 9.0),
-        (0.0, 8.0, 8.0),
-        (23.5, 0.5, 1.0),
-    ])
+
+    @pytest.mark.parametrize(
+        "bedtime,wakeup,expected_hours",
+        [
+            (20.0, 4.0, 8.0),
+            (21.0, 5.0, 8.0),
+            (22.0, 5.0, 7.0),
+            (23.0, 4.0, 5.0),
+            (18.0, 3.0, 9.0),
+            (0.0, 8.0, 8.0),
+            (23.5, 0.5, 1.0),
+        ],
+    )
     def test_sleep_hours_calculation(self, bedtime: float, wakeup: float, expected_hours: float):
         """Test sleep hours calculation with various inputs"""
         record = SleepRecord(bedtime_hour=bedtime, wakeup_hour=wakeup)
         assert abs(record.sleep_hours - expected_hours) < 0.01
-    
-    @pytest.mark.parametrize("hours,expected_level", [
-        (9.0, "EXCELLENT"),
-        (8.0, "GOOD"),
-        (7.0, "ACCEPTABLE"),
-        (5.0, "ATTENTION"),
-        (4.0, "CRITICAL"),
-        (3.0, "EMERGENCY"),
-    ])
+
+    @pytest.mark.parametrize(
+        "hours,expected_level",
+        [
+            (9.0, "EXCELLENT"),
+            (8.0, "GOOD"),
+            (7.0, "ACCEPTABLE"),
+            (5.0, "ATTENTION"),
+            (4.0, "CRITICAL"),
+            (3.0, "EMERGENCY"),
+        ],
+    )
     def test_sleep_quality_classification(self, hours: float, expected_level: str):
         """Test sleep quality classification"""
         time_const = TimeConstants()
         assert time_const.classify_sleep_duration(hours) == expected_level
-    
-    @pytest.mark.parametrize("variance,expected_status", [
-        (5.0, "ON_TARGET"),
-        (10.0, "ON_TARGET"),
-        (15.0, "WARNING"),
-        (25.0, "WARNING"),
-        (30.0, "CRITICAL"),
-        (50.0, "CRITICAL"),
-        (100.0, "EMERGENCY"),
-    ])
+
+    @pytest.mark.parametrize(
+        "variance,expected_status",
+        [
+            (5.0, "ON_TARGET"),
+            (10.0, "ON_TARGET"),
+            (15.0, "WARNING"),
+            (25.0, "WARNING"),
+            (30.0, "CRITICAL"),
+            (50.0, "CRITICAL"),
+            (100.0, "EMERGENCY"),
+        ],
+    )
     def test_variance_classification(self, variance: float, expected_status: str):
         """Test variance classification"""
         budget_const = BudgetConstants()
         assert budget_const.classify_variance(variance) == expected_status
-    
-    @pytest.mark.parametrize("efficiency,expected_level", [
-        (95.0, "EXCELLENT"),
-        (85.0, "GOOD"),
-        (75.0, "ACCEPTABLE"),
-        (60.0, "ATTENTION"),
-        (50.0, "CRITICAL"),
-    ])
+
+    @pytest.mark.parametrize(
+        "efficiency,expected_level",
+        [
+            (95.0, "EXCELLENT"),
+            (85.0, "GOOD"),
+            (75.0, "ACCEPTABLE"),
+            (60.0, "ATTENTION"),
+            (50.0, "CRITICAL"),
+        ],
+    )
     def test_efficiency_classification(self, efficiency: float, expected_level: str):
         """Test efficiency classification"""
         budget_const = BudgetConstants()
@@ -10230,9 +10284,10 @@ class TestParametrized:
 
 # ============== SUB-MÓDULO 4.3: PROPERTY-BASED TESTS ==============
 
+
 class TestPropertyBased:
     """Property-based test suite"""
-    
+
     def test_sleep_hours_always_positive(self):
         """Property: Sleep hours should always be positive"""
         for _ in range(100):
@@ -10240,7 +10295,7 @@ class TestPropertyBased:
             wakeup = random.uniform(0, 24)
             record = SleepRecord(bedtime_hour=bedtime, wakeup_hour=wakeup)
             assert record.sleep_hours >= 0
-    
+
     def test_variance_percent_within_bounds(self):
         """Property: Variance percent should be calculable"""
         for _ in range(100):
@@ -10248,18 +10303,15 @@ class TestPropertyBased:
             actual = random.randint(0, 2000)
             block = TimeBlock(budget_minutes=budget, actual_minutes=actual)
             assert -100 <= block.variance_percent <= 1000
-    
+
     def test_efficiency_between_zero_and_hundred(self):
         """Property: Efficiency should be between 0 and 100"""
         for _ in range(100):
             focus = random.randint(0, 500)
             break_time = random.randint(0, 100)
-            session = WorkSession(
-                focus_minutes=focus,
-                break_minutes=break_time
-            )
+            session = WorkSession(focus_minutes=focus, break_minutes=break_time)
             assert 0 <= session.efficiency <= 100
-    
+
     def test_wellness_score_between_zero_and_ten(self):
         """Property: Wellness score should be between 0 and 10"""
         for _ in range(100):
@@ -10270,37 +10322,38 @@ class TestPropertyBased:
                 fatigue_level=random.randint(1, 10),
                 mood_score=random.randint(1, 10),
                 workout_completed=random.choice([True, False]),
-                meditation_completed=random.choice([True, False])
+                meditation_completed=random.choice([True, False]),
             )
             assert 0 <= metrics.wellness_score <= 10
 
 
 # ============== SUB-MÓDULO 4.4: EDGE CASE TESTS ==============
 
+
 class TestEdgeCases:
     """Edge case test suite"""
-    
+
     def test_sleep_exactly_midnight(self):
         """Test sleep crossing exactly midnight"""
         record = SleepRecord(bedtime_hour=23.0, wakeup_hour=1.0)
         assert record.sleep_hours == 2.0
-    
+
     def test_sleep_exactly_24_hours(self):
         """Test sleep of exactly 24 hours (edge)"""
         record = SleepRecord(bedtime_hour=0.0, wakeup_hour=0.0)
         assert record.sleep_hours == 0.0 or record.sleep_hours == 24.0
-    
+
     def test_work_session_zero_minutes(self):
         """Test work session with zero minutes"""
         session = WorkSession(focus_minutes=0, break_minutes=0)
         assert session.total_minutes == 0
         assert session.efficiency == 0.0
-    
+
     def test_budget_zero_division_protection(self):
         """Test protection against zero division"""
         block = TimeBlock(budget_minutes=0, actual_minutes=50)
         assert block.variance_percent == 0.0  # Should not raise
-    
+
     def test_health_metrics_all_minimum(self):
         """Test health metrics with all minimum values"""
         metrics = HealthMetrics(
@@ -10310,11 +10363,11 @@ class TestEdgeCases:
             fatigue_level=10,
             mood_score=1,
             workout_completed=False,
-            meditation_completed=False
+            meditation_completed=False,
         )
         assert metrics.wellness_score >= 0
         assert metrics.burnout_risk is True
-    
+
     def test_health_metrics_all_maximum(self):
         """Test health metrics with all maximum values"""
         metrics = HealthMetrics(
@@ -10324,33 +10377,34 @@ class TestEdgeCases:
             fatigue_level=1,
             mood_score=10,
             workout_completed=True,
-            meditation_completed=True
+            meditation_completed=True,
         )
         assert metrics.wellness_score == 10.0
         assert metrics.burnout_risk is False
-    
+
     def test_adaptive_thresholds_empty_history(self):
         """Test adaptive thresholds with empty history"""
         thresholds = AdaptiveThresholds()
         assert thresholds.current_fatigue_threshold == thresholds.base_fatigue_threshold
         assert thresholds.current_stress_threshold == thresholds.base_stress_threshold
-    
+
     def test_adaptive_thresholds_large_history(self):
         """Test adaptive thresholds with large history"""
         thresholds = AdaptiveThresholds(history_window_days=7)
         for i in range(100):
             thresholds.add_fatigue_data(float(i % 10))
             thresholds.add_stress_data(float(i % 10))
-        
+
         assert len(thresholds.historical_fatigue) <= 7
         assert len(thresholds.historical_stress) <= 7
 
 
 # ============== SUB-MÓDULO 4.5: PERFORMANCE TESTS ==============
 
+
 class TestPerformance:
     """Performance test suite"""
-    
+
     @pytest.mark.performance
     def test_validation_performance(self, valid_sleep_record: SleepRecord):
         """Test validation performance"""
@@ -10358,9 +10412,9 @@ class TestPerformance:
         for _ in range(1000):
             valid_sleep_record.validate()
         elapsed = time.time() - start
-        
+
         assert elapsed < 1.0, f"Validation too slow: {elapsed:.3f}s"
-    
+
     @pytest.mark.performance
     def test_serialization_performance(self, valid_work_session: WorkSession):
         """Test serialization performance"""
@@ -10368,83 +10422,76 @@ class TestPerformance:
         for _ in range(1000):
             valid_work_session.serialize()
         elapsed = time.time() - start
-        
+
         assert elapsed < 1.0, f"Serialization too slow: {elapsed:.3f}s"
-    
+
     @pytest.mark.performance
     def test_cache_performance(self):
         """Test cache decorator performance"""
+
         @cache_result(ttl_seconds=60)
         def expensive_function(x):
             time.sleep(0.01)
             return x * 2
-        
+
         # First call (cache miss)
         start = time.time()
         expensive_function(5)
         first_call = time.time() - start
-        
+
         # Second call (cache hit)
         start = time.time()
         expensive_function(5)
         second_call = time.time() - start
-        
+
         assert second_call < first_call * 0.1, "Cache not improving performance"
 
 
 # ============== SUB-MÓDULO 4.6: INTEGRATION TESTS ==============
 
+
 class TestIntegration:
     """Integration test suite"""
-    
+
     def test_full_day_workflow(self, config_manager: ConfigManager):
         """Test complete day workflow"""
         # Morning
         sleep = SleepRecord(bedtime_hour=20.0, wakeup_hour=4.0)
         assert sleep.validate().is_valid
-        
+
         # Work session
         work = WorkSession(
-            period="MORNING",
-            pomodoro_rounds=4,
-            focus_minutes=200,
-            energy_start=8.0,
-            energy_end=7.0
+            period="MORNING", pomodoro_rounds=4, focus_minutes=200, energy_start=8.0, energy_end=7.0
         )
         assert work.validate().is_valid
-        
+
         # Health metrics
         health = HealthMetrics(
-            workout_completed=True,
-            meditation_completed=True,
-            stress_level=3,
-            fatigue_level=3
+            workout_completed=True, meditation_completed=True, stress_level=3, fatigue_level=3
         )
         assert health.validate().is_valid
-        
+
         # Update adaptive thresholds
         config_manager.update_adaptive_thresholds(
-            fatigue=health.fatigue_level,
-            stress=health.stress_level,
-            performance=work.efficiency
+            fatigue=health.fatigue_level, stress=health.stress_level, performance=work.efficiency
         )
-        
+
         # Verify config saved
         assert config_manager.adaptive_thresholds.historical_fatigue
-    
+
     def test_profile_switching(self, config_manager: ConfigManager):
         """Test profile switching"""
         initial_profile = config_manager.current_profile
-        
+
         config_manager.switch_profile(ProfileType.HARDCORE)
         assert config_manager.current_profile == ProfileType.HARDCORE
-        
+
         adjusted_budget = config_manager.get_adjusted_budget(240)
         assert adjusted_budget == 360  # 1.5x modifier
-        
+
         config_manager.switch_profile(ProfileType.RECOVERY)
         assert config_manager.current_profile == ProfileType.RECOVERY
-        
+
         # Restore initial
         config_manager.switch_profile(initial_profile)
 ```

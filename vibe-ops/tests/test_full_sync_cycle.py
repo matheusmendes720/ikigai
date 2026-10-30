@@ -11,6 +11,7 @@ Walks through:
 
 Runs in <10 seconds against an in-memory temp dir.
 """
+
 from __future__ import annotations
 
 import json
@@ -18,9 +19,9 @@ import shutil
 import sqlite3
 import sys
 import time
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterator
 
 import frontmatter
 import pytest
@@ -32,7 +33,6 @@ if str(VIBE_OPS_SRC) not in sys.path:
 
 from middleware.bidirectional_sync import BidirectionalSync  # noqa: E402
 from pipeline.hypothesis_evaluator import HypothesisEvaluator  # noqa: E402
-
 
 FIXTURE_VAULT = VIBE_OPS_ROOT / "tests" / "fixtures" / "vault"
 
@@ -63,7 +63,7 @@ def _insert_policy_decision(
     computed_at: str | None = None,
 ) -> None:
     if computed_at is None:
-        computed_at = datetime.now(timezone.utc).isoformat()
+        computed_at = datetime.now(UTC).isoformat()
     with sqlite3.connect(str(db_path)) as conn:
         conn.execute(
             """
@@ -93,7 +93,12 @@ def _insert_policy_decision(
             "recomendacoes, alertas, computed_at) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
-                "2026-06-30", policy, qhe, 4.0, 15, 8.0,
+                "2026-06-30",
+                policy,
+                qhe,
+                4.0,
+                15,
+                8.0,
                 json.dumps(["maintain study cadence"]),
                 json.dumps([]),
                 computed_at,
@@ -119,9 +124,7 @@ class TestFullSyncCycle:
     def test_step1_initial_state(self, workspace):
         vault, db, sync = workspace
         with sqlite3.connect(str(db)) as conn:
-            total = conn.execute(
-                "SELECT COUNT(*) FROM planning_entities"
-            ).fetchone()[0]
+            total = conn.execute("SELECT COUNT(*) FROM planning_entities").fetchone()[0]
         assert total == 0
 
     def test_step2_vault_ingests_six_notes(self, workspace):
@@ -133,8 +136,7 @@ class TestFullSyncCycle:
 
         with sqlite3.connect(str(db)) as conn:
             rows = conn.execute(
-                "SELECT entity_type, COUNT(*) FROM planning_entities "
-                "GROUP BY entity_type"
+                "SELECT entity_type, COUNT(*) FROM planning_entities GROUP BY entity_type"
             ).fetchall()
         by_type = {r[0]: r[1] for r in rows}
         assert by_type.get("project", 0) == 2  # p1 + p2 (broken.md errors out)
@@ -170,8 +172,10 @@ class TestFullSyncCycle:
 
     def test_step5_hypothesis_evaluation(self, workspace):
         vault, db, sync = workspace
-        from models.hypothesis_entities import FalsifiableHypothesis
         from datetime import date, timedelta
+
+        from models.hypothesis_entities import FalsifiableHypothesis
+
         sync.sync_vault_to_code()
         # Insert a falsifiable hypothesis with kill_switch in the past.
         conn = sqlite3.connect(str(db))

@@ -2,9 +2,9 @@
 
 Source: .omo/plans/period-reports-sync.md T6
 """
+
 from __future__ import annotations
 
-import json
 import sqlite3
 import sys
 from pathlib import Path
@@ -33,7 +33,10 @@ def temp_vault(tmp_path: Path) -> Path:
     templates.mkdir(parents=True)
 
     # Sonho (root)
-    _write_md(templates, "01-sonho.md", """---
+    _write_md(
+        templates,
+        "01-sonho.md",
+        """---
 type: period_report
 entity_type: period_report
 period: sonho
@@ -50,10 +53,14 @@ tags: [period/sonho]
 ---
 
 # Sonho body
-""")
+""",
+    )
 
     # Trimestral (parent = test-sonho)
-    _write_md(templates, "02-Q1.md", """---
+    _write_md(
+        templates,
+        "02-Q1.md",
+        """---
 type: period_report
 entity_type: period_report
 period: quarterly
@@ -70,10 +77,14 @@ tags: [period/quarterly]
 ---
 
 # Trimestral body
-""")
+""",
+    )
 
     # Weekly (parent = Q1-test)
-    _write_md(templates, "03-week-01.md", """---
+    _write_md(
+        templates,
+        "03-week-01.md",
+        """---
 type: period_report
 entity_type: period_report
 period: weekly
@@ -90,10 +101,14 @@ tags: [period/weekly]
 ---
 
 # Weekly body
-""")
+""",
+    )
 
     # Orphan: parent_period references non-existent id
-    _write_md(templates, "04-orphan-week.md", """---
+    _write_md(
+        templates,
+        "04-orphan-week.md",
+        """---
 type: period_report
 entity_type: period_report
 period: weekly
@@ -110,10 +125,14 @@ tags: [period/weekly]
 ---
 
 # Orphan body
-""")
+""",
+    )
 
     # Broken YAML
-    _write_md(templates, "05-broken.md", """---
+    _write_md(
+        templates,
+        "05-broken.md",
+        """---
 type: period_report
 period: daily
 date_start: not-a-valid-date
@@ -121,7 +140,8 @@ date_end: 2026-06-26
 verdict: PASS
 verdict_score: 0.85
 ---
-""")
+""",
+    )
 
     return vault
 
@@ -134,7 +154,6 @@ def temp_db(tmp_path: Path) -> Path:
 
 @pytest.mark.integration
 class TestPeriodReportSync:
-
     def test_migration_applies_on_init(self, temp_db: Path, tmp_path: Path):
         """PeriodReportSync.__init__ should apply migration 004."""
         sync = PeriodReportSync(tmp_path / "vault", temp_db)
@@ -144,9 +163,7 @@ class TestPeriodReportSync:
             ).fetchone()
             assert row is not None, "period_reports table not created"
 
-    def test_sync_ingests_all_valid_reports_first_pass(
-        self, temp_vault, temp_db, tmp_path
-    ):
+    def test_sync_ingests_all_valid_reports_first_pass(self, temp_vault, temp_db, tmp_path):
         """First sync ingests all valid reports with valid parents.
 
         Note: parse_file() returns None for broken.md (missing entity_type),
@@ -164,7 +181,9 @@ class TestPeriodReportSync:
         assert stats.ingested == 3, f"Expected 3 ingested, got {stats.ingested}"
         assert stats.errors == 0
         assert stats.orphans == 1, f"Expected 1 orphan, got {stats.orphans}"
-        assert stats.skipped == 0, f"Expected 0 skipped (broken.md filters out at parser), got {stats.skipped}"
+        assert stats.skipped == 0, (
+            f"Expected 0 skipped (broken.md filters out at parser), got {stats.skipped}"
+        )
 
         with sqlite3.connect(temp_db) as conn:
             count = conn.execute("SELECT COUNT(*) FROM period_reports").fetchone()[0]
@@ -204,7 +223,10 @@ class TestPeriodReportSync:
         """A broken YAML file should be silently skipped, not abort the sync."""
         # Create additional valid files
         templates = temp_vault / "_templates_periodos"
-        _write_md(templates, "00-sonho.md", """---
+        _write_md(
+            templates,
+            "00-sonho.md",
+            """---
 type: period_report
 entity_type: period_report
 period: sonho
@@ -216,7 +238,8 @@ verdict_score: 0.7
 status: active
 tags: [period/sonho]
 ---
-""")
+""",
+        )
 
         sync = PeriodReportSync(temp_vault, temp_db)
         stats = sync.sync_vault_to_db()
@@ -243,7 +266,10 @@ tags: [period/sonho]
         sync.sync_vault_to_db()
 
         templates = temp_vault / "_templates_periodos"
-        _write_md(templates, "01-sonho.md", """---
+        _write_md(
+            templates,
+            "01-sonho.md",
+            """---
 type: period_report
 entity_type: period_report
 period: sonho
@@ -258,7 +284,8 @@ ikigai_vector: passion
 status: active
 tags: [period/sonho]
 ---
-""")
+""",
+        )
 
         stats2 = sync.sync_vault_to_db()
         # Current behavior: id-based check causes skip; vault_hash never consulted
@@ -275,16 +302,17 @@ tags: [period/sonho]
             assert row[0] == "ACTIVE"
             assert row[1] == 0.70
 
-    def test_new_id_with_modified_content_is_ingested(
-        self, temp_vault, temp_db
-    ):
+    def test_new_id_with_modified_content_is_ingested(self, temp_vault, temp_db):
         """A file with a NEW id (not seen before) bypasses the id-based skip
         and is ingested as a new record, even if content is similar."""
         sync = PeriodReportSync(temp_vault, temp_db)
         sync.sync_vault_to_db()
 
         templates = temp_vault / "_templates_periodos"
-        _write_md(templates, "06-sonho-v2.md", """---
+        _write_md(
+            templates,
+            "06-sonho-v2.md",
+            """---
 type: period_report
 entity_type: period_report
 period: sonho
@@ -299,7 +327,8 @@ ikigai_vector: passion
 status: active
 tags: [period/sonho]
 ---
-""")
+""",
+        )
 
         stats2 = sync.sync_vault_to_db()
         assert stats2.ingested >= 1

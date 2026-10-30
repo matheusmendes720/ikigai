@@ -1,9 +1,8 @@
-import subprocess
 import json
-from datetime import date
-from typing import List, Dict, Any
-from models import DailyMetrics, ChangelogEntry
+import subprocess
+
 from storage.data_mesh_adapter import DataMeshAdapter
+
 
 class ReverseSync:
     """

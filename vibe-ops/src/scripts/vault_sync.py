@@ -11,6 +11,7 @@ Usage:
     python -m scripts.vault_sync status [--db <path>] [--vault <path>] [--json]
     python -m scripts.vault_sync conflicts [--vault <path>] [--json]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -18,7 +19,7 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 def _utcnow_iso() -> str:
@@ -33,7 +34,7 @@ def _json_default(obj: Any) -> Any:
     return str(obj)
 
 
-def _emit(data: Dict[str, Any], json_out: bool) -> int:
+def _emit(data: dict[str, Any], json_out: bool) -> int:
     if json_out:
         sys.stdout.write(json.dumps(data, default=_json_default, indent=2))
         sys.stdout.write("\n")
@@ -45,6 +46,7 @@ def _emit(data: Dict[str, Any], json_out: bool) -> int:
 
 def cmd_vault(args: argparse.Namespace) -> int:
     from middleware.bidirectional_sync import BidirectionalSync
+
     vault = Path(args.vault)
     db = Path(args.db)
     if not vault.exists():
@@ -61,6 +63,7 @@ def cmd_vault(args: argparse.Namespace) -> int:
 
 def cmd_code(args: argparse.Namespace) -> int:
     from middleware.bidirectional_sync import BidirectionalSync
+
     vault = Path(args.vault)
     db = Path(args.db)
     if not vault.exists():
@@ -97,26 +100,25 @@ def cmd_all(args: argparse.Namespace) -> int:
 
 def cmd_status(args: argparse.Namespace) -> int:
     from middleware.bidirectional_sync import BidirectionalSync
+
     vault = Path(args.vault) if args.vault else None
     db = Path(args.db)
     if not db.exists():
         return _emit({"ok": False, "error": f"db not found: {db}"}, args.json)
     sync = BidirectionalSync(vault, db) if vault else None
-    out: Dict[str, Any] = {"ok": True, "command": "status"}
+    out: dict[str, Any] = {"ok": True, "command": "status"}
     if sync is not None:
         out.update(sync.status())
     else:
         # Without a vault, just count from DB.
         import sqlite3
+
         conn = sqlite3.connect(str(db))
         try:
-            total = conn.execute(
-                "SELECT COUNT(*) FROM planning_entities"
-            ).fetchone()[0]
+            total = conn.execute("SELECT COUNT(*) FROM planning_entities").fetchone()[0]
             out["total_entities"] = total
             rows = conn.execute(
-                "SELECT entity_type, COUNT(*) FROM planning_entities "
-                "GROUP BY entity_type"
+                "SELECT entity_type, COUNT(*) FROM planning_entities GROUP BY entity_type"
             ).fetchall()
             out["by_type"] = {r[0]: r[1] for r in rows}
         finally:
@@ -130,8 +132,12 @@ def cmd_conflicts(args: argparse.Namespace) -> int:
     conflicts_file = vault / ".sync-conflicts.md"
     if not conflicts_file.exists():
         return _emit(
-            {"ok": True, "command": "conflicts", "found": False,
-             "message": "No .sync-conflicts.md exists yet — no recorded conflicts."},
+            {
+                "ok": True,
+                "command": "conflicts",
+                "found": False,
+                "message": "No .sync-conflicts.md exists yet — no recorded conflicts.",
+            },
             args.json,
         )
     content = conflicts_file.read_text(encoding="utf-8")
@@ -151,7 +157,7 @@ def cmd_conflicts(args: argparse.Namespace) -> int:
     return 0
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="vault_sync",
         description="Bidirectional sync bridge between Obsidian vault and vibe-ops engine.",

@@ -11,7 +11,8 @@ Agents in this package follow these rules:
   - Pure arithmetic decision rules (no LLM, no chat, no streaming).
   - Pydantic v2 strict models for state.
   - Idempotent checkpoint persistence via SQLite.
-"""
+"""  # noqa: N999 - package directory "vibe-ops" contains a hyphen and cannot be renamed
+
 from __future__ import annotations
 
 __all__: list[str] = []

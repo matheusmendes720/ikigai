@@ -1,4 +1,5 @@
 """Tests for DB migrations + advisory locks + WAL mode (T10)."""
+
 from __future__ import annotations
 
 import sqlite3
@@ -50,8 +51,7 @@ class TestEnsureSchema:
         BidirectionalSync(vault, db)
         with sqlite3.connect(str(db)) as conn:
             row = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' "
-                "AND name='vault_sync_state'"
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='vault_sync_state'"
             ).fetchone()
         assert row is not None
 
@@ -92,9 +92,7 @@ class TestEnsureSchema:
         vault, db = setup
         BidirectionalSync(vault, db)
         with sqlite3.connect(str(db)) as conn:
-            cols = [r[1] for r in conn.execute(
-                "PRAGMA table_info(vault_sync_state)"
-            ).fetchall()]
+            cols = [r[1] for r in conn.execute("PRAGMA table_info(vault_sync_state)").fetchall()]
         expected = {"vault_path", "entity_type", "entity_id", "last_hash", "last_synced_at"}
         assert expected.issubset(set(cols))
 
@@ -102,9 +100,7 @@ class TestEnsureSchema:
         vault, db = setup
         BidirectionalSync(vault, db)
         with sqlite3.connect(str(db)) as conn:
-            fk = conn.execute(
-                "PRAGMA foreign_key_list(hypothesis_evaluations)"
-            ).fetchall()
+            fk = conn.execute("PRAGMA foreign_key_list(hypothesis_evaluations)").fetchall()
         assert len(fk) >= 1
         assert fk[0][2] == "falsifiable_hypotheses"
 
@@ -187,10 +183,20 @@ class TestMigrationFiles:
         assert len(tables) == 3
 
     def test_operational_mirror_migration_sql_is_valid(self):
+        # ADR-013 archived the PAV kernel: the operational mirror now lives
+        # under archive/legacy-pav/src-operational/... (git mv, history kept).
         migration = (
             VIBE_OPS_ROOT.parent
-            / "life-ops" / "operational" / "packages" / "core" / "src"
-            / "operational" / "persistence" / "migrations" / "003_vault_sync.sql"
+            / "archive"
+            / "legacy-pav"
+            / "src-operational"
+            / "packages"
+            / "core"
+            / "src"
+            / "operational"
+            / "persistence"
+            / "migrations"
+            / "003_vault_sync.sql"
         )
         assert migration.exists(), f"mirror migration missing: {migration}"
         sql = migration.read_text(encoding="utf-8")
@@ -206,7 +212,6 @@ class TestMigrationFiles:
             conn.executescript(sql)
             conn.commit()
             tables = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' "
-                "AND name='vault_sync_state'"
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='vault_sync_state'"
             ).fetchall()
         assert len(tables) == 1

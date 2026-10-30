@@ -2,22 +2,23 @@
 """Create dev cluster tables: roadmaps, features, backlog_tasks, changelogs
 
 Revision ID: 001
-Revises: 
+Revises:
 Create Date: 2026-07-10
 
 """
+
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import sqlite
 
 # revision identifiers
-revision = '001'
+revision = "001"
 down_revision = None
+
 
 def upgrade():
     # Ler e executar o script SQL acima
-    with open('migrations/001_create_dev_cluster_tables.sql', 'r') as f:
+    with open("migrations/001_create_dev_cluster_tables.sql") as f:
         op.execute(f.read())
+
 
 def downgrade():
     # Rollback seguro: drop em ordem de dependência

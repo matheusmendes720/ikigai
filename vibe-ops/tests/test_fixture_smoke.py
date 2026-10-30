@@ -3,6 +3,7 @@
 Verifies the conftest fixtures work and the fixture vault can be
 ingested end-to-end.
 """
+
 from __future__ import annotations
 
 import sqlite3
@@ -31,8 +32,7 @@ class TestTempFixtures:
     def test_temp_db_has_planning_entities(self, temp_db: Path):
         with sqlite3.connect(str(temp_db)) as conn:
             row = conn.execute(
-                "SELECT name FROM sqlite_master "
-                "WHERE type='table' AND name='planning_entities'"
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='planning_entities'"
             ).fetchone()
         assert row is not None
 
@@ -43,9 +43,7 @@ class TestSyncEngineFixture:
         assert result["ingested"] == 6
         assert result["errors"] == 1  # broken.md
         with sqlite3.connect(str(temp_db)) as conn:
-            total = conn.execute(
-                "SELECT COUNT(*) FROM planning_entities"
-            ).fetchone()[0]
+            total = conn.execute("SELECT COUNT(*) FROM planning_entities").fetchone()[0]
         assert total == 6
 
     def test_populated_sync_engine_is_idempotent(self, populated_sync_engine, temp_db: Path):
@@ -54,7 +52,5 @@ class TestSyncEngineFixture:
         assert result["ingested"] == 0
         assert result["skipped"] == 6
         with sqlite3.connect(str(temp_db)) as conn:
-            total = conn.execute(
-                "SELECT COUNT(*) FROM planning_entities"
-            ).fetchone()[0]
+            total = conn.execute("SELECT COUNT(*) FROM planning_entities").fetchone()[0]
         assert total == 6

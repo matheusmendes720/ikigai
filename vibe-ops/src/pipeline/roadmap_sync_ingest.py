@@ -1,10 +1,13 @@
-import sqlite3
 import hashlib
 import json
-from pathlib import Path
+import sqlite3
 from datetime import datetime
+from pathlib import Path
+
 from pydantic import TypeAdapter, ValidationError
+
 from contracts.roadmap_sync_v1 import RoadmapSyncPayload
+
 
 class RoadmapSyncIngest:
     def __init__(self, db_path: Path):
@@ -14,11 +17,11 @@ class RoadmapSyncIngest:
         self.adapter = TypeAdapter(RoadmapSyncPayload)
         # Carrega versão do contrato para validação futura
         self.contract_version = "1.0.0"
-    
+
     def __del__(self):
-        if hasattr(self, 'db') and self.db:
+        if hasattr(self, "db") and self.db:
             self.db.close()
-            
+
     def apply_migration(self, sql_path: Path):
         """Aplica o schema do roadmap_sync caso não exista."""
         if sql_path.exists():
@@ -30,15 +33,16 @@ class RoadmapSyncIngest:
         try:
             # 1. Validar contra Pydantic v2
             payload = self.adapter.validate_python(payload_dict)
-            
+
             # 2. Gerar upstream_id se não fornecido
             if not payload.upstream_id:
                 hash_input = json.dumps(payload.model_dump(), sort_keys=True, default=str)
                 payload.upstream_id = hashlib.sha256(hash_input.encode()).hexdigest()[:12]
-            
+
             # 3. Upsert no SQLite
             cursor = self.db.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO roadmap_sync (
                     task_uuid, description, project_key, status,
                     knowledge_prerequisites, cognitive_debt,
@@ -57,17 +61,32 @@ class RoadmapSyncIngest:
                     upstream_id = excluded.upstream_id,
                     synced_at = CURRENT_TIMESTAMP
                 WHERE excluded.upstream_id != roadmap_sync.upstream_id
-            """, (
-                payload.task_uuid, payload.description, payload.project_key, payload.status,
-                json.dumps([kp.model_dump() for kp in payload.knowledge_prerequisites]),
-                json.dumps(payload.cognitive_debt.model_dump()) if payload.cognitive_debt else None,
-                payload.time_tracked_minutes, payload.pomodoros_completed, payload.energy_avg,
-                self.contract_version, payload.upstream_id, datetime.utcnow()
-            ))
+            """,
+                (
+                    payload.task_uuid,
+                    payload.description,
+                    payload.project_key,
+                    payload.status,
+                    json.dumps([kp.model_dump() for kp in payload.knowledge_prerequisites]),
+                    json.dumps(payload.cognitive_debt.model_dump())
+                    if payload.cognitive_debt
+                    else None,
+                    payload.time_tracked_minutes,
+                    payload.pomodoros_completed,
+                    payload.energy_avg,
+                    self.contract_version,
+                    payload.upstream_id,
+                    datetime.utcnow(),
+                ),
+            )
             self.db.commit()
-            
-            return {"status": "success", "task_uuid": payload.task_uuid, "action": "inserted" if cursor.rowcount else "updated"}
-            
+
+            return {
+                "status": "success",
+                "task_uuid": payload.task_uuid,
+                "action": "inserted" if cursor.rowcount else "updated",
+            }
+
         except ValidationError as e:
             return {"status": "contract_violation", "errors": e.errors()}
         except Exception as e:

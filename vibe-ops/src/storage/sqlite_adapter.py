@@ -1,9 +1,11 @@
-import sqlite3
 import json
-from pathlib import Path
+import sqlite3
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional, Union
+from pathlib import Path
+from typing import Any
+
 from pydantic import BaseModel
+
 
 class SQLiteAdapter:
     """
@@ -23,10 +25,10 @@ class SQLiteAdapter:
         schema_path = Path(__file__).parent / "schema.sql"
         if not schema_path.exists():
             return
-            
-        with open(schema_path, "r") as f:
+
+        with open(schema_path) as f:
             schema_script = f.read()
-            
+
         with self._get_connection() as conn:
             conn.executescript(schema_script)
 
@@ -51,7 +53,7 @@ class SQLiteAdapter:
             "backlog_task": "dev_backlogs",
             "changelog_entry": "dev_changelogs",
             "habit": "habits",
-            "daily_metrics": "metrics_daily"
+            "daily_metrics": "metrics_daily",
         }
 
         table_name = table_map.get(entity_type)
@@ -59,7 +61,7 @@ class SQLiteAdapter:
             return
 
         data = entity.model_dump()
-        
+
         for key, value in data.items():
             if isinstance(value, (list, dict)):
                 data[key] = json.dumps(value)
@@ -69,11 +71,11 @@ class SQLiteAdapter:
         columns = ", ".join(data.keys())
         placeholders = ", ".join(["?" for _ in data])
         sql = f"INSERT OR REPLACE INTO {table_name} ({columns}) VALUES ({placeholders})"
-        
+
         with self._get_connection() as conn:
             conn.execute(sql, list(data.values()))
 
-    def get_entity(self, table: str, entity_id: str) -> Optional[Dict[str, Any]]:
+    def get_entity(self, table: str, entity_id: str) -> dict[str, Any] | None:
         """Busca uma entidade pelo ID."""
         sql = f"SELECT * FROM {table} WHERE id = ?"
         with self._get_connection() as conn:

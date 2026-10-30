@@ -2,25 +2,26 @@
 
 Source: .omo/plans/period-reports-sync.md T5
 """
+
 from __future__ import annotations
 
+import sys
 import warnings
 from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
 
-import sys
 VIBE_OPS_SRC = Path(__file__).resolve().parents[1] / "src"
 if str(VIBE_OPS_SRC) not in sys.path:
     sys.path.insert(0, str(VIBE_OPS_SRC))
 
 from models.period_report import (
+    _PERIOD_DAYS,
+    _PERIOD_VERDICTS,
     PeriodReport,
     PeriodReportParser,
     PeriodSyncStats,
-    _PERIOD_DAYS,
-    _PERIOD_VERDICTS,
 )
 
 
@@ -109,10 +110,12 @@ class TestPeriodReportValidation:
     def test_weekly_too_long_raises(self):
         # Override date_end to be 30 days out — should fail weekly (~7 days) validation
         with pytest.raises(ValueError, match="expected ~7 days"):
-            PeriodReport(**make_valid_kw(
-                "weekly",
-                date_end=date(2026, 6, 26) + timedelta(days=30),
-            ))
+            PeriodReport(
+                **make_valid_kw(
+                    "weekly",
+                    date_end=date(2026, 6, 26) + timedelta(days=30),
+                )
+            )
 
     def test_daily_one_day_exact(self):
         r = PeriodReport(**make_valid_kw("daily"))
@@ -224,11 +227,7 @@ class TestPeriodReportParser:
     def test_parse_returns_none_for_non_period(self, tmp_path: Path):
         md = tmp_path / "other.md"
         md.write_text(
-            "---\n"
-            "type: project\n"
-            "title: Something\n"
-            "---\n"
-            "# body\n",
+            "---\ntype: project\ntitle: Something\n---\n# body\n",
             encoding="utf-8",
         )
         assert PeriodReportParser.parse_file(str(md)) is None

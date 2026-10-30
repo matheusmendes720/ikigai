@@ -1,5 +1,3 @@
-from typing import Tuple
-
 class UEID:
     """
     Gerenciador de Unified Entity ID para o Data Mesh.
@@ -11,7 +9,7 @@ class UEID:
         return f"{cluster}:{entity_type}:{entity_id}"
 
     @staticmethod
-    def parse(ueid: str) -> Tuple[str, str, str]:
+    def parse(ueid: str) -> tuple[str, str, str]:
         parts = ueid.split(":")
         if len(parts) != 3:
             raise ValueError(f"UEID inválido: {ueid}")

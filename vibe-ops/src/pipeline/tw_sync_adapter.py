@@ -1,17 +1,16 @@
-import subprocess
-import json
-from typing import List, Dict, Any
-from models import Project, Skill
+from typing import Any
+
 
 class TaskwarriorSyncAdapter:
     """
     Facade para sincronização entre o Data Mesh e o Taskwarrior.
     """
+
     def __init__(self):
         pass
 
-    def full_pull(self) -> List[Dict[str, Any]]:
+    def full_pull(self) -> list[dict[str, Any]]:
         return []
 
-    def full_push(self, entities: List[Any]):
+    def full_push(self, entities: list[Any]):
         pass

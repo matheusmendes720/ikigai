@@ -3,13 +3,14 @@
 Covers the score formula, evaluation rules, refactor-trigger detection,
 and persistence. Pure in-memory SQLite, no fixtures required.
 """
+
 from __future__ import annotations
 
 import sqlite3
 import sys
-from datetime import date, datetime, timedelta, timezone
+from collections.abc import Iterator
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import Iterator
 
 import pytest
 
@@ -200,9 +201,7 @@ class TestRefactorTriggerDetection:
     def test_no_trigger_in_journal_returns_none(self, conn, tmp_path):
         vault = tmp_path
         (vault / "0_daily").mkdir(parents=True)
-        (vault / "0_daily" / "journal.md").write_text(
-            "Calm day, no surprises.", encoding="utf-8"
-        )
+        (vault / "0_daily" / "journal.md").write_text("Calm day, no surprises.", encoding="utf-8")
         ev = HypothesisEvaluator(conn, vault_path=vault)
         h = _hypothesis(refactor_triggers=["market_collapse"])
         assert ev._detect_refactor_trigger(h) is None
@@ -222,8 +221,7 @@ class TestPersistence:
         ev._detect_refactor_trigger = lambda _h: None
         ev.evaluate_all()
         row = conn.execute(
-            "SELECT verdict, score FROM hypothesis_evaluations "
-            "WHERE hypothesis_id = ?",
+            "SELECT verdict, score FROM hypothesis_evaluations WHERE hypothesis_id = ?",
             (h.id,),
         ).fetchone()
         assert row is not None
@@ -262,7 +260,7 @@ class TestDueFiltering:
 
     def test_fresh_evaluation_skipped(self, conn):
         ev = HypothesisEvaluator(conn)
-        h = _hypothesis(last_evaluated_at=datetime.now(timezone.utc).isoformat())
+        h = _hypothesis(last_evaluated_at=datetime.now(UTC).isoformat())
         ev.upsert_hypothesis(h)
         result = ev.evaluate_all()
         assert result == []

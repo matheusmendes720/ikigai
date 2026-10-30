@@ -2,6 +2,7 @@
 
 Source: .omo/plans/vault-enrichment-fields.md
 """
+
 from __future__ import annotations
 
 import sys
@@ -120,9 +121,7 @@ class TestVaultFieldAssignment:
         assert sp.commercial_goal == "Course launch"
 
     def test_vault_path_assigned(self):
-        sp = StudyProject(
-            **_base_kwargs(vault_path="/vault/study/sp_vault_test.md")
-        )
+        sp = StudyProject(**_base_kwargs(vault_path="/vault/study/sp_vault_test.md"))
         assert sp.vault_path == "/vault/study/sp_vault_test.md"
 
     def test_last_synced_at_datetime(self):
@@ -151,9 +150,7 @@ class TestExtraAllow:
     """Unknown extra fields must be accepted (extra='allow')."""
 
     def test_unknown_field_accepted(self):
-        sp = StudyProject(
-            **_base_kwargs(custom_obsidian_field="note-text", extra_score=42)
-        )
+        sp = StudyProject(**_base_kwargs(custom_obsidian_field="note-text", extra_score=42))
         assert sp.custom_obsidian_field == "note-text"
         assert sp.extra_score == 42
 

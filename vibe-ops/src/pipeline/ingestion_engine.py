@@ -1,16 +1,19 @@
 from __future__ import annotations
+
 import datetime
-from typing import Any, Dict, Optional
-from sqlalchemy.orm import Session
+
 from pydantic import ValidationError
+from sqlalchemy.orm import Session
 
 from models.contracts import StudyNoteContract
-from storage.metadata_orm import MetadataCatalogORM, StateMachineORM
-from storage.orm import StudyTopicORM
-from storage.chroma_adapter import ChromaAdapter
-from storage.ueid import UEID
 from pipeline.enrichment_engine import EnrichmentEngine
 from pipeline.learning_outcome_processor import LearningOutcomeProcessor
+from storage.chroma_adapter import ChromaAdapter
+from storage.data_mesh_adapter import DataMeshAdapter
+from storage.metadata_orm import MetadataCatalogORM, StateMachineORM
+from storage.orm import StudyTopicORM
+from storage.ueid import UEID
+
 
 class IngestionEngine:
     """
@@ -18,11 +21,16 @@ class IngestionEngine:
     Orchestrates validation, registration, and state management for data nodes.
     """
 
-    def __init__(self, db_session: Session, vector_db: ChromaAdapter):
+    def __init__(
+        self,
+        db_session: Session,
+        vector_db: ChromaAdapter,
+        adapter: DataMeshAdapter | None = None,
+    ):
         self.db = db_session
         self.vector_db = vector_db
         self.enricher = EnrichmentEngine()
-        self.outcome_processor = LearningOutcomeProcessor(None) # Adapter logic handled elsewhere for now
+        self.outcome_processor = LearningOutcomeProcessor(adapter)
 
     def process_obsidian_note(self, file_path: str, raw_yaml: dict, content: str):
         """
@@ -39,14 +47,14 @@ class IngestionEngine:
                     node_id=source_path,
                     state="FAILED_VALIDATION",
                     event="VALIDATION_ERROR",
-                    payload={"errors": e.errors(), "raw_yaml": raw_yaml}
+                    payload={"errors": e.errors(), "raw_yaml": raw_yaml},
                 )
                 return
 
             # 2. Atomic Orchestration
             try:
                 ueid = UEID.create("study", "topic", contract.topic_id)
-                
+
                 # LAYER 2: Enrichment & Chunking
                 enriched_meta = self.enricher.enrich_study_note(contract, content)
                 chunks = self.enricher.chunk_content(content)
@@ -60,9 +68,11 @@ class IngestionEngine:
                         topic = StudyTopicORM(
                             id=contract.topic_id,
                             title=contract.topic_id.replace("_", " ").title(),
-                            parent_study_project=raw_yaml.get("parent_project", "default_study_project"),
+                            parent_study_project=raw_yaml.get(
+                                "parent_project", "default_study_project"
+                            ),
                             depth_level=contract.depth_level,
-                            status="active"
+                            status="active",
                         )
                         self.db.add(topic)
 
@@ -75,8 +85,8 @@ class IngestionEngine:
                             metadata={
                                 **enriched_meta,
                                 "chunk_index": i,
-                                "source_path": source_path
-                            }
+                                "source_path": source_path,
+                            },
                         )
 
                     # Upsert entry into MetadataCatalogORM
@@ -95,7 +105,7 @@ class IngestionEngine:
                             contract_id=contract.schema_id,
                             contract_version=contract.contract_version,
                             physical_table="study_topics",
-                            vector_collection="vibe_ops_mesh"
+                            vector_collection="vibe_ops_mesh",
                         )
                         self.db.add(catalog_entry)
 
@@ -104,7 +114,10 @@ class IngestionEngine:
                         node_id=ueid,
                         state="INDEXED_AND_READY",
                         event="INGESTION_COMPLETE",
-                        payload={"source_path": source_path, "contract_version": contract.contract_version}
+                        payload={
+                            "source_path": source_path,
+                            "contract_version": contract.contract_version,
+                        },
                     )
 
                 self.db.commit()
@@ -115,10 +128,10 @@ class IngestionEngine:
 
         except Exception as e:
             self._log_state(
-                node_id=source_path, # Fallback to file path
+                node_id=source_path,  # Fallback to file path
                 state="ERROR",
                 event="UNEXPECTED_FAILURE",
-                payload={"error": str(e)}
+                payload={"error": str(e)},
             )
 
     def _log_state(self, node_id: str, state: str, event: str, payload: dict):
@@ -132,7 +145,7 @@ class IngestionEngine:
                 contract_id="unknown",
                 contract_version="unknown",
                 physical_table="unknown",
-                vector_collection="unknown"
+                vector_collection="unknown",
             )
             self.db.add(catalog_entry)
             self.db.flush()
@@ -142,7 +155,7 @@ class IngestionEngine:
             current_state=state,
             last_event=event,
             event_payload=payload,
-            transitioned_at=datetime.datetime.utcnow()
+            transitioned_at=datetime.datetime.utcnow(),
         )
         self.db.add(log_entry)
         try:

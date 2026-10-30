@@ -2,6 +2,7 @@
 
 Verifies ingestion, idempotency, error tolerance, and upstream_id stability.
 """
+
 from __future__ import annotations
 
 import json
@@ -9,8 +10,8 @@ import shutil
 import sqlite3
 import sys
 import tempfile
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 import pytest
 
@@ -289,8 +290,7 @@ class TestVaultSyncState:
         sync.sync_vault_to_code()
         with sqlite3.connect(str(db)) as conn:
             row = conn.execute(
-                "SELECT vault_path, entity_type, entity_id, last_hash "
-                "FROM vault_sync_state"
+                "SELECT vault_path, entity_type, entity_id, last_hash FROM vault_sync_state"
             ).fetchone()
         assert row is not None
         assert row[0] == "2_projeto/proj_state.md"

@@ -1,4 +1,5 @@
 """Tests for FrontmatterParser MODEL_MAP (T11) and Dream entity (T6 follow-up)."""
+
 from __future__ import annotations
 
 import sys
@@ -25,17 +26,11 @@ class TestModelMapRegistry:
 
     def test_falsifiable_hypothesis_registered(self):
         assert "falsifiable_hypothesis" in FrontmatterParser.MODEL_MAP
-        assert (
-            FrontmatterParser.MODEL_MAP["falsifiable_hypothesis"]
-            is FalsifiableHypothesis
-        )
+        assert FrontmatterParser.MODEL_MAP["falsifiable_hypothesis"] is FalsifiableHypothesis
 
     def test_hypothesis_evaluation_registered(self):
         assert "hypothesis_evaluation" in FrontmatterParser.MODEL_MAP
-        assert (
-            FrontmatterParser.MODEL_MAP["hypothesis_evaluation"]
-            is HypothesisEvaluation
-        )
+        assert FrontmatterParser.MODEL_MAP["hypothesis_evaluation"] is HypothesisEvaluation
 
     def test_24_entity_types_total(self):
         assert len(FrontmatterParser.MODEL_MAP) == 24
@@ -97,11 +92,13 @@ class TestDreamEntity:
 
     def test_invalid_id_pattern(self):
         from pydantic import ValidationError
+
         with pytest.raises(ValidationError):
             Dream(id="bad_id", title="Valid Title")
 
     def test_horizon_years_bounds(self):
         from pydantic import ValidationError
+
         with pytest.raises(ValidationError):
             Dream(id="dr_x", title="Valid Title", horizon_years=0)
         with pytest.raises(ValidationError):

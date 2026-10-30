@@ -2,6 +2,7 @@
 
 Pure arithmetic — no I/O, no fixtures. Runs in <50ms.
 """
+
 from __future__ import annotations
 
 import sys
@@ -80,8 +81,8 @@ class TestComputePriorityRank:
         tasks = [
             RiceInput("a", 100, 1, 1, 1),  # score 100
             RiceInput("b", 100, 1, 1, 1),  # score 100 (tie with a)
-            RiceInput("c", 50, 1, 1, 1),   # score 50
-            RiceInput("d", 25, 1, 1, 1),   # score 25
+            RiceInput("c", 50, 1, 1, 1),  # score 50
+            RiceInput("d", 25, 1, 1, 1),  # score 25
         ]
         ranks = compute_priority_rank(tasks)
         assert ranks["a"] == 1

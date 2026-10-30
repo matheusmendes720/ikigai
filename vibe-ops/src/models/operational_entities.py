@@ -1,9 +1,12 @@
-from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Literal
+from typing import Any
+
+from pydantic import BaseModel
+
 
 class OperationalMode(BaseModel):
     mode: str
-    constraints: Dict[str, Any]
+    constraints: dict[str, Any]
+
 
 class PolicyRule(BaseModel):
     id: str
