@@ -6,15 +6,14 @@ PropagationEvent to downstream forks after approval.
 """
 
 from datetime import datetime
-from enum import Enum
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from .common import UEID
+from .common import UEID, StrEnum
 
 
-class TaskAction(str, Enum):
+class TaskAction(StrEnum):
     """Action type for task lifecycle.
 
     M164: added TAG_ADD / TAG_REMOVE / TAG_CLEAR for the td tag subsystem.
