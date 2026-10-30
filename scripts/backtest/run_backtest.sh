@@ -91,7 +91,14 @@ set -e
 HEALTH_CODE="${HEALTH_CODE:-000}"
 if [[ "$HEALTH_CODE" != "200" ]]; then
     echo "  ERROR: taskdog-server unreachable at http://127.0.0.1:8000 (got HTTP $HEALTH_CODE, curl_status=$curl_status)" >&2
-    echo "  Start it with: cd taskwarrior/taskdog-server && uv run uvicorn main:app" >&2
+    # The server is the PyPI package `taskdog-server`, not a repo in this
+    # project: there is no taskwarrior/ directory here, and `uvicorn main:app`
+    # is not the entry point (it serves nothing). The working invocation is the
+    # installed binary, which resolves its own interpreter (the package needs
+    # Python >=3.12 while CI runs 3.11).
+    echo "  Start it with:" >&2
+    echo "    uv tool install taskdog-server" >&2
+    echo "    taskdog-server --host 127.0.0.1 --port 8000" >&2
     exit 2
 fi
 echo "  taskdog-server OK (HTTP 200)"
