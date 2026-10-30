@@ -106,6 +106,8 @@ src/ikigai/ikigai.ps1
 src/ikigai/ikigai_help.txt
 src/ikigai/list_out.txt
 src/ikigai/mypy_output.txt
+# src/ikigai/vault/ — test-run artifact (relative vault root when pytest cwd=src/ikigai)
+src/ikigai/vault/
 # src/ikigai/scripts/ scratch scripts (cleaned 2026-08-31)
 src/ikigai/scripts/parse_mypy.py
 src/ikigai/scripts/strip_unused_ignores.py
@@ -178,6 +180,12 @@ src/ikigai/WriteResult\`
 # (`git rm --cached`); this pattern prevents future re-tracking.
 # `data/*.db` (canonical runtime state) is a separate pattern.
 vibe-ops/**/*.db
+# vibe-ops Chroma persistence dir (runtime vector store, recreatable).
+# The `.db` pattern above does not match Chroma's `chroma.sqlite3`.
+vibe-ops/chroma_db/
+# OMH/OMO tool runtime state (init-deep digests, chunks, probe scratch).
+# The canonical roadmap state lives in `.claude/loop/{roadmap,tasks,progress}.md`.
+/.omo/
 
 # ─── Vault (Obsidian KB — runtime only) ─────────────────────────
 # Source vault (wikilinks, markdown) IS tracked.
@@ -506,6 +514,12 @@ archive/legacy-pav/src-operational/medic/bin/
 /[0-9][0-9]
 /[0-9][0-9][0-9]
 /[0-9][0-9][0-9][0-9]
+# Pattern 2b: exception — `src` is a legitimate root directory that also matches
+# the 3-letter pattern above. Without this negation git matches the directory
+# itself, never descends into it, and every NEW file below it is silently
+# untracked (src/ikigai/poetry.lock, src/ikigai/src/plugins/, ...). Negating the
+# directory lets git descend again; inner rules (e.g. /src/data/) still apply.
+!/src/
 # Pattern 3: scattered survivors (M57 spotted them, branchy gitignore)
 /80%
 /100
