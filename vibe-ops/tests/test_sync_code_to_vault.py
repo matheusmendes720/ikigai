@@ -2,6 +2,7 @@
 
 Validates the 12-field computed frontmatter export and atomic write semantics.
 """
+
 from __future__ import annotations
 
 import json
@@ -10,8 +11,8 @@ import sqlite3
 import sys
 import tempfile
 import time
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 import frontmatter
 import pytest
@@ -21,6 +22,7 @@ if str(VIBE_OPS_SRC) not in sys.path:
     sys.path.insert(0, str(VIBE_OPS_SRC))
 
 from middleware.bidirectional_sync import BidirectionalSync  # noqa: E402
+from pipeline.rice_exporter import compute_rice_score  # noqa: E402
 
 
 def _make_db(db_path: Path) -> None:
@@ -78,8 +80,14 @@ def _insert_entity(conn, entity_id: str, entity_type: str, payload: dict) -> Non
         "INSERT INTO planning_entities "
         "(id, entity_type, payload_json, upstream_id, synced_at, created_at) "
         "VALUES (?, ?, ?, ?, ?, ?)",
-        (entity_id, entity_type, json.dumps(payload), "abc123def456",
-         "2026-06-30T00:00:00", "2026-06-30T00:00:00"),
+        (
+            entity_id,
+            entity_type,
+            json.dumps(payload),
+            "abc123def456",
+            "2026-06-30T00:00:00",
+            "2026-06-30T00:00:00",
+        ),
     )
 
 
@@ -114,15 +122,19 @@ class TestSyncCodeToVaultExportsAllComputedFields:
             encoding="utf-8",
         )
         with sqlite3.connect(str(db)) as conn:
-            _insert_entity(conn, "proj_a", "project", {
-                "id": "proj_a",
-                "title": "A",
-                "status": "active",
-                "revenue_impact": "HIGH",
-                "vault_path": "2_projeto/proj_a.md",
-            })
-            _insert_pd(conn, "2026-06-30", "MAINTAIN", 0.65,
-                       "2026-06-30T12:00:00")
+            _insert_entity(
+                conn,
+                "proj_a",
+                "project",
+                {
+                    "id": "proj_a",
+                    "title": "A",
+                    "status": "active",
+                    "revenue_impact": "HIGH",
+                    "vault_path": "2_projeto/proj_a.md",
+                },
+            )
+            _insert_pd(conn, "2026-06-30", "MAINTAIN", 0.65, "2026-06-30T12:00:00")
             conn.commit()
 
         sync = BidirectionalSync(vault, db)
@@ -149,15 +161,19 @@ class TestSyncCodeToVaultExportsAllComputedFields:
             encoding="utf-8",
         )
         with sqlite3.connect(str(db)) as conn:
-            _insert_entity(conn, "proj_b", "project", {
-                "id": "proj_b",
-                "title": "B",
-                "status": "active",
-                "revenue_impact": "HIGH",
-                "vault_path": "2_projeto/proj_b.md",
-            })
-            _insert_pd(conn, "2026-06-30", "PUSH", 0.85,
-                       "2026-06-30T12:00:00")
+            _insert_entity(
+                conn,
+                "proj_b",
+                "project",
+                {
+                    "id": "proj_b",
+                    "title": "B",
+                    "status": "active",
+                    "revenue_impact": "HIGH",
+                    "vault_path": "2_projeto/proj_b.md",
+                },
+            )
+            _insert_pd(conn, "2026-06-30", "PUSH", 0.85, "2026-06-30T12:00:00")
             conn.commit()
 
         sync = BidirectionalSync(vault, db)
@@ -172,7 +188,8 @@ class TestSyncCodeToVaultExportsAllComputedFields:
         assert post.metadata["regime"] == "PUSH"
         assert post.metadata["qhe_target"] == 0.85
 
-    def test_rice_score_included_when_components_present(self, setup):
+    def test_rice_score_written_when_already_computed(self, setup):
+        """The sync layer writes field *presence* — it never computes scores."""
         vault, db = setup
         (vault / "2_projeto").mkdir()
         (vault / "2_projeto" / "proj_r.md").write_text(
@@ -181,25 +198,71 @@ class TestSyncCodeToVaultExportsAllComputedFields:
             encoding="utf-8",
         )
         with sqlite3.connect(str(db)) as conn:
-            _insert_entity(conn, "proj_r", "project", {
-                "id": "proj_r",
-                "title": "R",
-                "status": "active",
-                "revenue_impact": "HIGH",
-                "vault_path": "2_projeto/proj_r.md",
-                "reach": 100,
-                "impact": 2.0,
-                "confidence": 0.8,
-                "effort_h": 5.0,
-            })
+            _insert_entity(
+                conn,
+                "proj_r",
+                "project",
+                {
+                    "id": "proj_r",
+                    "title": "R",
+                    "status": "active",
+                    "revenue_impact": "HIGH",
+                    "vault_path": "2_projeto/proj_r.md",
+                    "rice_score": 32.0,
+                },
+            )
             conn.commit()
 
         sync = BidirectionalSync(vault, db)
         sync.sync_code_to_vault()
 
         post = frontmatter.load(str(vault / "2_projeto" / "proj_r.md"))
-        # 100 * 2.0 * 0.8 / 5.0 = 32.0
+        # Pre-computed value is carried through untouched.
         assert post.metadata["rice_score"] == pytest.approx(32.0)
+
+    def test_rice_scoring_archived_out_of_sync_layer(self, setup):
+        """RICE math lives in the algorithm layer, not the sync layer.
+
+        Per attribution §3 the orchestrator/sync layers must not execute
+        mathematical algorithms. ``_build_computed_fields`` therefore raises
+        when it is asked to derive a score from raw RICE components; the
+        canonical implementation is ``pipeline.rice_exporter.compute_rice_score``.
+        """
+        vault, db = setup
+        (vault / "2_projeto").mkdir()
+        (vault / "2_projeto" / "proj_r.md").write_text(
+            "---\nentity_type: project\nid: proj_r\ntitle: R\n"
+            "status: active\nrevenue_impact: HIGH\n---\n",
+            encoding="utf-8",
+        )
+        with sqlite3.connect(str(db)) as conn:
+            _insert_entity(
+                conn,
+                "proj_r",
+                "project",
+                {
+                    "id": "proj_r",
+                    "title": "R",
+                    "status": "active",
+                    "revenue_impact": "HIGH",
+                    "vault_path": "2_projeto/proj_r.md",
+                    "reach": 100,
+                    "impact": 2.0,
+                    "confidence": 0.8,
+                    "effort_h": 5.0,
+                },
+            )
+            conn.commit()
+
+        sync = BidirectionalSync(vault, db)
+        with pytest.raises(NotImplementedError) as excinfo:
+            sync.sync_code_to_vault()
+
+        assert "rice_exporter.compute_rice_score" in str(excinfo.value)
+
+        # The canonical implementation still yields the expected score:
+        # 100 * 2.0 * 0.8 / 5.0 = 32.0
+        assert compute_rice_score(100, 2.0, 0.8, 5.0) == pytest.approx(32.0)
 
 
 class TestSyncCodeToVaultAtomicWrites:
@@ -214,13 +277,18 @@ class TestSyncCodeToVaultAtomicWrites:
             encoding="utf-8",
         )
         with sqlite3.connect(str(db)) as conn:
-            _insert_entity(conn, "proj_z", "project", {
-                "id": "proj_z",
-                "title": "Z",
-                "status": "active",
-                "revenue_impact": "HIGH",
-                "vault_path": "2_projeto/proj_z.md",
-            })
+            _insert_entity(
+                conn,
+                "proj_z",
+                "project",
+                {
+                    "id": "proj_z",
+                    "title": "Z",
+                    "status": "active",
+                    "revenue_impact": "HIGH",
+                    "vault_path": "2_projeto/proj_z.md",
+                },
+            )
             conn.commit()
 
         sync = BidirectionalSync(vault, db)
@@ -239,15 +307,19 @@ class TestSyncCodeToVaultAtomicWrites:
             encoding="utf-8",
         )
         with sqlite3.connect(str(db)) as conn:
-            _insert_entity(conn, "proj_i", "project", {
-                "id": "proj_i",
-                "title": "I",
-                "status": "active",
-                "revenue_impact": "HIGH",
-                "vault_path": "2_projeto/proj_i.md",
-            })
-            _insert_pd(conn, "2026-06-30", "PUSH", 0.85,
-                       "2026-06-30T12:00:00")
+            _insert_entity(
+                conn,
+                "proj_i",
+                "project",
+                {
+                    "id": "proj_i",
+                    "title": "I",
+                    "status": "active",
+                    "revenue_impact": "HIGH",
+                    "vault_path": "2_projeto/proj_i.md",
+                },
+            )
+            _insert_pd(conn, "2026-06-30", "PUSH", 0.85, "2026-06-30T12:00:00")
             conn.commit()
 
         sync = BidirectionalSync(vault, db)
@@ -258,8 +330,7 @@ class TestSyncCodeToVaultAtomicWrites:
 
         time.sleep(1.1)
         with sqlite3.connect(str(db)) as conn:
-            _insert_pd(conn, "2026-07-01", "MAINTAIN", 0.65,
-                       "2026-07-01T09:00:00")
+            _insert_pd(conn, "2026-07-01", "MAINTAIN", 0.65, "2026-07-01T09:00:00")
             conn.commit()
 
         sync2 = BidirectionalSync(vault, db)

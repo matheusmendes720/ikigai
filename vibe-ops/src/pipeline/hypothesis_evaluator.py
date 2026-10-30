@@ -17,6 +17,7 @@ Verdict rules:
   - leading all met + lagging above threshold -> "falsified"
   - else -> "no_change"
 """
+
 from __future__ import annotations
 
 import datetime as _dt
@@ -25,12 +26,11 @@ import logging
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional
-
 
 from models.hypothesis_entities import (
     FalsifiableHypothesis,
     HypothesisEvaluation,
+    HypothesisVerdict,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class HypothesisEvaluator:
     def __init__(
         self,
         db_connection: sqlite3.Connection,
-        vault_path: Optional[Path] = None,
+        vault_path: Path | None = None,
     ) -> None:
         self.db = db_connection
         self.db.row_factory = sqlite3.Row
@@ -122,7 +122,10 @@ class HypothesisEvaluator:
                 last_synced_at = excluded.last_synced_at
             """,
             (
-                h.id, h.dream_id, h.hypothesis_text, h.evidence_threshold,
+                h.id,
+                h.dream_id,
+                h.hypothesis_text,
+                h.evidence_threshold,
                 h.measurement_window_days,
                 json.dumps(h.leading_indicators),
                 json.dumps(h.lagging_indicators),
@@ -157,11 +160,11 @@ class HypothesisEvaluator:
         raw = leading_ratio * 0.5 + (1.0 - lagging_ratio) * 0.5
         return max(0.0, min(1.0, raw))
 
-    def _due_hypotheses(self) -> List[FalsifiableHypothesis]:
+    def _due_hypotheses(self) -> list[FalsifiableHypothesis]:
         """Return hypotheses that need evaluation (kill-switch reached or stale)."""
-        today = datetime.now(_dt.timezone.utc).date()
+        today = datetime.now(_dt.UTC).date()
         stale_cutoff = (
-            datetime.now(_dt.timezone.utc) - timedelta(days=RE_EVALUATION_INTERVAL_DAYS)
+            datetime.now(_dt.UTC) - timedelta(days=RE_EVALUATION_INTERVAL_DAYS)
         ).isoformat()
         rows = self.db.execute(
             """
@@ -194,9 +197,9 @@ class HypothesisEvaluator:
             last_synced_at=row["last_synced_at"] if row["last_synced_at"] else None,
         )
 
-    def evaluate_all(self) -> List[HypothesisEvaluation]:
+    def evaluate_all(self) -> list[HypothesisEvaluation]:
         """Evaluate every due hypothesis and persist the results."""
-        evaluations: List[HypothesisEvaluation] = []
+        evaluations: list[HypothesisEvaluation] = []
         for h in self._due_hypotheses():
             ev = self._evaluate_one(h)
             evaluations.append(ev)
@@ -211,7 +214,7 @@ class HypothesisEvaluator:
             leading_met, lagging_met, leading_total, lagging_total
         )
 
-        verdict: str
+        verdict: HypothesisVerdict
         notes: str
         if refactor_hit:
             verdict = "pivoted"
@@ -224,14 +227,11 @@ class HypothesisEvaluator:
             notes = f"no leading indicators; lagging {lagging_met}/{lagging_total}"
         else:
             verdict = "no_change"
-            notes = (
-                f"leading {leading_met}/{leading_total}, "
-                f"lagging {lagging_met}/{lagging_total}"
-            )
+            notes = f"leading {leading_met}/{leading_total}, lagging {lagging_met}/{lagging_total}"
 
         return HypothesisEvaluation(
             hypothesis_id=h.id,
-            evaluated_at=datetime.now(_dt.timezone.utc),
+            evaluated_at=datetime.now(_dt.UTC),
             verdict=verdict,
             score=score,
             notes=notes,
@@ -268,7 +268,7 @@ class HypothesisEvaluator:
             return 0, 0
         return 0, total
 
-    def _detect_refactor_trigger(self, h: FalsifiableHypothesis) -> Optional[str]:
+    def _detect_refactor_trigger(self, h: FalsifiableHypothesis) -> str | None:
         """Keyword-search the user's journal for refactor triggers."""
         if not h.refactor_triggers or self.vault_path is None:
             return None
@@ -311,8 +311,7 @@ class HypothesisEvaluator:
             new_status = "pivoted"
 
         self.db.execute(
-            "UPDATE falsifiable_hypotheses SET status = ?, last_evaluated_at = ? "
-            "WHERE id = ?",
+            "UPDATE falsifiable_hypotheses SET status = ?, last_evaluated_at = ? WHERE id = ?",
             (new_status, ev.evaluated_at.isoformat(), h.id),
         )
         self.db.commit()

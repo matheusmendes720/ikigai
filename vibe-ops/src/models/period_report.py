@@ -3,6 +3,7 @@
 Source: ADR-006 (Period Reports Schema Contract)
 Linked: .omo/plans/period-reports-sync.md T2
 """
+
 from __future__ import annotations
 
 import datetime as _dt
@@ -51,6 +52,7 @@ class PeriodReport(BaseModel):
     Lenient mode (extra="allow") so user-added fields don't break validation.
     Sync metadata (vault_path, vault_hash) is required.
     """
+
     model_config = ConfigDict(
         frozen=False,
         extra="allow",
@@ -96,13 +98,12 @@ class PeriodReport(BaseModel):
         allowed = _PERIOD_VERDICTS.get(period, set())
         if v not in allowed:
             raise ValueError(
-                f"verdict {v!r} not allowed for period {period!r}. "
-                f"Allowed: {sorted(allowed)}"
+                f"verdict {v!r} not allowed for period {period!r}. Allowed: {sorted(allowed)}"
             )
         return v
 
     @model_validator(mode="after")
-    def auto_id_from_vault_path(self) -> "PeriodReport":
+    def auto_id_from_vault_path(self) -> PeriodReport:
         if not self.id:
             # Derive id from vault_path: filename without extension
             stem = Path(self.vault_path).stem
@@ -110,11 +111,9 @@ class PeriodReport(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_date_range(self) -> "PeriodReport":
+    def validate_date_range(self) -> PeriodReport:
         if self.date_end < self.date_start:
-            raise ValueError(
-                f"date_end {self.date_end} < date_start {self.date_start}"
-            )
+            raise ValueError(f"date_end {self.date_end} < date_start {self.date_start}")
         expected_days = _PERIOD_DAYS.get(self.period)
         if expected_days is not None:
             actual_days = (self.date_end - self.date_start).days + 1
@@ -126,15 +125,13 @@ class PeriodReport(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_hierarchy(self) -> "PeriodReport":
+    def validate_hierarchy(self) -> PeriodReport:
         if self.period == "sonho" and self.parent_period is not None:
-            raise ValueError(
-                "sonho reports cannot have parent_period (sonho is the root)"
-            )
+            raise ValueError("sonho reports cannot have parent_period (sonho is the root)")
         return self
 
     @model_validator(mode="after")
-    def validate_verdict_score_consistency(self) -> "PeriodReport":
+    def validate_verdict_score_consistency(self) -> PeriodReport:
         if self.verdict in ("FAIL", "KILL_WAVE", "FALSIFIED", "ABANDONED"):
             if self.verdict_score >= 0.5:
                 warnings.warn(
@@ -151,6 +148,7 @@ class PeriodSyncStats(BaseModel):
 
     Defined here so sync layer (period_sync.py) can import without circular deps.
     """
+
     model_config = ConfigDict(frozen=True)
 
     ingested: int = 0

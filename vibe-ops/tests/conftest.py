@@ -2,6 +2,7 @@
 
 Source: .omo/plans/vault-bidirectional-sync.md (T9)
 """
+
 from __future__ import annotations
 
 import shutil
@@ -62,6 +63,7 @@ def temp_db(tmp_path: Path) -> Path:
 def sync_engine(temp_vault: Path, temp_db: Path):
     """A BidirectionalSync instance bound to the temp vault + DB."""
     from middleware.bidirectional_sync import BidirectionalSync
+
     return BidirectionalSync(temp_vault, temp_db)
 
 
@@ -69,6 +71,7 @@ def sync_engine(temp_vault: Path, temp_db: Path):
 def populated_sync_engine(temp_vault: Path, temp_db: Path):
     """Sync engine with vault pre-ingested once."""
     from middleware.bidirectional_sync import BidirectionalSync
+
     sync = BidirectionalSync(temp_vault, temp_db)
     sync.sync_vault_to_code()
     return sync

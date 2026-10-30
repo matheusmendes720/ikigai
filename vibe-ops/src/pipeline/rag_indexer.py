@@ -1,22 +1,23 @@
-import os
 import logging
+import os
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import Any
 
-from storage.sqlite_vec_integration import SQLiteVecIntegration
-from embeddings.provider import EmbeddingProvider, get_provider
+from embeddings.provider import get_provider
 from pipeline.frontmatter_parser import FrontmatterParser
+from storage.sqlite_vec_integration import SQLiteVecIntegration
 
 logger = logging.getLogger(__name__)
+
 
 class HybridRAGIndexer:
     """
     Orquestrador para indexação semântica e busca híbrida.
     """
-    
-    def __init__(self, 
-                 db_path: str = "vibe_ops.db", 
-                 embedding_config: Optional[Dict[str, Any]] = None):
+
+    def __init__(
+        self, db_path: str = "vibe_ops.db", embedding_config: dict[str, Any] | None = None
+    ):
         self.vec_store = SQLiteVecIntegration(db_path)
         self.embedding_provider = get_provider(embedding_config or {"type": "local"})
         self.parser = FrontmatterParser()
@@ -31,7 +32,7 @@ class HybridRAGIndexer:
             return
 
         logger.info(f"Iniciando indexação do vault: {vault_path}")
-        
+
         indexed_count = 0
         for root, _, files in os.walk(vault_root):
             for file in files:
@@ -47,16 +48,17 @@ class HybridRAGIndexer:
 
     def index_file(self, file_path: Path):
         """Indexa um arquivo individual."""
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
 
         # Extrai frontmatter
         metadata = self.parser.extract_raw(content) or {}
-        
+
         # Remove frontmatter do conteúdo para o embedding (opcional, mas recomendado)
         import re
-        clean_content = re.sub(r'^---\s*\n(.*?)\n---\s*\n', '', content, flags=re.DOTALL).strip()
-        
+
+        clean_content = re.sub(r"^---\s*\n(.*?)\n---\s*\n", "", content, flags=re.DOTALL).strip()
+
         if not clean_content:
             return
 
@@ -69,29 +71,28 @@ class HybridRAGIndexer:
         embedding = self.embedding_provider.get_embedding(clean_content)
 
         # Adiciona metadados extras
-        metadata.update({
-            "path": rel_path,
-            "filename": file_path.name,
-            "char_count": len(clean_content)
-        })
+        metadata.update(
+            {"path": rel_path, "filename": file_path.name, "char_count": len(clean_content)}
+        )
 
         # Upsert no banco
         self.vec_store.upsert_vector(
             entity_id=entity_id,
             entity_type=entity_type,
-            content=clean_content[:1000], # Guardamos um snippet ou o conteúdo todo
+            content=clean_content[:1000],  # Guardamos um snippet ou o conteúdo todo
             embedding=embedding,
-            metadata=metadata
+            metadata=metadata,
         )
 
-    def search(self, query: str, limit: int = 5, entity_type: Optional[str] = None) -> List[Dict[str, Any]]:
+    def search(
+        self, query: str, limit: int = 5, entity_type: str | None = None
+    ) -> list[dict[str, Any]]:
         """Realiza busca semântica."""
         query_emb = self.embedding_provider.get_embedding(query)
         return self.vec_store.semantic_search(
-            query_embedding=query_emb,
-            limit=limit,
-            filter_type=entity_type
+            query_embedding=query_emb, limit=limit, filter_type=entity_type
         )
+
 
 if __name__ == "__main__":
     # Teste rápido se executado diretamente

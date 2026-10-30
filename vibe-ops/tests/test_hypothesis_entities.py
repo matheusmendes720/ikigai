@@ -1,4 +1,5 @@
 """Tests for FalsifiableHypothesis + HypothesisEvaluation entities (T6)."""
+
 from __future__ import annotations
 
 import sys
@@ -97,11 +98,13 @@ class TestFalsifiableHypothesisValidation:
 
 class TestFalsifiableHypothesisAssignment:
     def test_indicators_assigned(self):
-        h = FalsifiableHypothesis(**_base_kwargs(
-            leading_indicators=["study_session_minutes >= 60", "sleep_target_met"],
-            lagging_indicators=["QHE > 0.7", "weekly_xp_gain > 100"],
-            refactor_triggers=["market_shift_to_ai", "team_restructure"],
-        ))
+        h = FalsifiableHypothesis(
+            **_base_kwargs(
+                leading_indicators=["study_session_minutes >= 60", "sleep_target_met"],
+                lagging_indicators=["QHE > 0.7", "weekly_xp_gain > 100"],
+                refactor_triggers=["market_shift_to_ai", "team_restructure"],
+            )
+        )
         assert len(h.leading_indicators) == 2
         assert len(h.lagging_indicators) == 2
         assert len(h.refactor_triggers) == 2
@@ -117,15 +120,11 @@ class TestFalsifiableHypothesisAssignment:
         assert h.last_evaluated_at == ts
 
     def test_vault_path_assigned(self):
-        h = FalsifiableHypothesis(
-            **_base_kwargs(vault_path="/vault/hypotheses/fh_test_basic.md")
-        )
+        h = FalsifiableHypothesis(**_base_kwargs(vault_path="/vault/hypotheses/fh_test_basic.md"))
         assert h.vault_path == "/vault/hypotheses/fh_test_basic.md"
 
     def test_extra_fields_allowed(self):
-        h = FalsifiableHypothesis(
-            **_base_kwargs(custom_field="vault_extra", numeric_meta=42)
-        )
+        h = FalsifiableHypothesis(**_base_kwargs(custom_field="vault_extra", numeric_meta=42))
         assert h.custom_field == "vault_extra"
         assert h.numeric_meta == 42
 

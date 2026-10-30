@@ -7,6 +7,7 @@ When invoked directly (as a script), Python only adds the script's directory
 (``vibe-ops/src/cli``) to ``sys.path``. To make ``from middleware.period_sync``
 work, we must prepend the parent ``vibe-ops/src`` directory.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -15,11 +16,10 @@ import sqlite3
 import sys
 from pathlib import Path
 
-
 # Ensure vibe-ops/src is on sys.path so ``from middleware.X`` / ``from models.Y``
 # resolve correctly when this file is invoked as a standalone script.
-_SCRIPT_DIR = Path(__file__).resolve().parent            # vibe-ops/src/cli
-_VIBE_OPS_SRC = _SCRIPT_DIR.parent                        # vibe-ops/src
+_SCRIPT_DIR = Path(__file__).resolve().parent  # vibe-ops/src/cli
+_VIBE_OPS_SRC = _SCRIPT_DIR.parent  # vibe-ops/src
 if str(_VIBE_OPS_SRC) not in sys.path:
     sys.path.insert(0, str(_VIBE_OPS_SRC))
 
@@ -27,6 +27,7 @@ if str(_VIBE_OPS_SRC) not in sys.path:
 def cmd_sync(args: argparse.Namespace) -> int:
     """Sync period reports from vault to DB."""
     from middleware.period_sync import PeriodReportSync
+
     vault = Path(args.vault).resolve()
     db = Path(args.db).resolve()
     sync = PeriodReportSync(vault, db, template_folder=args.folder)
@@ -82,6 +83,7 @@ def cmd_list(args: argparse.Namespace) -> int:
 def cmd_hierarchy(args: argparse.Namespace) -> int:
     """Show hierarchy tree for a sonho."""
     from middleware.period_sync import PeriodReportSync
+
     vault = Path(args.vault).resolve()
     db = Path(args.db).resolve()
     sync = PeriodReportSync(vault, db)

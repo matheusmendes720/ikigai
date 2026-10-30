@@ -8,6 +8,7 @@ Both share BalancerState (from state.py) for overload safety.
 
 Source: .omo/plans/agentic-markdown-system.md T9
 """
+
 from __future__ import annotations
 
 from .state import (
@@ -20,7 +21,7 @@ from .state import (
 )
 
 # Re-export BalancerState for callers that import via channels only.
-__all__ = ["ProspectiveChannel", "RetrospectiveChannel", "BalancerState"]
+__all__ = ["BalancerState", "ProspectiveChannel", "RetrospectiveChannel"]
 
 
 class ProspectiveChannel:
@@ -60,9 +61,7 @@ class ProspectiveChannel:
         """
         target_tier = state.current_tier()
         candidates: list[PlanNode] = [
-            node
-            for node in state.active_nodes
-            if node.tier == target_tier
+            node for node in state.active_nodes if node.tier == target_tier
         ]
         return ProspectiveNode(
             target_tier=target_tier,
@@ -119,11 +118,7 @@ class RetrospectiveChannel:
         Returns:
             RetrospectiveNode: New snapshot with aggregate_score, verdict, gaps.
         """
-        scores: list[float] = [
-            c.verdict_score
-            for c in children
-            if c.verdict_score is not None
-        ]
+        scores: list[float] = [c.verdict_score for c in children if c.verdict_score is not None]
         avg = sum(scores) / len(scores) if scores else 0.0
         if avg >= self.PASS_THRESHOLD:
             verdict = PlanVerdict.PASS

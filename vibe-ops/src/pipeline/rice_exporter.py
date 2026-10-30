@@ -11,15 +11,17 @@ Edge cases:
   - negative values -> clamped to 0 (RICE components are non-negative by spec)
   - empty list    -> returns {} (no ranks to assign)
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 
 @runtime_checkable
 class _RiceProtocol(Protocol):
     """Any object with these attributes can be RICE-ranked."""
+
     reach: float
     impact: float
     confidence: float
@@ -29,6 +31,7 @@ class _RiceProtocol(Protocol):
 @dataclass
 class RiceInput:
     """Concrete RICE input - convenient wrapper for dict payloads."""
+
     id: str
     reach: float
     impact: float
@@ -54,7 +57,7 @@ def compute_rice_score(
     return (r * i * c) / e
 
 
-def compute_priority_rank(tasks: List[Any]) -> Dict[str, int]:
+def compute_priority_rank(tasks: list[Any]) -> dict[str, int]:
     """Sort tasks by RICE descending; assign dense rank 1..N by `id` attr.
 
     Ties: equal RICE scores receive equal rank, then next integer skips
@@ -76,7 +79,7 @@ def compute_priority_rank(tasks: List[Any]) -> Dict[str, int]:
                 task.get("effort_h", 0.0),
             )
         else:
-            tid = str(getattr(task, "id"))
+            tid = str(task.id)
             score = compute_rice_score(
                 getattr(task, "reach", 0.0),
                 getattr(task, "impact", 0.0),
@@ -89,7 +92,7 @@ def compute_priority_rank(tasks: List[Any]) -> Dict[str, int]:
     # Sort by score desc, then by id asc for deterministic ties.
     scored.sort(key=lambda x: (-x[1], x[0]))
 
-    ranks: Dict[str, int] = {}
+    ranks: dict[str, int] = {}
     current_rank = 0
     prev_score = None
     for tid, score in scored:

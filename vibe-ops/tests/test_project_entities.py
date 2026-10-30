@@ -2,6 +2,7 @@
 
 Source: .omo/plans/vault-enrichment-fields.md
 """
+
 from __future__ import annotations
 
 import sys
@@ -139,9 +140,7 @@ class TestExtraAllow:
     """Unknown extra fields must be accepted (extra='allow')."""
 
     def test_unknown_field_accepted(self):
-        p = Project(
-            **_base_kwargs(custom_field_from_obsidian="value-42", another_extra=123)
-        )
+        p = Project(**_base_kwargs(custom_field_from_obsidian="value-42", another_extra=123))
         assert p.custom_field_from_obsidian == "value-42"
         assert p.another_extra == 123
 

@@ -5,4 +5,4 @@ Contains:
 - Integration tests for SQLite-backed sync + PAE graph orchestration.
 - Property tests for invariants (Hypothesis-driven).
 - E2E tests for full pipeline execution against synthetic fixtures.
-"""
+"""  # noqa: N999

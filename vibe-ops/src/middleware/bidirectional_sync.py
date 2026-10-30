@@ -8,6 +8,7 @@ frontmatter entity_type as the discriminator.
 Append-only safe: never deletes. Conflicts go to .sync-conflicts.md
 per D3 (vault-wins for manual, code-wins for computed).
 """
+
 from __future__ import annotations
 
 import json
@@ -15,9 +16,9 @@ import logging
 import sqlite3
 import time
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 import frontmatter
 import yaml
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 # Folders the engine scans by default. Override via sync_vault_to_code(folders=...).
-DEFAULT_VAULT_FOLDERS: List[str] = [
+DEFAULT_VAULT_FOLDERS: list[str] = [
     "2_projeto",
     "5_atomicas",
     "3_indice",
@@ -34,15 +35,24 @@ DEFAULT_VAULT_FOLDERS: List[str] = [
 ]
 
 # Frontmatter keys considered "manual" (vault is authoritative).
-MANUAL_FIELD_PREFIXES: Set[str] = {
-    "xp_", "mastery_", "subject", "learning_phase", "tech_stack",
-    "milestone", "deliverable", "commercial_goal",
+MANUAL_FIELD_PREFIXES: set[str] = {
+    "xp_",
+    "mastery_",
+    "subject",
+    "learning_phase",
+    "tech_stack",
+    "milestone",
+    "deliverable",
+    "commercial_goal",
 }
 
 # Frontmatter keys considered "computed" (code is authoritative).
-COMPUTED_FIELD_NAMES: Set[str] = {
-    "policy_state", "rice_score", "priority_rank",
-    "falsifiability_score", "hypothesis_verdict",
+COMPUTED_FIELD_NAMES: set[str] = {
+    "policy_state",
+    "rice_score",
+    "priority_rank",
+    "falsifiability_score",
+    "hypothesis_verdict",
 }
 
 
@@ -73,8 +83,8 @@ class BidirectionalSync:
 
     def sync_vault_to_code(
         self,
-        folders: Optional[List[str]] = None,
-    ) -> Dict[str, int]:
+        folders: list[str] | None = None,
+    ) -> dict[str, int]:
         """Ingest frontmatter from vault .md files into planning_entities.
 
         Returns:
@@ -98,8 +108,8 @@ class BidirectionalSync:
 
     def sync_code_to_vault(
         self,
-        entity_types: Optional[List[str]] = None,
-    ) -> Dict[str, int]:
+        entity_types: list[str] | None = None,
+    ) -> dict[str, int]:
         """Export computed fields from SQLite back to vault .md frontmatter.
 
         Reads from policy_decisions table for the latest PolicyDecision and
@@ -153,12 +163,11 @@ class BidirectionalSync:
 
         return stats
 
-    def _latest_policy_decision(self) -> Optional[Dict[str, Any]]:
+    def _latest_policy_decision(self) -> dict[str, Any] | None:
         """Fetch the most recent PolicyDecision from policy_decisions table."""
         with self._conn() as conn:
             exists = conn.execute(
-                "SELECT name FROM sqlite_master "
-                "WHERE type='table' AND name='policy_decisions'"
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='policy_decisions'"
             ).fetchone()
             if not exists:
                 return None
@@ -184,17 +193,18 @@ class BidirectionalSync:
 
     def _build_computed_fields(
         self,
-        payload: Dict[str, Any],
-        latest_pd: Optional[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        payload: dict[str, Any],
+        latest_pd: dict[str, Any] | None,
+    ) -> dict[str, Any]:
         """Build the dict of computed frontmatter fields to write.
 
         Strategy: payload carries manual fields + prior computed fields.
         We add the latest PolicyDecision values plus optional rice_score and
         priority_rank if reachable, impact, confidence, effort_h are present.
         """
-        out: Dict[str, Any] = {
-            k: v for k, v in payload.items()
+        out: dict[str, Any] = {
+            k: v
+            for k, v in payload.items()
             if k in COMPUTED_FIELD_NAMES and k not in MANUAL_FIELD_PREFIXES
         }
         if latest_pd:
@@ -233,7 +243,7 @@ class BidirectionalSync:
         return out
 
     @staticmethod
-    def _infer_severity(pd: Dict[str, Any]) -> str:
+    def _infer_severity(pd: dict[str, Any]) -> str:
         """Map a PolicyDecision dict to a severity label (CRITICAL/HIGH/MEDIUM/LOW)."""
         qhe = pd.get("qhe")
         if qhe is None:
@@ -246,7 +256,7 @@ class BidirectionalSync:
             return "HIGH"
         return "CRITICAL"
 
-    def resolve_conflicts(self) -> Dict[str, Any]:
+    def resolve_conflicts(self) -> dict[str, Any]:
         """Read .sync-conflicts.md and apply documented resolution rules.
 
         D3 policy:
@@ -268,22 +278,16 @@ class BidirectionalSync:
                 resolved += 1
         return {"found": len(rows), "resolved": resolved, "pending": len(rows) - resolved}
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         """Return counts and last sync timestamps."""
         with self._conn() as conn:
-            total = conn.execute(
-                "SELECT COUNT(*) FROM planning_entities"
-            ).fetchone()[0]
+            total = conn.execute("SELECT COUNT(*) FROM planning_entities").fetchone()[0]
             by_type_rows = conn.execute(
-                "SELECT entity_type, COUNT(*) FROM planning_entities "
-                "GROUP BY entity_type"
+                "SELECT entity_type, COUNT(*) FROM planning_entities GROUP BY entity_type"
             ).fetchall()
-            last_sync = conn.execute(
-                "SELECT MAX(synced_at) FROM planning_entities"
-            ).fetchone()[0]
+            last_sync = conn.execute("SELECT MAX(synced_at) FROM planning_entities").fetchone()[0]
             state_rows = conn.execute(
-                "SELECT vault_path, last_hash, last_synced_at "
-                "FROM vault_sync_state"
+                "SELECT vault_path, last_hash, last_synced_at FROM vault_sync_state"
             ).fetchall()
 
         return {
@@ -392,10 +396,10 @@ class BidirectionalSync:
             finally:
                 try:
                     conn.close()
-                except Exception:  # noqa: BLE001
+                except Exception:
                     pass
 
-    def _ingest_one(self, md_file: Path, stats: Dict[str, int]) -> None:
+    def _ingest_one(self, md_file: Path, stats: dict[str, int]) -> None:
         """Ingest a single vault .md file. Continues past parse errors."""
         try:
             post = frontmatter.load(str(md_file))
@@ -415,6 +419,7 @@ class BidirectionalSync:
         # Idempotency hash — same content -> same hash -> skip.
         canonical = json.dumps(metadata, sort_keys=True, default=str)
         import hashlib
+
         new_hash = hashlib.sha256(canonical.encode()).hexdigest()[:12]
         upstream_id = new_hash
 
@@ -443,8 +448,8 @@ class BidirectionalSync:
                         entity_type,
                         json.dumps(metadata, default=str),
                         upstream_id,
-                        datetime.now(timezone.utc).isoformat(),
-                        datetime.now(timezone.utc).isoformat(),
+                        datetime.now(UTC).isoformat(),
+                        datetime.now(UTC).isoformat(),
                     ),
                 )
                 conn.execute(
@@ -458,14 +463,14 @@ class BidirectionalSync:
                         last_hash = excluded.last_hash,
                         last_synced_at = excluded.last_synced_at
                     """,
-                    (vault_rel, entity_type, entity_id, new_hash, datetime.now(timezone.utc).isoformat()),
+                    (vault_rel, entity_type, entity_id, new_hash, datetime.now(UTC).isoformat()),
                 )
             stats["ingested"] += 1
         except sqlite3.Error as exc:
             logger.error("DB error ingesting %s: %s", md_file, exc)
             stats["errors"] += 1
 
-    def _get_prev_hash(self, vault_rel: str) -> Optional[str]:
+    def _get_prev_hash(self, vault_rel: str) -> str | None:
         with self._conn() as conn:
             row = conn.execute(
                 "SELECT last_hash FROM vault_sync_state WHERE vault_path = ?",
@@ -474,8 +479,8 @@ class BidirectionalSync:
         return row[0] if row else None
 
     def _resolve_vault_file(
-        self, entity_type: str, entity_id: str, payload: Dict[str, Any]
-    ) -> Optional[Path]:
+        self, entity_type: str, entity_id: str, payload: dict[str, Any]
+    ) -> Path | None:
         """Find the .md file that owns this entity."""
         hint = payload.get("vault_path")
         if hint:
@@ -493,9 +498,7 @@ class BidirectionalSync:
                 return md_file
         return None
 
-    def _merge_into_frontmatter(
-        self, md_file: Path, computed_fields: Dict[str, Any]
-    ) -> bool:
+    def _merge_into_frontmatter(self, md_file: Path, computed_fields: dict[str, Any]) -> bool:
         """Merge computed fields into existing frontmatter. Returns True if written."""
         try:
             post = frontmatter.load(str(md_file))
@@ -539,7 +542,7 @@ class BidirectionalSync:
                 "|---|---|---|---|---|---|---|\n",
                 encoding="utf-8",
             )
-        ts = datetime.now(timezone.utc).isoformat()
+        ts = datetime.now(UTC).isoformat()
         row = (
             f"| {ts} | {md_file.name} | {field} | "
             f"{vault_value!r} | {code_value!r} | false | pending |\n"
@@ -547,9 +550,9 @@ class BidirectionalSync:
         with conflicts_file.open("a", encoding="utf-8") as f:
             f.write(row)
 
-    def _parse_conflict_table(self, text: str) -> List[Dict[str, str]]:
+    def _parse_conflict_table(self, text: str) -> list[dict[str, str]]:
         """Parse the markdown conflict log into structured rows."""
-        rows: List[Dict[str, str]] = []
+        rows: list[dict[str, str]] = []
         for line in text.splitlines():
             line = line.strip()
             if not line.startswith("|"):
