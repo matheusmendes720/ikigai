@@ -218,8 +218,8 @@ def _compute_critical_path_lengths(
 
 
 __all__ = [
+    "_compute_critical_path_lengths",
+    "critical_path_strategy",
     "fifo_strategy",
     "priority_weighted_strategy",
-    "critical_path_strategy",
-    "_compute_critical_path_lengths",
 ]

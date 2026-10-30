@@ -164,15 +164,15 @@ def _is_pid_alive(pid: int) -> bool:
             import ctypes
 
             kernel32 = ctypes.windll.kernel32
-            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-            STILL_ACTIVE = 259
-            handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+            process_query_limited_information = 0x1000
+            still_active = 259
+            handle = kernel32.OpenProcess(process_query_limited_information, False, pid)
             if handle == 0:
                 return False
             try:
                 exit_code = ctypes.c_ulong()
                 kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
-                return exit_code.value == STILL_ACTIVE
+                return exit_code.value == still_active
             finally:
                 kernel32.CloseHandle(handle)
         else:  # POSIX
@@ -221,9 +221,7 @@ __all__ = ["RunResult", "run_once", "start_worker", "stop_worker", "worker_statu
 
 # === CLI entrypoint (B2: enables `python -m src.mesh.review_queue_worker {start,stop,run-once}`) ===
 
-DEFAULT_PIDFILE = (
-    Path(__file__).resolve().parents[2] / "data" / "run" / "review_queue_worker.pid"
-)
+DEFAULT_PIDFILE = Path(__file__).resolve().parents[2] / "data" / "run" / "review_queue_worker.pid"
 
 
 def _build_adapters() -> list[ForkAdapter]:
@@ -259,9 +257,7 @@ def _cli() -> int:
         help="Seconds between drain passes (default: 1.0)",
     )
 
-    p_stop = sub.add_parser(
-        "stop", help="Read pidfile, kill PID, remove pidfile. Idempotent."
-    )
+    p_stop = sub.add_parser("stop", help="Read pidfile, kill PID, remove pidfile. Idempotent.")
     p_stop.add_argument(
         "--pidfile",
         type=Path,
@@ -269,9 +265,7 @@ def _cli() -> int:
         help=f"Pidfile path (default: {DEFAULT_PIDFILE})",
     )
 
-    sub.add_parser(
-        "run-once", help="Single drain pass; exits with RunResult counts on stdout."
-    )
+    sub.add_parser("run-once", help="Single drain pass; exits with RunResult counts on stdout.")
 
     args = parser.parse_args()
 

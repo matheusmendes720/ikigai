@@ -33,6 +33,7 @@ from datetime import datetime
 from pathlib import Path
 
 from contracts.task_change import TaskChange, TaskStatus
+
 from mesh import queue as queue_mod
 
 VALID_STATUSES: tuple[TaskStatus, ...] = (
@@ -165,15 +166,13 @@ def cmd_status(args: argparse.Namespace) -> int:
         return 0
 
     events = _read_events(queue_dir)
-    counts: dict[str, int] = {s: 0 for s in VALID_STATUSES}
+    counts: dict[str, int] = dict.fromkeys(VALID_STATUSES, 0)
     for event in events:
         counts[event.status] = counts.get(event.status, 0) + 1
 
     if _wants_human(args):
         print(f"queue_dir: {queue_dir}    total: {len(events)}", flush=True)
-        _render_table(
-            ["status", "count"], [[s, str(counts[s])] for s in VALID_STATUSES]
-        )
+        _render_table(["status", "count"], [[s, str(counts[s])] for s in VALID_STATUSES])
     else:
         print(f"queue_dir: {queue_dir}", flush=True)
         print(f"total: {len(events)}", flush=True)

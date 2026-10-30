@@ -57,12 +57,8 @@ def _retry_atomic_write(write_fn):  # type: ignore[no-untyped-def]
 # Valid status transitions (append-only — no resurrection)
 # ---------------------------------------------------------------------------
 _VALID_TRANSITIONS: dict[InvestigationStatus, frozenset[InvestigationStatus]] = {
-    "open": frozenset(
-        {"in_progress", "archived", "resolved"}
-    ),  # resolved for crystallized
-    "in_progress": frozenset(
-        {"resolved", "archived", "open"}
-    ),  # allow back to open if false alarm
+    "open": frozenset({"in_progress", "archived", "resolved"}),  # resolved for crystallized
+    "in_progress": frozenset({"resolved", "archived", "open"}),  # allow back to open if false alarm
     "resolved": frozenset(),  # terminal
     "archived": frozenset(),  # terminal
 }
@@ -88,9 +84,7 @@ def _atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
     """Write JSON atomically: write to tmp, then rename. Reused for all writes."""
     tmp = path.with_suffix(path.suffix + f".tmp.{os.getpid()}.{uuid.uuid4().hex[:8]}")
     try:
-        tmp.write_text(
-            json.dumps(payload, indent=2, sort_keys=True, default=str), encoding="utf-8"
-        )
+        tmp.write_text(json.dumps(payload, indent=2, sort_keys=True, default=str), encoding="utf-8")
         os.replace(tmp, path)  # atomic on POSIX and Windows (Python 3.3+)
     finally:
         if tmp.exists():
@@ -137,13 +131,12 @@ def transition(
     valid = _VALID_TRANSITIONS.get(current.status, frozenset())
     if new_status not in valid:
         raise ValueError(
-            f"invalid transition: {current.status} → {new_status} "
-            f"(allowed: {sorted(valid)})"
+            f"invalid transition: {current.status} → {new_status} (allowed: {sorted(valid)})"
         )
     updated = current.model_copy(
         update={
             "status": new_status,
-            "updated_at": datetime.now(),  # noqa: DTZ005 — matches Investigation.updated_at naive datetime convention
+            "updated_at": datetime.now(),
             "actor": actor,
             "inq_ueid": inq_ueid if inq_ueid is not None else current.inq_ueid,
         }
@@ -194,7 +187,7 @@ def log_transition(
     inq_id: str, old: InvestigationStatus, new: InvestigationStatus, actor: str
 ) -> None:
     """Append a transition event to the audit log. Format: ISO8601|inq_id|old→new|actor."""
-    ts = datetime.now().isoformat()  # noqa: DTZ005 — naive ISO8601 for grep-ability; matches Investigation.updated_at convention
+    ts = datetime.now().isoformat()
     _append_audit(f"{ts}|{inq_id}|{old}->{new}|{actor}")
 
 

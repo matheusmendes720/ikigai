@@ -47,7 +47,7 @@ import re
 import sqlite3
 import sys
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from src.contracts.task_change import TaskAction, TaskChange
@@ -77,7 +77,7 @@ def _record_decision(action: str, ueid: str, context: dict | None = None) -> Non
         from src.agents.reflection.recursive import DecisionStore
 
         DecisionStore().append(action, ueid, context=context)
-    except Exception as exc:  # noqa: BLE001 — observational, never block CLI
+    except Exception as exc:
         print(
             f"warning: reflection log append failed: {exc}",
             file=sys.stderr,
@@ -104,19 +104,19 @@ def _truncate(s: str, n: int) -> str:
     return s[: n - 1] + "…"
 
 
-def _summarize(slice: dict) -> str:
+def _summarize(slice_spec: dict) -> str:
     """One JSON line per task for `list` (JSON mode)."""
-    return json.dumps(slice, default=str)
+    return json.dumps(slice_spec, default=str)
 
 
-def _list_row(slice: dict) -> list[str]:
+def _list_row(slice_spec: dict) -> list[str]:
     """Compact cells for one task in human-readable table mode."""
     return [
-        _truncate(str(slice.get("ueid") or ""), _MAX_UEID),
-        _truncate(str(slice.get("name") or ""), _MAX_NAME),
-        str(slice.get("status") or ""),
-        str(slice.get("priority") or ""),
-        str(slice.get("deadline") or ""),
+        _truncate(str(slice_spec.get("ueid") or ""), _MAX_UEID),
+        _truncate(str(slice_spec.get("name") or ""), _MAX_NAME),
+        str(slice_spec.get("status") or ""),
+        str(slice_spec.get("priority") or ""),
+        str(slice_spec.get("deadline") or ""),
     ]
 
 
@@ -195,8 +195,8 @@ def cmd_status(args: argparse.Namespace) -> int:
 
     # Initialize counts with zeros for all known statuses + priorities so
     # the table always renders the same shape even on empty/partial DBs.
-    status_counts: dict[str, int] = {s: 0 for s in _KNOWN_STATUSES}
-    priority_counts: dict[int, int] = {p: 0 for p in _KNOWN_PRIORITIES}
+    status_counts: dict[str, int] = dict.fromkeys(_KNOWN_STATUSES, 0)
+    priority_counts: dict[int, int] = dict.fromkeys(_KNOWN_PRIORITIES, 0)
     for task in tasks:
         s = task.get("status")
         if s in status_counts:
@@ -210,9 +210,7 @@ def cmd_status(args: argparse.Namespace) -> int:
             f"db_path: {taskdog_mod.TASKDOG_DB}    total: {len(tasks)}",
             flush=True,
         )
-        _render_table(
-            ["status", "count"], [[s, str(status_counts[s])] for s in _KNOWN_STATUSES]
-        )
+        _render_table(["status", "count"], [[s, str(status_counts[s])] for s in _KNOWN_STATUSES])
         _render_table(
             ["priority", "count"],
             [[str(p), str(priority_counts[p])] for p in _KNOWN_PRIORITIES],
@@ -303,9 +301,7 @@ def _validate_ueid(s: str) -> str:
 def _validate_due(s: str) -> str:
     """argparse type= callback for YYYY-MM-DD."""
     if not _DATE_REGEX.match(s):
-        raise argparse.ArgumentTypeError(
-            f"invalid due date: {s!r} (expected YYYY-MM-DD)"
-        )
+        raise argparse.ArgumentTypeError(f"invalid due date: {s!r} (expected YYYY-MM-DD)")
     return s
 
 
@@ -314,7 +310,7 @@ def _validate_priority_str(s: str) -> int:
     try:
         n = int(s)
     except ValueError:
-        raise argparse.ArgumentTypeError(f"priority must be integer, got {s!r}")
+        raise argparse.ArgumentTypeError(f"priority must be integer, got {s!r}") from None
     if n not in (1, 2, 3):
         raise argparse.ArgumentTypeError(f"priority must be 1/2/3, got {n}")
     return n
@@ -328,7 +324,7 @@ def _enqueue_change(ueid: str, action: TaskAction, fields: dict) -> str:
         action=action,
         fields=fields,
         source_fork="cli",
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         status="pending",
     )
     return queue.enqueue(event)
@@ -350,7 +346,9 @@ def cmd_add(args: argparse.Namespace) -> int:
     if args.description is not None:
         fields["description"] = args.description.strip()
     event_id = _enqueue_change(args.ueid, TaskAction.CREATE, fields)
-    _record_decision("create", args.ueid, context={"title": fields.get("title", ""), "fields": fields})
+    _record_decision(
+        "create", args.ueid, context={"title": fields.get("title", ""), "fields": fields}
+    )
     print(f"enqueued CREATE event {event_id} for ueid {args.ueid}", flush=True)
     print("Run `td propagate` to apply.", flush=True)
     return 0
@@ -405,9 +403,9 @@ def cmd_propagate(args: argparse.Namespace) -> int:
     Returns the RunResult summary so the operator can see counts.
     """
     # Lazy import to keep startup fast for read-only commands.
-    from src.mesh.review_queue_worker import run_once
     from src.mesh.adapters.cli import CliAdapter
     from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
+    from src.mesh.review_queue_worker import run_once
 
     result = run_once(
         adapters=[
@@ -446,7 +444,7 @@ def cmd_propagate(args: argparse.Namespace) -> int:
 _MAX_NOTE_LEN = 1024
 
 
-def _ensure_audit_log_table(conn: "sqlite3.Connection") -> None:
+def _ensure_audit_log_table(conn: sqlite3.Connection) -> None:
     """Create the audit_log table on first use.
 
     Schema:
@@ -485,13 +483,11 @@ def _sanitize_note_text(raw: str) -> str:
     """
     # Keep \n (0x0A) and \t (0x09); strip everything else in 0x00-0x1F + 0x7F.
     cleaned = "".join(
-        ch for ch in raw
-        if ch in ("\n", "\t") or (ord(ch) >= 0x20 and ord(ch) != 0x7F)
+        ch for ch in raw if ch in ("\n", "\t") or (ord(ch) >= 0x20 and ord(ch) != 0x7F)
     )
     if len(cleaned) > _MAX_NOTE_LEN:
         raise ValueError(
-            f"note text too long: {len(cleaned)} chars "
-            f"(max {_MAX_NOTE_LEN} after sanitization)"
+            f"note text too long: {len(cleaned)} chars (max {_MAX_NOTE_LEN} after sanitization)"
         )
     return cleaned
 
@@ -530,7 +526,7 @@ def cmd_note_add(args: argparse.Namespace) -> int:
     conn = sqlite3.connect(db_path)
     try:
         _ensure_audit_log_table(conn)
-        ts = datetime.now(timezone.utc).isoformat()
+        ts = datetime.now(UTC).isoformat()
         cur = conn.execute(
             "INSERT INTO audit_log (ueid, timestamp, action, actor, text) "
             "VALUES (?, ?, 'note', 'cli', ?)",
@@ -579,10 +575,7 @@ def _list_audit_notes(ueid: str) -> list[dict]:
             "WHERE ueid=? AND action='note' ORDER BY id ASC",
             (ueid,),
         )
-        return [
-            {"id": row[0], "timestamp": row[1], "text": row[2]}
-            for row in cur.fetchall()
-        ]
+        return [{"id": row[0], "timestamp": row[1], "text": row[2]} for row in cur.fetchall()]
     finally:
         conn.close()
 
@@ -708,7 +701,7 @@ def cmd_tui(args: argparse.Namespace) -> int:
     tasks = adapter.list_all()
 
     # Counts by status
-    counts = {s: 0 for s in _KNOWN_STATUSES}
+    counts = dict.fromkeys(_KNOWN_STATUSES, 0)
     for t in tasks:
         s = t.get("status")
         if s in counts:
@@ -728,7 +721,6 @@ def cmd_tui(args: argparse.Namespace) -> int:
         from rich.layout import Layout
         from rich.panel import Panel
         from rich.table import Table
-        from rich.live import Live
 
         console = Console()
 
@@ -775,11 +767,9 @@ def cmd_tui(args: argparse.Namespace) -> int:
             layout["left"].update(Panel(table, border_style="green"))
 
             # Upcoming deadlines
-            upcoming = [
-                t
-                for t in sorted_tasks
-                if t.get("deadline") and t.get("status") != "done"
-            ][:5]
+            upcoming = [t for t in sorted_tasks if t.get("deadline") and t.get("status") != "done"][
+                :5
+            ]
             upcoming_lines = []
             for t in upcoming:
                 ueid = t.get("ueid") or "?"
@@ -787,9 +777,7 @@ def cmd_tui(args: argparse.Namespace) -> int:
                 deadline = t.get("deadline") or ""
                 upcoming_lines.append(f"{deadline}  {ueid}  {name}")
             upcoming_text = (
-                "\n".join(upcoming_lines)
-                if upcoming_lines
-                else "(no upcoming deadlines)"
+                "\n".join(upcoming_lines) if upcoming_lines else "(no upcoming deadlines)"
             )
             layout["right"].update(
                 Panel(
@@ -816,7 +804,7 @@ def cmd_tui(args: argparse.Namespace) -> int:
         print("tasks by priority:", flush=True)
         for t in sorted_tasks[:20]:
             print(
-                f"  {t.get('ueid')}  {str(t.get('status'))}  "
+                f"  {t.get('ueid')}  {t.get('status')!s}  "
                 f"pri={t.get('priority')}  dl={t.get('deadline')}  "
                 f"{_truncate(str(t.get('name') or ''), 30)}",
                 flush=True,
@@ -901,7 +889,9 @@ def main(argv: list[str] | None = None) -> int:
     add_p = sub.add_parser("add", help="enqueue CREATE TaskChange")
     add_p.add_argument("--ueid", required=True, type=_validate_ueid, help="5-part UEID")
     add_p.add_argument("--title", required=True, help="task title (≥1 char)")
-    add_p.add_argument("--priority", type=_validate_priority_str, default=None, help="1=high, 2=medium, 3=low")
+    add_p.add_argument(
+        "--priority", type=_validate_priority_str, default=None, help="1=high, 2=medium, 3=low"
+    )
     add_p.add_argument("--due", type=_validate_due, default=None, help="deadline YYYY-MM-DD")
     add_p.add_argument("--description", default=None, help="optional description")
 
@@ -1020,7 +1010,7 @@ def main(argv: list[str] | None = None) -> int:
         if dep_idx == -1:
             inner = [args.dep_command]
         else:
-            inner = sys.argv[dep_idx + 1:]
+            inner = sys.argv[dep_idx + 1 :]
         return dep_main(inner)
     if args.command == "note":
         if args.note_command == "add":

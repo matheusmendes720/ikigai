@@ -3,7 +3,7 @@
 Renders task slices as Gantt charts in three output modes:
   - ascii: box-drawing characters (light/medium/heavy) with status glyphs
   - html : valid HTML5 <table> rendering with CSS classes
-  - json : structured data (days × tasks matrix + per-task metadata)
+  - json : structured data (days x tasks matrix + per-task metadata)
 
 The engine is **pure** — it consumes a list of task dicts (with the
 canonical fields ``ueid``, ``name``, ``status``, ``priority``,
@@ -48,10 +48,10 @@ Usage
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
-from typing import Any, Iterable
-
+from typing import Any
 
 # ----------------------------------------------------------------------
 # Public dataclasses
@@ -193,12 +193,8 @@ def _build_day_axis(tasks: Iterable[dict[str, Any]]) -> tuple[list[date], list[s
     starts: list[date] = []
     ends: list[date] = []
     for t in tasks:
-        s = _parse_iso_date(t.get("planned_start")) or _parse_iso_date(
-            t.get("started_at")
-        )
-        e = _parse_iso_date(t.get("planned_end")) or _parse_iso_date(
-            t.get("completed_at")
-        )
+        s = _parse_iso_date(t.get("planned_start")) or _parse_iso_date(t.get("started_at"))
+        e = _parse_iso_date(t.get("planned_end")) or _parse_iso_date(t.get("completed_at"))
         if s is not None:
             starts.append(s)
         if e is not None:
@@ -285,12 +281,8 @@ def _row_for_task(
 
     span_start_idx = 0
     span_end_idx = 0
-    p_start = _parse_iso_date(task.get("planned_start")) or _parse_iso_date(
-        task.get("started_at")
-    )
-    p_end = _parse_iso_date(task.get("planned_end")) or _parse_iso_date(
-        task.get("completed_at")
-    )
+    p_start = _parse_iso_date(task.get("planned_start")) or _parse_iso_date(task.get("started_at"))
+    p_end = _parse_iso_date(task.get("planned_end")) or _parse_iso_date(task.get("completed_at"))
 
     if p_start is not None and day_index:
         span_start_idx = day_index.get(p_start.isoformat(), 0)
@@ -367,7 +359,7 @@ class GanttEngine:
 
     def plan(self, cfg: GanttConfig) -> GanttPlan:
         """Compute the render plan. Use this for HTML / JSON / inspection."""
-        days, iso_days = _build_day_axis(self._tasks)
+        _, iso_days = _build_day_axis(self._tasks)
         day_index = {iso: i for i, iso in enumerate(iso_days)}
         down_map, out_map = _index_deps(self._tasks, self._explicit_deps)
 

@@ -21,9 +21,8 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from contracts.common import UEID
+from pydantic import BaseModel, ConfigDict, Field
 
 # === Literal type aliases (used by both spec and tests) ===
 

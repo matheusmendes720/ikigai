@@ -29,15 +29,17 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
 
 # Canonical taskdog DB. Lazy-imported to dodge the dual-module identity
 # problem (src.X vs X). The local ``_resolve_db`` helper reads TASKDOG_DB
 # from the live adapter module so monkeypatch in tests is honored.
 def _resolve_db() -> Path:
     from src.mesh.adapters import taskdog as taskdog_mod
+
     return taskdog_mod.TASKDOG_DB
 
 
@@ -58,7 +60,7 @@ def _is_valid_ueid(s: str) -> bool:
     return bool(_UEID_REGEX.match(s))
 
 
-class CycleDetected(ValueError):
+class CycleDetected(ValueError):  # noqa: N818 — public name imported outside src/mesh (tests/mesh/test_td_dep.py)
     """Raised when adding a dep edge would create a cycle.
 
     Attributes:
@@ -67,9 +69,7 @@ class CycleDetected(ValueError):
 
     def __init__(self, path: list[str]) -> None:
         self.path = path
-        super().__init__(
-            f"cycle detected: {' -> '.join(path)}"
-        )
+        super().__init__(f"cycle detected: {' -> '.join(path)}")
 
 
 class SelfLoopError(ValueError):
@@ -77,9 +77,7 @@ class SelfLoopError(ValueError):
 
     def __init__(self, ueid: str) -> None:
         self.ueid = ueid
-        super().__init__(
-            f"self-loop rejected: {ueid} cannot depend on itself"
-        )
+        super().__init__(f"self-loop rejected: {ueid} cannot depend on itself")
 
 
 # Canonical schema DDL with the M163/M164 columns. Kept module-level so
@@ -199,9 +197,7 @@ def detect_cycle(
     # EXISTING edges (the candidate edge would close the loop).
     visited: set[str] = set()
     parent: dict[str, str | None] = {target_ueid: None}
-    stack: list[tuple[str, list[str]]] = [
-        (target_ueid, list(graph.get(target_ueid, [])))
-    ]
+    stack: list[tuple[str, list[str]]] = [(target_ueid, list(graph.get(target_ueid, [])))]
     visited.add(target_ueid)
 
     cycle: list[str] | None = None
@@ -244,7 +240,7 @@ def _append_audit_log(ueid: str, action: str, details: dict) -> None:
         ISO8601|ueid|action|json_details
     """
     try:
-        ts = datetime.now(timezone.utc).isoformat()
+        ts = datetime.now(UTC).isoformat()
         line = f"{ts}|{ueid}|{action}|{json.dumps(details, sort_keys=True)}\n"
         db = _resolve_db()
         db.parent.mkdir(parents=True, exist_ok=True)
@@ -286,18 +282,14 @@ def add_dep(
         _migrate_add_deps_column(conn)
         cur = conn.execute("SELECT 1 FROM tasks WHERE ueid=?", (start_ueid,))
         if cur.fetchone() is None:
-            raise LookupError(
-                f"add_dep target ueid={start_ueid!r} not found in taskdog"
-            )
+            raise LookupError(f"add_dep target ueid={start_ueid!r} not found in taskdog")
         cur = conn.execute("SELECT 1 FROM tasks WHERE ueid=?", (target_ueid,))
         if cur.fetchone() is None:
-            raise LookupError(
-                f"add_dep dependency ueid={target_ueid!r} not found in taskdog"
-            )
+            raise LookupError(f"add_dep dependency ueid={target_ueid!r} not found in taskdog")
         current = _read_deps_for(conn, start_ueid)
         if target_ueid in current:
             return  # idempotent: already present
-        new_deps = current + [target_ueid]
+        new_deps = [*current, target_ueid]
         conn.execute(
             "UPDATE tasks SET deps=? WHERE ueid=?",
             (json.dumps(new_deps), start_ueid),
@@ -412,18 +404,17 @@ def list_blocked(
                 continue
             if status_map.get(ueid_) in ("done", "cancelled"):
                 continue
-            unmet = [
-                d for d in deps_
-                if status_map.get(d) not in ("done", "cancelled")
-            ]
+            unmet = [d for d in deps_ if status_map.get(d) not in ("done", "cancelled")]
             if not unmet:
                 continue
-            blocked.append({
-                "ueid": ueid_,
-                "name": names_map.get(ueid_),
-                "status": status_map.get(ueid_),
-                "unmet_deps": unmet,
-            })
+            blocked.append(
+                {
+                    "ueid": ueid_,
+                    "name": names_map.get(ueid_),
+                    "status": status_map.get(ueid_),
+                    "unmet_deps": unmet,
+                }
+            )
         blocked.sort(key=lambda r: r["ueid"])
         return blocked
     finally:

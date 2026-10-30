@@ -9,6 +9,7 @@ Usage:
 The REPL keeps a single thread_id across turns. Approval state is
 persisted in the v2 graph checkpointer (SQLite) so resume works.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -114,9 +115,9 @@ def _apply_proposal(proposal: Any) -> None:
     a dry-run print (changes are shown but not queued).
     """
     try:
+        from src.contracts.task_change import TaskAction, TaskChange
         from src.mesh.queue import enqueue
-        from src.contracts.task_change import TaskChange, TaskAction
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         print(f"{C.Y}[commit] queue import failed: {e} — dry-run only{C.RESET}")
         return
 
@@ -130,9 +131,11 @@ def _apply_proposal(proposal: Any) -> None:
             ueid = change.get("ueid", "")
             try:
                 from src.contracts.common import UEID as _UEID
+
                 _UEID(ueid)  # validates
             except Exception:
                 import hashlib as _hl
+
                 h = _hl.sha256(ueid.encode("utf-8")).hexdigest()
                 ueid = f"tsk:triage:{h[:8]}:{h[8:16]}:{h[16:24]}"
 
@@ -145,11 +148,11 @@ def _apply_proposal(proposal: Any) -> None:
                 timestamp=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
             )
             event_id = enqueue(tc)
-            print(f"  {C.G}[ok] queued change #{i}: {tc.action.value} {tc.ueid} (event={event_id}){C.RESET}")
-        except Exception as e:  # noqa: BLE001
             print(
-                f"  {C.R}[fail] change #{i}: {type(e).__name__}: {e}{C.RESET}"
+                f"  {C.G}[ok] queued change #{i}: {tc.action.value} {tc.ueid} (event={event_id}){C.RESET}"
             )
+        except Exception as e:
+            print(f"  {C.R}[fail] change #{i}: {type(e).__name__}: {e}{C.RESET}")
 
 
 def _print_proposal(result_state: dict[str, Any]) -> None:
@@ -217,7 +220,7 @@ def main(argv: list[str] | None = None) -> int:
         from agents.v2.graph import graph as v2_graph_factory  # type: ignore
 
         v2_graph = v2_graph_factory()
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         print(f"{C.R}error: cannot import v2 graph: {e}{C.RESET}", file=sys.stderr)
         return 2
 
@@ -226,18 +229,14 @@ def main(argv: list[str] | None = None) -> int:
         from agents.v2.skills import list_skills as _list_skills
 
         skills_line = ", ".join(_list_skills())
-    except Exception:  # noqa: BLE001
+    except Exception:
         skills_line = "taskdog-triage, vault-intent-extract"
-    print(
-        f"{C.DIM}  skills: {skills_line}, meta_plan{C.RESET}"
-    )
+    print(f"{C.DIM}  skills: {skills_line}, meta_plan{C.RESET}")
     print(
         f"{C.DIM}  shortcuts: /triage (run taskdog-triage), "
         f"/extract (run vault-intent-extract){C.RESET}"
     )
-    print(
-        f"{C.DIM}  type your request, or /skill <name> <args>, or /quit to exit{C.RESET}"
-    )
+    print(f"{C.DIM}  type your request, or /skill <name> <args>, or /quit to exit{C.RESET}")
 
     prompt = f"\n{C.BOLD}{C.G}> {C.RESET}"
     approval_prompt = f"\n{C.BOLD}{C.G}> {C.RESET}"
@@ -302,16 +301,14 @@ def main(argv: list[str] | None = None) -> int:
 
                 proposal = propose(tasks)
                 pending_proposal = proposal
-                print(
-                    f"\n{C.BOLD}{C.Y}PROPOSAL from taskdog-triage:{C.RESET}"
-                )
+                print(f"\n{C.BOLD}{C.Y}PROPOSAL from taskdog-triage:{C.RESET}")
                 print(proposal.to_json())
                 print(
                     f"\n{C.DIM}{len(proposal.changes)} change(s) proposed. "
                     f"Reply with --approve to apply, --reject to discard.{C.RESET}"
                 )
                 continue
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 print(f"{C.R}error running triage: {e}{C.RESET}")
                 continue
         elif request == "/extract":
@@ -332,9 +329,7 @@ def main(argv: list[str] | None = None) -> int:
                     if Path(p).exists():
                         proposal = propose_from_file(p)
                         pending_proposal = proposal
-                        print(
-                            f"\n{C.BOLD}{C.Y}PROPOSAL from vault-intent-extract:{C.RESET}"
-                        )
+                        print(f"\n{C.BOLD}{C.Y}PROPOSAL from vault-intent-extract:{C.RESET}")
                         print(proposal.to_json())
                         print(
                             f"\n{C.DIM}{len(proposal.changes)} change(s) proposed. "
@@ -347,7 +342,7 @@ def main(argv: list[str] | None = None) -> int:
                         f"Create vault/daily/{today_iso}.md to enable extraction.{C.RESET}"
                     )
                 continue
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 print(f"{C.R}error running extract: {e}{C.RESET}")
                 continue
 
@@ -371,7 +366,7 @@ def main(argv: list[str] | None = None) -> int:
             values = getattr(final_state, "values", {}) or {}
             _print_proposal(values)
 
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             print(f"{C.R}error: {type(e).__name__}: {e}{C.RESET}")
             continue
 
@@ -393,9 +388,7 @@ def main(argv: list[str] | None = None) -> int:
         elif approval.startswith("--edit "):
             print(f"{C.C}[commit] edit: {approval}{C.RESET}")
         else:
-            print(
-                f"{C.DIM}(unrecognized approval command, treating as new request){C.RESET}"
-            )
+            print(f"{C.DIM}(unrecognized approval command, treating as new request){C.RESET}")
 
 
 if __name__ == "__main__":

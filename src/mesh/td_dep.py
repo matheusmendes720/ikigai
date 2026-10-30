@@ -48,7 +48,6 @@ from src.mesh.dep_subsystem import (
     remove_dep,
 )
 
-
 # UEID regex (4-part per ADR-014). Mirrors the canonical regex in
 # src/contracts/common.py.
 _UEID_REGEX = re.compile(
@@ -66,8 +65,7 @@ def _validate_ueid(s: str) -> str:
     """argparse type= callback. Returns the UEID if valid."""
     if not _UEID_REGEX.match(s):
         raise argparse.ArgumentTypeError(
-            f"invalid UEID format: {s!r} "
-            "(expected <cluster>:<entity>:<uuid>:<hash>)"
+            f"invalid UEID format: {s!r} (expected <cluster>:<entity>:<uuid>:<hash>)"
         )
     return s
 
@@ -129,8 +127,7 @@ def cmd_add(args: argparse.Namespace) -> int:
             "path": exc.path,
         }
         if _wants_human(args):
-            print(f"error: cycle_detected: {' -> '.join(exc.path)}",
-                  file=sys.stderr, flush=True)
+            print(f"error: cycle_detected: {' -> '.join(exc.path)}", file=sys.stderr, flush=True)
         else:
             print(json.dumps(payload), file=sys.stderr, flush=True)
         return 2
@@ -156,8 +153,7 @@ def cmd_add(args: argparse.Namespace) -> int:
         "target": args.other_ueid,
     }
     if _wants_human(args):
-        print(f"added dep: {args.ueid} blocked-by {args.other_ueid}",
-              flush=True)
+        print(f"added dep: {args.ueid} blocked-by {args.other_ueid}", flush=True)
     else:
         print(json.dumps(payload), flush=True)
     return 0
@@ -186,8 +182,7 @@ def cmd_remove(args: argparse.Namespace) -> int:
     if _wants_human(args):
         if removed:
             print(
-                f"removed dep: {args.ueid} no longer blocked-by "
-                f"{args.other_ueid}",
+                f"removed dep: {args.ueid} no longer blocked-by {args.other_ueid}",
                 flush=True,
             )
         else:
@@ -249,8 +244,7 @@ def cmd_blocked(args: argparse.Namespace) -> int:
         print("-" * 60, flush=True)
         for row in rows:
             print(
-                f"{row['ueid']:50}{row.get('status') or '-':12}"
-                f"unmet={len(row['unmet_deps'])}",
+                f"{row['ueid']:50}{row.get('status') or '-':12}unmet={len(row['unmet_deps'])}",
                 flush=True,
             )
             for d in row["unmet_deps"]:

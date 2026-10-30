@@ -133,11 +133,7 @@ class CliAdapter:
                 # other adapters (Taskdog, SolverforgeCalendar) use SQLite
                 # UPSERT; CliAdapter uses JSONL because the slice is meant to
                 # be human-readable.
-                existing = (
-                    TASKS_JSONL.read_text(encoding="utf-8")
-                    if TASKS_JSONL.exists()
-                    else ""
-                )
+                existing = TASKS_JSONL.read_text(encoding="utf-8") if TASKS_JSONL.exists() else ""
                 for prev_line in existing.splitlines():
                     if not prev_line.strip():
                         continue

@@ -44,18 +44,18 @@ import io
 import json
 import sqlite3
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from src.mesh.adapters import taskdog as taskdog_mod
-
 
 # ----------------------------------------------------------------------
 # Inlined helpers — mirrors of small functions in taskdog_cli.py. Kept
 # local to break what would otherwise be a circular import
 # (taskdog_cli imports this module for its advanced subcommands).
 # ----------------------------------------------------------------------
+
 
 def _truncate(s: str, n: int) -> str:
     if len(s) <= n:
@@ -124,7 +124,7 @@ def _audit_db_path() -> Path:
     return taskdog_mod.TASKDOG_DB
 
 
-def _ensure_audit_log_table(conn: "sqlite3.Connection") -> None:
+def _ensure_audit_log_table(conn: sqlite3.Connection) -> None:
     """Create the audit_log table on first use.
 
     Schema mirrors ``src.mesh.taskdog_cli._ensure_audit_log_table`` so
@@ -180,6 +180,7 @@ def _emit(args: argparse.Namespace, payload: dict, *, human_text: str | None = N
 # Audit log helpers (M166: 'soft_delete' / 'restore' actions live here)
 # ----------------------------------------------------------------------
 
+
 def _append_audit_row(
     conn: sqlite3.Connection,
     ueid: str,
@@ -188,10 +189,9 @@ def _append_audit_row(
     actor: str = "cli",
 ) -> int:
     """Insert one audit_log row. Caller commits."""
-    ts = datetime.now(timezone.utc).isoformat()
+    ts = datetime.now(UTC).isoformat()
     cur = conn.execute(
-        "INSERT INTO audit_log (ueid, timestamp, action, actor, text) "
-        "VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO audit_log (ueid, timestamp, action, actor, text) VALUES (?, ?, ?, ?, ?)",
         (ueid, ts, action, actor, text),
     )
     return int(cur.lastrowid)
@@ -205,8 +205,7 @@ def _read_audit_rows(
     """Read audit_log rows. ueid=None → all rows (global audit view)."""
     if ueid is None:
         cur = conn.execute(
-            "SELECT id, ueid, timestamp, action, actor, text "
-            "FROM audit_log ORDER BY id DESC"
+            "SELECT id, ueid, timestamp, action, actor, text FROM audit_log ORDER BY id DESC"
         )
     else:
         cur = conn.execute(
@@ -233,6 +232,7 @@ def _read_audit_rows(
 # ----------------------------------------------------------------------
 # Soft-delete + restore (NEVER hard delete)
 # ----------------------------------------------------------------------
+
 
 def cmd_rm(args: argparse.Namespace) -> int:
     """`td rm <ueid>` — soft-delete. Sets status='deleted', writes audit."""
@@ -273,7 +273,9 @@ def cmd_rm(args: argparse.Namespace) -> int:
             (DELETED_STATUS, args.ueid),
         )
         audit_id = _append_audit_row(
-            conn, args.ueid, "soft_delete",
+            conn,
+            args.ueid,
+            "soft_delete",
             text=f"status: {prev_status} -> {DELETED_STATUS}",
         )
         conn.commit()
@@ -289,8 +291,7 @@ def cmd_rm(args: argparse.Namespace) -> int:
     }
     if _wants_human(args):
         print(
-            f"rm: {args.ueid} {prev_status} -> {DELETED_STATUS} "
-            f"(audit_id={audit_id})",
+            f"rm: {args.ueid} {prev_status} -> {DELETED_STATUS} (audit_id={audit_id})",
             flush=True,
         )
     else:
@@ -325,8 +326,7 @@ def cmd_restore(args: argparse.Namespace) -> int:
             }
             if _wants_human(args):
                 print(
-                    f"restore: {args.ueid} status={prev_status} "
-                    "(no-op, not deleted)",
+                    f"restore: {args.ueid} status={prev_status} (no-op, not deleted)",
                     flush=True,
                 )
             else:
@@ -339,7 +339,9 @@ def cmd_restore(args: argparse.Namespace) -> int:
             (args.ueid,),
         )
         audit_id = _append_audit_row(
-            conn, args.ueid, "restore",
+            conn,
+            args.ueid,
+            "restore",
             text=f"status: {DELETED_STATUS} -> planned",
         )
         conn.commit()
@@ -355,8 +357,7 @@ def cmd_restore(args: argparse.Namespace) -> int:
     }
     if _wants_human(args):
         print(
-            f"restore: {args.ueid} {DELETED_STATUS} -> planned "
-            f"(audit_id={audit_id})",
+            f"restore: {args.ueid} {DELETED_STATUS} -> planned (audit_id={audit_id})",
             flush=True,
         )
     else:
@@ -367,6 +368,7 @@ def cmd_restore(args: argparse.Namespace) -> int:
 # ----------------------------------------------------------------------
 # Audit log viewer
 # ----------------------------------------------------------------------
+
 
 def cmd_audit(args: argparse.Namespace) -> int:
     """`td audit [ueid]` — list audit_log entries (most-recent first)."""
@@ -395,8 +397,7 @@ def cmd_audit(args: argparse.Namespace) -> int:
             print(f"(no audit rows{scope})", flush=True)
             return 0
         print(
-            f"audit: {len(rows)} row(s)"
-            + (f" for ueid={args.ueid}" if args.ueid else ""),
+            f"audit: {len(rows)} row(s)" + (f" for ueid={args.ueid}" if args.ueid else ""),
             flush=True,
         )
         print("-" * 80, flush=True)
@@ -423,10 +424,30 @@ def cmd_audit(args: argparse.Namespace) -> int:
 # SQLite hot backup + restore
 # ----------------------------------------------------------------------
 
+
 def _default_backup_path() -> Path:
     """<data>/taskdog/.backup-YYYYMMDD-HHMMSS.db (UTC)."""
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    ts = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     return taskdog_mod.TASKDOG_DB.parent / f".backup-{ts}.db"
+
+
+def _raw_connection(conn: sqlite3.Connection) -> sqlite3.Connection:
+    """Return the underlying C-level sqlite3.Connection behind `conn`.
+
+    OpenTelemetry's ``opentelemetry-instrumentation-sqlite3`` replaces
+    ``sqlite3.connect`` with a ``TracedConnectionProxy`` (a wrapt
+    ObjectProxy). The proxy forwards attribute access, so most calls work,
+    but ``sqlite3.Connection.backup()`` validates its ``target`` argument
+    against the real C type -- passing the proxy raises
+    ``TypeError: backup() argument 'target' must be sqlite3.Connection``.
+
+    Unwrapping here keeps the global instrumentation enabled (it is NOT
+    disabled) while handing ``backup()`` the raw connection it requires.
+    """
+    raw = getattr(conn, "__wrapped__", None)
+    if raw is not None and isinstance(raw, sqlite3.Connection):
+        return raw
+    return conn
 
 
 def cmd_db_backup(args: argparse.Namespace) -> int:
@@ -450,8 +471,10 @@ def cmd_db_backup(args: argparse.Namespace) -> int:
     try:
         # Connection.backup(target) is the canonical atomic snapshot API
         # in sqlite3 — safer than copying the file while live writers are
-        # active.
-        src_conn.backup(dst_conn)
+        # active. Both connections are unwrapped first: under OTel's
+        # sqlite3 instrumentation they are TracedConnectionProxy objects,
+        # which backup() rejects as `target`.
+        _raw_connection(src_conn).backup(_raw_connection(dst_conn))
     finally:
         dst_conn.close()
         src_conn.close()
@@ -465,8 +488,7 @@ def cmd_db_backup(args: argparse.Namespace) -> int:
     }
     if _wants_human(args):
         print(
-            f"db backup: {src_path} -> {out_path} "
-            f"({size_bytes} bytes)",
+            f"db backup: {src_path} -> {out_path} ({size_bytes} bytes)",
             flush=True,
         )
     else:
@@ -511,7 +533,10 @@ def cmd_db_restore(args: argparse.Namespace) -> int:
     try:
         dst_conn = sqlite3.connect(tmp_path)
         try:
-            src_conn.backup(dst_conn)
+            # Unwrap both connections -- under OTel sqlite3 instrumentation
+            # they are TracedConnectionProxy objects, and backup() requires
+            # a real sqlite3.Connection as `target`.
+            _raw_connection(src_conn).backup(_raw_connection(dst_conn))
         finally:
             dst_conn.close()
     finally:
@@ -520,6 +545,7 @@ def cmd_db_restore(args: argparse.Namespace) -> int:
     # Stage 2: move the existing live DB aside (if it exists) so we can
     # restore on failure.
     import os
+
     pre_restore_existed = live_path.exists()
     if pre_restore_existed:
         # Remove an old pre-restore backup from a previous run so os.replace
@@ -558,9 +584,19 @@ def cmd_db_restore(args: argparse.Namespace) -> int:
 # Map task fields we emit on export. Mirrors the columns the
 # TaskdogAdapter normalizes for reads.
 _EXPORT_FIELDS = (
-    "ueid", "name", "status", "priority", "planned_start",
-    "planned_end", "deadline", "created_at", "started_at",
-    "completed_at", "priority_label", "tags", "deps",
+    "ueid",
+    "name",
+    "status",
+    "priority",
+    "planned_start",
+    "planned_end",
+    "deadline",
+    "created_at",
+    "started_at",
+    "completed_at",
+    "priority_label",
+    "tags",
+    "deps",
 )
 
 
@@ -573,7 +609,9 @@ def _fetch_all_tasks() -> list[dict[str, Any]]:
 def _export_json(tasks: list[dict]) -> str:
     return json.dumps(
         {"tasks": tasks, "count": len(tasks)},
-        default=str, indent=2, sort_keys=True,
+        default=str,
+        indent=2,
+        sort_keys=True,
     )
 
 
@@ -673,6 +711,7 @@ def cmd_export(args: argparse.Namespace) -> int:
 # Stats (read-only)
 # ----------------------------------------------------------------------
 
+
 def _compute_stats(tasks: list[dict]) -> dict:
     """Aggregate counts + completion metrics + per-tag breakdown.
 
@@ -681,7 +720,7 @@ def _compute_stats(tasks: list[dict]) -> dict:
     """
     total = len(tasks)
     # status counts (live + deleted bucket, separately)
-    status_counts: dict[str, int] = {s: 0 for s in _LIVE_STATUSES}
+    status_counts: dict[str, int] = dict.fromkeys(_LIVE_STATUSES, 0)
     status_counts[DELETED_STATUS] = 0
     priority_counts: dict[int, int] = {1: 0, 2: 0, 3: 0}
     tag_counts: dict[str, int] = {}
@@ -714,12 +753,8 @@ def _compute_stats(tasks: list[dict]) -> dict:
 
     live_total = sum(status_counts.get(s, 0) for s in _LIVE_STATUSES)
     done_count = status_counts.get("done", 0)
-    completion_rate = (
-        (done_count / live_total) if live_total > 0 else 0.0
-    )
-    avg_duration_h = (
-        sum(durations) / len(durations) if durations else None
-    )
+    completion_rate = (done_count / live_total) if live_total > 0 else 0.0
+    avg_duration_h = sum(durations) / len(durations) if durations else None
 
     return {
         "total": total,
@@ -730,9 +765,7 @@ def _compute_stats(tasks: list[dict]) -> dict:
         "by_tag": dict(sorted(tag_counts.items(), key=lambda kv: (-kv[1], kv[0]))),
         "completion_rate": round(completion_rate, 4),
         "completed_with_duration": len(durations),
-        "avg_duration_hours": (
-            round(avg_duration_h, 2) if avg_duration_h is not None else None
-        ),
+        "avg_duration_hours": (round(avg_duration_h, 2) if avg_duration_h is not None else None),
     }
 
 
@@ -763,8 +796,7 @@ def cmd_stats(args: argparse.Namespace) -> int:
         )
         _render_table(
             ["priority", "count"],
-            [[str(p), str(stats["by_priority"].get(p, 0))]
-             for p in (1, 2, 3)],
+            [[str(p), str(stats["by_priority"].get(p, 0))] for p in (1, 2, 3)],
         )
         if stats["by_tag"]:
             print("--- by_tag ---", flush=True)
@@ -782,6 +814,7 @@ def cmd_stats(args: argparse.Namespace) -> int:
 # ----------------------------------------------------------------------
 # Parser wiring — called from taskdog_cli.main()
 # ----------------------------------------------------------------------
+
 
 def register_advanced_subparser(
     sub: argparse._SubParsersAction,
@@ -917,10 +950,7 @@ def run_advanced_command(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="ikigai-td-advanced",
-        description=(
-            "Advanced td subcommands (M166): rm / restore / audit / "
-            "db / export / stats."
-        ),
+        description=("Advanced td subcommands (M166): rm / restore / audit / db / export / stats."),
     )
     register_advanced_subparser(parser.add_subparsers(dest="command", required=True))
     args = parser.parse_args(argv)
