@@ -12,10 +12,15 @@ packages = [
     {include = "strategics", from = "src"},
     {include = "ikigai_wrapper.py", from = "src"},
     {include = "plugins", from = "src"},
+    # `sys_ikigai` lives at the REPO ROOT (not under src/ikigai), but the
+    # installed package imports it at runtime (mcp_server.tools_vault,
+    # agents.ikigai_write_vault, ...). Without shipping it, the console
+    # scripts raise ModuleNotFoundError at import time.
+    {include = "sys_ikigai", from = "../.."},
 ]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.11"
 pydantic = "^2.6"
 pyyaml = "^6.0"
 python-frontmatter = "^1.0"
@@ -29,10 +34,10 @@ langgraph-checkpoint-sqlite = "^3.1"
 opentelemetry-api = "^1.27.0"
 opentelemetry-sdk = "^1.27.0"
 opentelemetry-exporter-otlp-proto-http = "^1.27.0"
-opentelemetry-instrumentation-langchain = "^0.42b0"
-opentelemetry-instrumentation-requests = "^0.48b0"
-opentelemetry-instrumentation-sqlite3 = "^0.48b0"
-opentelemetry-instrumentation-logging = "^0.48b0"
+opentelemetry-instrumentation-langchain = "^0.62.4"
+opentelemetry-instrumentation-requests = "^0.66b1"
+opentelemetry-instrumentation-sqlite3 = "^0.66b1"
+opentelemetry-instrumentation-logging = "^0.66b1"
 
 # HTTP client used by verify_traces.py
 requests = "^2.31"
@@ -45,6 +50,11 @@ deepagents = ">=0.7"
 
 # LangChain Anthropic provider — used by the deep agent chat path.
 langchain-anthropic = ">=0.3"
+
+# MCP adapter — used by agents/mcp_taskdog_client.py to discover the external
+# taskdog-mcp tool surface over stdio. Without it the client silently
+# degrades to an empty tool list.
+langchain-mcp-adapters = "^0.3.2"
 
 # Paperclip FastAPI dashboard (M176/M178). Optional — the dashboard
 # script can be run from `scripts/paperclip-dashboard.py` directly without
@@ -67,20 +77,25 @@ pytest-asyncio = "^0.23"
 pytest-cov = "^4.1"
 hypothesis = "^6.95"
 mypy = "^1.8"
-ruff = "^0.3"
+# Pinned to the same Ruff the other CI matrix entries resolve to
+# (0.17.3). An open range would resolve to whatever Ruff is latest at CI
+# time and silently change the gate.
+ruff = "^0.17.3"
+# NOTE: this used to live in a PEP 735 `[dependency-groups]` table. When both
+# tables declare a group named "dev", Poetry 2.x resolves the group from
+# `[dependency-groups]` only, which silently dropped pytest/ruff/mypy from
+# poetry.lock and left the CI job without a runner. Keep every dev tool here.
+types-pyyaml = ">=6.0.12.20260815"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[dependency-groups]
-dev = [
-    "types-pyyaml>=6.0.12.20260815",
-]
-
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+# py311 matches the project's python requirement (^3.11) and the rest of the
+# monorepo (src/contracts, src/mesh, vibe-ops all target py311).
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "PT", "RUF"]
@@ -90,33 +105,81 @@ ignore = ["E501"]
 [tool.ruff.lint.per-file-ignores]
 "src/agents/paperclip/cli.py" = ["B008"]
 "src/agents/paperclip_dynamic/cli.py" = ["B008"]
+# E402 (module import not at top of file) — deliberate deferred imports.
+# taskdog_mcp_graph.py computes the bridge path at module-import time (blocking-safe,
+# before the ASGI event loop starts) and must not be reordered.
+"src/agents/taskdog_mcp_graph.py" = ["E402"]
+# taskdog_tools.py groups the M148 write-path imports (uuid/datetime/contracts/mesh
+# queue) after the read-only Path 3 surface on purpose — moving them to the top of
+# the file changes import-time side effects.
+"src/mcp_server/taskdog_tools.py" = ["E402"]
+# UP042 (str-mixin Enum -> enum.StrEnum) — these three enums keep the
+# `class X(str, Enum)` form on purpose: StrEnum changes `str(member)` from
+# "PlanTier.SONHO" to "sonho", which would change their string output.
+"src/agents/v2/state.py" = ["UP042"]
 
 [tool.mypy]
 python_version = "3.11"
 strict = true
 warn_unused_ignores = true
 warn_return_any = true
-# Poetry src-layout: cwd is `src/ikigai/`. The actual code root is
-# `src/ikigai/src/` (poetry's "from = src"). The ikigai package lives at
-# `src/ikigai/src/ikigai/__init__.py`.
+ignore_missing_imports = false
+# Canonical module identity for this package.
 #
-# `mypy_path = "src"` adds `src/ikigai/src/` to sys.path so `from ikigai.X`
-# resolves. We MUST NOT include `src/ikigai` in [files] because that would
-# create a duplicate-source conflict (input scan vs mypy_path both resolve
-# to src/ikigai/src/ikigai/__init__.py). Instead, mypy discovers the ikigai
-# package via follow_imports from the other listed modules.
-mypy_path = ["src", "..", "../.."]
+# The absolute imports inside the codebase are `src.ikigai.src.*`
+# (repo root on sys.path). `mypy src/` (path-based) creates a SECOND,
+# competing identity for the same files (`agents.*` vs
+# `src.ikigai.src.agents.*`) and mypy then reports the package as
+# "found twice" plus a cascade of bogus import errors.
+#
+# `mypy_path = ["../.."]` puts the REPO ROOT on the search path, so the
+# only identity mypy can assign to `src/ikigai/src/**` is
+# `src.ikigai.src.*` — exactly the identity used at runtime.
+# `explicit_package_bases` + `namespace_packages` are required to use
+# that base (the `src/` and `src/ikigai/` dirs have no __init__.py).
+mypy_path = ["../.."]
 explicit_package_bases = true
 namespace_packages = true
-ignore_missing_imports = false
-# Enumerate packages to check. Do NOT include "src/ikigai" (see above).
-files = [
-    "src/agents",
-    "src/mcp_server",
-    "src/observability",
-    "src/strategics",
-    "src/ikigai_wrapper.py",
+# Third-party / sibling packages that ship no type information. Scoped
+# narrowly so a genuinely missing local import is still an error.
+follow_imports = "silent"
+
+# NOTE: no `files` / `modules` key on purpose.
+#
+# `files = ["src/..."]` (path-based) reintroduces the competing identity
+# described above; `modules = [...]` is silently resolved relative to
+# the CURRENT directory and finds nothing. The gate is invoked with an
+# explicit canonical package instead:
+#
+#     poetry run mypy -p src.ikigai.src
+#
+# `mypy_path = ["../.."]` (repo root) is what makes that package name
+# resolvable from this directory.
+
+[[tool.mypy.overrides]]
+module = [
+    "agents.*",
+    "contracts.*",
+    "deepagents.*",
+    "langchain_anthropic",
+    # NOTE: `langchain_mcp_adapters` is deliberately NOT listed here. It is a
+    # declared production dependency (`langchain-mcp-adapters = "^0.3.2"`,
+    # present in poetry.lock) and it ships a `py.typed` marker, so mypy
+    # type-checks our call sites against its real signatures. Listing it
+    # would suppress a genuine "package not installed" failure in CI.
+    # `langgraph_sdk.interrupt` is likewise NOT listed: the optional
+    # submodule is resolved at runtime via `importlib.import_module`, which
+    # mypy never resolves as an import, so no override is needed for it.
+    # `langgraph_sdk.runtime` / `.schema` resolve normally — the SDK ships
+    # `py.typed` and arrives transitively via `langgraph`.
+    "mcp_server.*",
+    "mesh.*",
+    "msgpack",
+    "pytest",
+    "src.*",
+    "yaml",
 ]
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = ["deepagents", "deepagents.backends", "langchain_anthropic", "msgpack", "yaml", "pytest"]
