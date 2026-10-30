@@ -23,8 +23,33 @@ if [[ ! -f "$PROGRESS" ]]; then
   exit 2
 fi
 
-# Use python for reliable parsing (stdlib only)
-python3 - "$PROGRESS" <<'"'"'PYEOF'"'"'
+# Use python for reliable parsing (stdlib only).
+#
+# Portable interpreter resolution (M194): the script runs on Linux CI (where
+# `python3` is the canonical binary), on Windows Git Bash (where only
+# `python` or the `py` launcher exist), and inside the ikigai venv. Resolve
+# in that order and fail loudly if none is available -- never silently
+# skipping the double-fire check.
+#
+# NOTE: the heredoc delimiter MUST be the plain `PYEOF` token. The previous
+# `<<'"'"'PYEOF'"'"'` form was a shell-escaping artifact of the original
+# authoring command: bash parsed the delimiter as the literal string
+# `"'PYEOF'"`, never matched it, and swallowed the rest of the file into
+# the heredoc (emitting a "here-document delimited by end-of-file"
+# warning on every run).
+PY_CMD=()
+if command -v python3 >/dev/null 2>&1; then
+  PY_CMD=(python3)
+elif command -v python >/dev/null 2>&1; then
+  PY_CMD=(python)
+elif command -v py >/dev/null 2>&1; then
+  PY_CMD=(py -3)
+else
+  echo "ERROR: no python interpreter found (tried: python3, python, py -3)" >&2
+  exit 127
+fi
+
+"${PY_CMD[@]}" - "$PROGRESS" <<'PYEOF'
 import sys
 import re
 from datetime import datetime, timezone
