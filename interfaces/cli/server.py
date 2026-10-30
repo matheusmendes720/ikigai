@@ -33,7 +33,6 @@ from typing import Any
 import typer
 from rich.console import Console
 from rich.table import Table
-
 from src.mesh.adapters.cli import TASKS_JSONL
 from src.mesh.adapters.solverforge_calendar import UPI_DB
 from src.mesh.adapters.taskdog import TASKDOG_DB
@@ -99,9 +98,7 @@ def get_adapter(name: str) -> AdapterInfo:
 
 # Path to pidfile that the (future) gateway-start command will write.
 # For B3.4 we only READ this; gateway-start lands in a later phase.
-MCP_GATEWAY_PIDFILE = (
-    Path(__file__).parent.parent.parent / "data" / "run" / "mcp_gateway.pid"
-)
+MCP_GATEWAY_PIDFILE = Path(__file__).parent.parent.parent / "data" / "run" / "mcp_gateway.pid"
 REVIEW_QUEUE_WORKER_PIDFILE = (
     Path(__file__).parent.parent.parent / "data" / "run" / "review_queue_worker.pid"
 )
@@ -162,15 +159,15 @@ def _is_pid_alive(pid: int) -> bool:
             import ctypes
 
             kernel32 = ctypes.windll.kernel32
-            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-            STILL_ACTIVE = 259
-            handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+            process_query_limited_information = 0x1000
+            still_active = 259
+            handle = kernel32.OpenProcess(process_query_limited_information, False, pid)
             if handle == 0:
                 return False
             try:
                 exit_code = ctypes.c_ulong()
                 kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
-                return exit_code.value == STILL_ACTIVE
+                return exit_code.value == still_active
             finally:
                 kernel32.CloseHandle(handle)
         else:  # POSIX
@@ -225,7 +222,7 @@ def _start_process(name: str, cmd: list[str], pidfile_path: Path) -> tuple[bool,
     # Ensure subprocess can resolve `src.<...>` absolute imports
     env.setdefault("PYTHONPATH", str(Path(__file__).parent.parent.parent))
 
-    proc = subprocess.Popen(  # noqa: S603 — controlled command list
+    proc = subprocess.Popen(
         cmd,
         env=env,
         stdout=stdout_log.open("ab"),
@@ -278,7 +275,7 @@ def _stop_process(name: str, pidfile_path: Path) -> tuple[bool, str]:
             # Windows: SIGTERM not always available; use TerminateProcess via taskkill
             # /T = kill process tree, /F = force. Force is the only reliable way
             # when the subprocess uses CREATE_NEW_PROCESS_GROUP.
-            subprocess.run(  # noqa: S603 — controlled invocation
+            subprocess.run(
                 ["taskkill", "/PID", str(pid), "/T", "/F"],
                 check=False,
                 capture_output=True,
@@ -374,9 +371,7 @@ console = Console()
 
 @server_app.command("ls")
 def ls(
-    json_output: bool = typer.Option(
-        False, "--json", help="Machine-readable JSON output"
-    ),
+    json_output: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
 ) -> None:
     """List all registered fork adapters."""
     adapters = list_adapters()
@@ -411,19 +406,15 @@ def ls(
 
 @server_app.command("inspect")
 def inspect(
-    name: str = typer.Argument(
-        ..., help="Adapter name (cli, taskdog, solverforge_calendar, a2ui)"
-    ),
-    json_output: bool = typer.Option(
-        False, "--json", help="Machine-readable JSON output"
-    ),
+    name: str = typer.Argument(..., help="Adapter name (cli, taskdog, solverforge_calendar, a2ui)"),
+    json_output: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
 ) -> None:
     """Show detailed view of one adapter."""
     try:
         info = get_adapter(name)
     except KeyError as e:
         console.print(f"[red]{e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     payload = asdict(info)
     payload["exists"] = info.exists()
@@ -441,16 +432,12 @@ def inspect(
         console.print(f"[bold]Exists:[/bold] {'✅ yes' if info.exists() else '❌ no'}")
     else:
         console.print(f"[bold]Spec ref:[/bold] {info.spec_ref}")
-    console.print(
-        f"[dim]Available fields: see {info.name} adapter's SUPPORTED_FIELDS[/dim]"
-    )
+    console.print(f"[dim]Available fields: see {info.name} adapter's SUPPORTED_FIELDS[/dim]")
 
 
 @server_app.command("status")
 def status(
-    json_output: bool = typer.Option(
-        False, "--json", help="Machine-readable JSON output"
-    ),
+    json_output: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
 ) -> None:
     """Show backend process status (B4-B5 deliverable; v1 reports all stopped)."""
     snapshot = backend_status()
@@ -477,9 +464,7 @@ def status(
 
 @server_app.command("start")
 def start(
-    name: str = typer.Argument(
-        ..., help="Backend process name (review_queue_worker, mcp_gateway)"
-    ),
+    name: str = typer.Argument(..., help="Backend process name (review_queue_worker, mcp_gateway)"),
 ) -> None:
     """Start a backend process as a detached subprocess.
 
@@ -537,12 +522,12 @@ def stop(
 
 
 __all__ = [
-    "AdapterInfo",
     "ADAPTER_REGISTRY",
     "BACKEND_PROCESSES",
     "MCP_GATEWAY_PIDFILE",
-    "list_adapters",
-    "get_adapter",
+    "AdapterInfo",
     "backend_status",
+    "get_adapter",
+    "list_adapters",
     "server_app",
 ]

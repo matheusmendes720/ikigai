@@ -29,7 +29,7 @@ def send(
     body: str = typer.Argument("", help="Notification body."),
     level: str = typer.Option("info", "--level", "-l"),
     payload_json: str = typer.Option("", "--payload", "-p"),
-    file: Path = typer.Option(None, "--file"),
+    file: Path = typer.Option(None, "--file"),  # noqa: B008
 ):
     payload = None
     if payload_json:
@@ -37,7 +37,7 @@ def send(
             payload = json.loads(payload_json)
         except json.JSONDecodeError as exc:
             typer.echo(f"ERROR: invalid JSON: {exc}", err=True)
-            raise typer.Exit(code=2)
+            raise typer.Exit(code=2) from None
     result = notify(title, body, level=level, payload=payload, file_path=file)
     typer.echo(json.dumps(result, indent=2))
 
@@ -50,7 +50,7 @@ def status_cmd():
 
 @app.command("test")
 def test_cmd(
-    channel: str = typer.Option("file", "--channel"),
+    channel: str = typer.Option("file", "--channel"),  # noqa: PT028
 ):
     if channel in ("file", "both"):
         result = notify(
