@@ -2,9 +2,10 @@
 
 ## OVERVIEW
 Cybernetic engine (Target → Sensor → Adjuster) of the Algorithmic Life OS: a
-Python data mesh over SQLite + ChromaDB, a Rust read-only TUI, and a Markdown
-knowledge base of specs, ADRs and concept sources. Own build tooling (`uv`),
-own import root, own data files.
+Python data mesh over SQLite + ChromaDB plus a Markdown knowledge base of
+specs, ADRs and concept sources. Own build tooling (`uv`), own import root,
+own data files. The Rust TUI (`vibeops-tui/`) was removed with the PC-only
+scope (ADR-037) and is not published.
 
 ## STRUCTURE
 ```
@@ -19,8 +20,7 @@ vibe-ops/
 ├── planning/         # PRD board + period templates (own AGENTS.md)
 ├── architecture/     # ADR-001…006 + README reading order
 ├── base/             # canonical concept sources (PT-BR)
-├── context/ doc/ vectors/ artifacts/   # MOCs, strategy docs, IKIGAI vectors
-└── vibeops-tui/      # Rust ratatui dashboard (own Cargo build)
+└── context/ doc/ vectors/ artifacts/   # MOCs, strategy docs, IKIGAI vectors
 ```
 
 ## WHERE TO LOOK
@@ -32,7 +32,7 @@ vibe-ops/
 | Period-report sync | `src/middleware/period_sync.py` | contract lives in `planning/_templates_periodos_v2/` |
 | DB DDL | `src/storage/schema.sql` | 18 tables + view `v_epistemic_priority` |
 | Entity models | `src/models/` | 42 names in `__all__` |
-| Rust dashboard | `vibeops-tui/` (`cargo run`) | reads hardcoded `../vibe_ops.db` |
+| CLI entry point | `src/vibe_cli.py` | `hybrid_search` — the only published script here |
 | Windows ops | `scripts/*.ps1`, `task.bat` | `run_loop.ps1` calls a missing `src/main.py` |
 | Canonical concept | `base/IKIGAi.md` | ADR-003 "single source of truth" |
 | Architecture decisions | `architecture/README.md` | read order ADR-001 → 002 → 003 |
@@ -41,14 +41,14 @@ vibe-ops/
 | Symbol | Type | Location | Refs | Role |
 |---|---|---|---|---|
 | `PolicyEngine` | class | `src/pipeline/policy_engine.py` | 175 files | severity → policy state |
-| `PolicyState` | enum | `src/schemas/pydantic_v2.py` | 108 files | DB payload contract, shared with the Rust TUI |
+| `PolicyState` | enum | `src/schemas/pydantic_v2.py` | 108 files | DB payload contract; `str, Enum` on purpose |
 | `FrontmatterParser` | class | `src/pipeline/frontmatter_parser.py` | 30 files | 24-type `MODEL_MAP`, frontmatter → Pydantic |
 | `PeriodReport` | model | `src/models/period_report.py` | 44 files | ADR-006 period-report contract |
 | `BidirectionalSync` | class | `src/middleware/bidirectional_sync.py` | 30 files | D3 conflict resolution |
 | `DataMeshAdapter` | class | `src/storage/data_mesh_adapter.py` | 25 files | shared handle for 8 pipeline modules |
 
 ## CONVENTIONS
-- **Three toolchains in one subtree**: Python `uv`, Rust `cargo`, PowerShell. Never mix them.
+- **Two toolchains in one subtree**: Python `uv` and PowerShell. Never mix them.
 - **Flat import root**: `vibe-ops/src` on `sys.path`; siblings import as `pipeline.x`,
   `models.x`, `storage.x` — not the repo-root `src.contracts` dotted style.
 - **Pydantic here is permissive** (`extra="allow"`, not `frozen`) — the opposite of

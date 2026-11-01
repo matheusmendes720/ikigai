@@ -56,10 +56,9 @@ sys_ikigai/
 - `sys_ikigai/cli/app.py` is a standalone legacy Typer app whose vector /
   regime / phase commands are archived stubs raising `NotImplementedError` —
   algorithm math lives in the canonical algorithm packages.
-- `propagation/markdown_db.py::MarkdownDB.read` imports `DreamEntity`,
-  `TaskEntity`, ... from `entities/plan/*`, but those shims export only
-  `Dream`, `Task`, ...: the call raises `ImportError` at runtime. Use
-  `PlanEntity`, or fix the names first.
+- `propagation/markdown_db.py::MarkdownDB.read` raises `ImportError` — the plan shims
+  export only the short names (`Dream`, `Task`, ...), not the `*Entity` ones. Use
+  `PlanEntity`; the full entity list is in `entities/AGENTS.md`.
 - `state_machines/_sm_base.py` must stay free of sibling imports — that is
   what breaks the state-machine import cycle.
 - `gateway/adapters/` is mostly duplicate stubs; only `taskdog_adapter.py`
@@ -70,6 +69,6 @@ sys_ikigai/
 ## COMMANDS
 ```bash
 python -m sys_ikigai.vault.sync_cli status
-python -m sys_ikigai.gateway.start_gateway
+python -m sys_ikigai.gateway.start_gateway        # see gateway/AGENTS.md
 python -m pytest tests/ -v
 ```

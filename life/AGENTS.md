@@ -55,18 +55,15 @@ and `python -m life.cli` (`life/cli/__main__.py`).
   imports `interfaces.cli.notify_cli` at module scope.
 - **Never assume a plugin is a Python file in `<repo>/plugins`.** That
   directory is not published (ADR-037): a local tree may still hold an
-  untracked `paperclipai/` PaperclipAI plugin (TypeScript + `node_modules`),
-  but in the canonical clone `life.plugins.loader` only discovers
-  `life/plugins/builtin`.
+  untracked `paperclipai/` plugin, but in the canonical clone
+  `life.plugins.loader` only discovers `life/plugins/builtin`.
 - `life/.life/logs/life.log` is a **stale artifact** from before the M60
   restructure. The live log directory is `<repo>/.life/logs` (override with
   `LIFE_LOG_DIR`).
-- **New files under `life/` are git-ignored.** `.gitignore:513` holds
-  `/[a-zA-Z][a-zA-Z][a-zA-Z][a-zA-Z]`, which matches every 4-letter root
-  directory — `life`, `data`, `docs`, `logs`. Git never descends into a
-  matched directory, so new files there are silently untracked. Only `src/`
-  has a negation (`!/src/`, `.gitignore:522`). Use `git add -f` for anything
-  new under `life/`.
+- **New files under `life/` are not git-ignored.** `.gitignore:509-513` swallows any
+  1–4 letter root dir, but `!/src/`, `!/docs/`, `!/bin/`, `!/life/` (522-536) let git
+  descend into those four again (fixed 2026-11-01). `data/` and `logs/` stay
+  swallowed — a new file there needs `git add -f`.
 - `cli/log.py` uses `datetime.utcnow()`, which is deprecated in 3.12+.
 
 ## COMMANDS
