@@ -283,13 +283,13 @@ pode rodar em paralelo com `client.py`/`repository.py`.
 | Risco | Prob. | Mitigação |
 |---|---|---|
 | **O DOM cresce antes de existir um cliente real que o force** — 10 kinds viram 30 | alta | A lista de kinds é fechada e justificada (SPEC-01 D3: 6 vêm da árvore real do vault, 4 dos KPIs/OKR/DESC que o Vanilla Pivot §7 provou). Kind novo exige tipo + namespace + spec (drift test T1.5) |
-| **A invariante "fully local" colide com o drift net / com a CLAUDE.md** | alta | ADR-037 §4 lista explicitamente as 4 invariantes substituídas. **A CLAUDE.md precisa de uma seção "Current Mode" atualizada** — mesmaSurface que o README recebeu. É uma task de doc, não de código |
+| **A invariante "fully local" colide com o drift net / com a CLAUDE.md** | alta | ADR-037 §4 lista explicitamente as 4 invariantes substituídas. **Aplicado em 2026-11-01**: `life/CLAUDE.md` §Global Conventions + §Current Mode e `life/docs/README.md` reescritos para a forma nova |
 | **Lockout de harness**: o pi não expõe MCP | média | SPEC-03 T3.7 exige **descoberta**, não assunção de formato. Se o pi não puder carregar MCP, isso é decisão de fornecedor de harness — **do owner**, não do código. Fallback: tools via outro mecanismo, ou outro harness pronto |
 | **Mudança de dimensão de embedding quebra o índice HNSW** | média | `EMBEDDING_DIM` fixado em R1; mudança = coluna nova + backfill + troca de índice (SPEC-02 D7). Nunca `ALTER` in-place |
 | **A camada de dados serve, e o vault continua vazio** — o ciclo se repete | média-alta | A métrica de 14 dias (ADR-037 §8). Se (a) = 0, o diagnóstico é **hábito**, e a resposta é reduzir a ambição do sistema, não aumentar a máquina |
 | **Postgres no CI não existe** → os testes de store só rodam em local | média | Levantado em §2.6 como decisão **antes** da Task 2.2. Sem ele, o drift test contrato↔SQL é a única verificação em CI — mais fraco que a spec |
 | **RLS mal configurada vaza artefato entre clientes** | baixa | SPEC-02 T2.4 prova que a policy (não o filtro) isola. Todo cliente roda com o mesmo `client_id` de teste — um teste que "passa" porque todos veem tudo não prova nada |
-| **`--json` e a convenção do repo se perdem na fronteira MCP** | baixa | A fronteira MCP devolve JSON único (SPEC-03 D3). `interfaces/cli/` segue com `--json` (convenção do repo, ADR-009) |
+| **`--json` e a convenção do repo se perdem na fronteira MCP** | baixa | A fronteira MCP devolve JSON único (SPEC-03 D3). `interfaces/cli/` segue com `--json` (convenção das Global Conventions do `CLAUDE.md`) |
 
 ---
 
