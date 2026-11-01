@@ -13,7 +13,7 @@ and `python -m life.cli` (`life/cli/__main__.py`).
 ## WHERE TO LOOK
 | Task | Path | Notes |
 |------|------|-------|
-| Root Typer app | `cli/cli.py` | 14.8 KB; mounts centrals, handlers, `notify`, `v2`, `taskdog` |
+| Root Typer app | `cli/cli.py` | 12 KB; mounts centrals, handlers, `notify` (the `v2`/`taskdog` sub-apps were retired with the PC-only scope, ADR-037) |
 | Config + paths | `cli/config.py` | `LifeConfig`, `load_config()`, `config/life.yaml` |
 | Console bootstrap | `cli/__init__.py` | `_bootstrap_repo_paths()` puts `<repo>`, `<repo>/src`, `<repo>/interfaces` on `sys.path` |
 | Structured logging | `cli/log.py` | `PlainFormatter` / `JsonFormatter` |
@@ -27,9 +27,10 @@ and `python -m life.cli` (`life/cli/__main__.py`).
   present; every key is optional and falls back to a default. YAML import is
   optional (`try: import yaml`) — without PyYAML the defaults are used.
 - **`DEFAULT_SUBMODULES` points at directories that actually exist**
-  (`interfaces/cli`, `interfaces/tui`, `taskwarrior`, `strategics`, `specs`).
-  The pre-M60 defaults pointed at `system/raise_data/...` paths that never
-  existed — do not restore them.
+  (`interfaces/cli`, `taskwarrior`, `strategics`, `specs`). The pre-M60 defaults
+  pointed at `system/raise_data/...` paths that never existed, and the
+  `interfaces/tui` entry was dropped with the PC-only scope (ADR-037) — do
+  not restore them.
 - **Plugin discovery order** is `life/plugins/builtin` then `<repo>/plugins`.
   A plugin is a `.py` file or a package exposing a module-level `PLUGIN` /
   `plugin` / `Plugin` attribute that is a `PluginProtocol` instance (or a
@@ -37,10 +38,10 @@ and `python -m life.cli` (`life/cli/__main__.py`).
 - **Handlers re-enter the CLI.** `handlers/daily.py` and `handlers/weekly.py`
   spawn `python -m life.cli <args> --json` rather than calling the centrals
   directly, and parse the child's stdout as JSON.
-- **`life status`** is a snapshot reader, not an orchestrator: it parses
-  `.claude/loop/schedules.json`, `.mcp.json`, `langgraph.json` and probes
-  `http://127.0.0.1:8000/api/v1/tasks`. The daemon count is a *presence* check
-  on `schedules.json`, not a live PID check.
+- **`life status`** is a snapshot reader, not an orchestrator: it reads
+  `.claude/loop/schedules.json` (presence check, not a live PID check),
+  probes `http://127.0.0.1:8000/api/v1/tasks` for taskdog and reports the
+  drift gate from the canonical invariant guards.
 - The JSON flag name is not uniform: `json_out` in most commands, `json_output`
   in `status`, `json` in `config_show`, `json_format` in `log`. Match the
   command you are editing instead of renaming the flag.
@@ -51,10 +52,12 @@ and `python -m life.cli` (`life/cli/__main__.py`).
 - **Never add business logic to `cli/cli.py`.** It is wiring only — a command
   belongs to a central, a handler or a plugin.
 - **Never import `interfaces.cli` lazily from a command body.** `cli.py`
-  imports `interfaces.cli.notify_cli` and `interfaces.cli.v2` at module scope.
+  imports `interfaces.cli.notify_cli` at module scope.
 - **Never assume a plugin is a Python file in `<repo>/plugins`.** That
-  directory holds `paperclipai/`, a TypeScript PaperclipAI plugin — not
-  loadable by `life.plugins.loader`, so it adds nothing to `life plugins`.
+  directory is not published (ADR-037): a local tree may still hold an
+  untracked `paperclipai/` PaperclipAI plugin (TypeScript + `node_modules`),
+  but in the canonical clone `life.plugins.loader` only discovers
+  `life/plugins/builtin`.
 - `life/.life/logs/life.log` is a **stale artifact** from before the M60
   restructure. The live log directory is `<repo>/.life/logs` (override with
   `LIFE_LOG_DIR`).

@@ -7,15 +7,15 @@ readme = "README.md"
 packages = [
     # Serverless / cloud-native pivot (ADR-037, 2026-11-01): the legacy
     # langchain/langgraph harness (agents), the local chat REPL (chat), the
-    # stdio MCP servers (mcp_server), the paperclip bridge (plugins) and the
-    # langgraph API wrapper (ikigai_wrapper) are PC-only and are no longer
-    # published. The data-layer contract surface lives in src/contracts.
-    {include = "observability", from = "src"},
+    # stdio MCP servers (mcp_server), the paperclip bridge (plugins), the
+    # OpenTelemetry stack (observability) and the langgraph API wrapper
+    # (ikigai_wrapper) are PC-only and are no longer published. The canonical
+    # MCP transport lives at `src/transport/mcp_server.py` (repo root) and the
+    # data-layer contract surface in `src/contracts`.
     {include = "strategics", from = "src"},
     # `sys_ikigai` lives at the REPO ROOT (not under src/ikigai), but the
-    # installed package imports it at runtime (mcp_server.tools_vault,
-    # agents.ikigai_write_vault, ...). Without shipping it, the console
-    # scripts raise ModuleNotFoundError at import time.
+    # installed package imports it at runtime. Without shipping it, the
+    # console scripts raise ModuleNotFoundError at import time.
     {include = "sys_ikigai", from = "../.."},
 ]
 
@@ -27,41 +27,10 @@ python-frontmatter = "^1.0"
 typer = ">=0.12"
 rich = "^13.7"
 mcp = "^1.1"
-langgraph-checkpoint-sqlite = "^3.1"
 
-# OpenTelemetry — single SDK, two OTLP exporters (LangSmith + Langfuse).
-# contrib package versions track opentelemetry-api minor (b0 = beta but stable).
-opentelemetry-api = "^1.27.0"
-opentelemetry-sdk = "^1.27.0"
-opentelemetry-exporter-otlp-proto-http = "^1.27.0"
-opentelemetry-instrumentation-langchain = "^0.62.4"
-opentelemetry-instrumentation-requests = "^0.66b1"
-opentelemetry-instrumentation-sqlite3 = "^0.66b1"
-opentelemetry-instrumentation-logging = "^0.66b1"
-
-# HTTP client used by verify_traces.py
-requests = "^2.31"
-
-# Deep Agents harness runtime (B7.x). The MCP server itself does not depend
-# on deepagents, but `--chat` mode in agents.deepagents_harness needs it.
-# Mypy already silences the import (ignore_missing_imports) since this is
-# an external dependency we don't type-check.
-deepagents = ">=0.7"
-
-# LangChain Anthropic provider — used by the deep agent chat path.
-langchain-anthropic = ">=0.3"
-
-# MCP adapter — used by agents/mcp_taskdog_client.py to discover the external
-# taskdog-mcp tool surface over stdio. Without it the client silently
-# degrades to an empty tool list.
-langchain-mcp-adapters = "^0.3.2"
-
-# Paperclip FastAPI dashboard (M176/M178). Optional — the dashboard
-# script can be run from `scripts/paperclip-dashboard.py` directly without
-# the CLI invoking it. Listed here so the CLI's deps match the runtime.
-fastapi = ">=0.115"
-uvicorn = ">=0.30"
-sse-starlette = ">=2.0"
+# The canonical MCP transport (`src/transport/mcp_server.py`, repo root) is
+# exercised by this package's own suite (`tests/transport/`), so the SDK
+# stays a declared dependency of the venv that runs it.
 
 [tool.poetry.scripts]
 # The console scripts of the legacy harness (ikigai-maintainer-mcp,
@@ -102,20 +71,8 @@ ignore = ["E501"]
 # B008 (function call in default argument) is Typer's documented pattern
 # for `typer.Option(...)` / `typer.Argument(...)` — false positive in this CLI module.
 [tool.ruff.lint.per-file-ignores]
-"src/agents/paperclip/cli.py" = ["B008"]
-"src/agents/paperclip_dynamic/cli.py" = ["B008"]
-# E402 (module import not at top of file) — deliberate deferred imports.
-# taskdog_mcp_graph.py computes the bridge path at module-import time (blocking-safe,
-# before the ASGI event loop starts) and must not be reordered.
-"src/agents/taskdog_mcp_graph.py" = ["E402"]
-# taskdog_tools.py groups the M148 write-path imports (uuid/datetime/contracts/mesh
-# queue) after the read-only Path 3 surface on purpose — moving them to the top of
-# the file changes import-time side effects.
-"src/mcp_server/taskdog_tools.py" = ["E402"]
-# UP042 (str-mixin Enum -> enum.StrEnum) — these three enums keep the
-# `class X(str, Enum)` form on purpose: StrEnum changes `str(member)` from
-# "PlanTier.SONHO" to "sonho", which would change their string output.
-"src/agents/v2/state.py" = ["UP042"]
+# Every entry that used to live here pointed at the retired harness
+# (src/agents/**, src/mcp_server/**) and was removed with it (ADR-037).
 
 [tool.mypy]
 python_version = "3.11"
@@ -157,23 +114,8 @@ follow_imports = "silent"
 
 [[tool.mypy.overrides]]
 module = [
-    "agents.*",
     "contracts.*",
-    "deepagents.*",
-    "langchain_anthropic",
-    # NOTE: `langchain_mcp_adapters` is deliberately NOT listed here. It is a
-    # declared production dependency (`langchain-mcp-adapters = "^0.3.2"`,
-    # present in poetry.lock) and it ships a `py.typed` marker, so mypy
-    # type-checks our call sites against its real signatures. Listing it
-    # would suppress a genuine "package not installed" failure in CI.
-    # `langgraph_sdk.interrupt` is likewise NOT listed: the optional
-    # submodule is resolved at runtime via `importlib.import_module`, which
-    # mypy never resolves as an import, so no override is needed for it.
-    # `langgraph_sdk.runtime` / `.schema` resolve normally — the SDK ships
-    # `py.typed` and arrives transitively via `langgraph`.
-    "mcp_server.*",
     "mesh.*",
-    "msgpack",
     "pytest",
     "src.*",
     "yaml",
@@ -181,7 +123,7 @@ module = [
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["deepagents", "deepagents.backends", "langchain_anthropic", "msgpack", "yaml", "pytest"]
+module = ["yaml", "pytest"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

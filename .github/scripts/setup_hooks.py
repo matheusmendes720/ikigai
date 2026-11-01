@@ -3,8 +3,8 @@
 Setup git hooks for Algorithmic Life OS
 
 Installs:
-- pre-commit hooks (from .pre-commit-config.yaml) for src/operational
-- A commit-msg hook that adds a Co-Authored-By trailer and validates branch name
+- pre-commit hooks (from .pre-commit-config.yaml) at the repo root
+- A commit-msg hook that validates the branch name
 
 Usage:
     python .github/scripts/setup_hooks.py
@@ -36,7 +36,7 @@ def ensure_pre_commit():
         run(["uv", "tool", "install", "pre-commit"])
     result = run(
         ["uv", "run", "pre-commit", "install", "--install-hooks"],
-        cwd=ROOT / "life-ops" / "operational"
+        cwd=ROOT
     )
     if result.returncode == 0:
         print("  [OK] pre-commit hooks installed")
@@ -78,7 +78,7 @@ esac
     write_hook("commit-msg", content)
 
 
-def install_post-commit_hook():
+def install_post_commit_hook():
     content = """#!/bin/sh
 # LIFE-OS-HOOK: post-commit
 # Auto-prune stale worktrees after each commit

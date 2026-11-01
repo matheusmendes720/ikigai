@@ -35,6 +35,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
+from tools.backtest import llm_judge as lj  # noqa: E402
 from tools.backtest.llm_judge import (  # noqa: E402
     _is_real_llm_available,
     judge_scenario_llm,
@@ -61,8 +62,16 @@ def test_is_real_llm_available_no_keys() -> None:
                 os.environ[k] = v
 
 
-def test_is_real_llm_available_with_anthropic_key() -> None:
-    """With ANTHROPIC_API_KEY, real LLM IS available."""
+def test_is_real_llm_available_with_anthropic_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """With ANTHROPIC_API_KEY, real LLM IS available.
+
+    The optional chat-model package is an unpublished dependency (ADR-037),
+    so its availability is stubbed here — these tests pin the KEY-detection
+    contract, not the local install state.
+    """
+    monkeypatch.setattr(lj, "_LANGCHAIN_AVAILABLE", True)
     saved = os.environ.get("ANTHROPIC_API_KEY")
     os.environ["ANTHROPIC_API_KEY"] = "sk-test-fake"
     try:
@@ -74,8 +83,11 @@ def test_is_real_llm_available_with_anthropic_key() -> None:
             os.environ["ANTHROPIC_API_KEY"] = saved
 
 
-def test_is_real_llm_available_with_claude_key() -> None:
+def test_is_real_llm_available_with_claude_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """With CLAUDE_API_KEY (hermes proxy), real LLM IS available."""
+    monkeypatch.setattr(lj, "_LANGCHAIN_AVAILABLE", True)
     saved = os.environ.get("CLAUDE_API_KEY")
     os.environ["CLAUDE_API_KEY"] = "sk-test-test-fake"
     try:

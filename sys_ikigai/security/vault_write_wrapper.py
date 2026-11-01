@@ -206,20 +206,23 @@ def _append_vault_audit(
 # Tuning constants loader (ADR-019 R1 — read from JSON, no Python DEFAULT_*)
 # ---------------------------------------------------------------------------
 
+#: Canonical algorithm constants (single source of truth, ADR-019 R1).
+_ALGORITHM_CONSTANTS_PATH = Path(__file__).with_name("algorithm_constants.json")
+
 
 def _load_tuning_constants() -> tuple[int, float, bool]:
-    """Load KILL_SWITCH_* + REVIEW_QUEUE_BATCH_SIZE from algorithm_constants.json.
+    """Load the kill-switch tuning from the canonical algorithm constants JSON.
 
-    Per ADR-019 R1 + ADR-029 §"Algorithm Constants JSON Keys". Falls back
-    to the same defensive defaults in :mod:`kill_switch` if the JSON
-    is unavailable (test-friendly).
+    Per ADR-019 R1 + ADR-029 §"Algorithm Constants JSON Keys". The JSON is the
+    single source of truth and ships next to this module
+    (``sys_ikigai/security/algorithm_constants.json``) — the retired agent
+    loader (``src/ikigai/src/agents/v2/prompts/load_constants.py``) left the
+    canonical scope together with the harness (ADR-037). Falls back to the
+    same defensive defaults in :mod:`kill_switch` if the JSON is unavailable
+    (test-friendly).
     """
     try:
-        from src.ikigai.src.agents.v2.prompts.load_constants import (
-            load_algorithm_constants,
-        )
-
-        data = load_algorithm_constants()
+        data = json.loads(_ALGORITHM_CONSTANTS_PATH.read_text(encoding="utf-8"))
         return (
             int(data["KILL_SWITCH_RATE_LIMIT_PER_HOUR"]),
             float(data["KILL_SWITCH_RATE_LIMIT_WINDOW_S"]),

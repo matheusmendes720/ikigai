@@ -3,7 +3,7 @@
 Locks the whole unified data model end-to-end: vault markdown → IKIGAiRecord →
 frontmatter dict → IKIGAiRecord (round-trip), the polymorphic discriminator,
 ScoreValue unit ranges, OverrideRecord/FractalRegime/PhaseSnapshot shapes, and
-the three adapters (DriftDetector, CheckpointAdapter, StateReducer).
+the canonical adapters (DriftDetector, StateReducer).
 
 Real files + real entities only — no mocks.
 
@@ -26,7 +26,6 @@ from typing import Any
 
 import pytest
 from pydantic import ValidationError
-from sys_ikigai.adapters.checkpoint_adapter import CheckpointAdapter
 from sys_ikigai.adapters.drift_detector import DriftDetector
 from sys_ikigai.adapters.sqlite_bridge import IKIGAiRecordBridge
 from sys_ikigai.adapters.state_reducer import StateReducer
@@ -398,18 +397,6 @@ def test_sa03_drift_detector_flags_markdown_newer(tmp_dir: Path) -> None:
     mine = [f for f in findings if f.ueid == rec.ueid]
     assert len(mine) == 1
     assert mine[0].state is DriftState.MARKDOWN_NEWER
-
-
-def test_sa04_checkpoint_adapter_round_trip(tmp_dir: Path) -> None:
-    """SA-04: CheckpointAdapter save/load round-trips via JsonPlusSerializer (no pickle)."""
-    adapter = CheckpointAdapter(tmp_dir / "ckpt.db")
-    rec = IKIGAiRecord.model_validate(_base_payload(q_he_score={"value": 0.5, "unit": "ratio"}))
-    adapter.save(rec, thread_id="t1")
-    loaded = adapter.load("t1")
-    assert loaded is not None
-    assert loaded.ueid == rec.ueid
-    assert loaded.q_he_score == rec.q_he_score
-    assert adapter.load("missing") is None
 
 
 def test_sa05_state_reducer_normalizes_state_dict(tmp_dir: Path) -> None:

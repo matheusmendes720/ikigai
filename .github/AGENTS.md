@@ -10,15 +10,15 @@ Two workflows plus a Python review orchestrator — the only consumer of `.githu
 ## WHERE TO LOOK
 | Task | File | Notes |
 |------|------|-------|
-| CI pipeline | `workflows/ci.yml` | 5 jobs: `code-review-checks`, `quality-gates`, `mcp-gateway-contract`, `review-queue-worker-contract`, `backtest-pipeline` |
-| OpenWiki regeneration | `workflows/openwiki-update.yml` | daily 08:00 UTC (05:00 BRT); MiniMax gateway + LangSmith tracing |
+| CI pipeline | `workflows/ci.yml` | 5 jobs: `code-review-checks`, `quality-gates`, `review-queue-worker-contract`, `backtest-pipeline`, `drift-regression` |
+| OpenWiki regeneration | `workflows/openwiki-update.yml` | daily 08:00 UTC (05:00 BRT); MiniMax gateway + LangSmith tracing; regenerates `openwiki/` only — it no longer rewrites `AGENTS.md`/`CLAUDE.md` (hand-authored KB) |
 | Review orchestrator CLI | `scripts/code_review.py` | `--base --files --type-only --test-only --missing --gate --json --package` |
 | Shared process/env layer | `scripts/code_review_model.py` | `ROOT`, `CheckStatus`, `CheckResult`, `ReviewReport`, `PackageSpec`, `tool()`, `run()` |
 | Package matrix | `scripts/code_review_topology.py` | `PACKAGES` (5), `Bucket`, `build_buckets()`, `diff_touched_lines()` |
 | Individual checks | `scripts/code_review_checks.py` | mypy / ruff / ruff-format / naming / pytest / missing-tests (564 lines) |
 | Worktree helper | `scripts/git_worktree_manager.py` | `--list --add --remove --prune` |
 | Project board | `scripts/project_board.py`, `scripts/project_board_setup.py` | Projects v2 via GitHub CLI / GraphQL |
-| Git hook installer | `scripts/setup_hooks.py` | **does not compile — see ANTI-PATTERNS** |
+| Git hook installer | `scripts/setup_hooks.py` | installs pre-commit + commit-msg/post-commit hooks |
 | Issue forms | `ISSUE_TEMPLATE/bug_report.yml`, `feature_request.yml` | + `issue_metrics.py` (needs PyGithub) |
 | Labels | `labels.yml` | canonical label set |
 | Wiki pages | `wiki/home.md`, `Getting-Started.md`, `Sidebar.md`, `table-of-contents.md` | published repo docs |
@@ -51,16 +51,14 @@ Two workflows plus a Python review orchestrator — the only consumer of `.githu
 - The naming check inspects **function-local names only** (flagging module
   names produced 52 false positives), and the pytest parser reads only the
   tail — the summary comes last.
-- **Three of the four modules `code_review.py` imports are untracked**:
-  `code_review_checks.py`, `code_review_model.py` and `code_review_topology.py`
-  are on disk but absent from `git ls-files`, while `code_review.py` is
-  tracked. A fresh clone therefore fails the `code-review-checks` CI job with
-  a `ModuleNotFoundError`. `git add -f` them before trusting CI.
-- **Three of the ten `.github/scripts` modules do not compile** (verified with
-  `py_compile`): `setup_hooks.py:81` defines `def install_post-commit_hook():`
-  (hyphen in the function name) and `test_review.py:65,121` /
-  `type_review.py:69` pass `text=True` twice. Do not wire them into a job
-  until they are fixed.
+- **All four modules `code_review.py` imports are tracked** (`code_review.py`,
+  `code_review_checks.py`, `code_review_model.py`, `code_review_topology.py`),
+  so a fresh clone runs the `code-review-checks` job. Keep new sibling modules
+  tracked as well — an untracked helper breaks CI with a `ModuleNotFoundError`.
+- All ten `.github/scripts` modules compile (`python -m compileall -q
+  .github/scripts`). The three that used to fail were repaired in the
+  ADR-037 wave: `setup_hooks.py` had a hyphen in a function name,
+  `test_review.py` and `type_review.py` passed `text=True` twice.
 - Docstrings advertise `python -m github.scripts.<mod>`, but no `github`
   package exists and `.github` is not importable — the working form is
   `python .github/scripts/<mod>.py`. Likewise `code_review.py`'s docstring
@@ -68,7 +66,6 @@ Two workflows plus a Python review orchestrator — the only consumer of `.githu
 - `project_board.assign_issue_to_column()` is a stub that prints a message
   (Projects v2 needs GraphQL). `setup_hooks.py`'s commit-msg hook only
   *warns* on a non-matching branch name.
-- `.github/scripts/__pycache__/` holds 4 stale `.pyc` artifacts in-tree.
 
 ## COMMANDS
 ```bash

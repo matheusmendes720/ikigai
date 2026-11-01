@@ -126,164 +126,37 @@ Does the current task have any pending subtask in tasks.md?
 7. ❌ NEVER accept PASS if any constitution anti-pattern is detected
 8. ❌ NEVER use the same model for worker and verifier
 
-## Tool Surface (LangGraph graphs — M4)
+## Tool Surface (canonical MCP transport — ADR-011)
 
-Registered in `langgraph.json` (verified 2026-09-07, 3 graphs only). Worker
-sub-agents may invoke any of these as callable tools — each runs end-to-end
-with checkpoint persistence at `.swarm/langgraph_checkpoint.db`.
+The published agent surface is the **serverless MCP transport** at
+`src/transport/mcp_server.py` (repo root). It exposes **6 artifact tools** over
+stdio (default) or HTTP (`IKIGAI_MCP_TRANSPORT=http`, `FASTMCP_HOST` /
+`FASTMCP_PORT`). Worker sub-agents invoke them with a standard MCP client
+session — there is no PC-local stdio fork server and no separate MCP gateway.
 
-| Graph key | One-line invocation | Source |
+| Tool name | Purpose | Source |
 |---|---|---|
-| `pae_maintainer` | `make dev-graph NAME=pae_maintainer` | `./vibe-ops/src/langgraph_entry.py` (`make_pae_graph`) |
-| `ikigai_maintainer_v2` | `make dev-graph NAME=ikigai_maintainer_v2` | `./src/ikigai/src/agents/v2/graph.py` (`make_v2_graph`) |
-| `ikigai_fork_smoke` | `make dev-graph NAME=ikigai_fork_smoke` | `./src/ikigai/src/agents/v2/fork_smoke_graph.py` (`make_fork_smoke_graph`) |
+| `search_artifacts` | search the artifact store | `src/transport/mcp_server.py` |
+| `get_artifact` | read one artifact by id | same |
+| `upsert_artifact` | create or update an artifact | same |
+| `delete_artifact` | remove an artifact | same |
+| `list_relations` | list relations between artifacts | same |
+| `embed_text` | embed raw text | same |
 
-**Deterministic cron entrypoint** (no LLM cost): `bash .claude/loop/loop-tick.sh --graph <key>`
-— skips orchestrator prompt, runs the named graph end-to-end, exits with the
-graph's terminal status code. Use this for unattended cron schedules.
+**The retired surfaces are gone (ADR-037):** the LangGraph graph registry
+(`langgraph.json`, `make dev-graph`), the local stdio MCP fork servers
+(`src/ikigai/src/mcp_server/`), the paperclip bridge, the OpenTelemetry
+tracing stack (`src/ikigai/src/observability/`) and the programmatic bridge
+(`.claude/loop/mcp_bridge.py`) are not published. Do not name them in a spec,
+a plan or a worker prompt — the drift net fails the build if they return.
 
-**Stale registry warning:** CLAUDE.md table lists 5 graphs
-(`quarterly_replan`, `correction_protocol`, `dream_falsification`,
-`test_de_fogo_rollup` + 2 others) — only 3 are in the live `langgraph.json`.
-Do not invoke graphs not in the table above; they do not exist.
+**Scope discipline (ADR-013)** — the IKIGAI agent layer is planner-only: read,
+plan and persist; never PAE math, scoring or policy.
+`src/ikigai/tests/test_canonical_scope.py` fails the build if a math, policy
+or scoring tool reappears in the agent surface.
 
-## IKIGAI MCP Tool Surface (M5)
-
-IKIGAI exposes 14 tools + 6 resources via FastMCP stdio gateway
-(server.py + taskdog_tools.py in src/ikigai/src/mcp_server/).
-Worker sub-agents may invoke these via stdio JSON-RPC handshake. Each
-tool is planner-only per ADR-013 (no PAE math execution —
-math/policy/scoring tools are explicitly forbidden).
-
-| Tool name | One-line invocation | Source |
-|---|---|---|
-| ikigai_decompose | mcp_call(ikigai_decompose, dream_ueid=...) | src/ikigai/src/mcp_server/server.py:53 |
-| ikigai_write_tasks | mcp_call(ikigai_write_tasks, tasks=[...]) | src/ikigai/src/mcp_server/server.py:66 |
-| ikigai_read_tasks | mcp_call(ikigai_read_tasks, horizon=None, limit=50) | src/ikigai/src/mcp_server/server.py:74 |
-| ikigai_mesh_show | mcp_call(ikigai_mesh_show, ueid=...) | src/ikigai/src/mcp_server/server.py:87 |
-| ikigai_task_create | mcp_call(ikigai_task_create, ueid=..., fields=...) | src/ikigai/src/mcp_server/server.py:97 |
-| ikigai_health | mcp_call(ikigai_health) | src/ikigai/src/mcp_server/server.py:117 |
-| vault_write | mcp_call(vault_write, vault_path=..., body=...) | src/ikigai/src/mcp_server/server.py:127 |
-| vault_read | mcp_call(vault_read, vault_path=...) | src/ikigai/src/mcp_server/server.py:152 |
-| investigation_enqueue | mcp_call(investigation_enqueue, inq_id=..., source=...) | src/ikigai/src/mcp_server/server.py:175 |
-| investigation_status | mcp_call(investigation_status, inq_id=None) | src/ikigai/src/mcp_server/server.py:189 |
-| investigation_complete | mcp_call(investigation_complete, inq_id=...) | src/ikigai/src/mcp_server/server.py:197 |
-| taskdog_read | mcp_call(taskdog_read, ueid=...) | src/ikigai/src/mcp_server/taskdog_tools.py:44 |
-| taskdog_list | mcp_call(taskdog_list, status=None, limit=None) | src/ikigai/src/mcp_server/taskdog_tools.py:62 |
-| taskdog_supports_field | mcp_call(taskdog_supports_field, field_name=...) | src/ikigai/src/mcp_server/taskdog_tools.py:85 |
-
-Resources (6): ueid://{ueid}, queue://pending, queue://events/{event_id},
-health://gateway, plans://cycles, plans://cycles/{cycle_id} (all in
-src/ikigai/src/mcp_server/resources.py).
-
-Start the gateway:
-- Windows: ikigai.bat mcp
-- POSIX: cd src/ikigai && uv run ikigai mcp
-
-Stdio JSON-RPC handshake uses sys.stdin.buffer.readline() (NOT
-sys.stdin.readline() — Windows pipe HANGS; commit b93a1f3). Worker
-sub-agents must use the buffer-level read for stdio MCP.
-
-Scope discipline (ADR-013) — IKIGAI agent layer is planner-only:
-- READ-ONLY: vault_read, ikigai_read_tasks, ikigai_health, taskdog_read, taskdog_list
-- WRITE-WITH-REVIEW: vault_write (sole vault writer per ADR-012), investigation_*
-- FORBIDDEN: any PAE math / scoring / policy tools — not in MCP surface
-
-### Programmatic Bridge (M142 read + M144 write + M145 taskdog rest + M146 production)
-
-Worker / verifier sub-agents can call **14 IKIGAI MCP tools** (8 read + 6
-write-side) + **6 MCP resource accessors** via a thin Python bridge at
-`.claude/loop/mcp_bridge.py` — no need to hand-roll stdio JSON-RPC from
-inside a worktree.
-
-```python
-from importlib.util import spec_from_file_location, module_from_spec
-_spec = spec_from_file_location("loop_mcp_bridge", ".claude/loop/mcp_bridge.py")
-_bridge = module_from_spec(_spec); _spec.loader.exec_module(_bridge)
-# Production binding happens at loop startup via `loop-tick.sh` calling
-# `mcp_runtime.bind_server()`. Tests monkeypatch _bridge._server to a
-# MagicMock. If bind_server() failed (no IKIGAI venv, stdio hang),
-# _bridge._server is None and any tool call raises RuntimeError —
-# workers fall back to Bash + file tools (degraded mode).
-result = _bridge.ikigai_mesh_show(ueid="study:topic:st_python_01")
-```
-
-**M146 production binding** (`.claude/loop/mcp_runtime.py`):
-- `bind_server()` — spawns `python -u -m mcp_server` subprocess via
-  `stdio_client`, bridges its asyncio event loop to sync via a
-  background thread, sets `mcp_bridge._server = _SyncAdapter(...)`.
-- `unbind_server()` — tears down subprocess + event loop + ClientSession.
-  Registered as `atexit` hook automatically.
-- `init_observability()` — idempotent call to `init_tracing()` from
-  `src/ikigai/src/observability/otel_init.py`. Wires OTel to LangSmith
-  + Langfuse (if env vars present) or no-op if absent.
-- All three are safe to call multiple times. All three are no-ops in
-  test environments (where `_server` is monkeypatched).
-
-**Resource envelope parsing**: `_parse_resource_envelope()` (M146
-addition to `mcp_bridge.py`) handles 5 FastMCP shapes — URI-tagged
-dict, plain dict, text-only dict, bytes payload, raw string. Returns
-uniform `{"uri", "mimeType", "text"|"blob"|"raw"}` for downstream
-consumers.
-
-**Read-only wrappers (M142, 6 + M145, 2 = 8):** `ikigai_decompose`,
-`ikigai_read_tasks`, `ikigai_mesh_show`, `ikigai_health`,
-`ikigai_task_create` (default `dry_run=True` — read-shape), `taskdog_list`,
-`taskdog_read`, `taskdog_supports_field`.
-
-**Write-side wrappers (M144, 6):** `vault_read`, `ikigai_write_tasks`,
-`vault_write`, `investigation_enqueue`, `investigation_status`,
-`investigation_complete`.
-
-  - `vault_write(vault_path, frontmatter, body)` — canonical vault writer
-    per ADR-012. All 3 kwargs required; no defaults. Audit log is
-    append-only (`vault/.vault_events.jsonl`) — no rollback.
-  - `investigation_enqueue(...)` / `investigation_complete(...)` default
-    `actor="loop-agent"` (distinct from v2 graph's `"agent"`) — easy to
-    grep audit logs by source layer.
-
-**Resource accessors (M145, 6):** `read_ueid_resource(ueid)`,
-`read_queue_pending_resource()`, `read_queue_event_resource(event_id)`,
-`read_health_resource()`, `read_plans_cycles_resource()`,
-`read_plans_cycle_resource(cycle_id)`. URIs pinned in module-level
-`RESOURCE_URIS` dict (6 entries). Resource accessors delegate to
-`_server.read_resource(uri)` (NOT `_call(...)`) — see `src/ikigai/src/mcp_server/server.py`
-for `@MCP.resource` registrations.
-
-**NOT exposed (FORBIDDEN per ADR-013 — planner-only boundary):**
-`ikigai_observe_pav_state`, `ikigai_score_vectors`, `ikigai_heuristics`,
-`ikigai_balance`, `ikigai_plan`, `ikigai_reflect`, `ikigai_tag_and_persist`,
-`ikigai_commit_summary` — the 8 PAV-math stubs registered in `server.py`
-for v2-graph drift detection. Workers that need math/policy/scoring
-should escalate to v2 graph, NOT use the loop bridge.
-
-**Deferred to M146:** production binding of `_server` to FastMCP client +
-`init_tracing()` call at loop startup + optional resource-envelope parsing.
-
-**Error contract:** `_bridge._call(...)` raises `RuntimeError` when
-`_server is None` (production binding deferred to M146). Exceptions from
-`_server.call(...)` propagate — caller catches and routes to its own
-error_channel. Every tool call emits an OTel span `loop.mcp.{tool_name}`
-(M143) with the v2 schema (`tool.name`, `tool.arguments_hash`,
-`tool.duration_ms`, plus error attrs on failure). Resource accessors do
-NOT emit OTel spans (deferred to M146 if it lands at all).
-
-Drift detectors:
-  - `tests/test_m142_mcp_bridge.py::test_drift_count_of_read_only_wrappers_is_8`
-    — 8 read-only pinned (6 M142 + 2 M145).
-  - `tests/test_m144_mcp_bridge_write_tools.py::test_total_wrapper_count_is_14`
-    — total 14 pinned (8 read + 6 write).
-  - `tests/test_m145_mcp_bridge_taskdog_rest.py::test_resource_uri_dict_length_is_6`
-    — RESOURCE_URIS has 6 entries.
-  - `tests/test_m142_mcp_bridge.py::test_forbidden_tools_not_importable`
-    — 8 PAV-math names forbidden.
-
-Adding a new wrapper requires an explicit spec bump (no silent growth —
-lesson from M11/M12 PAV-math drift).
-
-See `specs/M142-agent-mcp-wiring/SPEC.md`, `specs/M143-loop-otel-wiring/SPEC.md`,
-`specs/M144-loop-write-tools/SPEC.md`, and `specs/M145-loop-taskdog-rest/SPEC.md`
-for design rationale + the FakeMcpServer test pattern.
+**Cloud-native access:** run the transport as a service
+(`python -m src.transport.mcp_server`) and point any MCP client at it.
 
 ## Risk-Tiered Review
 

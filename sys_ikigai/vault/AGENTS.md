@@ -16,7 +16,7 @@ fork.
 | Read a vault note | `vault_read.py` | same traversal guard + lock |
 | Cross-process locking | `lock.py` | `msvcrt.locking` / `fcntl.flock` |
 | YAML frontmatter | `frontmatter_compat.py` | PyYAML-based shim |
-| dict <-> frontmatter | `dict_to_frontmatter.py`, `frontmatter_to_dict.py` | re-exported by `strategics/loader.py`, `mcp_server/handlers.py` |
+| dict <-> frontmatter | `dict_to_frontmatter.py`, `frontmatter_to_dict.py` | re-exported by `src/ikigai/src/strategics/loader.py` |
 | Vault -> taskdog sync | `sync.py` | incremental diff vs `data/sync-state.json` |
 | Sync CLI | `sync_cli.py` | `sync`, `reverse`, `status`, `list`, `validate` |
 | Mesh task slice IO | `task_io.py` | thin shim over `CliAdapter.apply_change` |

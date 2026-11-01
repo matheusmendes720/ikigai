@@ -245,8 +245,6 @@ def status_cmd(
     Displays:
     - Daemon status (loop-tick, hill-climb, cost-dashboard, etc.)
     - taskdog-server health + live task count
-    - MCP servers registered (ikigai + taskdog)
-    - langgraph dev graphs (v2 + fork_smoke + taskdog_mcp)
     - Drift gate status
     """
     import json as _json
@@ -296,31 +294,14 @@ def status_cmd(
     except Exception as e:
         snapshot["taskdog"] = {"url": "http://127.0.0.1:8000", "status": "down", "error": str(e)[:100]}
 
-    # 3. MCP servers (from .mcp.json)
-    mcp_config = REPO_ROOT / ".mcp.json"
-    if mcp_config.exists():
-        try:
-            cfg = _json.loads(mcp_config.read_text())
-            snapshot["mcp_servers"] = list(cfg.get("mcpServers", {}).keys())
-        except Exception:
-            snapshot["mcp_servers"] = []
-    else:
-        snapshot["mcp_servers"] = []
-
-    # 4. langgraph graphs (from langgraph.json)
-    lg_config = REPO_ROOT / "langgraph.json"
-    if lg_config.exists():
-        try:
-            cfg = _json.loads(lg_config.read_text())
-            snapshot["langgraph_graphs"] = list(cfg.get("graphs", {}).keys())
-        except Exception:
-            snapshot["langgraph_graphs"] = []
-    else:
-        snapshot["langgraph_graphs"] = []
-
-    # 5. Drift gate
-    drift_test = REPO_ROOT / "src" / "ikigai" / "tests" / "test_drift_extended_invariants.py"
-    snapshot["drift_gate"] = "available" if drift_test.exists() else "missing"
+    # 3. Drift gate — the canonical invariant guards (ADR-037). The retired
+    # `test_drift_extended_invariants.py` is no longer published.
+    drift_tests = [
+        REPO_ROOT / "src" / "ikigai" / "tests" / "test_canonical_scope.py",
+        REPO_ROOT / "src" / "ikigai" / "tests" / "test_drift_invariants.py",
+    ]
+    present = [t.name for t in drift_tests if t.exists()]
+    snapshot["drift_gate"] = "available" if len(present) == len(drift_tests) else "missing"
 
     if json_output:
         typer.echo(_json.dumps(snapshot, indent=2))
@@ -339,8 +320,6 @@ def status_cmd(
                 typer.echo(f"  taskdog-server: ok ({t['tasks_live']} tasks live)")
             else:
                 typer.echo(f"  taskdog-server: DOWN ({t.get('error', '?')})")
-        typer.echo(f"  MCP servers:    {', '.join(snapshot.get('mcp_servers', [])) or '(none)'}")
-        typer.echo(f"  langgraph:      {', '.join(snapshot.get('langgraph_graphs', [])) or '(none)'}")
         typer.echo(f"  Drift gate:     {snapshot['drift_gate']}")
 
 
@@ -351,50 +330,6 @@ def status_cmd(
 # ---------------------------------------------------------------------------
 from interfaces.cli.notify_cli import app as notify_app  # noqa: E402
 app.add_typer(notify_app, name="notify")
-
-
-# ---------------------------------------------------------------------------
-# IKIGAI v2 subcommand (M85)
-# Exposes invoke-skill, skill-list, skill-show, plan under `life v2 ...`
-# ---------------------------------------------------------------------------
-
-# M100: direct taskdog-mcp commands (26 tools, no LLM).
-# Detect whether the active Python has langchain-mcp-adapters installed
-# before attempting module-import-time registration. Falls back to a
-# placeholder if not, so `life --help` works from any venv.
-import importlib.util as _importlib_util
-
-if _importlib_util.find_spec("langchain_mcp_adapters") is not None and _importlib_util.find_spec("interfaces.cli.taskdog_app") is not None:
-    from interfaces.cli.taskdog_app import app as taskdog_mcp_app  # noqa: E402
-    from interfaces.cli.taskdog_app import register_taskdog_app  # noqa: E402
-    try:
-        register_taskdog_app(taskdog_mcp_app)
-    except typer.Exit:
-        pass
-    app.add_typer(taskdog_mcp_app, name="taskdog")
-else:
-    # No langchain-mcp-adapters → register a placeholder that explains the fix.
-    _placeholder_app = typer.Typer(
-        name="taskdog",
-        help="M100 taskdog-mcp commands (requires langchain-mcp-adapters).",
-        no_args_is_help=True,
-    )
-
-    @_placeholder_app.callback(invoke_without_command=True)
-    def _taskdog_unavailable(ctx: typer.Context) -> None:
-        typer.echo(
-            json.dumps(
-                {
-                    "ok": False,
-                    "error": "langchain-mcp-adapters not installed in this venv.",
-                    "fix": "uv pip install --python <venv> langchain-mcp-adapters",
-                },
-                indent=2,
-            )
-        )
-        raise typer.Exit(code=1)
-
-    app.add_typer(_placeholder_app, name="taskdog")
 
 
 register_plugins(app)

@@ -145,25 +145,3 @@ print('empty-OK')
     r = _run_with_env(ikigai_python, {}, code)
     assert r.returncode == 0, f"failed: stderr={r.stderr!r}"
     assert "empty-OK" in r.stdout
-
-
-def test_chat_anthropic_import_works(ikigai_python: str) -> None:
-    """langchain_anthropic is importable (sanity check that it's installed)."""
-    code = """
-import sys
-sys.path.insert(0, r'src/ikigai/src')
-try:
-    import langchain_anthropic  # noqa: F401
-    print('import-OK')
-except Exception as e:
-    # Windows can have _overlapped issues; verify the package is at least listed.
-    import importlib.util
-    spec = importlib.util.find_spec('langchain_anthropic')
-    if spec is None:
-        print(f'FAIL: {e}')
-        sys.exit(1)
-    print('import-OK (via find_spec)')
-"""
-    r = _run_with_env(ikigai_python, {}, code)
-    assert r.returncode == 0, f"failed: stderr={r.stderr!r}"
-    assert "import-OK" in r.stdout

@@ -1,6 +1,11 @@
-"""UnifiedMCPGateway — HTTP+SSE front, stdio back.
+"""UnifiedMCPGateway — HTTP+SSE front, data-mesh adapters back.
 
 Task 13 of data-model-unification.
+
+Serverless scope (ADR-037, 2026-11-01): the PC-only stdio MCP fork clients
+were retired. The registered adapters are the data-mesh ones (CLI fork and
+taskdog SQLite fork) that read files/SQLite directly; the canonical agent
+surface is `src/transport/mcp_server.py`.
 
 Pure stdlib (http.server, socketserver, threading, queue) — no
 starlette, no fastapi. CI does not require them and the gateway's

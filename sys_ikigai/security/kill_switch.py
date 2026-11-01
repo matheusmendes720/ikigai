@@ -13,8 +13,9 @@ The kill switch has THREE activation mechanisms (priority-ordered):
 3. **Data file flag** ``<data_root>/.kill_switch`` — local-dev convenience
    (priority 3).
 
-All tuning constants live in ``prompts/algorithm_constants.json`` (no Python
-``DEFAULT_KILL_SWITCH_*`` constants permitted per ADR-019 R2 + ADR-029).
+All tuning constants live in ``algorithm_constants.json`` — this package, the
+canonical single source of truth (ADR-019 R1). No Python
+``DEFAULT_KILL_SWITCH_*`` constants are permitted (ADR-019 R2 + ADR-029).
 
 Public API
 ----------

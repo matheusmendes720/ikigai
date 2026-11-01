@@ -62,10 +62,12 @@ jobs:
       - name: Create OpenWiki update pull request
         uses: peter-evans/create-pull-request@v7
         with:
+          # NOTE: AGENTS.md / CLAUDE.md are deliberately NOT in `add-paths`.
+          # The knowledge base under those paths is hand-authored
+          # (init-deep, ADR-037); letting the generator rewrite it would
+          # replace the canonical scope with an inferred one.
           add-paths: |
             openwiki
-            AGENTS.md
-            CLAUDE.md
             docs/openwiki-visualizer
             .github/workflows/openwiki-update.yml
           branch: openwiki/update

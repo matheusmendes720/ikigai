@@ -34,12 +34,20 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 # Try to import langchain for LLM calls. Optional — gracefully degrade.
+# The probe catches Exception, not just ImportError: a half-installed
+# langchain_anthropic (mismatched `anthropic` SDK) raises AttributeError
+# at import time, which must also degrade to the deterministic stub.
+#
+# The chat-model class is kept as a module-level seam (`_ChatAnthropic`) so
+# the real-LLM path can be injected in tests without importing the optional
+# package — it is NOT a published dependency (ADR-037).
 _LANGCHAIN_AVAILABLE = False
+_ChatAnthropic: Any | None = None
 try:
-    from langchain_anthropic import ChatAnthropic  # noqa: F401
+    from langchain_anthropic import ChatAnthropic as _ChatAnthropic
 
     _LANGCHAIN_AVAILABLE = True
-except ImportError:
+except Exception:  # pragma: no cover - depends on the local install state
     pass
 
 
@@ -95,11 +103,28 @@ def _stub_score(scenario: dict[str, Any], outcome: dict[str, Any]) -> dict[str, 
 
 # === LLM call (when available) ===
 
+def _stub_fallback(kind: str, message: str = "") -> dict[str, Any]:
+    """Uniform stub-fallback payload for the real-LLM path."""
+    return {
+        "mode": "stub_fallback",
+        "argument_quality": 0.5,
+        "sequence_coherence": 0.5,
+        "cultural_fit": 0.5,
+        "tool_selection": 0.5,
+        "overall": 0.5,
+        "comment": f"LLM call failed ({kind}); using stub fallback",
+        "error": message or kind,
+    }
+
+
 def _real_llm_score(
     scenario: dict[str, Any], outcome: dict[str, Any]
 ) -> dict[str, Any]:
     """Real LLM call via ChatAnthropic. Falls back to stub on any error."""
-    from langchain_anthropic import ChatAnthropic  # type: ignore
+    if _ChatAnthropic is None:
+        return _stub_fallback(
+            "ImportError", "langchain_anthropic is not installed (optional dep)"
+        )
 
     model_name = os.environ.get("IKIGAI_MODEL", "MiniMax-M2.7-highspeed")
     prompt = f"""You are an LLM-judge evaluating a backtest scenario.
@@ -127,21 +152,12 @@ Return JSON only, no prose:
  "comment": "<1-sentence PT-BR rationale>"}}"""
 
     try:
-        model = ChatAnthropic(model=model_name)
+        model = _ChatAnthropic(model=model_name)
         response = model.invoke(prompt)
         text = response.content if hasattr(response, "content") else str(response)
         return _parse_llm_response(text, scenario)
     except Exception as e:
-        return {
-            "mode": "stub_fallback",
-            "argument_quality": 0.5,
-            "sequence_coherence": 0.5,
-            "cultural_fit": 0.5,
-            "tool_selection": 0.5,
-            "overall": 0.5,
-            "comment": f"LLM call failed ({type(e).__name__}); using stub fallback",
-            "error": str(e),
-        }
+        return _stub_fallback(type(e).__name__, str(e))
 
 
 def _parse_llm_response(text: str, scenario: dict[str, Any]) -> dict[str, Any]:

@@ -28,7 +28,6 @@ DEFAULT_PLUGIN_DIRS = [ROOT / "life" / "plugins" / "builtin", ROOT / "plugins"]
 # (Operators can still override via config/life.yaml or env.)
 DEFAULT_SUBMODULES = {
     "interfaces_cli":   ROOT / "interfaces" / "cli",          # Phase 3 mesh CLI consumer
-    "interfaces_tui":   ROOT / "interfaces" / "tui",          # Phase 3 mesh TUI consumer (operator)
     "taskwarrior":      ROOT / "taskwarrior",                 # task central scripts
     "strategics":       ROOT / "strategics",                  # PT-BR strategy / operational notes
     "specs":            ROOT / "specs",                       # canonical milestone SPECs

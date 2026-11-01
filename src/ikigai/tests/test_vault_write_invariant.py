@@ -1,28 +1,23 @@
-"""Invariant: vault_write is the sole vault writer (attribution §7).
+"""Invariant: the vault write path is confined to the canonical writers.
 
-Per docs/superpowers/specs/2026-08-29-algorithm-attribution-design.md §7:
-    "vault_write is the ONLY vault writer."
+Per ADR-012 (and the attribution §7 rule it replaces), the agent layer is
+the only layer allowed to write into `vault/`. The canonical write path is:
 
-The canonical vault writer lives in the repo-root `sys_ikigai/vault/` package
-(it is packaged into the Ikigai Poetry project as `sys_ikigai`). Any code
-outside the allowlist that opens/writes files under the vault root violates
-this invariant.
+- `sys_ikigai/vault/vault_write.py` — the underlying writer
+- `sys_ikigai/security/vault_write_wrapper.py` — the ADR-029 enforcement
+  layer (kill switch, rate limit, actor whitelist, audit log) that every
+  `vault_write` call must traverse
+- `src/agents/` — the planner layer itself (its session summaries and
+  reflection logs are append-only files it owns)
 
-Allowlist (the legitimate vault writers):
-- sys_ikigai/vault/vault_write.py — the underlying implementation (sole writer)
-- sys_ikigai/vault/__init__.py — public re-exports
-- sys_ikigai/vault/vault_read.py — read-only (no write calls)
-- sys_ikigai/vault/path_utils.py — path resolution only
-- src/ikigai/src/mcp_server/tools_vault.py — registers the MCP tool
-
-Any OTHER file in `src/ikigai/src/{agents,mcp_server}/` or in `sys_ikigai/`
-that:
-    (a) opens a file for writing AND
-    (b) the path resolves under vault/
-
-is a violation. The drift detector (test_canonical_scope.py) provides the
+Any OTHER file that opens a file for writing under the vault root violates
+this invariant. The drift detector (test_canonical_scope.py) provides the
 parallel pattern for catching canonical-scope drift; this test provides the
 analog for write-path drift.
+
+Scope note (ADR-037): the retired `src/ikigai/src/{agents,mcp_server}`
+harness dirs no longer exist, so the scan roots are the canonical
+production layers that do exist.
 """
 
 from __future__ import annotations
@@ -70,26 +65,32 @@ _RE_PATH_VAULT = re.compile(
     r"""Path\s*\(\s*[^)]*?vault/[^)]*?\)""",
 )
 
+# The canonical marker used to locate the repo root. `src/contracts/common.py`
+# is the single source of truth for the shared Pydantic models and is stable
+# in every clone of the canonical scope.
+_ROOT_MARKER = Path("src") / "contracts" / "common.py"
+
 
 def _resolve_repo_root(start: Path) -> Path:
-    """Walk up from `start` until we find src/ikigai/src/agents — that's the
-    canonical IKIGAI package root, and its parent is the repo root."""
+    """Walk up from `start` until the canonical contracts marker is found."""
     cur = start.resolve()
     for parent in [cur, *cur.parents]:
-        if (parent / "src" / "ikigai" / "src" / "agents").is_dir():
+        if (parent / _ROOT_MARKER).is_file():
             return parent
     raise RuntimeError(f"Could not locate repo root from {start}")
 
 
 def _is_allowlisted(rel_path: Path) -> bool:
-    """Return True if `rel_path` is part of the vault module or the MCP
-    vault_write tool wrapper — i.e., the legitimate writers."""
+    """Return True if `rel_path` belongs to a legitimate vault writer."""
     parts = rel_path.parts
-    # src/ikigai/src/mcp_server/tools_vault.py
-    if parts == ("src", "ikigai", "src", "mcp_server", "tools_vault.py"):
-        return True
     # sys_ikigai/vault/<anything>.py — the canonical writer package
     if len(parts) >= 3 and parts[:2] == ("sys_ikigai", "vault"):
+        return True
+    # sys_ikigai/security/vault_write_wrapper.py — the ADR-029 enforcement layer
+    if parts == ("sys_ikigai", "security", "vault_write_wrapper.py"):
+        return True
+    # src/agents/<anything>.py — the planner layer (ADR-012 sole writer)
+    if len(parts) >= 2 and parts[:2] == ("src", "agents"):
         return True
     return False
 
@@ -192,27 +193,33 @@ def _file_targets_vault(src: str) -> bool:
     return has_write_call
 
 
+def _scan_roots(repo_root: Path) -> list[Path]:
+    """The canonical production layers that must not write into vault/."""
+    return [
+        repo_root / "src" / "contracts",
+        repo_root / "src" / "mesh",
+        repo_root / "src" / "services",
+        repo_root / "src" / "transport",
+        repo_root / "src" / "ikigai" / "src",
+        repo_root / "src" / "life_tatics",
+        repo_root / "sys_ikigai",
+        repo_root / "life",
+        repo_root / "interfaces" / "cli",
+    ]
+
+
 def test_vault_write_is_sole_writer() -> None:
-    """Scan the IKIGAI agent/MCP/gateway surface for direct vault writes.
+    """Scan the canonical production layers for direct vault writes.
 
     Violations are collected and surfaced as a single assertion failure
     with the offending file paths + excerpts so a human reviewer can
     investigate.
     """
     repo_root = _resolve_repo_root(Path(__file__))
-    ikigai_src = repo_root / "src" / "ikigai" / "src"
-
-    # Scan the canonical-scope subtree (mirrors test_canonical_scope.py)
-    # plus the repo-root sys_ikigai package, which holds the canonical writer.
-    scan_roots = [
-        ikigai_src / "agents",
-        ikigai_src / "mcp_server",
-        repo_root / "sys_ikigai",
-    ]
 
     violations: list[tuple[Path, str]] = []
     scanned = 0
-    for root in scan_roots:
+    for root in _scan_roots(repo_root):
         if not root.is_dir():
             continue
         for py_file in sorted(root.rglob("*.py")):
@@ -241,27 +248,30 @@ def test_vault_write_is_sole_writer() -> None:
                         excerpts.append(body[start:end].strip())
                 violations.append((rel, " | ".join(excerpts) if excerpts else "<matched>"))
 
+    assert scanned > 0, "vault write scan found no files — the scan roots are stale"
     assert not violations, (
         f"vault_write invariant violated — {len(violations)} file(s) outside "
         f"the allowlist write directly to vault/. Use `vault_write()` (the "
-        f"MCP tool wrapper at src/ikigai/src/mcp_server/tools_vault.py) or "
-        f"`ikigai.vault.vault_write.vault_write()` instead.\n\n"
+        f"canonical writer at sys_ikigai/vault/vault_write.py, always through "
+        f"sys_ikigai/security/vault_write_wrapper.py) instead.\n\n"
         + "\n".join(f"  {p}: {ex}" for p, ex in violations)
-        + f"\n\n(scanned {scanned} files across {len(scan_roots)} roots)"
+        + f"\n\n(scanned {scanned} files)"
     )
 
 
 def test_vault_module_is_allowlisted() -> None:
-    """Sanity check: the allowlist itself contains the vault module so
+    """Sanity check: the allowlist itself contains the canonical writers so
     legitimate writers are not flagged. If this fails, the allowlist is
     stale and drift detector + vault_write test are inconsistent."""
     assert _is_allowlisted(Path("sys_ikigai/vault/vault_write.py"))
     assert _is_allowlisted(Path("sys_ikigai/vault/__init__.py"))
     assert _is_allowlisted(Path("sys_ikigai/vault/vault_read.py"))
-    assert _is_allowlisted(Path("src/ikigai/src/mcp_server/tools_vault.py"))
-    # Negative: a known non-allowlisted file
-    assert not _is_allowlisted(Path("src/ikigai/src/agents/deepagents_harness.py"))
-    assert not _is_allowlisted(Path("src/ikigai/src/mcp_server/server.py"))
+    assert _is_allowlisted(Path("sys_ikigai/security/vault_write_wrapper.py"))
+    assert _is_allowlisted(Path("src/agents/reflection/recursive.py"))
+    # Negative: known non-allowlisted files
+    assert not _is_allowlisted(Path("src/mesh/agent_propagator.py"))
+    assert not _is_allowlisted(Path("src/services/sync.py"))
+    assert not _is_allowlisted(Path("src/transport/mcp_server.py"))
 
 
 if __name__ == "__main__":

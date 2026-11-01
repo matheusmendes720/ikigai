@@ -11,6 +11,17 @@ Two properties matter more than the mapping itself:
   already ingested.
 - **Read-only.** The vault is append-only and is written by `vault_write`
   (ADR-012). Nothing here writes, moves or deletes anything under `vault/`.
+
+Two tree shapes are ingested, because the repo has two of them:
+
+- `closing` — `closing-2026/<quarter>/<kind>/<file>.md`, the scaffold the
+  vault README describes.
+- `persona` — `dreams/`, `objectives/`, `projects/`, `ikigai_state/`,
+  `deliverables/`, the flat layout the production persona vault uses.
+
+Where a file declares its own `ueid` in frontmatter, that identity wins. It is
+the one the rest of the system already links to, and it survives a move of the
+file between the two trees.
 """
 
 from __future__ import annotations
@@ -20,22 +31,26 @@ import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any, Literal
 
-from src.contracts.dom import ArtifactKind, WriteRequest, make_uid
+from src.contracts.common import UEID
+from src.contracts.dom import ArtifactKind, Relation, RelationType, WriteRequest, make_uid
 from src.contracts.dom_kinds import KIND_MODELS
 
 from src.data.repository import ArtifactRepository
 
-__all__ = ["SyncReport", "VaultSync", "default_vault_root"]
+__all__ = ["SyncReport", "VaultSource", "VaultSync", "default_sources"]
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 _HEADING_RE = re.compile(r"^#\s+(.+)$", re.MULTILINE)
 _QUARTER_RE = re.compile(r"^\d+-q(\d)-(\d{4})$")
+_SLUG_QUARTER_RE = re.compile(r"\bq(\d)-(\d{4})\b")
+_FRONT_MATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
-# The vault tree, from the directories that exist on disk. The prefixes are
+# The closing tree, from the directories that exist on disk. The prefixes are
 # matched against a path SEGMENT, not the whole path, because the quarter
 # directory sits in front of the kind directory.
-_VAULT_KINDS: tuple[tuple[str, ArtifactKind], ...] = (
+_CLOSING_KINDS: tuple[tuple[str, ArtifactKind], ...] = (
     ("00-sonho", ArtifactKind.SONHO),
     ("01-plano-trimestral", ArtifactKind.PLANO),
     ("02-onda", ArtifactKind.ONDA),
@@ -43,7 +58,25 @@ _VAULT_KINDS: tuple[tuple[str, ArtifactKind], ...] = (
     ("04-relat", ArtifactKind.NOTA),
 )
 
+# The persona tree, flat, one directory per entity tier.
+_PERSONA_KINDS: dict[str, ArtifactKind] = {
+    "dreams": ArtifactKind.SONHO,
+    "objectives": ArtifactKind.PLANO,
+    "projects": ArtifactKind.ONDA,
+    "ikigai_state": ArtifactKind.REVISAO,
+    "deliverables": ArtifactKind.NOTA,
+}
+
 _ARCHIVE_DIR = "99-archive"
+_LAYOUTS = ("closing", "persona")
+
+
+@dataclass(frozen=True)
+class VaultSource:
+    """One markdown tree to ingest, and the shape it is laid out in."""
+
+    root: Path
+    layout: Literal["closing", "persona"]
 
 
 @dataclass
@@ -54,6 +87,7 @@ class SyncReport:
     created: int = 0
     updated: int = 0
     unchanged: int = 0
+    relations: int = 0
     skipped: list[str] = field(default_factory=list)
 
     @property
@@ -61,9 +95,18 @@ class SyncReport:
         return self.created + self.updated + self.unchanged
 
 
-def default_vault_root() -> Path:
-    """The vault tree the ingestion reads."""
-    return Path(__file__).resolve().parents[2] / "vault" / "ikigai" / "closing-2026"
+def default_sources() -> list[VaultSource]:
+    """The trees the ingestion reads by default.
+
+    Both are included: the closing tree is where prose is written today, and
+    the persona tree is where the real content already is. Which one wins for
+    a given file is decided by the file, not by the order.
+    """
+    repo_root = Path(__file__).resolve().parents[2]
+    return [
+        VaultSource(repo_root / "vault" / "ikigai" / "closing-2026", "closing"),
+        VaultSource(repo_root / "src" / "ikigai" / "data" / "matheus", "persona"),
+    ]
 
 
 def _slugify(text: str) -> str:
@@ -77,13 +120,39 @@ def _slugify(text: str) -> str:
     return slug
 
 
-def _locate(path: Path, root: Path) -> tuple[ArtifactKind, str | None] | None:
-    """Find the kind and the quarter a vault file belongs to.
+def _front_matter(text: str) -> dict[str, Any]:
+    """Parse the YAML frontmatter, if the file has any and PyYAML is present."""
+    match = _FRONT_MATTER_RE.match(text)
+    if match is None:
+        return {}
+    try:
+        import yaml
+    except ImportError:
+        return {}
+    try:
+        loaded = yaml.safe_load(match.group(1))
+    except Exception:  # noqa: BLE001 — malformed frontmatter is not fatal to the sync
+        return {}
+    return loaded if isinstance(loaded, dict) else {}
 
-    The tree is `closing-2026/<quarter>/<kind>/<file>.md`, so the kind directory
-    is NOT the first segment — `01-q3-2026` comes first and the quarter it
-    names is worth keeping, because the spine has a `quarter` column precisely
-    for it.
+
+def _timestamp(value: Any) -> datetime | None:
+    """Coerce a frontmatter timestamp into a datetime."""
+    if isinstance(value, datetime):
+        return value
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _locate_closing(path: Path, root: Path) -> tuple[ArtifactKind, str | None] | None:
+    """Find the kind and the quarter in a `closing-2026/<quarter>/<kind>/` tree.
+
+    The quarter directory sits in FRONT of the kind directory, and it is worth
+    keeping: the spine has a `quarter` column precisely for it.
 
     Archived material is left where it is. It is still markdown and still
     append-only; it is just not part of the live vault.
@@ -97,7 +166,7 @@ def _locate(path: Path, root: Path) -> tuple[ArtifactKind, str | None] | None:
     kind: ArtifactKind | None = None
     quarter: str | None = None
     for part in relative.parts:
-        for prefix, candidate in _VAULT_KINDS:
+        for prefix, candidate in _CLOSING_KINDS:
             if part.startswith(prefix):
                 kind = candidate
                 break
@@ -109,6 +178,24 @@ def _locate(path: Path, root: Path) -> tuple[ArtifactKind, str | None] | None:
     return kind, quarter
 
 
+def _locate_persona(path: Path, root: Path) -> tuple[ArtifactKind, str | None] | None:
+    """Find the kind in the flat persona tree."""
+    try:
+        relative = path.relative_to(root)
+    except ValueError:
+        return None
+    if not relative.parts:
+        return None
+    kind = _PERSONA_KINDS.get(relative.parts[0])
+    if kind is None:
+        return None
+    quarter = None
+    match = _SLUG_QUARTER_RE.search(path.stem)
+    if match:
+        quarter = f"Q{match.group(1)}-{match.group(2)}"
+    return kind, quarter
+
+
 class VaultSync:
     """Reads the vault's markdown and upserts it into the store."""
 
@@ -116,47 +203,55 @@ class VaultSync:
         self,
         repo: ArtifactRepository,
         *,
-        vault_root: Path | None = None,
+        sources: list[VaultSource] | None = None,
         client_id: str = "vault-sync",
     ) -> None:
         self._repo = repo
-        self._root = vault_root or default_vault_root()
+        self._sources = list(sources) if sources is not None else default_sources()
         self._client_id = client_id
 
     async def ingest(self) -> SyncReport:
         report = SyncReport()
-        if not self._root.exists():
-            report.skipped.append(f"vault root not found: {self._root}")
-            return report
+        for source in self._sources:
+            if not source.root.exists():
+                report.skipped.append(f"vault root not found: {source.root}")
+                continue
+            await self._ingest_source(source, report)
+        return report
 
-        for path in sorted(self._root.rglob("*.md")):
+    async def _ingest_source(self, source: VaultSource, report: SyncReport) -> None:
+        for path in sorted(source.root.rglob("*.md")):
             if path.name.lower() == "readme.md":
                 # READMEs are scaffolding for the tree, not artifacts in it.
                 report.skipped.append(str(path))
                 continue
-            located = _locate(path, self._root)
+            located = (
+                _locate_closing(path, source.root)
+                if source.layout == "closing"
+                else _locate_persona(path, source.root)
+            )
             if located is None:
                 report.skipped.append(str(path))
                 continue
             kind, quarter = located
-            await self._ingest_file(path, kind, quarter, report)
-        return report
+            await self._ingest_file(path, source, kind, quarter, report)
 
     async def _ingest_file(
         self,
         path: Path,
+        source: VaultSource,
         kind: ArtifactKind,
         quarter: str | None,
         report: SyncReport,
     ) -> None:
         content = path.read_text(encoding="utf-8")
         body_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
-        relative = path.relative_to(self._root).as_posix()
-        slug = _slugify(path.stem)
-        path_digest = hashlib.sha256(relative.encode("utf-8")).hexdigest()
-        uid = make_uid(kind, slug, path_digest[:8], path_digest[8:24])
+        relative = path.relative_to(source.root).as_posix()
+        meta = _front_matter(content)
+
+        uid = self._uid_for(meta, kind, path, relative)
+        title = self._title_for(meta, content, path)
         heading = _HEADING_RE.search(content)
-        title = heading.group(1).strip() if heading else path.stem
 
         report.scanned += 1
         existing = await self._repo.get(uid)
@@ -164,22 +259,48 @@ class VaultSync:
             report.unchanged += 1
             return
 
+        fields: dict[str, Any] = {
+            "uid": uid,
+            "kind": kind,
+            "title": title,
+            "body": content,
+            "body_hash": body_hash,
+            "quarter": quarter,
+            "revision": existing.revision if existing else 1,
+            "created_at": existing.created_at if existing else _now(),
+            "updated_at": _now(),
+        }
+        status = meta.get("status")
+        if isinstance(status, str) and status:
+            fields["status"] = status
+        parent = meta.get("parent_ueid")
+        if isinstance(parent, str) and parent:
+            fields["parent_uid"] = parent
+        created = _timestamp(meta.get("created_at"))
+        if created is not None and existing is None:
+            fields["created_at"] = created
+        updated = _timestamp(meta.get("updated_at"))
+        if updated is not None:
+            fields["updated_at"] = updated
+        if kind is ArtifactKind.NOTA:
+            note_date = meta.get("date")
+            if isinstance(note_date, str) and note_date:
+                fields["note_date"] = note_date
+        if kind is ArtifactKind.SONHO:
+            vectors = meta.get("ikigai_vectors")
+            if isinstance(vectors, list) and vectors:
+                fields["ikigai_vectors"] = tuple(vectors)
+
+        try:
+            artifact = KIND_MODELS[kind].model_validate(fields)
+        except Exception as exc:  # noqa: BLE001 — one bad file must not stop the run
+            report.skipped.append(f"{relative}: {exc}")
+            return
+
         request = WriteRequest(
-            artifact=KIND_MODELS[kind].model_validate(
-                {
-                    "uid": uid,
-                    "kind": kind,
-                    "title": title,
-                    "body": content,
-                    "body_hash": body_hash,
-                    "quarter": quarter,
-                    "revision": existing.revision if existing else 1,
-                    "created_at": existing.created_at if existing else _now(),
-                    "updated_at": _now(),
-                }
-            ),
+            artifact=artifact,
             expected_revision=existing.revision if existing else None,
-            idempotency_key=f"vault:{relative}:{body_hash[:16]}",
+            idempotency_key=f"vault:{source.layout}:{relative}:{body_hash[:16]}",
             client_id=self._client_id,
         )
 
@@ -194,6 +315,66 @@ class VaultSync:
             report.updated += 1
         else:
             report.unchanged += 1
+
+        await self._write_relations(artifact.uid, meta, report)
+
+    async def _write_relations(
+        self,
+        uid: UEID,
+        meta: dict[str, Any],
+        report: SyncReport,
+    ) -> None:
+        """Record the edges the frontmatter declares."""
+        related = meta.get("related_ueids")
+        if not isinstance(related, list):
+            return
+        for other in related:
+            if not isinstance(other, str) or not other:
+                continue
+            try:
+                relation = Relation(
+                    src_uid=uid,
+                    dst_uid=other,
+                    rel=RelationType.REFERENCES,
+                )
+            except Exception:  # noqa: BLE001 — a malformed reference is not fatal
+                continue
+            try:
+                await self._repo.upsert_relation(relation)
+            except Exception:  # noqa: BLE001 — the artifact is already stored
+                continue
+            report.relations += 1
+
+    @staticmethod
+    def _uid_for(
+        meta: dict[str, Any],
+        kind: ArtifactKind,
+        path: Path,
+        relative: str,
+    ) -> UEID:
+        """The identity of the artifact.
+
+        A declared `ueid` wins over anything derived: it is the identity the
+        rest of the system already links to, and it survives the file moving
+        between the two tree shapes.
+        """
+        declared = meta.get("ueid")
+        if isinstance(declared, str) and declared:
+            try:
+                return UEID(declared)
+            except ValueError:
+                pass
+        slug = _slugify(path.stem)
+        digest = hashlib.sha256(relative.encode("utf-8")).hexdigest()
+        return make_uid(kind, slug, digest[:8], digest[8:24])
+
+    @staticmethod
+    def _title_for(meta: dict[str, Any], content: str, path: Path) -> str:
+        declared = meta.get("title")
+        if isinstance(declared, str) and declared.strip():
+            return declared.strip()
+        heading = _HEADING_RE.search(content)
+        return heading.group(1).strip() if heading else path.stem
 
 
 def _now() -> datetime:

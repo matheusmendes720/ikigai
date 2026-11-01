@@ -74,7 +74,6 @@ _ALIAS_MODULES: tuple[str, ...] = (
     "sys_ikigai.security.transition_validator",
     "sys_ikigai.adapters",
     "sys_ikigai.adapters.drift_detector",
-    "sys_ikigai.adapters.checkpoint_adapter",
     "sys_ikigai.adapters.sqlite_bridge",
     "sys_ikigai.adapters.state_reducer",
 )

@@ -31,7 +31,7 @@ from src.contracts.store import EMBEDDING_DIM
 from src.services.artifacts import ArtifactService
 from src.services.embeddings import EmbeddingService, local_embedding
 from src.services.relations import RelationService
-from src.services.sync import VaultSync
+from src.services.sync import VaultSource, VaultSync
 
 NOW = datetime.now(UTC)
 
@@ -267,7 +267,7 @@ async def test_sync_ingestion_is_idempotent(tmp_path: Path) -> None:
     )
 
     repo = FakeRepository()
-    sync = VaultSync(repo, vault_root=vault)  # type: ignore[arg-type]
+    sync = VaultSync(repo, sources=[VaultSource(vault, "closing")])  # type: ignore[arg-type]
 
     first = await sync.ingest()
     second = await sync.ingest()
@@ -297,7 +297,7 @@ async def test_sync_reads_the_real_vault_layout(tmp_path: Path) -> None:
     (vault / "README.md").write_text("# Vault\n", encoding="utf-8")
 
     repo = FakeRepository()
-    sync = VaultSync(repo, vault_root=vault)  # type: ignore[arg-type]
+    sync = VaultSync(repo, sources=[VaultSource(vault, "closing")])  # type: ignore[arg-type]
 
     report = await sync.ingest()
 
@@ -319,7 +319,7 @@ async def test_sync_skips_readmes_and_archived_material(tmp_path: Path) -> None:
     (vault / "99-archive" / "antigo.md").write_text("# Antigo\n", encoding="utf-8")
 
     repo = FakeRepository()
-    sync = VaultSync(repo, vault_root=vault)  # type: ignore[arg-type]
+    sync = VaultSync(repo, sources=[VaultSource(vault, "closing")])  # type: ignore[arg-type]
 
     report = await sync.ingest()
 
@@ -334,7 +334,7 @@ async def test_sync_updates_a_file_whose_content_changed(tmp_path: Path) -> None
     note.write_text("# Sonho um\n\nPrimeira versão.\n", encoding="utf-8")
 
     repo = FakeRepository()
-    sync = VaultSync(repo, vault_root=vault)  # type: ignore[arg-type]
+    sync = VaultSync(repo, sources=[VaultSource(vault, "closing")])  # type: ignore[arg-type]
 
     first = await sync.ingest()
     note.write_text("# Sonho um\n\nSegunda versão.\n", encoding="utf-8")
@@ -346,3 +346,93 @@ async def test_sync_updates_a_file_whose_content_changed(tmp_path: Path) -> None
     assert len(repo.artifacts) == 1
     stored = next(iter(repo.artifacts.values()))
     assert "Segunda versão" in (stored.body or "")
+
+
+async def test_sync_reads_the_flat_persona_layout(tmp_path: Path) -> None:
+    """The persona vault is flat: dreams/, objectives/, projects/, deliverables/."""
+    persona = tmp_path / "matheus"
+    for group in ("dreams", "objectives", "projects", "ikigai_state", "deliverables"):
+        (persona / group).mkdir(parents=True)
+
+    (persona / "dreams" / "vaga-remota-2026.md").write_text(
+        "# Sonho\n", encoding="utf-8"
+    )
+    (persona / "objectives" / "q3-2026-primeira-vaga.md").write_text(
+        "# Objetivo\n", encoding="utf-8"
+    )
+    (persona / "projects" / "onda-q3-1-pipeline.md").write_text(
+        "# Onda\n", encoding="utf-8"
+    )
+    (persona / "ikigai_state" / "q3-2026-mid-review.md").write_text(
+        "# Revisão\n", encoding="utf-8"
+    )
+    (persona / "deliverables" / "byd-process-tracker.md").write_text(
+        "# Deliverable\n", encoding="utf-8"
+    )
+
+    repo = FakeRepository()
+    sync = VaultSync(repo, sources=[VaultSource(persona, "persona")])  # type: ignore[arg-type]
+
+    report = await sync.ingest()
+
+    assert report.created == 5, f"ingested {report.created}"
+    kinds = {artifact.kind for artifact in repo.artifacts.values()}
+    assert kinds == {
+        ArtifactKind.SONHO,
+        ArtifactKind.PLANO,
+        ArtifactKind.ONDA,
+        ArtifactKind.REVISAO,
+        ArtifactKind.NOTA,
+    }
+
+
+async def test_sync_keeps_the_identity_the_file_declares(tmp_path: Path) -> None:
+    """A declared ueid is the identity the rest of the system links to.
+
+    It also survives the file moving between the two tree shapes, which is why
+    the sync prefers it over anything derived from the path.
+    """
+    persona = tmp_path / "matheus"
+    (persona / "dreams").mkdir(parents=True)
+    declared = "ikigai:dream:vaga-remota-2026:4f6a202a:2cb24609"
+    (persona / "dreams" / "vaga-remota-2026.md").write_text(
+        f"---\nueid: {declared}\ntitle: Primeira vaga remota\n"
+        "status: ACTIVE\nikigai_vectors: [passion, revenue]\n"
+        "created_at: 2026-07-03T00:00:00Z\n---\n\n# Sonho\n",
+        encoding="utf-8",
+    )
+
+    repo = FakeRepository()
+    sync = VaultSync(repo, sources=[VaultSource(persona, "persona")])  # type: ignore[arg-type]
+
+    report = await sync.ingest()
+
+    assert report.created == 1
+    stored = next(iter(repo.artifacts.values()))
+    assert str(stored.uid) == declared
+    assert stored.title == "Primeira vaga remota"
+    assert stored.status == "ACTIVE"
+    assert stored.created_at.year == 2026
+
+
+async def test_sync_records_the_parent_edge(tmp_path: Path) -> None:
+    persona = tmp_path / "matheus"
+    (persona / "projects").mkdir(parents=True)
+    (persona / "projects" / "onda.md").write_text(
+        "---\nueid: ikigai:project:onda:82e0b0aa:86d28f99\n"
+        "parent_ueid: ikigai:objective:q3:cbf000ba:c040f222\n"
+        "related_ueids: [ikigai:objective:q3:cbf000ba:c040f222]\n"
+        "title: Onda Q3-1\n---\n\n# Onda\n",
+        encoding="utf-8",
+    )
+
+    repo = FakeRepository()
+    sync = VaultSync(repo, sources=[VaultSource(persona, "persona")])  # type: ignore[arg-type]
+
+    report = await sync.ingest()
+
+    assert report.created == 1
+    stored = next(iter(repo.artifacts.values()))
+    assert stored.parent_uid is not None
+    assert str(stored.parent_uid) == "ikigai:objective:q3:cbf000ba:c040f222"
+    assert report.relations == 1

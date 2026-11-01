@@ -62,7 +62,7 @@ def get_changed_files(base_ref: str = "main") -> tuple[list[Path], list[Path]]:
     try:
         result = subprocess.run(
             ["git", "diff", "--name-only", f"{base_ref}...HEAD"],
-            cwd=ROOT, capture_output=True, text=True, text=True
+            cwd=ROOT, capture_output=True, text=True
         )
         all_changed = [ROOT / f for f in result.stdout.strip().splitlines() if f]
 
@@ -118,7 +118,7 @@ def run_pytest_for_file(test_file: Path, package_path: Path) -> TestFile:
         ["uv", "run", "pytest", str(test_file),
          "--tb=short", "-v", "--no-header",
          "-q", "--ignore=scratch"],
-        cwd=package_path, capture_output=True, text=True, text=True
+        cwd=package_path, capture_output=True, text=True
     )
 
     output = result.stdout + result.stderr

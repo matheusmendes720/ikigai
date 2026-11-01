@@ -46,6 +46,17 @@ from tools.backtest.llm_judge import (  # noqa: E402
     main,
 )
 
+# The LLM-judge path depends on the OPTIONAL langchain stack, which is not
+# part of the published canonical dependencies (ADR-037). The chat model is
+# injected through the module-level seam (lj._ChatAnthropic), so these tests
+# run hermetically whether or not the optional package is installed.
+try:  # pragma: no cover - depends on the local install state
+    from langchain_core.exceptions import ModelError
+except Exception:  # pragma: no cover - optional dependency absent
+
+    class ModelError(RuntimeError):
+        """Stand-in for langchain_core.exceptions.ModelError."""
+
 
 @pytest.fixture
 def minimal_scenario() -> dict[str, Any]:
@@ -78,9 +89,9 @@ def test_real_llm_falls_back_on_connection_error(
     fake_model = MagicMock()
     fake_model.invoke.side_effect = ConnectionError("proxy refused")
 
-    # Patch at the module level — `from langchain_anthropic import ChatAnthropic`
-    # inside _real_llm_score imports the symbol from langchain_anthropic.
-    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+    # Patch the module-level seam — _real_llm_score resolves the chat-model
+    # class from lj._ChatAnthropic at call time.
+    with mock_patch.object(lj, "_ChatAnthropic", return_value=fake_model):
         s = _real_llm_score(minimal_scenario, minimal_outcome)
     assert s["mode"] == "stub_fallback"
     assert "error" in s
@@ -92,14 +103,13 @@ def test_real_llm_falls_back_on_model_error(
     minimal_scenario: dict[str, Any], minimal_outcome: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """ModelError (langchain_core.exceptions.ModelError) → stub_fallback."""
-    from langchain_core.exceptions import ModelError
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-fake-test-key")
     monkeypatch.setattr(lj, "_LANGCHAIN_AVAILABLE", True)
 
     fake_model = MagicMock()
     fake_model.invoke.side_effect = ModelError("model not available")
 
-    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+    with mock_patch.object(lj, "_ChatAnthropic", return_value=fake_model):
         s = _real_llm_score(minimal_scenario, minimal_outcome)
     assert s["mode"] == "stub_fallback"
     assert s["comment"].startswith("LLM call failed")
@@ -115,7 +125,7 @@ def test_real_llm_falls_back_on_generic_exception(
     fake_model = MagicMock()
     fake_model.invoke.side_effect = RuntimeError("something weird")
 
-    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+    with mock_patch.object(lj, "_ChatAnthropic", return_value=fake_model):
         s = _real_llm_score(minimal_scenario, minimal_outcome)
     assert s["mode"] == "stub_fallback"
 
@@ -138,7 +148,7 @@ def test_real_llm_success_path(
     })
     fake_model.invoke.return_value = fake_response
 
-    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+    with mock_patch.object(lj, "_ChatAnthropic", return_value=fake_model):
         s = _real_llm_score(minimal_scenario, minimal_outcome)
     assert s["mode"] == "llm"
     assert s["argument_quality"] == 0.9
@@ -160,7 +170,7 @@ def test_real_llm_json_parse_failure_falls_back(
     fake_response.content = "I cannot evaluate this."
     fake_model.invoke.return_value = fake_response
 
-    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+    with mock_patch.object(lj, "_ChatAnthropic", return_value=fake_model):
         s = _real_llm_score(minimal_scenario, minimal_outcome)
     # No JSON in response → falls back to stub (not stub_fallback — that path
     # is reserved for exceptions; JSON parse failure uses stub mode silently).
@@ -204,7 +214,7 @@ def test_judge_scenario_hermes_proxy_key_reaches_model(
     fake_model = MagicMock()
     fake_model.invoke.side_effect = ConnectionError("proxy doesn't reach Anthropic")
 
-    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model) as mock_cls:
+    with mock_patch.object(lj, "_ChatAnthropic", return_value=fake_model) as mock_cls:
         s = judge_scenario_llm(minimal_scenario, minimal_outcome, use_llm=True)
     # ChatAnthropic was called (code path reached).
     mock_cls.assert_called_once()
@@ -237,7 +247,7 @@ def test_main_use_llm_writes_stub_fallback_json(
     fake_model = MagicMock()
     fake_model.invoke.side_effect = ConnectionError("simulated")
 
-    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+    with mock_patch.object(lj, "_ChatAnthropic", return_value=fake_model):
         rc = main(["--scenarios", str(scenarios_yaml), "--harness-results", str(results_json),
                    "--out", str(out), "--use-llm"])
 
@@ -288,7 +298,7 @@ def test_model_name_env_var_is_honored(
     fake_model = MagicMock()
     fake_model.invoke.side_effect = ConnectionError("test")
 
-    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model) as mock_cls:
+    with mock_patch.object(lj, "_ChatAnthropic", return_value=fake_model) as mock_cls:
         _real_llm_score(minimal_scenario, minimal_outcome)
     # ChatAnthropic was called with the IKIGAI_MODEL value.
     args, kwargs = mock_cls.call_args
@@ -326,7 +336,7 @@ def test_real_llm_integration_smoke_with_realistic_response(
         '"comment": "Good fit for the add-task scenario."}'
     ))
 
-    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+    with mock_patch.object(lj, "_ChatAnthropic", return_value=fake_model):
         s = _real_llm_score(minimal_scenario, minimal_outcome)
     assert s["mode"] == "llm"
     assert s["argument_quality"] == 0.85
@@ -354,7 +364,7 @@ def test_real_llm_json_fence_parsed(
         "```"
     ))
 
-    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+    with mock_patch.object(lj, "_ChatAnthropic", return_value=fake_model):
         s = _real_llm_score(minimal_scenario, minimal_outcome)
     assert s["mode"] == "llm"
     assert s["overall"] == 0.5
@@ -385,7 +395,7 @@ def test_real_llm_prompt_includes_scenario_context(
         "detail": "Task 42 completed at 14:30",
     }
 
-    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+    with mock_patch.object(lj, "_ChatAnthropic", return_value=fake_model):
         _real_llm_score(scenario, outcome)
 
     # Verify the prompt included the scenario context.

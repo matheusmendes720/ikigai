@@ -14,11 +14,11 @@ primitives and the legacy primitives the rest of the repo still imports.
 sys_ikigai/
 ├── vault/            sole vault writer + sync engine
 ├── security/         kill switch + vault_write wrapper
-├── gateway/          MCP gateway (HTTP+SSE front, stdio back)
+├── gateway/          MCP gateway (HTTP+SSE front, mesh adapters back)
 ├── entities/         legacy entity models + plan/ contract shims
 ├── propagation/      markdown DB, SQLite mirror, triagem
 ├── state_machines/   8 entity state-machine factories
-├── adapters/         checkpoint / drift / state-reducer / sqlite bridge
+├── adapters/         drift / state-reducer / sqlite bridge
 ├── cli/              standalone `ikigai` Typer app
 └── types.py enums.py exceptions.py constants.py   legacy primitives
 ```
@@ -30,7 +30,7 @@ sys_ikigai/
 | Read a vault file | `vault/vault_read.py` | read-only twin of vault_write |
 | Enforce safety on writes | `security/vault_write_wrapper.py` | every write traverses it |
 | Serve MCP over HTTP/SSE | `gateway/gateway.py` | stdlib only, no auth |
-| Spawn a fork MCP server | `gateway/clients/` | one factory per fork |
+| Register a data-mesh adapter | `gateway/downstream.py` | `CliAdapter` + `TaskdogAdapter` (ADR-037) |
 | Persist plan entities | `propagation/markdown_db.py` | canonical markdown store |
 | Entity identity | `entities/ueid.py` | delegates to `src.contracts.common` |
 | Legacy identifier | `types.py` | 5-part UEID — not for new code |

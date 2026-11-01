@@ -47,9 +47,17 @@ IKIGAI_SRC = IKIGAI_PKG / "src"
 
 
 def _resolve_repo_root() -> Path:
-    """Walk up until we find ``src/ikigai/src`` (the agent/MCP layer)."""
+    """Locate the repo root from this test file.
+
+    Canonical scope (ADR-037): the anchor is the directory that holds
+    ``src/contracts`` and ``src/ikigai/tests``. The retired agent harness
+    (``src/ikigai/src/agents``) is no longer published, so it can no longer
+    be used as the anchor.
+    """
     for parent in THIS_FILE.parents:
-        if (parent / "src" / "ikigai" / "src" / "agents").is_dir():
+        if (parent / "src" / "contracts").is_dir() and (
+            parent / "src" / "ikigai" / "tests"
+        ).is_dir():
             return parent
     raise RuntimeError(
         "Could not locate repo root from "
@@ -99,9 +107,11 @@ def test_kill_switch_keys_present_in_json() -> None:
     Drift detector invariant (l extension) — these 5 keys are the
     canonical SOT.
     """
-    json_path = IKIGAI_SRC / "agents" / "v2" / "prompts" / "algorithm_constants.json"
-    if not json_path.exists():
-        pytest.skip(f"{json_path} not present")
+    json_path = REPO_ROOT / "sys_ikigai" / "security" / "algorithm_constants.json"
+    assert json_path.exists(), (
+        f"canonical algorithm_constants.json missing at {json_path} "
+        "(ADR-019 R1 + ADR-029 §W5.1.1)"
+    )
     data = json.loads(json_path.read_text(encoding="utf-8"))
     missing = [k for k in REQUIRED_KILL_SWITCH_KEYS if k not in data]
     assert not missing, (
@@ -111,38 +121,59 @@ def test_kill_switch_keys_present_in_json() -> None:
     )
 
 
-def test_kill_switch_keys_mirrored_in_defensive_default() -> None:
-    """load_constants._defensive_default() MUST mirror all 5 new values (ADR-019 R6)."""
-    load_path = IKIGAI_SRC / "agents" / "v2" / "prompts" / "load_constants.py"
-    if not load_path.exists():
-        pytest.skip(f"{load_path} not present")
-    load_source = load_path.read_text(encoding="utf-8")
-    missing = [k for k in REQUIRED_KILL_SWITCH_KEYS if f'"{k}"' not in load_source]
+def test_kill_switch_keys_mirrored_in_canonical_consumer() -> None:
+    """The canonical consumer MUST read its tuning from the canonical JSON.
+
+    The retired agent loader (``load_constants._defensive_default``) left the
+    canonical scope together with the harness (ADR-037). The surviving
+    consumer is ``sys_ikigai/security/vault_write_wrapper.py``: it MUST read
+    the tuning keys from ``algorithm_constants.json`` (ADR-019 R1) and MUST NOT
+    hardcode them.
+    """
+    consumer_path = REPO_ROOT / "sys_ikigai" / "security" / "vault_write_wrapper.py"
+    assert consumer_path.exists(), f"canonical consumer missing: {consumer_path}"
+    consumer_source = consumer_path.read_text(encoding="utf-8")
+    consumed = [
+        "KILL_SWITCH_RATE_LIMIT_PER_HOUR",
+        "KILL_SWITCH_RATE_LIMIT_WINDOW_S",
+        "KILL_SWITCH_NOTIFY_OPERATOR",
+    ]
+    missing = [k for k in consumed if f'"{k}"' not in consumer_source]
     assert not missing, (
-        f"load_constants._defensive_default() missing KILL_SWITCH_* mirrors "
-        f"(ADR-019 R6 + ADR-029 §W5.1.1): {missing}"
+        f"vault_write_wrapper MUST read the tuning keys from "
+        f"algorithm_constants.json (ADR-019 R1 + ADR-029 §W5.1.1): {missing}"
+    )
+    assert "algorithm_constants.json" in consumer_source, (
+        "vault_write_wrapper MUST load the canonical algorithm_constants.json "
+        f"({REPO_ROOT / 'sys_ikigai' / 'security' / 'algorithm_constants.json'})"
     )
 
 
 def test_no_kill_switch_python_constants_in_agent_code() -> None:
-    """No ``DEFAULT_KILL_SWITCH_*`` / ``DEFAULT_REVIEW_QUEUE_BATCH_SIZE`` constants in agents/v2/*.py.
+    """No ``DEFAULT_KILL_SWITCH_*`` / ``DEFAULT_REVIEW_QUEUE_BATCH_SIZE`` constants in Python.
 
     Per ADR-019 R2 + ADR-029 §W5.1.1 — all kill switch tuning MUST live in
-    JSON only. Extends invariant (l) per W5.1.1 §"Drift Invariants".
+    JSON only. Canonical scope (ADR-037): the guard runs over the canonical
+    agent layer (``src/agents/``) and the canonical security package
+    (``sys_ikigai/security/``), which owns the constants JSON. Extends
+    invariant (l) per W5.1.1 §"Drift Invariants".
     """
-    v2_root = IKIGAI_SRC / "agents" / "v2"
-    if not v2_root.exists():
-        pytest.skip(f"{v2_root} not present")
+    canonical_roots = [
+        REPO_ROOT / "src" / "agents",
+        REPO_ROOT / "sys_ikigai" / "security",
+    ]
+    roots = [root for root in canonical_roots if root.exists()]
+    assert roots, (
+        "no canonical agent/security root found — the kill switch constants "
+        f"rule cannot be verified (looked for {canonical_roots})"
+    )
 
-    allowed_definers = {v2_root / "prompts" / "load_constants.py"}
     forbidden_pattern = re.compile(r"^(DEFAULT_KILL_SWITCH_|DEFAULT_REVIEW_QUEUE_BATCH_SIZE).*")
 
     import ast
 
     violations: list[str] = []
-    for py_file in _iter_python_files(v2_root):
-        if py_file.resolve() in {p.resolve() for p in allowed_definers}:
-            continue
+    for py_file in [f for root in roots for f in _iter_python_files(root)]:
         try:
             tree = ast.parse(py_file.read_text(encoding="utf-8"))
         except SyntaxError:
@@ -161,7 +192,7 @@ def test_no_kill_switch_python_constants_in_agent_code() -> None:
                     )
     assert not violations, (
         "ADR-019 / ADR-029 §W5.1.1 violation — kill switch tuning MUST live in "
-        "prompts/algorithm_constants.json, NOT in src/ikigai/src/agents/v2/*.py. "
+        "sys_ikigai/security/algorithm_constants.json, NOT in Python code. "
         "Violations:\n" + "\n".join(sorted(violations))
     )
 

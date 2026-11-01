@@ -15,13 +15,15 @@ caller whitelist before delegating to `vault_write`.
 | Kill switch state + firing | `kill_switch.py` | 494 lines; `check_kill_switch`, `fire_kill_switch`, `recover_kill_switch`, `build_kill_switch_event` |
 | Write enforcement | `vault_write_wrapper.py` | `make_wrapped_vault_write`, `install_wrapper` |
 | Phase transition rules | `transition_validator.py` | `validate_phase_transition` |
+| Tuning constants (SOT) | `algorithm_constants.json` | canonical kill-switch tuning, ADR-019 R1 |
 | Package doc | `__init__.py` | documentation only, no exports |
 
 ## CONVENTIONS
 - Three activation mechanisms, priority-ordered: env var
   `IKIGAI_KILL_SWITCH=1`, then `<vault_root>/.kill_switch.md` with
   `status: active`, then `<data_root>/.kill_switch`.
-- All tuning constants live in `prompts/algorithm_constants.json`. No Python
+- All tuning constants live in `algorithm_constants.json` (this package — the
+  canonical single source of truth, ADR-019 R1). No Python
   `DEFAULT_KILL_SWITCH_*` constants are permitted (ADR-019 R2 + ADR-029).
 - Wrapper layering, in order: kill switch -> rate limit -> actor validation ->
   phase-transition validator -> legal-caller whitelist -> audit pre-write ->

@@ -66,7 +66,7 @@ def get_changed_files(base_ref: str = "main") -> list[Path]:
     try:
         result = subprocess.run(
             ["git", "diff", "--name-only", f"{base_ref}...HEAD", "--", "*.py"],
-            cwd=ROOT, capture_output=True, text=True, text=True
+            cwd=ROOT, capture_output=True, text=True
         )
         files = [ROOT / f for f in result.stdout.strip().splitlines() if f]
         # Filter to files that still exist

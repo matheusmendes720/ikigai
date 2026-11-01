@@ -6,99 +6,46 @@ requires-python = ">=3.11"
 # ---------------------------------------------------------------------------
 # Runtime dependencies — the REAL import closure of this package.
 #
-# IMPORTANT — the `src.ikigai` dependency of this package is IMPLICIT.
-# `interfaces/cli` does NOT declare `src/ikigai` as a dependency because
-# `src/ikigai` is a Poetry project with a different layout
-# (`src/ikigai/src/...`) that uv cannot install as a workspace member.
-# The CLI reaches it through `PYTHONPATH=../..` (repo root on sys.path)
-# plus an explicit `sys.path` bootstrap for `src/ikigai/src`
-# (`interfaces/cli/mcp_runtime.py::_ensure_ikigai_src_on_path`).
+# Serverless / cloud-native pivot (ADR-037, 2026-11-01): the legacy harness
+# is gone from this package. The PC-only surfaces that used to pull the heavy
+# deps (TUI client -> textual, chat REPL -> anthropic/langchain-*, the stdio
+# MCP spawner -> mcp SDK, the tracing stack -> opentelemetry-*) were removed
+# with it. What is left is a thin, dependency-light CLI over the canonical
+# data layer:
 #
-# Consequence: every third-party package that `src.ikigai.src.agents.v2`
-# or `src.ikigai.src.mcp_server` imports at MODULE level must be declared
-# HERE. Otherwise a clean `uv sync` produces an environment where those
-# imports raise ModuleNotFoundError and the whole gate goes red.
+#   `interfaces/cli/read_tasks.py` -> `src.contracts` + `src.mesh` adapters
+#   `interfaces/cli/notify.py`     -> stdout/file notifications
+#   `interfaces/cli/kill_switch.py`-> `sys_ikigai.security.kill_switch`
+#
+# The canonical MCP transport (`src/transport/mcp_server.py`) is NOT spawned
+# by this package: in the serverless scope the MCP server IS the public
+# interface, not a child process of the CLI.
 #
 # Each entry below is justified by a concrete module-level import.
 # ---------------------------------------------------------------------------
 dependencies = [
     # --- CLI framework / terminal rendering ---
     # `interfaces/cli/read_tasks.py`, `server.py`, `kill_switch.py`,
-    # `notify.py`, `taskdog_app.py`, `v2.py` -> `import typer`
+    # `notify.py` -> `import typer`
     "typer>=0.15",
     # `interfaces/cli/read_tasks.py`, `server.py`, `kill_switch.py`
     # -> `from rich.console import Console`, `from rich.table import Table`
     "rich>=13.7",
-    # `interfaces/cli/td_tui.py` -> `from textual.app import App`, ...
-    "textual>=0.85",
     # `src/mesh/taskdog_models.py`, `src/contracts/*` -> `from pydantic import ...`
     "pydantic>=2.13.5",
     # `click` — the standalone Click distribution.
-    # `interfaces/cli/tests/test_server.py` imports it, and typer >= 0.21
-    # VENDORS Click as `typer._click` and no longer depends on the
-    # standalone `click` distribution, so it is not guaranteed transitively
-    # (it currently arrives only via mcp -> uvicorn -> click). Declared
-    # explicitly so `import click` never depends on a transitive edge.
+    # typer >= 0.21 VENDORS Click as `typer._click` and no longer depends on
+    # the standalone `click` distribution, so it is not guaranteed
+    # transitively. Declared explicitly so `import click` never depends on a
+    # transitive edge.
     # NOTE: with typer >= 0.21, `typer.Exit` is `typer.exceptions.Exit`
     # and is NOT a subclass of `click.exceptions.Exit`. Assertions must
     # therefore use `typer.Exit`, not `click.exceptions.Exit`.
     "click>=8.1",
     # `sys_ikigai/vault/vault_write.py`, `sys_ikigai/vault/frontmatter_compat.py`,
     # `sys_ikigai/propagation/frontmatter.py` -> `import yaml`.
-    # Reached from `interfaces/cli/tests/test_review_queue_worker_e2e.py`
-    # and from `src/mesh/review_queue_worker.py`.
+    # Reached from `src/mesh/review_queue_worker.py`.
     "pyyaml>=6.0",
-    # MCP Python SDK. Needed in THIS venv because the CLI spawns the MCP
-    # server with `sys.executable` (`interfaces/cli/mcp_runtime.py::
-    # _mcp_server_spec` -> `python -m mcp_server`) and because
-    # `interfaces/cli/tests/test_mcp_inspect.py` runs
-    # `scripts/mcp_inspect.py --help` with `sys.executable`
-    # -> `from mcp import ClientSession, StdioServerParameters`.
-    # Pinned `<2` because `src/ikigai/src/mcp_server/server.py` imports
-    # `mcp.server.fastmcp`, which mcp 2.x removed (renamed to
-    # `mcp.server.mcpserver.MCPServer`).
-    "mcp>=1.1,<2",
-    # --- LangChain / Anthropic (agents v2 chain) ---
-    # `src/ikigai/src/agents/v2/langchain_anthropic_shim.py` -> `import anthropic`
-    "anthropic>=0.40",
-    # `interfaces/cli/invoke_skill.py` -> `from langchain_anthropic import ChatAnthropic`
-    # (also reached via `src.ikigai/src/agents/v2/prompts/*.py`)
-    "langchain-anthropic>=0.3",
-    # `interfaces/cli/invoke_skill.py` -> `from langchain_core.messages import ...`
-    # (also `src/ikigai/src/agents/v2/prompts/*.py` -> `langchain_core.prompts`)
-    "langchain-core>=1.0",
-    # `src/ikigai/src/agents/v2/graph.py` -> `from langgraph.graph import END, StateGraph`
-    "langgraph>=1.0,<2",
-    # `src/ikigai/src/agents/v2/graph.py` -> `from langgraph.checkpoint.sqlite import SqliteSaver`.
-    # NOTE: this package does NOT provide `langgraph.graph`, so `langgraph`
-    # itself must stay a separate, explicit dependency.
-    "langgraph-checkpoint-sqlite>=3.1,<4",
-    # --- OpenTelemetry ---
-    # `src/ikigai/src/observability/otel_init.py` (module level, NOT guarded)
-    # -> `from opentelemetry import trace`
-    "opentelemetry-api>=1.27",
-    # `src/ikigai/src/observability/otel_init.py` (module level, NOT guarded)
-    # -> `from opentelemetry.sdk.resources import ...`, `...sdk.trace...`
-    "opentelemetry-sdk>=1.27",
-    # OTLP/HTTP exporter used for LangSmith + Langfuse span export.
-    # `otel_init.py` guards this import, but `src/ikigai/pyproject.toml`
-    # declares the exporter + instrumentations as hard `main` deps of the
-    # runtime the CLI hosts. They are hard deps here for the same reason:
-    # `uv sync --all-packages` (the CI gate) does NOT install
-    # `[project.optional-dependencies]`, so an extra would make the CI
-    # environment differ from a developer/production install and silently
-    # disable tracing in the gate.
-    "opentelemetry-exporter-otlp-proto-http>=1.27",
-    # Auto-instrumentation. Each import is guarded by `_try_instrument()`
-    # in `otel_init.py`, but they are declared here to match
-    # `src/ikigai/pyproject.toml` so the CLI env == the runtime env.
-    "opentelemetry-instrumentation-langchain>=0.62.4",
-    "opentelemetry-instrumentation-requests>=0.66b1",
-    "opentelemetry-instrumentation-sqlite3>=0.66b1",
-    "opentelemetry-instrumentation-logging>=0.66b1",
-    # HTTP client — required by `opentelemetry-instrumentation-requests` to
-    # instrument anything; also used by `src/ikigai/scripts/verify_traces.py`.
-    "requests>=2.31",
 ]
 
 [project.scripts]
@@ -161,11 +108,7 @@ follow_imports = "silent"
 # Third-party/optional integrations and repo-root packages that are not
 # installed in this venv.
 module = [
-    "agents.*",
     "contracts.*",
-    "ikigai.*",
-    "langchain_mcp_adapters.*",
-    "mcp_server.*",
     "mesh.*",
     "sys_ikigai.*",
     "tools.*",

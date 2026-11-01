@@ -42,8 +42,11 @@ PROJECT_ROOT="$(cd "$LOOP_DIR/../.." && pwd)"
 # PYTHON=/mnt/c/Python314/python.exe explicitly.
 PYTHON="${PYTHON:-python}"
 
-# Valid graph keys for --graph dispatch (must match langgraph.json registry)
-VALID_GRAPH_KEYS="pae_maintainer ikigai_maintainer_v2 ikigai_fork_smoke"
+# --graph dispatch was retired together with the LangGraph harness (ADR-037):
+# the graph registry (langgraph.json) and the vibe-ops/langgraph entry points
+# are no longer part of the published scope. The flag is kept only so an old
+# cron entry fails loudly instead of silently running something else.
+VALID_GRAPH_KEYS=""
 
 # Parse args
 while [[ $# -gt 0 ]]; do
@@ -57,12 +60,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Validate --graph value (fail-fast before any other work)
+# --graph dispatch is retired (ADR-037) - fail fast, before any other work.
 if [ -n "$GRAPH_NAME" ]; then
-  case " $VALID_GRAPH_KEYS " in
-    *" $GRAPH_NAME "*) ;;
-    *) echo "Unknown graph: $GRAPH_NAME (valid: $VALID_GRAPH_KEYS)" >&2; exit 2 ;;
-  esac
+  echo "--graph $GRAPH_NAME is retired (ADR-037): the LangGraph registry left the canonical scope." >&2
+  echo "Run an orchestrator tick instead, or the MCP transport: python -m src.transport.mcp_server" >&2
+  exit 2
 fi
 
 mkdir -p "$LOG_DIR"
@@ -172,129 +174,15 @@ trap notify_hook EXIT
 
 echo "[$TICK_TS] Loop tick starting (id=$TICK_ID, cost_cap=\$$COST_CAP_USD, max_runtime=${MAX_RUNTIME_MIN}min)" | tee "$LOG_FILE"
 
-# --- GRAPH DISPATCH (--graph path, no LLM cost) ---
-# Skip the orchestrator prompt + cost guard entirely when --graph is passed.
-# Runs named graph end-to-end via inline Python (matches AGENTS_JSON pattern
-# above). Exit code = graph's terminal status code. SqliteSaver persists at
-# .swarm/langgraph_checkpoint.db (gitignored at .gitignore:315).
-if [ -n "$GRAPH_NAME" ]; then
-  if $DRY_RUN; then
-    echo "[$TICK_TS] DRY RUN -- would invoke graph: $GRAPH_NAME" | tee -a "$LOG_FILE"
-    echo "[$TICK_TS] checkpoint_db: $PROJECT_ROOT/.swarm/langgraph_checkpoint.db" | tee -a "$LOG_FILE"
-    echo "[$TICK_TS] thread_id: cron-${TICK_ID}" | tee -a "$LOG_FILE"
-    exit 0
-  fi
+# --- GRAPH DISPATCH (retired, ADR-037) ---
+# The deterministic --graph path ran the LangGraph graphs registered in
+# langgraph.json (pae_maintainer, ikigai_maintainer_v2, ikigai_fork_smoke)
+# with a SqliteSaver checkpoint at .swarm/langgraph_checkpoint.db. The
+# registry, the graph factories and the langgraph-checkpoint dependency left
+# the canonical scope with the serverless pivot, so the path is gone: the
+# orchestrator tick is the only entry point, and the agent surface is the
+# MCP transport (src/transport/mcp_server.py, ADR-011).
 
-  echo "[$TICK_TS] GRAPH MODE: $GRAPH_NAME (no orchestrator LLM, skip cost-guard)" | tee -a "$LOG_FILE"
-
-  TICK_START_S=$(date +%s)
-
-  # $() command substitution is exempt from `set -e` traps in bash — we
-  # capture the exit code into GRAPH_EXIT_CODE rather than letting a non-zero
-  # python exit abort the script before we can append progress.md.
-  GRAPH_OUTPUT=$(cd "$PROJECT_ROOT" && "$PYTHON" -c "
-import os, sys, traceback
-from pathlib import Path
-
-graph_name = '$GRAPH_NAME'
-project_root = Path.cwd()
-ckpt_dir = project_root / '.swarm'
-ckpt_db = str(ckpt_dir / 'langgraph_checkpoint.db')
-thread_id = 'cron-${TICK_ID}'
-
-ckpt_dir.mkdir(parents=True, exist_ok=True)
-
-try:
-    if graph_name == 'pae_maintainer':
-        # Factory returns UNCOMPILED StateGraph; needs explicit compile + SqliteSaver.
-        # NOTE: SqliteSaver.from_conn_string() returns a _GeneratorContextManager,
-        # not a saver instance — that breaks .compile(checkpointer=...). Also,
-        # langgraph's PregelLoop spawns worker threads that need cross-thread
-        # sqlite3 access, so the connection MUST be opened with check_same_thread=False.
-        sys.path.insert(0, str(project_root / 'vibe-ops' / 'src'))
-        import sqlite3
-        from langgraph.checkpoint.sqlite import SqliteSaver
-        from langgraph_entry import make_pae_graph
-        _conn = sqlite3.connect(ckpt_db, check_same_thread=False)
-        _saver = SqliteSaver(_conn)
-        _saver.setup()
-        graph = make_pae_graph().compile(checkpointer=_saver)
-        import datetime as dt
-        today = dt.date.today().isoformat()
-        initial = {
-            'cycle_id': thread_id,
-            'cycle_start': today,
-            'cycle_end': today,
-        }
-    elif graph_name == 'ikigai_maintainer_v2':
-        # Factory compiles internally with SqliteSaver(check_same_thread=False).
-        # graph.py uses relative imports (nodes.X), so we must import the
-        # v2 package, not the bare module. Dual sys.path mirrors conftest:
-        # repo root resolves dotted-prefix src.X; src/ resolves bare contracts.X.
-        sys.path.insert(0, str(project_root))
-        sys.path.insert(0, str(project_root / 'src'))
-        sys.path.insert(0, str(project_root / 'src' / 'ikigai' / 'src' / 'agents'))
-        from v2.graph import make_v2_graph
-        graph = make_v2_graph(checkpoint_db=ckpt_db)
-        initial = {}
-    elif graph_name == 'ikigai_fork_smoke':
-        # Factory compiles internally with SqliteSaver(check_same_thread=False).
-        # fork_smoke_graph has no relative imports so bare import works too,
-        # but we keep the package form for symmetry with ikigai_maintainer_v2.
-        sys.path.insert(0, str(project_root))
-        sys.path.insert(0, str(project_root / 'src'))
-        sys.path.insert(0, str(project_root / 'src' / 'ikigai' / 'src' / 'agents'))
-        from v2.fork_smoke_graph import make_fork_smoke_graph
-        graph = make_fork_smoke_graph(checkpoint_db=ckpt_db)
-        initial = {}
-    else:
-        print(f'Unknown graph: {graph_name}', file=sys.stderr)
-        sys.exit(2)
-
-    config = {'configurable': {'thread_id': thread_id}}
-    result = graph.invoke(initial, config=config)
-
-    import sqlite3
-    con = sqlite3.connect(ckpt_db)
-    try:
-        count = con.execute('SELECT COUNT(*) FROM checkpoints').fetchone()[0]
-    finally:
-        con.close()
-
-    print(f'graph={graph_name} thread_id={thread_id} checkpoints={count} status=0')
-    sys.exit(0)
-except Exception as e:
-    print(f'graph={graph_name} thread_id={thread_id} status=1 error={type(e).__name__}: {e}', file=sys.stderr)
-    traceback.print_exc(file=sys.stderr)
-    sys.exit(1)
-" 2>&1)
-  GRAPH_EXIT_CODE=$?
-
-  TICK_END_S=$(date +%s)
-  DURATION_S=$((TICK_END_S - TICK_START_S))
-  VERDICT=$([ $GRAPH_EXIT_CODE -eq 0 ] && echo PASS || echo FAIL)
-  TICK_VERDICT=$VERDICT
-
-  echo "[$TICK_TS] graph-dispatch result (exit=$GRAPH_EXIT_CODE): $GRAPH_OUTPUT" | tee -a "$LOG_FILE"
-
-  # Always append progress.md (audit trail, even on failure)
-  {
-    echo ""
-    echo "## $TICK_TS | $GRAPH_NAME | $VERDICT"
-    echo "- commit: -"
-    echo "- cost_usd: 0"
-    echo "- duration_min: $((DURATION_S / 60))"
-    echo "- model: none (--graph deterministic dispatch)"
-    echo "- attempt: 1/1"
-    NOTES=$(echo "$GRAPH_OUTPUT" | tr '\n' ' ' | head -c 500)
-    echo "- notes: $NOTES"
-    echo "- next_action: $([ $GRAPH_EXIT_CODE -eq 0 ] && echo advance || echo retry)"
-  } >> "$PROGRESS_FILE"
-
-  echo "[$TICK_TS] GRAPH MODE done (exit=$GRAPH_EXIT_CODE, verdict=$VERDICT)" | tee -a "$LOG_FILE"
-  exit $GRAPH_EXIT_CODE
-fi
-# --- END GRAPH DISPATCH ---
 
 # Cost guard: refuse to run if today's spend is over 80% of cap
 # (assumes a daily cap of 10x the per-tick cap; adjust as needed)
@@ -382,37 +270,14 @@ if $DRY_RUN; then
   exit 0
   fi
 
-  # M146: bind the loop MCP bridge + initialize OTel tracing at loop
-  # startup. This makes `python -m life.cli` (or any worker importing
-  # `mcp_bridge`) actually hit the FastMCP gateway + emit OTel spans.
-  # `init_observability()` is idempotent; `bind_server()` registers an
-  # `atexit` hook for clean subprocess shutdown. If binding fails (no
-  # IKIGAI venv, stdio hang, etc.), we log and continue — workers fall
-  # back to MagicMock-style unbound behavior and emit RuntimeError when
-  # called. This matches the M146 SPEC §Honest scope: "Workers fall back
-  # to Bash + file tools" when binding isn't available.
-  MCP_BIND_OUTPUT=$("$PYTHON" -c "
-  import sys
-  sys.path.insert(0, '.claude/loop')
-  try:
-      # Import mcp_bridge FIRST so bind_server() can find it via sys.modules
-      # (mcp_runtime._get_mcp_bridge() iterates sys.modules looking for the
-      # bridge file path).
-      import mcp_bridge
-      from mcp_runtime import init_observability, bind_server
-      init_observability()
-      bind_server()
-      print('mcp-bridge-bound')
-  except Exception as e:
-      print(f'mcp-bridge-bind-failed: {type(e).__name__}: {e}', file=sys.stderr)
-      sys.exit(2)
-  " 2>&1) || MCP_BIND_EXIT=$?
-  if [ -n "${MCP_BIND_EXIT:-}" ]; then
-      echo "[$TICK_TS] MCP bridge bind FAILED (exit=$MCP_BIND_EXIT): $MCP_BIND_OUTPUT" | tee -a "$LOG_FILE"
-      # Don't abort — workers can still operate without MCP (degraded mode)
-  else
-      echo "[$TICK_TS] MCP bridge bound: $MCP_BIND_OUTPUT" | tee -a "$LOG_FILE"
-  fi
+  # Canonical MCP transport (ADR-011 / ADR-037). The loop workers talk to
+  # the serverless MCP server (`src/transport/mcp_server.py`) over stdio or
+  # HTTP (`IKIGAI_MCP_TRANSPORT`, `FASTMCP_HOST`, `FASTMCP_PORT`). The retired
+  # local bridge (`.claude/loop/mcp_bridge.py`), its stdio spawner
+  # (`interfaces/cli/mcp_runtime.py`) and the tracing stack left the canonical
+  # scope with the serverless pivot, so there is nothing to bind at loop
+  # startup: workers reach the MCP server through the transport itself and
+  # fall back to Bash + file tools (degraded mode) when it is unreachable.
   unset MCP_BIND_OUTPUT MCP_BIND_EXIT
 
 # Invoke the orchestrator

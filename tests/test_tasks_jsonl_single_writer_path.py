@@ -86,8 +86,6 @@ READER_ALLOWLIST: frozenset[str] = frozenset(
         # Read-only ops CLI
         "src/mesh/cli_cli.py",
         "src/mesh/mesh_cli.py",
-        # Tuiboard aggregator (read-only join)
-        "src/tuiboard/aggregator.py",
         # Caller bridge (read path)
         "sys_ikigai/vault/task_io.py",
         # Canonical writer (also reads for dedup — see apply_change)
@@ -101,6 +99,15 @@ WRITE_MODES = {"w", "a", "wb", "ab", "w+", "a+", "r+", "rb+", "wb+", "ab+"}
 # String substrings that identify "tasks.jsonl" in source.
 TASKS_JSONL_TOKENS = ("data/tasks.jsonl", "tasks.jsonl")
 
+# Retired PC-only fork trees (ADR-037 — serverless/canonical pivot).
+# These are NOT part of the published canonical surface: they exist only in
+# the local working copy (gitignored) and are excluded from the drift scan,
+# which guards the PUBLISHED tree.
+RETIRED_DIR_PREFIXES: tuple[str, ...] = (
+    "src/tuiboard/",
+    "src/solverforge_calendar/",
+)
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -111,7 +118,12 @@ def _iter_python_files(root: Path) -> list[Path]:
     """Recursively collect .py files under ``root``, skipping __pycache__."""
     if not root.exists():
         return []
-    return [p for p in root.rglob("*.py") if "__pycache__" not in p.parts]
+    files = [p for p in root.rglob("*.py") if "__pycache__" not in p.parts]
+    return [
+        p
+        for p in files
+        if not _relative_to_repo(p).startswith(RETIRED_DIR_PREFIXES)
+    ]
 
 
 def _relative_to_repo(file: Path) -> str:

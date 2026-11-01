@@ -1,9 +1,9 @@
 # AGENTS.md — `src/mesh/`
 
-**Score 12 (29 files, 100% code, 169 symbols, 44 exports, imported by 89 repo files) — created: distinct domain.** The Phase 3 cross-fork mesh: fork adapters + append-only review queue.
+**Score 15 (29 files, 100% code, 169 symbols, 44 exports, imported by 89 repo files) — updated: distinct domain.** The Phase 3 cross-fork mesh: fork adapters + append-only review queue.
 
 ## OVERVIEW
-Read path joins slices from 3 fork adapters by UEID; write path routes every mutation through `data/review_queue/` as a `TaskChange`.
+Read path joins slices from the 2 published fork adapters by UEID; write path routes every mutation through `data/review_queue/` as a `TaskChange`. The calendar fork was retired with the serverless pivot (ADR-037, 2026-11-01).
 
 ## STRUCTURE
 ```
@@ -15,7 +15,7 @@ src/mesh/
 ├── investigation_queue.py  # separate append-only lifecycle queue
 ├── taskdog_cli.py          # 1035 LOC — the main `td` CLI
 ├── cli/                    # td_advanced (961), td_gantt, td_tag — sub-parser modules
-├── adapters/               # CliAdapter, TaskdogAdapter, SolverforgeCalendarAdapter + a2ui_schema
+├── adapters/               # CliAdapter, TaskdogAdapter + a2ui_schema (calendar fork retired)
 ├── dep_subsystem.py        # dependency graph CRUD (separate audited subsystem)
 ├── gantt_engine.py / gantt_renderers.py   # pure scheduling, no I/O
 ├── optimizer.py / optimizer_strategies.py  # FIFO / priority-weighted / critical-path
@@ -32,11 +32,11 @@ src/mesh/
 
 ## CONVENTIONS
 - **CLIs use `argparse`, not Typer** — this deviates from the repo-wide Typer rule; `--json` is still honored everywhere.
-- **Output mode precedence: `--json` > `--human` > TTY default.** The resolver `_wants_human()` is duplicated in `taskdog_cli.py` and each `cli/td_*.py` module — keep the three copies in sync.
+- **Output mode precedence: `--json` > `--human` > TTY default.** The resolver `_wants_human()` is duplicated in **8** modules — `taskdog_cli.py`, `cli_cli.py`, `mesh_cli.py`, `review_queue_cli.py`, `td_dep.py` and `cli/td_{advanced,gantt,tag}.py` — keep all eight in sync.
 - **`cli/td_*.py` modules are sub-parser plugins**, not standalone CLIs. Each exposes `register_<x>_subparser(sub)` + `run_<x>_command(args)`; only `taskdog_cli.py` calls them, and only `cli/td_advanced.py` has its own `main()`.
 - **Module-level DB globals are mutated to redirect reads.** `_apply_db_override()` rewrites `TASKDOG_DB` in place when `--db-path` is passed. Monkeypatch the module attribute, not a parameter.
 - **Queue files are written atomically** (temp file + `os.replace`) with fsync and retry/backoff on transient `OSError`.
-- **Both import spellings appear in the same package**: `agent_consumer.py`, `queue.py`, `investigation_queue.py`, `review_queue_cli.py` use bare `from contracts.…`; `taskdog_cli.py`, `agent_propagator.py`, `mesh_cli.py`, `optimizer_strategies.py`, `review_queue_worker.py`, `td_dep.py` use dotted `from src.mesh.…` / `from src.contracts.…`.
+- **Almost every import here is dotted.** All 15 `contracts` imports use `from src.contracts.…` and 45 use `from src.mesh.…`. The only two exceptions are bare `from mesh.…` in `review_queue_cli.py` and `review_queue_worker.py`; those resolve only when `src/` is on `sys.path`, so a bare import is a trap outside the pytest environment.
 - **`Gantt` and the optimizer are pure functions** — no I/O, no DB, no adapter access. Optimizer strategies treat dependencies as hard constraints and never mutate their inputs.
 
 ## ANTI-PATTERNS
@@ -45,6 +45,7 @@ src/mesh/
 - **Investigation records are never deleted.** `resolved` and `archived` are terminal — no outgoing transitions. Notes are append-only; there is no update/delete note verb.
 - **`td chat` must never auto-execute.** It always emits a proposal and waits for `--approve`.
 - **Adapter failures must not crash propagation, and missing fork data is "not present", not an exception.**
+- **Never re-introduce the calendar fork.** `SolverforgeCalendarAdapter` was retired with the serverless pivot (ADR-037): `adapters/solverforge_calendar.py` is deleted and the adapter is out of `adapters.__all__`. A drift test fails if that stem reappears under `src/mesh/adapters/`.
 
 ## COMMANDS
 ```bash

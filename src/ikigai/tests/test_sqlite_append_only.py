@@ -1,13 +1,12 @@
-"""SQLite append-only invariant for data/*.db files.
+"""SQLite append-only invariant for the canonical production layers.
 
-Builds on test_canonical_scope.py + test_drift_extended_invariants.py.
+Builds on test_canonical_scope.py + test_drift_invariants.py.
 Enforces three invariants on production code:
 
-1. **No DROP TABLE/INDEX in prod** — `data/ikigai_checkpoints.db` and
-   `data/vibe_ops.db` schemas must remain stable. If we ever need to
-   change a schema, write a migration script + add to allowlist with
-   justification. PAV math is archived per attribution §3; checkpoint
-   tables must not be dropped.
+1. **No DROP TABLE/INDEX in prod** — the runtime schemas under `data/` must
+   remain stable. If we ever need to change a schema, write a migration
+   script + add to allowlist with justification. PAV math is archived per
+   attribution §3; checkpoint tables must not be dropped.
 
 2. **No DELETE FROM in prod** — checkpoint state is append-only.
    Same justification as #1.
@@ -16,6 +15,10 @@ Enforces three invariants on production code:
    calls with literal-string paths must point under `data/` (or be
    `:memory:` for test fixtures). Runtime params (e.g., `checkpoint_db`)
    are exempt — we trust the caller.
+
+The scanned layers were repointed to the canonical serverless scope
+(ADR-037): the retired LangGraph harness dirs (`src/ikigai/src/agents`,
+`src/ikigai/src/mcp_server`) are gone, so scanning them was vacuous.
 
 Run::
 
@@ -35,32 +38,40 @@ IKIGAI_TESTS = THIS_FILE.parent
 IKIGAI_PKG = IKIGAI_TESTS.parent
 IKIGAI_SRC = IKIGAI_PKG / "src"
 LIFE_REPO = IKIGAI_PKG.parent.parent  # life/
+REPO_ROOT = LIFE_REPO
 
 PROD_LAYERS = [
-    IKIGAI_SRC / "agents",
-    IKIGAI_SRC / "mcp_server",
-    IKIGAI_SRC / "ikigai" / "gateway",
-    IKIGAI_SRC / "ikigai" / "cli",
-    IKIGAI_SRC / "ikigai" / "adapters",
-    IKIGAI_SRC / "ikigai" / "vault",
+    REPO_ROOT / "src" / "agents",
+    REPO_ROOT / "src" / "contracts",
+    REPO_ROOT / "src" / "mesh",
+    REPO_ROOT / "src" / "services",
+    REPO_ROOT / "src" / "transport",
+    REPO_ROOT / "src" / "ikigai" / "src",
+    REPO_ROOT / "sys_ikigai",
+    REPO_ROOT / "vibe-ops" / "src",
 ]
 
 # Files allowed to have sqlite3.connect to non-data/ paths OR DROP/DELETE
 # statements. Each entry requires explicit justification.
 #
-# - agents/v2/tools_legacy_reference.py: Phase 8.1 §11.1 — READ-ONLY
-#   reference copy of pre-strip tools.py. Never imported.
-# - agents/v2/harness_legacy_reference.py: Phase 8.1 §11.1 — same.
-# - agents/v2/checkpoint.py: retention pruning in IkigaiCheckpointer.prune().
-#   DELETE FROM ikigai_subgraph_links is required for retention_count and
-#   age-based pruning. Append-only invariant still holds for the actual
-#   state tables (ikigai_state, plan_entities); only the link metadata
-#   table is pruned.
+# - src/mesh/adapters/taskdog.py: the TaskdogAdapter owns the slice it
+#   mirrors; the task row it deletes is the row it created (the mesh v1
+#   "create" action). The append-only invariant guards the checkpoint /
+#   vault layers, not the taskdog mirror.
+# - src/contracts/migrations/apply.py: the migration engine's own
+#   bookkeeping row (`ikig.schema_migrations`) is removed on rollback —
+#   that is the rollback path, not a data mutation.
+# - sys_ikigai/propagation/sqlite_adapter.py: DROPs the append-only
+#   TRIGGERs it re-creates on every connection (idempotent guard setup)
+#   and exposes one explicit delete for a propagated entity.
+# - vibe-ops/src/storage/sqlite_vec_integration.py: the semantic index
+#   re-embeds and drops the vector row it owns.
 SQLITE_ALLOWLIST: frozenset[str] = frozenset(
     {
-        "src/ikigai/src/agents/v2/tools_legacy_reference.py",
-        "src/ikigai/src/agents/v2/harness_legacy_reference.py",
-        "src/ikigai/src/agents/v2/checkpoint.py",
+        "src/mesh/adapters/taskdog.py",
+        "src/contracts/migrations/apply.py",
+        "sys_ikigai/propagation/sqlite_adapter.py",
+        "vibe-ops/src/storage/sqlite_vec_integration.py",
     }
 )
 

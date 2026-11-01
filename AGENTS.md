@@ -8,9 +8,9 @@
 
 Algorithmic Life OS — a personal productivity orchestration system: 100% local, single-user, append-only at the vault layer.
 
-Three layers — **INTERFACE** (CLI/TUI consumers: read `data/`, write feedback) → **AGENT** (Deep Agent "carro-chefe": reads `vault/`, applies strategics + planning, writes tasks to `data/`, observes planned-vs-actual; planner-only per ADR-013) → **DATA** (`vault/` markdown source of truth, `data/` runtime state, `vibe-ops/` cybernetic engine). Pydantic contracts in `src/contracts/` bind the layers.
+Three layers — **INTERFACE** (CLI consumers: read `data/`, write feedback) → **AGENT** (planner-only per ADR-013: reads `vault/`, applies strategics + planning, writes tasks to `data/`, observes planned-vs-actual) → **DATA** (`vault/` markdown source of truth, `data/` runtime state, `vibe-ops/` cybernetic engine). Pydantic contracts in `src/contracts/` bind the layers.
 
-Canonical flow: `vault` (NL planning) → Deep Agent → MCP Gateway → interfaces → manual feedback → agent observes the gap → updates `vault`.
+**Canonical scope (ADR-037, 2026-11-01): the repository is serverless / cloud-native.** The PC-only runtime is NOT published: no local chat REPL, no stdio MCP fork servers, no Textual TUI, no LangChain/LangGraph harness, no tracing stack. What a client calls is the **MCP surface** (`src/transport/mcp_server.py`) over the **data layer** (`src/services/` → `src/contracts/`).
 
 Repo: github.com/matheusmendes720/ikigai — Board: github.com/users/matheusmendes720/projects/5
 
@@ -19,10 +19,10 @@ Repo: github.com/matheusmendes720/ikigai — Board: github.com/users/matheusmend
 ```
 {root}/
 ├── life/        # `life` meta-package: cli, centrals, handlers, plugins
-├── src/         # contracts (canonical) + mesh + ikigai + agents
+├── src/         # contracts (canonical) + mesh + services + transport + agents + ikigai
 ├── sys_ikigai/  # bare-namespace kernel: entities, gateway, vault, security
-├── interfaces/  # cli (Typer) + studio (FastAPI) + tui/operator (Textual)
-├── vibe-ops/    # cybernetic engine: Python pkg + Rust TUI + specs
+├── interfaces/  # cli (Typer) — the only published consumer surface
+├── vibe-ops/    # cybernetic engine: Python package + specs
 ├── vault/       # markdown notes (Obsidian-style, append-only)
 ├── data/        # runtime state: tasks.jsonl, *.db, boulder.json, review_queue/
 ├── tests/       # the entire pytest surface
@@ -30,7 +30,7 @@ Repo: github.com/matheusmendes720/ikigai — Board: github.com/users/matheusmend
 ├── scripts/     # operator tooling, smoke drivers, codemods
 ├── taskwarrior/ # legacy workspace — no longer the task store
 ├── strategics/  # strategy notes (append-only)
-├── specs/       # milestone specs (M### dirs, e.g. M169-paperclip)
+├── specs/       # milestone specs (M### dirs)
 └── code-docs/   # prd / brd / adr / ard
 ```
 
@@ -38,13 +38,13 @@ Repo: github.com/matheusmendes720/ikigai — Board: github.com/users/matheusmend
 
 | Task | Location | Notes |
 |------|----------|-------|
-| User-facing CLI | `life/cli/` | `python -m life.cli`; see `life/AGENTS.md` |
+| User-facing CLI | `life/cli/` | `python -m life.cli`; see the root AGENTS.md |
 | Canonical models | `src/contracts/` | Pydantic v2, the single source of truth |
-| Cross-fork task view | `src/mesh/` | 3 adapters; write path via `data/review_queue/` |
-| Deep Agent runtime | `src/ikigai/src/agents/v2/` | `ikigai_maintainer_v2` in `langgraph.json` |
-| Paperclip (4 nested loops) | `src/ikigai/src/agents/paperclip/` | graph.py, policy.py, router.py, state.py, cli.py; ADR-036 `code-docs/adr/ADR-036-paperclip-four-nested-loops.md`; milestone specs `specs/M169-paperclip/` … `specs/M193-paperclip-stacks-comparison/` |
+| Cross-fork task view | `src/mesh/` | cloud-safe adapters (`cli`, `taskdog`); write path via `data/review_queue/` |
+| MCP tool surface | `src/transport/mcp_server.py` | six tools over the data layer; transport via `IKIGAI_MCP_TRANSPORT` (ADR-011) |
+| Domain services | `src/services/` | validation, versioning, idempotency — the only layer a client reaches |
 | Vault I/O | `sys_ikigai/vault/` | `vault_write` = sole vault writer (ADR-012) |
-| MCP gateway | `sys_ikigai/gateway/` | stdlib JSON-RPC, HTTP+SSE front / stdio back |
+| Local JSON-RPC gateway | `sys_ikigai/gateway/` | stdlib JSON-RPC; local/legacy path, NOT the client surface |
 | Cybernetic kernel | `vibe-ops/src/pipeline/contracts.py`, `vibe-ops/src/pipeline/policy_engine.py` | Target→Sensor→Adjuster orchestration; `PolicyEngine` = the Adjuster; `PolicyState` enum defined in `vibe-ops/src/schemas/pydantic_v2.py` (`vibe-ops/src/cybernetics/engine.py` is a knowledge tree, not the kernel) |
 | Drift net | `src/ikigai/tests/test_drift_*.py` | append-only invariant guards |
 | CI + PR-review bots | `.github/` | 5 workflow jobs, orchestrator scripts |
@@ -56,10 +56,9 @@ Repo: github.com/matheusmendes720/ikigai — Board: github.com/users/matheusmend
 |--------|------|----------|------|------|
 | `UEID` | Pydantic model | `src/contracts/common.py` | high | Canonical 4-part join key (ADR-014): `^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$` (`<CLUSTER>:<ENTITY>:<HASH>:<SEQ>`; ADR-023 — the 4-part form wins over the 5-part legacy form) |
 | `Task` / `TaskChange` | Pydantic model | `src/contracts/task.py`, `task_change.py` | high | Shared task + propagation payloads |
-| `ForkAdapter` | Protocol | `src/mesh/adapters/__init__.py` | 3 impls | Fork boundary (Cli, Taskdog, Calendar) |
+| `ForkAdapter` | Protocol | `src/mesh/adapters/__init__.py` | 2 impls | Fork boundary (Cli, Taskdog) |
 | `vault_write` | function | `sys_ikigai/vault/` | high | Only sanctioned vault write path |
-| `UnifiedMCPGateway` | class | `sys_ikigai/gateway/` | high | HTTP+SSE front, stdio back |
-| `IKIGAI_TOOLS` | constant | `src/ikigai/src/agents/tools.py` | drift-guarded | Exactly 12 planner tools (ADR-013) |
+| `UnifiedMCPGateway` | class | `sys_ikigai/gateway/` | medium | Local stdlib JSON-RPC gateway; the retired fork servers are gone |
 | `LifeConfig` | class | `life/cli/` | medium | Config defaults + plugin discovery |
 | `BaseCentral` | class | `life/centrals/` | medium | task / knowledge / research dispatch |
 
@@ -69,7 +68,7 @@ Repo: github.com/matheusmendes720/ikigai — Board: github.com/users/matheusmend
 - Canonical contracts: Pydantic v2 `frozen=True`, `extra="forbid"`, imported from `src/contracts/` only — never re-define `UEID`, `Task`, `TaskChange`.
 - `src/` has **no `__init__.py`**: `from src.contracts.X` needs the repo root on `sys.path`; `from contracts.X` needs `src/` on it (`pytest.ini` sets `pythonpath = src src/ikigai/src`). Both spellings are live in production code.
 - `vibe-ops/src` is a **separate import root** — flat sibling imports (`from pipeline.x import Y`); `vibe-ops/src/contracts/` is *not* the canonical `src/contracts/`.
-- Two directories named `agents` (`src/agents/`, `src/ikigai/src/agents/`) merge into ONE logical package via `__path__` — keep them in sync.
+- **One `agents` package.** `src/agents/` (planner: `memory/`, `reflection/`) is the only one in the tree; the IKIGAI-internal harness directory that used to merge into it is retired (ADR-037).
 - CLI: Typer sub-apps, `--json` everywhere feasible. Module docstrings carry a task/ADR tag (`M72`, `B3.4`, `ADR-029`) — keep it when editing.
 - Tooling split (do not mix):
 
@@ -77,9 +76,9 @@ Repo: github.com/matheusmendes720/ikigai — Board: github.com/users/matheusmend
 |---|---|---|
 | root, `src/mesh/`, `src/life_tatics/`, `src/agents/` | setuptools / plain Python | `src/` on `PYTHONPATH`; `src/mesh/` has no `pyproject.toml` |
 | `src/contracts/` | **Hatchling** | own `pyproject.toml`, `uv.lock`, `.venv` |
-| `src/ikigai/` | **Poetry** | own `poetry.lock` + `.venv`; launcher `ikigai.bat` |
+| `src/ikigai/` | **Poetry** | own `poetry.lock` + `.venv`; drift net lives in `src/ikigai/tests/` |
 | `interfaces/cli/` | **uv** | own `pyproject.toml`, `pytest.ini`, local ruff/mypy |
-| `vibe-ops/` | **uv** + **Rust** (`ratatui`) | own `uv.lock`; TUI reads a hardcoded `../vibe_ops.db` |
+| `vibe-ops/` | **uv** | own `uv.lock`; the Rust TUI is not published |
 | `archive/legacy-pav/src-operational/` | archived | do not revive |
 
 - Ruff: the root `pyproject.toml` has **no** `[tool.ruff]` table. Real configs: `src/mesh/ruff.toml`, `src/contracts/pyproject.toml`, `src/ikigai/pyproject.toml` (line-length 100, py311).
@@ -88,7 +87,7 @@ Repo: github.com/matheusmendes720/ikigai — Board: github.com/users/matheusmend
 
 - **Deep Agent is the only writer to `vault/`** (ADR-012). Interfaces read vault only; user feedback goes to `data/feedback.jsonl`; fork writes go to `data/review_queue/`.
 - **Append-only** — never delete or prune `vault/`, `vibe-ops/`, `strategics/`. vibe-ops additionally requires a stop → action plan → user-approval gate before restructuring *any* file (markdown included).
-- **IKIGAI is planner-only** (ADR-013): no PAV math / policy / scoring tools in the agent layer; `IKIGAI_TOOLS` is exactly 12 and drift-guarded.
+- **IKIGAI is planner-only** (ADR-013): no PAV math / policy / scoring tools in the agent layer.
 - **Zero LLM in the pipeline** — daily/weekly pipelines are pure arithmetic. **Fully local** — SQLite + filesystem only, zero cloud deps.
 - **Drift tests are append-only**: never delete or weaken one; add to `test_drift_extended_invariants.py` instead.
 - **Refactor protocol:** touching `vault/`, `vibe-ops/` or `strategics/` → stop → propose an Action Plan → wait for an explicit "go" → verify every pre-existing string survives.
@@ -125,20 +124,19 @@ pre-commit run --all-files
 
 | File | Purpose |
 |---|---|
-| `src/ikigai/tests/test_canonical_scope.py` | planner-only scope (forbidden imports/calls/classes/MCP wrappers/algorithm constants), `IKIGAI_TOOLS` count = 12, UEID canonical regex enforcement, `review_queue` append-only, `investigation_queue` invariants, skill manifest, memory schema, meta-plan write approval |
+| `src/ikigai/tests/test_canonical_scope.py` | the retired runtime stays unpublished (ADR-037), canonical surface stays published, contracts are the single source of truth, mesh exposes only the cloud-safe adapters, UEID canonical regex, planner-only + LLM-free guards |
 | `src/ikigai/tests/test_drift_invariants.py` | kill-switch key constants present and mirrored, no kill-switch constants in agent code, `vault_write` wrapper exposes the canonical API, drift invariant E (`vault_write` actor bypasses validator), legacy invariants a–d |
-| `src/ikigai/tests/test_drift_extended_invariants.py` | wave-3+ invariants: `vault_write` sole writer, `review_queue` append-only, UEID regex canonical across modules, MCP bridge wrapped-tool count, LangGraph graph registry drift, milestone-spec frontmatter/status |
 | `src/ikigai/tests/test_drift_detector.py`, `test_drift_state.py` | detector + state persistence |
 
-- **Kill switch:** `sys_ikigai/security/kill_switch.py` + CLI `life kill-switch status|pause|resume|history` (registered in `interfaces/cli/kill_switch.py`); the TUI Kill Switch tab spawns `life kill-switch pause|resume`.
-- **UEID drift is real** — the shipped `src/contracts/common.py::_UEID_PATTERN` is a *wider* triple-pattern (4-part short | 4-part long-UUID | 5-part legacy), so it does **not** match the canonical literal above; a byte-identical copy sits in `src/mesh/adapters/taskdog.py`, `{2,5}` in `src/ikigai/contracts/proposal.py`, `{2,10}` in `src/ikigai/src/chat/schema.py`; `sys_ikigai/types.py` keeps a legacy 5-part form and `vibe-ops/src/storage/ueid.py` builds a 3-part id. Never re-define `UEID` — extend the canonical one.
-- **Mesh v1 scope:** `create`-only is enforced by `CliAdapter` and `SolverforgeCalendarAdapter`, but `TaskdogAdapter.apply_change` also dispatches `update`/`done`/`delete`/`tag_*`; the create-only docstring in `src/mesh/adapters/__init__.py` is stale.
+- **Kill switch:** `sys_ikigai/security/kill_switch.py` + CLI `life kill-switch status|pause|resume|history` (registered in `interfaces/cli/kill_switch.py`). The tuning constants live in `sys_ikigai/security/algorithm_constants.json` (ADR-019 R1) — never in Python.
+- **UEID drift is real** — the shipped `src/contracts/common.py::_UEID_PATTERN` is a *wider* triple-pattern (4-part short | 4-part long-UUID | 5-part legacy), so it does **not** match the canonical literal above; a byte-identical copy sits in `src/mesh/adapters/taskdog.py`, `{2,5}` in `src/ikigai/contracts/proposal.py`; `sys_ikigai/types.py` keeps a legacy 5-part form and `vibe-ops/src/storage/ueid.py` builds a 3-part id. Never re-define `UEID` — extend the canonical one.
+- **Mesh v1 scope:** `create`-only is enforced by the cloud-safe adapters (`CliAdapter`, `TaskdogAdapter`); the retired calendar fork adapter is gone with the PC-only scope.
 - **Two `life` console scripts:** root `pyproject.toml` → `life.cli:_main_console`; `interfaces/cli/pyproject.toml` → `interfaces.cli.read_tasks:app`. Root `td` → `src.mesh.taskdog_cli:main` (works only because the repo root is on `sys.path`).
-- **Windows quirks:** `sys.stdin.readline()` hangs on Windows pipes — use `sys.stdin.buffer.readline()` (the gateway stdio server must read binary); pytest-asyncio `PermissionError [WinError 5]` on stale temp dirs → `tests/conftest.py` redirects `tempfile.tempdir` to `data/pytest-tmp/`.
-- **Known live defects:** every `life` call leaks `{"ok": false, ...}` JSON to stdout first (`interfaces.cli.taskdog_app.register_taskdog_app` echoes, then raises `typer.Exit`); `life task today` raises `NameError` (`TASK_BIN` undefined in `life/centrals/task.py`); knowledge/research centrals always fail (`leitura`/`notes`/`mindmaps`/`research` missing from `DEFAULT_SUBMODULES`); `sys_ikigai/propagation/markdown_db.py::MarkdownDB.read` raises `ImportError` (shims export `Dream`/`Task`, not `DreamEntity`/`TaskEntity`); three `.github/scripts` modules don't compile and three imports are untracked → a fresh clone fails `code-review-checks`.
+- **Windows quirks:** `sys.stdin.readline()` hangs on Windows pipes — use `sys.stdin.buffer.readline()` (a stdio MCP server must read binary); pytest-asyncio `PermissionError [WinError 5]` on stale temp dirs → `tests/conftest.py` redirects `tempfile.tempdir` to `data/pytest-tmp/`.
+- **Known live defects:** `life task today` raises `NameError` (`TASK_BIN` is undefined in `life/centrals/task.py`); knowledge/research centrals always fail (`leitura`/`notes`/`mindmaps`/`research` missing from `DEFAULT_SUBMODULES`). Fixed in the ADR-037 wave: the `{"ok": false, ...}` stdout leak (the PC-only taskdog sub-app was removed) and the `.github/scripts` breakage (all ten modules compile; the four `code_review` modules are tracked).
 - **`.gitignore` swallows every 4-letter root directory** (`/[a-zA-Z]{4}` matches `life`, `data`, `docs`, `logs`); only `src/` is negated. `git add -f` new files under `life/`.
-- **Docs that drifted:** `src/ikigai/README.md` (`poetry run ikigai` does not exist), `src/ikigai/MCP_GATEWAY.md` (real script: `ikigai-maintainer-mcp`), `src/ikigai/SPEC.md` D10 ("tri-key" vs 5 components), `interfaces/tui/operator/README.md` (5 tabs, not 3).
-- **Version pins that bite:** `typer >= 0.21` vendors Click as `typer._click` (so `typer.Exit` is not `click.exceptions.Exit`); `mcp` is pinned `<2` (2.x dropped `mcp.server.fastmcp`); `fastapi`/`uvicorn` are optional — `interfaces/studio` exits if they are missing.
+- **Docs that drifted:** `src/ikigai/README.md` (`poetry run ikigai` does not exist), `src/ikigai/MCP_GATEWAY.md` (describes the retired PC-local gateway; the live surface is `src/transport/mcp_server.py`), `src/ikigai/SPEC.md` D10 ("tri-key" vs 5 components).
+- **Version pins that bite:** `typer >= 0.21` vendors Click as `typer._click` (so `typer.Exit` is not `click.exceptions.Exit`); `mcp` is pinned `<2` (2.x dropped `mcp.server.fastmcp`).
 - **Taskwarrior is no longer the task store** (taskdog-server on `127.0.0.1:8000` replaced it), yet `taskwarrior/scripts` is still the `task_scripts` path used by `life task daily-review|weekly-review|metrics`.
-- **Makefile is partly broken:** `make test` references removed `langgraph_tests/` and `src/operational/` — use `pytest tests/ -v`. Port-2024 LangGraph dev runs via machine-locked `scripts/langgraph-dev.bat` (same for `scripts/ruvocal-start.bat`); `scripts/td_shim_build/__main__.py` hardcodes the author's absolute repo path. The 12 `.sh`/`.bat` suites under `tests/` aren't pytest-collected (`set -euo pipefail`, sandboxed in `mktemp -d`).
+- **There is no `Makefile`** (removed with the PC-only scope, ADR-037): run `pytest tests/ -v` from the repo root. `scripts/ruvocal-start.bat` and `scripts/td_shim_build/__main__.py` hardcode the author's absolute repo path. The 12 `.sh`/`.bat` suites under `tests/` aren't pytest-collected (`set -euo pipefail`, sandboxed in `mktemp -d`).
 - Commit conventions: branch from `main`, never push to `main`; conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`, `test:`). No secrets in the repo — `.env` is gitignored, `.env.example` is the template.
