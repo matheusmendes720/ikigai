@@ -12,6 +12,7 @@
 
 ### T-D0 — Gate de ordem (bloqueia o resto)
 - **status:** pending
+- **milestone:** sem milestone próprio — gate de ordem (ADR-037 §CURRENT FOCUS)
 - **aceite:** nenhum item de cliente (Telegram / timeline / TUI) e nenhum harness
   novo entra no backlog antes de T-D1..T-D3 verdes.
 - **verificação:** `roadmap.md` §CURRENT FOCUS presente e nenhum milestone de
@@ -19,6 +20,7 @@
 
 ### T-D1 — DOM unificado (schema + tipagem forte + UID)
 - **status:** pending
+- **milestone:** M194
 - **spec:** `docs/superpowers/specs/2026-11-01-01-unified-dom.md`
 - **plano:** `specs/data-layer/TECH.md`
 - **aceite:** contrato do vault tipado (Pydantic v2 strict, `frozen=True`,
@@ -27,6 +29,7 @@
 
 ### T-D2 — Store cloud (Postgres serverless)
 - **status:** pending
+- **milestone:** M195
 - **spec:** `docs/superpowers/specs/2026-11-01-02-cloud-store.md`
 - **nota:** R1 ratificada (Supabase, 2026-11-01) — aguardando aprovação do owner
   registrada em `specs/data-layer/TECH.md`.
@@ -35,10 +38,17 @@
 
 ### T-D3 — Services + transporte MCP
 - **status:** pending
+- **milestone:** M196
 - **spec:** `docs/superpowers/specs/2026-11-01-03-service-transport-pi.md`
 - **aceite:** `services/` com lógica de domínio pura; `transport/` expondo MCP
   sobre HTTP via fastmcp; harness pi.dev como runtime — a repo não constrói
   harness novo.
+
+### T-D4 — Clientes (Telegram; TUI em standby)
+- **status:** blocked — só abre com T-D1..T-D3 verdes
+- **milestone:** M197
+- **aceite:** cliente speakando MCP/serviços sobre HTTP, sem lógica de domínio
+  no cliente e sem estado próprio fora do store; TUI/PC permanece em standby.
 
 
 ## Active Tasks (M0 — Bootstrap)

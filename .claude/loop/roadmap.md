@@ -1719,15 +1719,15 @@ When verifier returns PASS:
   Recall node não conectado ao SQLite/MD real.
 - **Cada mensagem v2 = 5-14 calls LLM**: caro e lento.
 
-### ❌ FASE A PENDENTE (TUI upstream)
+### ❌ FASE A PENDENTE (TUI upstream) → STANDBY (ADR-037, 2026-11-01)
 
 | M | Status | LOC | O que |
 |---|---|---|---|
-| M163 | NOT STARTED | ~300 | schema DB 8 → 30+ colunas (tags/deps/audit_log/started_at/completed_at) |
-| M164 | NOT STARTED | ~500 | subcomandos essenciais (tag/dep/note/pause/reopen/cancel) |
-| M165 | NOT STARTED | ~500 | TUI interativa (panels + gantt + timeline + stats) |
+| M163 | STANDBY | ~300 | schema DB 8 → 30+ colunas (tags/deps/audit_log/started_at/completed_at) — depriorizado: fase de operar ferramenta, não de dados |
+| M164 | STANDBY | ~500 | subcomandos essenciais (tag/dep/note/pause/reopen/cancel) — depriorizado: fase de operar ferramenta, não de dados |
+| M165 | STANDBY | ~500 | TUI interativa (panels + gantt + timeline + stats) — TUI em standby por ADR-037 |
 
-**Fase A total:** ~3.7k LOC, ~5-7 sessões.
+**Fase A total:** ~3.7k LOC, ~5-7 sessões — **em standby**; a linha ativa é a camada de dados (§CURRENT FOCUS).
 
 ### ❌ FASE C INDEFINIDA
 
@@ -1959,4 +1959,20 @@ Tests: 5 new in `test_hil_pause.py` (count increment, audit message, spec-rewrit
 ### M192 - Paperclip ADR-036: 4 nested loops framework (STATUS: DONE)
 
 `code-docs/adr/ADR-036-paperclip-four-nested-loops.md` — ACCEPTED 2026-10-12. Documents life-oss's adoption of the LangChain 4 nested loops framework as the primary lens for loop engineering. Maps each existing cron/daemon to one of the 4 loops (Agent / Verification / Event-driven / Hill-climbing) and the 5 risks matrix from Ronacher + Osmani. **Numbering deviation:** M192 prompt requested `ADR-026` but that's taken (Sub-Agent Dispatch Protocol, 2026-09-05); used `ADR-036` per `code-docs/adr/README.md §Maintenance` numbering rule. Drift invariant guard: `test_paperclip_adr_036_exists` (forthcoming, +1 drift test).
+
+### M194 - Data layer: DOM unificado (STATUS: TODO)
+
+Pivot ADR-037 (Accepted, 2026-11-01) — item 1 da ordem D1 (`roadmap.md` §CURRENT FOCUS). DOM unificado = schema canônico do vault + tipagem forte + UID. Spec: `docs/superpowers/specs/2026-11-01-01-unified-dom.md` · plano `specs/data-layer/TECH.md`. **Aceite:** contrato Pydantic v2 strict (`frozen=True`, `extra="forbid"`) em `src/contracts/` sem re-definir `UEID`/`Task`/`TaskChange` (UEID 4 partes, ADR-014); round-trip vault markdown ↔ contrato; zero LLM no caminho.
+
+### M195 - Data layer: store cloud (STATUS: TODO)
+
+Pivot ADR-037 — item 1 da ordem D1 (store). Spec: `docs/superpowers/specs/2026-11-01-02-cloud-store.md`. R1 ratificada (Supabase, 2026-11-01) — **bloqueado até a aprovação do owner registrada em `specs/data-layer/TECH.md`**. **Aceite:** vault versionado + índices (vector, graph, embeddings) no mesmo store Postgres serverless; sync vault markdown ↔ store idempotente.
+
+### M196 - Data layer: services + transport (STATUS: TODO)
+
+Pivot ADR-037 — item 2 da ordem D1. Spec: `docs/superpowers/specs/2026-11-01-03-service-transport-pi.md`. **Aceite:** `services/` com lógica de domínio pura; `transport/` expondo MCP sobre HTTP via fastmcp; harness pi.dev como runtime — a repo não constrói harness, grafo custom nem orquestrador.
+
+### M197 - Data layer: clientes (STATUS: TODO)
+
+Pivot ADR-037 — item 4 da ordem D1, **somente após M194–M196 verdes**. Telegram como cliente em foco; TUI/PC em standby. **Aceite:** cliente speakando MCP/serviços sobre HTTP, sem lógica de domínio no cliente e sem estado próprio fora do store.
 
