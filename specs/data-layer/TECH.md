@@ -2,7 +2,7 @@
 
 **Feature id:** `data-layer`
 **Data:** 2026-11-01
-**Status:** proposed — aguardando ratificação de R1 (fornecedor) e aprovação do owner
+**Status:** proposed — **R1 ratificada (Supabase, 2026-11-01)**; aguardando aprovação do owner
 **Decisão que ancora:** [`ADR-037`](../../code-docs/adr/ADR-037-data-layer-canonical-turn.md)
 **Série de specs (comportamento):** [`2026-11-01-00-data-layer-series.md`](../../docs/superpowers/specs/2026-11-01-00-data-layer-series.md) · [01 DOM](../../docs/superpowers/specs/2026-11-01-01-unified-dom.md) · [02 Store](../../docs/superpowers/specs/2026-11-01-02-cloud-store.md) · [03 Service+Transporte](../../docs/superpowers/specs/2026-11-01-03-service-transport-pi.md)
 
@@ -150,10 +150,12 @@ dedicado. **Recomendação:** adicionar o entry dedicado (`src-data`,
 `ruff-only`) porque os testes do store precisam de **Postgres real** — o
 `interfaces-cli` não pode depender de um serviço externo no CI.
 
-> **Decisão pendente:** Postgres no CI (Supabase local / `pgvector` em serviço
-> Docker / testcontainers). Sem isso, os testes de store rodam **só em local** e
-> a Task 2.5 (drift test contrato ↔ SQL) vira a única verificação em CI — o que
-> é mais fraco do que a spec pede. **Levantar antes da Task 2.2.**
+> **Decidido 2026-11-01: `testcontainers`.** Um Postgres com `pgvector` +
+> `pg_trgm` sobe no runner do CI. Os testes de store — concorrência (T2.6),
+> RLS (T2.4) e o drift test contrato↔SQL (T2.5) — rodam em **todo PR**.
+> O entry do matrix precisa de `services:` com a imagem `pgvector/pgvector:pg16`
+> e as extensões habilitadas via `CREATE EXTENSION` no init do container.
+> **Fornecedor de produção: Supabase** (SPEC-02 D10, ratificado).
 
 ---
 
@@ -287,7 +289,7 @@ pode rodar em paralelo com `client.py`/`repository.py`.
 | **Lockout de harness**: o pi não expõe MCP | média | SPEC-03 T3.7 exige **descoberta**, não assunção de formato. Se o pi não puder carregar MCP, isso é decisão de fornecedor de harness — **do owner**, não do código. Fallback: tools via outro mecanismo, ou outro harness pronto |
 | **Mudança de dimensão de embedding quebra o índice HNSW** | média | `EMBEDDING_DIM` fixado em R1; mudança = coluna nova + backfill + troca de índice (SPEC-02 D7). Nunca `ALTER` in-place |
 | **A camada de dados serve, e o vault continua vazio** — o ciclo se repete | média-alta | A métrica de 14 dias (ADR-037 §8). Se (a) = 0, o diagnóstico é **hábito**, e a resposta é reduzir a ambição do sistema, não aumentar a máquina |
-| **Postgres no CI não existe** → os testes de store só rodam em local | média | Levantado em §2.6 como decisão **antes** da Task 2.2. Sem ele, o drift test contrato↔SQL é a única verificação em CI — mais fraco que a spec |
+| **Postgres no CI não existe** → os testes de store só rodam em local | **resolvido** | **Decidido 2026-11-01: testcontainers** (§2.6). Sem ele, o drift test contrato↔SQL seria a única verificação em CI — mais fraco que a spec pede |
 | **RLS mal configurada vaza artefato entre clientes** | baixa | SPEC-02 T2.4 prova que a policy (não o filtro) isola. Todo cliente roda com o mesmo `client_id` de teste — um teste que "passa" porque todos veem tudo não prova nada |
 | **`--json` e a convenção do repo se perdem na fronteira MCP** | baixa | A fronteira MCP devolve JSON único (SPEC-03 D3). `interfaces/cli/` segue com `--json` (convenção das Global Conventions do `CLAUDE.md`) |
 
@@ -302,7 +304,7 @@ pode rodar em paralelo com `client.py`/`repository.py`.
 | **Timeline** | fase 4+ | deixa de ser "o artefato que falta" e vira uma *view* sobre o DOM (ADR-037 §7) |
 | **`life vault-note`** (SPEC-02 do Vanilla Pivot) | fase 5 | re-alvo: vira o primeiro cliente da service layer |
 | **`ADR-038`** | quando houver decisão de follow-up | o próximo número livre (ADR-037 foi a virada) |
-| **Ratificação R1 → ADR** | na Task 2.0 | a escolha de fornecedor é decisão de fornecedor, não de arquitetura; se virar regra permanente, merece ADR próprio |
+| **R1 ratificada → ADR próprio** | quando houver regra permanente de fornecedor | Supabase foi ratificado (2026-11-01) e registrado em SPEC-02 D10 + `src/contracts/store.py`. Se virar regra permanente (ex.: "toda persistência passa por Supabase"), merece ADR próprio |
 | **`ADR-033 Alt E`** (unificar as duas identidades de tipo do UEID) | quando o DOM estiver vivo | o DOM escolhe uma identidade; a unificação das duas é limpeza posterior |
 
 ---

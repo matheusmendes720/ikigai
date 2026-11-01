@@ -464,7 +464,7 @@
      reach the same LangSmith project:
 
     wsl.exe -d Ubuntu -- bash -c "echo 'export 
-  LANGSMITH_API_KEY=REPLACE_ME' >> ~/.bashrc"
+  LANGSMITH_API_KEY=REDACTED_LANGSMITH_KEYREDACTED' >> ~/.bashrc"
 
   4. poetry install to pull OTel packages into the venv (smoke test confirmed
      opentelemetry.instrumentation.* contrib modules are not yet installed).
@@ -581,7 +581,7 @@
 ● Agent(Wrap IKIGAI tools with @observed_tool) MiniMax-M2.5
   ⎿  Backgrounded agent (↓ to manage · ctrl+o to expand)
 
-❯ here is the rotated key! REDACTED_LANGSMITH_KEY  
+❯ here is the rotated key! REDACTED_LANGSMITH_KEYREDACTED  
 
   Thought for 29s (ctrl+o to expand)
 

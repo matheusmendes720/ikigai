@@ -82,7 +82,7 @@ Um modelo de dados **único e compartilhado** (`src/contracts/`) serve todas as 
 | Paralelismo / multi-threading / multi-device | transações + RLS por cliente, **sem lock distribuído** |
 | Tipagem forte | contratos Pydantic como SOT + drift test contra o SQL |
 
-> **Ratificação pendente (única variável aberta desta ADR):** Supabase **versus** Postgres gerenciado mais simples (Neon) **versus** Postgres self-hosted (VPS + pgvector). A recomendação é **Supabase** — é o único que entrega pgvector + RLS + Realtime + Edge Functions sem operação própria. Isso é uma decisão de fornecedor, não de arquitetura: o schema e os contratos não mudam. Formalizada na SPEC-02 §R1.
+> **Ratificado pelo owner em 2026-11-01: Supabase.** É o único que entrega pgvector + RLS + Realtime + Edge Functions sem operação própria. É uma decisão de fornecedor, não de arquitetura: o schema e os contratos não mudam. Formalizada na SPEC-02 §R1 (D10). Postgres de teste no CI via testcontainers (SPEC-02 D11).
 
 ### D4 — O vault deixa de ser um diretório e passa a ser um store versionado
 
