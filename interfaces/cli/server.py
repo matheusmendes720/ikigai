@@ -155,7 +155,16 @@ def _is_pid_alive(pid: int) -> bool:
     if pid <= 0:
         return False
     try:
-        if os.name == "nt":  # Windows
+        # NOTE: `sys.platform == "win32"`, NOT `os.name == "nt"`.
+        # mypy narrows the type-checker platform on a direct `sys.platform`
+        # comparison, but not on `os.name`. `ctypes.windll` only exists in
+        # typeshed's win32 branch, so under `os.name == "nt"` the attribute
+        # is still analysed on Linux and the gate fails with
+        #   Module has no attribute "windll"  [attr-defined]
+        # The two expressions are equivalent at runtime: CPython reports
+        # os.name == "nt" and sys.platform == "win32" together on native
+        # Windows, and both are false on Cygwin/MSYS (os.name == "posix").
+        if sys.platform == "win32":  # Windows
             import ctypes
 
             kernel32 = ctypes.windll.kernel32
@@ -230,8 +239,8 @@ def _start_process(name: str, cmd: list[str], pidfile_path: Path) -> tuple[bool,
         stdin=subprocess.DEVNULL,
         # New process group on POSIX so we can SIGTERM the whole tree later.
         # On Windows, CREATE_NEW_PROCESS_GROUP = 0x00000200.
-        creationflags=0x00000200 if os.name == "nt" else 0,
-        start_new_session=os.name != "nt",
+        creationflags=0x00000200 if sys.platform == "win32" else 0,
+        start_new_session=sys.platform != "win32",
     )
 
     pidfile_path.write_text(str(proc.pid))
@@ -271,7 +280,7 @@ def _stop_process(name: str, pidfile_path: Path) -> tuple[bool, str]:
 
     # Cross-platform kill
     try:
-        if os.name == "nt":
+        if sys.platform == "win32":
             # Windows: SIGTERM not always available; use TerminateProcess via taskkill
             # /T = kill process tree, /F = force. Force is the only reliable way
             # when the subprocess uses CREATE_NEW_PROCESS_GROUP.

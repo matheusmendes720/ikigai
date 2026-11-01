@@ -1,0 +1,187 @@
+.claude/loop/progress.md:46:- notes: Cleanup + M158g probe + path-ordering fix. (1) docs: AGENTS.md swap 44KB→6KB (1d4e6791). (2) fix(mesh): _ensure_ikigai_path() force-promotes IKIGAi src to sys.path[0]; was presence-check that no-op'd when shim had it at position 2 (0c51e930). Added 5-test drift net in tests/test_m158g_ikigai_path.py. (3) chore: gitignore .langgraph_api/, daemon-heartbeat, vault-events log, src/data/ runtime (6a7e19a8). (4) chore: commit .env.example, .claude-code-mcp.example.json, uv.lock for vibe-ops (01d065bb). (5) chore: regenerate b7-4 E2E report (2/2 PASS), trash 10 bash-redirect artifacts + 2 orphan scripts (39ebb5ac). (6) chore: untrack src/data/ikigai_checkpoints.db + remove .backup-v1`` stray (f9f7a229). (7) fix: phantom .backup-v1`` index entry (e55fda2a). (8) docs(loop): M158g probe VERIFIED KEEP (43feabb9) — browser-use==0.13.9 AND 0.13.10 both exact-pin anthropic==0.76.0; without shim, langchain_anthropic.chat_models:984 raises AttributeError. Tests: 8/8 td_chat smoke + 5/5 m158g drift + 12/12 bridge = 25/25 PASS. Working tree clean.
+.claude/loop/progress.md:5551:2. **Real LLM** (`--use-llm`) — calls `ChatAnthropic` via `langchain_anthropic`
+.claude/loop/progress.md:5586:- ✅ Real-LLM path is wired (langchain_anthropic ChatAnthropic, IKIGAI_MODEL env var)
+.claude/loop/progress.md:6137:The `mock_patch("tools.backtest.llm_judge.ChatAnthropic")` path doesn't work because `_real_llm_score` does a LOCAL `from langchain_anthropic import ChatAnthropic`. The first failing test inadvertently hit the real Anthropic API and got a 401 (`API key is invalid`) — proving the code path DOES reach the real network. Fixed by patching at the module level: `mock_patch("langchain_anthropic.ChatAnthropic")`.
+.claude/loop/progress.md:6142:- **Module-level mock target** — patch `langchain_anthropic.ChatAnthropic`, not `tools.backtest.llm_judge.ChatAnthropic` (because the import is local).
+.claude/loop/progress.md:7005:   from langchain_anthropic.chat_models import AnthropicOverloadedError
+.claude/loop/roadmap.md:1667:| M158e | ✅ | ~80 | langchain_anthropic shim + response normalizer |
+.claude/loop/roadmap.md:1678:  - Without shim: `langchain_anthropic.chat_models:984` raises `AttributeError: module 'anthropic' has no attribute 'OverloadedError'`
+.claude/loop/roadmap.md:1870:| Without shim: `from langchain_anthropic.chat_models import AnthropicOverloadedError` | **FAIL** with `AttributeError: module 'anthropic' has no attribute 'OverloadedError'` |
+.claude/loop/tasks.md:1418:  anthropic.OverloadedError`); langchain_anthropic broken at import-time.
+.claude/loop/tasks.md:1453:### M157 — fix langchain_anthropic import
+.claude/loop/tasks.md:1534:### M158e — langchain_anthropic shim + response normalizer
+.claude/loop/tasks.md:1536:- **Root cause:** `langchain_anthropic.chat_models:984` define
+.claude/loop/tasks.md:1540:- **Fix:** `langchain_anthropic_shim.py` monkey-patches
+.claude/loop/tasks.md:1565:  - `langchain_anthropic.chat_models:984` blows up without the shim
+archive/recovered-agentic-2026-09-01/src_ikigai_src_agents/deepagents_harness_PRE_STRIP_8992e0c.py:284:    from langchain_anthropic import ChatAnthropic
+docs/diagnostics/M154-v2-graph-inventory.md:88:| `surface_intentions` | Reads cycle_state + last 3 daily reports from vault; formats prompt; calls `ChatAnthropic` (with `langchain_anthropic_shim`) to get 3-5 pt-BR suggestions | The underlying PAV `cycle_state.md` + `_strategics_excerpt.md` are empty (per FASE B-GAPS) → LLM produces generic output even when the call succeeds | Falls back gracefully to empty suggestions on any LLM error |
+docs/diagnostics/M154-v2-graph-inventory.md:211:### `langchain_anthropic_shim.py`
+docs/diagnostics/M154-v2-graph-inventory.md:296:- `langchain_anthropic_shim` — load-bearing per M158g probe
+interfaces/cli/invoke_skill.py:200:    Lazy-imports langchain_anthropic to avoid hard dep when
+interfaces/cli/invoke_skill.py:217:        from langchain_anthropic import ChatAnthropic
+interfaces/cli/invoke_skill.py:220:        logger.warning("langchain_anthropic import failed: %s", exc)
+interfaces/cli/pyproject.toml:62:    # `src/ikigai/src/agents/v2/langchain_anthropic_shim.py` -> `import anthropic`
+interfaces/cli/pyproject.toml:64:    # `interfaces/cli/invoke_skill.py` -> `from langchain_anthropic import ChatAnthropic`
+scripts/m158e_inject_anthropic_shim.py:1:"""M158e — Inject langchain_anthropic_shim import before all 16 prompts.
+scripts/m158e_inject_anthropic_shim.py:5:        from langchain_anthropic import ChatAnthropic
+scripts/m158e_inject_anthropic_shim.py:9:    import agents.v2.langchain_anthropic_shim  # noqa: F401
+scripts/m158e_inject_anthropic_shim.py:17:SHIM_LINE = "        import agents.v2.langchain_anthropic_shim  # noqa: F401  # M158e\n"
+scripts/m158e_inject_anthropic_shim.py:18:TARGET = "        from langchain_anthropic import ChatAnthropic\n"
+scripts/m158e_inject_anthropic_shim.py:25:    if "langchain_anthropic_shim" in text:
+scripts/td_shim_build/__main__.py:54:# uses ANTHROPIC_AUTH_TOKEN via Claude Code, but langchain_anthropic only
+specs/M154-v2-audit/SPEC.md:35:  no `langchain_anthropic` instalado (incompatibilidade de versão).
+specs/M154-v2-audit/SPEC.md:42:  | `ikigai_taskdog_mcp` | `agents.taskdog_mcp_graph:make_taskdog_mcp_graph_sync` | ❌ **quebra** (import langchain_anthropic falha) |
+specs/M154-v2-audit/SPEC.md:183:1. ❌ `taskdog_mcp_graph` quebra no import de `langchain_anthropic`
+specs/M154-v2-audit/SPEC.md:207:File "...langchain_anthropic/chat_models.py", line 984, in <module>
+specs/M154-v2-audit/SPEC.md:214:e o que `langchain_anthropic` espera.** Não é código síncrono bloqueando
+specs/M154-v2-audit/SPEC.md:218:`OverloadedError`) + atualizar `langchain_anthropic`. **Não é refactor
+specs/M154-v2-audit/SPEC.md:229:- Fix `langchain_anthropic` import (atualizar dep)
+specs/M154-v2-audit/SPEC.md:257:| M155 | Fix `langchain_anthropic` + LLM real (sem PAV-math) | ~50 | M154 ✓ |
+specs/M155-deep-agent-min-viable/SPEC.md:32:2. **Fix do import `langchain_anthropic`** que está quebrado (M157, ~50 LOC)
+specs/M155-deep-agent-min-viable/SPEC.md:242:## M157 — Fix `langchain_anthropic` import quebrado
+specs/M155-deep-agent-min-viable/SPEC.md:246:File "...langchain_anthropic/chat_models.py", line 984
+specs/M155-deep-agent-min-viable/SPEC.md:257:# 2. Verificar langchain_anthropic compatível
+specs/M155-deep-agent-min-viable/SPEC.md:261:python -c "from langchain_anthropic import ChatAnthropic; print('ok')"
+specs/M155-deep-agent-min-viable/SPEC.md:477:| **M157** | Fix `langchain_anthropic` import | ~50 | — | LLM real funciona |
+specs/M155-deep-agent-min-viable/SPEC.md:499:- [ ] M157: `from langchain_anthropic import ChatAnthropic` funciona
+specs/M155-deep-agent-min-viable/SPEC.md:513:| `langchain_anthropic` ainda quebrar após upgrade | fallback pra `langchain_community.ChatLiteLLM` (já temos) |
+specs/M168-roadmap/SPEC.md:55:- `langchain_anthropic` quebrado não crasha mais (M157)
+specs/M87-real-llm-integration/SPEC.md:26:M87 adds `_real_llm_dispatch()` using `langchain_anthropic.ChatAnthropic`
+specs/M87-real-llm-integration/SPEC.md:79:- **Lazy imports** prevent hard dep on langchain_anthropic for users
+specs/M87-real-llm-integration/SPEC.md:81:- **Test mocking via sys.modules**: setting `"langchain_anthropic": None`
+specs/M87-real-llm-integration/SPEC.md:99:# -> llm_stub: false, ok_reason: import_failed (no langchain_anthropic)
+src/ikigai/pyproject.toml:164:    "langchain_anthropic",
+src/ikigai/pyproject.toml:185:module = ["deepagents", "deepagents.backends", "langchain_anthropic", "msgpack", "yaml", "pytest"]
+src/ikigai/src/agents/deepagents_harness.py:189:    from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/taskdog_mcp_graph.py:237:    langchain_anthropic has a broken install (M157: catches
+src/ikigai/src/agents/taskdog_mcp_graph.py:239:    no longer has OverloadedError that langchain_anthropic expects).
+src/ikigai/src/agents/taskdog_mcp_graph.py:242:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/taskdog_mcp_graph.py:245:        # M157: langchain_anthropic import can fail with AttributeError
+src/ikigai/src/agents/taskdog_mcp_graph.py:274:    # langchain_anthropic + langgraph dev server combo drops the header
+src/ikigai/src/agents/v2/__init__.py:9:M158g — langchain_anthropic compat shim.
+src/ikigai/src/agents/v2/__init__.py:12:- langchain_anthropic 1.7.2 requires anthropic>=0.120.0 (per its METADATA).
+src/ikigai/src/agents/v2/__init__.py:15:- langchain_anthropic.chat_models:984 declares:
+src/ikigai/src/agents/v2/__init__.py:20:- Result: from langchain_anthropic import ChatAnthropic raises AttributeError,
+src/ikigai/src/agents/v2/__init__.py:23:FIX: monkey-patch anthropic.OverloadedError BEFORE any langchain_anthropic
+src/ikigai/src/agents/v2/__init__.py:24:import. Done in _ensure_overloaded_error() below.
+src/ikigai/src/agents/v2/__init__.py:38:from .langchain_anthropic_shim import _ensure_overloaded_error, install_response_normalizer
+src/ikigai/src/agents/v2/__init__.py:40:_ensure_overloaded_error()
+src/ikigai/src/agents/v2/__init__.py:41:install_response_normalizer()
+src/ikigai/src/agents/v2/harness_legacy_reference.py:162:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/langchain_anthropic_shim.py:1:"""M158g — langchain_anthropic compat shim.
+src/ikigai/src/agents/v2/langchain_anthropic_shim.py:7:- Downgrading langchain_anthropic loses LangGraph 1.x compat.
+src/ikigai/src/agents/v2/langchain_anthropic_shim.py:17:def _ensure_overloaded_error() -> None:
+src/ikigai/src/agents/v2/langchain_anthropic_shim.py:25:            so langchain_anthropic can define its AnthropicOverloadedError
+src/ikigai/src/agents/v2/langchain_anthropic_shim.py:35:_ensure_overloaded_error()
+src/ikigai/src/agents/v2/langchain_anthropic_shim.py:70:def install_response_normalizer() -> None:
+src/ikigai/src/agents/v2/langchain_anthropic_shim.py:81:    from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/decompose_rice_observation.py:55:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/decompose_rice_observation.py:56:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/decompose_rice_observation.py:58:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/decompose_rice_observation.py:59:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/decompose_rice_observation.py:70:        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+src/ikigai/src/agents/v2/prompts/h1_energy.py:55:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/h1_energy.py:56:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/h1_energy.py:58:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/h1_energy.py:59:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/h1_energy.py:70:        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+src/ikigai/src/agents/v2/prompts/h2_qhe_composite.py:55:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/h2_qhe_composite.py:56:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/h2_qhe_composite.py:58:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/h2_qhe_composite.py:59:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/h2_qhe_composite.py:70:        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+src/ikigai/src/agents/v2/prompts/h3_regime_fsm.py:55:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/h3_regime_fsm.py:56:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/h3_regime_fsm.py:58:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/h3_regime_fsm.py:59:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/h3_regime_fsm.py:70:        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+src/ikigai/src/agents/v2/prompts/h4_market_fit.py:55:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/h4_market_fit.py:56:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/h4_market_fit.py:58:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/h4_market_fit.py:59:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/h4_market_fit.py:70:        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+src/ikigai/src/agents/v2/prompts/h5_skill_velocity.py:55:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/h5_skill_velocity.py:56:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/h5_skill_velocity.py:58:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/h5_skill_velocity.py:59:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/h5_skill_velocity.py:70:        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+src/ikigai/src/agents/v2/prompts/h6_severity.py:55:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/h6_severity.py:56:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/h6_severity.py:58:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/h6_severity.py:59:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/h6_severity.py:70:        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+src/ikigai/src/agents/v2/prompts/heuristics_regime_observation.py:55:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/heuristics_regime_observation.py:56:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/heuristics_regime_observation.py:58:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/heuristics_regime_observation.py:59:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/heuristics_regime_observation.py:70:        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+src/ikigai/src/agents/v2/prompts/observe_qhe_observation.py:55:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/observe_qhe_observation.py:56:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/observe_qhe_observation.py:58:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/observe_qhe_observation.py:59:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/observe_qhe_observation.py:70:        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+src/ikigai/src/agents/v2/prompts/score_course_observation.py:55:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/score_course_observation.py:56:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/score_course_observation.py:58:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/score_course_observation.py:59:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/score_course_observation.py:70:        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+src/ikigai/src/agents/v2/prompts/score_market_observation.py:55:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/score_market_observation.py:56:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/score_market_observation.py:58:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/score_market_observation.py:59:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/score_market_observation.py:70:        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+src/ikigai/src/agents/v2/prompts/score_meta_vector_observation.py:55:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/score_meta_vector_observation.py:56:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/score_meta_vector_observation.py:58:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/score_meta_vector_observation.py:59:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/score_meta_vector_observation.py:70:        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+src/ikigai/src/agents/v2/prompts/score_passion_observation.py:55:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/score_passion_observation.py:56:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/score_passion_observation.py:58:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/score_passion_observation.py:59:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/score_passion_observation.py:70:        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+src/ikigai/src/agents/v2/prompts/score_revenue_observation.py:55:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/score_revenue_observation.py:56:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/score_revenue_observation.py:58:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/score_revenue_observation.py:59:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/score_revenue_observation.py:70:        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+src/ikigai/src/agents/v2/prompts/score_skill_observation.py:55:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/score_skill_observation.py:56:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/score_skill_observation.py:58:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/score_skill_observation.py:59:        from langchain_anthropic import ChatAnthropic
+src/ikigai/src/agents/v2/prompts/score_skill_observation.py:70:        # The shim (agents.v2.langchain_anthropic_shim.install_response_normalizer)
+src/ikigai/src/agents/v2/prompts/surface_pav_intentions.py:88:        # M158e: the shim MUST be imported before langchain_anthropic — it patches
+src/ikigai/src/agents/v2/prompts/surface_pav_intentions.py:89:        # anthropic.OverloadedError, which langchain_anthropic subclasses at import
+src/ikigai/src/agents/v2/prompts/surface_pav_intentions.py:91:        import agents.v2.langchain_anthropic_shim  # noqa: F401, I001  # M158e
+src/ikigai/src/agents/v2/prompts/surface_pav_intentions.py:92:        from langchain_anthropic import ChatAnthropic
+src/ikigai/tests/test_react_agent_tool_surface.py:101:    from langchain_anthropic import ChatAnthropic  # noqa: F401
+src/ikigai/tests/test_react_agent_tool_surface.py:106:    # M157: langchain_anthropic import can fail with AttributeError when
+src/ikigai/tests/test_react_agent_tool_surface.py:299:    reason="langchain_anthropic + langgraph required to build the ReAct agent",
+src/ikigai/tests/test_react_agent_tool_surface.py:309:      - ``langchain_anthropic`` SDK mismatch (M157: AttributeError when
+tests/test_llm_dispatch.py:95:            "langchain_anthropic": fake_anthropic_module,
+tests/test_llm_dispatch.py:110:    """M87: langchain_anthropic not installed -> fallback."""
+tests/test_llm_dispatch.py:113:    with patch.dict("sys.modules", {"langchain_anthropic": None, "langchain_core.messages": None}):
+tests/test_llm_dispatch.py:144:            "langchain_anthropic": mock_anthropic,
+tests/test_llm_dispatch.py:177:            "langchain_anthropic": mock_anthropic,
+tests/test_llm_dispatch.py:200:            "langchain_anthropic": mock_anthropic,
+tests/test_llm_key_detection.py:151:    """langchain_anthropic is importable (sanity check that it's installed)."""
+tests/test_llm_key_detection.py:156:    import langchain_anthropic  # noqa: F401
+tests/test_llm_key_detection.py:161:    spec = importlib.util.find_spec('langchain_anthropic')
+tests/test_m126_real_llm_smoke.py:81:    # Patch at the module level — `from langchain_anthropic import ChatAnthropic`
+tests/test_m126_real_llm_smoke.py:82:    # inside _real_llm_score imports the symbol from langchain_anthropic.
+tests/test_m126_real_llm_smoke.py:83:    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+tests/test_m126_real_llm_smoke.py:102:    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+tests/test_m126_real_llm_smoke.py:118:    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+tests/test_m126_real_llm_smoke.py:141:    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+tests/test_m126_real_llm_smoke.py:163:    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+tests/test_m126_real_llm_smoke.py:207:    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model) as mock_cls:
+tests/test_m126_real_llm_smoke.py:240:    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+tests/test_m126_real_llm_smoke.py:291:    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model) as mock_cls:
+tests/test_m126_real_llm_smoke.py:319:    # Mimic langchain_anthropic response shape — content is a string,
+tests/test_m126_real_llm_smoke.py:329:    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+tests/test_m126_real_llm_smoke.py:357:    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+tests/test_m126_real_llm_smoke.py:388:    with mock_patch("langchain_anthropic.ChatAnthropic", return_value=fake_model):
+tools/backtest/llm_judge.py:7:  - --use-llm: try to call an LLM via langchain_anthropic ChatAnthropic.
+tools/backtest/llm_judge.py:39:    from langchain_anthropic import ChatAnthropic  # noqa: F401
+tools/backtest/llm_judge.py:102:    from langchain_anthropic import ChatAnthropic  # type: ignore
+tools/backtest/llm_judge.py:191:      - langchain_anthropic is importable, AND

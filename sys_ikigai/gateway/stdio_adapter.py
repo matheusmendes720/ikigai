@@ -59,7 +59,12 @@ class StdioAdapter(MCPClientAdapter):
         super().__init__(name=name, command=config.command)
         self._config = config
         self._proc: subprocess.Popen[bytes] | None = None
-        self._lock = threading.Lock()
+        # RLock (not Lock): ``call_tool`` holds this lock while its error
+        # handler calls ``self.close()``, which re-acquires it. With a plain
+        # Lock that is a self-deadlock — the thread waits forever for a lock
+        # it already owns. RLock is re-entrant for the SAME thread, so the
+        # nested acquisition succeeds while still serialising other threads.
+        self._lock = threading.RLock()
         self._next_id = 1
         self._stderr_tail: deque[str] = deque(maxlen=config.stderr_tail)
 

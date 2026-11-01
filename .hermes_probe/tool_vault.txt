@@ -1,0 +1,161 @@
+1|"""ikigai_write_vault — writes vault markdown via the vault_write backend.
+2|
+3|Mirrors ikigai_read_vault's path resolution pattern. Wraps
+4|``sys_ikigai.vault.vault_write.vault_write()`` with three modes:
+5|
+6|- ``append`` (default) — read existing file, append body, merge frontmatter
+7|  (new keys override existing). If file does not exist, behaves like create.
+8|- ``create`` — fail if file already exists; otherwise write new content +
+9|  frontmatter.
+10|- ``update`` — replace the entire file (frontmatter + body) with the new
+11|  content. No merge with existing.
+12|
+13|Security model mirrors ``vault_write``:
+14|
+15|- Rejects absolute paths
+16|- Rejects paths that resolve outside ``vault_root`` (path traversal blocked)
+17|- Append-only invariant preserved (each write is logged to ``.vault_audit.log``)
+18|
+19|CRITICAL: this tool writes to vault but should NEVER auto-execute on its own —
+20|must be invoked by an agent that the user has approved. The ``actor=agent``
+21|parameter on the backend marks the write for the audit trail.
+22|"""
+23|
+24|from __future__ import annotations
+25|
+26|import json
+27|from pathlib import Path
+28|from typing import Any
+29|
+30|from langchain_core.tools import tool
+31|from sys_ikigai.vault.vault_read import vault_read
+32|from sys_ikigai.vault.vault_write import vault_write
+33|
+34|
+35|def _get_vault_dir() -> Path:
+36|    """Lazily resolve vault root at call time.
+37|
+38|    5 parents up from ``src/ikigai/src/agents/`` reaches the project root.
+39|    Resolved on every call so tests can monkeypatch this function to
+40|    point at a temp vault without polluting the project's real vault.
+41|    """
+42|    return Path(__file__).resolve().parent.parent.parent.parent.parent / "vault"
+43|
+44|
+45|_VALID_MODES: tuple[str, ...] = ("append", "create", "update")
+46|
+47|
+48|@tool
+49|def ikigai_write_vault(
+50|    vault_path: str,
+51|    content: str,
+52|    frontmatter: dict[str, Any] | None = None,
+53|    mode: str = "append",
+54|) -> str:
+55|    """Write markdown to vault. Returns JSON with ok/path/sha256/mtime on success.
+56|
+57|    Args:
+58|        vault_path: relative path within vault/, e.g. "plans/q3/task-x.md"
+59|        content: markdown body content (the section below frontmatter)
+60|        frontmatter: optional dict of YAML frontmatter key/values
+61|        mode: "append" (default — merge with existing), "create" (fail if
+62|            exists), or "update" (replace entire file)
+63|
+64|    Returns:
+65|        JSON string. On success: ``{"ok": true, "path": ..., "sha256": ...,
+66|        "mtime": <float>}``. On failure: ``{"ok": false, "error": ...,
+67|        "vault_path": ...}``.
+68|
+69|    Security: this tool MUST only be invoked by an agent that the user has
+70|    approved. It does not auto-execute. Each call records ``actor=agent``
+71|    in the vault audit log.
+72|    """
+73|    if mode not in _VALID_MODES:
+74|        return json.dumps(
+75|            {
+76|                "ok": False,
+77|                "error": f"invalid mode {mode!r}; must be one of {list(_VALID_MODES)}",
+78|                "vault_path": vault_path,
+79|            }
+80|        )
+81|
+82|    vault_root = _get_vault_dir()
+83|    fm_input: dict[str, Any] = frontmatter or {}
+84|
+85|    try:
+86|        # "create" mode: fail if file already exists (pre-check; backend
+87|        # would overwrite, but we want explicit "create" semantics).
+88|        if mode == "create":
+89|            target = (vault_root / vault_path).resolve()
+90|            if target.exists():
+91|                return json.dumps(
+92|                    {
+93|                        "ok": False,
+94|                        "error": f"file already exists: {vault_path!r}",
+95|                        "vault_path": vault_path,
+96|                    }
+97|                )
+98|
+99|        # "append" mode: read existing, append body, merge frontmatter.
+100|        # If file does not exist, treat as a fresh write (same as create).
+101|        if mode == "append":
+102|            try:
+103|                existing = vault_read(vault_root, vault_path)
+104|            except FileNotFoundError:
+105|                existing = None
+106|
+107|            if existing is not None:
+108|                existing_body = (existing.get("body") or "").rstrip()
+109|                new_body = (content or "").rstrip()
+110|                # Merge frontmatter: new keys win over existing keys.
+111|                merged_fm = {**(existing.get("frontmatter") or {}), **fm_input}
+112|                # Concatenate bodies with a blank-line separator.
+113|                if existing_body and new_body:
+114|                    combined_body = existing_body + "\n\n" + new_body
+115|                else:
+116|                    combined_body = existing_body + new_body
+117|                fm_to_write = merged_fm
+118|                body_to_write = combined_body
+119|            else:
+120|                fm_to_write = fm_input
+121|                body_to_write = content
+122|        else:
+123|            # "create" or "update": use provided content + frontmatter as-is.
+124|            fm_to_write = fm_input
+125|            body_to_write = content
+126|
+127|        # Call backend. actor="agent" marks this as an agent-driven write in
+128|        # the vault audit log (drift invariant g).
+129|        result = vault_write(
+130|            vault_root=vault_root,
+131|            vault_path=vault_path,
+132|            frontmatter_fields=fm_to_write,
+133|            body=body_to_write,
+134|            actor="agent",
+135|        )
+136|
+137|        # Compute mtime of the freshly-written file (backend does not return it).
+138|        target_path = vault_root / vault_path
+139|        mtime = target_path.stat().st_mtime if target_path.exists() else 0.0
+140|
+141|        return json.dumps(
+142|            {
+143|                "ok": True,
+144|                "path": vault_path,
+145|                "sha256": result["sha256"],
+146|                "mtime": mtime,
+147|            }
+148|        )
+149|    except ValueError as e:
+150|        return json.dumps({"ok": False, "error": str(e), "vault_path": vault_path})
+151|    except Exception as e:  # pragma: no cover — defensive guard
+152|        return json.dumps(
+153|            {
+154|                "ok": False,
+155|                "error": f"unexpected error: {type(e).__name__}: {e}",
+156|                "vault_path": vault_path,
+157|            }
+158|        )
+159|
+160|
+161|__all__ = ["ikigai_write_vault"]

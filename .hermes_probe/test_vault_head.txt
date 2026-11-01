@@ -1,0 +1,60 @@
+1|"""Tests for ikigai_write_vault — LangChain tool wrapping vault_write.
+2|
+3|Mirrors the test pattern in test_multi_tool_chain.py for ikigai_read_vault:
+4|import the module, swap ``_get_vault_dir`` via monkeypatch, parse JSON from
+5|``.invoke({...})``.
+6|"""
+7|
+8|from __future__ import annotations
+9|
+10|import json
+11|import sys
+12|from pathlib import Path
+13|
+14|import pytest
+15|
+16|# Ensure repo root on sys.path for ``sys_ikigai.*`` imports and the dotted
+17|# ``src.ikigai.src.agents.ikigai_write_vault`` import. Conftest adds these
+18|# already; the explicit guard makes this test file self-contained for direct
+19|# `pytest <file>` invocation.
+20|_REPO_ROOT = Path(__file__).resolve().parents[3]
+21|for _p in (_REPO_ROOT, _REPO_ROOT / "src"):
+22|    if str(_p) not in sys.path:
+23|        sys.path.insert(0, str(_p))
+24|
+25|import src.ikigai.src.agents.ikigai_write_vault as ikigai_write_vault_mod  # noqa: E402
+26|from src.ikigai.src.agents.ikigai_write_vault import (  # noqa: E402
+27|    ikigai_write_vault,
+28|)
+29|
+30|
+31|@pytest.fixture
+32|def temp_vault(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+33|    """Create a temp vault and monkeypatch ``_get_vault_dir`` to point at it.
+34|
+35|    Mirrors the lazy-resolver monkeypatch in test_multi_tool_chain.py so the
+36|    agent-facing tool can be tested in isolation from the project's real vault.
+37|    """
+38|    vault = tmp_path / "vault"
+39|    vault.mkdir()
+40|    monkeypatch.setattr(ikigai_write_vault_mod, "_get_vault_dir", lambda: vault)
+41|    return vault
+42|
+43|
+44|def _parse(result: str) -> dict:
+45|    """Parse JSON result from the tool."""
+46|    return json.loads(result)
+47|
+48|
+49|# ── happy path ──────────────────────────────────────────────────────────────
+50|
+51|
+52|def test_write_vault_creates_new_file_with_frontmatter_and_body(
+53|    temp_vault: Path,
+54|) -> None:
+55|    """Happy path: write a new file, verify content on disk + JSON shape."""
+56|    result = _parse(
+57|        ikigai_write_vault.invoke(
+58|            {
+59|                "vault_path": "plans/q3/task-x.md",
+60|                "content": "# Task X\n\nDetails here.\n",

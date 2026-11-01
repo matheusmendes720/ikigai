@@ -91,11 +91,9 @@ def handle_heartbeat(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
     try:
-        graph = _build_paperclip_graph(
-            checkpoint_db=DEFAULT_CHECKPOINT_DB, entry_point="read_spec"
-        )
+        graph = _build_paperclip_graph(checkpoint_db=DEFAULT_CHECKPOINT_DB, entry_point="read_spec")
         final = graph.invoke(initial_state, config=config)
-    except Exception as exc:  # noqa: BLE001 — server must not crash on graph errors
+    except Exception as exc:
         return {
             "status": "failed",
             "runId": run_id,
@@ -132,21 +130,25 @@ class HeartbeatHandler(BaseHTTPRequestHandler):
     every other route returns 404.
     """
 
-    def do_GET(self) -> None:  # noqa: N802 — stdlib name
+    def do_GET(self) -> None:
         self.send_error(404, "POST /heartbeat only")
 
-    def do_POST(self) -> None:  # noqa: N802 — stdlib name
+    def do_POST(self) -> None:
         if self.path != "/heartbeat":
             self.send_error(404, f"unknown route: {self.path}")
             return
+
+        # The body is drained BEFORE the authorization check: answering 401
+        # while the request body is still unread makes the client see a
+        # connection reset (httpx.ReadError / WinError 10053) instead of the
+        # 401. Reproduced in 3 of 6 runs of the root suite before the fix.
+        length = int(self.headers.get("Content-Length", "0"))
+        raw = self.rfile.read(length) if length > 0 else b""
 
         auth = self.headers.get("Authorization", "")
         if auth != f"Bearer {HEARTBEAT_TOKEN}":
             self._write_json(401, {"error": "unauthorized"})
             return
-
-        length = int(self.headers.get("Content-Length", "0"))
-        raw = self.rfile.read(length) if length > 0 else b""
         try:
             payload = json.loads(raw.decode("utf-8") or "{}")
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
@@ -171,7 +173,7 @@ class HeartbeatHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body_bytes)
 
-    def log_message(self, fmt: str, *args: Any) -> None:  # noqa: A003 — stdlib signature
+    def log_message(self, fmt: str, *args: Any) -> None:
         # Quiet default stderr logging; tests assert on response body, not logs.
         sys.stderr.write(f"[paperclip-heartbeat] {fmt % args}\n")
 

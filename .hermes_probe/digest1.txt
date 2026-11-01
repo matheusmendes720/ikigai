@@ -1,0 +1,534 @@
+=== ci.yml 1-60
+1|name: CI
+2|
+3|on:
+4|  push:
+5|    branches: [main, master]
+6|  pull_request:
+7|    branches: [main, master]
+8|
+9|jobs:
+10|  code-review-checks:
+11|    name: Code Review — Type & Test Checks
+12|    runs-on: ubuntu-latest
+13|    if: github.event_name == 'pull_request'
+14|    steps:
+15|      - uses: actions/checkout@v4
+16|        with:
+17|          fetch-depth: 0  # needed for git diff vs base
+18|
+19|      - name: Set up Python
+20|        uses: actions/setup-python@v5
+21|        with: { python-version: "3.11" }
+22|
+23|      - name: Install uv
+24|        uses: astral-sh/setup-uv@v4
+25|
+26|      - name: Install Poetry
+27|        uses: snok/install-poetry@v1
+28|
+29|      # The review runs the Ikigai package in ITS environment (its canonical
+30|      # mypy target is `-p src.ikigai.src`) and runs the root tests with the
+31|      # Ikigai interpreter. Without this environment the review would report
+32|      # "nothing was checked" instead of a real result.
+33|      - name: Install Ikigai environment (Poetry)
+34|        working-directory: src/ikigai
+35|        run: poetry install
+36|
+37|      - name: Type check — changed files only (mypy, per package)
+38|        run: |
+39|          python .github/scripts/code_review.py \
+40|            --base ${{ github.base_ref }} \
+41|            --type-only \
+42|            --github-annotations \
+43|            --gate
+44|
+45|      - name: Test suite review — changed files only
+46|        run: |
+47|          python .github/scripts/code_review.py \
+48|            --base ${{ github.base_ref }} \
+49|            --test-only \
+50|            --missing \
+51|            --review-format \
+52|            --gate
+53|
+54|      - name: Full master review report
+55|        run: |
+56|          python .github/scripts/code_review.py \
+57|            --base ${{ github.base_ref }} \
+58|            --review-format || true
+59|        continue-on-error: true
+60|
+
+=== checks 55-150
+55|def _manager_prefix(spec: PackageSpec | None) -> list[str]:
+56|    """The command prefix that runs a tool inside the package's environment."""
+57|    if spec is None:
+58|        # The root has no environment of its own: the `dev` extra provides
+59|        # Ruff / mypy / pytest. `--frozen` keeps the lockfile untouched — a
+60|        # review must never rewrite a lock.
+61|        return [tool("uv"), "run", "--frozen", "--extra", "dev"]
+62|    if spec.manager == "poetry":
+63|        return [tool("poetry"), "run"]
+64|    if spec.manager == "uv":
+65|        return [tool("uv"), "run"]
+66|    return []
+67|
+68|
+69|def _package_env(spec: PackageSpec | None) -> dict[str, str]:
+70|    return dict(spec.env) if spec else {}
+71|
+72|
+73|def _lint_scope(bucket: Bucket) -> list[str]:
+74|    """The files a bucket's lint/format check must cover.
+75|
+76|    Both the changed sources AND the changed tests of the bucket. Test files
+77|    are part of the change: a lint or formatting debt on a line the change
+78|    added is the change's debt, and excluding tests would let it escape the
+79|    gate entirely. The order is stable (sources first, then tests) so the
+80|    command line is reproducible.
+81|    """
+82|    return [*bucket.files, *bucket.tests]
+83|
+84|
+85|def _relative_files(bucket: Bucket, files: list[str]) -> list[str]:
+86|    """Paths relative to the package directory (mypy/pytest resolve them there)."""
+87|    prefix = (bucket.spec.path + "/") if bucket.spec else ""
+88|    out = []
+89|    for f in files:
+90|        out.append(f[len(prefix):] if prefix and f.startswith(prefix) else f)
+91|    return out
+92|
+93|
+94|# ─── mypy ─────────────────────────────────────────────────────────────────────
+95|
+96|
+97|def parse_mypy_output(stdout: str) -> tuple[list[dict], list[str]]:
+98|    """Parse mypy output into (records, fatal_problems).
+99|
+100|    mypy 1.11+ writes JSON Lines: one JSON object per line. Older versions
+101|    wrote a single JSON document with a "files" array. Both are accepted;
+102|    anything else is a fatal problem, because a run that could not be parsed
+103|    did not measure anything.
+104|    """
+105|    problems: list[str] = []
+106|    text = stdout.strip()
+107|    if not text:
+108|        return [], problems
+109|
+110|    try:
+111|        doc = json.loads(text)
+112|    except json.JSONDecodeError:
+113|        doc = None
+114|
+115|    if isinstance(doc, dict) and "files" in doc:
+116|        records: list[dict] = []
+117|        for entry in doc["files"]:
+118|            for err in entry.get("errors", []):
+119|                records.append(
+120|                    {
+121|                        "file": entry.get("file", ""),
+122|                        "line": err.get("line", 0),
+123|                        "column": err.get("column", 0),
+124|                        "message": err.get("message", ""),
+125|                        "code": err.get("code", ""),
+126|                        "severity": err.get("severity", "error"),
+127|                    }
+128|                )
+129|        return records, problems
+130|
+131|    records = []
+132|    for raw in text.splitlines():
+133|        raw = raw.strip()
+134|        if not raw:
+135|            continue
+136|        try:
+137|            rec = json.loads(raw)
+138|        except json.JSONDecodeError:
+139|            problems.append(f"mypy emitted non-JSON output: {raw[:300]}")
+140|            continue
+141|        if not isinstance(rec, dict) or "severity" not in rec:
+142|            problems.append(f"mypy emitted an unexpected record: {raw[:300]}")
+143|            continue
+144|        records.append(rec)
+145|    return records, problems
+146|
+147|
+148|def check_mypy(bucket: Bucket, strict: bool = False) -> CheckResult:
+149|    """Type check the changed sources of one bucket, inside its own env."""
+150|    name = f"type-check/{bucket.name}"
+
+=== touched vibe-ops/scripts/test_mvl_ingestion.py
+diff --git a/vibe-ops/scripts/test_mvl_ingestion.py b/vibe-ops/scripts/test_mvl_ingestion.py
+index 94d67446..78457f9e 100644
+--- a/vibe-ops/scripts/test_mvl_ingestion.py
++++ b/vibe-ops/scripts/test_mvl_ingestion.py
+@@ -2,3 +1,0 @@ import sys
+-import os
+-from pathlib import Path
+-from datetime import datetime
+@@ -5,0 +3 @@ import types
++from pathlib import Path
+@@ -8,5 +6,5 @@ import types
+-chromadb_mock = types.ModuleType('chromadb')
+-chromadb_mock.config = types.ModuleType('chromadb.config')
+-chromadb_mock.config.Settings = type('Settings', (), {})
+-sys.modules['chromadb'] = chromadb_mock
+-sys.modules['chromadb.config'] = chromadb_mock.config
++chromadb_mock = types.ModuleType("chromadb")
++chromadb_mock.config = types.ModuleType("chromadb.config")
++chromadb_mock.config.Settings = type("Settings", (), {})
++sys.modules["chromadb"] = chromadb_mock
++sys.modules["chromadb.config"] = chromadb_mock.config
+@@ -19,4 +17 @@ from sqlalchemy.orm import sessionmaker
+-from storage.orm import Base, StudyTopicORM
+-from storage.metadata_orm import MetadataCatalogORM, StateMachineORM
+-from storage.sqlite_adapter import SQLiteAdapter
+-from storage.chroma_adapter import ChromaAdapter
++
+@@ -23,0 +19,2 @@ from pipeline.ingestion_engine import IngestionEngine
++from storage.metadata_orm import MetadataCatalogORM, StateMachineORM
++from storage.orm import Base
+@@ -30,0 +28 @@ session = Session()
++
+@@ -34,0 +33 @@ class MockChroma:
++
+@@ -36 +35,5 @@ class MockChroma:
+-        return {"ids": [["study:topic:tp_python_async"]], "documents": [["Conteúdo de Async Python"]]}
++        return {
++            "ids": [["study:topic:tp_python_async"]],
++            "documents": [["Conteúdo de Async Python"]],
++        }
++
+@@ -50 +53 @@ raw_yaml = {
+-    "depth_level": 2.5
++    "depth_level": 2.5,
+@@ -59 +62 @@ Aprendi sobre await, async def e como evitar bloqueios de IO.
+-print(f"📦 Processing file: 2026-07-Study-Async.md")
++print("📦 Processing file: 2026-07-Study-Async.md")
+@@ -64 +67,3 @@ print("\n🔍 Inspecting Data Mesh Registry:")
+-catalog_entry = session.query(MetadataCatalogORM).filter_by(node_id="study:topic:tp_python_async").first()
++catalog_entry = (
++    session.query(MetadataCatalogORM).filter_by(node_id="study:topic:tp_python_async").first()
++)
+@@ -66 +71,3 @@ if catalog_entry:
+-    print(f"  [Catalog] Node: {catalog_entry.node_id} | Version: {catalog_entry.contract_version} | Status: OK")
++    print(
++        f"  [Catalog] Node: {catalog_entry.node_id} | Version: {catalog_entry.contract_version} | Status: OK"
++    )
+
+
+=== touched vibe-ops/tests/test_mvl_orchestrator.py
+diff --git a/vibe-ops/tests/test_mvl_orchestrator.py b/vibe-ops/tests/test_mvl_orchestrator.py
+index 8e34bd14..d0da3e06 100644
+--- a/vibe-ops/tests/test_mvl_orchestrator.py
++++ b/vibe-ops/tests/test_mvl_orchestrator.py
+@@ -2,0 +3 @@ from unittest.mock import MagicMock
++
+@@ -5,0 +7 @@ sys.modules["chromadb.config"] = MagicMock()
++
+@@ -9,6 +11,11 @@ from sqlalchemy.orm import sessionmaker
+-from src.storage.metadata_orm import Base as MetadataBase
+-from src.storage.orm import Base as DataBase
+-from src.storage.chroma_adapter import ChromaAdapter
+-from src.pipeline.mvl_orchestrator import MVLOrchestrator
+-from src.pipeline.pipeline_state_machine import PipelineState
+-import os
++
++from pipeline.mvl_orchestrator import MVLOrchestrator
++from pipeline.pipeline_state_machine import PipelineState, PipelineStateMachine
++from storage.metadata_orm import (
++    Base as MetadataBase,
++    MetadataCatalogORM,
++    StateMachineORM,
++)
++from storage.orm import Base as DataBase
++from storage.ueid import UEID
++
+@@ -20,0 +28 @@ class MockChroma:
++
+@@ -31,0 +40 @@ def db_session():
++
+@@ -36,4 +45,2 @@ def test_mvl_ingestion_flow(db_session):
+-    # Define a sample payload for a StudyTopic (we know this exists in models/contracts)
+-    # Actually, we need to check registry.yaml to see what's valid.
+-    # For now, let's assume we have a valid contract or mock the registry if needed.
+-    
++    # Contract-valid study_topic payload (contracts/study_topic_v1.json):
++    # required = entity_type, id, title, parent_study_project, depth_level.
+@@ -43,0 +51 @@ def test_mvl_ingestion_flow(db_session):
++        "entity_type": entity_type,
+@@ -47 +55 @@ def test_mvl_ingestion_flow(db_session):
+-        "status": "active"
++        "depth_level": 1.0,
+@@ -51,2 +59,4 @@ def test_mvl_ingestion_flow(db_session):
+-    success = orchestrator.ingest(
+-        node_id=node_id,
++    success = orchestrator.ingest_markdown(
++        file_path=node_id,
++        raw_yaml=payload,
++        content="Testing MVL Orchestrator",
+@@ -54,3 +63,0 @@ def test_mvl_ingestion_flow(db_session):
+-        entity_type=entity_type,
+-        payload=payload,
+-        content="Testing MVL Orchestrator"
+@@ -60,7 +66,0 @@ def test_mvl_ingestion_flow(db_session):
+-    
+-    # Verify state machine
+-    trace = orchestrator.state_machine.get_trace(node_id)
+-    states = [t.current_state for t in trace]
+-    assert PipelineState.RAW in states
+-    assert PipelineState.VALIDATED in states
+-    assert PipelineState.INDEXED in states
+@@ -68,2 +68,12 @@ def test_mvl_ingestion_flow(db_session):
+-    # Verify catalog
+-    node = orchestrator.catalog.get_node(node_id)
++    # The canonical node identity is the UEID, not the file path.
++    ueid = UEID.create(domain, entity_type, "tp_math_101")
++
++    # Verify state machine (mesh_state_machine rows)
++    states = [
++        row.current_state
++        for row in db_session.query(StateMachineORM).filter_by(node_id=ueid).all()
++    ]
++    assert "INDEXED_AND_READY" in states
++
++    # Verify catalog (mesh_metadata_catalog row)
++    node = db_session.query(MetadataCatalogORM).filter_by(node_id=ueid).first()
+@@ -71,0 +82,37 @@ def test_mvl_ingestion_flow(db_session):
++    assert node.source_path == node_id
++
++
++def test_mvl_rejects_contract_violation(db_session):
++    vector_db = MockChroma()
++    orchestrator = MVLOrchestrator(db_session, vector_db)
++
++    # Missing the required "title" field -> contract violation -> fail-fast.
++    success = orchestrator.ingest_markdown(
++        file_path="broken.md",
++        raw_yaml={
++            "entity_type": "study_topic",
++            "id": "tp_broken",
++            "parent_study_project": "sp_math",
++            "depth_level": 1.0,
++        },
++        content="Broken payload",
++        domain="study",
++    )
++
++    assert success is False
++
++    # Fail-fast path logs the violation against the source path.
++    states = [row.current_state for row in db_session.query(StateMachineORM).all()]
++    assert "FAILED_VALIDATION" in states
++
++
++def test_pipeline_state_machine_transitions(db_session):
++    """The generic state machine records transitions against the ORM contract."""
++    sm = PipelineStateMachine(db_session)
++    sm.transition("node_x", PipelineState.RAW, "INGEST_START")
++    sm.transition("node_x", PipelineState.VALIDATED, "VALIDATED")
++
++    trace = sm.get_trace("node_x")
++    states = [row.current_state for row in trace]
++    assert PipelineState.RAW in states
++    assert PipelineState.VALIDATED in states
+
+
+=== touched tests/test_m158g_ikigai_path.py
+diff --git a/tests/test_m158g_ikigai_path.py b/tests/test_m158g_ikigai_path.py
+new file mode 100644
+index 00000000..b3321c09
+--- /dev/null
++++ b/tests/test_m158g_ikigai_path.py
+@@ -0,0 +1,162 @@
++"""M158g — drift net for ``_ensure_ikigai_path()``.
++
++The mesh CLI shim (scripts/td_shim_build/__main__.py) prepends
++``REPO_ROOT/src`` before ``REPO_ROOT/src/ikigai/src``. Both paths expose
++a top-level ``agents`` package. Python's importer picks whichever path
++comes FIRST for the ``agents`` name — so ``import agents`` resolves to
++the parent-level ``src/agents/`` (planner-only layer per ADR-013) and
++shadows ``src/ikigai/src/agents/v2/``, breaking ``td chat`` with
++``No module named 'agents.v2'``.
++
++The invariant guarded here: ``_ensure_ikigai_path()`` MUST promote
++``src/ikigai/src`` to sys.path position 0, regardless of where it was
++before. Presence is not enough — ordering is.
++"""
++from __future__ import annotations
++
++import importlib
++import sys
++from pathlib import Path
++
++# Make sure ``src.mesh`` resolves for the module under test.
++_REPO_ROOT = Path(__file__).resolve().parent.parent
++_SRC = _REPO_ROOT / "src"
++if str(_SRC) not in sys.path:
++    sys.path.insert(0, str(_SRC))
++
++
++def _load_chat_module():
++    """Import the module under test, reloading to reset state between tests."""
++    if "src.mesh.taskdog_chat" in sys.modules:
++        del sys.modules["src.mesh.taskdog_chat"]
++    return importlib.import_module("src.mesh.taskdog_chat")
++
++
++def _make_faulty_path() -> list[str]:
++    """Simulate the shim's sys.path: REPO_ROOT/src wins over IKIGAi src.
++
++    This is the path layout that caused ``No module named 'agents.v2'``.
++    The shim prepends ``src/`` before ``src/ikigai/src/``, so ``agents``
++    would resolve to the parent ``src/agents/`` (planner-only) and shadow
++    ``src/ikigai/src/agents/v2/``.
++    """
++    return [
++        str(_REPO_ROOT / "src"),  # ← parent src/ (has src/agents/)
++        str(_REPO_ROOT),  # ← for the bare ``scripts`` package
++        str(_REPO_ROOT / "src" / "ikigai" / "src"),  # ← has agents/v2
++    ]
++
++
++def test_ikigai_src_at_position_zero_after_call():
++    """After _ensure_ikigai_path(), IKIGAi src must be at sys.path[0]."""
++    chat = _load_chat_module()
++    ikigai_src = str(_REPO_ROOT / "src" / "ikigai" / "src")
++
++    saved_path = sys.path[:]
++    try:
++        sys.path[:] = _make_faulty_path()
++        # Sanity check: the IKIGAi src is in sys.path but NOT at position 0.
++        assert ikigai_src in sys.path
++        assert sys.path[0] != ikigai_src
++
++        chat._ensure_ikigai_path()
++
++        assert sys.path[0] == ikigai_src, (
++            f"expected IKIGAi src at sys.path[0], got {sys.path[0]!r}"
++        )
++    finally:
++        sys.path[:] = saved_path
++
++
++def test_call_is_idempotent():
++    """Calling _ensure_ikigai_path() twice keeps IKIGAi src at 0."""
++    chat = _load_chat_module()
++    ikigai_src = str(_REPO_ROOT / "src" / "ikigai" / "src")
++
++    saved_path = sys.path[:]
++    try:
++        sys.path[:] = _make_faulty_path()
++        chat._ensure_ikigai_path()
++        chat._ensure_ikigai_path()
++        assert sys.path[0] == ikigai_src
++        # And it appears only once in sys.path.
++        assert sys.path.count(ikigai_src) == 1
++    finally:
++        sys.path[:] = saved_path
++
++
++def test_call_when_path_already_at_zero_is_noop():
++    """If IKIGAi is already at 0, _ensure_ikigai_path() must not move other paths."""
++    chat = _load_chat_module()
++    ikigai_src = str(_REPO_ROOT / "src" / "ikigai" / "src")
++    src_root = str(_REPO_ROOT / "src")
++
++    saved_path = sys.path[:]
++    try:
++        # IKIGAi first (correct order). Then src/.
++        sys.path[:] = [ikigai_src, src_root, str(_REPO_ROOT)]
++        expected = sys.path[:]
++
++        chat._ensure_ikigai_path()
++
++        # Position 0 unchanged, relative ordering unchanged.
++        assert sys.path[0] == ikigai_src
++        assert sys.path == expected
++    finally:
++        sys.path[:] = saved_path
++
++
++def test_call_when_ikigai_src_absent_inserts_at_zero():
++    """If IKIGAi src isn't in sys.path at all, it must be inserted at 0."""
++    chat = _load_chat_module()
++    ikigai_src = str(_REPO_ROOT / "src" / "ikigai" / "src")
++    src_root = str(_REPO_ROOT / "src")
++
++    saved_path = sys.path[:]
++    try:
++        sys.path[:] = [src_root, str(_REPO_ROOT)]
++        chat._ensure_ikigai_path()
++        assert sys.path[0] == ikigai_src
++        assert ikigai_src in sys.path
++    finally:
++        sys.path[:] = saved_path
++
++
++def test_invariant_agents_resolves_to_ikigai_v2_after_call():
++    """Smoke test: post-call, ``import agents`` resolves to IKIGAi (has v2/)."""
++    chat = _load_chat_module()
++
++    saved_path = sys.path[:]
++    saved_modules = {k: v for k, v in sys.modules.items() if k == "agents" or k.startswith("agents.")}
++    try:
++        # Reset ``agents`` cache so the resolver hits sys.path afresh.
++        for k in list(sys.modules):
++            if k == "agents" or k.startswith("agents."):
++                del sys.modules[k]
++
++        sys.path[:] = _make_faulty_path()
++        chat._ensure_ikigai_path()
++
++        import agents  # noqa: F401 — smoke import, we only need the path resolution
++
++        assert agents.__file__ is not None
++        agents_path = Path(agents.__file__).resolve()
++        # Must resolve inside src/ikigai/src/agents/ (the IKIGAi agent layer),
++        # NOT inside src/agents/ (the parent planner-only layer).
++        agents_path_str = str(agents_path).replace("\\", "/")
++        assert "/ikigai/src/agents/" in agents_path_str, (
++            f"agents resolved to {agents_path!r} — expected under src/ikigai/src/agents/"
++        )
++        assert "/src/agents/" not in agents_path_str.replace("/ikigai/src/agents/", ""), (
++            f"agents resolved to the parent planner-only package at {agents_path!r}"
++        )
++        # And the v2 subpackage must exist on disk.
++        v2_file = (_REPO_ROOT / "src" / "ikigai" / "src" / "agents" / "v2" / "__init__.py")
++        assert v2_file.exists(), f"expected {v2_file} to exist"
++    finally:
++        sys.path[:] = saved_path
++        # Restore modules so we don't leak state into other tests.
++        for k in list(sys.modules):
++            if k == "agents" or k.startswith("agents."):
++                if k not in saved_modules:
++                    del sys.modules[k]
+\ No newline at end of file
+
+
+=== M158 refs
+tests/test_m158g_ikigai_path.py:1:"""M158g — drift net for ``_ensure_ikigai_path()``.
+
+
+=== strategies tracked
+"strategics/00-\303\215NDICE-PROGRESSIVO.md"
+"strategics/An\303\241lise (T\303\241tico e Operacional).md"
+strategics/Desempenho Subjacente.md
+strategics/Hierarquia de Objetivos.md
+strategics/Integracao_Tatica.md
+strategics/Modelagem Operacional.md
+"strategics/Planejamento (Estrat\303\251gico e T\303\241tico).md"
+strategics/design_system_and_knowledge_tracking.md
+strategics/system_architecture_and_tracking_framework.md
+
+
+=== loop-tick heartbeat lines
+3|# Loop Tick — the bash-level heartbeat (Ralph-style)
+76|# --- HEARTBEAT (M39) ---
+77|# Write a heartbeat timestamp so the daemon-watchdog can detect extended
+79|# when the last heartbeat is older than WATCHDOG_THRESHOLD_SEC (default 5400s
+80|# = 90min, 1.5x the 60min tick interval). Exits 0 always — heartbeat
+82|HEARTBEAT_FILE="$LOOP_DIR/.daemon-heartbeat.json"
+83|mkdir -p "$(dirname "$HEARTBEAT_FILE")"
+84|echo "{\"last_heartbeat\":\"$TICK_TS\",\"tick_id\":\"$TICK_ID\"}" > "$HEARTBEAT_FILE" 2>/dev/null || true

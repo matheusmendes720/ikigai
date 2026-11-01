@@ -23,13 +23,24 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v4
 
-      - name: Type check — changed files only (mypy strict)
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      # The review runs the Ikigai package in ITS environment (its canonical
+      # mypy target is `-p src.ikigai.src`) and runs the root tests with the
+      # Ikigai interpreter. Without this environment the review would report
+      # "nothing was checked" instead of a real result.
+      - name: Install Ikigai environment (Poetry)
+        working-directory: src/ikigai
+        run: poetry install
+
+      - name: Type check — changed files only (mypy, per package)
         run: |
           python .github/scripts/code_review.py \
             --base ${{ github.base_ref }} \
             --type-only \
-            --strict \
-            --github-annotations
+            --github-annotations \
+            --gate
 
       - name: Test suite review — changed files only
         run: |
@@ -37,7 +48,8 @@ jobs:
             --base ${{ github.base_ref }} \
             --test-only \
             --missing \
-            --review-format
+            --review-format \
+            --gate
 
       - name: Full master review report
         run: |

@@ -1,0 +1,24 @@
+scripts/m158e_inject_anthropic_shim.py:1:"""M158e — Inject langchain_anthropic_shim import before all 16 prompts.
+scripts/m158e_inject_anthropic_shim.py:9:    import agents.v2.langchain_anthropic_shim  # noqa: F401
+scripts/m158e_inject_anthropic_shim.py:17:SHIM_LINE = "        import agents.v2.langchain_anthropic_shim  # noqa: F401  # M158e\n"
+scripts/m158e_inject_anthropic_shim.py:25:    if "langchain_anthropic_shim" in text:
+src/ikigai/tests/test_canonical_scope.py:581:        if py_file.name in {"base.py", "__init__.py"} | excluded:
+src/ikigai/tests/test_canonical_scope.py:1048:        # Skip __init__.py
+src/ikigai/tests/test_canonical_scope.py:1049:        if node.endswith("__init__.py"):
+src/ikigai/tests/test_canonical_scope.py:1220:    bin_init = IKIGAI_PKG / "bin" / "__init__.py"
+src/ikigai/tests/test_canonical_scope.py:1228:        f"bin/__init__.py missing at {bin_init}. "
+src/ikigai/tests/test_canonical_scope.py:1249:    # The bin/__init__.py docstring pins "Importing this package must remain
+src/ikigai/tests/test_canonical_scope.py:1253:        "bin/__init__.py docstring must document the side-effect-free "
+src/ikigai/tests/test_drift_extended_invariants.py:67:        "src/ikigai/src/ikigai/vault/__init__.py",
+src/ikigai/tests/test_drift_extended_invariants.py:575:        if node_file.name == "__init__.py":
+src/ikigai/tests/test_drift_extended_invariants.py:1728:        if node_file.name == "__init__.py":
+src/ikigai/tests/test_taskdog_mcp_stdio_smoke.py:49:# works (the mcp_server package __init__.py eagerly imports
+src/ikigai/tests/test_v2_interface_dispatch.py:28:# src/contracts/ when inserted first because both have an __init__.py.
+src/ikigai/tests/test_vault_write_invariant.py:13:- sys_ikigai/vault/__init__.py — public re-exports
+src/ikigai/tests/test_vault_write_invariant.py:259:    assert _is_allowlisted(Path("sys_ikigai/vault/__init__.py"))
+src/mesh/adapters/taskdog.py:531:    # Matches the forks defined in src/mesh/adapters/__init__.py:
+tests/test_m138_console_script.py:93:    it can reach into interfaces/cli (which has no __init__.py at root).
+tests/test_m142_mcp_bridge.py:15:`.claude/loop/` is not a Python package (no `__init__.py` — by design, to
+tests/test_m158g_ikigai_path.py:154:        v2_file = (_REPO_ROOT / "src" / "ikigai" / "src" / "agents" / "v2" / "__init__.py")
+tests/test_m5_ikigai_mcp_integration.py:49:                       (src/ikigai/src/mcp_server/__init__.py)
+tests/test_mcp_bridge_taskdog_battery.py:92:    `.claude/loop/` is not a Python package (no `__init__.py` — by

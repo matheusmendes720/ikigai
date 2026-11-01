@@ -1,0 +1,11 @@
+.github/workflows/ci.yml:118:          # package remains self-contained (`uv sync && uv run pytest`
+.github/workflows/ci.yml:163:          # repo-root src/ directory to mypy and pytest discovery.
+.github/workflows/ci.yml:171:          uv run pytest -m "not e2e"
+.github/workflows/ci.yml:181:          poetry run pytest -m "not e2e"
+.github/workflows/ci.yml:222:      - name: Install pytest
+.github/workflows/ci.yml:223:        run: pip install --quiet pytest
+.github/workflows/ci.yml:227:      # Installing pytest alone makes collection fail with
+.github/workflows/ci.yml:234:          PYTHONPATH=. python -m pytest interfaces/cli/tests/test_review_queue_worker.py interfaces/cli/tests/test_review_queue_worker_e2e.py -v
+.github/workflows/ci.yml:259:          pip install --quiet pytest typer rich pyyaml || true
+.github/workflows/ci.yml:331:          pip install --quiet pytest typer rich || true
+.github/workflows/ci.yml:344:  # package retains its own test suite (uv run pytest from inside the

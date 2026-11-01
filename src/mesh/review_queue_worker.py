@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import os
 import signal
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -160,7 +161,15 @@ def _is_pid_alive(pid: int) -> bool:
     if pid <= 0:
         return False
     try:
-        if os.name == "nt":  # Windows
+        # `sys.platform == "win32"`, NOT `os.name == "nt"`: mypy narrows the
+        # type-checker platform on a direct `sys.platform` comparison but not on
+        # `os.name`. `ctypes.windll` only exists in typeshed's win32 branch, so
+        # under `os.name == "nt"` the attribute is still analysed on Linux and
+        # mypy reports `Module has no attribute "windll"`. The two expressions
+        # are equivalent at runtime (CPython reports os.name == "nt" and
+        # sys.platform == "win32" together on native Windows; both are false on
+        # Cygwin/MSYS, where os.name == "posix").
+        if sys.platform == "win32":  # Windows
             import ctypes
 
             kernel32 = ctypes.windll.kernel32

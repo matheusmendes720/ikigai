@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-import asyncio, json, logging, os, sys, threading, time
+import asyncio
+import json
+import logging
+import os
+import sys
+import threading
+import time
+from datetime import UTC
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
@@ -40,7 +47,10 @@ def _run_async(coro):
 async def _cli_async(*args: str) -> tuple[int, str, str]:
     try:
         proc = await asyncio.create_subprocess_exec(
-            sys.executable, "-m", "interfaces.cli", *args,
+            sys.executable,
+            "-m",
+            "interfaces.cli",
+            *args,
             stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -48,11 +58,14 @@ async def _cli_async(*args: str) -> tuple[int, str, str]:
         )
         try:
             out_b, err_b = await asyncio.wait_for(proc.communicate(), timeout=10.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             proc.kill()
             await proc.wait()
             return (124, "", "timed out")
-        return (proc.returncode, out_b.decode(errors="replace"), err_b.decode(errors="replace"))
+        # `communicate()` has returned, so the exit status is known. The
+        # explicit guard keeps the return type honest without a `cast`.
+        returncode = proc.returncode if proc.returncode is not None else 1
+        return (returncode, out_b.decode(errors="replace"), err_b.decode(errors="replace"))
     except Exception as exc:
         return (1, "", str(exc))
 
@@ -69,15 +82,22 @@ def _cli_json(*args: str) -> dict:
 
 def _handle_status() -> dict:
     code, stdout, stderr = _run_async(_cli_async("--version"))
-    return {"status": "ok" if code == 0 else "degraded", "version": stdout.strip() or "unknown", "stderr": stderr[:100]}
+    return {
+        "status": "ok" if code == 0 else "degraded",
+        "version": stdout.strip() or "unknown",
+        "stderr": stderr[:100],
+    }
 
 
 def _handle_task_add(params: dict) -> dict:
     return _cli_json(
         "task-add",
-        "--title", params.get("title", ""),
-        "--priority", params.get("priority", "medium"),
-        "--description", params.get("description") or "",
+        "--title",
+        params.get("title", ""),
+        "--priority",
+        params.get("priority", "medium"),
+        "--description",
+        params.get("description") or "",
     )
 
 
@@ -104,10 +124,11 @@ def _handle_vault_read(params: dict) -> dict:
 
 
 def _handle_issue_sync(params: dict) -> dict:
-    from datetime import datetime, timezone
+    from datetime import datetime
+
     sync_log = VAULT_DIR / "paperclipai_issues" / "sync_log.md"
     sync_log.parent.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now(timezone.utc).isoformat()
+    ts = datetime.now(UTC).isoformat()
     line = (
         f"- [{ts}] event={params.get('event')} entityId={params.get('entityId')} "
         f"source={params.get('source', 'paperclipai')}\n"
@@ -143,7 +164,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
             return
         if self.path.startswith("/sync/vault"):
             qs = self.path.split("?", 1)
-            params = dict(kv.split("=", 1) for kv in qs[1].split("&") if "=" in kv) if len(qs) > 1 else {}
+            params = (
+                dict(kv.split("=", 1) for kv in qs[1].split("&") if "=" in kv)
+                if len(qs) > 1
+                else {}
+            )
             self._json(200, _handle_vault_read(params))
             return
         self._json(404, {"error": "not found"})
@@ -162,7 +187,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
             action = payload.get("action", "")
             params = payload.get("params", {})
             handlers = {"task_add": _handle_task_add, "plan_run": _handle_plan_run}
-            result = handlers.get(action, lambda _: {"ok": False, "error": f"unknown action: {action}"})(params)
+            result = handlers.get(
+                action, lambda _: {"ok": False, "error": f"unknown action: {action}"}
+            )(params)
             self._json(200 if result.get("ok") else 422, result)
         else:
             self._json(200, _handle_issue_sync(payload))

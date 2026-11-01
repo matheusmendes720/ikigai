@@ -195,14 +195,32 @@ def _route_error(
 # ---------------------------------------------------------------------------
 # Graph builder
 # ---------------------------------------------------------------------------
+def _implement_with(adapter: Any) -> Callable[[PaperclipStateDict], dict[str, Any]]:
+    """Bind an AgentAdapter to the ``implement`` node.
+
+    ``implement_node`` takes the adapter as a keyword argument while the graph
+    calls nodes with the state only, so the adapter is bound here. ``None``
+    keeps the package default (``ClaudeAdapter``).
+    """
+
+    def node(state: PaperclipStateDict) -> dict[str, Any]:
+        return implement_node(state, adapter=adapter)
+
+    return node
+
+
 def _build_paperclip_graph(
     *,
     checkpoint_db: str,
     entry_point: str,
+    adapter: Any = None,
 ) -> Any:
     """Internal builder. The langgraph_api-compatible ``make_paperclip_graph``
     shim extracts ``checkpoint_db`` + ``entry_point`` from the runtime config
     and calls this function (M102 pattern).
+
+    ``adapter`` is the AgentAdapter the ``implement`` node must invoke;
+    ``None`` keeps the package default.
     """
     builder: StateGraph[PaperclipStateDict, None, PaperclipStateDict, PaperclipStateDict] = (
         StateGraph(PaperclipStateDict)
@@ -222,7 +240,7 @@ def _build_paperclip_graph(
         "worktree_create",
         _safe_node("worktree_create", worktree_create_node),
     )
-    builder.add_node("implement", _safe_node("implement", implement_node))
+    builder.add_node("implement", _safe_node("implement", _implement_with(adapter)))
     builder.add_node(
         "worktree_commit",
         _safe_node("worktree_commit", worktree_commit_node),

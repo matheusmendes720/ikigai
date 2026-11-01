@@ -1,0 +1,47 @@
+{
+ "baseline": [
+  0.91,
+  0,
+  ""
+ ],
+ "httpx": [
+  3.73,
+  0,
+  ""
+ ],
+ "pydantic": [
+  0.66,
+  0,
+  ""
+ ],
+ "anthropic": [
+  19.78,
+  0,
+  ""
+ ],
+ "langchain_core.messages": [
+  1.28,
+  0,
+  ""
+ ],
+ "langchain_anthropic": [
+  7.73,
+  0,
+  ""
+ ],
+ "agents.v2": [
+  5.42,
+  0,
+  ""
+ ],
+ "agents.v2.graph": [
+  9.01,
+  0,
+  ""
+ ],
+ "langgraph": [
+  0.08,
+  0,
+  ""
+ ]
+}

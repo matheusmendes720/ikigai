@@ -47,7 +47,6 @@ import threading
 from pathlib import Path
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Path constants — match .mcp.json "ikigai" server config
 # ---------------------------------------------------------------------------
@@ -199,9 +198,7 @@ class _RawClient:
                 continue
             self._response_event.wait(timeout=min(0.1, deadline))
             deadline -= 0.1
-        raise TimeoutError(
-            f"No response from MCP server for request id={req_id} within {timeout}s"
-        )
+        raise TimeoutError(f"No response from MCP server for request id={req_id} within {timeout}s")
 
     def call_tool(self, name: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
         """Call an MCP tool. Returns the parsed result dict.
@@ -215,6 +212,7 @@ class _RawClient:
         Windows). We retry up to 3 times with 1s delay.
         """
         import time as _time
+
         last_exc: TimeoutError | None = None
         for attempt in range(3):
             req_id = self._send("tools/call", {"name": name, "arguments": arguments or {}})
@@ -227,8 +225,7 @@ class _RawClient:
             if "error" in resp:
                 err = resp["error"]
                 raise RuntimeError(
-                    f"MCP tool '{name}' failed: {err.get('code', '?')} — "
-                    f"{err.get('message', '?')}"
+                    f"MCP tool '{name}' failed: {err.get('code', '?')} — {err.get('message', '?')}"
                 )
             result = resp.get("result", {})
             # FastMCP result shape: {"content": [{"type": "text", "text": "<json>"}], "isError": false}
@@ -240,7 +237,10 @@ class _RawClient:
                             return json.loads(item["text"])
                         except (json.JSONDecodeError, TypeError):
                             return {"text": item["text"]}
-                texts = [item.get("text", str(item)) if isinstance(item, dict) else str(item) for item in content]
+                texts = [
+                    item.get("text", str(item)) if isinstance(item, dict) else str(item)
+                    for item in content
+                ]
                 return {"text": "\n".join(texts), "items": texts}
             return {"raw": result}
         raise last_exc if last_exc else RuntimeError(f"MCP tool '{name}' failed: unknown error")
@@ -254,6 +254,7 @@ class _RawClient:
         Retries on TimeoutError (same reasoning as `call_tool`).
         """
         import time as _time
+
         last_exc: TimeoutError | None = None
         for attempt in range(3):
             req_id = self._send("resources/read", {"uri": uri})
@@ -270,7 +271,11 @@ class _RawClient:
                     f"{err.get('message', '?')}"
                 )
             return resp.get("result", {})
-        raise last_exc if last_exc else RuntimeError(f"MCP resource '{uri}' read failed: unknown error")
+        raise (
+            last_exc
+            if last_exc
+            else RuntimeError(f"MCP resource '{uri}' read failed: unknown error")
+        )
 
     def close(self) -> None:
         """Stop the reader thread and terminate the subprocess."""
@@ -319,6 +324,7 @@ class _RawTransport:
         # server's main() hasn't reached its run_stdio_async() yet.
         # 5s is required on Windows (shorter waits are unreliable).
         import time as _time
+
         _time.sleep(5.0)
         # If the subprocess dies in that window, surface the stderr.
         if proc.poll() is not None:
@@ -342,11 +348,14 @@ class _RawTransport:
         last_init_exc: RuntimeError | None = None
         for handshake_attempt in range(2):
             try:
-                init_req_id = client._send("initialize", {
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {},
-                    "clientInfo": {"name": "loop-mcp-bridge", "version": "1.0.0"},
-                })
+                init_req_id = client._send(
+                    "initialize",
+                    {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": {},
+                        "clientInfo": {"name": "loop-mcp-bridge", "version": "1.0.0"},
+                    },
+                )
                 _time.sleep(3.0)
                 # Send initialized notification — this triggers the server
                 # to finally send the initialize response.
@@ -451,8 +460,7 @@ def bind_server(*, ikigai_python: str | None = None) -> None:
     """
     if not IKIGAI_SRC_DIR.exists():
         raise FileNotFoundError(
-            f"IKIGAI source dir not found: {IKIGAI_SRC_DIR}. "
-            f"Cannot start MCP server without it."
+            f"IKIGAI source dir not found: {IKIGAI_SRC_DIR}. Cannot start MCP server without it."
         )
 
     mcp_bridge = _get_mcp_bridge()
@@ -463,10 +471,11 @@ def bind_server(*, ikigai_python: str | None = None) -> None:
     # to get the canonical path (handles both venv and uv/poetry layouts).
     _venv_site_packages: str | None = None
     try:
-        import site
         _sp = subprocess.run(
             [python, "-c", "import site; print(site.getsitepackages()[0])"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if _sp.returncode == 0:
             _venv_site_packages = _sp.stdout.strip()

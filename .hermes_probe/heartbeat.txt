@@ -1,0 +1,51 @@
+1371|    assert watchdog_sched is not None, (
+1372|        "No daemon-watchdog schedule found in schedules.json. "
+1373|        f"Registered: {[s['name'] for s in schedules]}"
+1374|    )
+1375|    assert watchdog_sched.get("interval_seconds", 99999) <= 1800, (
+1376|        f"daemon-watchdog interval too long: "
+1377|        f"{watchdog_sched.get('interval_seconds')}s (expected <=1800s)"
+1378|    )
+1379|    assert watchdog_sched.get("cost_cap_usd", 999) <= 0.5, (
+1380|        f"daemon-watchdog cost cap too high: "
+1381|        f"{watchdog_sched.get('cost_cap_usd')} (expected <=$0.50)"
+1382|    )
+1383|
+1384|    # c. Heartbeat file existence (hard check — fail if missing)
+1385|    assert heartbeat.exists(), (
+1386|        f"Heartbeat missing: {heartbeat}. "
+1387|        "Daemon hasn't written one yet — restart loop-tick to activate."
+1388|    )
+1389|
+1390|    # d. Watchdog script contains threshold + alert path
+1391|    script_text = script.read_text(encoding="utf-8")
+1392|    assert re.search(r"WATCHDOG_THRESHOLD_SEC", script_text), (
+1393|        f"daemon-watchdog.sh missing WATCHDOG_THRESHOLD_SEC: {script}"
+1394|    )
+1395|    has_alert_path = (
+1396|        "ntfy.sh" in script_text
+1397|        or "notify.sh" in script_text
+1398|        or bool(re.search(r"curl\s+.*ntfy", script_text))
+1399|    )
+1400|    assert has_alert_path, f"daemon-watchdog.sh missing ntfy alert path: {script}"
+1401|
+1402|
+1403|# ---------------------------------------------------------------------------
+1404|# M111 — New invariants for the M97b-M106 surface area.
+1405|# These protect the new capabilities (38 deep-agent tools, 3 langgraph graphs,
+1406|# 7 REPL commands, CLAUDE_API_KEY fallback) from accidental regression.
+1407|# ---------------------------------------------------------------------------
+1408|
+1409|
+1410|def test_mcp_taskdog_client_wired_in_deep_agent() -> None:
+1411|    """M97b: deepagents_harness imports build_agent_tools from mcp_taskdog_client.
+1412|
+1413|    Without this, the deep-agent would fall back to 12 IKIGAI_TOOLS only (not 38).
+1414|    """
+1415|    harness_file = Path(__file__).parent.parent / "src" / "agents" / "deepagents_harness.py"
+1416|    text = harness_file.read_text(encoding="utf-8")
+1417|    assert "from .mcp_taskdog_client import build_agent_tools" in text, (
+1418|        "deepagents_harness.py missing mcp_taskdog_client import — "
+1419|        "agent regressed to 12 IKIGAI_TOOLS only (was 38 with MCP)"
+1420|    )
+1421|    assert "build_agent_tools()" in text, "deepagents_harness.py not calling build_agent_tools()"

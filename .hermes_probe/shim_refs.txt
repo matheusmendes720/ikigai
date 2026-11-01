@@ -1,0 +1,20 @@
+src/ikigai/tests/reports/b3-1-report.md:26:- [x] `server_v2.py` shim re-exports correctly
+src/ikigai/tests/reports/b3-1-report.md:38:- `server_v2.py` exists as a zero-cost re-export shim so downstream consumers of the old import path can migrate at their own pace.
+src/ikigai/tests/test_drift_extended_invariants.py:1468:def test_factory_shims_have_typed_signatures() -> None:
+src/ikigai/tests/test_gateway.py:5:The gateway is a pure-Python transport shim with no external deps
+src/ikigai/tests/test_ikigai_sync_vault.py:87:    to the in-tree sys_ikigai frontmatter_compat shim which wraps yaml
+src/ikigai/tests/test_taskdog_mcp_wiring.py:162:        "pattern. Each wrapper should be a thin shim: build `args` dict "
+src/mesh/taskdog_chat.py:39:    The mesh CLI shim (scripts/td_shim_build/__main__.py) prepends
+tests/mesh/test_td_note.py:42:    in the subprocess via a small bootstrap shim file. Same pattern as
+tests/test_langgraph_dev_boot.py:4:ServerRuntime and/or RunnableConfig. We expose typed shims
+tests/test_m151_td_cli.py:35:    subprocess via a small bootstrap shim file. We can't rely on pytest's
+tests/test_m151_td_cli.py:228:    # directly without our bootstrap shim). Copy the enqueued file to the real
+tests/test_m158g_ikigai_path.py:3:The mesh CLI shim (scripts/td_shim_build/__main__.py) prepends
+tests/test_m158g_ikigai_path.py:36:    """Simulate the shim's sys.path: REPO_ROOT/src wins over IKIGAi src.
+tests/test_m158g_ikigai_path.py:39:    The shim prepends ``src/`` before ``src/ikigai/src/``, so ``agents``
+tests/test_mcp_bridge_taskdog_battery.py:22:     a thin shim that mimics the production binding (M146) where the
+tests/test_mcp_bridge_taskdog_battery.py:23:     FastMCP gateway client sits behind ``_server``. The shim routes
+tests/test_mcp_bridge_taskdog_battery.py:182:    """Test-side shim that mimics how langgraph dev binds bridge._server
+tests/test_tasks_jsonl_single_writer_path.py:8:R1.1 (2026-09-21) made ``_write_tasks_to_data`` a thin shim that delegates to
+tests/test_tasks_jsonl_single_writer_path.py:338:    thin shim that delegates to CliAdapter.apply_change. If it grows a
+tests/test_tasks_jsonl_single_writer_path.py:394:            # Caller bridge files (MCP server, task_io shim) reference the

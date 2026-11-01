@@ -24,9 +24,9 @@ Stop:
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import os
+import shutil
 import sys
 import time
 import uuid
@@ -61,28 +61,27 @@ logging.basicConfig(
 
 PAPERCLIP_IMPORT_ERROR: str | None = None
 try:
+    from src.ikigai.src.agents.paperclip.agents.claude import ClaudeAdapter
+    from src.ikigai.src.agents.paperclip.agents.omo import OmoAdapter
+    from src.ikigai.src.agents.paperclip.agents.openclaw import OpenClawAdapter
+    from src.ikigai.src.agents.paperclip.agents.pi import PiAdapter
     from src.ikigai.src.agents.paperclip.graph import (
         NODES,
         _build_paperclip_graph,
-        make_paperclip_graph,
     )
     from src.ikigai.src.agents.paperclip.policy import (
-        CostGate,
-        DEFAULT_THRESHOLD_USD,
-        ENV_THRESHOLD as COST_ENV,
-        RiskGate,
         DEFAULT_RISK_KEYWORDS,
-        WallClockGate,
         DEFAULT_THRESHOLD_S,
+        DEFAULT_THRESHOLD_USD,
+    )
+    from src.ikigai.src.agents.paperclip.policy import (
+        ENV_THRESHOLD as COST_ENV,
     )
     from src.ikigai.src.agents.paperclip.router import (
         ADAPTER_PRIORITY,
         pick_adapter,
     )
-    from src.ikigai.src.agents.paperclip.agents.claude import ClaudeAdapter
-    from src.ikigai.src.agents.paperclip.agents.pi import PiAdapter
-    from src.ikigai.src.agents.paperclip.agents.omo import OmoAdapter
-    from src.ikigai.src.agents.paperclip.agents.openclaw import OpenClawAdapter
+
     PAPERCLIP_IMPORT_ERROR = None
 except Exception as exc:
     PAPERCLIP_IMPORT_ERROR = f"{type(exc).__name__}: {exc}"
@@ -95,6 +94,10 @@ except Exception as exc:
 MAX_RUNS = 50
 runs: deque[dict[str, Any]] = deque(maxlen=MAX_RUNS)
 
+# Background tasks are referenced here: an unreferenced task may be garbage
+# collected before it finishes.
+_BACKGROUND_TASKS: set[asyncio.Task[None]] = set()
+
 
 def _record_run(run: dict[str, Any]) -> None:
     runs.appendleft(run)
@@ -103,12 +106,9 @@ def _record_run(run: dict[str, Any]) -> None:
 # ---------------------------------------------------------------------------
 # Adapter health probing
 # ---------------------------------------------------------------------------
-import shutil
-
-
 def _adapter_health() -> list[dict[str, Any]]:
     """Snapshot of all 6 declared adapters: PATH presence + type (real/stub)."""
-    ADAPTERS = [
+    adapter_specs = [
         ("claude", ClaudeAdapter),
         ("pi", PiAdapter),
         ("omo", OmoAdapter),
@@ -116,22 +116,25 @@ def _adapter_health() -> list[dict[str, Any]]:
         # mmx-cli / hermes stay stubs — binaries missing.
     ]
     out = []
-    for name, cls in ADAPTERS:
+    for name, cls in adapter_specs:
         adapter = cls()
         # Real adapters ship a working .run(); stubs raise NotImplementedError.
         is_real = hasattr(adapter, "run") and cls.__module__.endswith(name)
         on_path = shutil.which(name) is not None
-        out.append({
-            "name": name,
-            "on_path": on_path,
-            "type": "real" if is_real else "stub",
-            "timeout_s": getattr(adapter, "timeout_s", 0),
-        })
+        out.append(
+            {
+                "name": name,
+                "on_path": on_path,
+                "type": "real" if is_real else "stub",
+                "timeout_s": getattr(adapter, "timeout_s", 0),
+            }
+        )
     # Stub entries for mmx-cli + hermes (binaries not installed)
     out.append({"name": "mcode", "on_path": False, "type": "stub", "timeout_s": 180})
     out.append({"name": "hermes", "on_path": False, "type": "stub", "timeout_s": 180})
-    out.sort(key=lambda r: ADAPTER_PRIORITY.index(r["name"])
-             if r["name"] in ADAPTER_PRIORITY else 99)
+    out.sort(
+        key=lambda r: ADAPTER_PRIORITY.index(r["name"]) if r["name"] in ADAPTER_PRIORITY else 99
+    )
     return out
 
 
@@ -150,7 +153,9 @@ def _gate_snapshot() -> dict[str, Any]:
         },
         "wall_clock": {
             "class": "WallClockGate",
-            "threshold_s": int(os.environ.get("PAPERCLIP_WALL_CLOCK_THRESHOLD_S", DEFAULT_THRESHOLD_S)),
+            "threshold_s": int(
+                os.environ.get("PAPERCLIP_WALL_CLOCK_THRESHOLD_S", DEFAULT_THRESHOLD_S)
+            ),
             "env_var": "PAPERCLIP_WALL_CLOCK_THRESHOLD_S",
             "semantics": "fail-OPEN",
             "milestone": "M175",
@@ -201,6 +206,7 @@ GRAPH_EDGES = [
 # ---------------------------------------------------------------------------
 class _DryRunAdapter:
     """Returns success without invoking any CLI. Used for DRY RUN button."""
+
     name = "dry-run"
     timeout_s = 1
 
@@ -215,6 +221,7 @@ class _DryRunAdapter:
 # Lazy import shim for AgentResult (pydantic v2 strict)
 try:
     from src.ikigai.src.agents.paperclip.agents.base import AgentResult
+
     _DryRunAdapter.run = lambda self, prompt, cwd, *, timeout_s=None: AgentResult(  # type: ignore[assignment]
         success=True,
         output=f"[dry-run] would invoke AI adapter on prompt of {len(prompt)} chars in {cwd}",
@@ -272,12 +279,14 @@ async def list_runs() -> dict[str, Any]:
 @app.post("/api/invoke")
 async def invoke(req: InvokeRequest) -> dict[str, Any]:
     if PAPERCLIP_IMPORT_ERROR is not None:
-        raise HTTPException(status_code=503, detail=f"paperclip unavailable: {PAPERCLIP_IMPORT_ERROR}")
+        raise HTTPException(
+            status_code=503, detail=f"paperclip unavailable: {PAPERCLIP_IMPORT_ERROR}"
+        )
     task_id = req.task_id or f"dash-{uuid.uuid4().hex[:8]}"
     run_id = uuid.uuid4().hex[:12]
     started_at = datetime.now(UTC).isoformat()
 
-    record = {
+    record: dict[str, Any] = {
         "run_id": run_id,
         "task_id": task_id,
         "started_at": started_at,
@@ -292,19 +301,18 @@ async def invoke(req: InvokeRequest) -> dict[str, Any]:
     _record_run(record)
 
     # Run in background — don't tie up the request thread.
-    asyncio.create_task(_run_paperclip(record, req.spec_text, req.dry_run))
+    task = asyncio.create_task(_run_paperclip(record, req.spec_text, req.dry_run))
+    _BACKGROUND_TASKS.add(task)
+    task.add_done_callback(_BACKGROUND_TASKS.discard)
     return {"run_id": run_id, "task_id": task_id, "status": "started"}
 
 
 async def _run_paperclip(record: dict[str, Any], spec_text: str, dry_run: bool) -> None:
     """Invoke Paperclip graph in a worker thread; stream progress to ``record``."""
     try:
-        # Build the graph fresh per run (SqliteSaver is per-call).
-        ckpt = REPO_ROOT / "data" / "paperclip.db"
-        ckpt.parent.mkdir(parents=True, exist_ok=True)
-        graph = await asyncio.to_thread(_build_paperclip_graph, checkpoint_db=str(ckpt), entry_point="read_spec")
-
-        adapter_instance = None
+        # The adapter is chosen BEFORE the graph is built: the graph has to
+        # know which adapter its `implement` node must invoke.
+        adapter_instance: Any = None
         if dry_run:
             adapter_instance = _DryRunAdapter()
         else:
@@ -312,22 +320,45 @@ async def _run_paperclip(record: dict[str, Any], spec_text: str, dry_run: bool) 
             from src.ikigai.src.agents.paperclip.router import (
                 AdapterHealth,
                 SpecContext,
-                RouterDecision,
             )
 
-            health = {a["name"]: AdapterHealth(name=a["name"], on_path=a["on_path"], last_invoked_at=None, last_success=None) for a in _adapter_health()}
-            spec_ctx = SpecContext(task_id=record["task_id"], spec_text=spec_text, cost_today_usd=0.0)
+            health = {
+                a["name"]: AdapterHealth(
+                    name=a["name"], on_path=a["on_path"], last_invoked_at=None, last_success=None
+                )
+                for a in _adapter_health()
+            }
+            spec_ctx = SpecContext(
+                task_id=record["task_id"], spec_text=spec_text, cost_today_usd=0.0
+            )
             try:
                 decision = pick_adapter(spec_ctx, health)
                 adapter_name = decision.adapter
-                record["steps"].append({"node": "router", "decision": adapter_name, "reason": decision.reason})
+                record["steps"].append(
+                    {"node": "router", "decision": adapter_name, "reason": decision.reason}
+                )
             except Exception as exc:
                 record["status"] = "error"
                 record["error"] = f"router failed: {exc}"
                 record["finished_at"] = datetime.now(UTC).isoformat()
                 return
-            cls_map = {"claude": ClaudeAdapter, "pi": PiAdapter, "omo": OmoAdapter, "openclaw": OpenClawAdapter}
+            cls_map: dict[str, type[Any]] = {
+                "claude": ClaudeAdapter,
+                "pi": PiAdapter,
+                "omo": OmoAdapter,
+                "openclaw": OpenClawAdapter,
+            }
             adapter_instance = cls_map[adapter_name]()
+
+        # Build the graph fresh per run (SqliteSaver is per-call).
+        ckpt = REPO_ROOT / "data" / "paperclip.db"
+        ckpt.parent.mkdir(parents=True, exist_ok=True)
+        graph = await asyncio.to_thread(
+            _build_paperclip_graph,
+            checkpoint_db=str(ckpt),
+            entry_point="read_spec",
+            adapter=adapter_instance,
+        )
 
         config = {"configurable": {"thread_id": record["task_id"]}}
         initial_state = {"task_id": record["task_id"], "spec_text": spec_text, "messages": []}
@@ -337,9 +368,19 @@ async def _run_paperclip(record: dict[str, Any], spec_text: str, dry_run: bool) 
         record["final_state"] = {
             k: (v if isinstance(v, (str, int, float, bool, list, dict, type(None))) else str(v))
             for k, v in (result or {}).items()
-            if k in ("task_id", "spec_gaps", "implement_iteration", "tests_ok",
-                     "commit_sha", "worktree_path", "branch_name", "error_type",
-                     "error_message", "last_step")
+            if k
+            in (
+                "task_id",
+                "spec_gaps",
+                "implement_iteration",
+                "tests_ok",
+                "commit_sha",
+                "worktree_path",
+                "branch_name",
+                "error_type",
+                "error_message",
+                "last_step",
+            )
         }
         record["status"] = "ok" if not (result or {}).get("error_type") else "error"
         record["finished_at"] = datetime.now(UTC).isoformat()
@@ -673,14 +714,16 @@ SERVER_START_TS = time.time()
 def run_server(host: str = "127.0.0.1", port: int = 8765) -> None:
     """Run the uvicorn server. Called by ``paperclip dashboard`` subcommand."""
     import uvicorn
+
     log.info("starting paperclip dashboard on http://%s:%d", host, port)
-    log.info("paperclip imports: %s", "OK" if PAPERCLIP_IMPORT_ERROR is None else f"FAILED — {PAPERCLIP_IMPORT_ERROR}")
+    log.info(
+        "paperclip imports: %s",
+        "OK" if PAPERCLIP_IMPORT_ERROR is None else f"FAILED — {PAPERCLIP_IMPORT_ERROR}",
+    )
     uvicorn.run(app, host=host, port=port, log_level="info")
 
 
 if __name__ == "__main__":
-    import uvicorn
-
     port = int(os.environ.get("PAPERCLIP_DASHBOARD_PORT", "8765"))
     host = os.environ.get("PAPERCLIP_DASHBOARD_HOST", "127.0.0.1")
     run_server(host=host, port=port)

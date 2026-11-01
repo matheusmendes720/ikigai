@@ -1,0 +1,72 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 0111f9cd..146c729d 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -60,0 +61,11 @@ jobs:
++            # mypy MUST NOT be invoked with a path here.
++            #
++            # The package's canonical module identity is `src.ikigai.src.*`
++            # (repo root on sys.path — see the absolute imports in the
++            # codebase). `mypy src/` walks the same files under a SECOND,
++            # competing identity (`agents.*`) and mypy then aborts with
++            # "Source file found twice under different module names".
++            #
++            # The canonical, path-free invocation is documented in
++            # `src/ikigai/pyproject.toml` ([tool.mypy] section).
++            mypy_target: -p src.ikigai.src
+@@ -147 +158 @@ jobs:
+-          uv run mypy ${{ matrix.ruff_target }}
++          uv run mypy ${{ matrix.mypy_target || matrix.ruff_target }}
+@@ -157 +168 @@ jobs:
+-          poetry run mypy ${{ matrix.ruff_target }}
++          poetry run mypy ${{ matrix.mypy_target || matrix.ruff_target }}
+@@ -201,0 +213,7 @@ jobs:
++      # The review-queue worker tests import interfaces/cli/__init__.py,
++      # which pulls in src.contracts (pydantic) and the Typer CLI layer.
++      # Installing pytest alone makes collection fail with
++      # ModuleNotFoundError: No module named 'pydantic'.
++      - name: Install test dependencies
++        run: pip install --quiet pydantic typer rich
++
+@@ -227 +245,14 @@ jobs:
+-          pip install --quiet pytest typer rich || true
++          # pyyaml is REQUIRED by the backtest tools (scenario parsing);
++          # langchain-anthropic is optional (llm_judge degrades to stub).
++          pip install --quiet pytest typer rich pyyaml || true
++
++      # The backtest harness drives a real taskdog-server over HTTP.
++      # The server lives outside this repo (PyPI: taskdog-server), so the
++      # job must start it itself — otherwise the health check in
++      # scripts/backtest/run_backtest.sh fails with exit 2.
++      # `uv tool install` resolves its own interpreter (taskdog-server
++      # requires Python >=3.12 while this job runs on 3.11).
++      - name: Install taskdog-server
++        run: |
++          uv tool install taskdog-server
++          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+@@ -228,0 +260,2 @@ jobs:
++      # Server + pipeline run in ONE step: a background process started in
++      # a separate step is not guaranteed to survive between steps.
+@@ -230,0 +264,22 @@ jobs:
++          set -euo pipefail
++          SERVER_BIN="$(command -v taskdog-server || echo "$HOME/.local/bin/taskdog-server")"
++          "$SERVER_BIN" --host 127.0.0.1 --port 8000 \
++            > "$RUNNER_TEMP/taskdog-server.log" 2>&1 &
++          SERVER_PID=$!
++          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
++
++          for i in $(seq 1 30); do
++            code=$(curl -s -o /dev/null -w "%{http_code}" \
++              "http://127.0.0.1:8000/api/v1/tasks?limit=1" || true)
++            if [ "$code" = "200" ]; then
++              echo "taskdog-server is up (HTTP 200)"
++              break
++            fi
++            if [ "$i" = "30" ]; then
++              echo "taskdog-server failed to start:"
++              cat "$RUNNER_TEMP/taskdog-server.log"
++              exit 1
++            fi
++            sleep 1
++          done
++

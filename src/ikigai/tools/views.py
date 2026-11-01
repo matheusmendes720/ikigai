@@ -86,9 +86,7 @@ def load_entities(vault_root: Path) -> list[Entity]:
         if isinstance(created_at_raw, datetime):
             # YAML auto-parsed ISO 8601 as datetime
             created_at = (
-                created_at_raw
-                if created_at_raw.tzinfo
-                else created_at_raw.replace(tzinfo=UTC)
+                created_at_raw if created_at_raw.tzinfo else created_at_raw.replace(tzinfo=UTC)
             )
         else:
             # String form — handle Z suffix
