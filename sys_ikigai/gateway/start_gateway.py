@@ -3,8 +3,8 @@
 Per spec §10 (decisions):
 - Q3=a: no auth (localhost-only is sufficient)
 - Q4=i: single JSONL event log at data/gateway/events.jsonl
-- Wires register_default_adapters() so all 3 forks (taskdog, solverforge-calendar,
-  tuiboard) are reachable via /call endpoint.
+- Wires register_default_adapters() so the surviving forks (cli, taskdog) are
+  reachable via /call endpoint.
 
 Boot:
     python -m ikigai.gateway.start_gateway

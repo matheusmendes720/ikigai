@@ -1,9 +1,12 @@
 """MCPClientAdapter — downstream server protocol (Task 14 partner).
 
-The gateway speaks to 3 downstream MCP servers (tuiboard, taskdog,
-solverforge-calendar) via this protocol. Each adapter wraps an
-stdio-or-HTTP subprocess; the gateway itself only depends on the
+The gateway speaks to downstream MCP servers via this protocol. Each adapter
+wraps an stdio-or-HTTP subprocess; the gateway itself only depends on the
 `call_tool(name, arguments)` interface.
+
+Serverless scope (ADR-037, 2026-11-01): the PC-only stdio forks were retired,
+so the adapters published here are the data-mesh ones (CLI fork and taskdog
+SQLite fork) — see `sys_ikigai.gateway.downstream`.
 """
 
 from __future__ import annotations

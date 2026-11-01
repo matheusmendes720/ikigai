@@ -146,8 +146,7 @@ class UnifiedMCPGateway:
         """Publish an SSE event after a successful adapter call_tool.
 
         Event name: ``{namespace}.{tool_short}`` where tool_short strips a
-        known namespace prefix (e.g. ``taskdog_add`` → ``add``,
-        ``tuiboard_render`` → ``render``, ``sf_schedule`` → ``schedule``).
+        known namespace prefix (e.g. ``taskdog_add`` → ``add``).
         If no known prefix matches, the full tool name is used as the
         short form.
 
