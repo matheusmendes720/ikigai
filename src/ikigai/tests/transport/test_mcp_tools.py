@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from src.contracts.dom import SearchQuery
 from src.contracts.errors import ConflictError, NotFoundError
 
@@ -84,6 +83,21 @@ async def test_a_conflict_reaches_the_caller_with_its_code(transport: Any) -> No
             await transport.search_artifacts(SearchQuery(text="qualquer"))
     finally:
         transport.set_services(None)
+
+
+def test_the_transport_is_selected_by_env(transport: Any) -> None:
+    """ADR-011: the same server serves stdio locally and http in the cloud."""
+    assert transport.resolve_transport({}) == "stdio"
+    assert transport.resolve_transport({"IKIGAI_MCP_TRANSPORT": "stdio"}) == "stdio"
+    assert transport.resolve_transport({"IKIGAI_MCP_TRANSPORT": "http"}) == "streamable-http"
+    assert (
+        transport.resolve_transport({"IKIGAI_MCP_TRANSPORT": "streamable-http"})
+        == "streamable-http"
+    )
+    assert transport.resolve_transport({"IKIGAI_MCP_TRANSPORT": "sse"}) == "sse"
+    assert transport.resolve_transport({"IKIGAI_MCP_TRANSPORT": " HTTP "}) == "streamable-http"
+    with pytest.raises(ValueError, match="unknown IKIGAI_MCP_TRANSPORT"):
+        transport.resolve_transport({"IKIGAI_MCP_TRANSPORT": "carrier-pigeon"})
 
 
 async def test_a_missing_artifact_reaches_the_caller_with_its_code(transport: Any) -> None:

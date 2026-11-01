@@ -13,12 +13,12 @@ loads, not a framework around an agent.
 from __future__ import annotations
 
 import functools
-from collections.abc import Awaitable, Callable
+import os
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, TypeVar
 
 from mcp.server.fastmcp import FastMCP
-
 from src.contracts.common import UEID
 from src.contracts.dom import (
     ArtifactBundle,
@@ -30,14 +30,13 @@ from src.contracts.dom import (
     WriteRequest,
 )
 from src.contracts.errors import DataLayerError
-
 from src.data.client import DataClient
 from src.data.repository import ArtifactRepository
 from src.services.artifacts import ArtifactService
 from src.services.embeddings import EmbeddingService
 from src.services.relations import RelationService
 
-__all__ = ["Services", "get_services", "mcp", "set_services"]
+__all__ = ["Services", "get_services", "mcp", "resolve_transport", "set_services"]
 
 mcp = FastMCP("ikigai-data")
 """The server the harness connects to."""
@@ -162,9 +161,34 @@ async def embed_text(text: str) -> list[float]:
     return await get_services().embeddings.embed(text)
 
 
+_TRANSPORTS = {
+    "stdio": "stdio",
+    "http": "streamable-http",
+    "streamable-http": "streamable-http",
+    "sse": "sse",
+}
+"""IKIGAI_MCP_TRANSPORT value -> the transport name FastMCP understands (ADR-011)."""
+
+
+def resolve_transport(env: Mapping[str, str] | None = None) -> str:
+    """Pick the transport from IKIGAI_MCP_TRANSPORT (ADR-011).
+
+    ``stdio`` keeps the local harness working; ``http`` is what a cloud
+    deployment needs. Host and port come from FastMCP's own settings
+    (``FASTMCP_HOST`` / ``FASTMCP_PORT``).
+    """
+    source = os.environ if env is None else env
+    raw = (source.get("IKIGAI_MCP_TRANSPORT") or "stdio").strip().lower()
+    if raw not in _TRANSPORTS:
+        raise ValueError(
+            f"unknown IKIGAI_MCP_TRANSPORT: {raw!r} (expected one of {sorted(_TRANSPORTS)})"
+        )
+    return _TRANSPORTS[raw]
+
+
 def main() -> None:
     """Run the server. The harness decides how to reach it."""
-    mcp.run()
+    mcp.run(transport=resolve_transport())
 
 
 if __name__ == "__main__":
