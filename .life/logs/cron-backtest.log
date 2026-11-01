@@ -1,0 +1,336 @@
+[2026-09-22T10:37:58-03:00] Starting daily backtest pipeline
+====================================
+  Backtest Q1 — full pipeline
+  repo: /c/Users/mathe/code_space/life-oss/life
+  python: src/ikigai/.venv/Scripts/python.exe
+  skip-gen: 1
+====================================
+
+[1/5] Checking taskdog-server health...
+  taskdog-server OK (HTTP 200)
+
+[2/5] Skipping scenario generation (--skip-gen)
+
+[3/5] Running M114b backtest harness...
+{
+  "n_total": 73,
+  "n_pass": 65,
+  "n_fail": 0,
+  "n_error": 0,
+  "n_skip": 8,
+  "elapsed_s": 4.482,
+  "by_tool_count": 21,
+  "by_anchor_total": 345
+}
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1-results.json
+
+[4/5] Running M114c judge_llm...
+{
+  "anchor_pass_rate_pct": 95.8,
+  "tool_coverage_pct": 95.0,
+  "schema_valid_pct": 100.0,
+  "scenario_pass_rate_pct": 89.0,
+  "total_score": 94.6
+}
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1-judgment.json
+
+[5/6] Rendering M114g markdown report...
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1.md (6000 chars)
+
+[6/7] Running M115 backtest_drift...
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-drift.md (2389 chars)
+{
+  "anchor_pass_rate_pct": 0.0,
+  "tool_coverage_pct": 0.0,
+  "schema_valid_pct": 0.0,
+  "scenario_pass_rate_pct": 0.0,
+  "total_score": 0.0
+}
+
+[7/8] Running M116 llm_judge...
+  (stub mode; pass USE_LLM=1 to enable real LLM)
+{
+  "argument_quality": 0.667,
+  "sequence_coherence": 0.825,
+  "cultural_fit": 0.567,
+  "tool_selection": 0.945,
+  "overall": 0.751,
+  "n_scenarios": 73,
+  "modes": {
+    "stub": 73
+  }
+}
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1-llm-judgment.json
+
+[8/8] Running M118 baseline_archive...
+# Skipped (already archived): 2026-09-22.json
+# Skipped (already archived): 2026-09-22.llm.json
+# Backtest weekly trend
+
+| Week | n_runs | total | anchor | tool | scenario | llm | latest_run |
+|------|--------|-------|--------|------|----------|-----|------------|
+| 2026-W39 | 1 | 94.6 | 95.8 | 95.0 | 89.0 | 0.751 | 2026-09-22 |
+
+
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-trend.md
+
+====================================
+  Backtest Q1 complete.
+  Report:    reports/backtest-Q1.md
+  Drift:     reports/backtest-drift.md
+  LLM-judge: reports/backtest-Q1-llm-judgment.json
+  Trend:     reports/backtest-trend.md
+====================================
+[2026-09-22T10:38:06-03:00] Pipeline OK
+[2026-09-22T10:39:06-03:00] Starting daily backtest pipeline
+====================================
+  Backtest Q1 — full pipeline
+  repo: /c/Users/mathe/code_space/life-oss/life
+  python: src/ikigai/.venv/Scripts/python.exe
+  skip-gen: 1
+====================================
+
+[1/5] Checking taskdog-server health...
+  taskdog-server OK (HTTP 200)
+
+[2/5] Skipping scenario generation (--skip-gen)
+
+[3/5] Running M114b backtest harness...
+{
+  "n_total": 73,
+  "n_pass": 65,
+  "n_fail": 0,
+  "n_error": 0,
+  "n_skip": 8,
+  "elapsed_s": 3.94,
+  "by_tool_count": 21,
+  "by_anchor_total": 345
+}
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1-results.json
+
+[4/5] Running M114c judge_llm...
+{
+  "anchor_pass_rate_pct": 95.8,
+  "tool_coverage_pct": 95.0,
+  "schema_valid_pct": 100.0,
+  "scenario_pass_rate_pct": 89.0,
+  "total_score": 94.6
+}
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1-judgment.json
+
+[5/6] Rendering M114g markdown report...
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1.md (5999 chars)
+
+[6/7] Running M115 backtest_drift...
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-drift.md (2389 chars)
+{
+  "anchor_pass_rate_pct": 0.0,
+  "tool_coverage_pct": 0.0,
+  "schema_valid_pct": 0.0,
+  "scenario_pass_rate_pct": 0.0,
+  "total_score": 0.0
+}
+
+[7/8] Running M116 llm_judge...
+  (stub mode; pass USE_LLM=1 to enable real LLM)
+{
+  "argument_quality": 0.667,
+  "sequence_coherence": 0.825,
+  "cultural_fit": 0.567,
+  "tool_selection": 0.945,
+  "overall": 0.751,
+  "n_scenarios": 73,
+  "modes": {
+    "stub": 73
+  }
+}
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1-llm-judgment.json
+
+[8/8] Running M118 baseline_archive...
+# Skipped (already archived): 2026-09-22.json
+# Skipped (already archived): 2026-09-22.llm.json
+# Backtest weekly trend
+
+| Week | n_runs | total | anchor | tool | scenario | llm | latest_run |
+|------|--------|-------|--------|------|----------|-----|------------|
+| 2026-W39 | 1 | 94.6 | 95.8 | 95.0 | 89.0 | 0.751 | 2026-09-22 |
+
+
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-trend.md
+
+====================================
+  Backtest Q1 complete.
+  Report:    reports/backtest-Q1.md
+  Drift:     reports/backtest-drift.md
+  LLM-judge: reports/backtest-Q1-llm-judgment.json
+  Trend:     reports/backtest-trend.md
+====================================
+[2026-09-22T10:39:13-03:00] Pipeline OK
+[2026-09-22T10:39:17-03:00] Starting daily backtest pipeline
+====================================
+  Backtest Q1 — full pipeline
+  repo: /c/Users/mathe/code_space/life-oss/life
+  python: src/ikigai/.venv/Scripts/python.exe
+  skip-gen: 1
+====================================
+
+[1/5] Checking taskdog-server health...
+  taskdog-server OK (HTTP 200)
+
+[2/5] Skipping scenario generation (--skip-gen)
+
+[3/5] Running M114b backtest harness...
+{
+  "n_total": 73,
+  "n_pass": 65,
+  "n_fail": 0,
+  "n_error": 0,
+  "n_skip": 8,
+  "elapsed_s": 4.532,
+  "by_tool_count": 21,
+  "by_anchor_total": 345
+}
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1-results.json
+
+[4/5] Running M114c judge_llm...
+{
+  "anchor_pass_rate_pct": 95.8,
+  "tool_coverage_pct": 95.0,
+  "schema_valid_pct": 100.0,
+  "scenario_pass_rate_pct": 89.0,
+  "total_score": 94.6
+}
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1-judgment.json
+
+[5/6] Rendering M114g markdown report...
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1.md (6000 chars)
+
+[6/7] Running M115 backtest_drift...
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-drift.md (2389 chars)
+{
+  "anchor_pass_rate_pct": 0.0,
+  "tool_coverage_pct": 0.0,
+  "schema_valid_pct": 0.0,
+  "scenario_pass_rate_pct": 0.0,
+  "total_score": 0.0
+}
+
+[7/8] Running M116 llm_judge...
+  (stub mode; pass USE_LLM=1 to enable real LLM)
+{
+  "argument_quality": 0.667,
+  "sequence_coherence": 0.825,
+  "cultural_fit": 0.567,
+  "tool_selection": 0.945,
+  "overall": 0.751,
+  "n_scenarios": 73,
+  "modes": {
+    "stub": 73
+  }
+}
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1-llm-judgment.json
+
+[8/8] Running M118 baseline_archive...
+# Skipped (already archived): 2026-09-22.json
+# Skipped (already archived): 2026-09-22.llm.json
+# Backtest weekly trend
+
+| Week | n_runs | total | anchor | tool | scenario | llm | latest_run |
+|------|--------|-------|--------|------|----------|-----|------------|
+| 2026-W39 | 1 | 94.6 | 95.8 | 95.0 | 89.0 | 0.751 | 2026-09-22 |
+
+
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-trend.md
+
+====================================
+  Backtest Q1 complete.
+  Report:    reports/backtest-Q1.md
+  Drift:     reports/backtest-drift.md
+  LLM-judge: reports/backtest-Q1-llm-judgment.json
+  Trend:     reports/backtest-trend.md
+====================================
+[2026-09-22T10:39:25-03:00] Pipeline OK
+[2026-09-22T10:39:52-03:00] Starting daily backtest pipeline
+====================================
+  Backtest Q1 — full pipeline
+  repo: /c/Users/mathe/code_space/life-oss/life
+  python: src/ikigai/.venv/Scripts/python.exe
+  skip-gen: 1
+====================================
+
+[1/5] Checking taskdog-server health...
+  taskdog-server OK (HTTP 200)
+
+[2/5] Skipping scenario generation (--skip-gen)
+
+[3/5] Running M114b backtest harness...
+{
+  "n_total": 73,
+  "n_pass": 65,
+  "n_fail": 0,
+  "n_error": 0,
+  "n_skip": 8,
+  "elapsed_s": 4.284,
+  "by_tool_count": 21,
+  "by_anchor_total": 345
+}
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1-results.json
+
+[4/5] Running M114c judge_llm...
+{
+  "anchor_pass_rate_pct": 95.8,
+  "tool_coverage_pct": 95.0,
+  "schema_valid_pct": 100.0,
+  "scenario_pass_rate_pct": 89.0,
+  "total_score": 94.6
+}
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1-judgment.json
+
+[5/6] Rendering M114g markdown report...
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1.md (6000 chars)
+
+[6/7] Running M115 backtest_drift...
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-drift.md (2389 chars)
+{
+  "anchor_pass_rate_pct": 0.0,
+  "tool_coverage_pct": 0.0,
+  "schema_valid_pct": 0.0,
+  "scenario_pass_rate_pct": 0.0,
+  "total_score": 0.0
+}
+
+[7/8] Running M116 llm_judge...
+  (stub mode; pass USE_LLM=1 to enable real LLM)
+{
+  "argument_quality": 0.667,
+  "sequence_coherence": 0.825,
+  "cultural_fit": 0.567,
+  "tool_selection": 0.945,
+  "overall": 0.751,
+  "n_scenarios": 73,
+  "modes": {
+    "stub": 73
+  }
+}
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-Q1-llm-judgment.json
+
+[8/8] Running M118 baseline_archive...
+# Skipped (already archived): 2026-09-22.json
+# Skipped (already archived): 2026-09-22.llm.json
+# Backtest weekly trend
+
+| Week | n_runs | total | anchor | tool | scenario | llm | latest_run |
+|------|--------|-------|--------|------|----------|-----|------------|
+| 2026-W39 | 1 | 94.6 | 95.8 | 95.0 | 89.0 | 0.751 | 2026-09-22 |
+
+
+# Wrote C:\Users\mathe\code_space\life-oss\life\reports\backtest-trend.md
+
+====================================
+  Backtest Q1 complete.
+  Report:    reports/backtest-Q1.md
+  Drift:     reports/backtest-drift.md
+  LLM-judge: reports/backtest-Q1-llm-judgment.json
+  Trend:     reports/backtest-trend.md
+====================================
+[2026-09-22T10:40:00-03:00] Pipeline OK

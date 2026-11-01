@@ -1,0 +1,10 @@
+TASK: Verify every AGENTS.md file produced by the init-deep run in C:/Users/mathe/code_space/life-oss/life.
+Steps, in order:
+1. Build the file list: the root AGENTS.md plus every path declared in the digests C:/Users/mathe/code_space/life-oss/life/.omo/init-deep/digests/*.md. Read those digest files to get the paths. Do NOT include pre-existing vendored files such as strategics/planning-with-files/AGENTS.md, vault/ikigai/meta/agents.md or .claude/commands/monitoring/agents.md - they are not this run's output.
+2. For the root AGENTS.md: check it exists, is 50-150 lines, and has every section header OVERVIEW, STRUCTURE, WHERE TO LOOK, CODE MAP, CONVENTIONS, ANTI-PATTERNS, UNIQUE STYLES, COMMANDS, NOTES.
+3. For each subdirectory AGENTS.md: check it exists, is 30-80 lines, and has the sections OVERVIEW, WHERE TO LOOK, CONVENTIONS, ANTI-PATTERNS (STRUCTURE only if the directory has more than 5 subdirectories).
+4. Check no child file repeats a parent section block verbatim.
+DELIVERABLE: one file C:/Users/mathe/code_space/life-oss/life/.omo/init-deep/verify/verdict.txt with exactly one line per file: `PASS <path>` or `FAIL <path>: <reason>`. Also print those same lines as your final message.
+SCOPE: read only the digests and the AGENTS.md files; write only the verdict file.
+VERIFY: the verdict file exists and has one line per checked file.
+STOP WHEN: the verdict file is written.

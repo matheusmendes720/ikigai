@@ -1,0 +1,33 @@
+# Facts the pre-existing root AGENTS.md carried that must survive the rewrite.
+# Source: git HEAD AGENTS.md (228 lines), read 2026-10-31 before the root-writer ran.
+
+vault append-only + Deep Agent sole writer (ADR-012)
+refactor protocol: stop -> propose Action Plan -> wait for go -> mutate (vault/, vibe-ops/, strategics/)
+Pydantic v2 strict frozen=True extra=forbid in src/contracts/
+single source of truth src/contracts/{common,task,task_change,planning,metrics}.py
+UEID 4-part regex ^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$ per ADR-014
+dual-tree identity: from src.contracts.X vs from sys_ikigai.X, monkeypatch BOTH
+tooling split: root+src/contracts+src/mesh = setuptools, src/ikigai = Poetry, vibe-ops = uv, archive = do not revive
+drift net: test_canonical_scope.py, test_drift_invariants.py, test_drift_extended_invariants.py (append-only)
+phase 3 mesh v1 ships create only; update/delete/done out of scope
+IKIGAI planner-only per ADR-013; IKIGAI_TOOLS count guarded by drift test
+3 fork adapters: CliAdapter, TaskdogAdapter, SolverforgeCalendarAdapter
+vibe-ops engine: vibe-ops/src/cybernetics/engine.py TARGET-SENSOR-ADJUSTER-PERSIST-SYNC-INDEX
+PolicyEngine states PUSH MAINTAIN REDUCE RECOVER with hysteresis
+MCP gateway tools: read_vault write_planning sync_interfaces get_metrics
+zero LLM in daily/weekly pipelines
+--json everywhere
+fully local SQLite + filesystem
+python 3.11+ from __future__ import annotations
+Windows quirks: sys.stdin.buffer.readline (b93a1f3); pytest-asyncio PermissionError -> data/pytest-tmp (ff3037f)
+pitfall: make test broken (langgraph_tests/, src/operational/ removed) -> use pytest tests/ -v
+pitfall: zero-byte root artifacts are stray bash typos, gitignored
+pitfall: strategics/planning-with-files is dirty vendored submodule
+current mode: data-first methodology, IKIGAI paused for new algorithm decisions, agent/harness plumbing not paused
+planning note channel: vault/ikigai/templates/sonho-log.md, event-driven, 1-3 bullets
+canonical contracts table: common/task/task_change/planning/metrics models
+repo url github.com/matheusmendes720/ikigai
+kill switch sys_ikigai/security/kill_switch.py + CLI kill-switch status|pause|resume
+paperclip: src/ikigai/src/agents/paperclip/ + specs/M169-paperclip + ADR-036
+mypy.ini mypy_path = src .. ../..; ruff check; pre-commit run --all-files
+console scripts: life -> life.cli:_main_console, td -> src.mesh.taskdog_cli:main
