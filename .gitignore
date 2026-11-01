@@ -574,8 +574,43 @@ src/ikigai/data/baselines/.passphrase
 /.claude/loop/.daemon-heartbeat.json
 /vault/.vault_events.jsonl
 /src/data/ikigai_checkpoints.db
-/src/data/
+# src/data/ holds runtime leftovers (pytest-tmp, stray *.db). The canonical
+# data-layer client (ADR-037) lives here as real source, so the directory
+# itself is tracked and only its runtime content is ignored.
+/src/data/*
+!/src/data/client.py
+!/src/data/repository.py
 .atlas/
+
+# ─── Serverless / cloud-native pivot (ADR-037, 2026-11-01) ─────────────
+# The remote branch carries canonical, multi-device, prod-deployable code
+# only. TUI clients, stdio MCP servers and the previous langchain/langgraph
+# harness are PC-only and stay out of the remote repository (tip AND
+# history). The vault, the data layer, the mesh and the harness specs are
+# the published surface.
+/interfaces/tui/
+/vibe-ops/vibeops-tui/
+/src/tuiboard/
+/src/solverforge_calendar/
+/src/mesh/adapters/solverforge_calendar.py
+/src/ikigai/src/mcp_server/
+/sys_ikigai/gateway/stdio_server_base.py
+/sys_ikigai/gateway/stdio_adapter.py
+/sys_ikigai/gateway/adapters/tuiboard*.py
+/sys_ikigai/gateway/adapters/solverforge*.py
+/sys_ikigai/gateway/clients/tuiboard.py
+/sys_ikigai/gateway/clients/solverforge_calendar.py
+/src/ikigai/src/agents/
+/src/ikigai/src/chat/
+/src/ikigai/src/plugins/
+/src/ikigai/src/ikigai_wrapper.py
+/src/ikigai/src/gateway_client.py
+/langgraph.json
+/plugins/paperclipai/
+/archive/legacy-pav/
+/.claude-flow/
+/.hermes_probe/
+/scripts/langgraph-dev.bat
 
 # ─── Shell redirect artifacts (0-byte noise) ──────────────────────────
 COST_THRESHOLD_USD``
@@ -585,3 +620,10 @@ RunRecord
 start
 threshold
 threshold_seconds``.,+,+
+
+# ─── Serverless canonical scope (ADR-037, 2026-11-01) ────────────────
+# PC-only surfaces retired from the published tree: TUI clients, the stdio
+# MCP servers and the legacy langgraph/langchain harness.
+/.hermes/
+/.atlas/
+/src/ikigai/src/observability/

@@ -113,6 +113,28 @@ jobs:
             python: "3.11"
             manager: ruff-only
             ruff_target: .
+          # The data layer of the canonical turn (ADR-037): src/data (Postgres
+          # client and repository), src/services (domain rules) and
+          # src/transport (MCP over the services). Like src/mesh they have no
+          # pyproject.toml, so they are imported as `src.data.*` and can only be
+          # linted here. Their tests live in src/ikigai/tests/ and run under the
+          # ikigai entry, which is where psycopg and testcontainers are
+          # installed.
+          - package: src-data
+            path: src/data
+            python: "3.11"
+            manager: ruff-only
+            ruff_target: .
+          - package: src-services
+            path: src/services
+            python: "3.11"
+            manager: ruff-only
+            ruff_target: .
+          - package: src-transport
+            path: src/transport
+            python: "3.11"
+            manager: ruff-only
+            ruff_target: .
           # NOTE: PAV kernel (src/operational/) ARCHIVED 2026-08-31 — see
           # archive/legacy-pav/SUPERSEDED.md and ADR-013. The archived
           # package remains self-contained (`uv sync && uv run pytest`
@@ -175,6 +197,12 @@ jobs:
         working-directory: ${{ matrix.path }}
         run: |
           poetry install
+          # The store tests (src/ikigai/tests/store/) reach a real Postgres
+          # through testcontainers, so the driver and the container runtime
+          # have to be in the same environment that runs pytest. They are
+          # installed here rather than declared in pyproject.toml because
+          # `poetry install` resolves strictly from poetry.lock.
+          poetry run pip install --quiet "psycopg[binary]" psycopg-pool "testcontainers[postgres]"
           poetry run ruff check ${{ matrix.ruff_target }}
           poetry run ruff format --check ${{ matrix.ruff_target }}
           poetry run mypy ${{ matrix.mypy_target || matrix.ruff_target }}

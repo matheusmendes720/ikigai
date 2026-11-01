@@ -259,7 +259,7 @@ def test_agent_consumer_rejects_done_with_fields():
     """DONE action must reject events with non-empty fields."""
     sys.path.insert(0, str(REPO_ROOT / "src"))
     from src.mesh.agent_consumer import validate, Decision
-    from contracts.task_change import TaskChange, TaskAction
+    from src.contracts.task_change import TaskChange, TaskAction
     from datetime import datetime
 
     ev = TaskChange(
@@ -279,7 +279,7 @@ def test_agent_consumer_rejects_update_changing_ueid():
     """UPDATE cannot change the UEID (immutable key)."""
     sys.path.insert(0, str(REPO_ROOT / "src"))
     from src.mesh.agent_consumer import validate, Decision
-    from contracts.task_change import TaskChange, TaskAction
+    from src.contracts.task_change import TaskChange, TaskAction
     from datetime import datetime
 
     ev = TaskChange(
@@ -299,7 +299,7 @@ def test_agent_consumer_accepts_clean_update():
     """UPDATE with valid non-empty fields and no UEID change is APPROVED."""
     sys.path.insert(0, str(REPO_ROOT / "src"))
     from src.mesh.agent_consumer import validate, Decision
-    from contracts.task_change import TaskChange, TaskAction
+    from src.contracts.task_change import TaskChange, TaskAction
     from datetime import datetime
 
     ev = TaskChange(
@@ -323,7 +323,7 @@ def test_taskdog_adapter_apply_update(tmp_path, monkeypatch):
     """Adapter UPDATE path: row exists, fields get whitelisted + written."""
     sys.path.insert(0, str(REPO_ROOT / "src"))
     from src.mesh.adapters import taskdog as adapter_mod
-    from contracts.task_change import PropagationEvent, TaskAction
+    from src.contracts.task_change import PropagationEvent, TaskAction
     from datetime import datetime
 
     # Redirect DB to tmp
@@ -365,7 +365,7 @@ def test_taskdog_adapter_apply_update_rejects_ueid_change(tmp_path, monkeypatch)
     """Adapter UPDATE that tries to change UEID raises ValueError."""
     sys.path.insert(0, str(REPO_ROOT / "src"))
     from src.mesh.adapters import taskdog as adapter_mod
-    from contracts.task_change import PropagationEvent, TaskAction
+    from src.contracts.task_change import PropagationEvent, TaskAction
     from datetime import datetime
 
     db_path = tmp_path / "tasks.db"
@@ -391,7 +391,7 @@ def test_taskdog_adapter_done_idempotent(tmp_path, monkeypatch):
     """Adapter DONE on already-done task is a no-op (no error)."""
     sys.path.insert(0, str(REPO_ROOT / "src"))
     from src.mesh.adapters import taskdog as adapter_mod
-    from contracts.task_change import PropagationEvent, TaskAction
+    from src.contracts.task_change import PropagationEvent, TaskAction
     from datetime import datetime
 
     db_path = tmp_path / "tasks.db"
@@ -430,7 +430,7 @@ def test_taskdog_adapter_delete_removes_row(tmp_path, monkeypatch):
     """Adapter DELETE removes the row; subsequent read returns None."""
     sys.path.insert(0, str(REPO_ROOT / "src"))
     from src.mesh.adapters import taskdog as adapter_mod
-    from contracts.task_change import PropagationEvent, TaskAction
+    from src.contracts.task_change import PropagationEvent, TaskAction
     from datetime import datetime
 
     db_path = tmp_path / "tasks.db"
@@ -466,7 +466,7 @@ def test_taskdog_adapter_delete_refuses_missing(tmp_path, monkeypatch):
     """Adapter DELETE on non-existent row raises LookupError."""
     sys.path.insert(0, str(REPO_ROOT / "src"))
     from src.mesh.adapters import taskdog as adapter_mod
-    from contracts.task_change import PropagationEvent, TaskAction
+    from src.contracts.task_change import PropagationEvent, TaskAction
     from datetime import datetime
 
     db_path = tmp_path / "tasks.db"

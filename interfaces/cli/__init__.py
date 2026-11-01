@@ -38,9 +38,7 @@ for _p in (_SRC, _REPO_ROOT):
 
 from .read_tasks import app  # noqa: E402
 from .server import server_app  # noqa: E402
-from .v2 import v2_app  # noqa: E402
 
 app.add_typer(server_app, name="server")
-app.add_typer(v2_app, name="v2")
 
 __all__ = ["app"]

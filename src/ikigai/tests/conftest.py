@@ -4,7 +4,7 @@ After the 2026-09-05 namespace rename (src/ikigai/src/ikigai/ → sys_ikigai/ at
 repo root), the THREE import styles below resolve from TWO sys.path entries:
   - `from sys_ikigai.X import Y`     → <repo-root>/sys_ikigai/
   - `from src.mesh import queue`     → <repo-root>/src/mesh/
-  - `from contracts.X import Y`      → <repo-root>/src/contracts/
+  - `from src.contracts.X import Y`      → <repo-root>/src/contracts/
 
 So `_REPO_ROOT` alone (which gives access to BOTH `sys_ikigai/` and `src/`)
 suffices. The old `<repo>/src/ikigai/src/` sys.path append was a Plan A

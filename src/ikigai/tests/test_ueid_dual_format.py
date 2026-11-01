@@ -10,7 +10,7 @@ Run::
 from __future__ import annotations
 
 import pytest
-from contracts.common import UEID
+from src.contracts.common import UEID
 
 
 class TestUEIDFromLegacy:

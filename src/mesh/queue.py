@@ -11,7 +11,7 @@ from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any, TypeVar
 
-from contracts.task_change import TaskChange, TaskStatus
+from src.contracts.task_change import TaskChange, TaskStatus
 from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)

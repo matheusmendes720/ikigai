@@ -33,7 +33,41 @@ from .common import (
     TimestampMixin,
     VectorKey,
 )
+from .dom import (
+    Artifact,
+    ArtifactBundle,
+    ArtifactKind,
+    ArtifactRevision,
+    Relation,
+    RelationType,
+    SearchQuery,
+    SearchResult,
+    WriteOutcome,
+    WriteRequest,
+    make_uid,
+)
+from .dom_kinds import (
+    KIND_MODELS,
+    DecisionArtifact,
+    FaseArtifact,
+    KPIArtifact,
+    NotaArtifact,
+    OKRArtifact,
+    OndaArtifact,
+    PlanoArtifact,
+    RevisaoArtifact,
+    SonhoArtifact,
+    TarefaArtifact,
+)
 from .entrega import Entrega
+from .errors import (
+    ConflictError,
+    DataLayerError,
+    ErrorCode,
+    ForbiddenError,
+    InvalidPayloadError,
+    NotFoundError,
+)
 from .investigation import Investigation, InvestigationStatus
 from .meta import Meta
 from .metrics import Burndown, ExecutionRate, QHEScore
@@ -87,6 +121,36 @@ __all__ = [  # noqa: RUF022 — entries are grouped by domain with comments, not
     "Wave",
     "Sprint",
     "VaultEvent",
+    # dom (unified data model — ADR-037 D2)
+    "KIND_MODELS",
+    "Artifact",
+    "ArtifactBundle",
+    "ArtifactKind",
+    "ArtifactRevision",
+    "Relation",
+    "RelationType",
+    "SearchQuery",
+    "SearchResult",
+    "WriteOutcome",
+    "WriteRequest",
+    "make_uid",
+    "SonhoArtifact",
+    "PlanoArtifact",
+    "OndaArtifact",
+    "FaseArtifact",
+    "RevisaoArtifact",
+    "NotaArtifact",
+    "KPIArtifact",
+    "OKRArtifact",
+    "DecisionArtifact",
+    "TarefaArtifact",
+    # dom errors
+    "ErrorCode",
+    "DataLayerError",
+    "ConflictError",
+    "InvalidPayloadError",
+    "ForbiddenError",
+    "NotFoundError",
     # metrics
     "Burndown",
     "ExecutionRate",

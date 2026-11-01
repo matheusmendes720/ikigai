@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from contracts.investigation import Investigation
+from src.contracts.investigation import Investigation
 from mesh.investigation_queue import (
     audit_log_path,
     enqueue,

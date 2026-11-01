@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-from contracts.task_change import PropagationEvent, TaskChange
+from src.contracts.task_change import PropagationEvent, TaskChange
 from src.mesh import queue as _queue
 from src.mesh.adapters.base import ForkAdapter
 from src.mesh.agent_consumer import ValidationResult

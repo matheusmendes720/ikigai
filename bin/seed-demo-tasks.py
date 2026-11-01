@@ -29,7 +29,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # Add repo root AND src/ to sys.path. Both are needed because the codebase
 # uses two import styles:
 #   - `from src.contracts.X import ...`  → resolves via <repo>/
-#   - `from contracts.X import ...`      → resolves via <repo>/src/
+#   - `from src.contracts.X import ...`      → resolves via <repo>/src/
 # Adding both is the same pattern tests/conftest.py uses (see CLAUDE.md
 # "Dual-module identity bug class" — patching one without the other
 # silently no-ops).

@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from contracts.task_change import PropagationEvent, TaskAction
+from src.contracts.task_change import PropagationEvent, TaskAction
 
 
 def _tasks_path() -> Path:

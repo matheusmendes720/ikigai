@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
 
-from contracts.task_change import TaskAction, TaskChange
+from src.contracts.task_change import TaskAction, TaskChange
 
 logger = logging.getLogger(__name__)
 

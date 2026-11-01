@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from contracts.common import UEID
+from src.contracts.common import UEID
 from pydantic import ValidationError
 from src.mesh.adapters.a2ui_schema import (
     A2UIError,

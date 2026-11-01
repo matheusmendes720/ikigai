@@ -43,7 +43,7 @@ def _build_pythonpath() -> str:
     (per CLAUDE.md `## Import-Path Rules`):
       1. REPO_ROOT  -- for dotted-prefix `from src.contracts.common import ...`
                        (src/contracts/base.py:11 uses this style)
-      2. LIFE_SRC   -- for bare-namespace `from contracts.investigation import ...`
+      2. LIFE_SRC   -- for bare-namespace `from src.contracts.investigation import ...`
                        (src/ikigai/src/mcp_server/investigation_complete.py:7)
       3. IKIGAI_SRC -- so `python -m mcp_server` resolves the package
                        (src/ikigai/src/mcp_server/__init__.py)
@@ -61,7 +61,7 @@ def _server_params() -> StdioServerParameters:
         args=["-u", "-m", "mcp_server"],
         # CRITICAL: cwd must be src/ikigai/src (the INNER src), NOT src/ikigai.
         # When cwd=src/ikigai, Python prepends '' to sys.path -> resolves
-        # `import contracts.X` to <repo>/src/ikigai/contracts/ (an old,
+        # `import src.contracts.X` to <repo>/src/ikigai/contracts/ (an old,
         # shadowed editable-install layout) instead of <repo>/src/contracts/.
         # The inner-src layout sidesteps the shadow. Same as scripts/mcp_inspect.py.
         cwd=str(IKIGAI_SRC),

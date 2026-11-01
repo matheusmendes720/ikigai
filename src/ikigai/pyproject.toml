@@ -5,13 +5,13 @@ description = "Standalone IKIGAi meta-brain for the Algorithmic Life OS"
 authors = ["Matheus + AI Agent"]
 readme = "README.md"
 packages = [
-    {include = "agents", from = "src"},
-    {include = "chat", from = "src"},
-    {include = "mcp_server", from = "src"},
+    # Serverless / cloud-native pivot (ADR-037, 2026-11-01): the legacy
+    # langchain/langgraph harness (agents), the local chat REPL (chat), the
+    # stdio MCP servers (mcp_server), the paperclip bridge (plugins) and the
+    # langgraph API wrapper (ikigai_wrapper) are PC-only and are no longer
+    # published. The data-layer contract surface lives in src/contracts.
     {include = "observability", from = "src"},
     {include = "strategics", from = "src"},
-    {include = "ikigai_wrapper.py", from = "src"},
-    {include = "plugins", from = "src"},
     # `sys_ikigai` lives at the REPO ROOT (not under src/ikigai), but the
     # installed package imports it at runtime (mcp_server.tools_vault,
     # agents.ikigai_write_vault, ...). Without shipping it, the console
@@ -64,12 +64,11 @@ uvicorn = ">=0.30"
 sse-starlette = ">=2.0"
 
 [tool.poetry.scripts]
-ikigai-maintainer-mcp = "run_mcp_server:main"
-ikigai-deep-agent = "agents.deepagents_harness:main"
-# Paperclip meta-orchestrator CLI (M169-M176).
-paperclip = "agents.paperclip.cli:main"
-# PaperclipAI ↔ life-oss bridge server.
-paperclipai-bridge = "plugins.paperclipai_bridge.main:app"
+# The console scripts of the legacy harness (ikigai-maintainer-mcp,
+# ikigai-deep-agent, paperclip, paperclipai-bridge) were removed with the
+# serverless pivot (ADR-037): they only started the PC-local MCP server and
+# the langgraph dev harness. The cloud harness is specified in
+# specs/harness/ and is built serverless.
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"

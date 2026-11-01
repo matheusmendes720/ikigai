@@ -180,22 +180,3 @@ def test_v2_skill_list_via_life_cli(runner: CliRunner):
     assert '"skills"' in result.stdout
 
 
-def test_v2_skill_show_via_life_cli(runner: CliRunner, monkeypatch):
-    """M85: `life v2 skill-show <name>` should show skill details."""
-    manifest = {
-        "name": "ikigai-test",
-        "description": "Test skill",
-        "entry_point": "observe",
-        "actor": "agent",
-        "inputs": [],
-        "outputs": [{"taskdog_create_task": "test"}],
-        "metadata": {},
-    }
-    monkeypatch.setattr(
-        "interfaces.cli.invoke_skill.load_skill_manifest",
-        lambda n: manifest if n == "ikigai-test" else {},
-    )
-    result = runner.invoke(app, ["v2", "skill-show", "ikigai-test"])
-    assert result.exit_code == 0, result.stdout
-    assert "=== ikigai-test ===" in result.stdout
-    assert "fires taskdog: True" in result.stdout

@@ -54,8 +54,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from contracts.common import UEID
-from contracts.task_change import PropagationEvent
+from src.contracts.common import UEID
+from src.contracts.task_change import PropagationEvent
 
 # M163: schema version constant. v1 = original 8 columns; v2 adds 6 new
 # columns (tags, deps, audit_log, started_at, completed_at, priority_label).

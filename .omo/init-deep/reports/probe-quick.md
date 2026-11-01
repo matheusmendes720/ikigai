@@ -1,2 +1,0 @@
-PROBE_OK
-life

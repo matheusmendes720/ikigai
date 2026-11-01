@@ -439,7 +439,7 @@ def reverse_sync(
     """
     import uuid
 
-    from contracts.task_change import TaskAction, TaskChange
+    from src.contracts.task_change import TaskAction, TaskChange
 
     t0 = time.monotonic()
     result = ReverseSyncResult()
