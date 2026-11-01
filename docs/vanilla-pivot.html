@@ -1,0 +1,459 @@
+<title>Vanilla Pivot</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Instrument+Serif:ital@0;1&family=Instrument+Mono:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#eef1f4;--surface:#fff;--surface-2:#e4e9ee;--fg:#0f141a;--muted:#596673;--line:#ccd5dd;--line-soft:#e0e6ec;--accent:#17567f;--keep:#0d6f4b;--cut:#a02f28;--warn:#7f5d0d;--keep-bg:#e3f2ea;--cut-bg:#f8e7e5;--warn-bg:#f7efdc;--fd:"Instrument Serif",Georgia,serif;--fb:"Instrument Sans",system-ui,sans-serif;--fm:"Instrument Mono",ui-monospace,Consolas,monospace;--measure:68ch;--rail:232px;--r:3px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#090d12;--surface:#10161e;--surface-2:#161e28;--fg:#e4ebf2;--muted:#8794a2;--line:#24303e;--line-soft:#1a232e;--accent:#62b6dd;--keep:#3ec994;--cut:#f0756a;--warn:#dfb052;--keep-bg:#102a20;--cut-bg:#2b1614;--warn-bg:#2a2313;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#090d12;--surface:#10161e;--surface-2:#161e28;--fg:#e4ebf2;--muted:#8794a2;--line:#24303e;--line-soft:#1a232e;--accent:#62b6dd;--keep:#3ec994;--cut:#f0756a;--warn:#dfb052;--keep-bg:#102a20;--cut-bg:#2b1614;--warn-bg:#2a2313;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--fb);font-size:16px;line-height:1.62;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:20;background:var(--bg)}
+h1,h2,h3{text-wrap:balance;margin:0;font-weight:600}
+h1{font-family:var(--fd);font-weight:400;font-size:clamp(2.4rem,7vw,3.9rem);line-height:1.02;letter-spacing:-.02em}
+h2{font-family:var(--fd);font-weight:400;font-size:clamp(1.5rem,3.6vw,2.05rem);line-height:1.14}
+h3{font-size:1.02rem}
+p,li{max-width:var(--measure)}p{margin:0 0 1em}
+strong{font-weight:650}
+code{font-family:var(--fm);font-size:.875em;background:var(--surface-2);padding:.1em .36em;border-radius:2px}
+pre{font-family:var(--fm);font-size:.8rem;line-height:1.62;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;overflow-x:auto;margin:0 0 1.2em}
+pre code{background:none;padding:0;font-size:inherit}
+.mono{font-family:var(--fm);font-variant-numeric:tabular-nums}
+.shell{display:grid;grid-template-columns:var(--rail) minmax(0,1fr);max-width:1360px;margin:0 auto}
+.rail{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:26px 18px 40px 0;border-right:1px solid var(--line);min-width:0}
+.rail-brand{font-family:var(--fm);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.rail-title{font-family:var(--fd);font-size:1.35rem;line-height:1.1;margin:2px 0}
+.rail-date{font-family:var(--fm);font-size:.7rem;color:var(--muted);margin-bottom:22px}
+.rail nav{display:flex;flex-direction:column;gap:1px}
+.rail nav a{font-family:var(--fm);font-size:.72rem;color:var(--muted);text-decoration:none;padding:5px 8px;border-left:2px solid transparent}
+.rail nav a:hover,.rail nav a.active{color:var(--fg);border-left-color:var(--accent)}
+.tt{margin-top:24px;font-family:var(--fm);font-size:.7rem;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:6px 10px;cursor:pointer}
+main{padding:26px 0 96px 40px;min-width:0}
+section{padding:40px 0 8px;scroll-margin-top:12px}
+section+section{border-top:1px solid var(--line-soft)}
+.eyebrow{font-family:var(--fm);font-size:.68rem;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin:0 0 10px;display:flex;gap:10px}
+.eyebrow .num{color:var(--muted)}
+.lede{font-size:1.06rem;color:var(--muted);max-width:var(--measure);margin-bottom:22px}
+.hero{padding:30px 0 44px;border-bottom:1px solid var(--line)}
+.hero h1{margin-bottom:18px}
+.verdict{font-family:var(--fd);font-size:clamp(1.15rem,2.6vw,1.5rem);line-height:1.34;max-width:30ch;margin-bottom:20px}
+.verdict em{font-style:italic;color:var(--accent)}
+.hero-meta{font-family:var(--fm);font-size:.72rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 18px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:32px}
+.stat{background:var(--surface);padding:15px 17px;min-width:0}
+.stat .n{font-family:var(--fm);font-size:1.62rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .n small{font-size:.62rem;color:var(--muted)}
+.stat .l{font-size:.78rem;color:var(--muted);margin-top:5px;line-height:1.4}
+.stat.cut .n{color:var(--cut)}.stat.keep .n{color:var(--keep)}
+.tw{overflow-x:auto;margin:0 0 20px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.855rem;min-width:520px}
+th,td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+thead th{font-family:var(--fm);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line);background:var(--surface-2);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right;font-family:var(--fm);font-variant-numeric:tabular-nums;white-space:nowrap}
+.chip{display:inline-block;font-family:var(--fm);font-size:.63rem;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:2px;border:1px solid transparent;white-space:nowrap}
+.chip.keep{color:var(--keep);background:var(--keep-bg);border-color:color-mix(in srgb,var(--keep) 28%,transparent)}
+.chip.cut{color:var(--cut);background:var(--cut-bg);border-color:color-mix(in srgb,var(--cut) 28%,transparent)}
+.chip.warn{color:var(--warn);background:var(--warn-bg);border-color:color-mix(in srgb,var(--warn) 28%,transparent)}
+.chip.neut{color:var(--muted);background:var(--surface-2);border-color:var(--line)}
+.qa{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden;margin-bottom:20px}
+.qa-item{padding:15px 17px;border-bottom:1px solid var(--line-soft)}
+.qa-item:last-child{border-bottom:none}
+.qa-q{font-weight:620;margin-bottom:5px;font-size:.98rem}
+.qa-a{color:var(--muted);font-size:.92rem;max-width:74ch}
+.qa-a b{color:var(--fg)}
+.ev{list-style:none;padding:0;margin:0 0 20px;border-left:2px solid var(--line)}
+.ev li{padding:0 0 16px 16px;margin-left:2px;position:relative;max-width:76ch}
+.ev li:before{content:"";position:absolute;left:-5px;top:8px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.ev .claim{font-weight:600}
+.ev .src{display:block;font-family:var(--fm);font-size:.73rem;color:var(--muted);margin-top:3px}
+.topo{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-bottom:20px}
+.topo-col{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.topo-head{font-family:var(--fm);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;padding:9px 14px;border-bottom:1px solid var(--line);background:var(--surface-2);color:var(--muted)}
+.topo-body{padding:14px;display:flex;flex-direction:column}
+.layer{font-family:var(--fm);font-size:.735rem;padding:7px 11px;border:1px solid var(--line);border-radius:2px;background:var(--surface-2);word-break:break-word}
+.layer.dead{border-style:dashed;color:var(--cut);background:var(--cut-bg);text-decoration:line-through}
+.layer.keep{border-color:color-mix(in srgb,var(--keep) 40%,transparent)}
+.layer .n{display:block;font-size:.64rem;color:var(--muted);margin-top:2px;text-decoration:none}
+.layer.dead .n{color:var(--cut)}
+.arrow{text-align:center;color:var(--muted);font-family:var(--fm);font-size:.85rem;padding:3px 0}
+.bar-row{display:grid;grid-template-columns:minmax(140px,200px) minmax(0,1fr) auto;gap:12px;align-items:center;margin-bottom:9px;font-size:.85rem}
+.bar-label{color:var(--muted);font-family:var(--fm);font-size:.76rem}
+.bar-track{height:15px;background:var(--surface-2);border:1px solid var(--line);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%}.bar-fill.d{background:var(--cut)}.bar-fill.c{background:var(--keep)}
+.bar-val{font-family:var(--fm);font-size:.78rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.steps{list-style:none;padding:0;margin:0 0 20px;counter-reset:s}
+.steps li{counter-increment:s;position:relative;padding:0 0 20px 46px;max-width:76ch}
+.steps li:before{content:counter(s);position:absolute;left:0;top:0;width:28px;height:28px;border:1px solid var(--line);border-radius:2px;background:var(--surface);color:var(--accent);font-family:var(--fm);font-size:.78rem;display:flex;align-items:center;justify-content:center}
+.steps .when{font-family:var(--fm);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:3px}
+.steps .what{font-weight:600;margin-bottom:3px}
+.steps .how{color:var(--muted);font-size:.9rem}
+.callout{border:1px solid var(--line);border-left:3px solid var(--accent);background:var(--surface);border-radius:var(--r);padding:15px 17px;margin:0 0 20px}
+.callout.warn{border-left-color:var(--warn)}.callout.cut{border-left-color:var(--cut)}.callout.keep{border-left-color:var(--keep)}
+.callout .h{font-family:var(--fm);font-size:.68rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.callout p:last-child{margin-bottom:0}
+footer{border-top:1px solid var(--line);margin-top:44px;padding-top:22px;font-family:var(--fm);font-size:.71rem;color:var(--muted)}
+footer ul{list-style:none;margin:10px 0 0;columns:2;column-gap:30px}
+footer li{break-inside:avoid;padding:2px 0}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.rail{position:static;max-height:none;border-right:none;border-bottom:1px solid var(--line);padding:18px 0 14px}.rail nav{flex-direction:row;overflow-x:auto;gap:2px}.rail nav a{border-left:none;border-bottom:2px solid transparent;white-space:nowrap}.rail nav a:hover,.rail nav a.active{border-bottom-color:var(--accent)}main{padding:18px 0 70px}.bar-row{grid-template-columns:1fr;gap:4px}footer ul{columns:1}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<div class="shell">
+<aside class="rail">
+<div class="rail-brand">life-oss / life</div>
+<div class="rail-title">Vanilla Pivot</div>
+<div class="rail-date">2026-10-30 · relatório de decisão</div>
+<nav id="toc">
+<a href="#pedido">O pedido</a><a href="#diagnostico">Diagnóstico</a><a href="#forks">Os 8 forks</a>
+<a href="#harness">Harness vs. skills</a><a href="#terceiro">Harness de terceiro?</a><a href="#customizar">Onde customizar</a>
+<a href="#arquitetura">Arquitetura alvo</a><a href="#aplicacao">A aplicação que falta</a><a href="#esforco">Esforço</a>
+<a href="#plano">Plano</a><a href="#riscos">Riscos e limites</a>
+</nav>
+<button class="tt" id="tt" type="button">◐ tema</button>
+</aside>
+
+<main>
+<div class="hero">
+<h1>Vanilla&nbsp;Pivot</h1>
+<p class="verdict">O sistema não tem um problema de escala. Tem um problema de <em>ordem</em>: a infraestrutura foi construída antes do conteúdo, e o conteúdo nunca chegou.</p>
+<div class="hero-meta"><span>life-oss / life + fin_ops</span><span>79.320 LOC · 555 arquivos</span><span>evidência: código + 6 documentos de auditoria do próprio owner</span></div>
+<div class="stats">
+<div class="stat cut"><div class="n">39<small>%</small></div><div class="l">das 123 células de capacidade estão verdes (48✅ / 21⚠️ / 41🚫)</div></div>
+<div class="stat cut"><div class="n">7<small> semanas</small></div><div class="l">de silêncio no vault — último registro: 2026-09-07</div></div>
+<div class="stat cut"><div class="n">823</div><div class="l">logs do loop em <code>.claude/loop/logs/</code></div></div>
+<div class="stat keep"><div class="n">0</div><div class="l">linhas de código integrando <code>life</code> e <code>fin_ops</code></div></div>
+</div>
+</div>
+
+<section id="pedido">
+<p class="eyebrow"><span class="num">§ 0</span> o que foi perguntado</p>
+<h2>Cinco perguntas, cinco respostas</h2>
+<p class="lede">A pergunta original tinha cinco partes. Nenhuma delas precisou de uma seção própria — cada uma cabe em um parágrafo porque a evidência já está no repositório.</p>
+<div class="qa">
+<div class="qa-item"><div class="qa-q">Até onde vai a praticidade de manter forks de interfaces customizadas sobre um protocolo único de dados?</div>
+<div class="qa-a"><b>O protocolo é único e nunca bifurcou.</b> São 967 linhas em <code>src/contracts/</code> — UEID de 4 partes, Pydantic v2 estrito. <b>As superfícies ao redor bifurcaram 8 vezes.</b> O custo do fork não está no contrato; está nas 8 implementações concorrentes que ninguém reconciliou (§2).</div></div>
+<div class="qa-item"><div class="qa-q">Qual o ganho real de escrever um harness próprio sobre LangGraph, em vez de specs de skill por workflow?</div>
+<div class="qa-a"><b>Zero, para um usuário só.</b> O ganho do LangGraph é execução durável, checkpointing e branching determinístico — você é o scheduler, o gate human-in-the-loop e o resume. <b>E o achado mais forte:</b> 10 dos 16 nós do grafo são prompts com roupa de Python (14–35 linhas cada). LangGraph brilha exatamente onde está o prompt, que é onde ele não faz diferença.</div></div>
+<div class="qa-item"><div class="qa-q">Harness de terceiro, ou engenharia de dados própria?</div>
+<div class="qa-a"><b>Engenharia de dados própria. Nenhum harness de terceiro.</b> Todo framework de agente — LangGraph, Pydantic AI, CrewAI, smolagents, Letta — reimplementa o que o Claude Code já entrega (fan-out via Task, tool use, HIL, sessão). Se o <code>hermes</code> um dia precisar dirigir isso, exponha a CLI como servidor MCP com <code>fastmcp</code>: ~50 linhas, contra os 22 tools do gateway custom dos quais 9 apontam para tools inexistentes.</div></div>
+<div class="qa-item"><div class="qa-q">Quanto falta para completar a aplicação exatamente como planejado, ou quanto se ganha pivotando?</div>
+<div class="qa-a"><b>Terminar: ~6–9 pessoa-meses, e não resolveria.</b> O caminho pivotado: <b>~3 dias</b> para gerar o artefato visual que você pediu. A razão pela qual terminar não resolveria está no §1 — o gate que trava o vault é circular, e código novo não o desfaz.</div></div>
+<div class="qa-item"><div class="qa-q">O que vale customizar, em definitivo?</div>
+<div class="qa-a"><b>Uma regra só: onde há invariante, código; onde há julgamento, prompt.</b> Invariante = formato UEID, sole-writer do vault, append-only, rename atômico, idempotência em <code>ueid</code>, thresholds determinísticos, renderização do Gantt. Julgamento = sugerir melhorias, surfaced intentions, score vectors, balance, plan, reflect. Isso decide os 16 nós de uma vez (§5).</div></div>
+</div>
+</section>
+
+<section id="diagnostico">
+<p class="eyebrow"><span class="num">§ 1</span> diagnóstico</p>
+<h2>O ciclo não é um problema de código</h2>
+<p class="lede">Sua percepção — complexidade absurda, uso prático zero — é <b>literalmente confirmada</b> pelos documentos de auditoria que o próprio sistema produziu. Não é percepção: é métrica.</p>
+<div class="tw"><table>
+<thead><tr><th>Camada</th><th class="num">LOC</th><th class="num">Arquivos</th><th>% do código</th><th>Papel</th></tr></thead>
+<tbody>
+<tr><td><code>src/ikigai/</code> — harness do agente</td><td class="num">47.634</td><td class="num">285</td><td class="num">60%</td><td><span class="chip cut">origem do custo</span></td></tr>
+<tr><td><code>vibe-ops/</code></td><td class="num">8.229</td><td class="num">101</td><td class="num">10%</td><td>sync do vault, parcialmente útil</td></tr>
+<tr><td><code>interfaces/</code> — CLI + TUI + studio</td><td class="num">7.831</td><td class="num">38</td><td class="num">10%</td><td>3 superfícies para 1 usuário</td></tr>
+<tr><td><code>sys_ikigai/</code> — entidades, FSM, vault, gateway</td><td class="num">7.538</td><td class="num">89</td><td class="num">10%</td><td><span class="chip keep">contém o vault_write</span></td></tr>
+<tr><td><code>src/mesh/</code> — adapters, fila, gantt</td><td class="num">7.121</td><td class="num">28</td><td class="num">9%</td><td><span class="chip keep">contém o Gantt</span></td></tr>
+<tr><td><code>src/contracts/</code> — modelo de objeto</td><td class="num">967</td><td class="num">14</td><td class="num">1%</td><td><span class="chip keep">o protocolo único</span></td></tr>
+<tr style="font-weight:650"><td>Total</td><td class="num">79.320</td><td class="num">555</td><td class="num">100%</td><td>~1 usuário</td></tr>
+</tbody></table></div>
+<p>O harness é <b>49× o tamanho do contrato</b> que ele serve. A rede de drift sozinha — <code>test_canonical_scope.py</code> (1.225) + <code>test_drift_extended_invariants.py</code> (1.515) + <code>test_drift_invariants.py</code> (237) — são <b>2.977 linhas protegendo 967 linhas</b>.</p>
+<h3 style="margin:28px 0 12px">Seis provas, todas documentadas dentro do próprio repositório</h3>
+<ul class="ev">
+<li><span class="claim">O processo de construir desacoplou da coisa construída.</span> <code>docs/superpowers/plans/2026-09-14-ikigai-rebuild-honest.md</code> abre com: <i>"Phase 5 loop revealed previous workflows created commits but files do not persist on disk."</i> Os 20 arquivos esperados estão marcados MISSING; M12 "SHIPPED" foi reconciliado para <i>"intent, not shipped"</i>. O "rebuild" escreve <code>ikigai_balance</code> retornando <code>{"verdict": "OK"}</code> e um <code>recall_node</code> com <code>recalled_at = "2026-09-14"</code> hardcoded — com testes que asseveram esses stubs.<span class="src">plans/2026-09-14-ikigai-rebuild-honest.md:89 · proposals.py:60 · recall_node.py</span></li>
+<li><span class="claim">A superfície de integração do harness já está quebrada em runtime.</span> <code>mcp_bridge.py:88-130</code> envolve 9 nomes de tool que foram deletados de <code>server.py</code> no commit <code>b960e852</code>. O segundo P0: dois regex UEID concorrentes — 4 partes em <code>src/contracts/common.py:34</code>, 5 partes em <code>sys_ikigai/entities/ueid.py:16</code>.<span class="src">specs/2026-09-10-system-review-diagnosis.md §L4 G-1, §L5 G-1</span></li>
+<li><span class="claim">39% verde — e sua própria auditoria já tinha escrito isso.</span> De 123 células de capacidade, só uma capability está 100% verde nos 6 tiers ("show via mesh"). Chroma: coleção criada, 0 embeddings. Mesh SQLite: órfão de 0 byte. <code>boulder.json</code> stale desde 2026-06-30. Investigation queue: não existe.<span class="src">specs/2026-09-04-capability-status.md §5</span></li>
+<li><span class="claim">O gate que trava o vault é circular, e está escrito no vault.</span> <code>vault/ikigai/closing-2026/02-q4-2026/02-onda-1/placeholder.md</code>: <i>"Do not fill this scaffold until the system layers that consume onda output are functional."</i> O sistema consome o vault; o vault espera o sistema. <b>0 entidades SONHO semeadas.</b><span class="src">vault/…/02-onda-1/placeholder.md:3-5</span></li>
+<li><span class="claim">O loop de execução nunca arrancou, e o sistema revisava a si mesmo.</span> <code>2026-09-04-tlc-execution-loop.md</code> termina em <i>"Loop ready. Awaiting user decision on Wave 1 ship + ADR-023"</i> — 7 semanas de silêncio. A Wave 5 sozinha são 12+ semanas, gated. O <code>hill-climb-LATEST.md</code> registra 10 ticks, $1,80, e <b>"No change recommended"</b> nas 5 superfícies do próprio scaffolding.<span class="src">specs/2026-09-04-tlc-execution-loop.md:427 · .claude/loop/logs/hill-climb-LATEST.md:10-23</span></li>
+<li><span class="claim">A Opção C já foi construída, aprovada e abandonada.</span> <code>vault/plans/agentic-markdown-system.md</code>: <i>"CLOSED — 19/19 tasks complete, F1-F4 all APPROVED"</i>. Nove templates .md, três Bases Dataview, quatro workflow YAMLs — em <code>.claude/skills/quarterly-planner/</code>, que ainda existe hoje. <b>O problema nunca foi a Opção C. Foi construir a Opção D em cima dela e nunca usar a C.</b><span class="src">vault/plans/agentic-markdown-system.md:4-6</span></li>
+</ul>
+<div class="callout cut"><div class="h">A inversão</div>
+<p>O vault — o artefato do humano — ficou <b>downstream</b> da máquina. O canal que funcionava era o <b>sessão de chat com Claude Code</b>: foi assim que o plano trimestral foi escrito, em "claude-code interactive planning session" de 2026-08-28. Esse canal foi <b>deprecado</b> em favor de um canal de máquina (MCP gateway → grafo → <code>vault_write</code>) que nunca funcionou.</p>
+<p>E o sistema está <b>seco onde deveria ser molhado</b> — o agente é planner-only, só sugere — e <b>molhado onde deveria ser seco</b>: 6 daemons, 22 tools MCP, 3 UIs, um grafo de 16 nós projetado para rodar para sempre.</p></div>
+</section>
+
+<section id="forks">
+<p class="eyebrow"><span class="num">§ 2</span> taxonomia dos forks</p>
+<h2>Oito bifurcações, um protocolo</h2>
+<p class="lede">Você perguntou sobre "forks das interfaces customizados num protocolo único de dados". A resposta precisa: <b>o protocolo é genuinamente único — 967 linhas, nunca bifurcadas. As superfícies é que bifurcaram, oito vezes.</b></p>
+<div class="tw"><table>
+<thead><tr><th>#</th><th>Onde bifurcou</th><th>Variantes</th><th>Evidência</th></tr></thead>
+<tbody>
+<tr><td class="num">1</td><td><b>entry_point de skill</b></td><td>nó do grafo <span class="chip neut">surface_intentions</span> <span class="chip neut">observe</span> · callable Python <span class="chip keep">…run_skill</span></td><td><code>skills/daily.md:4</code> vs <code>.claude/skills/taskdog-triage/SKILL.md:7</code></td></tr>
+<tr><td class="num">2</td><td><b>Casa das skills</b></td><td><code>.claude/skills/</code> · <code>src/ikigai/src/agents/v2/skills/</code></td><td><code>.claude/skills/ikigai-daily/SKILL.md</code> é um <b>ponteiro de 1 linha</b> para o manifest real</td></tr>
+<tr><td class="num">3</td><td><b>Backends de tarefa</b></td><td>cli jsonl · taskdog SQLite · solverforge calendar</td><td><code>src/mesh/adapters/{cli,taskdog,solverforge_calendar}.py</code></td></tr>
+<tr><td class="num">4</td><td><b>Superfícies de interface</b></td><td>CLI v2 · Textual TUI (5 abas) · studio HTTP</td><td><code>interfaces/{cli,tui/operator,studio}/</code></td></tr>
+<tr><td class="num">5</td><td><b>Definição de UEID</b></td><td>4 partes · 5 partes</td><td><code>src/contracts/common.py:34</code> vs <code>sys_ikigai/entities/ueid.py:16</code> <span class="chip cut">P0</span></td></tr>
+<tr><td class="num">6</td><td><b>Escritores de tasks.jsonl</b></td><td>2 escritores, 2 schemas</td><td>capability-status §3: <i>"split-brain"</i></td></tr>
+<tr><td class="num">7</td><td><b>Raízes do vault</b></td><td><code>life/vault/</code> · <code>G:\…\notas_estudo</code> (Bases + plano de junho)</td><td><code>vault/plans/agentic-markdown-system.md:12</code>; <code>grep notas_estudo life/</code> → <b>0 hits</b> hoje</td></tr>
+<tr><td class="num">8</td><td><b>Instâncias de gateway MCP</b></td><td>FastMCP <code>ikigai-gateway</code> · <code>UnifiedMCPGateway</code> HTTP/SSE · FastMCP separado em <code>taskdog_tools.py</code> · path3 (off)</td><td>system-review §L4 G-3 · capability-status §4</td></tr>
+</tbody></table></div>
+<div class="callout"><div class="h">Leitura</div>
+<p>O fork 5 é o único que é <b>bug</b> — duas definições concorrentes do mesmo identificador. Os forks 3, 4 e 8 são <b>decisões</b> — alguém escolheu manter três backends, três UIs, três gateways. Os forks 1 e 2 são <b>acidentes</b>: ninguém percebeu que o <code>entry_point</code> podia apontar para um nó do grafo ou para um callable, e as skills se dividiram entre dois diretórios.</p>
+<p><b>O fork 2 é o que torna o pivot barato.</b> As duas implementações nativas que você nunca usou — <code>taskdog-triage</code> e <code>vault-intent-extract</code> — já estão no formato certo, em <code>.claude/skills/</code>, com <code>entry_point</code> apontando para callable.</p></div>
+</section>
+
+<section id="harness">
+<p class="eyebrow"><span class="num">§ 3</span> a pergunta central</p>
+<h2>Quanto o LangGraph compra, e o que ele custa</h2>
+<p class="lede">Toda capacidade que o grafo oferece, lado a lado. E depois, o achado que fecha a discussão.</p>
+<div class="tw"><table>
+<thead><tr><th>Capacidade</th><th>Harness LangGraph custom</th><th>Skill .md + Claude Code nativo</th><th>Necessário para 1 usuário?</th></tr></thead>
+<tbody>
+<tr><td>Execução durável / resume pós-morte</td><td><code>checkpoint.py</code> 565 + 3 auxiliares</td><td class="chip cut">não</td><td><b>Não</b> — você está presente</td></tr>
+<tr><td>Human-in-the-loop pause/resume</td><td><code>hil_pause.py</code> 170 + <code>interrupt()</code></td><td>Ctrl-C + você</td><td><b>Não</b></td></tr>
+<tr><td>Branching determinístico</td><td>edges do grafo</td><td>o agente decide</td><td>Não</td></tr>
+<tr><td>Fan-out multi-agente</td><td>paperclip, 6 adapters, 3 gates</td><td>Task tool nativa</td><td>Não</td></tr>
+<tr><td>Checkpoint / time-travel debug</td><td><code>ikigai_checkpoints.db</code></td><td class="chip cut">não</td><td>Não</td></tr>
+<tr><td>Ler e escrever no vault</td><td>22 tools MCP — <b>9 quebradas</b></td><td>Read / Write / Bash nativos</td><td>Já tenho</td></tr>
+<tr><td>Rodar a CLI</td><td>wrappers MCP</td><td>Bash nativo</td><td>Já tenho</td></tr>
+</tbody></table></div>
+<h3 style="margin:28px 0 12px">O achado: 10 dos 16 nós são prompts com roupa de Python</h3>
+<p>Os nós do grafo v2, medidos em <code>src/ikigai/src/agents/v2/nodes/</code>:</p>
+<div class="tw"><table>
+<thead><tr><th>Nó</th><th class="num">LOC</th><th>O que é na verdade</th><th>Veredicto</th></tr></thead>
+<tbody>
+<tr><td><code>decompose</code></td><td class="num">14</td><td>decomposição de pedido</td><td><span class="chip cut">prompt</span></td></tr>
+<tr><td><code>surface_intentions</code></td><td class="num">17</td><td>superfície de intenções</td><td><span class="chip cut">prompt</span></td></tr>
+<tr><td><code>plan</code> · <code>reflect</code> · <code>balance</code> · <code>score_vectors</code></td><td class="num">26</td><td>juízo de planejamento</td><td><span class="chip cut">prompt</span></td></tr>
+<tr><td><code>heuristics</code> · <code>error</code></td><td class="num">32–35</td><td>heurística / guarda</td><td><span class="chip cut">prompt</span></td></tr>
+<tr><td><code>reason_node</code> · <code>meta_plan/classify_intent</code></td><td class="num">70</td><td>classificação</td><td><span class="chip cut">prompt</span></td></tr>
+<tr><td><code>tag_propagation</code> · <code>tag_and_persist</code></td><td class="num">82–83</td><td>propagação de tags</td><td><span class="chip warn">fronteira</span></td></tr>
+<tr><td><code>commit</code></td><td class="num">90</td><td>escrita no vault</td><td><span class="chip keep">código</span></td></tr>
+<tr><td><code>gantt_suggest</code></td><td class="num">100</td><td>sugestão de cronograma</td><td><span class="chip cut">prompt</span></td></tr>
+<tr><td><code>dep_graph</code></td><td class="num">112</td><td>resolução de dependências</td><td><span class="chip keep">código</span></td></tr>
+<tr><td><code>observe</code> · <code>proposal_executor</code></td><td class="num">158–161</td><td>leitura de estado · execução</td><td><span class="chip keep">código</span></td></tr>
+</tbody></table></div>
+<div class="callout keep"><div class="h">Por que isso decide a questão</div>
+<p>LangGraph vale por <b>branching determinístico sobre estado compartilhado</b>. O branching dos 10 nós acima é julgamento — o grafo não decide, ele pede pro LLM decidir, e aí o LLM lê um prompt e decide o mesmo que decidiria lendo o mesmo prompt num .md.</p>
+<p><b>Então o grafo é 80% prompt com cadastro no Python.</b> O valor do LangGraph está concentrado nos ~6 nós que são código de verdade — e esses não precisam de grafo: são uma função que lê o vault e devolve um Proposal.</p></div>
+</section>
+
+<section id="terceiro">
+<p class="eyebrow"><span class="num">§ 4</span> harness de terceiro</p>
+<h2>Nenhum. E a engenharia de dados que você já tem</h2>
+<p class="lede">A pergunta tinha duas metades. A segunda é a que importa: "harness de terceiro <b>ou</b> engenharia de dados própria?" — a resposta é a segunda, e ela já está construída.</p>
+<div class="tw"><table>
+<thead><tr><th>Opção</th><th>O que traz</th><th>Veredicto</th></tr></thead>
+<tbody>
+<tr><td><b>Claude Code nativo</b><br><span class="mono" style="font-size:.72rem;color:var(--muted)">skills + subagents + hooks + cliente MCP</span></td><td>fan-out, tool use, HIL, sessão persistente. Já é onde você escreve plano hoje.</td><td><span class="chip keep">é o harness</span></td></tr>
+<tr><td><b>LangGraph / Pydantic AI / CrewAI / smolagents / Letta</b></td><td>reimplementam o que o Claude Code já dá. Única vantagem extra: checkpointing entre morte de processo — irrelevante para um ciclo diário que você re-roda.</td><td><span class="chip cut">redundante</span></td></tr>
+<tr><td><b>MCP oficial</b><br><span class="mono" style="font-size:.72rem;color:var(--muted)">fastmcp sobre a CLI</span></td><td>para o <code>hermes</code> dirigir as interfaces em modo nativo: <code>fastmcp</code> sobre os comandos existentes, <code>--json</code> já está em tudo.</td><td><span class="chip keep">~50 LOC</span></td></tr>
+<tr><td><b>Gateway MCP custom</b> <span style="font-size:.72rem;color:var(--muted)">o que existe hoje</span></td><td>22 tools, das quais 9 apontam para tools que não existem. Existe para tornar os nós do grafo chamáveis.</td><td><span class="chip cut">matar</span></td></tr>
+<tr><td><b>Engenharia de dados própria</b><br><span class="mono" style="font-size:.72rem;color:var(--muted)">contratos + fila + vault + adapters</span></td><td>UEID, <code>queue.py</code> (96 LOC), <code>review_queue_worker</code>, <code>vault_write</code>, adapters, <code>gantt_engine</code>.</td><td><span class="chip keep">é a resposta</span></td></tr>
+</tbody></table></div>
+<p>A assimetria é o argumento: <b>manter o gateway custom custa manter 22 contratos de tool em sincronia com um grafo que está sendo cortado. Trocá-lo por <code>fastmcp</code> sobre a CLI custa 50 linhas e nenhuma superfície nova</b> — porque a CLI já expõe <code>--json</code> em tudo por convenção.</p>
+</section>
+
+<section id="customizar">
+<p class="eyebrow"><span class="num">§ 5</span> onde customizar</p>
+<h2>Invariante pede código. Julgamento pede prompt.</h2>
+<p class="lede">A regra que substitui a lista de 15 mil linhas para apagar. Ela decide os 16 nós, os 8 forks e o futuro de cada arquivo.</p>
+<div class="tw"><table>
+<thead><tr><th>Regra</th><th>Teste</th><th>Exemplos</th><th>Veredicto</th></tr></thead>
+<tbody>
+<tr><td><b>Invariante</b></td><td>um prompt não consegue <i>garantir</i> isto</td><td>formato UEID · sole-writer do vault · append-only · rename atômico · idempotência em <code>ueid</code> · thresholds determinísticos · renderização do Gantt</td><td><span class="chip keep">código</span></td></tr>
+<tr><td><b>Julgamento</b></td><td>o resultado é melhor com o modelo no meio</td><td>"sugerir 3–5 melhorias em pt-BR" · "surface intentions" · score vectors · balance · plan · reflect · decompose · gantt_suggest</td><td><span class="chip cut">prompt no .md</span></td></tr>
+</tbody></table></div>
+<h3 style="margin:28px 0 12px">Aplicada ao inventário</h3>
+<div class="tw"><table>
+<thead><tr><th>Subsistema</th><th class="num">LOC</th><th>Veredicto</th><th>Por quê</th></tr></thead>
+<tbody>
+<tr><td><code>src/contracts/</code></td><td class="num">967</td><td><span class="chip keep">manter</span></td><td>1% do código, 100% do protocolo. Nunca bifurcou.</td></tr>
+<tr><td><code>sys_ikigai/vault/</code></td><td class="num">~800</td><td><span class="chip keep">manter</span></td><td>sole-writer, lock, append-only. Protege o seu conteúdo.</td></tr>
+<tr><td><code>src/mesh/gantt_*</code> + <code>cli/td_gantt.py</code></td><td class="num">~810</td><td><span class="chip keep">manter e usar</span></td><td>é o artefato visual. Já funciona.</td></tr>
+<tr><td><code>src/mesh/queue.py</code> + <code>adapters/base.py</code></td><td class="num">~113</td><td><span class="chip keep">manter</span></td><td>create-only + idempotência. 113 linhas para um invariante real.</td></tr>
+<tr><td><code>vibe-ops/</code> (metade sync)</td><td class="num">~1.200</td><td><span class="chip keep">manter</span></td><td><code>bidirectional_sync.py</code> (513) já foi aprovada com 204 testes.</td></tr>
+<tr><td><code>interfaces/cli/</code></td><td class="num">~4.300</td><td><span class="chip warn">simplificar</span></td><td>a CLI nativa que o agente vai operar. Cortar o sprawl de taskdog.</td></tr>
+<tr><td>rede de drift</td><td class="num">2.977</td><td><span class="chip warn">podar</span></td><td>manter UEID, append-only, sole-writer. <b>Deletar contagens de tool</b>: quebram a cada corte e não protegem nada.</td></tr>
+<tr><td><code>src/mesh/</code> taskdog sprawl</td><td class="num">~3.900</td><td><span class="chip cut">cortar</span></td><td>3 backends de tarefa para 1 pessoa. <b>Cuidado:</b> <code>taskdog_cli.py:61</code> importa o <code>td_gantt</code> — o CLI do Gantt é leaf dele.</td></tr>
+<tr><td><code>src/ikigai/src/agents/v2/</code> checkpoint+memory+SSE</td><td class="num">~5.000</td><td><span class="chip cut">cortar</span></td><td>resumibilidade que você não precisa.</td></tr>
+<tr><td><code>paperclip/</code> + <code>paperclip_dynamic/</code></td><td class="num">~5.600</td><td><span class="chip cut">cortar</span></td><td>orquestar outros agentes. O <code>hermes</code> são 20 linhas com <code>NotImplementedError</code>.</td></tr>
+<tr><td><code>src/ikigai/src/mcp_server/</code></td><td class="num">~1.400</td><td><span class="chip cut">cortar</span></td><td>9 das tools que o bridge chama não existem.</td></tr>
+<tr><td><code>interfaces/tui/operator/</code> + <code>studio/</code> + <code>td_tui.py</code></td><td class="num">~2.200</td><td><span class="chip cut">cortar</span></td><td>3 UIs para 1 usuário com terminal.</td></tr>
+<tr><td><code>tools_legacy_reference.py</code> + <code>harness_legacy_reference.py</code></td><td class="num">977</td><td><span class="chip cut">cortar</span></td><td>arquivos de referência mortos.</td></tr>
+<tr><td><code>fin_ops/</code> + <code>strategics/</code></td><td class="num">—</td><td><span class="chip keep">deixar</span></td><td><b>fin_ops é o único subsistema com CLI funcional e útil.</b> Foi declarado "stable/read-only" e ficou para trás. É o "input nas interfaces" que você pediu.</td></tr>
+</tbody></table></div>
+<p><b>O núcleo de máxima utilidade por unidade de complexidade:</b> contratos (967) + vault (800) + gantt (810) + fila (113) + as skills já existentes ≈ <b>2.700 linhas, 3% do código, 100% do valor</b>. E o artefato visual de timeline já está dentro dele.</p>
+</section>
+
+<section id="arquitetura">
+<p class="eyebrow"><span class="num">§ 6</span> arquitetura alvo</p>
+<h2>Um dispatch, seis skills, zero grafo</h2>
+<div class="topo">
+<div class="topo-col"><div class="topo-head">Hoje — 5 saltos, um deles quebrado</div><div class="topo-body">
+<div class="layer">.claude/skills/ikigai-daily/SKILL.md<span class="n">ponteiro de 1 linha</span></div><div class="arrow">↓</div>
+<div class="layer">skills/daily.md<span class="n">entry_point: surface_intentions → nó do grafo</span></div><div class="arrow">↓</div>
+<div class="layer dead">interfaces/cli/invoke_skill.py<span class="n">valida entry_point contra NODES</span></div><div class="arrow">↓</div>
+<div class="layer dead">graph.py<span class="n">StateGraph · 16 nós · 9 tools quebradas</span></div><div class="arrow">↓</div>
+<div class="layer">mcp_bridge → gateway → tools</div><div class="arrow">↓</div>
+<div class="layer">data/review_queue/ → --approve</div>
+</div></div>
+<div class="topo-col"><div class="topo-head">Alvo — 3 saltos, todos funcionando</div><div class="topo-body">
+<div class="layer keep">.claude/skills/&lt;nome&gt;/SKILL.md<span class="n">instrução nativa: algoritmo, constraints, error handling</span></div>
+<div class="arrow">↓ "rode: python -m interfaces.cli skill-run &lt;nome&gt; --json"</div>
+<div class="layer keep">interfaces/cli/skill_run.py<span class="n">dispatcher novo · ~150 LOC</span></div><div class="arrow">↓</div>
+<div class="layer keep">skills/&lt;nome&gt;.py → Proposal<span class="n">já graph-free: só proposals.py + cadence.py</span></div><div class="arrow">↓</div>
+<div class="layer">data/review_queue/ → --approve → tasks.jsonl + taskdog</div>
+</div></div>
+</div>
+<p>As 6 skills já estão na forma certa. Todas têm <code>SKILL_NAME</code> + <code>run_skill(...) -&gt; Proposal</code> e importam apenas <code>proposals.py</code> e <code>cadence.py</code>:</p>
+<div class="tw"><table>
+<thead><tr><th>Módulo</th><th class="num">LOC</th><th>Assinatura</th><th>Precisa do grafo?</th></tr></thead>
+<tbody>
+<tr><td><code>ikigai_daily.py</code></td><td class="num">109</td><td><code>run_skill(today=None)</code></td><td><span class="chip keep">não</span></td></tr>
+<tr><td><code>ikigai_weekly.py</code></td><td class="num">78</td><td><code>run_skill(today=None)</code></td><td><span class="chip keep">não</span></td></tr>
+<tr><td><code>ikigai_monthly.py</code></td><td class="num">56</td><td><code>run_skill(today=None)</code></td><td><span class="chip keep">não</span></td></tr>
+<tr><td><code>ikigai_quarterly.py</code></td><td class="num">86</td><td><code>run_skill(today=None)</code></td><td><span class="chip keep">não</span></td></tr>
+<tr><td><code>taskdog_triage.py</code></td><td class="num">135</td><td><code>run_skill(tasks=None, today=None)</code></td><td><span class="chip keep">não</span></td></tr>
+<tr><td><code>vault_intent_extract.py</code></td><td class="num">160</td><td><code>run_skill(markdown="")</code></td><td><span class="chip keep">não</span></td></tr>
+</tbody></table></div>
+<p><b>A mudança que destrava:</b> 4 manifests apontam <code>entry_point</code> para nó do grafo (<code>surface_intentions</code>, <code>observe</code>) quando deveriam apontar para o callable. <b>Uma linha por manifest.</b> <code>taskdog-triage</code> e <code>vault-intent-extract</code> já estão no formato certo.</p>
+<div class="callout warn"><div class="h">Ganho imediato, e é operacional</div>
+<p>O cron de <code>taskdog-triage</code> (<code>0 9 * * *</code>) passa a rodar <b>sem LLM e sem grafo</b>. Hoje ele aponta para <code>python -m interfaces.cli.main v2 daily --skill taskdog-triage</code> — e <code>interfaces.cli.main</code> não existe (o módulo é <code>interfaces.cli</code>), e o <code>entry_point</code> nem existe em <code>NODES</code>. <b>Esse cron está quebrado hoje.</b></p></div>
+<h3 style="margin:28px 0 12px">O contrato do dispatcher</h3>
+<pre><code># interfaces/cli/skill_run.py  (~150 LOC)
+@app.command(name="skill-run")
+def skill_run(name: str, json_out: bool = typer.Option(False, "--json")):
+    """Run a skill module by name. No LLM, no graph, no gateway."""
+    mod = get_skill(name)              # SKILL_REGISTRY
+    result = mod.run_skill()           # -&gt; Proposal
+    payload = {**result.to_dict(), **getattr(result, "metadata", {})}
+    if json_out:
+        print(json.dumps(payload, default=str))
+    else:
+        typer.echo(result.summary())
+    return 0
+
+# cron — determinístico, sem LLM
+0 9 * * * cd &lt;repo&gt; &amp;&amp; python -m interfaces.cli skill-run \
+    taskdog-triage --json &gt;&gt; data/feedback.jsonl</code></pre>
+<div class="callout cut"><div class="h">Bug a corrigir no caminho</div>
+<p><code>Proposal.to_dict()</code> é <code>asdict(self)</code> (<code>proposals.py:61</code>), e <code>asdict</code> só serializa campos declarados. Mas <code>ikigai_daily.py:97</code> anexa <code>metadata</code> dinamicamente — <b>as sugestões do daily desaparecem no JSON</b>. A linha <code>{**result.to_dict(), **getattr(result, "metadata", {})}</code> acima resolve. Alternativa mais limpa: dar a <code>Proposal</code> um campo <code>metadata: dict = field(default_factory=dict)</code>.</p></div>
+</section>
+
+<section id="aplicacao">
+<p class="eyebrow"><span class="num">§ 7</span> a aplicação que falta</p>
+<h2>As duas interfaces nunca foram ligadas</h2>
+<p class="lede">Você escreveu: <i>"deixar o hermes agent operar <b>ambas</b> as interfaces instaladas em seu modo nativo"</i>. Verifiquei: <b>zero linhas de código integram <code>life</code> e <code>fin_ops</code>.</b> As únicas menções cruzadas estão em prosa — dois documentos de planejamento em <code>life/src/planner/</code> e o CLAUDE.md de <code>fin_ops</code>.</p>
+<div class="topo">
+<div class="topo-col"><div class="topo-head">O que existe, separado</div><div class="topo-body">
+<div class="layer">life<span class="n">CLI v2 · TUI 5 abas · studio HTTP · --json</span></div>
+<div class="layer">vault/<span class="n">markdown · fonte da verdade do plano</span></div>
+<div class="layer">fin_ops<span class="n">track · report · calc · --json · estável, útil</span></div>
+<div class="arrow" style="padding:10px 0;color:var(--cut)">✗ nenhuma ligação</div>
+<div class="layer dead">nenhum artefato que junte plano + gasto + execução</div>
+</div></div>
+<div class="topo-col"><div class="topo-head">O que o skill entrega</div><div class="topo-body">
+<div class="layer">vault/01-plano-trimestral/*.md<span class="n">fases com Início / Fim → barras</span></div>
+<div class="layer">vault/02-onda-*/<span class="n">janela da onda → barra</span></div>
+<div class="layer">data/review_queue/*.json<span class="n">só propagated|approved entra no Gantt</span></div>
+<div class="layer">td gantt --mode=json<span class="n">execução + dependências</span></div>
+<div class="layer">fin_ops report --period month --json<span class="n">custo → anotação, não barra</span></div>
+<div class="arrow" style="padding:8px 0">↓</div>
+<div class="layer keep">timeline.md (Mermaid) + timeline.html<span class="n">Obsidian, GitHub, navegador</span></div>
+</div></div>
+</div>
+<p>O renderer já existe e funciona: <code>src/mesh/gantt_renderers.py</code> tem <code>render_html(plan)</code> com CSS embutido e classes por status (<code>gantt-planned</code>, <code>gantt-progress</code>, <code>gantt-done</code>, <code>gantt-overdue</code>), mais <code>render_ascii</code> em box-drawing e <code>td optimize</code> para ordenação topológica. <b>O que falta é apontá-lo para o vault.</b></p>
+<pre><code>vault/ikigai/closing-2026/&lt;quarter&gt;/01-plano-trimestral/
+  timeline.md      ← Mermaid Gantt (Obsidian e GitHub renderizam nativamente)
+  timeline.html    ← HTML autocontido, reaproveitando gantt_renderers.py</code></pre>
+<div class="callout keep"><div class="h">A regra que quebra o gate circular</div>
+<p>O skill é <b>consumidor</b>, não produtor. Ele lê markdown e arquivos .json e escreve dois arquivos. <b>Não precisa do agent layer, do MCP gateway, do LangGraph nem de LLM.</b> Ele pode rodar hoje, com o vault meio vazio — e a lacuna aparece no Gantt como informação, não como bug.</p>
+<p>Enquanto isso, <b>não edite os placeholders para "aclimatar" o timeline.</b> O gate "só preencher quando as camadas estiverem funcionais" é circular justamente porque o vault é o que destrava as camadas. Semeie <b>um</b> sonho e <b>uma</b> onda — 30 minutos — e o timeline já tem o que mostrar.</p></div>
+</section>
+
+<section id="esforco">
+<p class="eyebrow"><span class="num">§ 8</span> esforço</p>
+<h2>Terminar como planejado, ou pivotar</h2>
+<h3 style="margin:8px 0 12px">Option D — terminar como projetado</h3>
+<div class="tw"><table>
+<thead><tr><th>Workstream</th><th class="num">Estimativa</th><th>Origem</th></tr></thead>
+<tbody>
+<tr><td>TLC W1 — test hardening</td><td class="num">5 h</td><td rowspan="5" style="vertical-align:middle"><code>specs/2026-09-04-tlc-execution-loop.md</code> — o <b>próprio</b> plano do owner</td></tr>
+<tr><td>TLC W2 — skills + v2 commands</td><td class="num">11 h</td></tr>
+<tr><td>TLC W3 — Scenario A critical path</td><td class="num">32–44 h</td></tr>
+<tr><td>TLC W4 — Scenario B sub-agents</td><td class="num">70–92 h</td></tr>
+<tr><td>TLC W5 — Scenario C on-the-fly</td><td class="num">12+ semanas</td></tr>
+<tr><td>Q4 B3 (MCP gateway) + B4 (queue worker)</td><td class="num">4 semanas</td><td><code>deep-agent-build-q4-2026.md</code></td></tr>
+<tr><td>B5 (agent wiring) + B6 (vault sync)</td><td class="num">~8 semanas</td><td>adiado para 2027-Q1 <b>pelo próprio plano</b></td></tr>
+<tr><td>2 P0 + 41 gaps + gate AG3</td><td class="num">~2 semanas</td><td>system-review §Prioritized</td></tr>
+<tr style="font-weight:650"><td>Total</td><td class="num">~6–9 pessoa-meses</td><td></td></tr>
+</tbody></table></div>
+<h3 style="margin:26px 0 12px">Comparação</h3>
+<div class="bar-row"><div class="bar-label">D — terminar</div><div class="bar-track"><div class="bar-fill d" style="width:100%"></div></div><div class="bar-val">~6–9 pessoa-meses</div></div>
+<div class="bar-row"><div class="bar-label">C — pivotar</div><div class="bar-track"><div class="bar-fill c" style="width:1.8%"></div></div><div class="bar-val">~3 dias</div></div>
+<p style="margin-top:12px"><b>Razão de ~40–60×.</b> E a barra do Option D tem um problema que a razão não captura: a Wave 5 é gated por <b>5+ SONHO logs</b> — um hábito humano, sem prazo, que já falhou cinco vezes em sequência.</p>
+<div class="callout cut"><div class="h">Por que terminar não resolve, mesmo entregue</div>
+<p>O gate que trava o vault é circular e está escrito nos placeholders. Terminar D constrói mais máquina, mas o conteúdo continua esperando a máquina. <b>Mais código não desfaz um gate comportamental.</b> O que desfaz é semear um sonho e uma onda — 30 minutos.</p></div>
+</section>
+
+<section id="plano">
+<p class="eyebrow"><span class="num">§ 9</span> plano</p>
+<h2>72 horas, 30 dias, 90 dias</h2>
+<h3 style="margin:8px 0 12px">As primeiras 72 horas</h3>
+<ol class="steps">
+<li><span class="when">dia 1 manhã · decisão com prazo</span><span class="what">Resolver o gate AG3: descartar</span><span class="how">São ~1.600 linhas de gateway + adapters nunca mergeados no worktree <code>feat/data-model-unification</code>. A decisão vence <b>antes de 2026-11-09</b> (B3). Descartar destrava B3 sem custo. É a decisão mais barata do plano inteiro.</span></li>
+<li><span class="when">dia 1 · git</span><span class="what">Cortar ~15.000 linhas em branch própria</span><span class="how"><code>chore/vanilla-pivot</code>. <code>git rm</code> de <code>paperclip/</code> + <code>paperclip_dynamic/</code> (~5,6k), checkpoint/memory/SSE do v2 (~5k), <code>tools_legacy_reference.py</code> + <code>harness_legacy_reference.py</code> (977), <code>interfaces/tui/operator/</code> + <code>studio/</code> + <code>td_tui.py</code> (~2,2k), taskdog sprawl (~3,9k). <b>Tudo recuperável no git</b> — a reversibilidade é total. Antes: mover o <code>td gantt</code> para fora de <code>taskdog_cli.py</code>, senão o CLI do Gantt morre com ele.</span></li>
+<li><span class="when">dia 1 · pods</span><span class="what">Podar a rede de drift de 2.977 para ~800</span><span class="how">Manter: regex UEID, append-only, vault sole-writer. <b>Deletar as asserções de contagem de tool</b> — quebram a cada corte e não protegem nada. Acrescentar o teste que garante que nenhum módulo de skill importe <code>graph</code>.</span></li>
+<li><span class="when">dia 1 · custo zero</span><span class="what">Matar os daemons</span><span class="how">Os 6 daemons e os <b>823 logs</b> em <code>.claude/loop/logs/</code> são o motor do ciclo: computação gasta revisando o próprio scaffolding. <code>kill-switch pause</code> + remover os agendamentos de cron e o auto-spawner que faz polling de <code>.claude/loop/inbox/</code> a cada 5 min.</span></li>
+<li><span class="when">dia 2 · 30 min</span><span class="what">Semeear o vault</span><span class="how">Um <code>00-sonho/sonho-q4-2026.md</code> real e um <code>02-onda-1/</code> real, a partir de <code>vibe-ops/planning/_templates_periodos_v2/</code>. <b>É isto que destrava.</b> Não é um item de backlog; é o item.</span></li>
+<li><span class="when">dia 2 · 3 h</span><span class="what">Escrever o dispatcher <code>skill-run</code></span><span class="how">~150 LOC, sem LLM e sem grafo. Ajustar os 4 manifests para apontar <code>entry_point</code> ao callable. Corrigir o bug do <code>metadata</code> no <code>Proposal</code>. Corrigir o caminho do cron quebrado.</span></li>
+<li><span class="when">dia 2 · 3 h</span><span class="what">Escrever o skill <code>ikigai-timeline</code></span><span class="how">Ler plano do vault + <code>review_queue</code> + <code>td gantt --mode=json</code> + <code>fin_ops report --json</code>; escrever <code>timeline.md</code> (Mermaid) e <code>timeline.html</code>. Rodar. <b>É a aplicação que nunca existiu.</b></span></li>
+<li><span class="when">dia 3 · medir</span><span class="what">Definir a métrica que decide</span><span class="how">Em 14 dias: (a) <b>SONHO logs no vault</b> · (b) vezes que o timeline foi gerado · (c) proposals aprovados na fila. <b>Se (a) = 0 depois de semeadura manual em 14 dias, o problema é hábito, não código</b> — e nenhuma quantidade de código conserta isso.</span></li>
+</ol>
+<h3 style="margin:26px 0 12px">30 dias</h3>
+<p>Uma aplicação real rodando: o vault tem conteúdo, o timeline sai, <code>fin_ops</code> alimenta a camada de custo, o cron de triage roda sem LLM. Só então reabrir a discussão sobre B5/B6 — e provavelmente não.</p>
+<h3 style="margin:26px 0 12px">90 dias</h3>
+<p>Decisão sobre o resto de <code>vibe-ops</code> (~7.000 LOC de sprawl de modelos e pipelines) e sobre a terceira superfície do mesh (solverforge calendar — vale a pena um terceiro backend para 1 pessoa?). Manter AG3 e o resto dos cuts em <b>tags do git</b>, não em branches órfãs.</p>
+</section>
+
+<section id="riscos">
+<p class="eyebrow"><span class="num">§ 10</span> riscos e limites</p>
+<h2>O que pode dar errado, e o que eu não sei</h2>
+<div class="tw"><table>
+<thead><tr><th>Risco</th><th>Probabilidade</th><th>Mitigação</th></tr></thead>
+<tbody>
+<tr><td><b>A prática real está no vault do G:</b>, não em <code>life/vault/</code>. O plano de junho aponta para <code>G:\Other computers\My Laptop\notas_estudo</code>, onde estariam as Bases <code>Quarterly-Plans</code>, <code>Active-Ondas</code>, <code>Cycle-Tracker</code>. Se a sua operação de verdade vive lá, <b>a aplicação já existe</b> — e a máquina de 79k LOC foi construída para servir um vault que ninguém escreve.</td><td><span class="chip warn">alta — não verifiquei</span></td><td>Antes de cortar: olhar o vault do G:. <b>Se ele estiver ativo, o caminho é integrar, não pivotar.</b> Esta é a única variável que pode virar a conclusão inteira.</td></tr>
+<tr><td>Cortar 15k LOC quebra algo que só se descobre em runtime.</td><td><span class="chip warn">média</span></td><td>Branch dedicada, tudo recuperável no git, CI verde antes do merge, e a ordem: dispatcher + skill primeiro, corte depois.</td></tr>
+<tr><td>Sem LLM no cron, o <code>taskdog-triage</code> perde o contexto semântico (a <code>taskdog_audit</code> que ele usa para <code>blocked_long</code>/<code>paused_long</code>).</td><td><span class="chip warn">média</span></td><td>A skill já trata a ausência: <code>taskdog_audit</code> indisponível → esses dois detectores são pulados, os outros 3 rodam. Documentar no .md.</td></tr>
+<tr><td>O vault continua vazio mesmo depois do corte.</td><td><span class="chip warn">média-alta</span></td><td>A métrica de 14 dias. Se falhar, o diagnóstico é hábito e a resposta é reduzir a ambição do sistema, não aumentar a máquina.</td></tr>
+</tbody></table></div>
+<div class="callout warn"><div class="h">Limites desta análise</div>
+<p><b>O shell esteve indisponível durante a sessão toda.</b> Não rodei nenhum comando: não medi o histórico git, não executei <code>td gantt</code> para confirmar que o Gantt renderiza, não contei os 823 logs por data, não li o <code>hill-climb</code> além da última saída. As medições de LOC vêm de contagem por <code>grep</code> (diferem de <code>wc -l</code> em poucas linhas). <b>Antes de cortar, rode <code>pytest -m "not e2e"</code> e <code>td gantt --mode=ascii</code> para confirmar a linha de base.</b></p>
+<p>Também não li os 823 logs, não auditei os ~7.000 LOC de sprawl de <code>vibe-ops</code> linha a linha, e não inspecionei <code>archive/legacy-pav/</code>. As contagens de "cortar" vêm de leitura de imports e do fecho de dependências, não de análise estática de chamadas mortas.</p></div>
+</section>
+
+<footer>
+<div>life-oss / life — relatório de decisão · 2026-10-30 · evidência primária: código do repositório + 6 documentos de auditoria do próprio owner</div>
+<ul>
+<li>docs/superpowers/plans/2026-09-14-ikigai-rebuild-honest.md</li>
+<li>docs/superpowers/specs/2026-09-10-system-review-diagnosis.md</li>
+<li>docs/superpowers/specs/2026-09-04-capability-status.md</li>
+<li>docs/superpowers/specs/2026-09-04-tlc-execution-loop.md</li>
+<li>vault/plans/agentic-markdown-system.md</li>
+<li>vault/ikigai/closing-2026/02-q4-2026/01-plano-trimestral/</li>
+<li>src/ikigai/src/agents/v2/graph.py · nodes/ · skills/</li>
+<li>src/ikigai/src/agents/paperclip/agents/hermes.py</li>
+<li>interfaces/cli/v2.py · invoke_skill.py</li>
+<li>src/mesh/gantt_engine.py · gantt_renderers.py · cli/td_gantt.py</li>
+<li>src/contracts/common.py · sys_ikigai/entities/ueid.py</li>
+<li>.claude/loop/logs/hill-climb-LATEST.md</li>
+<li>.claude/skills/taskdog-triage/SKILL.md</li>
+</ul>
+</footer>
+</main>
+</div>
+
+<script>
+(function(){
+var root=document.documentElement,btn=document.getElementById('tt');
+try{var s=localStorage.getItem('vp-theme');if(s)root.setAttribute('data-theme',s);}catch(e){}
+if(btn){btn.addEventListener('click',function(){var c=root.getAttribute('data-theme');if(!c){c=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}var n=c==='dark'?'light':'dark';root.setAttribute('data-theme',n);try{localStorage.setItem('vp-theme',n);}catch(e){}});}
+var links=Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+var tg=links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+function sync(){var y=window.scrollY+90,b=-1;for(var i=0;i<tg.length;i++){if(tg[i]&&tg[i].offsetTop<=y)b=i;}links.forEach(function(a,i){a.classList.toggle('active',i===b);});}
+window.addEventListener('scroll',sync,{passive:true});window.addEventListener('resize',sync);sync();
+})();
+</script>

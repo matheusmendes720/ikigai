@@ -520,6 +520,20 @@ archive/legacy-pav/src-operational/medic/bin/
 # untracked (src/ikigai/poetry.lock, src/ikigai/src/plugins/, ...). Negating the
 # directory lets git descend again; inner rules (e.g. /src/data/) still apply.
 !/src/
+# Pattern 2c: exception — `docs` (4 letters) matches the 4-letter pattern above.
+# Same failure mode as `src`: git matched the directory itself, never descended,
+# and every NEW file under docs/ became silently untracked. Fixed 2026-11-01 —
+# the Vanilla Pivot report and the whole 2026-10-30 + 2026-11-01 spec series
+# were invisible to `git add` for ~2 months. Inner rules still apply.
+!/docs/
+# Pattern 2d: same failure mode for the other legitimate root directories that
+# match the 3- and 4-letter patterns above — `bin` (3) and `life` (4).
+# `life/` holds the meta-package (life/life/) plus its AGENTS.md knowledge
+# files, so every new file there was silently untracked and never reached the
+# remote. Negating the directories lets git descend again; inner rules
+# (__pycache__/, life/.life/) still apply to their contents.
+!/bin/
+!/life/
 # Pattern 3: scattered survivors (M57 spotted them, branchy gitignore)
 /80%
 /100
