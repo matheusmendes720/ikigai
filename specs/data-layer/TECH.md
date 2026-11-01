@@ -2,7 +2,7 @@
 
 **Feature id:** `data-layer`
 **Data:** 2026-11-01
-**Status:** proposed — **R1 ratificada (Supabase, 2026-11-01)**; aguardando aprovação do owner
+**Status:** approved — **R1 ratificada (Supabase, 2026-11-01) e aprovada pelo owner em 2026-11-01**; M195 (store) destravado
 **Decisão que ancora:** [`ADR-037`](../../code-docs/adr/ADR-037-data-layer-canonical-turn.md)
 **Série de specs (comportamento):** [`2026-11-01-00-data-layer-series.md`](../../docs/superpowers/specs/2026-11-01-00-data-layer-series.md) · [01 DOM](../../docs/superpowers/specs/2026-11-01-01-unified-dom.md) · [02 Store](../../docs/superpowers/specs/2026-11-01-02-cloud-store.md) · [03 Service+Transporte](../../docs/superpowers/specs/2026-11-01-03-service-transport-pi.md)
 
@@ -188,8 +188,10 @@ regra que o Vanilla Pivot §"3 regras que importam" fixou e que o loop
 
 ### Passos manuais (não automatizáveis)
 
-1. **R1 — ratificar o fornecedor.** Criar o projeto Postgres, habilitar
-   `pgvector` + `pg_trgm`, confirmar que o segredo vive **fora** do repo.
+1. **R1 — ratificar o fornecedor — DONE (2026-11-01, owner).** Fornecedor
+   ratificado: **Supabase** (Postgres serverless). Criar o projeto Postgres,
+   habilitar `pgvector` + `pg_trgm`, confirmar que o segredo vive **fora**
+   do repo.
 2. **SPEC-03 T3.7 — o fluxo do pi.** Abrir o pi, pedir "liste os KPIs do
    Q4-2026" em linguagem natural, e **conferir no store** — não no terminal.
 3. **A métrica de 14 dias.** Rodar o sistema de verdade e medir as três

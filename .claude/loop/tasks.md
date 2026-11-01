@@ -31,8 +31,7 @@
 - **status:** pending
 - **milestone:** M195
 - **spec:** `docs/superpowers/specs/2026-11-01-02-cloud-store.md`
-- **nota:** R1 ratificada (Supabase, 2026-11-01) — aguardando aprovação do owner
-  registrada em `specs/data-layer/TECH.md`.
+- **nota:** R1 ratificada (Supabase, 2026-11-01) e **aprovada pelo owner em 2026-11-01** — M195 destravado.
 - **aceite:** vault versionado + índices (vector, graph, embeddings) servindo do
   mesmo store; sync vault markdown ↔ store.
 

@@ -1966,7 +1966,7 @@ Pivot ADR-037 (Accepted, 2026-11-01) — item 1 da ordem D1 (`roadmap.md` §CURR
 
 ### M195 - Data layer: store cloud (STATUS: TODO)
 
-Pivot ADR-037 — item 1 da ordem D1 (store). Spec: `docs/superpowers/specs/2026-11-01-02-cloud-store.md`. R1 ratificada (Supabase, 2026-11-01) — **bloqueado até a aprovação do owner registrada em `specs/data-layer/TECH.md`**. **Aceite:** vault versionado + índices (vector, graph, embeddings) no mesmo store Postgres serverless; sync vault markdown ↔ store idempotente.
+Pivot ADR-037 — item 1 da ordem D1 (store). Spec: `docs/superpowers/specs/2026-11-01-02-cloud-store.md`. R1 ratificada (Supabase, 2026-11-01) e **aprovada pelo owner em 2026-11-01** — M195 destravado. **Aceite:** vault versionado + índices (vector, graph, embeddings) no mesmo store Postgres serverless; sync vault markdown ↔ store idempotente.
 
 ### M196 - Data layer: services + transport (STATUS: TODO)
 
