@@ -3,6 +3,44 @@
 > **Auto-maintained by the orchestrator.**
 > Tasks are derived from `roadmap.md` milestones and broken into atomic units.
 
+## Active Tasks (PIVOT 2026-11-01 — camada de dados, ADR-037)
+
+> **Decisão do owner (2026-11-01):** abandonar o foco total em operar TUIs; toda a
+> força vai para a **camada de dados**. Esta é a fila em voo — substitui as
+> Active Tasks anteriores (M163–M165, Fase A) como trabalho ativo.
+> Fonte de verdade: `roadmap.md` §CURRENT FOCUS · ADR-037 · `CLAUDE.md` §Current Mode.
+
+### T-D0 — Gate de ordem (bloqueia o resto)
+- **status:** pending
+- **aceite:** nenhum item de cliente (Telegram / timeline / TUI) e nenhum harness
+  novo entra no backlog antes de T-D1..T-D3 verdes.
+- **verificação:** `roadmap.md` §CURRENT FOCUS presente e nenhum milestone de
+  TUI marcado como próximo passo.
+
+### T-D1 — DOM unificado (schema + tipagem forte + UID)
+- **status:** pending
+- **spec:** `docs/superpowers/specs/2026-11-01-01-unified-dom.md`
+- **plano:** `specs/data-layer/TECH.md`
+- **aceite:** contrato do vault tipado (Pydantic v2 strict, `frozen=True`,
+  `extra="forbid"`), UID canônico sobre `UEID` (4 partes, ADR-014), sem
+  re-definição de modelos já existentes em `src/contracts/`.
+
+### T-D2 — Store cloud (Postgres serverless)
+- **status:** pending
+- **spec:** `docs/superpowers/specs/2026-11-01-02-cloud-store.md`
+- **nota:** R1 ratificada (Supabase, 2026-11-01) — aguardando aprovação do owner
+  registrada em `specs/data-layer/TECH.md`.
+- **aceite:** vault versionado + índices (vector, graph, embeddings) servindo do
+  mesmo store; sync vault markdown ↔ store.
+
+### T-D3 — Services + transporte MCP
+- **status:** pending
+- **spec:** `docs/superpowers/specs/2026-11-01-03-service-transport-pi.md`
+- **aceite:** `services/` com lógica de domínio pura; `transport/` expondo MCP
+  sobre HTTP via fastmcp; harness pi.dev como runtime — a repo não constrói
+  harness novo.
+
+
 ## Active Tasks (M0 — Bootstrap)
 
 ### T-0.1 — Verify infrastructure files exist
@@ -1594,7 +1632,7 @@ task + spec was sufficient context, same as M142 + M143 + M144)
 - **Cost:** ~500 LOC, 3-4h.
 
 ### M165 — TUI upstream completa
-- **State:** NOT STARTED
+- **State:** STANDBY — pivot ADR-037 2026-11-01 (TUI em standby; não iniciar sem decisão do owner)
 - **Scope:** panels + gantt + timeline + stats interativo.
 - **Cost:** ~500 LOC, 4-6h.
 

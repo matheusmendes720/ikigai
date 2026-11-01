@@ -47,6 +47,13 @@
 - `AGENTS.md` and `CLAUDE.md` are the source of truth for operational rules
 - Updates to either require human review (no agent self-edit)
 
+### 8. Data first — no new harness, no new client (2026-11-01, human decision)
+- Toda a força vai para a **camada de dados** (ADR-037): DOM unificado → store cloud → services/transporte
+- **Não** propor harness, grafo custom, orquestrador de agentes, gateway MCP de tools ou banco de embeddings separado — cada um já diagnosticado como custo sem retorno
+- **Não** iniciar produto novo (Telegram, timeline, TUI) antes da camada de dados verde
+- TUI entra em **standby** — não abrir task de TUI sem decisão explícita do owner
+- Ordem de esforço e o que fica em standby: `roadmap.md` §CURRENT FOCUS
+
 ## Anti-Patterns (FORBIDDEN)
 
 ### ❌ Defensive code for impossible states

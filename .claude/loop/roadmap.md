@@ -11,6 +11,39 @@
 - Each milestone has a SPEC.md in `specs/M{n}-{slug}/SPEC.md` (create before starting)
 - Each milestone passes the constitution gate (`.claude/loop/constitution.md`)
 
+## CURRENT FOCUS — PIVOT 2026-11-01: camada de dados (ADR-037)
+
+> **Decisão do owner (2026-11-01).** Abandonar o foco total em operar TUIs.
+> Toda a força vai para a **camada de dados**. Esta seção tem precedência sobre
+> qualquer milestone, task ou status listado abaixo dela.
+
+**Ordem de esforço (não negociável — ADR-037 §3 D1):**
+
+```
+1. CAMADA DE DADOS          ← onde toda a força vai agora
+   ├─ DOM unificado (schema + tipagem forte + UID)
+   ├─ Store cloud (Postgres serverless) — versionamento, índices, vector, graph
+   └─ Sync vault markdown ↔ store
+2. CAMADAS DE SERVIÇO + TRANSPORTE
+   ├─ services/  (lógica de domínio, pura)
+   └─ transport/ (MCP sobre HTTP via fastmcp)
+3. BACKEND (deep dive)
+   └─ harness pi.dev como runtime; a repo NÃO constrói harness
+4. CLIENTES
+   ├─ Telegram  ← foco atual
+   └─ TUI/PC    ← standby
+```
+
+**Standby / depriorizado por esta pivot:**
+
+- **M165 — TUI upstream completa** — TUI entra em standby.
+- **M163 / M164 — migration e subcomandos do CLI taskdog** — Fase A de operar ferramenta, não de dados.
+- Qualquer proposta nova de TUI, harness, grafo custom, orquestrador de agentes, gateway MCP de tools ou banco de embeddings separado — já diagnosticados no Vanilla Pivot como custo sem retorno.
+
+**Não iniciar** produto novo (Telegram, timeline, TUI) antes da camada de dados verde.
+
+**Fonte de verdade:** [ADR-037](../../code-docs/adr/ADR-037-data-layer-canonical-turn.md) · `CLAUDE.md` §Current Mode · [`specs/data-layer/TECH.md`](../../specs/data-layer/TECH.md) · [série de specs 2026-11-01](../../docs/superpowers/specs/2026-11-01-00-data-layer-series.md)
+
 ## Application Status
 
 O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loop engineering (M0–M9 abaixo) que opera o sistema.
