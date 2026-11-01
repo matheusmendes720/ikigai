@@ -47,13 +47,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | **Contracts in `src/contracts/`** | Pydantic v2 strict (`frozen=True`, `extra="forbid"`) imported from one place |
 | **Zero LLM in pipeline** | Daily/weekly pipelines are pure arithmetic |
 | **`--json` everywhere** | Every CLI command supports `--json` |
-| **Fully local** | SQLite + filesystem only, zero cloud deps |
+| ~~**Fully local**~~ | SQLite + filesystem only, zero cloud deps — **substituída 2026-11-01** por *single cloud store + local cache* (ADR-037 D1/D3) |
+| **Single cloud store** | Postgres serverless (candidata Supabase) — vector, graph e busca estruturada no mesmo banco. Prose continua em markdown `vault/`; estruturado vive no store, e o store vence |
+| **Um writer por store** | `vault_write` no markdown · `src/services/` no Postgres — `revision` otimista + `idempotency_key`; conflito = **409**, nunca last-write-wins |
+| **Um DOM, N projeções** | Contrato único em `src/contracts/`; **cada app decide a view**. Nenhum campo de interface no contrato |
 
 ---
 
 ## Current Mode
 
-**Data-first methodology** — IKIGAI is paused for *new algorithm decisions* (M01/N01/A02/A06, IKIGAI vector weights). Do not write new algorithm code until 5+ SONHO logs land in `vault/ikigai/closing-2026/<quarter>/04-relatórios-diários/`. The "pausado" directive applies to **algorithm decisions only** — agent/harness plumbing and Drift net work are NOT paused.
+**Virada canônica — camada de dados primeiro (2026-11-01, ADR-037).**
+
+Toda a força vai para a **camada de dados**, nesta ordem:
+
+1. **DOM unificado** (schema + tipagem forte + UID) · 2. **Store cloud** (Postgres serverless: versionamento, índices, vector, graph) · 3. **Services + transporte MCP** · 4. **Backend** (harness **pi**, já pronto — a repo **não** constrói harness) · 5. **Clientes** (Telegram é o foco; TUI em standby)
+
+- **Não** iniciar produto novo (Telegram, timeline, TUI) antes da fase 3 verde.
+- **Não** propor harness, grafo custom, orquestrador de agentes, gateway MCP de tools, ou banco de embeddings separado — cada um já foi diagnosticado como custo sem retorno.
+- **Foco aceito agora:** schema, índice, consulta, sync, vector, grafo, versionamento, conflito de escrita.
+- Documentos: [ADR-037](code-docs/adr/ADR-037-data-layer-canonical-turn.md) · [série de specs](docs/superpowers/specs/2026-11-01-00-data-layer-series.md) · [TECH.md](specs/data-layer/TECH.md) · [README](docs/README.md)
+
+**Gate anterior ("5+ SONHO logs") substituído** pela métrica de 14 dias do ADR-037 §8: nota escrita sem editar arquivo à mão, de cliente não-desktop (≥5) · zero lost update com 2 clientes · p95 de busca estruturada < 100ms.
 
 ### Planning Note channel (human → agent)
 
