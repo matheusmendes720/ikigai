@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/mathe/code_space/life-oss/life/life-ops//**)",
+      "Read(//c/Users/mathe/code_space/life-oss/life/code-docs//**)",
+      "Read(//c/Users/mathe/code_space/life-oss/life/.claude/skills/**)",
+      "Read(//c/Users/mathe/code_space/life-oss/life/centrals//**)",
+      "Bash(powershell -Command \"Get-Item 'C:\\\\Users\\\\mathe\\\\code_space\\\\life-oss\\\\life\\\\life-ops\\\\ikigai\\\\data\\\\matheus\\\\deliverables\\\\byd-d2-outputs\\\\byd-econometric-vulnerability.ipynb' | Select-Object Name, Length, LastWriteTime\")",
+      "PowerShell(Get-Content -LiteralPath 'C:\\\\Users\\\\mathe\\\\code_space\\\\life-oss\\\\life\\\\life-ops\\\\ikigai\\\\data\\\\matheus\\\\deliverables\\\\byd-d2-outputs\\\\byd-econometric-vulnerability.ipynb' -Raw -Encoding UTF8 | Select-Object -First 1 | ForEach-Object { $_.Substring\\(0, [Math]::Min\\(800, $_.Length\\)\\) })",
+      "Bash(rm -v '/c/Users/mathe/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory/fortuna-foundry-portfolio-intent.md')",
+      "Read(//c/Users/mathe/.claude/projects/C--Users-mathe-code-space-life-oss-life/memory//**)",
+      "Bash(xargs wc -l)",
+      "Read(//c/Users/mathe/code_space/life-oss/life/apps/cli/src/operational/**)",
+      "Read(//c/Users/mathe/code_space/life-oss/life/apps/cli/src/operational/cli/**)",
+      "Read(//c/Users/mathe/code_space/life-oss/life/apps/tui/src/operational/**)",
+      "Read(//c/Users/mathe/code_space/life-oss/life/apps/tui/src/operational/tui/**)",
+      "Read(//c/Users/mathe/code_space/life-oss/life/packages/core/src/operational/**)",
+      "WebFetch(domain:www.byd.com)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "claude-flow",
+    "ruv-swarm",
+    "flow-nexus",
+    "obsidian"
+  ],
+  "enableAllProjectMcpServers": true
+}

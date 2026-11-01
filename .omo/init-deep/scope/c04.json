@@ -1,0 +1,33 @@
+{
+ "id": "c04",
+ "group": "g1",
+ "label": "src",
+ "bytes": 248217,
+ "dirs": [],
+ "files": [
+  "src/ikigai/src/agents/v2/__init__.py",
+  "src/ikigai/src/agents/v2/checkpoint.py",
+  "src/ikigai/src/agents/v2/checkpoint_serialize.py",
+  "src/ikigai/src/agents/v2/checkpoint_thread_id.py",
+  "src/ikigai/src/agents/v2/checkpoint_types.py",
+  "src/ikigai/src/agents/v2/fork_smoke_graph.py",
+  "src/ikigai/src/agents/v2/graph.py",
+  "src/ikigai/src/agents/v2/harness_legacy_reference.py",
+  "src/ikigai/src/agents/v2/langchain_anthropic_shim.py",
+  "src/ikigai/src/agents/v2/mcp_bridge.py",
+  "src/ikigai/src/agents/v2/memory_migrations.py",
+  "src/ikigai/src/agents/v2/memory_prune.py",
+  "src/ikigai/src/agents/v2/memory_read.py",
+  "src/ikigai/src/agents/v2/memory_schema.py",
+  "src/ikigai/src/agents/v2/memory_write.py",
+  "src/ikigai/src/agents/v2/profile_switch.py",
+  "src/ikigai/src/agents/v2/proposals.py",
+  "src/ikigai/src/agents/v2/sse_publisher.py",
+  "src/ikigai/src/agents/v2/state.py",
+  "src/ikigai/src/agents/v2/subagent_types.py",
+  "src/ikigai/src/agents/v2/subgraph.py",
+  "src/ikigai/src/agents/v2/system_prompt.py",
+  "src/ikigai/src/agents/v2/tools_legacy_reference.py",
+  "src/ikigai/src/agents/v2/vault_cache.py"
+ ]
+}

@@ -1,0 +1,30 @@
+== interfaces/cli dir ==
+.mypy_cache, .pytest-tmp, .pytest_cache, .ruff_cache, .venv, AGENTS.md, invoke_skill.py, kill_switch.py, mcp_runtime.py, notify.py, notify_cli.py, pyproject.toml, pytest.ini, read_tasks.py, server.py, taskdog_app.py, td_tui.py, tests, uv.lock, v2.py, _kill_switch_helpers.py, _skill_outputs.py, __init__.py, __main__.py, __pycache__
+== kill-switch registration ==
+kill_switch.py:292: name="kill-switch",
+kill_switch.py:329: vault_filename=VAULT_KILL_SWITCH_FILENAME,
+kill_switch.py:330: data_filename=DATA_KILL_SWITCH_FILENAME,
+read_tasks.py:231: app.add_typer(kill_switch_app, name="kill-switch")
+== sys_ikigai/gateway ==
+adapters, AGENTS.md, clients, client_adapter.py, client_cli.py, downstream.py, event_log.py, event_log_cli.py, gateway.py, start_gateway.py, stdio_adapter.py, stdio_server_base.py, __init__.py, __pycache__
+client_adapter.py -> __init__, call_tool, health, close
+client_cli.py -> _summarize_data, _format_event_human, _wants_human, parse_sse_stream, _strip_chunked_framing, _parse_sse_frame, _connect, _validate_sse_headers, watch, main
+downstream.py -> register_default_adapters
+event_log.py -> __init__, append, _maybe_rotate, _rotation_path, tail, since, __iter__, _candidate_files, _iter_records
+event_log_cli.py -> _format_record, _summarize_data, _record_row, _render_table, fmt_row, _wants_human, cmd_tail, cmd_since, cmd_status, _add_output_flags, main, _add_path
+gateway.py -> __init__, register, adapter_names, health_check, subscribe_events, unsubscribe_events, publish_event, emit_adapter_call, make_handler, log_message, do_GET, do_POST, _json, _sse_event, _sse_stream, write_chunk
+start_gateway.py -> main
+stdio_adapter.py -> __init__, _ensure_proc, close, stderr_recent, _write_frame, _read_frame, _drain_stderr, call_tool
+stdio_server_base.py -> __init__, register_tool, handle_request, serve_forever, _to_json, _from_json_bytes, _frame_response, _success_response, _error_response
+__init__.py -> 
+== agents/tools.py defs ==
+solverforge_list_events, solverforge_create_event, _tuiboard_rpc, tuiboard_list_boards, tuiboard_get_tasks, tuiboard_create_task, tuiboard_update_task, cli_native_fallback, _VAULT_DIR, _read_checkpoint_data, _format_corrections, ikigai_sync_vault
+== paperclip specs ==
+M169-paperclip, M174-paperclip-auto-spawner, M175-paperclip-wall-clock-gate, M176-paperclip-risk-gate, M180-paperclip-hil-resume, M183-paperclip-state-persistence, M190-paperclip-canonical-adapter, M191-paperclip-dynamic-workflows, M193-paperclip-stacks-comparison
+== ADRs ==
+ADR-014-ueid-canonical-format.md, ADR-023-ueid-canonical-format-adjudication.md, ADR-036-paperclip-four-nested-loops.md
+== root kill lines ==
+["- **Docs that drifted:** `src/ikigai/README.md` (`poetry run ikigai` does not exist), `src/ikigai/MCP_GATEWAY.md` (real script name is `ikigai-maintainer-mcp`), `src/ikigai/SPEC.md` D10 (\"tri-key\" vs 5 components), `interfaces/tui/operator/README.md` (5 tabs, not 3; the Kill Switch tab does spawn `life kill-switch pause|resume`).\r"]
+root zero-byte: false
+== root contracts lines ==
+["Three layers — **INTERFACE** (CLI/TUI consumers: read `data/`, write feedback) → **AGENT** (Deep Agent \"carro-chefe\": reads `vault/`, applies strategics + planning, writes tasks to `data/`, observes planned-vs-actual; planner-only per ADR-013) → **DATA** (`vault/` markdown source of truth, `data/` runtime state, `vibe-ops/` cybernetic engine). Pydantic contracts in `src/contracts/` bind the layers.\r","├── src/         # contracts (canonical) + mesh + ikigai + agents\r","| Canonical models | `src/contracts/` | Pydantic v2, the single source of truth |\r","| `UEID` | Pydantic model | `src/contracts/common.py` | high | Canonical 4-part join key (ADR-014) |\r","| `Task` / `TaskChange` | Pydantic model | `src/contracts/task.py`, `task_change.py` | high | Shared task + propagation payloads |\r","- Canonical contracts: Pydantic v2 `frozen=True`, `extra=\"forbid\"`, imported from `src/contracts/` only — never re-define `UEID`, `Task`, `TaskChange`.\r","- `src/` has **no `__init__.py`**: `from src.contracts.X` needs the repo root on `sys.path`; `from contracts.X` needs `src/` on it (`pytest.ini` sets `pythonpath = src src/ikigai/src`). Both spellings are live in production code.\r","- `vibe-ops/src` is a **separate import root** — flat sibling imports (`from pipeline.x import Y`); `vibe-ops/src/contracts/` is *not* the canonical `src/contracts/`.\r","| `src/contracts/` | **Hatchling** | own `pyproject.toml`, `uv.lock`, `.venv` |\r","- Ruff: the root `pyproject.toml` has **no** `[tool.ruff]` table. Real configs: `src/mesh/ruff.toml`, `src/contracts/pyproject.toml`, `src/ikigai/pyproject.toml` (line-length 100, py311).\r","- `vibe-ops/src/models/` and `vibe-ops/src/schemas/` are deliberately permissive (`extra=\"allow\"`, mutable) — the inverse of the repo-wide strict contracts. Intentional, not a bug.\r","cd src/contracts && uv sync && uv run pytest             # contracts suite\r","ruff check .                                             # per-project only: src/mesh, src/contracts, src/ikigai\r","- **Import identity:** `from src.contracts.X` and `from sys_ikigai.X` are *two distinct module objects* — monkeypatching must patch BOTH. `tests/conftest.py` puts the repo root on `sys.path` and pre-registers legacy `ikigai.*` aliases in `sys.modules`.\r","- **UEID drift is real** — several regexes coexist: canonical 4-part in `src/contracts/common.py` (triple-pattern: short | long-UUID | 5-part legacy), a byte-identical copy in `src/mesh/adapters/taskdog.py`, `{2,5}` in `src/ikigai/contracts/proposal.py`, `{2,10}` in `src/ikigai/src/chat/schema.py`; `sys_ikigai/types.py` keeps a legacy 5-part form and `vibe-ops/src/storage/ueid.py` builds a 3-part id. Never re-define `UEID` — extend the canonical one.\r"]
