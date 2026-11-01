@@ -2,10 +2,10 @@
 
 ## OVERVIEW
 
-The repository's entire pytest + shell test surface: one flat root suite of 36 Python modules plus eight sub-suites.
+The repository's entire pytest + shell test surface: one flat root suite of 35 Python modules plus eight sub-suites.
 Pins contract shapes, drift invariants, fork boundaries and hermetic-runtime guarantees.
 
-**Role:** 86 files (72 Python, 12 shell/batch, 2 markdown), ~14k LOC — the only place behaviour is pinned.
+**Role:** 85 tracked files (71 Python, 12 shell/batch, 2 markdown), ~15k LOC — the only place behaviour is pinned.
 
 ## STRUCTURE
 ```

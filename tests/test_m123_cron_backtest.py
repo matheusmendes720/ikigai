@@ -78,25 +78,32 @@ def test_cron_script_is_executable() -> None:
     assert os.access(CRON_SCRIPT, os.X_OK)
 
 
-def _run_cron(cwd: Path, script: Path) -> subprocess.CompletedProcess[str]:
-    """Run the cron script in a way that bypasses MSYS path mangling.
+def _run_cron(
+    cwd: Path, script: Path, bash_exe: str
+) -> subprocess.CompletedProcess[str]:
+    """Run the cron script with an explicit bash interpreter.
 
-    Uses shell=True because Python's subprocess.run with argv list lets MSYS
-    mangle paths in argv[1]. With shell=True the command goes through cmd.exe
-    → bash, which handles Windows-style paths correctly.
+    The interpreter comes from the session-scoped `bash_exe` fixture: on
+    Windows it resolves a bash that accepts `C:/...` script paths (Git Bash
+    / MSYS2) instead of trusting PATH, where the WSL launcher usually wins
+    and fails with rc=127. argv list, no shell=True — the interpreter is a
+    native Win32 executable and the path stays out of cmd.exe quoting.
     """
     script_q = str(script).replace("\\", "/")
     cwd_q = str(cwd).replace("\\", "/")
-    cmd = f'bash "{script_q}"'
     return subprocess.run(
-        cmd, capture_output=True, text=True, timeout=60, shell=True, cwd=cwd_q
+        [bash_exe, script_q],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        cwd=cwd_q,
     )
 
 
-def test_cron_runs_and_logs(fake_repo: Path) -> None:
+def test_cron_runs_and_logs(fake_repo: Path, bash_exe: str) -> None:
     """Run the cron script — should succeed and write log."""
     result = _run_cron(
-        fake_repo, fake_repo / "scripts" / "cron" / "cron-backtest.sh"
+        fake_repo, fake_repo / "scripts" / "cron" / "cron-backtest.sh", bash_exe
     )
     assert result.returncode == 0, f"stderr={result.stderr[:500]}"
     log = fake_repo / ".life" / "logs" / "cron-backtest.log"
@@ -106,25 +113,25 @@ def test_cron_runs_and_logs(fake_repo: Path) -> None:
     assert "Pipeline OK" in content
 
 
-def test_cron_resolves_repo_root(fake_repo: Path) -> None:
+def test_cron_resolves_repo_root(fake_repo: Path, bash_exe: str) -> None:
     """Run from a subdir — script must still find the repo root."""
     subdir = fake_repo / "src" / "ikigai"
     result = _run_cron(
-        subdir, fake_repo / "scripts" / "cron" / "cron-backtest.sh"
+        subdir, fake_repo / "scripts" / "cron" / "cron-backtest.sh", bash_exe
     )
     assert result.returncode == 0, f"stderr={result.stderr[:500]}"
     log = fake_repo / ".life" / "logs" / "cron-backtest.log"
     assert log.exists()
 
 
-def test_cron_failure_propagates_exit_code(fake_repo: Path) -> None:
+def test_cron_failure_propagates_exit_code(fake_repo: Path, bash_exe: str) -> None:
     """If run_backtest.sh fails, cron exits non-zero."""
     (fake_repo / "scripts" / "backtest" / "run_backtest.sh").write_text(
         "#!/usr/bin/env bash\nexit 42\n", encoding="utf-8"
     )
     (fake_repo / "scripts" / "backtest" / "run_backtest.sh").chmod(0o755)
     result = _run_cron(
-        fake_repo, fake_repo / "scripts" / "cron" / "cron-backtest.sh"
+        fake_repo, fake_repo / "scripts" / "cron" / "cron-backtest.sh", bash_exe
     )
     assert result.returncode == 42, f"stderr={result.stderr[:500]}"
     log = fake_repo / ".life" / "logs" / "cron-backtest.log"
@@ -133,12 +140,16 @@ def test_cron_failure_propagates_exit_code(fake_repo: Path) -> None:
     assert "rc=42" in content
 
 
-def test_cron_log_appends_not_overwrites(fake_repo: Path) -> None:
+def test_cron_log_appends_not_overwrites(fake_repo: Path, bash_exe: str) -> None:
     """Running twice appends to the log, doesn't overwrite."""
     log = fake_repo / ".life" / "logs" / "cron-backtest.log"
-    _run_cron(fake_repo, fake_repo / "scripts" / "cron" / "cron-backtest.sh")
+    _run_cron(
+        fake_repo, fake_repo / "scripts" / "cron" / "cron-backtest.sh", bash_exe
+    )
     first_size = log.stat().st_size
-    _run_cron(fake_repo, fake_repo / "scripts" / "cron" / "cron-backtest.sh")
+    _run_cron(
+        fake_repo, fake_repo / "scripts" / "cron" / "cron-backtest.sh", bash_exe
+    )
     second_size = log.stat().st_size
     assert second_size > first_size  # appended
 

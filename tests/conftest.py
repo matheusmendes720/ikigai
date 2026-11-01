@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import importlib
 import os
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -107,3 +108,54 @@ def pytest_configure(config: pytest.Config) -> None:
     Windows raises PermissionError on stale locks (handled above by
     redirecting tempfile.tempdir, but we also tell asyncio to skip)."""
     config.option.asyncio_mode = "auto"
+
+
+# ---------------------------------------------------------------------------
+# Bash resolution for the shell-driven test modules.
+#
+# `tests/loop/test_notify_wrap_pytest.py` and `tests/test_m123_cron_backtest.py`
+# execute real `.sh` scripts. On Windows the `bash` that comes first on PATH is
+# usually the WSL launcher (`C:\Windows\System32\bash.exe`), which cannot open
+# a `C:/...` script path — it fails with rc=127 "No such file or directory".
+# Git Bash (MSYS) accepts those paths, so the fixture below resolves an
+# explicit interpreter instead of trusting PATH order.
+#
+# The interpreter is invoked with an argv list (no `shell=True`): Git Bash is
+# a native Win32 executable, so `CreateProcess` can exec it directly, and
+# argv keeps the script path out of cmd.exe quoting rules.
+_GIT_BASH_CANDIDATES = (
+    r"C:\Program Files\Git\bin\bash.exe",
+    r"C:\Program Files\Git\usr\bin\bash.exe",
+    r"C:\Program Files (x86)\Git\bin\bash.exe",
+    r"C:\Program Files (x86)\Git\usr\bin\bash.exe",
+    r"C:\msys64\usr\bin\bash.exe",
+    r"C:\cygwin64\bin\bash.exe",
+)
+
+
+@pytest.fixture(scope="session")
+def bash_exe() -> str:
+    """Absolute path of a bash that can execute a Windows-style script path.
+
+    Skips (never assert-fails) when no such interpreter exists — a missing
+    bash is an environment gap, not a product defect.
+    """
+    if os.name != "nt":
+        exe = shutil.which("bash")
+        if exe is None:
+            pytest.skip("bash is not available on PATH")
+        return exe
+
+    for candidate in _GIT_BASH_CANDIDATES:
+        if os.path.isfile(candidate):
+            return candidate
+
+    system_root = os.environ.get("SystemRoot", r"C:\Windows")
+    on_path = shutil.which("bash")
+    if on_path and not on_path.lower().startswith(system_root.lower()):
+        return on_path
+
+    pytest.skip(
+        "no Windows bash that accepts C:/... script paths found "
+        "(install Git for Windows or set up MSYS2)"
+    )
