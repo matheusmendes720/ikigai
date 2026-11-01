@@ -1,18 +1,17 @@
 """Read-only cross-fork join CLI.
 
 This is the canonical `life mesh show <ueid>` operator surface described in
-CLAUDE.md — it joins the slices held by every fork adapter (CLI / taskdog /
-solverforge_calendar) into a single view. Each adapter is consulted
-independently; the join is purely additive (no schema reconciliation).
+CLAUDE.md — it joins the slices held by every fork adapter (CLI / taskdog)
+into a single view. Each adapter is consulted independently; the join is
+purely additive (no schema reconciliation).
 
 Subcommands:
-    show <ueid> [--cli-path PATH] [--taskdog-db PATH] [--upi-db PATH]
-                 [--human|--json]
-        Show the slices for one UEID across all three adapters.
+    show <ueid> [--cli-path PATH] [--taskdog-db PATH] [--human|--json]
+        Show the slices for one UEID across both adapters.
         Returns 0 if at least one fork has the slice, 1 if none do.
 
 Output modes:
-    Default (TTY): three per-fork sections with key:value lines.
+    Default (TTY): two per-fork sections with key:value lines.
     Default (pipe/script): one JSON object with one key per adapter.
     --human: force per-fork sections even when piped.
     --json: force JSON object even when on a TTY.
@@ -31,10 +30,8 @@ from pathlib import Path
 from typing import Any
 
 from src.mesh.adapters import cli as cli_mod
-from src.mesh.adapters import solverforge_calendar as calendar_mod
 from src.mesh.adapters import taskdog as taskdog_mod
 from src.mesh.adapters.cli import CliAdapter
-from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
 from src.mesh.adapters.taskdog import TaskdogAdapter
 
 # Per-fork override state — module-globals the adapters read from. The CLI
@@ -63,11 +60,6 @@ def _apply_taskdog_override(path_str: str) -> None:
         taskdog_mod.TASKDOG_DB = Path(path_str)
 
 
-def _apply_calendar_override(path_str: str) -> None:
-    if str(calendar_mod.UPI_DB) != path_str:
-        calendar_mod.UPI_DB = Path(path_str)
-
-
 def _collect_slices(ueid: str) -> dict[str, dict[str, Any] | None]:
     """Read the UEID from every adapter. Returns a mapping fork -> slice|None.
 
@@ -78,20 +70,19 @@ def _collect_slices(ueid: str) -> dict[str, dict[str, Any] | None]:
     return {
         "cli": CliAdapter().read(ueid),
         "taskdog": TaskdogAdapter().read(ueid),
-        "solverforge_calendar": SolverforgeCalendarAdapter().read(ueid),
     }
 
 
 def _format_join_human(ueid: str, slices: dict[str, dict[str, Any] | None]) -> str:
     """Render the cross-fork join as a human-readable string.
 
-    Three sections (one per adapter), each headed by `[fork: <name>]` and
+    Two sections (one per adapter), each headed by `[fork: <name>]` and
     `present: yes/no`. Per-fork slices are rendered as sorted key: value
     lines. Missing forks say `not present` instead of showing empty keys.
     """
     lines: list[str] = []
     lines.append(f"ueid: {ueid}")
-    for fork in ("cli", "taskdog", "solverforge_calendar"):
+    for fork in ("cli", "taskdog"):
         slice_ = slices[fork]
         lines.append("")
         lines.append(f"[fork: {fork}]")
@@ -114,7 +105,6 @@ def _format_join_human(ueid: str, slices: dict[str, dict[str, Any] | None]) -> s
 def cmd_show(args: argparse.Namespace) -> int:
     _apply_cli_override(args.cli_path)
     _apply_taskdog_override(args.taskdog_db)
-    _apply_calendar_override(args.upi_db)
 
     slices = _collect_slices(args.ueid)
     present_count = sum(1 for s in slices.values() if s is not None)
@@ -160,7 +150,6 @@ def main(argv: list[str] | None = None) -> int:
     # main() see the patched paths in --help text and the default values.
     cli_default = str(cli_mod.TASKS_JSONL)
     taskdog_default = str(taskdog_mod.TASKDOG_DB)
-    calendar_default = str(calendar_mod.UPI_DB)
 
     parser = argparse.ArgumentParser(
         prog="ikigai-mesh",
@@ -181,12 +170,6 @@ def main(argv: list[str] | None = None) -> int:
         type=str,
         default=taskdog_default,
         help=f"path to taskdog SQLite DB (default: {taskdog_default})",
-    )
-    show_p.add_argument(
-        "--upi-db",
-        type=str,
-        default=calendar_default,
-        help=f"path to UPI SQLite DB (default: {calendar_default})",
     )
     _add_output_flags(show_p)
 

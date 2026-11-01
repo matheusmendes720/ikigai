@@ -152,9 +152,13 @@ class SessionSummarizer:
         # at ``<repo>/src/ikigai/src/agents/v2/`` — a single ``import agents``
         # can't reach both, hence the dotted form here.
         if cache is None:
-            from src.ikigai.src.agents.v2.vault_cache import default_cache
-
-            cache = default_cache()
+            try:
+                from src.ikigai.src.agents.v2.vault_cache import default_cache
+            except ImportError:
+                # The langgraph harness is not published anymore (ADR-037).
+                default_cache = None
+            if default_cache is not None:
+                cache = default_cache()
         self._cache = cache
 
     # ------------------------------------------------------------------

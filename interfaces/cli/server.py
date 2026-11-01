@@ -2,7 +2,7 @@
 
 This is the operator-facing CLI for inspecting and managing the IKIGAI backend
 topology. It exposes:
-  - `ls`: list all fork adapters (cli, taskdog, solverforge_calendar, a2ui)
+  - `ls`: list all fork adapters (cli, taskdog, a2ui)
   - `inspect <name>`: detailed view of one adapter
   - `status`: backend process status (queue worker, agent consumer, MCP gateway)
   - `start/stop <name>`: placeholder for B4-B5 wiring
@@ -34,7 +34,6 @@ import typer
 from rich.console import Console
 from rich.table import Table
 from src.mesh.adapters.cli import TASKS_JSONL
-from src.mesh.adapters.solverforge_calendar import UPI_DB
 from src.mesh.adapters.taskdog import TASKDOG_DB
 
 # === Registry ===
@@ -66,11 +65,6 @@ ADAPTER_REGISTRY: dict[str, AdapterInfo] = {
         name="taskdog",
         slice_type="sqlite",
         storage_path=TASKDOG_DB,
-    ),
-    "solverforge_calendar": AdapterInfo(
-        name="solverforge_calendar",
-        slice_type="sqlite",
-        storage_path=UPI_DB,
     ),
     "a2ui": AdapterInfo(
         name="a2ui",
@@ -415,7 +409,7 @@ def ls(
 
 @server_app.command("inspect")
 def inspect(
-    name: str = typer.Argument(..., help="Adapter name (cli, taskdog, solverforge_calendar, a2ui)"),
+    name: str = typer.Argument(..., help="Adapter name (cli, taskdog, a2ui)"),
     json_output: bool = typer.Option(False, "--json", help="Machine-readable JSON output"),
 ) -> None:
     """Show detailed view of one adapter."""

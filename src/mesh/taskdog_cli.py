@@ -404,14 +404,12 @@ def cmd_propagate(args: argparse.Namespace) -> int:
     """
     # Lazy import to keep startup fast for read-only commands.
     from src.mesh.adapters.cli import CliAdapter
-    from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
     from src.mesh.review_queue_worker import run_once
 
     result = run_once(
         adapters=[
             TaskdogAdapter(),
             CliAdapter(),
-            SolverforgeCalendarAdapter(),
         ]
     )
     print(

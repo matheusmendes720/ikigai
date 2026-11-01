@@ -159,24 +159,32 @@ def test_task_ls_with_filter(runner: CliRunner, monkeypatch):
 
 
 # ============================================================================
-# M85: v2 subcommand wiring (invoke-skill, skill-list, skill-show, plan)
+# Canonical CLI surface (ADR-037 / M198 — canonical-only, serverless scope)
 # ============================================================================
 
-def test_v2_subcommand_registered(runner: CliRunner):
-    """M85: `life v2 --help` should list invoke-skill, skill-list, skill-show, plan."""
-    result = runner.invoke(app, ["v2", "--help"])
-    assert result.exit_code == 0, result.stdout
-    assert "invoke-skill" in result.stdout
-    assert "skill-list" in result.stdout
-    assert "skill-show" in result.stdout
+def test_life_cli_does_not_expose_harness_v2_subapp():
+    """`life v2` was a PC-only harness entry point and must not ship.
+
+    The v2 sub-app wired invoke-skill / skill-list / skill-show against the
+    local deep-agent graph (langchain/langgraph harness). That harness is
+    not part of the canonical remote scope (ADR-037), so the sub-app is gone.
+    """
+    names = {cmd.name for cmd in app.registered_commands}
+    assert "v2" not in names
 
 
-def test_v2_skill_list_via_life_cli(runner: CliRunner):
-    """M85: `life v2 skill-list` should list skills."""
-    result = runner.invoke(app, ["v2", "skill-list"])
-    # Output is JSON; should exit 0 even with no skills or some skills
+def test_interfaces_cli_exposes_canonical_mesh_commands():
+    """The canonical entry point exposes the mesh command surface.
+
+    `python -m interfaces.cli` is the consumer/producer CLI: task reading,
+    mesh read path, and the mesh create cycle. The harness sub-apps are
+    not mounted here.
+    """
+    from interfaces.cli import app as interfaces_app
+
+    result = CliRunner().invoke(interfaces_app, ["--help"])
     assert result.exit_code == 0, result.stdout
-    assert '"count"' in result.stdout
-    assert '"skills"' in result.stdout
+    for command in ("list", "done", "stats", "mesh-show", "task-add", "plan-add", "plan-list"):
+        assert command in result.stdout, f"missing canonical command: {command}"
 
 

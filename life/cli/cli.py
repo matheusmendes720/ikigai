@@ -364,7 +364,7 @@ app.add_typer(notify_app, name="notify")
 # placeholder if not, so `life --help` works from any venv.
 import importlib.util as _importlib_util
 
-if _importlib_util.find_spec("langchain_mcp_adapters") is not None:
+if _importlib_util.find_spec("langchain_mcp_adapters") is not None and _importlib_util.find_spec("interfaces.cli.taskdog_app") is not None:
     from interfaces.cli.taskdog_app import app as taskdog_mcp_app  # noqa: E402
     from interfaces.cli.taskdog_app import register_taskdog_app  # noqa: E402
     try:

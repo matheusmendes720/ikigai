@@ -1,6 +1,0 @@
-{"timestamp": "2026-10-17T13:15:23.801942+00:00", "action": "create", "ueid": "tsk:test:m151add:aaaa:1111", "context": {"title": "M151 add test", "fields": {"title": "M151 add test", "priority": 1, "due": "2026-12-31"}}}
-{"timestamp": "2026-10-17T13:15:24.263048+00:00", "action": "done", "ueid": "tsk:test:m151done:bbbb:2222", "context": {}}
-{"timestamp": "2026-10-17T13:15:24.729777+00:00", "action": "update", "ueid": "tsk:test:m151upd:cccc:3333", "context": {"fields": {"priority": 2, "due": "2026-11-15"}}}
-{"timestamp": "2026-10-17T13:15:28.249400+00:00", "action": "create", "ueid": "tsk:test:m151prop:2222:bbbb", "context": {"title": "propagate smoke", "fields": {"title": "propagate smoke"}}}
-
-{"timestamp":"2026-10-17T13:32:39.462Z","action":"update","ueid":"tsk:mcp:m148-complete:0000:0001","context":{"milestone":"M148","title":"M148 taskdog full bridge — 4 missing tools implemented","tools_added":["taskdog_done","taskdog_set_planned_dates","taskdog_delete","taskdog_search"],"commit":"37787a68","tests_passed":"187/187 mesh","status":"complete"}}

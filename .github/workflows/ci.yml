@@ -208,33 +208,12 @@ jobs:
           poetry run mypy ${{ matrix.mypy_target || matrix.ruff_target }}
           poetry run pytest -m "not e2e"
 
-  mcp-gateway-contract:
-    name: MCP Gateway Contract (B3.6)
-    runs-on: ubuntu-latest
-    needs: quality-gates
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with: { python-version: "3.11" }
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: Install MCP Python SDK
-        run: pip install --quiet mcp
-
-      - name: Install ikigai + mcp_server deps
-        working-directory: src/ikigai
-        run: |
-          uv sync --all-packages || true
-          # uv may fail if pyproject.toml expects poetry; fall back to pip install
-          pip install --quiet -e . || true
-
-      - name: Run MCP gateway contract test
-        run: |
-          python scripts/mcp_inspect.py
+  # The former `mcp-gateway-contract` job was REMOVED 2026-11-01 (ADR-037):
+  # it contracted the PC-local stdio MCP gateway (src/ikigai/src/mcp_server),
+  # which is not part of the published serverless surface. The canonical
+  # transport (src/transport/mcp_server.py — FastMCP over HTTP) is already
+  # gated by the `ikigai` entry of the quality-gates matrix, which runs
+  # `poetry run pytest -m "not e2e"` over src/ikigai/tests/transport.
 
   review-queue-worker-contract:
     name: Review Queue Worker Contract (B4.3)

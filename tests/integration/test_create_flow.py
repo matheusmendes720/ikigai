@@ -12,49 +12,27 @@ from src.mesh.agent_consumer import validate, ValidationResult
 from src.mesh.agent_propagator import propagate
 from src.mesh.adapters.cli import CliAdapter
 from src.mesh.adapters.taskdog import TaskdogAdapter
-from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
 from src.contracts.common import UEID
 
 
 @pytest.fixture
 def isolated_data_dirs(tmp_path: Path, monkeypatch):
-    """Set up isolated data dirs for CLI, taskdog, solverforge, queue."""
+    """Set up isolated data dirs for CLI, taskdog, queue."""
     cli_jsonl = tmp_path / "tasks.jsonl"
     taskdog_db = tmp_path / "tasks.db"
-    upi_db = tmp_path / "upi.db"
     queue_dir = tmp_path / "queue"
     queue_dir.mkdir()
 
     # Patch paths
-    from src.mesh.adapters import cli, taskdog, solverforge_calendar
+    from src.mesh.adapters import cli, taskdog
 
     monkeypatch.setattr(cli, "TASKS_JSONL", cli_jsonl)
     monkeypatch.setattr(taskdog, "TASKDOG_DB", taskdog_db)
-    monkeypatch.setattr(solverforge_calendar, "UPI_DB", upi_db)
     monkeypatch.setattr(queue, "QUEUE_DIR", queue_dir)
-
-    # Initialize UPI schema (assumes v3 migration already applied)
-    conn = sqlite3.connect(upi_db)
-    conn.executescript("""
-        CREATE TABLE unified_planning_items (
-            id TEXT PRIMARY KEY,
-            ueid TEXT UNIQUE,
-            status TEXT,
-            start_at TEXT,
-            end_at TEXT,
-            blocked_by TEXT,
-            tags TEXT,
-            ikigai TEXT,
-            provenance TEXT
-        );
-    """)
-    conn.commit()
-    conn.close()
 
     return {
         "cli": cli_jsonl,
         "taskdog": taskdog_db,
-        "solverforge": upi_db,
         "queue": queue_dir,
     }
 
@@ -95,10 +73,10 @@ def test_full_create_flow_propagates_to_all_forks(isolated_data_dirs):
     assert validation.decision.value == "approve"
 
     # Step 3: Agent propagates to all forks
-    adapters = [CliAdapter(), TaskdogAdapter(), SolverforgeCalendarAdapter()]
+    adapters = [CliAdapter(), TaskdogAdapter()]
     results = propagate(pending_events[0], validation, adapters)
 
-    assert len(results) == 3
+    assert len(results) == 2
     assert all(r.success for r in results), f"Failures: {[r for r in results if not r.success]}"
 
     # Step 4: Verify all forks have the task
@@ -114,14 +92,6 @@ def test_full_create_flow_propagates_to_all_forks(isolated_data_dirs):
     ).fetchone()[0]
     conn.close()
     assert taskdog_count == 1
-
-    # solverforge UPI
-    conn = sqlite3.connect(isolated_data_dirs["solverforge"])
-    upi_count = conn.execute(
-        "SELECT COUNT(*) FROM unified_planning_items WHERE ueid = ?", (ueid,)
-    ).fetchone()[0]
-    conn.close()
-    assert upi_count == 1
 
     # Step 5: Verify queue event is acked
     queue.ack("evt_e2e_001", "propagated")

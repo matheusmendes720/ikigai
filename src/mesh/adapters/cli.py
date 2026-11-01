@@ -130,7 +130,7 @@ class CliAdapter:
             try:
                 # Dedup: read existing, skip if ueid already present. O(n) but
                 # acceptable for v1 task counts (dozens, not millions). The
-                # other adapters (Taskdog, SolverforgeCalendar) use SQLite
+                # the other adapter (Taskdog) uses SQLite
                 # UPSERT; CliAdapter uses JSONL because the slice is meant to
                 # be human-readable.
                 existing = TASKS_JSONL.read_text(encoding="utf-8") if TASKS_JSONL.exists() else ""

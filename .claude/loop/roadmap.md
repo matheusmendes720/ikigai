@@ -51,13 +51,12 @@ O que o Algorithmic Life OS **consegue fazer hoje** — separado da infra de loo
 ### ✅ Working end-to-end
 
 - **CLI consumer** (`python -m interfaces.cli.main ...`): `v2 daily/weekly/plan`, `task add`, `mesh show <ueid>`, `kill_switch status|pause|resume`
-- **TUI operator** (`python -m interfaces.tui.operator.main`): Textual 4 tabs (Chat / Tasks / State / KillSwitch)
-- **Data mesh read**: `life mesh show <ueid>` joins CLI / taskdog / solverforge_calendar forks via 3 adapters (`ForkAdapter` Protocol)
+- **Data mesh read**: `life mesh show <ueid>` joins CLI / taskdog forks via 2 adapters (`ForkAdapter` Protocol)
 - **Data mesh write** (Phase 3 v1, `create` only): fork → CLI enqueues `TaskChange` to `data/review_queue/` → Agent validates → `PropagationEvent` to all forks
-- **MCP Gateway** (`ikigai.bat mcp`): 15 IKIGAI tools + 7 fork tools (`sf_*` + `tuiboard_*`) + 6 resources = 22 tools + 6 resources
+- **Serverless transport** (`src/transport/`): FastMCP over HTTP — the canonical remote surface; the stdio MCP servers (`ikigai.bat mcp`, `sf_*`, `tuiboard_*`) and the operator TUI were retired by the pivot (ADR-037, 2026-11-01)
 - **Drift net**: 33/33 canonical_scope + 297 drift_invariants + growing extended invariants
-- **Kill switch**: pause/resume cybernetic engine without killing daemon (CLI subcommand + 5th TUI tab)
-- **Investigation queue**: `enqueue/status/complete` MCP tools + drift 42/42 + TUI read-only browse
+- **Kill switch**: pause/resume cybernetic engine without killing daemon (CLI subcommand)
+- **Investigation queue**: `enqueue/status/complete` MCP tools + drift 42/42
 - **Phase 9 Option A** (2026-09-03): operator TUI + drift detector + Path 3 taskdog MCP (read-only)
 - **V5 bundle** (2026-09-07): CLI inlined (4 files deleted, v2.py split into 6 modules)
 - **Phase A** (2026-08-30): 7 fork MCP tools live (sf_create_event etc.)
@@ -1975,4 +1974,8 @@ Pivot ADR-037 — item 2 da ordem D1. Spec: `docs/superpowers/specs/2026-11-01-0
 ### M197 - Data layer: clientes (STATUS: TODO)
 
 Pivot ADR-037 — item 4 da ordem D1, **somente após M194–M196 verdes**. Telegram como cliente em foco; TUI/PC em standby. **Aceite:** cliente speakando MCP/serviços sobre HTTP, sem lógica de domínio no cliente e sem estado próprio fora do store.
+
+### M198 - Publicação serverless canônica + specs do harness (STATUS: IN PROGRESS)
+
+Pivot ADR-037 — entrega de superfície pública: o remote passa a conter **apenas** código e conteúdo canônicos multi-dispositivo (deploy em prod serverless). O cliente TUI, os servidores MCP stdio locais e o harness langgraph/langchain anterior saem da *tip* **e** do histórico (purge autorizado pelo owner em 2026-11-01). Specs do harness: `specs/harness/SYSTEM-PROMPTS.md` (P0–P5) e `specs/harness/SKILL-SPECS.md` (6 skills de rotina). Nota de decisão (append-only): `vault/ikigai/decisions/2026-11-01-pivot-serverless-canonical-scope.md`. **Aceite:** `git ls-remote origin main` == HEAD local; clone novo lista a keep-list e **zero** caminhos da purge-list; nenhum segredo real no clone (só placeholders); suíte canônica `src/ikigai/tests` rc 0; `import contracts, mesh` e `python -m interfaces.cli --help` rc 0 dentro do clone.
 

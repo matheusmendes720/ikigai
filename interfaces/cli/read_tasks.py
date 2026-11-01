@@ -222,7 +222,6 @@ from src.contracts.common import UEID
 from src.contracts.task_change import PropagationEvent, TaskAction, TaskChange
 from src.mesh import queue
 from src.mesh.adapters.cli import CliAdapter
-from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
 from src.mesh.adapters.taskdog import TaskdogAdapter
 
 # W5.3 — kill switch consumer UX sub-app
@@ -238,7 +237,6 @@ def show_mesh(ueid: str) -> dict:
     adapters: dict[str, Any] = {
         "cli": CliAdapter(),
         "taskdog": TaskdogAdapter(),
-        "solverforge_calendar": SolverforgeCalendarAdapter(),
     }
 
     view: dict[str, Any] = {}
@@ -387,7 +385,7 @@ def plan_list(
     """List tasks from data/tasks.jsonl (CLI fork).
 
     With `--all-forks`, joins each row with show_mesh so you can see what
-    the other adapters (taskdog, solverforge_calendar) actually received.
+    the other adapter (taskdog) actually received.
     """
     path = _tasks_path()
     if not path.exists():
@@ -426,18 +424,15 @@ def plan_list(
             table.add_column("Title", style="white")
             table.add_column("CLI", style="green", width=5)
             table.add_column("Taskdog", style="green", width=8)
-            table.add_column("Solverforge", style="green", width=12)
             for r in joined:
                 mesh_view = r.get("_mesh", {}).get("view", {})
                 cli_ok = "OK" if mesh_view.get("cli") else "-"
                 td_ok = "OK" if mesh_view.get("taskdog") else "-"
-                sf_ok = "OK" if mesh_view.get("solverforge_calendar") else "-"
                 table.add_row(
                     str(r.get("ueid", "?"))[:36],
                     (r.get("title", "?") or "?")[:40],
                     cli_ok,
                     td_ok,
-                    sf_ok,
                 )
             console.print(table)
             mismatches_flat = [m for j in joined for m in j.get("_mesh", {}).get("mismatches", [])]

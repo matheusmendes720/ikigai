@@ -593,6 +593,7 @@ src/ikigai/data/baselines/.passphrase
 /src/tuiboard/
 /src/solverforge_calendar/
 /src/mesh/adapters/solverforge_calendar.py
+/tests/interfaces/test_tui_operator.py
 /src/ikigai/src/mcp_server/
 /sys_ikigai/gateway/stdio_server_base.py
 /sys_ikigai/gateway/stdio_adapter.py
@@ -627,3 +628,39 @@ threshold_seconds``.,+,+
 /.hermes/
 /.atlas/
 /src/ikigai/src/observability/
+
+# ─── Legacy harness launchers and probes (PC-only) ────────────────────
+# The stdio MCP gateway, its LangGraph dev CLI and the orchestrator serve
+# entry point were retired by the serverless pivot (ADR-037). They stay on
+# the owner's PC but must not be published.
+/scripts/chat.py
+/scripts/mcp_inspect.py
+/scripts/mcp-inspect.bat
+/scripts/mcp_probe.py
+/scripts/ikigai-serve.sh
+/scripts/ikigai-serve.bat
+/src/ikigai/start_mcp_gateway.sh
+/src/ikigai/ikigai.bat
+/src/ikigai/bin/
+/src/ikigai/MCP_GATEWAY.md
+
+# ─── Retired v2 CLI surface (PC-only, ADR-037) ───────────────────────
+# `interfaces/cli/v2.py` and its skill-invocation helper are dead code:
+# the v2 sub-app is no longer mounted and both import the unpublished
+# langgraph harness. They stay on the owner's PC for reference only.
+/interfaces/cli/v2.py
+/interfaces/cli/invoke_skill.py
+
+# ─── Runtime logs inside vault/ (append-only, not source) ────────────
+# vault/ikigai/decisions/<date>.jsonl is written by the agent reflection
+# layer on every run (and by the test suite). The decision notes are the
+# markdown files next to it; the jsonl is runtime state.
+/vault/ikigai/decisions/*.jsonl
+
+# ─── init-deep local run artifacts ────────────────────────────────────
+# The DAG scope/report/digest files are produced locally by the init-deep
+# run. The published digests are force-added explicitly when a run lands.
+/.omo-initdeep-oversized.json
+
+# Build artifacts (never part of the published source surface).
+*.pyc

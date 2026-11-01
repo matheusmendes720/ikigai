@@ -12,8 +12,8 @@ REM   3. CLI adapter writes its own slice
 REM   4. CLI enqueues TaskChange to review queue
 REM   5. Agent consumes queue (consume_pending)
 REM   6. Agent validates -> Decision.APPROVE
-REM   7. Agent propagates to all 3 adapters
-REM   8. Verify all 3 forks have the task + ack queue
+REM   7. Agent propagates to both adapters
+REM   8. Verify both forks have the task + ack queue
 
 setlocal enabledelayedexpansion
 
@@ -50,33 +50,13 @@ REM is harmless here).
     echo tmp = Path^(os.environ["SMOKE_TMP"]^)
     echo # Pre-create parent dirs ^(SQLite needs them to exist before open^(^)^).
     echo ^(tmp / "taskdog"^).mkdir^(parents=True, exist_ok=True^)
-    echo ^(tmp / "solverforge_calendar"^).mkdir^(parents=True, exist_ok=True^)
     echo ^(tmp / "review_queue"^).mkdir^(parents=True, exist_ok=True^)
     echo.
     echo from src.mesh import queue
-    echo from src.mesh.adapters import cli, taskdog, solverforge_calendar
+    echo from src.mesh.adapters import cli, taskdog
     echo cli.TASKS_JSONL = tmp / "tasks.jsonl"
     echo taskdog.TASKDOG_DB = tmp / "taskdog" / "tasks.db"
-    echo solverforge_calendar.UPI_DB = tmp / "solverforge_calendar" / "unified_planning.db"
     echo queue.QUEUE_DIR = tmp / "review_queue"
-    echo.
-    echo # --- Bootstrap UPI schema ^(idempotent^) ---
-    echo conn = sqlite3.connect^(solverforge_calendar.UPI_DB^)
-    echo conn.executescript^("""
-    echo     CREATE TABLE IF NOT EXISTS unified_planning_items ^(
-    echo         id TEXT PRIMARY KEY,
-    echo         ueid TEXT UNIQUE,
-    echo         status TEXT,
-    echo         start_at TEXT,
-    echo         end_at TEXT,
-    echo         blocked_by TEXT,
-    echo         tags TEXT,
-    echo         ikigai TEXT,
-    echo         provenance TEXT
-    echo     ^);
-    echo """^)
-    echo conn.commit^(^)
-    echo conn.close^(^)
     echo.
     echo # --- Imports ^(after path patching^) ---
     echo from src.contracts.task_change import TaskChange, TaskAction, PropagationEvent
@@ -84,7 +64,6 @@ REM is harmless here).
     echo from src.mesh.agent_propagator import propagate
     echo from src.mesh.adapters.cli import CliAdapter
     echo from src.mesh.adapters.taskdog import TaskdogAdapter
-    echo from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
     echo.
     echo # ============================================================
     echo # STEP 1: Generate a test UEID
@@ -157,22 +136,22 @@ REM is harmless here).
     echo assert v.decision == Decision.APPROVE, f"validation failed: {v.reason}"
     echo.
     echo # ============================================================
-    echo # STEP 7: Agent propagates to all 3 adapters
+    echo # STEP 7: Agent propagates to both adapters
     echo # ============================================================
-    echo print^("STEP 7: Agent propagates ^(propagate^) to all 3 adapters: CliAdapter, TaskdogAdapter, SolverforgeCalendarAdapter"^)
-    echo adapters = [CliAdapter^(^), TaskdogAdapter^(^), SolverforgeCalendarAdapter^(^)]
+    echo print^("STEP 7: Agent propagates ^(propagate^) to both adapters: CliAdapter, TaskdogAdapter"^)
+    echo adapters = [CliAdapter^(^), TaskdogAdapter^(^)]
     echo results = propagate^(pending[0], v, adapters^)
     echo for r in results:
     echo     print^(f"  {r.fork_name}: success={r.success}"^)
     echo     if not r.success:
     echo         print^(f"    error: {r.error}"^)
-    echo assert len^(results^) == 3, f"expected 3 results, got {len^(results^)}"
+    echo assert len^(results^) == 2, f"expected 2 results, got {len^(results^)}"
     echo assert all^(r.success for r in results^), "some adapters failed"
     echo.
     echo # ============================================================
-    echo # STEP 8: Verify all 3 forks have the task
+    echo # STEP 8: Verify both forks have the task
     echo # ============================================================
-    echo print^("STEP 8: Verify all 3 forks have the task"^)
+    echo print^("STEP 8: Verify both forks have the task"^)
     echo.
     echo # CLI: tasks.jsonl contains a JSON line with ueid
     echo print^("  CLI: tasks.jsonl contains a JSON line with ueid"^)
@@ -191,16 +170,6 @@ REM is harmless here).
     echo conn.close^(^)
     echo print^(f"    count={td_count}"^)
     echo assert td_count == 1, f"taskdog count={td_count}"
-    echo.
-    echo # UPI: SQLite unified_planning_items table has COUNT=1 for the ueid
-    echo print^("  UPI: SQLite unified_planning_items table has COUNT=1 for the ueid"^)
-    echo conn = sqlite3.connect^(solverforge_calendar.UPI_DB^)
-    echo upi_count = conn.execute^(
-    echo     "SELECT COUNT^(*) FROM unified_planning_items WHERE ueid=?", ^(ueid,^)
-    echo ^).fetchone^(^)[0]
-    echo conn.close^(^)
-    echo print^(f"    count={upi_count}"^)
-    echo assert upi_count == 1, f"UPI count={upi_count}"
     echo.
     echo # Then: queue.ack^(event_id, propagated^); consume_pending returns empty
     echo print^("  Then: queue.ack^(event_id, propagated^); consume_pending returns empty"^)

@@ -497,10 +497,10 @@ def sync_vault_to_taskdog(
     ``tags: [task]`` or ``type: task``. Skips drafts, MOCs, evidence,
     strategics. Run ``ikigai sync vault-to-taskdog --help`` for options.
     """
-    from sys_ikigai.gateway.clients.taskdog import taskdog_adapter
+    from src.mesh.adapters.taskdog import TaskdogAdapter
     from sys_ikigai.vault.sync import run_sync
 
-    adapter = taskdog_adapter()
+    adapter = TaskdogAdapter()
     result = run_sync(
         vault_root=vault_root,
         state_path=state_path,

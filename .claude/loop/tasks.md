@@ -49,6 +49,19 @@
 - **aceite:** cliente speakando MCP/serviços sobre HTTP, sem lógica de domínio
   no cliente e sem estado próprio fora do store; TUI/PC permanece em standby.
 
+### T-D5 — Publicar o escopo serverless canônico + specs do harness
+- **status:** in_progress
+- **milestone:** M198
+- **spec:** `specs/harness/SYSTEM-PROMPTS.md` · `specs/harness/SKILL-SPECS.md` ·
+  `vault/ikigai/decisions/2026-11-01-pivot-serverless-canonical-scope.md`
+- **nota:** purge de histórico autorizado pelo owner em 2026-11-01 — o remote
+  passa a ter só conteúdo canônico multi-dispositivo; TUI, MCP stdio e o
+  harness langgraph/langchain anterior saem da tip e do histórico.
+- **aceite:** `git ls-remote origin main` == HEAD local; clone novo lista a
+  keep-list e zero caminhos da purge-list; nenhum segredo real no clone;
+  suíte `src/ikigai/tests` rc 0; `import contracts, mesh` e
+  `python -m interfaces.cli --help` rc 0 dentro do clone.
+
 
 ## Active Tasks (M0 — Bootstrap)
 

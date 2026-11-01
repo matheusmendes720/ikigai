@@ -1,39 +1,31 @@
-"""Downstream MCP server adapters — backward-compat re-export shim.
+"""Downstream adapter registry — backward-compat re-export shim.
 
-The three factory functions live in gateway/clients/ subpackage.
-This module re-exports them so existing imports from sys_ikigai.gateway.downstream
-continue to work without modification.
+The stdio MCP client factories (taskdog-mcp, tuiboard, solverforge-calendar)
+lived here and were retired with the serverless pivot (ADR-037, 2026-11-01).
+What remains are the data-mesh adapters: the CLI fork and the taskdog SQLite
+fork, both of which speak plain files/SQLite instead of spawning a local MCP
+server process.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from sys_ikigai.gateway.clients.cli import cli_adapter
-from sys_ikigai.gateway.clients.solverforge_calendar import solverforge_calendar_adapter
-from sys_ikigai.gateway.clients.taskdog import taskdog_adapter
-from sys_ikigai.gateway.clients.tuiboard import tuiboard_adapter
+from sys_ikigai.gateway.adapters.cli_adapter import CliAdapter
+from sys_ikigai.gateway.adapters.taskdog_adapter import TaskdogAdapter
 
 
 def register_default_adapters(gateway, *, data_dir: Path | None = None) -> None:
-    """Register all 4 downstream adapters on a gateway.
+    """Register the surviving downstream adapters on a gateway.
 
-    No-op if a server binary is missing — adapters register only what
-    we can actually spawn. Caller decides whether to fail loudly.
+    Only adapters that need no local server binary are registered.
     """
-    for factory in (
-        tuiboard_adapter(data_dir=str(data_dir) if data_dir else None),
-        taskdog_adapter(),
-        solverforge_calendar_adapter(),
-        cli_adapter(),
-    ):
-        gateway.register(factory)
+    gateway.register(CliAdapter())
+    gateway.register(TaskdogAdapter())
 
 
 __all__ = [
-    "cli_adapter",
+    "CliAdapter",
+    "TaskdogAdapter",
     "register_default_adapters",
-    "solverforge_calendar_adapter",
-    "taskdog_adapter",
-    "tuiboard_adapter",
 ]

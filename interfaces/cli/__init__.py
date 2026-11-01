@@ -6,7 +6,7 @@ Top-level commands (defined in interfaces.cli.read_tasks):
   list                Read tasks from data/tasks.jsonl
   done <task_id>      Mark a task done → appends data/feedback.jsonl
   stats               Aggregate counts by horizon / priority
-  mesh-show <ueid>    Cross-fork view (CLI + taskdog + solverforge-calendar)
+  mesh-show <ueid>    Cross-fork view (CLI + taskdog)
   task-add            Producer: writes CliAdapter slice + enqueues TaskChange
 
 Sub-app `server` (defined in interfaces.cli.server):

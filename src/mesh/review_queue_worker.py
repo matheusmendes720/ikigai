@@ -236,9 +236,8 @@ DEFAULT_PIDFILE = Path(__file__).resolve().parents[2] / "data" / "run" / "review
 def _build_adapters() -> list[ForkAdapter]:
     """Default adapter list for the worker (same as `interfaces/cli/server.py` registry)."""
     from mesh.adapters import CliAdapter, TaskdogAdapter
-    from mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
 
-    return [CliAdapter(), TaskdogAdapter(), SolverforgeCalendarAdapter()]
+    return [CliAdapter(), TaskdogAdapter()]
 
 
 def _cli() -> int:

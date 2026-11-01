@@ -529,7 +529,7 @@ class TaskdogAdapter:
 
     # Canonical fork name used by agent_propagator.PropagationResult.
     # Matches the forks defined in src/mesh/adapters/__init__.py:
-    # ('cli', 'taskdog', 'solverforge_calendar').
+    # ('cli', 'taskdog').
     name: str = "taskdog"
 
     # ------------------------------------------------------------------

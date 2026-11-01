@@ -11,8 +11,8 @@
 #   4. CLI enqueues TaskChange to review queue
 #   5. Agent consumes queue (consume_pending)
 #   6. Agent validates -> Decision.APPROVE
-#   7. Agent propagates to all 3 adapters
-#   8. Verify all 3 forks have the task + ack queue
+#   7. Agent propagates to both adapters
+#   8. Verify both forks have the task + ack queue
 
 set -euo pipefail
 
@@ -62,33 +62,13 @@ from pathlib import Path
 tmp = Path(os.environ["SMOKE_TMP"])
 # Pre-create parent dirs (SQLite needs them to exist before open()).
 (tmp / "taskdog").mkdir(parents=True, exist_ok=True)
-(tmp / "solverforge_calendar").mkdir(parents=True, exist_ok=True)
 (tmp / "review_queue").mkdir(parents=True, exist_ok=True)
 
 from src.mesh import queue
-from src.mesh.adapters import cli, taskdog, solverforge_calendar
+from src.mesh.adapters import cli, taskdog
 cli.TASKS_JSONL = tmp / "tasks.jsonl"
 taskdog.TASKDOG_DB = tmp / "taskdog" / "tasks.db"
-solverforge_calendar.UPI_DB = tmp / "solverforge_calendar" / "unified_planning.db"
 queue.QUEUE_DIR = tmp / "review_queue"
-
-# --- Bootstrap UPI schema (idempotent) ---
-conn = sqlite3.connect(solverforge_calendar.UPI_DB)
-conn.executescript("""
-    CREATE TABLE IF NOT EXISTS unified_planning_items (
-        id TEXT PRIMARY KEY,
-        ueid TEXT UNIQUE,
-        status TEXT,
-        start_at TEXT,
-        end_at TEXT,
-        blocked_by TEXT,
-        tags TEXT,
-        ikigai TEXT,
-        provenance TEXT
-    );
-""")
-conn.commit()
-conn.close()
 
 # --- Imports (after path patching) ---
 from src.contracts.task_change import TaskChange, TaskAction, PropagationEvent
@@ -96,7 +76,6 @@ from src.mesh.agent_consumer import validate, Decision
 from src.mesh.agent_propagator import propagate
 from src.mesh.adapters.cli import CliAdapter
 from src.mesh.adapters.taskdog import TaskdogAdapter
-from src.mesh.adapters.solverforge_calendar import SolverforgeCalendarAdapter
 
 # ============================================================
 # STEP 1: Generate a test UEID
@@ -172,21 +151,21 @@ assert v.decision == Decision.APPROVE, f"validation failed: {v.reason}"
 # ============================================================
 # STEP 7: Agent propagates to all 3 adapters
 # ============================================================
-print("STEP 7: Agent propagates (propagate) to all 3 adapters: "
-      "CliAdapter, TaskdogAdapter, SolverforgeCalendarAdapter")
-adapters = [CliAdapter(), TaskdogAdapter(), SolverforgeCalendarAdapter()]
+print("STEP 7: Agent propagates (propagate) to both adapters: "
+      "CliAdapter, TaskdogAdapter")
+adapters = [CliAdapter(), TaskdogAdapter()]
 results = propagate(pending[0], v, adapters)
 for r in results:
     print(f"  {r.fork_name}: success={r.success}")
     if not r.success:
         print(f"    error: {r.error}")
-assert len(results) == 3, f"expected 3 results, got {len(results)}"
+assert len(results) == 2, f"expected 2 results, got {len(results)}"
 assert all(r.success for r in results), "some adapters failed"
 
 # ============================================================
 # STEP 8: Verify all 3 forks have the task
 # ============================================================
-print("STEP 8: Verify all 3 forks have the task")
+print("STEP 8: Verify both forks have the task")
 
 # CLI: tasks.jsonl contains a JSON line with ueid
 print("  CLI: tasks.jsonl contains a JSON line with ueid")
@@ -205,16 +184,6 @@ td_count = conn.execute(
 conn.close()
 print(f"    count={td_count}")
 assert td_count == 1, f"taskdog count={td_count}"
-
-# UPI: SQLite unified_planning_items table has COUNT=1 for the ueid
-print("  UPI: SQLite unified_planning_items table has COUNT=1 for the ueid")
-conn = sqlite3.connect(solverforge_calendar.UPI_DB)
-upi_count = conn.execute(
-    "SELECT COUNT(*) FROM unified_planning_items WHERE ueid=?", (ueid,)
-).fetchone()[0]
-conn.close()
-print(f"    count={upi_count}")
-assert upi_count == 1, f"UPI count={upi_count}"
 
 # Then: queue.ack(event_id, propagated); consume_pending returns empty
 print("  Then: queue.ack(event_id, propagated); consume_pending returns empty")

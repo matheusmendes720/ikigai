@@ -162,7 +162,7 @@ def ikigai_read_tasks(*, horizon: str | None = None, limit: int = 50) -> dict[st
 
 
 def ikigai_mesh_show(*, ueid: str) -> dict[str, Any]:
-    """Join CLI / taskdog / solverforge_calendar slices for one UEID.
+    """Join CLI / taskdog slices for one UEID.
 
     Read-only — the canonical mesh read for orchestrator state inspection.
     """
