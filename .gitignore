@@ -45,10 +45,17 @@
 /[A-Za-z0-9_][A-Za-z0-9_]
 !/[A-Za-z0-9_]*/
 !/*/
-# The PT-BR strategic prose IS published: the image copies it and the
-# loader reads it. The class rules above swallow a root directory whose
-# name is a bare identifier, and a negated DIRECTORY is the only way back
-# in — git never descends into a directory it excluded.
+# `strategics/` holds the PT-BR strategic prose, and it IS published: the
+# vault excerpt names these files as the full grounding
+# (`vault/_strategics_excerpt.md`), and the loader that reads them ships.
+#
+# It is the one root directory the shape rules above cannot leave alone.
+# Class B — a bare identifier with no dot — matches the DIRECTORY
+# `strategics`, and git never descends into a directory it excluded: so every
+# file beneath it was invisible to `git add`, and the index sweep took the
+# prose out along with the retired runtime. The directory and the prose are
+# named back explicitly. The vendored third-party fork inside it stays
+# excluded (§6).
 !/strategics/
 !/strategics/*.md
 # The handful of extension-less names a repository may legitimately carry.

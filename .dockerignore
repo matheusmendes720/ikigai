@@ -1,0 +1,54 @@
+# The build context is the repository root, and the owner's disk holds the
+# retired runtime (ADR-037: unpublished, not deleted) plus the virtualenvs
+# and caches of every tree that ever had a package. None of it belongs in a
+# container that serves the canonical data layer — and the context is uploaded
+# before the Dockerfile is even read, so a large context is a slow build on
+# every source change.
+
+.git/
+.github/
+
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.mypy_cache/
+**/*.pyc
+**/*.log
+
+# The retired runtime, still on disk.
+sys_ikigai/
+src/mesh/
+interfaces/
+vibe-ops/
+archive/
+src/agents/
+src/tuiboard/
+src/solverforge_calendar/
+src/ikigai/src/agents/
+src/ikigai/src/chat/
+src/ikigai/src/mcp_server/
+src/ikigai/src/plugins/
+src/ikigai/src/observability/
+src/ikigai/bin/
+
+# The root-level tooling of the retired system.
+tests/
+scripts/
+bin/
+
+# The tests run in CI, not in the container.
+src/ikigai/tests/
+
+# `docs/` is not served by the api or the bot, and the Dockerfile does not
+# copy it — so it only makes the build context slower. `vault/`, `specs/` and
+# `code-docs/` ARE copied — the sync service reads the vault prose.
+docs/
+
+# `strategics/` is published — the PT-BR prose is part of the branch, and the
+# image copies it. The vendored `planning-with-files/` fork beside it is not:
+# it is a third-party repository with its own `.git/`, thousands of files the
+# image has no use for, and the context is uploaded before the Dockerfile is
+# even read. Excluding it keeps the image identical on the owner's machine and
+# on a fresh clone.
+strategics/planning-with-files
