@@ -21,9 +21,8 @@ Steps:
 2. Search for what is already recorded today: `search_artifacts` with `kinds=(nota,)` and the quarter.
 3. Read each task that has evidence with `get_artifact` at depth 1, to see its relations.
 4. Classify every task as done, partly done, not started or dropped. Cite the evidence: the note uid, or the relation that proves it. An item with no evidence stays open.
-5. Write the note with `upsert_artifact`. The body carries the classification and the evidence. Set the quarter and the note date.
-6. Link the note to each task it speaks about with an `EVIDENCES` relation.
-7. Report the note uid, the counts per class, the evidence per class and the tools that ran.
+5. Write the note with `upsert_artifact`. The body carries the classification and the evidence. Set the quarter and the note date. The write carries the `EVIDENCES` edges to each task the note speaks about: the edge starts at the note, so the note and the edges that make it evidence land together.
+6. Report the note uid, the counts per class, the evidence per class and the tools that ran.
 
 Invariants:
 - The note is a new artifact. The previous day's note is never rewritten.

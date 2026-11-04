@@ -81,20 +81,25 @@ Steps:
 3. Read before writing. Call search_artifacts with the kinds filter, and when a
    candidate matches, call get_artifact on it. If it exists, reuse its uid and
    its revision. If it does not, expected_revision is null.
-4. Call upsert_artifact with the WriteRequest: the artifact, expected_revision,
-   a non-empty idempotency_key, and a client_id.
+4. Work out the relations, if the write carries any. Each edge names a
+   destination that already exists and the relation type: PARENT_OF for
+   hierarchy, DEPENDS_ON for sequence, EVIDENCES for provenance, DERIVES_FROM
+   for lineage, REFERENCES for citation, SUPERSEDES for replacement, BLOCKS for
+   contention. The edge starts at the artifact being written, so the source is
+   the uid from step 2. A destination that does not exist is NOT_FOUND: the
+   edge is refused and nothing is written.
+5. Call upsert_artifact with the WriteRequest: the artifact, the relations from
+   step 4, expected_revision, a non-empty idempotency_key, and a client_id.
    The idempotency key identifies the intent, not the moment: build it from the
    uid and the body hash, so a retry of the same intent is recognisable.
-5. Read the outcome:
+   The edges are written in the same transaction as the artifact: a write that
+   cannot link does not land at all.
+6. Read the outcome:
    - created: the revision is 1.
    - updated: the revision went up by one.
    - unchanged: the same idempotency key already wrote this intent.
    - conflict: another client wrote first. Call get_artifact, decide whether the
      change still applies, and reapply with the revision just read.
-6. Create the relations with list_relations and upsert through the relation
-   service: PARENT_OF for hierarchy, DEPENDS_ON for sequence, EVIDENCES for
-   provenance, DERIVES_FROM for lineage, REFERENCES for citation, SUPERSEDES for
-   replacement, BLOCKS for contention.
 7. Report the uid, the revision, the outcome, the relations created and the
    tools that ran.
 Invariants:
@@ -210,8 +215,10 @@ Steps:
    evidence stays open.
 4. Write the NOTA. The prose kinds require a non-empty body. The body carries
    the classification and the evidence. Set the quarter and the note date.
-5. Link the note to each task it speaks about with an EVIDENCES edge.
-6. Report the note uid, the counts per class, the evidence per class and the
+   The write carries the EVIDENCES edges to each task the note speaks about:
+   the edge starts at the note, so the note is written together with the edges
+   that make it evidence.
+5. Report the note uid, the counts per class, the evidence per class and the
    tools that ran.
 Invariants:
 - The note is a new artifact. The previous day's note is never rewritten.
@@ -242,8 +249,9 @@ Steps:
 3. Classify each planned item as done, partly done, not started or dropped, and
    cite the evidence for the classification.
 4. Write the REVISAO with the classification and the evidence. Set the quarter.
-5. Link the review to what it reviews with REFERENCES edges.
-6. Report the review uid, the counts per class and the tools that ran.
+   The write carries the REFERENCES edges to what the review reviews: each edge
+   starts at the review, so the review and its edges land together.
+5. Report the review uid, the counts per class and the tools that ran.
 Invariants:
 - The pipeline is arithmetic over state in the store. There is no LLM in the
   count.
@@ -282,9 +290,10 @@ Steps:
    a wrong KPI.
 4. Write the DESC with the decision, the rationale and the outcome. A DESC
    records a decision and why it was taken, so the body states what the gap
-   means and what is being decided about it.
-5. Link the decision to the objectives and the indicators it speaks about.
-6. Report the decision uid, the gap per indicator and the tools that ran.
+   means and what is being decided about it. The write carries the edges to the
+   objectives and the indicators the decision speaks about: each edge starts at
+   the decision, so the decision and its edges land together.
+5. Report the decision uid, the gap per indicator and the tools that ran.
 Invariants:
 - The comparison is arithmetic over the store. There is no LLM in the gap.
 - A DESC states the rationale. A decision without a rationale is not a decision.
@@ -318,12 +327,13 @@ Steps:
 3. Run the Teste de Fogo against the closing quarter. A verdict that is not PASS
    opens the Correcao do Trajeto: the correction is written before the new plan.
 4. Write the PLANO for the new quarter, with its plan tier and its quarter. Set
-   the quarter on every artifact that belongs to it.
+   the quarter on every artifact that belongs to it. The plan's write carries
+   its own edges: PARENT_OF to the phases.
 5. Write the FASE rows of the plan, the OKR objectives with their key results
-   and targets, and the ONDA waves of the quarter.
-6. Link them: PARENT_OF from the plan to its phases, the phases to the waves,
-   the waves to the tasks; DERIVES_FROM when a wave comes from an objective.
-7. Report the plan uid, the uids of the phases, objectives and waves, the
+   and targets, and the ONDA waves of the quarter. Each of those writes carries
+   the edges that start at it: PARENT_OF from a phase to its waves, from a wave
+   to its tasks, and DERIVES_FROM when a wave comes from an objective.
+6. Report the plan uid, the uids of the phases, objectives and waves, the
    Teste de Fogo verdict, and the tools that ran.
 Invariants:
 - The plan is a new artifact. The closing quarter's plan is never edited.

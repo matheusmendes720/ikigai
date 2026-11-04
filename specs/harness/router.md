@@ -89,6 +89,7 @@ The proportion behind the cadence: five days of execution, three weeks of analys
 |---------|---------------|------------|
 | `CONFLICT` | Another client wrote first. The `expected_revision` you sent is stale. | Call `get_artifact`, read the current revision, decide whether your change still applies, reapply with the new revision. Report both attempts. Never force. |
 | `NOT_FOUND` | No artifact with that uid, or the store has no row for it. | Search for it instead of guessing. Report that it does not exist. Do not reconstruct it from a neighbour. |
+| An edge names a destination that does not exist | The write carries a relation whose destination is not in the store. The write is refused: the artifact and its edges are written together. | The destination is what came before — write it first, or link to the artifact that is. Never force the write. |
 | `FORBIDDEN` | The row level security policy rejected the read or the write. The `client_id` does not match the claim the policy compares. | Check the `client_id` you are sending. Report it. Do not attempt to reach the row by another route. |
 | `VALIDATION` | The payload broke the contract: a missing body on a prose kind, a missing `metric` on a `kpi`, a malformed uid, an empty `idempotency_key`. | Read the error, fix the payload, retry. The contract is not negotiable. |
 | The store is unreachable | The connection failed. There is no local fallback for canonical state. | Report it as a system error with the context. Do not write to the filesystem instead. |

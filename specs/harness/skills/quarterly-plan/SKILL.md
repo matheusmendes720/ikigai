@@ -21,10 +21,9 @@ Steps:
 2. Search for the verdict and the decisions of the closing quarter: `search_artifacts` with `kinds=(revisao, desc)` and the closing quarter.
 3. Search for what closed and what did not: `search_artifacts` with `kinds=(okr, kpi)` and the closing quarter.
 4. Run the Teste de Fogo against the closing quarter. A verdict that is not PASS opens the Correção do Trajeto: the correction is written before the new plan.
-5. Write the `plano` with `upsert_artifact`, with its plan tier and its quarter. Set the quarter on every artifact that belongs to it.
-6. Write the `fase` rows of the plan, the `okr` objectives with their key results and targets, and the `onda` waves of the quarter.
-7. Link them: `PARENT_OF` from the plan to its phases, the phases to the waves, the waves to the tasks; `DERIVES_FROM` when a wave comes from an objective.
-8. Report the plan uid, the uids of the phases, objectives and waves, the Teste de Fogo verdict, and the tools that ran.
+5. Write the `plano` with `upsert_artifact`, with its plan tier and its quarter. Set the quarter on every artifact that belongs to it. The plan's write carries its own edges: `PARENT_OF` to the phases.
+6. Write the `fase` rows of the plan, the `okr` objectives with their key results and targets, and the `onda` waves of the quarter. Each of those writes carries the edges that start at it: `PARENT_OF` from a phase to its waves, from a wave to its tasks, and `DERIVES_FROM` when a wave comes from an objective.
+7. Report the plan uid, the uids of the phases, objectives and waves, the Teste de Fogo verdict, and the tools that ran.
 
 Invariants:
 - The plan is a new artifact. The closing quarter's plan is never edited.

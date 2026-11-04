@@ -41,7 +41,33 @@ class ArtifactService:
             raise InvalidPayloadError("client_id is required")
         if req.expected_revision is not None and req.expected_revision < 1:
             raise InvalidPayloadError("expected_revision starts at 1")
+        await self._check_relations(req)
         return await self._repo.upsert(req)
+
+    async def _check_relations(self, req: WriteRequest) -> None:
+        """The edges must start at the artifact and land on something that exists.
+
+        An edge leaves FROM the artifact being written: the envelope describes
+        one artifact and the edges that artifact starts. An edge from anywhere
+        else is a different intent — linking two artifacts that are not being
+        written — and it is refused rather than quietly accepted.
+
+        The destination must already be in the DOM. A provenance edge points at
+        what came before: the decision, the parent, the wave it derives from.
+        The store's foreign key refuses a destination that does not exist; this
+        check turns the refusal into the NOT_FOUND the agent knows how to
+        handle, before the artifact is written at all.
+        """
+        uid = str(req.artifact.uid)
+        for relation in req.relations:
+            if str(relation.src_uid) != uid:
+                raise InvalidPayloadError(
+                    f"a relation must start at the artifact being written ({uid}), "
+                    f"not at {relation.src_uid}"
+                )
+            if str(relation.dst_uid) == uid:
+                raise InvalidPayloadError("an artifact cannot relate to itself")
+            await self._repo.require(relation.dst_uid)
 
     async def search(self, query: SearchQuery) -> SearchResult:
         """Search by structured index, full text, or semantics."""

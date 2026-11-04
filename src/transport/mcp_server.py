@@ -142,6 +142,7 @@ async def upsert_artifact(
     idempotency_key: str,
     client_id: str,
     expected_revision: int | None = None,
+    relations: tuple[Relation, ...] = (),
 ) -> WriteOutcome:
     """Escreve um artefato com versionamento otimista.
 
@@ -152,6 +153,11 @@ async def upsert_artifact(
     carries its metric and its target, and the store keeps them in the
     extension table. `expected_revision` is null for a create and the
     revision you read for an update.
+
+    `relations` are the edges the artifact STARTS, and they are written with
+    it, in the same transaction: the graph is written with the node, or not at
+    all. Each edge names the destination, which must already exist; the
+    source is the artifact being written.
     """
     return await get_services().artifacts.upsert(
         WriteRequest(
@@ -159,6 +165,7 @@ async def upsert_artifact(
             expected_revision=expected_revision,
             idempotency_key=idempotency_key,
             client_id=client_id,
+            relations=relations,
         )
     )
 

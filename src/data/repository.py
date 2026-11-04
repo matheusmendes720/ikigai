@@ -130,6 +130,7 @@ class ArtifactRepository:
 
             await self._write_extension(conn, artifact)
             await self._insert_revision(conn, artifact, revision, req.client_id)
+            await self._write_relations(conn, req.relations)
         return WriteOutcome(uid=artifact.uid, revision=revision, outcome=outcome)
 
     async def _create(self, conn: Any, req: WriteRequest) -> tuple[str, int]:
@@ -347,19 +348,34 @@ class ArtifactRepository:
             )
         return [_to_relation(row) for row in rows]
 
-    async def upsert_relation(self, relation: Relation) -> None:
-        await self._client.execute(
+    async def upsert_relation(self, relation: Relation, conn: Any | None = None) -> None:
+        """Write an edge.
+
+        With a `conn`, the edge joins that transaction; without one, it takes
+        its own. The write envelope passes the transaction's connection: an
+        edge and the artifact it describes are written together or not at all.
+        """
+        sql = (
             "insert into ikig.artifact_relations (src_uid, dst_uid, rel, weight, meta) "
             "values (%s,%s,%s,%s,%s) on conflict (src_uid, dst_uid, rel) do update set "
-            "weight=excluded.weight, meta=excluded.meta",
-            (
-                str(relation.src_uid),
-                str(relation.dst_uid),
-                str(relation.rel),
-                relation.weight,
-                Jsonb(relation.meta) if Jsonb is not None else relation.meta,
-            ),
+            "weight=excluded.weight, meta=excluded.meta"
         )
+        params = (
+            str(relation.src_uid),
+            str(relation.dst_uid),
+            str(relation.rel),
+            relation.weight,
+            Jsonb(relation.meta) if Jsonb is not None else relation.meta,
+        )
+        if conn is not None:
+            await conn.execute(sql, params)
+            return
+        await self._client.execute(sql, params)
+
+    async def _write_relations(self, conn: Any, relations: Sequence[Relation]) -> None:
+        """Write the envelope's edges on the transaction's own connection."""
+        for relation in relations:
+            await self.upsert_relation(relation, conn=conn)
 
     async def search(self, query: SearchQuery) -> SearchResult:
         if query.semantic:
