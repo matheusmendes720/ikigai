@@ -1,11 +1,16 @@
 """Repository topology: which package owns a file, and which lines the diff touched.
 
-The monorepo is a set of independent packages. Each has its own environment,
+The repository is a set of independent packages. Each has its own environment,
 its own mypy configuration and its own Ruff configuration. A file therefore
 belongs to exactly one bucket, and the review has to run inside that bucket's
 own environment — running the packages together in one mypy invocation is not
-possible (`vibe-ops` is not a valid Python package name, and the Ikigai
-package would be analysed under a second, competing module identity).
+possible (the Ikigai package would be analysed under a second, competing
+module identity).
+
+2026-11-02 (ADR-037 cut): the `vibe-ops`, `interfaces-cli` and `src-mesh`
+buckets were removed with the trees they review. The buckets below are the
+canonical surface: the DOM, the store client, the domain rules, the MCP
+transport, and the package that holds their tests.
 """
 
 from __future__ import annotations
@@ -25,23 +30,10 @@ PACKAGES: tuple[PackageSpec, ...] = (
         ruff_target="src/",
         pytest=True,
     ),
-    PackageSpec(
-        name="vibe-ops",
-        path="vibe-ops",
-        manager="uv",
-        mypy_target=("src",),
-        ruff_target="src/",
-        pytest=True,
-    ),
-    PackageSpec(
-        name="interfaces-cli",
-        path="interfaces/cli",
-        manager="uv",
-        mypy_target=(".",),
-        ruff_target=".",
-        env=(("MYPYPATH", "../.."), ("PYTHONPATH", "../..")),
-        pytest=True,
-    ),
+    # The canonical data layer (ADR-037): the DOM, the Postgres client, the
+    # domain rules and the MCP transport. None of them has a pyproject.toml,
+    # so they are linted only — their tests live in `src/ikigai/tests/` and
+    # run under the `ikigai` entry.
     PackageSpec(
         name="src-contracts",
         path="src/contracts",
@@ -49,21 +41,33 @@ PACKAGES: tuple[PackageSpec, ...] = (
         ruff_target=".",
     ),
     PackageSpec(
-        name="src-mesh",
-        path="src/mesh",
+        name="src-data",
+        path="src/data",
+        manager="ruff-only",
+        ruff_target=".",
+    ),
+    PackageSpec(
+        name="src-services",
+        path="src/services",
+        manager="ruff-only",
+        ruff_target=".",
+    ),
+    PackageSpec(
+        name="src-transport",
+        path="src/transport",
         manager="ruff-only",
         ruff_target=".",
     ),
 )
 
 # The repository root is not a package: it has no lockfile-driven CI entry.
-# Its Python files (scripts/, plugins/, .claude/, tests/, src/agents/) are
-# reviewed as one bucket with the root environment and the root mypy config.
+# Its Python files (.github/scripts/, deploy/) are reviewed as one bucket with
+# the root environment and the root mypy config.
 ROOT_BUCKET = "root"
 
-# The root has no environment of its own that can even collect its tests
-# (langgraph is missing). The Ikigai Poetry environment can, with the
-# repository root exposed on PYTHONPATH.
+# The root has no environment of its own that can even collect its tests.
+# The canonical suite lives in `src/ikigai/tests/` and runs under the Ikigai
+# Poetry environment, with the repository root exposed on PYTHONPATH.
 #
 # The tool names are resolved lazily (at call time), not at import time: the
 # review job must not fail on import when a manager is absent — it has to
