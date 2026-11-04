@@ -29,6 +29,7 @@ from src.contracts.dom import (
     WriteRequest,
 )
 from src.contracts.errors import DataLayerError
+from src.contracts.dom_kinds import ArtifactPayload
 from src.services.wiring import Services, build_services
 
 __all__ = [
@@ -136,13 +137,30 @@ async def get_artifact(uid: UEID, depth: int = 1) -> ArtifactBundle:
 
 @mcp.tool()
 @_translate_errors
-async def upsert_artifact(req: WriteRequest) -> WriteOutcome:
+async def upsert_artifact(
+    artifact: ArtifactPayload,
+    idempotency_key: str,
+    client_id: str,
+    expected_revision: int | None = None,
+) -> WriteOutcome:
     """Escreve um artefato com versionamento otimista.
 
     Conflito de revisão retorna CONFLICT: releia o artefato e reaplique. Nunca
     sobrescreve o trabalho de outro cliente em silêncio.
+
+    The artifact is the TYPED model for its kind, not the bare spine: a KPI
+    carries its metric and its target, and the store keeps them in the
+    extension table. `expected_revision` is null for a create and the
+    revision you read for an update.
     """
-    return await get_services().artifacts.upsert(req)
+    return await get_services().artifacts.upsert(
+        WriteRequest(
+            artifact=artifact,
+            expected_revision=expected_revision,
+            idempotency_key=idempotency_key,
+            client_id=client_id,
+        )
+    )
 
 
 @mcp.tool()

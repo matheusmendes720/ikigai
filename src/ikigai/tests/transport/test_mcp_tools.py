@@ -117,3 +117,81 @@ async def test_a_missing_artifact_reaches_the_caller_with_its_code(transport: An
             await transport.get_artifact("kpi:qualquer:a1b2c3d4:0123456789abcdef")
     finally:
         transport.set_services(None)
+
+
+async def test_the_bot_sends_what_the_transport_accepts(transport: Any) -> None:
+    """A client and the transport must agree on the tool's ARGUMENT NAMES.
+
+    They disagreed once: the transport took the write as a nested `req`
+    envelope and the bot sent the four fields flat, so every write from
+    Telegram failed with a validation error — and nothing in the suite
+    noticed, because nothing compared the two.
+
+    The comparison is against the SCHEMA the server publishes, because that is
+    what a client actually sees.
+    """
+    from src.bot.main import _write_arguments
+    from src.contracts.dom import ArtifactKind
+
+    tools = {tool.name: tool for tool in await transport.mcp.list_tools()}
+    schema = tools["upsert_artifact"].inputSchema
+    properties = set(schema.get("properties", {}))
+    required = set(schema.get("required", []))
+
+    sent = _write_arguments(ArtifactKind.NOTA, "nota do dia", "corpo", "abcd1234", "owner")
+
+    assert required <= set(sent), (
+        f"the tool requires arguments the bot never sends: {sorted(required - set(sent))}"
+    )
+    assert set(sent) <= properties, (
+        f"the bot sends arguments the tool does not accept: {sorted(set(sent) - properties)}"
+    )
+
+
+async def test_the_tool_keeps_the_typed_kind(transport: Any) -> None:
+    """A KPI's own fields must survive the transport.
+
+    The repository writes the extension tables by `isinstance`, so an artifact
+    that arrives as the bare spine loses its typed fields in silence — and the
+    spine forbids extra fields, so the tool has to take the TYPED model.
+    """
+    from src.contracts.dom import ArtifactKind, make_uid
+    from src.contracts.dom_kinds import KPIArtifact
+
+    seen: dict[str, Any] = {}
+
+    class CapturingArtifacts:
+        async def upsert(self, req: Any) -> Any:
+            seen["type"] = type(req.artifact)
+            seen["metric"] = getattr(req.artifact, "metric", None)
+            raise RuntimeError("stop here")
+
+    transport.set_services(
+        transport.Services(
+            artifacts=CapturingArtifacts(),  # type: ignore[arg-type]
+            relations=object(),  # type: ignore[arg-type]
+            embeddings=object(),  # type: ignore[arg-type]
+        )
+    )
+    try:
+        kpi = KPIArtifact(
+            uid=make_uid(ArtifactKind.KPI, "sono", "aaaaaaaa", "0123456789abcdef"),
+            title="Sono",
+            metric="horas de sono",
+            period="2026-11",
+            created_at="2026-11-04T00:00:00+00:00",
+            updated_at="2026-11-04T00:00:00+00:00",
+        )
+        with pytest.raises(RuntimeError, match="stop here"):
+            await transport.upsert_artifact(
+                artifact=kpi,
+                idempotency_key="k",
+                client_id="owner",
+            )
+    finally:
+        transport.set_services(None)
+
+    assert seen.get("type") is KPIArtifact, (
+        f"the artifact arrived as {seen.get('type')} — the typed fields are lost"
+    )
+    assert seen.get("metric") == "horas de sono"

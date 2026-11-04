@@ -101,6 +101,31 @@ def _artifact_payload(
     }
 
 
+def _write_arguments(
+    kind: ArtifactKind,
+    title: str,
+    body: str,
+    uuid_short: str,
+    client_id: str,
+) -> dict[str, Any]:
+    """The arguments for `upsert_artifact` — ONE place, so the client and the
+    transport cannot drift apart.
+
+    These names are the wire contract: the transport's tool takes exactly
+    these four arguments, and the drift test compares the two. They disagreed
+    once — the transport wanted a nested `req` envelope and the bot sent the
+    fields flat — and every write from Telegram failed with a validation
+    error that nothing in the suite noticed.
+    """
+    artifact = _artifact_payload(kind, title, body, uuid_short)
+    return {
+        "artifact": artifact,
+        "expected_revision": None,
+        "idempotency_key": f"{artifact['uid']}:{artifact['body_hash']}",
+        "client_id": client_id,
+    }
+
+
 class McpClient:
     """A thin MCP client over streamable HTTP.
 
@@ -194,17 +219,9 @@ class Bot:
             kind = WRITABLE[command]
             title = argument.splitlines()[0][:120]
             body = argument
-            artifact = _artifact_payload(kind, title, body, _hash8(message_id))
-            outcome = await self._client.call(
-                "upsert_artifact",
-                {
-                    "artifact": artifact,
-                    "expected_revision": None,
-                    "idempotency_key": f"{artifact['uid']}:{artifact['body_hash']}",
-                    "client_id": self._client_id,
-                },
-            )
-            return f"Registado ({kind.value}).\n{artifact['uid']}"
+            arguments = _write_arguments(kind, title, body, _hash8(message_id), self._client_id)
+            await self._client.call("upsert_artifact", arguments)
+            return f"Registado ({kind.value}).\n{arguments['artifact']['uid']}"
 
         if command == "/busca":
             if not argument:
