@@ -127,6 +127,24 @@ os.environ["TMP"] = str(_TMP_BASE)
 
 import pytest  # noqa: E402 — must come AFTER sys.path and env setup above
 
+from src.data.client import ensure_compatible_event_loop  # noqa: E402 — same reason
+
+# ---------------------------------------------------------------------------
+# The event loop the store's driver can drive.
+#
+# psycopg's async driver waits on the socket with add_reader/add_writer,
+# which Windows' default ProactorEventLoop does not implement — the driver
+# refuses that loop outright. The refusal happens inside the pool's connect
+# task, so the suite saw a 30-second pool timeout per attempt and no
+# diagnosis at all: five store tests failed without ever reaching the
+# behaviour they exist to prove.
+#
+# The policy has to be chosen BEFORE the loop is created. pytest-asyncio
+# creates the loop in a fixture, and this module is imported before any
+# fixture runs, so this is early enough.
+# ---------------------------------------------------------------------------
+ensure_compatible_event_loop()
+
 
 def pytest_configure(config):
     """Run the async tests, whatever the rootdir is.

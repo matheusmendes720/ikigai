@@ -30,7 +30,7 @@ from src.contracts.dom import (
 )
 from src.contracts.errors import DataLayerError
 from src.contracts.dom_kinds import ArtifactPayload
-from src.services.wiring import Services, build_services
+from src.services.wiring import Services, build_services, prepare_runtime
 
 __all__ = [
     "Services",
@@ -214,6 +214,8 @@ def resolve_transport(env: Mapping[str, str] | None = None) -> str:
 
 def main() -> None:
     """Run the server. The harness decides how to reach it."""
+    # Before mcp.run(): the policy has to be chosen before the loop exists.
+    prepare_runtime()
     mcp.run(transport=resolve_transport())
 
 

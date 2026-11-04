@@ -16,13 +16,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.data.client import DataClient
+from src.data.client import DataClient, ensure_compatible_event_loop
 from src.data.repository import ArtifactRepository
 from src.services.artifacts import ArtifactService
 from src.services.embeddings import EmbeddingService
 from src.services.relations import RelationService
 
-__all__ = ["Services", "build_services"]
+__all__ = ["Services", "build_services", "prepare_runtime"]
 
 
 @dataclass
@@ -32,6 +32,21 @@ class Services:
     artifacts: ArtifactService
     relations: RelationService
     embeddings: EmbeddingService
+
+
+def prepare_runtime() -> None:
+    """Make the process able to reach the store AT ALL, before any loop exists.
+
+    The store's driver refuses Windows' default event loop, and the
+    refusal surfaces as a pool timeout that names nothing. This is the
+    service layer's business because the service layer is the layer that
+    knows what the store is — so it is the layer that knows how the
+    process has to be prepared to reach it.
+
+    Call it at the entry point, before the loop is created: swapping the
+    policy afterwards changes nothing about the loop already running.
+    """
+    ensure_compatible_event_loop()
 
 
 def build_services() -> Services:
