@@ -38,7 +38,7 @@ in the build. The role is the **command**, not the build.
 | `IKIGAI_MCP_TRANSPORT` | no (default `http`) | ADR-011: `http` for a deployment, `stdio` for the local harness |
 | `IKIGAI_BOT_TOKEN` | **yes** | the Telegram bot token — belongs to the bot process only |
 | `IKIGAI_BOT_ALLOWED_CHAT_IDS` | **yes** | comma-separated owner chat ids; empty stops the bot |
-| `IKIGAI_CLIENT_ID` | no (default `owner`) | the identity written on every write — the claim the RLS policies filter on |
+| `IKIGAI_CLIENT_ID` | no (default `owner`) | the identity written on every write. It is written into the ROW; it is **not** the claim the RLS policies filter on — see below |
 
 Put them in a `.env` file beside this one. `.env*` is gitignored; no secret
 belongs in a tracked file.
@@ -70,6 +70,36 @@ schema is a green lie: the healthcheck would pass (the store answers) while
 every write failed. With the runner in the startup path, a broken schema is a
 container that never comes up, and the bot — which waits for the api to be
 healthy — never starts either.
+
+## The role the service connects as — and why it matters
+
+The DOM's tables carry row-level security: a row is visible only to the
+client whose `client_id` matches the calling claim
+(`request.jwt.claim.client_id`).
+
+**The service never sets that claim.** It writes the `client_id` into the row
+and leaves the claim alone. So the policies bind only a role that does NOT
+own the tables — and the role that owns them bypasses row-level security
+outright.
+
+The compose runs the service as `ikigai`, which owns the tables. That is why
+the store works today, and it is a **dependency, not a convenience**: with a
+role that does not own them, the comparison is against NULL, nothing is
+visible, and every write is refused by the policy's `with check`.
+
+Two things follow, and both are enforced rather than assumed:
+
+- the healthcheck **writes a row and rolls it back** instead of running
+  `select 1`. A trivial query answers fine under a bound role — RLS does not
+  apply to it — while every real write is refused, so `select 1` would have
+  reported the container healthy while the store was unusable;
+- `tests/store/test_store_rls.py` proves the policies isolate clients, using
+  a role they actually bind, and proves that the healthcheck's probe is
+  refused by such a role.
+
+If the deployment ever moves to a role that does not own the tables — which
+is what a managed Postgres like Supabase recommends for an application — the
+service has to start setting the claim. Until then, the role must own them.
 
 ## What is NOT here, and why
 
