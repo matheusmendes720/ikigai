@@ -97,9 +97,16 @@ Two things follow, and both are enforced rather than assumed:
   a role they actually bind, and proves that the healthcheck's probe is
   refused by such a role.
 
-If the deployment ever moves to a role that does not own the tables — which
-is what a managed Postgres like Supabase recommends for an application — the
-service has to start setting the claim. Until then, the role must own them.
+If the deployment ever moves to a role that does not own the tables, the
+service has to start setting the claim: `select set_config(RLS_CLIENT_CLAIM,
+<client_id>, true)`, where `RLS_CLIENT_CLAIM` in `src/contracts/store.py` is
+the single source of that setting's name — the policies in `0003_rls.sql` and
+the drift test both derive from it. Until then, the role must own them.
+
+The provider is the owner's own Postgres (see `PROVIDER` in the same module),
+so which role the service connects as is a deployment choice, and the compose
+makes it: `ikigai`, the owner. The constraint above is what that choice has
+to keep satisfying.
 
 ## What is NOT here, and why
 
