@@ -39,8 +39,19 @@ SCHEMA_VERSION = 1
 DOMAIN = "ikig"
 """The Postgres schema that holds the DOM."""
 
-RLS_CLIENT_CLAIM = "client_id"
-"""The JWT claim the row-level security policies filter on."""
+RLS_CLIENT_CLAIM = "request.jwt.claim.client_id"
+"""The session setting the row-level security policies filter on.
+
+It is the setting, not the bare claim name, because that is what a caller
+needs: ``select set_config(RLS_CLIENT_CLAIM, <client_id>, true)`` puts the
+calling client into the session, and the policies in ``0003_rls.sql`` compare
+against it.
+
+This constant is the single source of that name. The migration and the drift
+test both derive from it — a copy of the string in either place would let
+the policies and the service disagree about the same fact, and nothing would
+notice until a write was refused.
+"""
 
 STORE_DSN_ENV = "IKIGAI_STORE_DSN"
 """The environment variable holding the connection string. Never a file."""

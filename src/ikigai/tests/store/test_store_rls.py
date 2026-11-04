@@ -96,11 +96,14 @@ def _visible_clients(dsn: str, claim: str | None) -> set[str]:
     """The client_ids a session can see, with the claim set (or not)."""
     import psycopg
 
+    from src.contracts.store import RLS_CLIENT_CLAIM
+
     with psycopg.connect(dsn) as conn:
         if claim is not None:
             # Session scope: the claim has to survive the statements that
             # follow it, which is how a request-scoped claim would behave.
-            conn.execute("select set_config('request.jwt.claim.client_id', %s, false)", (claim,))
+            # The setting's name comes from the constant the policies read.
+            conn.execute(f"select set_config('{RLS_CLIENT_CLAIM}', %s, false)", (claim,))
         rows = conn.execute("select client_id from ikig.artifacts").fetchall()
     return {str(row[0]) for row in rows}
 

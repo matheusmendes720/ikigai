@@ -17,7 +17,7 @@ from pathlib import Path
 
 from src.contracts.common import _UEID_PATTERN
 from src.contracts.dom import ArtifactKind
-from src.contracts.store import EMBEDDING_DIM, KIND_TABLES
+from src.contracts.store import EMBEDDING_DIM, KIND_TABLES, RLS_CLIENT_CLAIM
 
 MIGRATIONS = Path(__file__).resolve().parents[3] / "contracts" / "migrations"
 
@@ -194,5 +194,11 @@ def test_every_rls_enabled_table_has_a_policy() -> None:
 
 def test_rls_filters_on_the_client_claim() -> None:
     rls = _read("0003_rls.sql")
-    assert "request.jwt.claim.client_id" in rls
+    # The name comes from the constant, not from a copy of it: a copy in
+    # this test would pass forever, even after the policies and the service
+    # started disagreeing about the same fact.
+    assert RLS_CLIENT_CLAIM in rls, (
+        f"the policies do not filter on {RLS_CLIENT_CLAIM!r} — the constant and "
+        "the migration disagree about the same name"
+    )
     assert "auth.uid()" not in rls, "the client is one person with several devices, not a user"
