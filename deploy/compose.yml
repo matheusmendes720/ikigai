@@ -1,0 +1,91 @@
+# The canonical service, on one box (ADR-037, renewed scope 2026-11-02).
+#
+# Three containers, one compose: the store, the API (MCP over HTTP) and the
+# Telegram bot. The api and the bot run the SAME image — the role is the
+# command, not the build. They share the contracts, the store client and the
+# service layer, so they must not be allowed to drift apart in the build.
+#
+# Secrets never live here: the DSN and the bot token come from the
+# environment (contract C-5). Copy `.env.example` to `.env` and fill it in;
+# `.env*` is gitignored, and the secret is never committed.
+#
+#   docker compose up -d --build
+#   docker compose exec db psql -U ikigai -d ikigai -c '\dt'
+#
+name: ikigai
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${IKIGAI_DB_NAME:-ikigai}
+      POSTGRES_USER: ${IKIGAI_DB_USER:-ikigai}
+      POSTGRES_PASSWORD: ${IKIGAI_DB_PASSWORD:?set IKIGAI_DB_PASSWORD in .env}
+      # The DOM lives in its own schema (src/contracts/store.py: DOMAIN).
+      POSTGRES_INITDB_ARGS: "--search_path=ikig,public"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${IKIGAI_DB_USER:-ikigai} -d ${IKIGAI_DB_NAME:-ikigai}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    command: ["python", "-m", "src.transport.mcp_server"]
+    environment:
+      IKIGAI_STORE_DSN: postgresql://${IKIGAI_DB_USER:-ikigai}:${IKIGAI_DB_PASSWORD}@db:5432/${IKIGAI_DB_NAME:-ikigai}
+      # ADR-011: `http` is what a cloud deployment needs; `stdio` is the local
+      # harness path.
+      IKIGAI_MCP_TRANSPORT: ${IKIGAI_MCP_TRANSPORT:-http}
+      FASTMCP_HOST: 0.0.0.0
+      FASTMCP_PORT: "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # Bound to loopback on purpose: the public surface is the Telegram bot
+      # and (later) a reverse proxy, not an open MCP port.
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+
+  bot:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    command: ["python", "-m", "src.bot.main"]
+    environment:
+      # NOTE: no IKIGAI_STORE_DSN here on purpose. The bot is a CLIENT of the
+      # api: it speaks MCP and does not touch the store (ADR-037 D6). Giving
+      # it a DSN would be a second writer waiting to happen (D5).
+      IKIGAI_BOT_TOKEN: ${IKIGAI_BOT_TOKEN:?set IKIGAI_BOT_TOKEN in .env}
+      IKIGAI_MCP_URL: http://api:8000/mcp
+      IKIGAI_CLIENT_ID: ${IKIGAI_CLIENT_ID:-owner}
+      IKIGAI_BOT_ALLOWED_CHAT_IDS: ${IKIGAI_BOT_ALLOWED_CHAT_IDS:?set IKIGAI_BOT_ALLOWED_CHAT_IDS in .env}
+    depends_on:
+      api:
+        condition: service_healthy
+    # The image's healthcheck measures the STORE — and the bot has none: it
+    # is a client of the api (ADR-037 D5), which is exactly why it holds no
+    # DSN. Left as it is, the bot would report "unhealthy" forever, which is
+    # a lie in the other direction. What the bot actually depends on is the
+    # api's MCP endpoint being reachable from it.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -c "import os,socket,urllib.parse as u;
+          p=u.urlparse(os.environ['IKIGAI_MCP_URL']);
+          socket.create_connection((p.hostname, p.port or 80), timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  db-data:
