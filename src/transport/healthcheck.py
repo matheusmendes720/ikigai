@@ -7,13 +7,29 @@ burned by it ("``405`` em ``GET /mcp`` = sinal de vida, não de erro").
 
 Two things actually matter for the container to count as up:
 
-1. **the store answers** — a trivial query, against the DSN the service
-   layer itself uses;
+1. **the store can be WRITTEN** — the data plane, measured by the only query
+   that proves it: an insert the check immediately discards;
 2. **a client can reach the transport** — the address the bot and the harness
    dial, not the loopback the server happens to bind.
 
-The second one is the subtle half. A server bound to 127.0.0.1 also answers
-a connection to 0.0.0.0, because the kernel resolves 0.0.0.0 to the
+The first one is subtler than it looks, and it was wrong here. The probe used
+to be ``select 1`` — a query against no table at all. It proves the socket
+carries bytes, which is what C-2 forbids. It is also blind to the store's
+row-level security: the DOM's policies filter on
+``request.jwt.claim.client_id``, and the service does not set that claim, so
+the policies only bind a role that does not own the tables. A ``select 1``
+answers fine under such a role — RLS does not apply to it — while EVERY
+write is refused by the policy's ``with check``. The container would have
+reported healthy while the store was unusable: the green lie, wearing a
+different hat.
+
+So the probe writes a row and throws it away. Under a role the policies
+bind, the insert is refused and the check reports the refusal. Under the
+owner role it succeeds and is rolled back, and nothing is stored — the probe
+leaves no row, no sequence and no ledger entry behind.
+
+The second one is the other subtle half. A server bound to 127.0.0.1 also
+answers a connection to 0.0.0.0, because the kernel resolves 0.0.0.0 to the
 loopback — so a check against the bind host passes on a service that no other
 container in the network can reach. That is the green lie C-2 warns about,
 and it is why the check below dials the address a CLIENT uses.
@@ -43,16 +59,31 @@ from src.transport.mcp_server import transport_host, transport_port
 
 _WILDCARD_HOSTS = ("0.0.0.0", "::", "")
 
+# The probe's own row. The uid is a valid one and is never stored: the
+# transaction is rolled back, so the probe leaves nothing behind.
+_PROBE_UID = "kpi:healthcheck:00000000:00000000"
+_PROBE_INSERT = (
+    "insert into ikig.artifacts (uid, kind, title, client_id) "
+    f"values ('{_PROBE_UID}', 'kpi', 'healthcheck', 'healthcheck')"
+)
+
 
 def _check_store(dsn: str) -> None:
+    """Prove the store can be written, by writing and discarding a row.
+
+    The insert is rolled back, so the probe leaves no row and no ledger entry
+    behind. What it does leave is the answer to the question that matters: can
+    the service's own role write to the DOM? If the store's policies bind
+    that role, the insert is refused and the check says so.
+    """
     import psycopg
 
-    with psycopg.connect(dsn, connect_timeout=5) as conn:
-        with conn.cursor() as cur:
-            cur.execute("select 1")
-            row = cur.fetchone()
-    if row is None or row[0] != 1:
-        raise RuntimeError("the store did not answer `select 1`")
+    conn = psycopg.connect(dsn, connect_timeout=5)
+    try:
+        conn.execute(_PROBE_INSERT)
+        conn.rollback()
+    finally:
+        conn.close()
 
 
 def _client_address(bind_host: str) -> str:
