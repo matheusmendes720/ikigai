@@ -436,3 +436,36 @@ async def test_sync_records_the_parent_edge(tmp_path: Path) -> None:
     assert stored.parent_uid is not None
     assert str(stored.parent_uid) == "ikigai:objective:q3:cbf000ba:c040f222"
     assert report.relations == 1
+
+
+async def test_a_daily_note_keeps_its_date(tmp_path: Path) -> None:
+    """The vault's daily notes carry `date:` in their frontmatter.
+
+    PyYAML parses an unquoted date into a `datetime.date` and a quoted one
+    into a string; both have to reach the artifact's created_at. The day a
+    note is about IS the day it was created — and the note used to be written
+    with a `note_date` field, which the DOM forbids: a note whose date was
+    quoted was rejected by the model, and the sync dropped it in silence.
+    """
+    vault = tmp_path / "closing-2026"
+    notes = vault / "01-q3-2026" / "04-relatórios-diários"
+    notes.mkdir(parents=True)
+    (notes / "2026-09-07.md").write_text(
+        "---\ntype: planning_note\nnote_version: 1.0\ndate: 2026-09-07\n"
+        "status: draft\n---\n\n# Planning Note — 2026-09-07\n\n- delta\n",
+        encoding="utf-8",
+    )
+    (notes / "2026-09-08.md").write_text(
+        '---\ntype: planning_note\ndate: "2026-09-08"\nstatus: draft\n'
+        "---\n\n# Planning Note — 2026-09-08\n\n- delta\n",
+        encoding="utf-8",
+    )
+
+    repo = FakeRepository()
+    sync = VaultSync(repo, sources=[VaultSource(vault, "closing")])  # type: ignore[arg-type]
+
+    report = await sync.ingest()
+
+    assert report.created == 2, f"a note was dropped: {report.skipped}"
+    days = sorted(artifact.created_at.date().isoformat() for artifact in repo.artifacts.values())
+    assert days == ["2026-09-07", "2026-09-08"]
