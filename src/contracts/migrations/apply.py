@@ -75,6 +75,14 @@ def _applied(conn) -> dict[str, str]:  # noqa: ANN001 — psycopg connection
 def apply_pending(conn) -> list[str]:  # noqa: ANN001 — psycopg connection
     applied: list[str] = []
     recorded = _applied(conn)
+    # The SELECT above opened an implicit transaction. psycopg's
+    # `conn.transaction()` nests into an open transaction as a SAVEPOINT, and
+    # the enclosing transaction is only ended by an explicit commit — so the
+    # migration AND its ledger row would both be discarded by the rollback
+    # that closes the run, and the runner would report "applied" for a schema
+    # that does not exist. The transaction is closed here so that each
+    # migration below owns its own.
+    conn.commit()
     for path in _migration_files():
         checksum = _checksum(path)
         if path.name in recorded:
@@ -98,6 +106,8 @@ def rollback_last(conn) -> str | None:  # noqa: ANN001 — psycopg connection
     row = conn.execute(
         "select name from ikig.schema_migrations order by applied_at desc, name desc limit 1"
     ).fetchone()
+    # The same reason as in apply_pending: the SELECT opened a transaction.
+    conn.commit()
     if row is None:
         return None
     name = row[0]
