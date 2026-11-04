@@ -54,17 +54,22 @@ docker compose logs -f bot
 
 ## The migrations
 
-The schema is applied by the canonical migration runner, not by the compose
-file. The api container waits for the store to be healthy and then:
+The schema is applied by the canonical migration runner — not by the compose
+file, and not by hand. The api container runs it before it serves:
 
 ```bash
-docker compose exec api python -m src.contracts.migrations.apply up
 docker compose exec api python -m src.contracts.migrations.apply status
 ```
 
 `up` is idempotent — it applies the versioned SQL in order and records the
 schema version. `down --yes` rolls back one step. Never edit a migration that
 has already run.
+
+The api applies them at startup because a service that comes up without its
+schema is a green lie: the healthcheck would pass (the store answers) while
+every write failed. With the runner in the startup path, a broken schema is a
+container that never comes up, and the bot — which waits for the api to be
+healthy — never starts either.
 
 ## What is NOT here, and why
 

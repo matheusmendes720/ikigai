@@ -21,8 +21,13 @@ services:
       POSTGRES_DB: ${IKIGAI_DB_NAME:-ikigai}
       POSTGRES_USER: ${IKIGAI_DB_USER:-ikigai}
       POSTGRES_PASSWORD: ${IKIGAI_DB_PASSWORD:?set IKIGAI_DB_PASSWORD in .env}
-      # The DOM lives in its own schema (src/contracts/store.py: DOMAIN).
-      POSTGRES_INITDB_ARGS: "--search_path=ikig,public"
+      # NO search_path here, and that is a decision, not an omission.
+      # POSTGRES_INITDB_ARGS is handed to `initdb`, which has no such option:
+      # the container exits 1 on "invalid option" and restarts forever. It
+      # would not have worked even if it did — `ikig` does not exist at initdb
+      # time. And it is not needed: every table the service, the migrations
+      # and the RLS policies touch is `ikig.`-qualified, and the schema itself
+      # is created by 0001_init.sql.
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -36,7 +41,15 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
-    command: ["python", "-m", "src.transport.mcp_server"]
+    # The api applies the migrations before it serves. The runner is
+    # idempotent and takes an advisory lock, so this is safe with more than
+    # one replica — and it means a broken schema is a container that never
+    # comes up, not a "healthy" service that answers every write with an
+    # error. The bot waits for the api to be healthy, so the chain holds.
+    command:
+      - sh
+      - -c
+      - "python -m src.contracts.migrations.apply up && exec python -m src.transport.mcp_server"
     environment:
       IKIGAI_STORE_DSN: postgresql://${IKIGAI_DB_USER:-ikigai}:${IKIGAI_DB_PASSWORD}@db:5432/${IKIGAI_DB_NAME:-ikigai}
       # ADR-011: `http` is what a cloud deployment needs; `stdio` is the local
