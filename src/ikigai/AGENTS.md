@@ -29,14 +29,13 @@ src/ikigai/
 | Strategic prose loader | `src/strategics/loader.py` — read-only |
 | Canonical MCP surface (6 tools) | `src/transport/mcp_server.py` (repo root, ADR-011) |
 | Data-layer contracts | `src/contracts/` (repo root — canonical Pydantic v2) |
-| Planner layer (memory, reflection) | `src/agents/` (repo root — canonical, planner-only) |
+| Planner layer (memory, reflection) | the agent is EXTERNAL (ADR-037 D7) — the harness is `pi`, and it is not in this repository |
 | Meta-Planner contracts | `contracts/proposal.py` (11 Pydantic models) |
-| Soul profiles | `souls/*.md` + `souls/loader.py` |
-| Drift net | `tests/test_canonical_scope.py`, `tests/test_drift_invariants.py`, `tests/test_drift_extended_invariants.py` |
+| Drift net | `tests/test_canonical_scope.py`, `tests/test_drift_invariants.py`, `tests/test_gitignore_root_scope.py` |
 | Transport tests | `tests/transport/test_mcp_tools.py` |
 
 ## CONVENTIONS
-- **The Poetry project installs top-level names, not `ikigai.*`.** `packages` now ships only `strategics` (from `src/`) plus `sys_ikigai` from the repo root (`from = "../.."`). Runtime code therefore writes `from strategics.loader import ...` — there is no `ikigai.*` prefix.
+- **The Poetry project installs top-level names, not `ikigai.*`.** `packages` ships only `strategics` (from `src/`). The `sys_ikigai` entry was removed on 2026-11-02: shipping the retired runtime from the repo root was the coupling that kept 91 legacy files on the branch (ADR-037). Runtime code therefore writes `from strategics.loader import ...` — there is no `ikigai.*` prefix.
 - **No console scripts.** `ikigai-maintainer-mcp`, `ikigai-deep-agent`, `paperclip` and `paperclipai-bridge` were removed with the harness — they only started the PC-local server. The cloud harness is specified in `specs/harness/`.
 - **The MCP SDK stays a declared dependency** (`mcp = "^1.1"`) because this package's own suite (`tests/transport/`) exercises the canonical transport from this venv.
 - **Pytest config lives in this project's `pyproject.toml`**: `testpaths = ["tests"]`, `pythonpath = ["src", "../.."]`, `addopts = "-v --tb=short"`. Root `pytest.ini` is a separate, root-only config.
@@ -50,7 +49,7 @@ src/ikigai/
 - **Never commit `.env`.** It is gitignored; the root `.env.example` is the template, and it instructs rotating a previously leaked key before use.
 - **Never import `sys_ikigai.core.scoring`, `ikigai.core.heuristics`, or `cybernetics.daily_loop`** from this package (ADR-013 planner-only).
 - **`uv.lock` and `poetry.lock` both exist.** Poetry is the source of truth for this project; the stray `uv.lock` is a leftover — do not add uv-specific config to `pyproject.toml`.
-- **Never let `sys_ikigai` become a second copy.** It is installed from the repo root (`from = "../.."`); do not vendor it under `src/ikigai/`.
+- **Never let the retired runtime back into the wheel.** `sys_ikigai` is not installed from the repo root any more (`packages` ships only `strategics`), and it is not vendored under `src/ikigai/`. The frontmatter shim it used to hold now lives at `src/strategics/frontmatter_compat.py` — self-contained, PyYAML only.
 
 ## COMMANDS
 ```bash
