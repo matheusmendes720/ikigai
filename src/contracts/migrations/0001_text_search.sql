@@ -13,6 +13,12 @@
 --
 -- It sorts between 0001_init.sql and 0002_indexes.sql, which is the order
 -- the runner applies migrations in.
+--
+-- THE ARGUMENT LIST IS NAMES, NOT STRINGS. `create text search dictionary`
+-- parses its arguments as identifiers — a quoted literal there is a syntax
+-- error, and a syntax error in this file aborts the whole migration, so the
+-- schema is never built. The template's parameter (the language) is the
+-- second name, for the same reason.
 
 do $$
 begin
@@ -24,7 +30,9 @@ $$;
 
 do $$
 begin
-    create text search dictionary portuguese_stem (snowball, 'portuguese');
+    if not exists (select 1 from pg_ts_dict where dictname = 'portuguese_stem') then
+        create text search dictionary portuguese_stem (snowball, portuguese);
+    end if;
     alter text search configuration portuguese
         alter mapping for hword, hword_part, word with portuguese_stem;
 exception
