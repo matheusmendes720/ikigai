@@ -48,6 +48,67 @@ def test_migration_files_exist() -> None:
         assert path.read_text(encoding="utf-8").strip(), f"{name} is empty"
 
 
+def test_every_migration_has_a_reverse_script() -> None:
+    """A migration without a reverse script cannot be rolled back.
+
+    The runner refuses to roll back the last applied migration when its
+    reverse script is missing — and it refuses at rollback time, on a live
+    database, with the data at stake. The gap between "applied" and "rolled
+    back" is exactly where a schema stops matching its contract, so the
+    script has to exist before the migration is applied, not after.
+    """
+    for path in sorted(MIGRATIONS.glob("*.sql")):
+        if path.name.endswith(".down.sql"):
+            continue
+        reverse = path.with_name(path.name.replace(".sql", ".down.sql"))
+        assert reverse.exists(), f"{path.name} has no reverse script ({reverse.name})"
+        assert reverse.read_text(encoding="utf-8").strip(), f"{reverse.name} is empty"
+
+
+def _statements(sql: str) -> str:
+    """The statements of a migration, without its commentary.
+
+    A comment that quotes the expression it is about ("the index calls
+    to_tsvector('portuguese', …)") is documentation, not a dependency — and a
+    test that reads it as one makes the documentation load-bearing.
+    """
+    return "\n".join(line for line in sql.splitlines() if not line.lstrip().startswith("--"))
+
+
+def test_the_full_text_configuration_precedes_the_index_that_needs_it() -> None:
+    """A GIN index over `to_tsvector('portuguese', …)` needs that configuration.
+
+    Postgres creates only `english` and `simple` on a fresh database; every
+    other language has to be created explicitly, by a migration that runs
+    FIRST. When it does not, the migration that builds the index aborts and
+    the schema is never built at all — a failure that only shows on a real
+    database, after the whole store was supposed to exist.
+    """
+    migrations = sorted(
+        (p for p in MIGRATIONS.glob("*.sql") if not p.name.endswith(".down.sql")),
+        key=lambda p: p.name,
+    )
+
+    created: dict[str, int] = {}
+    for index, path in enumerate(migrations):
+        sql = _statements(path.read_text(encoding="utf-8"))
+        for config in re.findall(r"create text search configuration (\w+)", sql):
+            created.setdefault(config, index)
+
+    for index, path in enumerate(migrations):
+        sql = _statements(path.read_text(encoding="utf-8"))
+        for config in set(re.findall(r"to_tsvector\('([^']+)'", sql)):
+            assert config in created, (
+                f"{path.name} indexes on the '{config}' configuration and no "
+                "migration creates it — Postgres ships only 'english' and "
+                "'simple', so this migration would abort"
+            )
+            assert created[config] < index, (
+                f"{path.name} uses the '{config}' configuration but the "
+                "migration that creates it runs after it"
+            )
+
+
 def test_every_kind_has_a_column_check() -> None:
     sql = _read("0001_init.sql")
     match = re.search(r"constraint artifacts_kind_known check \(kind in \(([^)]*)\)\)", sql)
