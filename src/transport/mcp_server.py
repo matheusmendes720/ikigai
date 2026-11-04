@@ -15,7 +15,6 @@ from __future__ import annotations
 import functools
 import os
 from collections.abc import Awaitable, Callable, Mapping
-from dataclasses import dataclass
 from typing import Any, TypeVar
 
 from mcp.server.fastmcp import FastMCP
@@ -30,38 +29,47 @@ from src.contracts.dom import (
     WriteRequest,
 )
 from src.contracts.errors import DataLayerError
-from src.data.client import DataClient
-from src.data.repository import ArtifactRepository
-from src.services.artifacts import ArtifactService
-from src.services.embeddings import EmbeddingService
-from src.services.relations import RelationService
+from src.services.wiring import Services, build_services
 
-__all__ = ["Services", "get_services", "mcp", "resolve_transport", "set_services"]
+__all__ = [
+    "Services",
+    "get_services",
+    "mcp",
+    "resolve_transport",
+    "set_services",
+    "transport_host",
+    "transport_port",
+]
 
-mcp = FastMCP("ikigai-data")
+TRANSPORT_HOST_ENV = "FASTMCP_HOST"
+TRANSPORT_PORT_ENV = "FASTMCP_PORT"
+
+
+def transport_host() -> str:
+    """The address the transport binds.
+
+    FastMCP takes the host as a CONSTRUCTOR argument and reads nothing from
+    the environment: `mcp.run()` accepts only the transport, and the default
+    host is the loopback. A deployment that sets FASTMCP_HOST and trusts the
+    library to honour it ends up with a server no other container can reach —
+    and a healthcheck that connects to itself reports it healthy anyway.
+    """
+    return (os.environ.get(TRANSPORT_HOST_ENV) or "127.0.0.1").strip()
+
+
+def transport_port() -> int:
+    """The port the transport binds."""
+    raw = (os.environ.get(TRANSPORT_PORT_ENV) or "8000").strip()
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise ValueError(f"{TRANSPORT_PORT_ENV} is not a port number: {raw!r}") from exc
+
+
+mcp = FastMCP("ikigai-data", host=transport_host(), port=transport_port())
 """The server the harness connects to."""
 
 _T = TypeVar("_T")
-
-
-@dataclass
-class Services:
-    """The service wiring the tools call into."""
-
-    artifacts: ArtifactService
-    relations: RelationService
-    embeddings: EmbeddingService
-
-
-def build_services() -> Services:
-    """Wire the services against the configured store."""
-    client = DataClient()
-    repo = ArtifactRepository(client)
-    return Services(
-        artifacts=ArtifactService(repo),
-        relations=RelationService(repo),
-        embeddings=EmbeddingService(client),
-    )
 
 
 _services: Services | None = None
