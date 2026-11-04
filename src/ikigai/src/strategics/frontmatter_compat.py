@@ -1,19 +1,16 @@
-"""frontmatter_compat — backward-compat shim for upstream frontmatter 3.x.
+"""frontmatter_compat — the python-frontmatter 1.x API, reimplemented on PyYAML.
 
-The `frontmatter` package dropped its loads()/dumps()/Post API in 3.x
-(the only 3.x public surface is `Frontmatter.read_file(...)` which
-returns a dict). This shim provides the old 1.x callable API using
-PyYAML directly.
+The `frontmatter` package dropped its ``loads()``/``dumps()``/``Post`` API in
+3.x (the only 3.x public surface is ``Frontmatter.read_file(...)``, which
+returns a plain dict). This module provides the 1.x callable API using PyYAML
+directly.
 
-Why not just `import frontmatter` and use it directly?
-- Tests fail at master HEAD with `"frontmatter has no attribute Post"`
-  or `"frontmatter has no attribute loads"` because the system has
-  3.0.8 installed.
+Why not just use the `frontmatter` package directly?
 - The vault layer needs both write AND read of frontmatter blocks.
-  3.x's read_file API is sufficient for read but doesn't compose
+  3.x's read_file API is sufficient for read but does not compose
   frontmatter + body for write.
 
-This shim:
+This module:
   - `loads(text: str) -> SimpleNamespace(content, metadata)` —
     parses `---\n<yaml>\n---\n<body>` into a result object that
     has both `.content` (body string) and `.metadata` (frontmatter dict).
@@ -21,23 +18,18 @@ This shim:
     the post object's `.content` and `.metadata`.
   - `Post(content, **fields)` — convenience constructor returning
     a SimpleNamespace with `.content` and `.metadata`.
-  - `dump(post, file)` and `load(file)` — file-based counterparts,
-    not yet exercised by tests but provided for forward compat.
+  - `dump(post, file)` and `load(file)` — file-based counterparts.
 
-This is a STRAIGHTFORWARD shim, not a perfect 1.x re-implementation.
-It implements the *minimum* surface the codebase actually uses:
-- `frontmatter.loads(text)` from:
-    sys_ikigai/vault/frontmatter_to_dict.py
-    sys_ikigai/vault/vault_read.py
-    src/ikigai/src/mcp_server/handlers.py
-    src/ikigai/src/strategics/loader.py
-- `frontmatter.dumps(post)` and `frontmatter.Post(...)` from:
-    sys_ikigai/vault/vault_write.py (M72 already migrated this one
-    but kept the shim for cross-system symmetry)
+This is a STRAIGHTFORWARD reimplementation, not a perfect 1.x match.
+It implements the *minimum* surface the codebase actually uses.
 
-M72.1 (2026-09-19): replaces `import frontmatter` calls in
-5 files with this shim. Keeps `frontmatter` package installable
-for any forward compat that depends on 3.x directly.
+Moved here from `sys_ikigai/vault/frontmatter_compat.py` (2026-11-02,
+ADR-037 unpublishing). The shim was self-contained — it imported only
+`re`, `pathlib`, `types`, `typing` and `yaml` — but its *location* inside
+`sys_ikigai/` made the published `strategics` package depend on the
+legacy tree, which in turn forced `sys_ikigai` into the wheel
+(`pyproject.toml`: `{include = "sys_ikigai", from = "../.."}`).
+That was the coupling that kept 91 legacy files on the remote branch.
 """
 
 from __future__ import annotations

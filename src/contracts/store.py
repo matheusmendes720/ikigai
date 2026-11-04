@@ -21,8 +21,14 @@ __all__ = [
     "STORE_DSN_ENV",
 ]
 
-PROVIDER = "supabase"
-"""Ratified by the owner on 2026-11-01 (SPEC-02 D10/R1)."""
+PROVIDER = "postgres"
+"""Self-hosted Postgres, in the same compose as the api and the bot.
+
+Was "supabase" — ratified by the owner on 2026-11-01 (SPEC-02 D10/R1) and
+flipped by the renewed scope of 2026-11-02: the store is the owner's own
+Postgres on the VPS. The provider is a deployment choice, not an
+architectural one — the schema is plain Postgres, so only the DSN changes.
+"""
 
 EMBEDDING_DIM = 1536
 """Fixed vector dimension. An HNSW index is built for exactly one dimension."""

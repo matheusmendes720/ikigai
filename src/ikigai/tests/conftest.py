@@ -1,24 +1,32 @@
-"""Test suite root — mirrors src/operational/ layout.
+"""Test suite root — the canonical (ADR-037) suite.
 
-After the 2026-09-05 namespace rename (src/ikigai/src/ikigai/ → sys_ikigai/ at
-repo root), the THREE import styles below resolve from TWO sys.path entries:
-  - `from sys_ikigai.X import Y`     → <repo-root>/sys_ikigai/
-  - `from src.mesh import queue`     → <repo-root>/src/mesh/
-  - `from src.contracts.X import Y`      → <repo-root>/src/contracts/
+2026-11-02: this file was rewritten as part of the ADR-037 cut. It used to
+carry three things that are now gone from the published tree:
 
-So `_REPO_ROOT` alone (which gives access to BOTH `sys_ikigai/` and `src/`)
-suffices. The old `<repo>/src/ikigai/src/` sys.path append was a Plan A
-Task 9 followup workaround for the dual-module-identity bug and is removed.
+1. a **dual-module-identity aliasing** block that imported ``sys_ikigai.*``
+   at conftest-import time and registered ``ikigai.*`` aliases in
+   ``sys.modules``. It existed to defend against the dual-module-identity bug
+   class (memory: ``test-review-queue-worker-dual-module-fix-2026-09-05``).
+   With the pre-ADR-037 runtime unpublished, there is no second identity left
+   to defend against — the aliasing block was importing the very tree the cut
+   removes, and would have broken the whole suite at collection time;
+2. a ``src.mesh`` isolation fixture, for the fork mesh that is retired;
+3. a taskdog HTTP-bridge fixture, for an adapter that no longer ships.
 
-Also auto-isolates src.mesh.queue.QUEUE_DIR to a per-test tmp dir so tests
-that touch the review queue never write to the real `data/review_queue/`.
-Tests that want a specific queue path can still override via their own
-fixture (autouse runs first, then explicit fixtures override).
+What survives is load-bearing and stays: the ``sys.path`` setup and the
+Windows ``tempfile.tempdir`` redirect (memory: ``windows-stdio-binary-mode-fix``
+/ ``pytest-tmp`` — a stale ``AppData\\Local\\Temp`` lock raises
+``PermissionError [WinError 5]``).
+
+The legacy test modules are **not deleted** — they stay on the owner's disk
+and in the git history. They are excluded from collection here, and
+unpublished from the branch, because they test code that is no longer
+published. If a canonical test ever needs one of them back, the module
+returns with its subject.
 """
 
 from __future__ import annotations
 
-import importlib
 import os
 import sys
 import tempfile
@@ -26,53 +34,80 @@ from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Path setup — must happen BEFORE any test module or pytest plugin imports
-# src.* (some plugins walk sys.path or import src.mesh during their own
+# src.* (some plugins walk sys.path or import src.* during their own
 # collection/setup).
 # ---------------------------------------------------------------------------
-# Post-rename: only <repo-root>/ is needed. It contains both `sys_ikigai/`
-# (at repo root) and `src/` (the dotted prefix package).
+# The canonical import style is the dotted prefix: `from src.contracts.X
+# import Y` resolves against <repo-root>/, and `from strategics.X import Y`
+# against <repo-root>/src/ikigai/src/ (the published `strategics` package).
+# The package's own pytest config (`pythonpath = ["src", "../.."]`) declares
+# both; the entries below make the same guarantee for a bare `pytest` run
+# from the repository root.
 _THIS = Path(__file__).resolve()
 _REPO_ROOT = _THIS.parent.parent.parent.parent  # <repo-root>
-_SRC_ROOT = _THIS.parent.parent.parent  # <repo-root>/src/  (contracts/, mesh/)
-for _p in (_REPO_ROOT, _SRC_ROOT):
+_SRC_ROOT = _THIS.parent.parent.parent  # <repo-root>/src/  (contracts/, services/)
+_IKIGAI_SRC = _THIS.parent.parent / "src"  # <repo-root>/src/ikigai/src/  (strategics/)
+for _p in (_REPO_ROOT, _SRC_ROOT, _IKIGAI_SRC):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
 # ---------------------------------------------------------------------------
-# Dual-module-identity aliasing (drift invariant — test_drift_invariants.py).
+# The retired pre-ADR-037 suite — excluded from collection, not deleted.
 #
-# After the 2026-09-05 sys_ikigai namespace rename (commit 685dec5), the
-# canonical import path is `sys_ikigai.*`. The W4.7/W6.X drift tests still
-# assert BOTH `ikigai.*` AND `sys_ikigai.*` resolve to the same module
-# objects — a guard against the dual-module-identity bug class (see memory
-# entry [[test-review-queue-worker-dual-module-fix-2026-09-05]]).
-#
-# Pre-register the legacy `ikigai.*` aliases here so any test that does
-# `importlib.import_module("ikigai.security.X")` (or `import ikigai.X.Y`)
-# finds the module in sys.modules and skips the path-based loader entirely.
-# This is conftest-scoped so it runs once per pytest session, before any
-# test module is imported.
-_ALIAS_MODULES: tuple[str, ...] = (
-    "sys_ikigai",
-    "sys_ikigai.entities",
-    "sys_ikigai.gateway",
-    "sys_ikigai.state_machines",
-    "sys_ikigai.propagation",
-    "sys_ikigai.vault",
-    "sys_ikigai.security",
-    "sys_ikigai.security.vault_write_wrapper",
-    "sys_ikigai.security.kill_switch",
-    "sys_ikigai.security.transition_validator",
-    "sys_ikigai.adapters",
-    "sys_ikigai.adapters.drift_detector",
-    "sys_ikigai.adapters.sqlite_bridge",
-    "sys_ikigai.adapters.state_reducer",
+# These modules test the runtime that ADR-037 unpublished: `sys_ikigai/`
+# (entities, state machines, gateway, vault write, propagation, drift
+# detector), `src/mesh/` (the fork mesh), and the vault markdown pipeline.
+# They remain on the owner's disk and in the git history.
+# ---------------------------------------------------------------------------
+LEGACY_TEST_MODULES: tuple[str, ...] = (
+    "test_cli.py",
+    "test_constants.py",
+    "test_correction_signal.py",
+    "test_dict_to_frontmatter.py",
+    "test_drift_detector.py",
+    "test_drift_state.py",
+    "test_enums.py",
+    "test_event_log.py",
+    "test_event_log_cli.py",
+    "test_exceptions.py",
+    "test_fractal_regime.py",
+    "test_frontmatter_to_dict.py",
+    "test_gantt_optimizer.py",
+    "test_gateway.py",
+    "test_gateway_client_cli.py",
+    "test_ikigai_cli.py",
+    "test_ikigai_record.py",
+    "test_integration_data_model.py",
+    "test_kill_switch.py",
+    "test_override.py",
+    "test_phase_snapshot.py",
+    "test_proposal_contracts.py",
+    "test_propagation_sqlite_adapter.py",
+    "test_recursive_reflection.py",
+    "test_reverse_sync.py",
+    "test_reverse_sync_state.py",
+    "test_score_value.py",
+    "test_sqlite_append_only.py",
+    "test_sqlite_bridge.py",
+    "test_state_machines.py",
+    "test_state_reducer.py",
+    "test_taskdog_adapter_list_all.py",
+    "test_td_advanced.py",
+    "test_td_tag.py",
+    "test_types.py",
+    "test_ueid_dual_format.py",
+    "test_ueid_validator.py",
+    "test_vault_lock.py",
+    "test_vault_read.py",
+    "test_vault_sync.py",
+    "test_vault_sync_cli.py",
+    "test_vault_sync_e2e.py",
+    "test_vault_write.py",
+    "test_vault_write_audit_log.py",
+    "test_vault_write_invariant.py",
 )
-for _mod_name in _ALIAS_MODULES:
-    _mod = importlib.import_module(_mod_name)
-    _alias = _mod_name.replace("sys_ikigai", "ikigai", 1)
-    sys.modules.setdefault(_alias, _mod)
-del _mod_name, _mod, _alias
+
+collect_ignore = [str(_THIS.parent / name) for name in LEGACY_TEST_MODULES]
 
 # ---------------------------------------------------------------------------
 # Redirect tempfile.tempdir to a project-local directory. On Windows,
@@ -82,6 +117,7 @@ del _mod_name, _mod, _alias
 # directory. Pointing `tempfile.tempdir` (and the standard TMP env vars)
 # at a project-local path sidesteps the shared-temp-lock bug entirely.
 # We use `data/pytest-tmp/` (gitignored) instead of `AppData\Local\Temp\`.
+# ---------------------------------------------------------------------------
 _TMP_BASE = _REPO_ROOT / "data" / "pytest-tmp"
 _TMP_BASE.mkdir(parents=True, exist_ok=True)
 tempfile.tempdir = str(_TMP_BASE)
@@ -93,42 +129,13 @@ import pytest  # noqa: E402 — must come AFTER sys.path and env setup above
 
 
 def pytest_configure(config):
-    """Disable pytest-asyncio async collection. None of our tests are
-    async, and the plugin's autouse fixture walks a temp dir that on
-    Windows raises PermissionError on stale locks (handled above by
-    redirecting tempfile.tempdir, but we also tell asyncio to skip)."""
+    """Run the async tests, whatever the rootdir is.
+
+    Most of this suite is `async def`: the write contract, the transport's
+    error translation and the vault sync are all asynchronous. pytest-asyncio
+    defaults to "strict", which SKIPS an unmarked async test rather than
+    failing it — so a suite with no asyncio_mode runs a fraction of itself
+    and still reports green. The two pytest configs say `asyncio_mode = auto`
+    as well; this makes it hold from any rootdir, not only from those two.
+    """
     config.option.asyncio_mode = "auto"
-
-
-@pytest.fixture(autouse=True)
-def _isolate_review_queue(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Auto-isolate src.mesh.queue.QUEUE_DIR to a per-test tmp dir.
-
-    Uses pytest's built-in `tmp_path` (per-test, auto-cleaned by pytest)
-    instead of `tmp_path_factory.mktemp()` which on Windows creates dirs
-    under `AppData\\Local\\Temp\\pytest-of-mathe\\` and raises
-    `PermissionError [WinError 5]` when stale dirs from a prior run are
-    locked. `tmp_path` is the canonical pytest isolation pattern and
-    sidesteps the shared-temp-lock bug.
-
-    Tests that explicitly request a `tmp_queue` / `queue_dir` fixture
-    still win because explicit fixtures run after this autouse one.
-    Tests that forget to override get safe isolation and never pollute
-    `data/review_queue/` on the developer's machine.
-    """
-    from src.mesh import queue as queue_mod
-
-    monkeypatch.setattr(queue_mod, "QUEUE_DIR", tmp_path)
-
-
-@pytest.fixture(autouse=True)
-def _disable_taskdog_http_bridge_for_ikigai_tests(monkeypatch):
-    """M71: Disable HTTP-first taskdog adapter in tests.
-
-    Mirrors tests/conftest.py behaviour — autouse so individual tests
-    in src/ikigai/tests/ don't have to remember to set it.
-    """
-    monkeypatch.setenv("TASKDOG_HTTP_ENABLED", "0")

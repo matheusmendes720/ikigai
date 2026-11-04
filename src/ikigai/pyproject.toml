@@ -13,10 +13,6 @@ packages = [
     # MCP transport lives at `src/transport/mcp_server.py` (repo root) and the
     # data-layer contract surface in `src/contracts`.
     {include = "strategics", from = "src"},
-    # `sys_ikigai` lives at the REPO ROOT (not under src/ikigai), but the
-    # installed package imports it at runtime. Without shipping it, the
-    # console scripts raise ModuleNotFoundError at import time.
-    {include = "sys_ikigai", from = "../.."},
 ]
 
 [tool.poetry.dependencies]
@@ -28,9 +24,23 @@ typer = ">=0.12"
 rich = "^13.7"
 mcp = "^1.1"
 
+# The store client is NOT declared here yet. psycopg and psycopg-pool belong
+# in this table, and testcontainers[postgres] in the dev group, but poetry
+# refuses to install when the lock was generated against a different
+# pyproject — and the lock cannot be regenerated in this environment. Until
+# `poetry lock` runs, the CI installs them into the venv directly. Add them
+# here and regenerate the lock in the same change.
+
 # The canonical MCP transport (`src/transport/mcp_server.py`, repo root) is
 # exercised by this package's own suite (`tests/transport/`), so the SDK
 # stays a declared dependency of the venv that runs it.
+#
+# Packaging note: the data layer is imported with a dotted prefix
+# (`from src.contracts.dom import ...`), so it is addressed as `src.*` and
+# needs the repository root on the path. This package's pytest config puts it
+# there (`pythonpath = ["src", "../.."]`) and a container sets it explicitly.
+# The distribution does not ship the data layer as a top-level package,
+# because the import identity would then be `contracts`, not `src.contracts`.
 
 [tool.poetry.scripts]
 # The console scripts of the legacy harness (ikigai-maintainer-mcp,
@@ -130,6 +140,12 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 pythonpath = ["src", "../.."]
 addopts = "-v --tb=short"
+# Most of this suite is `async def`: the write contract, the transport's error
+# translation and the vault sync are all asynchronous. pytest-asyncio defaults
+# to "strict", which SKIPS an unmarked async test rather than failing it — a
+# suite with no asyncio_mode runs a fraction of itself and still reports
+# green. "auto" is what makes them run.
+asyncio_mode = "auto"
 # Phase 2 (zazzy-plotting-flask.md §4.1.A.8): DeprecationWarnings for
 # `ikigai.entities.plan.task.TaskEntity` and `ikigai.vault.sync.TaskRecord`
 # fire on construction (PAV-internal models with no production callers
