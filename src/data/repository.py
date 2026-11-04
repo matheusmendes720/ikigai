@@ -33,7 +33,7 @@ from src.contracts.dom_kinds import (
 from src.contracts.errors import ConflictError, InvalidPayloadError, NotFoundError
 from src.contracts.store import KIND_TABLES
 
-from .client import DataClient
+from .client import DataClient, rows_as_dicts
 
 try:  # pragma: no cover — the driver is an optional runtime dependency
     from psycopg.types.json import Jsonb
@@ -464,5 +464,5 @@ class ArtifactRepository:
         cursor = await conn.execute(sql, params)
         if cursor.description is None:
             return None
-        row = await cursor.fetchone()
-        return dict(row) if row else None
+        rows = rows_as_dicts(cursor, await cursor.fetchall())
+        return rows[0] if rows else None

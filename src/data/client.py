@@ -21,7 +21,12 @@ except ImportError:  # pragma: no cover
     psycopg = None
     AsyncConnectionPool = None
 
-__all__ = ["DataClient", "StoreNotConfiguredError", "StoreUnavailableError"]
+__all__ = [
+    "DataClient",
+    "StoreNotConfiguredError",
+    "StoreUnavailableError",
+    "rows_as_dicts",
+]
 
 _MAX_ATTEMPTS = 3
 _BACKOFF_BASE_S = 0.2
@@ -33,6 +38,22 @@ class StoreNotConfiguredError(RuntimeError):
 
 class StoreUnavailableError(RuntimeError):
     """The store could not be reached after retrying."""
+
+
+def rows_as_dicts(cursor: Any, rows: Sequence[Any]) -> list[dict[str, Any]]:
+    """The rows as mappings, whatever the row factory is.
+
+    psycopg's default row factory hands back plain TUPLES, and `dict(row)`
+    reads a tuple as a sequence of pairs — which fails with "cannot convert
+    dictionary update sequence element #0 to a sequence". The columns are in
+    the cursor's description, so the conversion is spelled out instead of
+    guessed, and it serves a tuple row and a dict row alike.
+
+    The repository reads every row by name (`row["uid"]`), so this is the one
+    place that decides what a row IS.
+    """
+    columns = [column.name for column in cursor.description]
+    return [dict(zip(columns, row)) for row in rows]
 
 
 class DataClient:
@@ -121,7 +142,7 @@ class DataClient:
             cursor = await conn.execute(sql, params)
             if cursor.description is None:
                 return []
-            return [dict(row) for row in await cursor.fetchall()]
+            return rows_as_dicts(cursor, await cursor.fetchall())
 
     async def _retry(self, operation):  # noqa: ANN001, ANN202 — generic callable
         """Retry transient failures with exponential backoff.
