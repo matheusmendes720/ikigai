@@ -23,6 +23,8 @@ import ast
 import subprocess
 from pathlib import Path
 
+import pytest
+
 THIS_FILE = Path(__file__).resolve()
 REPO_ROOT = THIS_FILE.parent.parent.parent.parent
 
@@ -235,4 +237,41 @@ def test_the_legacy_suite_is_excluded_from_collection() -> None:
     assert "LEGACY_TEST_MODULES" in source, (
         "conftest.py must declare the retired modules explicitly — an implicit "
         "exclusion is one that rots"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 6. The harness's copy of the skills is the published projection
+# ---------------------------------------------------------------------------
+# The projection in `specs/harness/skills/` is the source; the copy under
+# `.pi/skills/` is what the harness loads. A copy that drifted is an agent
+# running a routine the repository no longer describes — and the drift is
+# invisible, because both files look right on their own.
+#
+# The check is local: the copy is runtime state and does not ship in the
+# branch, so a checkout without it has nothing to compare.
+def test_the_installed_skills_match_the_projection() -> None:
+    projection = REPO_ROOT / "specs" / "harness" / "skills"
+    installed = REPO_ROOT / ".pi" / "skills"
+    if not installed.exists():
+        pytest.skip("the harness's skills are not installed in this checkout")
+
+    def _skills(root: Path) -> dict[str, str]:
+        return {
+            path.parent.name: path.read_text(encoding="utf-8").replace("\r\n", "\n")
+            for path in sorted(root.glob("*/SKILL.md"))
+        }
+
+    expected = _skills(projection)
+    actual = _skills(installed)
+
+    assert set(actual) == set(expected), (
+        "the harness's copy of the skills is not the projection: "
+        f"only-installed={sorted(set(actual) - set(expected))} "
+        f"only-projected={sorted(set(expected) - set(actual))}"
+    )
+    drifted = sorted(name for name in expected if actual[name] != expected[name])
+    assert not drifted, (
+        "the harness's copy of these skills drifted from the projection: "
+        + ", ".join(drifted)
     )

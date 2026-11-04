@@ -115,6 +115,28 @@ def test_the_tracked_exceptions_under_data_stay_reachable() -> None:
         )
 
 
+def test_the_harness_configuration_is_not_ignored() -> None:
+    """The harness's configuration is published, so git has to take it.
+
+    `.pi/mcp.json` is how the api is declared to the harness. If it is
+    ignored, `git add` on it fails with "ignored" no matter what the
+    repository's own rules say — and the reason is not always the repository:
+    a `.gitignore` INSIDE `.pi/` overrides the one at the root, because the
+    deeper file's patterns come last.
+
+    The retired harness left such a file behind — `*` — and it swallowed the
+    configuration whole. The check is on the FILE, because that is what git
+    decides when it is asked to take it: a directory's verdict is a different
+    question, and `check-ignore` answers it with a path type it guesses
+    rather than the one git walks with.
+    """
+    assert _deciding_rule(".pi/mcp.json") is None, (
+        "the harness's MCP configuration is ignored — the api is declared to "
+        "nobody. If a `.pi/.gitignore` is to blame, it overrides the rule at "
+        "the repository root."
+    )
+
+
 def _tracked_paths() -> list[str]:
     """Every tracked path, minus the gitlinks.
 

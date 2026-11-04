@@ -108,6 +108,63 @@ so which role the service connects as is a deployment choice, and the compose
 makes it: `ikigai`, the owner. The constraint above is what that choice has
 to keep satisfying.
 
+## How the harness reaches the api
+
+The harness is external (ADR-037 D7) and it reaches the store the way every
+client does: over MCP, through the api. Pi reads the project's MCP servers
+from `.pi/mcp.json`, and the api is declared there:
+
+```json
+{
+  "mcpServers": {
+    "ikigai": {
+      "type": "http",
+      "url": "http://127.0.0.1:8000/mcp",
+      "description": "The ikigai store: the vault's artifacts, their relations, and the three ways to search them.",
+      "exposure": "direct"
+    }
+  }
+}
+```
+
+`exposure: direct` declares the six tools to the model itself, under the names
+`mcp__ikigai__upsert_artifact` and the rest — the surface is small enough to
+carry in the context, and the agent has to call the tools by name to do the
+daily routines.
+
+The api binds the loopback on purpose: the public surface is the Telegram
+client and (later) a reverse proxy, not an open MCP port. A harness on the same
+box reaches it there; one on another box reaches the reverse proxy.
+
+**The harness carries the skills.** `specs/harness/skills/` is the published
+projection of the routines — the part of the tree that says what a daily note
+is. Pi loads the skills from the project's `.pi/skills/`, and the copy is
+regenerated from the projection:
+
+```bash
+mkdir -p .pi/skills && cp -r specs/harness/skills/* .pi/skills/
+```
+
+The projection is the source; the copy is runtime state, so it is gitignored. A
+drift test holds the two ends together: a copy that drifted from the
+projection is a harness running a routine the repository no longer describes.
+
+Pi reads the project configuration only after the project is trusted, so the
+first run asks once. `pi mcp list` connects to every enabled server and
+prints its state and its tools — it is the check that the wiring answers,
+rather than a configuration that merely looks right.
+
+**The proof.** From the repository root, with the api up:
+
+```bash
+pi mcp list                                    # the api is connected, with its six tools
+pi -a --print "liste os KPIs do Q4-2026"       # the harness asks the store a question
+```
+
+`-a` trusts the project's configuration for that one command, which is what
+makes the run scriptable. The verification is the EFFECT, not the format: the
+answer comes from the store, and the store is what the api serves.
+
 ## What is NOT here, and why
 
 - **No `TUI`, no web app, no cluster.** ADR-037 D1: no new product surface
