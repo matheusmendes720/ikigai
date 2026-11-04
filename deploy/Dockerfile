@@ -30,21 +30,21 @@ RUN apt-get update \
 
 # Dependencies first, so a source change does not reinstall the world.
 #
-# `psycopg` and `psycopg-pool` are NOT yet declared in src/ikigai/pyproject.toml
-# (the lock could not be regenerated in the environment where ADR-037 was
-# written). They are installed here so the container works today; declaring
-# them in the pyproject and running `poetry lock` is the follow-up, in the
-# same change that adds them.
+# The service's dependencies come from the lock, and only from the lock. The
+# store's driver (`psycopg[binary]`), its pool (`psycopg-pool`) and the
+# Telegram client's HTTP (`httpx`) were once installed HERE by hand, because
+# the manifest could not be regenerated when ADR-037 was written — which made
+# them dependencies that existed in the image and in no manifest, and
+# therefore installable nowhere else. Now the manifest declares them and the
+# lock pins them, so the image and the venv that runs the suite are the same
+# versions of the same packages.
 #
-# `httpx` is installed explicitly because `src/bot/main.py` imports it
-# directly — the Telegram client talks to api.telegram.org with it. It also
-# arrives transitively through the MCP SDK, but a direct import deserves a
-# direct dependency.
+# `--only main`: the dev group (testcontainers, pytest, mypy, ruff) is not in
+# the image. The image serves; it does not test itself.
 COPY src/ikigai/pyproject.toml src/ikigai/poetry.lock /tmp/ikigai/
 RUN pip install --no-cache-dir poetry \
  && poetry config virtualenvs.create false \
- && poetry -C /tmp/ikigai install --only main --no-root \
- && pip install --no-cache-dir "psycopg[binary]>=3.2" "psycopg-pool>=3.2" "httpx>=0.27"
+ && poetry -C /tmp/ikigai install --only main --no-root
 
 # The published surface. `vault/` is the prose input; the structured state
 # lives in the store, not in these trees.

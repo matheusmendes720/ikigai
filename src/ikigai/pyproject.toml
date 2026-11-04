@@ -24,12 +24,17 @@ typer = ">=0.12"
 rich = "^13.7"
 mcp = "^1.1"
 
-# The store client is NOT declared here yet. psycopg and psycopg-pool belong
-# in this table, and testcontainers[postgres] in the dev group, but poetry
-# refuses to install when the lock was generated against a different
-# pyproject — and the lock cannot be regenerated in this environment. Until
-# `poetry lock` runs, the CI installs them into the venv directly. Add them
-# here and regenerate the lock in the same change.
+# The store client's driver. `psycopg` is the driver, `psycopg-pool` the
+# pool the DataClient hands out, and `httpx` the Telegram client's HTTP.
+#
+# These three were installed by the Dockerfile directly, because the lock
+# could not be regenerated when ADR-037 was written — and a dependency that
+# lives in the image but not in the manifest is a dependency nobody can
+# install anywhere else. The container installs from THIS file, so this file
+# is where the service's dependencies belong.
+psycopg = { version = "^3.2", extras = ["binary"] }
+psycopg-pool = "^3.2"
+httpx = "^0.27"
 
 # The canonical MCP transport (`src/transport/mcp_server.py`, repo root) is
 # exercised by this package's own suite (`tests/transport/`), so the SDK
@@ -55,6 +60,11 @@ pytest-asyncio = "^0.23"
 pytest-cov = "^4.1"
 hypothesis = "^6.95"
 mypy = "^1.8"
+# The store tests need a REAL Postgres: the behaviour under test is the
+# SQL's `where revision = $2` guard and the HNSW index, and a double would
+# only prove that the double behaves as written. testcontainers starts one
+# per session, so the suite needs Docker and skips loudly without it.
+testcontainers = { version = "^4.0", extras = ["postgres"] }
 # Pinned to the same Ruff the other CI matrix entries resolve to
 # (0.17.3). An open range would resolve to whatever Ruff is latest at CI
 # time and silently change the gate.

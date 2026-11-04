@@ -145,10 +145,11 @@ jobs:
           poetry install
           # The store tests (src/ikigai/tests/store/) reach a real Postgres
           # through testcontainers, so the driver and the container runtime
-          # have to be in the same environment that runs pytest. They are
-          # installed here rather than declared in pyproject.toml because
-          # `poetry install` resolves strictly from poetry.lock.
-          poetry run pip install --quiet "psycopg[binary]" psycopg-pool "testcontainers[postgres]"
+          # have to be in the same environment that runs pytest. Both are
+          # declared in pyproject.toml and pinned in poetry.lock, so
+          # `poetry install` brings them in — installing them by hand here
+          # would put the CI's versions outside the lock, which is exactly
+          # the drift the manifest is supposed to remove.
           poetry run ruff check ${{ matrix.ruff_target }}
           poetry run ruff format --check ${{ matrix.ruff_target }}
           poetry run mypy ${{ matrix.mypy_target || matrix.ruff_target }}
