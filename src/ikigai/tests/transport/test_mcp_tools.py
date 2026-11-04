@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from src.contracts.dom import SearchQuery
+from src.contracts.dom import Relation, RelationType, SearchQuery
 from src.contracts.errors import ConflictError, NotFoundError
 
 _HAS_MCP = importlib.util.find_spec("mcp") is not None
@@ -145,6 +145,71 @@ async def test_the_bot_sends_what_the_transport_accepts(transport: Any) -> None:
     )
     assert set(sent) <= properties, (
         f"the bot sends arguments the tool does not accept: {sorted(set(sent) - properties)}"
+    )
+
+
+async def test_the_write_tool_carries_the_edges(transport: Any) -> None:
+    """The harness has to be able to create an edge.
+
+    The skill specs need `EVIDENCES`, `PARENT_OF`, `REFERENCES` and
+    `DERIVES_FROM`, and the six tools are bound by ADR-037 D6 — there is no
+    seventh tool to create an edge with. So the edges ride with the artifact,
+    and the tool has to publish them: a schema that does not mention them
+    leaves the agent with a graph it can read and never write.
+    """
+    tools = {tool.name: tool for tool in await transport.mcp.list_tools()}
+    properties = tools["upsert_artifact"].inputSchema.get("properties", {})
+
+    assert "relations" in properties, (
+        "the write tool does not publish the edges — the agent can read the "
+        "graph and never write it"
+    )
+
+
+async def test_the_edges_reach_the_service(transport: Any) -> None:
+    from src.contracts.dom import ArtifactKind, make_uid
+    from src.contracts.dom_kinds import KPIArtifact
+
+    seen: dict[str, Any] = {}
+
+    class CapturingArtifacts:
+        async def upsert(self, req: Any) -> Any:
+            seen["relations"] = req.relations
+            raise RuntimeError("stop here")
+
+    transport.set_services(
+        transport.Services(
+            artifacts=CapturingArtifacts(),  # type: ignore[arg-type]
+            relations=object(),  # type: ignore[arg-type]
+            embeddings=object(),  # type: ignore[arg-type]
+        )
+    )
+    try:
+        kpi = KPIArtifact(
+            uid=make_uid(ArtifactKind.KPI, "sono", "aaaaaaaa", "0123456789abcdef"),
+            title="Sono",
+            metric="horas de sono",
+            period="2026-11",
+            created_at="2026-11-04T00:00:00+00:00",
+            updated_at="2026-11-04T00:00:00+00:00",
+        )
+        edge = Relation(
+            src_uid=kpi.uid,
+            dst_uid=make_uid(ArtifactKind.KPI, "meta", "bbbbbbbb", "0123456789abcdef"),
+            rel=RelationType.EVIDENCES,
+        )
+        with pytest.raises(RuntimeError, match="stop here"):
+            await transport.upsert_artifact(
+                artifact=kpi,
+                idempotency_key="k",
+                client_id="owner",
+                relations=(edge,),
+            )
+    finally:
+        transport.set_services(None)
+
+    assert seen.get("relations") == (edge,), (
+        f"the edges did not reach the service: {seen.get('relations')}"
     )
 
 

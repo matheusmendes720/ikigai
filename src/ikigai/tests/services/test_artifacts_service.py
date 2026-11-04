@@ -59,9 +59,16 @@ class FakeRepository:
         self.artifacts: dict[str, Artifact] = {}
         self.relations: list[Relation] = []
         self.keys: set[str] = set()
+        self.written_relations: list[Relation] = []
 
     async def get(self, uid: object) -> Artifact | None:
         return self.artifacts.get(str(uid))
+
+    async def require(self, uid: object) -> Artifact:
+        artifact = self.artifacts.get(str(uid))
+        if artifact is None:
+            raise NotFoundError(f"no artifact with uid {uid}")
+        return artifact
 
     async def upsert(self, req: WriteRequest) -> WriteOutcome:
         key = req.idempotency_key
@@ -80,6 +87,7 @@ class FakeRepository:
             if existing is not None:
                 raise ConflictError(f"{uid} already exists")
             self.artifacts[uid] = req.artifact
+            self.written_relations.extend(req.relations)
             return WriteOutcome(
                 uid=req.artifact.uid,
                 revision=req.artifact.revision,
@@ -91,6 +99,7 @@ class FakeRepository:
             raise ConflictError(f"{uid} was changed by someone else")
         updated = req.artifact.model_copy(update={"revision": existing.revision + 1})
         self.artifacts[uid] = updated
+        self.written_relations.extend(req.relations)
         return WriteOutcome(uid=updated.uid, revision=updated.revision, outcome="updated")
 
     async def soft_delete(self, uid: object, expected_revision: int) -> WriteOutcome:
@@ -151,12 +160,14 @@ def _request(
     idempotency_key: str = "key-1",
     client_id: str = "laptop",
     title: str = "Taxa",
+    relations: tuple[Relation, ...] = (),
 ) -> WriteRequest:
     return WriteRequest(
         artifact=_artifact(slug, title=title),
         expected_revision=expected_revision,
         idempotency_key=idempotency_key,
         client_id=client_id,
+        relations=relations,
     )
 
 
@@ -217,6 +228,100 @@ async def test_soft_delete_marks_the_artifact() -> None:
     outcome = await service.delete(_uid("taxa"), 1)
     assert outcome.revision == 2
     assert repo.artifacts[_uid("taxa")].deleted_at is not None
+
+
+async def test_the_envelope_carries_the_edges() -> None:
+    """The edges travel with the artifact, so the store writes them together."""
+    repo = FakeRepository()
+    service = ArtifactService(repo)  # type: ignore[arg-type]
+
+    await service.upsert(_request(slug="meta"))
+    await service.upsert(
+        _request(
+            slug="taxa",
+            idempotency_key="key-2",
+            relations=(
+                Relation(
+                    src_uid=_uid("taxa"),
+                    dst_uid=_uid("meta"),
+                    rel=RelationType.EVIDENCES,
+                ),
+            ),
+        )
+    )
+
+    assert repo.written_relations == [
+        Relation(
+            src_uid=_uid("taxa"),
+            dst_uid=_uid("meta"),
+            rel=RelationType.EVIDENCES,
+        )
+    ]
+
+
+async def test_an_edge_must_start_at_the_artifact() -> None:
+    """An edge from somewhere else is a different intent, and it is refused."""
+    repo = FakeRepository()
+    service = ArtifactService(repo)  # type: ignore[arg-type]
+
+    await service.upsert(_request(slug="meta"))
+
+    with pytest.raises(InvalidPayloadError):
+        await service.upsert(
+            _request(
+                slug="taxa",
+                idempotency_key="key-2",
+                relations=(
+                    Relation(
+                        src_uid=_uid("meta"),
+                        dst_uid=_uid("taxa"),
+                        rel=RelationType.EVIDENCES,
+                    ),
+                ),
+            )
+        )
+
+    assert _uid("taxa") not in repo.artifacts
+
+
+async def test_an_edge_to_something_that_does_not_exist_is_refused() -> None:
+    """A provenance edge points at what came before, so the target must exist."""
+    repo = FakeRepository()
+    service = ArtifactService(repo)  # type: ignore[arg-type]
+
+    with pytest.raises(NotFoundError):
+        await service.upsert(
+            _request(
+                slug="taxa",
+                relations=(
+                    Relation(
+                        src_uid=_uid("taxa"),
+                        dst_uid=_uid("ausente"),
+                        rel=RelationType.EVIDENCES,
+                    ),
+                ),
+            )
+        )
+
+    assert _uid("taxa") not in repo.artifacts
+
+
+async def test_an_artifact_cannot_relate_to_itself() -> None:
+    repo = FakeRepository()
+    service = ArtifactService(repo)  # type: ignore[arg-type]
+
+    with pytest.raises(InvalidPayloadError):
+        await service.upsert(
+            _request(
+                relations=(
+                    Relation(
+                        src_uid=_uid("taxa"),
+                        dst_uid=_uid("taxa"),
+                        rel=RelationType.EVIDENCES,
+                    ),
+                ),
+            )
+        )
 
 
 async def test_relation_traversal_terminates_on_a_cycle() -> None:
