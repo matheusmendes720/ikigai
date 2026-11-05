@@ -143,7 +143,10 @@ class McpClient:
         try:
             from mcp.client.streamable_http import streamable_http_client
         except ImportError:  # pragma: no cover — mcp < 1.3 only had the old spelling
-            from mcp.client.streamable_http import (
+            # mypy: the two spellings carry different signatures, so it calls
+            # the alias an incompatible import. It is the same client, and the
+            # lock pins mcp 1.30 — the fallback is for the older spelling only.
+            from mcp.client.streamable_http import (  # type: ignore[assignment]
                 streamablehttp_client as streamable_http_client,
             )
 
@@ -198,7 +201,7 @@ class Bot:
 
         try:
             answer = await self._dispatch(command, argument, message_id)
-        except Exception as exc:  # noqa: BLE001 — the bot reports, it does not crash
+        except Exception as exc:  # the bot reports, it does not crash
             answer = f"Não consegui completar isso: {exc}"
 
         await self._send(chat_id, answer)
@@ -248,7 +251,7 @@ class Bot:
                     params={"offset": self._offset, "timeout": 30},
                 )
                 payload = response.json()
-            except Exception as exc:  # noqa: BLE001 — a poll failure is not fatal
+            except Exception as exc:  # a poll failure is not fatal
                 print(f"poll failed: {exc}", file=sys.stderr)
                 await asyncio.sleep(5)
                 continue
