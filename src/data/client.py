@@ -114,13 +114,13 @@ def with_connect_timeout(dsn: str, timeout_s: int = _DEFAULT_CONNECT_TIMEOUT_S) 
 
     try:
         params = conninfo_to_dict(dsn)
-    except Exception:  # noqa: BLE001 — an unparseable DSN is the caller's problem
+    except Exception:  # an unparseable DSN is the caller's problem
         return dsn
     if params.get("connect_timeout"):
         return dsn
     try:
         return make_conninfo(dsn, connect_timeout=timeout_s)
-    except Exception:  # noqa: BLE001 — the driver's own error is clearer
+    except Exception:  # the driver's own error is clearer
         return dsn
 
 
@@ -137,7 +137,7 @@ def rows_as_dicts(cursor: Any, rows: Sequence[Any]) -> list[dict[str, Any]]:
     place that decides what a row IS.
     """
     columns = [column.name for column in cursor.description]
-    return [dict(zip(columns, row)) for row in rows]
+    return [dict(zip(columns, row, strict=True)) for row in rows]
 
 
 class DataClient:
@@ -167,7 +167,7 @@ class DataClient:
             return
         if AsyncConnectionPool is None:
             raise StoreUnavailableError(
-                'psycopg and psycopg-pool are required to reach the store. '
+                "psycopg and psycopg-pool are required to reach the store. "
                 'Install them with: pip install "psycopg[binary]" psycopg-pool'
             )
         reason = incompatible_loop_reason(asyncio.get_running_loop())
@@ -231,7 +231,7 @@ class DataClient:
                 return []
             return rows_as_dicts(cursor, await cursor.fetchall())
 
-    async def _retry(self, operation):  # noqa: ANN001, ANN202 — generic callable
+    async def _retry(self, operation):  # generic callable
         """Retry transient failures with exponential backoff.
 
         Serialization failures and deadlocks are the database telling two
@@ -242,7 +242,7 @@ class DataClient:
         for attempt in range(_MAX_ATTEMPTS):
             try:
                 return await operation()
-            except Exception as exc:  # noqa: BLE001 — re-raised below when not transient
+            except Exception as exc:  # re-raised below when not transient
                 if not _is_transient(exc):
                     raise
                 last = exc

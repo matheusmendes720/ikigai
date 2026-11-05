@@ -28,8 +28,8 @@ from src.contracts.dom import (
     WriteOutcome,
     WriteRequest,
 )
-from src.contracts.errors import DataLayerError
 from src.contracts.dom_kinds import ArtifactPayload
+from src.contracts.errors import DataLayerError
 from src.services.wiring import Services, build_services, prepare_runtime
 
 __all__ = [

@@ -17,7 +17,6 @@ from src.contracts.dom import (
     WriteRequest,
 )
 from src.contracts.errors import InvalidPayloadError
-
 from src.data.repository import ArtifactRepository
 
 __all__ = ["ArtifactService"]

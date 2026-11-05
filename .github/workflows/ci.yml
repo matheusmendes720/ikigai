@@ -128,8 +128,13 @@ jobs:
       - name: Install ruff (ruff-only manager)
         if: matrix.manager == 'ruff-only'
         working-directory: ${{ matrix.path }}
+        # The SAME version the ikigai package pins (0.17.3). An open range
+        # resolves to whatever Ruff is latest at CI time, so the gate changes
+        # its own verdict between runs — a green run yesterday is not a green
+        # run today, and a red run here can be red only because the formatter
+        # moved. A gate that moves with the day is not a gate.
         run: |
-          pip install --quiet ruff
+          pip install --quiet ruff==0.17.3
 
       - name: Run quality gates — ruff-only (${{ matrix.package }})
         if: matrix.manager == 'ruff-only'

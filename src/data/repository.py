@@ -294,9 +294,7 @@ class ArtifactRepository:
                 conn, "select revision from ikig.artifacts where uid = %s", (str(uid),)
             )
         revision = int(current["revision"]) if current else expected_revision + 1
-        return WriteOutcome(
-            uid=uid, revision=revision, outcome="updated", detail="soft deleted"
-        )
+        return WriteOutcome(uid=uid, revision=revision, outcome="updated", detail="soft deleted")
 
     async def get(self, uid: Any) -> Artifact | None:
         row = await self._client.fetch_one(
@@ -319,9 +317,7 @@ class ArtifactRepository:
             for relation in relations:
                 neighbor = await self.get(relation.dst_uid)
                 if neighbor is not None:
-                    neighbors.append(
-                        ArtifactBundle(artifact=neighbor, relations=(relation,))
-                    )
+                    neighbors.append(ArtifactBundle(artifact=neighbor, relations=(relation,)))
         return ArtifactBundle(
             artifact=artifact,
             relations=tuple(relations),

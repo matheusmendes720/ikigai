@@ -14,7 +14,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from strategics.frontmatter_compat import loads
+from .frontmatter_compat import loads
 
 
 class StrategicDoc(BaseModel):

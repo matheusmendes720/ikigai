@@ -105,8 +105,7 @@ def _client_address(bind_host: str) -> str:
         if not address.startswith("127."):
             return address
     raise RuntimeError(
-        f"the transport binds every interface but {hostname} has no address a "
-        "client can reach"
+        f"the transport binds every interface but {hostname} has no address a client can reach"
     )
 
 
@@ -126,7 +125,7 @@ def main() -> None:
     try:
         _check_store(dsn)
         _check_transport()
-    except Exception as exc:  # noqa: BLE001 — a healthcheck reports, it does not raise
+    except Exception as exc:  # a healthcheck reports, it does not raise
         print(f"unhealthy: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
 

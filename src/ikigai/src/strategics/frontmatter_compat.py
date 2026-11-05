@@ -35,12 +35,10 @@ That was the coupling that kept 91 legacy files on the remote branch.
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
 import yaml
-
 
 # `---\n<yaml>\n---\n<body>` is the canonical markdown frontmatter block.
 # We use a non-greedy match for the yaml body so subsequent `---` lines
@@ -109,7 +107,7 @@ def dumps(post: Any) -> str:
     return "\n".join(parts)
 
 
-def Post(content: str = "", **fields: Any) -> SimpleNamespace:
+def Post(content: str = "", **fields: Any) -> SimpleNamespace:  # noqa: N802 — the 1.x API's name
     """Construct a post-like object with `.content` + `.metadata`.
 
     Mirrors python-frontmatter 1.x Post class.
@@ -127,4 +125,4 @@ def dump(post: Any, file: Any) -> None:
     file.write(dumps(post))
 
 
-__all__ = ["loads", "dumps", "Post", "load", "dump"]
+__all__ = ["Post", "dump", "dumps", "load", "loads"]

@@ -36,7 +36,6 @@ from typing import Any, Literal
 from src.contracts.common import UEID
 from src.contracts.dom import ArtifactKind, Relation, RelationType, WriteRequest, make_uid
 from src.contracts.dom_kinds import KIND_MODELS
-
 from src.data.repository import ArtifactRepository
 
 __all__ = ["SyncReport", "VaultSource", "VaultSync", "default_sources"]
@@ -131,7 +130,7 @@ def _front_matter(text: str) -> dict[str, Any]:
         return {}
     try:
         loaded = yaml.safe_load(match.group(1))
-    except Exception:  # noqa: BLE001 — malformed frontmatter is not fatal to the sync
+    except Exception:  # malformed frontmatter is not fatal to the sync
         return {}
     return loaded if isinstance(loaded, dict) else {}
 
@@ -259,7 +258,6 @@ class VaultSync:
 
         uid = self._uid_for(meta, kind, path, relative)
         title = self._title_for(meta, content, path)
-        heading = _HEADING_RE.search(content)
 
         report.scanned += 1
         existing = await self._repo.get(uid)
@@ -304,7 +302,7 @@ class VaultSync:
 
         try:
             artifact = KIND_MODELS[kind].model_validate(fields)
-        except Exception as exc:  # noqa: BLE001 — one bad file must not stop the run
+        except Exception as exc:  # one bad file must not stop the run
             report.skipped.append(f"{relative}: {exc}")
             return
 
@@ -317,7 +315,7 @@ class VaultSync:
 
         try:
             outcome = await self._repo.upsert(request)
-        except Exception as exc:  # noqa: BLE001 — one bad file must not stop the run
+        except Exception as exc:  # one bad file must not stop the run
             report.skipped.append(f"{relative}: {exc}")
             return
         if outcome.outcome == "created":
@@ -348,11 +346,11 @@ class VaultSync:
                     dst_uid=other,
                     rel=RelationType.REFERENCES,
                 )
-            except Exception:  # noqa: BLE001 — a malformed reference is not fatal
+            except Exception:  # a malformed reference is not fatal
                 continue
             try:
                 await self._repo.upsert_relation(relation)
-            except Exception:  # noqa: BLE001 — the artifact is already stored
+            except Exception:  # the artifact is already stored
                 continue
             report.relations += 1
 
