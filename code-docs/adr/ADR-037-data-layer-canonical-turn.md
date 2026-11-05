@@ -4,7 +4,7 @@
 **Date:** 2026-11-01
 **Owner:** matheus
 **Supersedes:** framing de artefato-visual em `docs/vanilla-pivot.html` §7–§9 · convenção "Fully local / zero cloud deps" em `docs/README.md` · `master-branch-carro-chefe-2026-08-28` (deep-agent como carro-chefe)
-**Relacionado:** [ADR-012](ADR-012-fork-connection-architecture.md) (vault_write sole writer) · [ADR-013](ADR-013-canonical-scope-discipline.md) (planner-only) · [ADR-014](ADR-014-ueid-canonical-format.md) (UEID 4 partes) · [ADR-033](ADR-033-ueid-single-source-mandate.md) · [ADR-036](ADR-036-paperclip-four-nested-loops.md) · [ADR-007](ADR-007-data-first-methodology.md)
+**Relacionado:** ADR-012 (vault_write sole writer, não publicado) · [ADR-013](ADR-013-canonical-scope-discipline.md) (planner-only) · [ADR-014](ADR-014-ueid-canonical-format.md) (UEID 4 partes) · [ADR-033](ADR-033-ueid-single-source-mandate.md) · ADR-036 e ADR-007 (não publicados)
 
 ---
 
@@ -14,7 +14,7 @@
 
 ## §1 — Contexto (o que o Vanilla Pivot provou)
 
-O relatório [`docs/vanilla-pivot.html`](../../docs/vanilla-pivot.html) (2026-10-30) establece, com evidência do próprio repositório:
+O relatório `docs/vanilla-pivot.html` (2026-10-30, não publicado nesta branch — fica no disco do dono e no histórico) estabelece, com evidência do próprio repositório:
 
 | Fato medido | Fonte |
 |---|---|
