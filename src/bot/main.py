@@ -261,10 +261,16 @@ class Bot:
 
 
 def _render_search(result: Any) -> str:
-    if isinstance(result, dict):
-        items = result.get("items") or result.get("results") or []
-    else:
-        items = []
+    """Render a search result.
+
+    The field is the CONTRACT's field: `SearchResult.artifacts`. The renderer
+    used to look for "items" and "results" — names the transport has never
+    sent — so every search answered "Nada encontrado" however many rows it
+    had. Nothing noticed, because nothing exercised the renderer.
+    """
+    if not isinstance(result, dict):
+        return "Nada encontrado."
+    items = result.get("artifacts") or []
     if not items:
         return "Nada encontrado."
     lines = []
