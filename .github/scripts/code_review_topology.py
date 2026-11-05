@@ -17,8 +17,9 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 
-from code_review_model import ROOT, PackageSpec, run
+from code_review_model import ROOT, PackageSpec, run, tool
 
 # Mirrors the `quality-gates` matrix in .github/workflows/ci.yml.
 PACKAGES: tuple[PackageSpec, ...] = (
@@ -75,6 +76,75 @@ ROOT_BUCKET = "root"
 ROOT_TEST_CWD = str(ROOT / "src/ikigai")
 ROOT_TEST_PREFIX = ("poetry", "run", "python", "-m", "pytest")
 ROOT_TEST_ENV = {"PYTHONPATH": str(ROOT)}
+
+# ─── The ONE published Python environment ─────────────────────────────────────
+#
+# The published tree has no root `pyproject.toml` and no root `uv.lock`
+# (ADR-037 cut), so the pre-cut root environment — `uv run --frozen --extra
+# dev` — cannot resolve in a fresh clone: uv answers "Failed to spawn: mypy"
+# and the check reports "mypy produced no output (rc=2) — nothing was
+# checked". That failure produced NO annotation, so the CI log showed an
+# exit code 1 and nothing else: a red gate that says nothing about itself.
+#
+# The Ikigai package is the only environment the tree publishes, and it is
+# where the Telegram client's own dependencies (mcp, httpx) are locked. So
+# the root bucket — the Python that belongs to no package — runs THERE, and
+# names its files absolutely so the working directory never decides what is
+# measured.
+#
+# The WORKING DIRECTORY stays at the repository root, because that is where
+# the root's own configuration lives: `mypy.ini` says so in its own first
+# line. The environment and the configuration are two different things, and a
+# review that conflates them measures something nobody declared.
+ROOT_ENV_PACKAGE = "src/ikigai"
+ROOT_ENV_CWD = str(ROOT / ROOT_ENV_PACKAGE)
+
+
+class ReviewEnvironmentError(RuntimeError):
+    """The environment the review needs is not there.
+
+    It is an error, not a crash: the check that needed the environment
+    reports it as a FAIL with the reason attached, so the gate says WHY.
+    """
+
+
+def root_env_python() -> str:
+    """The interpreter of the one published environment.
+
+    Resolved through Poetry instead of guessed: the venv lives in Poetry's
+    cache and its path differs per host, per Python version and per OS. A
+    review that guesses the path measures nothing.
+    """
+    probe = run(
+        [tool("poetry"), "env", "info", "--executable"],
+        cwd=Path(ROOT) / ROOT_ENV_PACKAGE,
+    )
+    if probe.returncode != 0:
+        raise ReviewEnvironmentError(
+            f"code_review: cannot resolve the published environment "
+            f"({ROOT_ENV_PACKAGE}): `poetry env info --executable` failed "
+            f"(rc={probe.returncode}): {(probe.stderr or '').strip()[:500]}"
+        )
+    lines = [line.strip() for line in (probe.stdout or "").splitlines() if line.strip()]
+    if not lines:
+        raise ReviewEnvironmentError(
+            f"code_review: the published environment ({ROOT_ENV_PACKAGE}) has no "
+            "interpreter. Run `poetry install` inside it first — the review "
+            "measures that environment, not the reviewer's shell."
+        )
+    return lines[-1]
+
+
+def check_cwd(spec: PackageSpec | None) -> str:
+    """Where a bucket's checks run.
+
+    A package runs in its own directory. The root bucket runs at the REPOSITORY
+    ROOT, because that is where its configuration lives: `mypy.ini` declares
+    the root's canonical paths and says so in its own first line — "This file
+    governs a bare `mypy` run from the repository root".
+    """
+    return str(ROOT) if spec is None else package_cwd(spec)
+
 
 _HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 

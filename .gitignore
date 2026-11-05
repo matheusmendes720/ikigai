@@ -405,8 +405,8 @@ vault/.db
 /docs/auto-performance-os/
 
 # The retired test suite: every top-level module under src/ikigai/tests/
-# tests the retired runtime, except the five that survive and are named
-# explicitly. One rule for the class, five for the exceptions.
+# tests the retired runtime, except the ones that survive and are named
+# explicitly. One rule for the class, one for each exception.
 /src/ikigai/tests/*.py
 !/src/ikigai/tests/conftest.py
 !/src/ikigai/tests/test_canonical_scope.py
@@ -415,6 +415,7 @@ vault/.db
 !/src/ikigai/tests/test_strategics_loader.py
 !/src/ikigai/tests/test_published_surface_integrity.py
 !/src/ikigai/tests/test_lint_target_is_not_vacuous.py
+!/src/ikigai/tests/test_code_review_gate_integrity.py
 !/src/ikigai/tests/skills/
 !/src/ikigai/tests/contracts/
 !/src/ikigai/tests/store/
