@@ -1,17 +1,18 @@
-# ADRs — Master Index
+# ADRs — the decisions the contracts rest on
 
-Cross-cutting Architecture Decision Records for the Algorithmic Life OS.
-Each ADR captures a single architectural decision: Status, Date, Context,
-Decision, Consequences, Alternatives, Implementation Rules. Append-only —
-ADRs are immutable once Accepted; superseded ADRs are linked, never edited.
+Architecture Decision Records for the Algorithmic Life OS. Each ADR captures a
+single architectural decision: Status, Date, Context, Decision, Consequences,
+Alternatives, Implementation Rules. Append-only — ADRs are immutable once
+Accepted; superseded ADRs are linked, never edited.
 
-> **Note:** This is the index for `code-docs/adr/`. Two other ADR surfaces
-> exist and are linked from `00-INDEX §7`:
-> - `vibe-ops/architecture/` (cybernetic engine — see `VIBE-OPS.md`)
-> - `life-ops/operational/docs/adr/` (PAV kernel — see `OPERATIONAL.md`)
-
-The full 27-document consolidation across all 3 surfaces is documented in
-`2026-08-27-master-adr-index.md` (§1 + §1.1 tables).
+> **This index lists five.** The repository publishes the decisions the
+> current scope rests on, and nothing else: the ADRs of an architecture that
+> was replaced describe a system that is not published, and a reader has no
+> way to tell that from a description of the one that is.
+>
+> The rest are not deleted. They stay on the owner's disk and in the git
+> history (ADR-037 §"publicação independente"), and the drift net names
+> them — so if one comes back, the branch says so.
 
 ---
 
@@ -19,22 +20,11 @@ The full 27-document consolidation across all 3 surfaces is documented in
 
 | File | Status | Date | Subject |
 |------|:------:|------|---------|
-| `ADR-007-data-first-methodology.md` | Accepted | 2026-07-02 | Data-first methodology: schema → storage → adapters |
-| `ADR-008-ikigai-vector-count.md` | 🟡 Proposta | 2026-08-27 | IKIGAI vector count (5 vs 4) — decision required |
-| `ADR-009-pydantic-strict-mode-invariance.md` | 🟡 Proposta | 2026-08-27 | Pydantic v2 strict mode across all entities — decision required |
-| `ADR-010-dual-claude-md-scope.md` | 🟡 Proposta | 2026-08-27 | Dual `CLAUDE.md` scope strategy — decision required |
-| `ADR-011-ikigai-mcp-http-sse-transport.md` | 🟡 Proposta (recommended) | 2026-08-27 | HTTP+SSE transport for IKIGAI MCP server |
-| `ADR-012-fork-connection-architecture.md` | Accepted | 2026-08-30 | Fork connection architecture — vault_write sole writer, 3-fork aggregation, UEID UPSERT (§31 UEID line superseded by ADR-014) |
-| `ADR-013-canonical-scope-discipline.md` | Accepted | 2026-08-31 | Canonical scope discipline — agent layer = planner-only, 6 in-scope / 8 out-of-scope (§7 #1 UEID row superseded by ADR-014) |
-| `ADR-014-ueid-canonical-format.md` | Accepted | 2026-09-04 | UEID canonical format = 4-part (drift detector regex wins; supersedes 2026-08-31 5-part claim) |
-| `ADR-037-data-layer-canonical-turn.md` | Accepted | 2026-11-01 | **Virada canônica: camada de dados primeiro** — DOM unificado + store Postgres cloud (vector/graph/embeddings) + services/transporte MCP; harness pi reutilizado; TUI em standby; Telegram como cliente em foco depois da infra (substitui o framing de "deep-agent como carro-chefe" e a convenção "fully local") |
-| `2026-08-27-decision-questionnaire.md` | 🟡 Draft | 2026-08-27 | 4 Proposta ADRs (008-011) reframed as decision questions |
-| `2026-08-27-master-adr-index.md` | 🟡 Draft | 2026-08-27 | Cross-surface consolidation (11 cross-cutting + 6 cybernetic + ~13 PAV) |
-| `2026-08-27-cross-cutting-triage.md` | 🟡 Draft | 2026-08-27 | Decision-dependency matrix + recommended order for ADRs 008-011 |
-| `OPERATIONAL.md` | index | — | Pointer to PAV kernel ADR set (`life-ops/operational/docs/adr/`) |
-| `VIBE-OPS.md` | index | — | Pointer to cybernetic engine ADR set (`vibe-ops/architecture/`) |
-
-Base path: `C:\Users\mathe\code_space\life-oss\life\code-docs\adr\`
+| `ADR-011-ikigai-mcp-http-sse-transport.md` | Accepted | 2026-08-27 | HTTP+SSE transport for the MCP server — the transport `src/transport/` implements, and the one the clients speak |
+| `ADR-013-canonical-scope-discipline.md` | Accepted | 2026-08-31 | Canonical scope discipline — what the agent layer may and may not touch; the rule the drift net enforces |
+| `ADR-014-ueid-canonical-format.md` | Accepted | 2026-09-04 | UEID canonical format = 4-part — the identity `src/contracts/common.py` defines |
+| `ADR-033-ueid-single-source-mandate.md` | Accepted | 2026-09-21 | The UEID pattern has exactly one source — `src/contracts/common.py` |
+| `ADR-037-data-layer-canonical-turn.md` | Accepted | 2026-11-01 | **Virada canônica: camada de dados primeiro** — unified DOM + Postgres store + services/MCP transport; the harness `pi` reused; Telegram as client; the algorithms deferred |
 
 ---
 
@@ -44,10 +34,8 @@ Base path: `C:\Users\mathe\code_space\life-oss\life\code-docs\adr\`
 |--------|---------|
 | **Accepted** / **Aceita** | Decision is final and binding. No edits — supersede, don't rewrite. |
 | **Proposta** / **Proposed** | Awaiting user decision. Can be edited freely. |
-| **🟡 Draft** | New ADR or support doc being drafted. Can be edited freely. |
 | **Superseded** | Replaced by a newer ADR. Link to replacement; never edited. |
 | **Rejected** | Decision was considered and rejected. Link to rationale; never edited. |
-| **index** | Pointer file (no status); routes to another ADR surface. |
 
 ---
 
@@ -55,19 +43,12 @@ Base path: `C:\Users\mathe\code_space\life-oss\life\code-docs\adr\`
 
 | Topic | Canonical source |
 |-------|------------------|
-| Data-first methodology | `ADR-007-data-first-methodology.md` |
-| **Data-layer canonical turn (2026-11-01)** | `ADR-037-data-layer-canonical-turn.md` — DOM + store cloud + services/MCP; TUI standby |
-| IKIGAI vector count | `ADR-008-ikigai-vector-count.md` (Proposta) |
-| Pydantic strict mode | `ADR-009-pydantic-strict-mode-invariance.md` (Proposta) |
-| Dual CLAUDE.md scope | `ADR-010-dual-claude-md-scope.md` (Proposta) |
-| HTTP+SSE MCP transport | `ADR-011-ikigai-mcp-http-sse-transport.md` (Proposta, recommended) |
-| Per-ADR decision aids | `2026-08-27-decision-questionnaire.md` |
-| Cross-cutting decision order | `2026-08-27-cross-cutting-triage.md` |
-| Cross-surface consolidation | `2026-08-27-master-adr-index.md` |
-| Cybernetic engine ADRs (001-006) | `vibe-ops/architecture/` via `VIBE-OPS.md` |
-| PAV kernel ADRs (12 PRDs + 3 sprints) | `life-ops/operational/docs/adr/` via `OPERATIONAL.md` |
-| Pending-decision + ADR consolidation | `code-docs/00-INDEX.md §8j` |
-| Known gaps (G8 = this README) | `code-docs/00-INDEX.md §12` |
+| The transport the clients speak | `ADR-011-ikigai-mcp-http-sse-transport.md` |
+| What may and may not be touched | `ADR-013-canonical-scope-discipline.md` |
+| The identity, and its single source | `ADR-014-ueid-canonical-format.md` · `ADR-033-ueid-single-source-mandate.md` |
+| **Data-layer canonical turn (2026-11-01)** | `ADR-037-data-layer-canonical-turn.md` — DOM + store + services/MCP |
+| The series that specified the pivot | [`docs/superpowers/specs/2026-11-01-00-data-layer-series.md`](../../docs/superpowers/specs/2026-11-01-00-data-layer-series.md) |
+| The cut that preceded the pivot | [`docs/superpowers/specs/2026-10-30-05-cut.md`](../../docs/superpowers/specs/2026-10-30-05-cut.md) |
 
 ---
 
@@ -76,13 +57,15 @@ Base path: `C:\Users\mathe\code_space\life-oss\life\code-docs\adr\`
 When adding a new ADR:
 
 1. **Append-only** — never edit an Accepted ADR. Supersede, don't rewrite.
-2. **Filename convention** — `ADR-NNN-kebab-slug.md` for fixed-numbered ADRs; `YYYY-MM-DD-<topic>.md` for drafts and support docs.
-3. **Numbering** — sequential across all 3 surfaces: next is **ADR-038** (ADR-037 foi usado pela virada canônica de 2026-11-01).
+2. **Filename convention** — `ADR-NNN-kebab-slug.md`.
+3. **Numbering** — sequential: next is **ADR-038** (ADR-037 was used by the canonical turn of 2026-11-01).
 4. **Cross-reference** — every ADR points to canonical source (file + line range or section).
-5. **Update this README** — add row to the index table; bump counts.
-6. **Update `code-docs/00-INDEX.md §7b`** — keep both indexes in sync.
-7. **Update `2026-08-27-master-adr-index.md`** if this is a new cross-cutting ADR (so the 3-surface consolidation stays canonical).
+5. **Update this README** — add the row to the index table.
+6. **Publish it deliberately.** The ignore rules exclude `code-docs/adr/*.md`
+   and re-include each published ADR by name. A new ADR is not published
+   until it is named in that list and in the guard's exceptions — a decision
+   enters the published tree on purpose, not by accident.
 
 ---
 
-*ADR master index — v1.0 — 2026-08-28 — closes gap G8 from `00-INDEX §12.1`*
+*ADR index — reduced to the decisions the contracts rest on, 2026-11-05.*

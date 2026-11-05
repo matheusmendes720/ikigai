@@ -1,6 +1,6 @@
 # AGENTS.md — `src/ikigai/`
 
-**Canonical scope (ADR-037, 2026-11-01).** This is the Poetry sub-project that used to host the whole agent runtime. The PC-only runtime (LangChain/LangGraph harness, local chat REPL, stdio MCP fork servers, paperclip bridge, OpenTelemetry stack) is **not published** anymore. What stays is the strategic-prose loader, the meta-planner contracts, the soul profiles and the drift net.
+**Canonical scope (ADR-037, 2026-11-01).** This is the Poetry sub-project that used to host the whole agent runtime. The PC-only runtime (LangChain/LangGraph harness, local chat REPL, stdio MCP fork servers, paperclip bridge, OpenTelemetry stack) is **not published** anymore. What stays is the strategic-prose loader and the drift net.
 
 ## OVERVIEW
 A standalone Poetry project (`name = "ikigai"`, `version = "0.1.0"`, `python = "^3.11"`) with its own `.venv`, its own `poetry.lock` and its own `pyproject.toml`. It does **not** inherit the root build config. The canonical MCP transport lives outside this project, at `src/transport/mcp_server.py` (repo root, ADR-011).
@@ -12,15 +12,8 @@ src/ikigai/
 ├── poetry.lock          # Poetry lockfile (source of truth for this project)
 ├── uv.lock              # ALSO present — see ANTI-PATTERNS
 ├── src/                 # the ONLY installable package left: strategics/
-├── scripts/             # 3 standalone scripts (migrate_plan_entities + 2 repro scripts)
-├── souls/               # 3 soul profiles (planner/critic/stoic) + loader
-├── tools/               # vault_taskdog_sync.py, views.py (dev CLIs)
-├── contracts/           # proposal.py — Meta-Planner contracts (NOT src/contracts)
-├── tests/               # 67 pytest files incl. the whole drift net
-├── data/matheus/        # per-persona runtime data (dreams, objectives, projects)
-├── docs/                # HISTORICAL — describes the retired server runtime
-├── SPEC.md / CHANGELOG.md / README.md
-└── vault/               # local vault tree (untracked)
+├── tests/               # the drift net — the canonical test suite
+└── README.md
 ```
 
 ## WHERE TO LOOK
@@ -30,7 +23,6 @@ src/ikigai/
 | Canonical MCP surface (6 tools) | `src/transport/mcp_server.py` (repo root, ADR-011) |
 | Data-layer contracts | `src/contracts/` (repo root — canonical Pydantic v2) |
 | Planner layer (memory, reflection) | the agent is EXTERNAL (ADR-037 D7) — the harness is `pi`, and it is not in this repository |
-| Meta-Planner contracts | `contracts/proposal.py` (11 Pydantic models) |
 | Drift net | `tests/test_canonical_scope.py`, `tests/test_drift_invariants.py`, `tests/test_gitignore_root_scope.py` |
 | Transport tests | `tests/transport/test_mcp_tools.py` |
 
@@ -39,9 +31,7 @@ src/ikigai/
 - **No console scripts.** `ikigai-maintainer-mcp`, `ikigai-deep-agent`, `paperclip` and `paperclipai-bridge` were removed with the harness — they only started the PC-local server. The cloud harness is specified in `specs/harness/`.
 - **The MCP SDK stays a declared dependency** (`mcp = "^1.1"`) because this package's own suite (`tests/transport/`) exercises the canonical transport from this venv.
 - **Pytest config lives in this project's `pyproject.toml`**: `testpaths = ["tests"]`, `pythonpath = ["src", "../.."]`, `addopts = "-v --tb=short"`. Root `pytest.ini` is a separate, root-only config.
-- **`souls/loader.py` exports exactly `load_soul` and `known_profiles`.** Profile names are validated before any filesystem access; path traversal is rejected.
-- **`contracts/proposal.py` is a separate contract family from `src/contracts/`.** It defines its own `Proposal` with `approval_state`, its own `IntentClassification`, and its own UEID regex (`{2,5}` 4-part) — it is *not* the canonical `TaskChange`.
-- **`docs/` and `scripts/repro_*.py` are historical.** They describe the retired server runtime (observability, the local HTTP server); read them as an archive, not as a spec.
+- **`souls/`, `tools/`, `contracts/`, `docs/` and `scripts/` are not published.** They were the personas, the dev CLIs, the meta-planner contracts and the documentation of a runtime that is gone; nothing imported them. A drift test names them.
 
 ## ANTI-PATTERNS
 - **Never re-add an agent harness here.** No `src/agents`, `src/chat`, `src/mcp_server`, `src/plugins`, `src/observability` — the canonical transport is `src/transport/mcp_server.py` and a drift test fails if any of those paths is tracked again.

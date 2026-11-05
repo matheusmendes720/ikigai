@@ -20,6 +20,15 @@ running a test:
    and one junk file inside it ended up TRACKED. The `.gitignore` now
    excludes the directory; this guard holds that honest.
 
+3. **A test module that the suite COLLECTS was not PUBLISHED.** The
+   `.gitignore` excludes every top-level module under `src/ikigai/tests/` —
+   the retired suite — and re-includes the survivors by name. A guard written
+   after that rule was therefore SILENTLY UNPUBLISHABLE: `git add` refused
+   it, the file stayed on the owner's disk, the suite ran it, and the clone
+   did not have it. The owner read 149 tests locally and the clone ran 147.
+   Nothing in the suite noticed, because the suite that runs in the clone is
+   the clone's own.
+
 The first test is the general one, and it is the one that matters: **for
 every published file, every local top-level import must land in a published
 directory.** A local import is one whose root names a directory that exists
@@ -31,6 +40,7 @@ rots.
 
 from __future__ import annotations
 
+import ast
 import os
 import re
 import subprocess
@@ -118,9 +128,7 @@ def test_no_published_file_imports_an_unpublished_package() -> None:
     assert not offenders, (
         "Published files import packages the branch does not publish (a fresh "
         "clone cannot import them): "
-        + "; ".join(
-            f"{root} <- {', '.join(paths)}" for root, paths in sorted(offenders.items())
-        )
+        + "; ".join(f"{root} <- {', '.join(paths)}" for root, paths in sorted(offenders.items()))
     )
 
 
@@ -209,9 +217,8 @@ def test_no_published_symlink_points_outside_the_repository() -> None:
         if not os.path.lexists(resolved):
             offenders.append(f"{path} -> {target} (dangling)")
 
-    assert not offenders, (
-        "published symlinks that do not resolve inside the branch: "
-        + "; ".join(offenders[:20])
+    assert not offenders, "published symlinks that do not resolve inside the branch: " + "; ".join(
+        offenders[:20]
     )
 
 
@@ -244,9 +251,7 @@ def test_the_published_cadence_skills_are_the_projection() -> None:
         ).replace("\r\n", "\n"):
             drifted.append(f"{target_name} (drifted)")
 
-    assert not drifted, (
-        "the published cadence skills are not the projection: " + ", ".join(drifted)
-    )
+    assert not drifted, "the published cadence skills are not the projection: " + ", ".join(drifted)
 
 
 def test_no_junk_named_root_directory_holds_a_tracked_file() -> None:
@@ -266,6 +271,78 @@ def test_no_junk_named_root_directory_holds_a_tracked_file() -> None:
         if "/" in path and _JUNK_NAME.search(head):
             offenders.append(path)
 
+    assert not offenders, "Tracked files live under a junk-named root directory: " + ", ".join(
+        offenders
+    )
+
+
+def _retired_test_modules() -> set[str]:
+    """The modules `conftest.py` excludes from collection.
+
+    Read from the AST rather than by import: importing the conftest of the
+    suite that is running this test has side effects (it rewrites `sys.path`
+    and `tempfile.tempdir`), and the file is not importable by name from
+    here. The tuple is a literal, so the AST carries its value exactly.
+    """
+    source = (IKIGAI_PKG / "tests" / "conftest.py").read_text(encoding="utf-8")
+    for node in ast.parse(source).body:
+        # `LEGACY_TEST_MODULES: tuple[str, ...] = (...)` is an ANNOTATED
+        # assignment — `ast.AnnAssign`, not `ast.Assign`. Both are accepted
+        # so the guard survives either spelling of the declaration.
+        if isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+            value = node.value
+        elif isinstance(node, ast.Assign):
+            targets = list(node.targets)
+            value = node.value
+        else:
+            continue
+        if value is None:
+            continue
+        for target in targets:
+            if isinstance(target, ast.Name) and target.id == "LEGACY_TEST_MODULES":
+                return {str(item) for item in ast.literal_eval(value)}
+    return set()
+
+
+def test_every_test_module_is_published_or_retired() -> None:
+    """A test module is either published or explicitly retired. Never neither.
+
+    The suite runs from the worktree, so a module that is on disk but not in
+    the index runs HERE and does not run in a clone. The count the owner reads
+    locally is then larger than the count the clone runs, and the difference
+    is exactly the guard that was supposed to catch the thing nobody caught.
+
+    This is not hypothetical: the `.gitignore` excludes every top-level module
+    under `src/ikigai/tests/` — the retired suite — and re-includes the
+    survivors by name. A guard written after that rule was silently
+    unpublishable: `git add` refused it, the file stayed on disk, and the
+    suite ran it anyway.
+
+    A clone holds neither the retired modules nor the caches, so in a clone
+    this test has nothing to say — which is the correct verdict there.
+    """
+    tracked = _tracked(REPO_ROOT)
+    if not tracked:
+        return
+
+    retired = _retired_test_modules()
+    tests_dir = IKIGAI_PKG / "tests"
+
+    offenders: list[str] = []
+    for path in sorted(tests_dir.rglob("*.py")):
+        if "__pycache__" in path.parts:
+            continue
+        relative = path.relative_to(REPO_ROOT).as_posix()
+        if relative in tracked:
+            continue
+        if path.name in retired:
+            continue
+        offenders.append(relative)
+
     assert not offenders, (
-        "Tracked files live under a junk-named root directory: " + ", ".join(offenders)
+        "test modules that are neither published nor retired: "
+        + ", ".join(offenders[:20])
+        + ". The suite runs them here and not in a clone. Name them back in the "
+        ".gitignore (they ship) or in LEGACY_TEST_MODULES (they do not)."
     )

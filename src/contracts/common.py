@@ -1,35 +1,30 @@
 """Common primitives shared across all layers.
 
 Types here are imported by every other contracts module. They have
-no domain-specific logic — they are the vocabulary of identity and time.
+no domain-specific logic — they are the vocabulary of identity and of the
+two axes the artifact kinds share.
 """
 
 from __future__ import annotations
 
 import re
-from datetime import datetime
 from enum import StrEnum
 from typing import Literal, Self
 
-from pydantic import BaseModel, Field
+from pydantic import GetCoreSchemaHandler
+from pydantic_core import CoreSchema, core_schema
 
 __all__ = [
     "UEID",
-    "EntityType",
-    "Period",
+    "PlanTier",
     "Priority",
-    "RegimeState",
     "StrEnum",
-    "TimestampMixin",
+    "VectorKey",
 ]
 
 # ---------------------------------------------------------------------------
 # UEID — Universal Entity Identifier
 # ---------------------------------------------------------------------------
-
-
-from pydantic import GetCoreSchemaHandler
-from pydantic_core import CoreSchema, core_schema
 
 # M73: triple-pattern (4-part short OR 4-part long-uuid OR 5-part legacy).
 # Anchored on both ends. Accepts both fixture variants in production tests.
@@ -64,33 +59,20 @@ class UEID(str):
     """Universal Entity Identifier — canonical str type for all entity IDs.
 
     Format: ``<type>:<slug>:<uuid>:<hash>`` where:
-    - type: 2-5 lowercase letters (e.g. ``tsk``, ``proj``, ``hab``)
+    - type: 2-5 lowercase letters (e.g. ``snh``, ``pln``, ``tsk``)
     - slug: lowercase alphanumeric with dashes (e.g. ``byd-case-review``)
     - uuid: lowercase hex with dashes (e.g. ``abc12345-1234-5678-9abc-def012345678``)
     - hash: lowercase hex (e.g. ``0123456789abcdef``)
 
     Examples:
         - ``tsk:byd-case-review:abc12345-1234-5678-9abc-def012345678:0123456789abcdef``
-        - ``hab:sleep-8h:11111111-2222-3333-4444-555555555555:ffffffffffffffff``
-        - ``proj:vaga-remota-2026:00000000-0000-0000-0000-000000000000:0000000000000000``
+        - ``snh:aprender-a-vender:11111111-2222-3333-4444-555555555555:ffffffffffffffff``
+        - ``pln:q4-2026:00000000-0000-0000-0000-000000000000:0000000000000000``
 
-    Canonical types:
-        ===============  =========================================
-        Type             Entity
-        ===============  =========================================
-        ``tsk``          Task
-        ``sub``           Subtask
-        ``chk``           ChecklistItem
-        ``proj``          Project
-        ``msl``           Milestone
-        ``del``           Deliverable
-        ``hab``           Habit
-        ``hst``           HabitState
-        ``qhe``           QHEMetrics
-        ``cyc``           PlanningCycle
-        ``wave``          Wave
-        ``sprint``        Sprint
-        ===============  =========================================
+    The first segment is the KIND's namespace (``KIND_NAMESPACE`` in
+    ``dom.py``): ``snh`` sonho, ``pln`` plano, ``ond`` onda, ``fse`` fase,
+    ``rev`` revisao, ``not`` nota, ``kpi``, ``dec`` decisao, ``okr``,
+    ``tsk`` tarefa. So a UID alone tells a consumer what it is holding.
     """
 
     def __new__(cls, value: str) -> Self:
@@ -100,49 +82,6 @@ class UEID(str):
                 "Format: type:slug:uuid:hash (all lowercase, 4 parts separated by colons)."
             )
         return super().__new__(cls, value)
-
-    @classmethod
-    def from_legacy(cls, value: str) -> UEID:
-        """Parse either a canonical 4-part UEID or a legacy 2-part underscore ID.
-
-        Canonical 4-part format (e.g. ``tsk:foo:00000000-...:0000000000...``) is
-        passed directly to the constructor.
-
-        Legacy 2-part underscore format (e.g. ``tsk_morning_water``) is converted
-        to canonical 4-part by mapping the prefix to ``type`` and the suffix to
-        ``slug`` (underscores in the suffix become dashes). UUID and hash are
-        zero-filled placeholders.
-
-        Raises:
-            ValueError: if the value matches neither format.
-
-        Examples:
-            >>> UEID.from_legacy("tsk:foo:00000000-0000-0000-0000-000000000000:0000000000000000")
-            UEID('tsk:foo:00000000-0000-0000-0000-000000000000:0000000000000000')
-            >>> UEID.from_legacy("tsk_morning_water")
-            UEID('tsk:morning-water:00000000-0000-0000-0000-000000000000:0000000000000000')
-        """
-        # Fast path: canonical 4-part colon format
-        if _UEID_PATTERN.match(value):
-            return cls(value)
-
-        # Legacy 2-part underscore format: type_slug
-        legacy_pattern = re.compile(r"^[a-z]{2,5}_[a-z0-9][a-z0-9_-]*$")
-        if legacy_pattern.match(value):
-            type_part, slug_part = value.split("_", 1)
-            canonical = (
-                f"{type_part}:"
-                f"{slug_part.replace('_', '-')}:"
-                f"00000000-0000-0000-0000-000000000000:"
-                f"0000000000000000"
-            )
-            return cls(canonical)
-
-        raise ValueError(
-            f"Invalid UEID '{value}'. Must match either:\n"
-            f"  Canonical (4-part): {_UEID_PATTERN.pattern!r}\n"
-            f"  Legacy (2-part underscore): ^[a-z]{{2,5}}_[a-z0-9][a-z0-9_-]*$"
-        )
 
     @classmethod
     def __get_pydantic_core_schema__(
@@ -160,22 +99,6 @@ class UEID(str):
 # ---------------------------------------------------------------------------
 
 
-class Period(StrEnum):
-    """Time horizon of a planning or execution unit."""
-
-    TODAY = "today"
-    TOMORROW = "tomorrow"
-    THIS_WEEK = "this_week"
-    NEXT_WEEK = "next_week"
-    THIS_MONTH = "this_month"
-    NEXT_MONTH = "next_month"
-    THIS_QUARTER = "this_quarter"
-    NEXT_QUARTER = "next_quarter"
-    THIS_YEAR = "this_year"
-    ONDA = "onda"  # 15-day cycle
-    SPRINT = "sprint"  # 4-week cycle
-
-
 class Priority(StrEnum):
     """Urgency/importance axis for task ranking."""
 
@@ -185,81 +108,9 @@ class Priority(StrEnum):
     LOW = "low"
 
 
-class EntityType(StrEnum):
-    """Discriminator for poly-morphic entity lookups."""
-
-    # Planning
-    TASK = "task"
-    SUBTASK = "subtask"
-    CHECKLIST_ITEM = "checklist_item"
-    PROJECT = "project"
-    MILESTONE = "milestone"
-    DELIVERABLE = "deliverable"
-    PLANNING_CYCLE = "planning_cycle"
-    WAVE = "wave"
-    SPRINT = "sprint"
-    # Operational
-    HABIT = "habit"
-    HABIT_STATE = "habit_state"
-    QHE_METRICS = "qhe_metrics"
-    SLEEP_RECORD = "sleep_record"
-    ENERGY_READING = "energy_reading"
-    DAILY_LOG = "daily_log"
-    DAILY_CONSOLIDATION = "daily_consolidation"
-    WEEKLY_AGGREGATE = "weekly_aggregate"
-    POMODORO_CONFIG = "pomodoro_config"
-    POMODORO_ROUND = "pomodoro_round"
-    POMODORO_SESSION = "pomodoro_session"
-    POLICY_DECISION = "policy_decision"
-    POLICY_SETPOINTS = "policy_setpoints"
-    DECISION_RECORD = "decision_record"
-    TIME_BLOCK = "time_block"
-    JOURNAL_ENTRY = "journal_entry"
-    # Strategic
-    DREAM = "dream"
-    STUDY_PROJECT = "study_project"
-    STUDY_TOPIC = "study_topic"
-    STUDY_SESSION = "study_session"
-    STUDY_MATERIAL = "study_material"
-    ROADMAP_ITEM = "roadmap_item"
-    BACKLOG_TASK = "backlog_task"
-    PERIOD_REPORT = "period_report"
-
-
-class RegimeState(StrEnum):
-    """Operational regime of the policy FSM."""
-
-    PUSH = "PUSH"
-    MAINTAIN = "MAINTAIN"
-    REDUCE = "REDUCE"
-    RECOVER = "RECOVER"
-
-
-# ---------------------------------------------------------------------------
-# Timestamps
-# ---------------------------------------------------------------------------
-
-
-def _utc_now() -> datetime:
-    """Return current UTC datetime (naive, for SQLite/JSON compatibility)."""
-    from datetime import UTC
-
-    return datetime.now(UTC).replace(tzinfo=None)
-
-
-class TimestampMixin(BaseModel):
-    """Mixin that adds created_at / updated_at to any entity."""
-
-    model_config = {"extra": "forbid"}
-
-    created_at: datetime = Field(default_factory=_utc_now)
-    updated_at: datetime | None = None
-
-
 # ---------------------------------------------------------------------------
 # Planning Contract Literals (Plan A - Task 1)
 # ---------------------------------------------------------------------------
 
-PaeCyclePhase = Literal["plan", "adjust", "evaluate"]
 PlanTier = Literal["SONHO", "QUARTERLY", "ONDA", "WEEKLY", "DAILY"]
 VectorKey = Literal["passion", "skill", "market", "revenue", "course"]

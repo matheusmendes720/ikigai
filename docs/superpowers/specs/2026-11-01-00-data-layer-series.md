@@ -1,8 +1,8 @@
 # SPEC-INDEX — Data Layer Series (Virada Canônica)
 
 **Date:** 2026-11-01 · **Status:** proposed — awaiting owner approval
-**Origin:** virada canônica de 2026-11-01 (decisão do owner) · [ADR-037](../../code-docs/adr/ADR-037-data-layer-canonical-turn.md)
-**Predecessor:** [Vanilla Pivot Series](2026-10-30-00-series.md) (2026-10-30) — ver §"Re-alvo" abaixo
+**Origin:** virada canônica de 2026-11-01 (decisão do owner) · [ADR-037](../../../code-docs/adr/ADR-037-data-layer-canonical-turn.md)
+**Predecessor:** Vanilla Pivot Series (2026-10-30, não publicada nesta branch — fica no disco do dono e no histórico) — ver §"Re-alvo" abaixo
 
 ---
 

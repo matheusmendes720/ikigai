@@ -30,7 +30,6 @@ from __future__ import annotations
 
 import fnmatch
 import re
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -100,6 +99,117 @@ RETIRED_PATHS = (
     # pattern: the canonical specs are not numbered — specs/harness/ and
     # specs/data-layer/ are.
     "specs/M[0-9]*",
+    # The post-pivot scope cut (2026-11-05). The repository has to read like
+    # a NEW project: a cold agent that clones it must not meet the
+    # architecture of a system that no longer exists. These are that
+    # system's own description — its decision surface, its diagnostics, its
+    # design canvases, its agent skills, its vendored tools, its planners,
+    # its examples, its wiki.
+    "code-docs/brd",
+    "code-docs/prd",
+    "code-docs/diagnostic",
+    "code-docs/design",
+    "code-docs/ikigai",
+    "code-docs/observability",
+    "code-docs/proposals",
+    "code-docs/specs",
+    "code-docs/00-INDEX.md",
+    "code-docs/00-INDEX-specs.md",
+    "code-docs/README.md",
+    "code-docs/glossary.md",
+    "docs/diagnostics",
+    "docs/decisions",
+    "docs/research",
+    "docs/archive",
+    "docs/openwiki-visualizer",
+    "docs/superpowers/plans",
+    "docs/DEPLOY.md",
+    "docs/memory-audit-2026-09.md",
+    "docs/interface-usability-diagnostic-2026-09-08.md",
+    "docs/vanilla-pivot.html",
+    "taskwarrior",
+    "tools",
+    "src/planner",
+    "src/life_tatics",
+    ".agents/skills",
+    ".claude/agents",
+    ".claude/workflows",
+    ".claude/AGENTS.md",
+    ".claude/settings.json",
+    "src/ikigai/souls",
+    "src/ikigai/tools",
+    "src/ikigai/scripts",
+    "src/ikigai/docs",
+    "src/ikigai/contracts",
+    "src/ikigai/tests/reports",
+    "src/ikigai/CHANGELOG.md",
+    "src/ikigai/SPEC.md",
+    "specs/agentic-markdown-system",
+    "specs/period-reports-sync",
+    "specs/vault-bidirectional-sync",
+    ".github/wiki",
+    ".github/ISSUE_TEMPLATE",
+    "diagrams",
+    "examples",
+    "notes",
+    "openwiki",
+    ".codex",
+    "data/test-fixtures",
+    ".github/scripts/test_review.py",
+    ".github/scripts/type_review.py",
+    ".github/scripts/setup_hooks.py",
+    ".github/workflows/openwiki-update.yml",
+    ".pre-commit-config.yaml",
+    "omo.json",
+    ".omo-initdeep-*.json",
+    "CHANGELOG.md",
+    # The planning tree of the pre-ADR-037 model — the task/plan hierarchy,
+    # the PAV metrics, the mesh events, the investigations. Nothing imported
+    # it: the DOM is the model, and the store's SQL mirrors the DOM.
+    "src/contracts/base.py",
+    "src/contracts/entrega.py",
+    "src/contracts/investigation.py",
+    "src/contracts/meta.py",
+    "src/contracts/metrics.py",
+    "src/contracts/objetivo.py",
+    "src/contracts/planning.py",
+    "src/contracts/projeto.py",
+    "src/contracts/sonho.py",
+    "src/contracts/tarefa.py",
+    "src/contracts/task.py",
+    "src/contracts/task_change.py",
+    # The classes: the ADRs of the replaced architecture, the specs of the
+    # retired roadmap, and the third-party skills that shared the harness
+    # with the cadences. Each exception below carves out what stays.
+    "code-docs/adr/*.md",
+    "docs/superpowers/specs/*.md",
+    ".claude/skills/*",
+)
+
+# The exceptions to the retired classes: what the current scope rests on.
+# They live inside trees that are otherwise retired, so the class needs its
+# exceptions named — the same shape the ignore rules use.
+RETIRED_EXCEPTIONS = (
+    # The decisions the contracts rest on: the transport, the scope
+    # discipline, the UEID (twice) and the pivot.
+    "code-docs/adr/README.md",
+    "code-docs/adr/ADR-011-ikigai-mcp-http-sse-transport.md",
+    "code-docs/adr/ADR-013-canonical-scope-discipline.md",
+    "code-docs/adr/ADR-014-ueid-canonical-format.md",
+    "code-docs/adr/ADR-033-ueid-single-source-mandate.md",
+    "code-docs/adr/ADR-037-data-layer-canonical-turn.md",
+    # The pivot's own series, and the record of the cut that preceded it.
+    "docs/superpowers/specs/2026-10-30-05-cut.md",
+    "docs/superpowers/specs/2026-11-01-00-data-layer-series.md",
+    "docs/superpowers/specs/2026-11-01-01-unified-dom.md",
+    "docs/superpowers/specs/2026-11-01-02-cloud-store.md",
+    "docs/superpowers/specs/2026-11-01-03-service-transport-pi.md",
+    # The published projection of the cadences: a drift test holds these four
+    # byte for byte against specs/harness/skills/.
+    ".claude/skills/ikigai-daily",
+    ".claude/skills/ikigai-weekly",
+    ".claude/skills/ikigai-monthly",
+    ".claude/skills/ikigai-quarterly",
 )
 
 # ── Canonical surface (must stay published) ────────────────────────────────
@@ -158,7 +268,15 @@ def _is_retired(path: str, retired: str) -> bool:
     An entry with a wildcard is a CLASS — the specs numbered by the retired
     roadmap are ninety-five directories, and naming each of them would be a
     list that goes stale the moment one is added.
+
+    A class can have exceptions. The ADRs of the replaced architecture are a
+    class, and the five the contracts rest on are carved out by name — the
+    same shape the ignore rules use. An exception is a path or a tree: the
+    path itself, or anything under it.
     """
+    for exception in RETIRED_EXCEPTIONS:
+        if path == exception or path.startswith(exception + "/"):
+            return False
     if "*" in retired or "?" in retired:
         return fnmatch.fnmatch(path, retired)
     return path == retired or path.startswith(retired + "/")
@@ -167,8 +285,8 @@ def _is_retired(path: str, retired: str) -> bool:
 def test_retired_runtime_is_not_published() -> None:
     tracked = _tracked(REPO_ROOT)
     offenders = [p for p in RETIRED_PATHS if any(_is_retired(f, p) for f in tracked)]
-    assert not offenders, (
-        "Retired PC-only runtime is published again (ADR-037): " + ", ".join(offenders)
+    assert not offenders, "Retired PC-only runtime is published again (ADR-037): " + ", ".join(
+        offenders
     )
 
 
@@ -199,8 +317,8 @@ def test_no_tracked_file_imports_the_retired_harness() -> None:
         check=False,
     )
     offenders = [line for line in proc.stdout.split() if line]
-    assert not offenders, (
-        "Published files still import the retired harness: " + ", ".join(offenders)
+    assert not offenders, "Published files still import the retired harness: " + ", ".join(
+        offenders
     )
 
 
@@ -210,9 +328,7 @@ def test_no_tracked_file_imports_the_retired_harness() -> None:
 def test_canonical_surface_is_published() -> None:
     tracked = _tracked(REPO_ROOT)
     missing = [
-        p
-        for p in CANONICAL_PATHS
-        if not any(f == p or f.startswith(p + "/") for f in tracked)
+        p for p in CANONICAL_PATHS if not any(f == p or f.startswith(p + "/") for f in tracked)
     ]
     assert not missing, "Canonical path missing from the published tree: " + ", ".join(missing)
 
@@ -280,8 +396,8 @@ def test_no_published_file_imports_the_unpublished_trees() -> None:
         check=False,
     )
     offenders = [line for line in proc.stdout.split() if line]
-    assert not offenders, (
-        "Published files still import the unpublished runtime: " + ", ".join(offenders)
+    assert not offenders, "Published files still import the unpublished runtime: " + ", ".join(
+        offenders
     )
 
 
@@ -312,16 +428,13 @@ def test_everything_the_image_copies_is_published() -> None:
         path
         for path in copied
         if not any(
-            t == path
-            or t == path.rstrip("/")
-            or t.startswith(path.rstrip("/") + "/")
+            t == path or t == path.rstrip("/") or t.startswith(path.rstrip("/") + "/")
             for t in tracked
         )
     ]
     assert not missing, (
         "the Dockerfile copies paths that are not published — the image would "
-        "fail to build, and the failure would say nothing about the cause: "
-        + ", ".join(missing)
+        "fail to build, and the failure would say nothing about the cause: " + ", ".join(missing)
     )
 
 

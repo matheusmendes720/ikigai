@@ -1,7 +1,7 @@
 # SPEC-03 — Services + Transporte MCP + o Harness pi
 
 **Date:** 2026-11-01 · **Status:** proposed · **Depends on:** 01, 02 · **Blocks:** — (clientes)
-**Origin:** [ADR-037 §3 D6, D7](../../code-docs/adr/ADR-037-data-layer-canonical-turn.md)
+**Origin:** [ADR-037 §3 D6, D7](../../../code-docs/adr/ADR-037-data-layer-canonical-turn.md)
 
 ---
 

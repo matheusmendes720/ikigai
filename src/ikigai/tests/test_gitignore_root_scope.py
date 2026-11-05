@@ -40,9 +40,7 @@ def _ignore_lines() -> list[str]:
 
 def _root_directories() -> list[Path]:
     return [
-        entry
-        for entry in REPO_ROOT.iterdir()
-        if entry.is_dir() and not entry.name.startswith(".")
+        entry for entry in REPO_ROOT.iterdir() if entry.is_dir() and not entry.name.startswith(".")
     ]
 
 
@@ -107,8 +105,16 @@ def test_a_bare_character_class_pattern_has_a_directory_negation() -> None:
 
 
 def test_the_tracked_exceptions_under_data_stay_reachable() -> None:
-    """`data/` carries tracked source. A wholesale exclusion would lose it."""
-    for relative in ("data/investigation_queue/.keep", "data/test-fixtures/"):
+    """`data/` carries tracked source. A wholesale exclusion would lose it.
+
+    The tracked source is ONE marker file. The SQLite fixtures that sat beside
+    it belonged to the store that is Postgres now, and they left with the rest
+    of the pre-ADR-037 corpus (2026-11-05): the retired-path guard keeps them
+    from coming back, and the general guard above keeps whatever IS tracked
+    reachable. This one names the exception, so that the rule that re-includes
+    it stays a named rule and not an accident of ordering.
+    """
+    for relative in ("data/investigation_queue/.keep",):
         assert _deciding_rule(relative) is None, (
             f"{relative} is excluded by a rule, but it is tracked source. A new "
             "file beside it would be silently ignored."
