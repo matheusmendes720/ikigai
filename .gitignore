@@ -404,6 +404,47 @@ vault/.db
 # documents stay on the owner's disk; they do not ship.
 /docs/auto-performance-os/
 
+# The documents that describe the pre-pivot system AS THE RUNNING SYSTEM.
+# ADR-037 §"publicação independente" is the clause: the branch publishes the
+# product, and the material that presents the retired runtime as current stays
+# on the owner's disk. What a document CLAIMS is the test — the decision
+# record (the ADRs, the data-layer series, the dated audits, the cut) stays
+# published, because a decision that cites what it eliminated is how it is
+# evaluated. A document that says what the system IS, without a date marking
+# it as past, is the old system speaking in the present tense.
+#
+# The retired agent loop's own state and scripts, and the Claude Flow
+# commands that drove it:
+/.claude/loop/
+/.claude/commands/
+/.claude/helpers/
+# The dated outputs of the retired system:
+/reports/
+# The canvases of the retired architecture:
+/docs/architecture/
+/docs/design-system/
+/docs/integrations/
+/docs/specs/
+/docs/superpowers/glossaries/
+# The specs numbered by the retired roadmap (M<n>-*). The canonical specs are
+# not numbered: specs/harness/ and specs/data-layer/.
+/specs/M[0-9]*/
+# The documents that state what the system IS, one by one:
+/docs/ARCHITECTURE_INDEX.md
+/docs/CONCEPTUAL_MODEL.md
+/docs/SPEC.md
+/docs/SYSTEMS_TOPOLOGY.md
+/docs/LANGRAPH_DEV.md
+/docs/FORK_WORKFLOW.md
+/docs/PAV_INVENTORY.md
+/docs/M139-blocked.md
+/docs/2026-09-29-langgraph-dev-studio-e2e.md
+/docs/.sdd-progress.md
+/docs/ÍNDICE PROGRESSIVO.md
+# The dated layer reviews (2026-09-12) stay published: they are measurements of
+# the retired system at a date, not the system's description of itself. The
+# same clause that keeps the ADRs keeps them.
+
 # The retired test suite: every top-level module under src/ikigai/tests/
 # tests the retired runtime, except the ones that survive and are named
 # explicitly. One rule for the class, one for each exception.

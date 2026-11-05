@@ -80,6 +80,16 @@ Os algoritmos estão **adiados** (ADR-037 D1): sem kernel PAV, sem FSM de
 histerese, sem scoring na árvore publicada. Vêm por último, e precisam de
 dados reais para valerem algo.
 
+O mesmo vale para os **documentos** que descreviam esse sistema como se fosse
+o actual: o índice de arquitetura, a topologia de sistemas, o modelo
+conceptual, o inventário do kernel, as 95 specs numeradas da roadmap
+retirada, as canvases do design system antigo, o estado e os scripts do loop.
+Um documento que afirma o que o sistema *é* — datado ou não, com banner ou
+sem — apresenta o sistema antigo a um leitor que não tem como saber que já
+não é. O que fica é o registo da decisão: as ADRs, a série da camada de
+dados, as auditorias datadas, os planos datados, e o documento do próprio
+corte. É aí que uma decisão se avalia.
+
 ---
 
 # O registo (datado, preservado)
@@ -89,11 +99,8 @@ dados reais para valerem algo.
 > decisões foram tomadas** — e uma decisão sem o que eliminou não se
 > avalia. Para saber como o sistema funciona hoje, volta ao mapa canónico.
 
-- [`docs/superpowers/`](superpowers/) — specs formais, planos de implementação, glossários
+- [`docs/superpowers/`](superpowers/) — specs formais, planos de implementação, e as revisões por camada datadas de 2026-09-12
 - [`docs/diagnostics/`](diagnostics/) — auditorias e migrações (structure-audit, doc-migration)
-- [`docs/design-system/`](design-system/) — topologia, canvases de arquitetura, patterns, tokens
-- [`docs/2026-09-29-langgraph-dev-studio-e2e.md`](2026-09-29-langgraph-dev-studio-e2e.md) — o harness antigo, em e2e
-- [`docs/PAV_INVENTORY.md`](PAV_INVENTORY.md) — o inventário do kernel adiado
 - [`code-docs/adr/`](</../code-docs/adr/>) — as ADRs, com o raciocínio que eliminou as alternativas
 - [`vault/`](</../vault/>) — a prosa: ciclos de planejamento, decisões, metas
 - [`vanilla-pivot.html`](vanilla-pivot.html) — o relatório que precede a virada (2026-10-30)
@@ -137,5 +144,5 @@ com dois clientes ativos; busca estruturada com p95 < 100ms.
 
 ---
 
-*Docs — raiz da wiki. O índice completo por sub-árvore vive em
-[`docs/design-system/`](design-system/).*
+*Docs — raiz da wiki. As decisões que tomaram o sistema estão em
+[`code-docs/adr/`](../code-docs/adr/).*
