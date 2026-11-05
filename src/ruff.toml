@@ -4,3 +4,13 @@ target-version = "py311"
 [lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "PT", "RUF"]
 ignore = ["E501"]
+
+[lint.isort]
+# `src` is THIS repository's package: the canonical import style is the dotted
+# prefix (`from src.contracts.dom import ...`), and the image puts the
+# repository root on PYTHONPATH so that is the only identity the code has at
+# runtime (deploy/Dockerfile). Without this, Ruff resolves the project root
+# at `src/` and classifies `src.contracts.*` as THIRD-PARTY — so a local
+# import and a library import end up in the same block, and the one place
+# that wrote them apart was reported as an unsorted import block.
+known-first-party = ["src"]

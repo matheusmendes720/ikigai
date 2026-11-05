@@ -1,6 +1,6 @@
 # AGENTS.md — `src/services/`
 
-**Score 8 (5 modules, 100% code, ~950 LOC, 9 public names) — created: distinct domain (the only layer a client reaches).** Domain rules with no transport concerns.
+**Score 8 (6 modules, 100% code, ~990 LOC, 9 public names) — created: distinct domain (the only layer a client reaches).** Domain rules with no transport concerns.
 
 ## OVERVIEW
 `services/` is the only layer clients reach (ADR-037 §6 rule 2). The transport in `src/transport/` translates domain intent into MCP tool calls; **nothing below this line knows that MCP exists.** The services hold the rules: validation, versioning, idempotency, the conflict contract.
@@ -12,6 +12,7 @@
 | `relations.py` | `RelationService` — graph navigation over the artifact edges; bounded and cycle-safe. |
 | `embeddings.py` | `EmbeddingService`, `EmbeddingProvider` (Protocol), `local_embedding`. |
 | `sync.py` | `VaultSync`, `VaultSource`, `SyncReport`, `default_sources` — ingestion of the vault's markdown. |
+| `wiring.py` | `Services`, `build_services()` — **the composition root**. It is HERE, not in the transport, so that `transport → services → data` is a grep and not a convention. |
 | `__init__.py` | package docstring only. |
 
 ## CONVENTIONS

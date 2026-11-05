@@ -9,3 +9,18 @@
 *.bat   text eol=crlf
 *.cmd   text eol=crlf
 *.ps1   text eol=crlf
+
+# Git reads the ignore rules BYTE FOR BYTE, and a CRLF checkout changes what
+# it decides. A pattern that ends in "/" is a DIRECTORY rule, and the "\r"
+# that CRLF leaves at the end of the line is part of the pattern — so the
+# directory rule stops matching. Then the last rule that matches decides, and
+# on a Windows clone that is not the rule that decides on Linux:
+#
+#     LF   : data/test-fixtures/  ->  addable
+#     CRLF : data/test-fixtures/  ->  IGNORED
+#
+# The same ignore file, two verdicts, two machines — and the verdict decides
+# whether a file can be tracked at all. The rules live in the repository, not
+# in a developer's checkout, so they are held in one shape everywhere.
+.gitignore    text eol=lf
+.gitattributes text eol=lf

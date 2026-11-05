@@ -1,148 +1,260 @@
-# PROJECT KNOWLEDGE BASE
+# AGENTS.md
 
-**Generated:** 2026-11-01 — init-deep wave, canonical serverless scope
-**Commit:** b28b3356
-**Branch:** fix/ci-gates-green
+Algorithmic Life OS — a personal, single-player agent system. One Postgres store
+holds the vault as typed, versioned, queryable artifacts; one MCP transport over
+HTTP serves them; one Telegram client projects them.
 
-## OVERVIEW
+**This repository IS the deployment.** There is no separate service repo, no
+"backend" to copy out, and no framework underneath. The agent that operates it is
+external — the harness is `pi`.
 
-Algorithmic Life OS — a personal productivity orchestration system: single-user, append-only at the vault layer, cloud-native store per ADR-037.
+**Canonical scope: ADR-037, renewed 2026-11-02.** The pre-ADR-037 system — the
+LangChain/LangGraph harness, the fork mesh, the operator CLI and TUI, the
+cybernetic engine, the root test suite — is **unpublished, not deleted**. The
+files stay on the owner's disk and in the git history. A drift test fails if any
+of them comes back.
 
-Three layers — **INTERFACE** (CLI consumers: read `data/`, write feedback) → **AGENT** (planner-only per ADR-013: reads `vault/`, applies strategics + planning, writes tasks to `data/`, observes planned-vs-actual) → **DATA** (`vault/` markdown source of truth, `data/` runtime state, `vibe-ops/` cybernetic engine). Pydantic contracts in `src/contracts/` bind the layers.
+Repo: github.com/matheusmendes720/ikigai · Board: github.com/users/matheusmendes720/projects/5
 
-**Canonical scope (ADR-037, 2026-11-01): the repository is serverless / cloud-native.** The PC-only runtime is NOT published: no local chat REPL, no stdio MCP fork servers, no Textual TUI, no LangChain/LangGraph harness, no tracing stack. What a client calls is the **MCP surface** (`src/transport/mcp_server.py`) over the **data layer** (`src/services/` → `src/contracts/`).
+## The product
 
-Repo: github.com/matheusmendes720/ikigai — Board: github.com/users/matheusmendes720/projects/5
+Four pieces, and nothing else. A change that does not serve one of them is
+outside the product.
 
-## STRUCTURE
+| Piece | What it is | Where it lives |
+|---|---|---|
+| **The store** | One Postgres + pgvector. The DOM lives in the `ikig` schema. The only state. | `src/contracts/migrations/` · `src/data/` |
+| **The transport** | **Our own MCP**, six tools, over HTTP. The only writer. | `src/transport/mcp_server.py` (ADR-011) |
+| **The client** | Telegram. A projection of the DOM, never a fork of it. | `src/bot/main.py` |
+| **The agent** | **The `pi` harness — external.** It reads the project's MCP servers from `.pi/mcp.json` and its skills from `.pi/skills/`. Nothing in this repository imports it. | `specs/harness/` · `.pi/` |
 
-```
-{root}/
-├── life/        # `life` meta-package: cli, centrals, handlers, plugins
-├── src/         # data layer: contracts (canonical) + mesh + services + transport + agents + data + planner
-├── sys_ikigai/  # bare-namespace kernel: entities, gateway, vault, security
-├── interfaces/  # cli (Typer) — the only published consumer surface
-├── vibe-ops/    # cybernetic engine: Python package + specs
-├── vault/       # markdown notes (Obsidian-style, append-only)
-├── data/        # runtime state — gitignored; only 8 tracked files (fixtures, .keep)
-├── tests/       # the entire pytest surface
-├── tools/       # offline analysis + backtest/drift pipeline
-├── scripts/     # operator tooling, smoke drivers, codemods
-├── taskwarrior/ # legacy workspace — no longer the task store
-├── strategics/  # strategy notes (append-only)
-├── specs/       # milestone specs (M### dirs) — own AGENTS.md
-├── code-docs/   # adr / brd / design / diagnostic / ikigai / observability / prd / proposals / specs
-├── docs/        # long-form docs — PT-BR prose in the docset template
-├── .claude/     # agent harness: prompts, skills, slash commands, loop scripts
-└── .agents/     # Codex-flavoured skill twin of .claude/skills/
-```
+**The skills are the workflow.** `specs/harness/skills/<id>/SKILL.md` is the
+published projection of the routines — `daily-note`, `weekly-review`,
+`monthly-review`, `quarterly-plan`, `store-read`, `store-write`, `vault-sync`.
+`pi` loads them from `.pi/skills/`, and the copy is regenerated from the
+projection. The projection is the source; the copy is runtime state. The
+skills adapt the workflow **into the Telegram client**: a routine is a skill
+the harness runs, not a subcommand a desktop CLI mounts.
 
-## WHERE TO LOOK
+**No LangGraph, no model SDK, no orchestrator in the published tree.** The
+harness is `pi` and it is not in this repository (ADR-037 D7). A published file
+that imports one is a drift, not a feature.
+
+## The four rules
+
+| # | Rule | Where it lives |
+|---|---|---|
+| 1 | **One writer per store.** Clients speak MCP; only `src/services/` writes. A stale revision is a **409**, never a silent overwrite. | ADR-037 D5 · `src/services/artifacts.py` |
+| 2 | **One DOM, N projections.** The model is shared; every client decides how to render it. | ADR-037 D2, D8 |
+| 3 | **The agent is external.** The harness is `pi`; this repository builds no framework, no graph, no orchestrator. | ADR-037 D7 |
+| 4 | **The store wins.** On a structured field, Postgres is canonical and the markdown is the prose it came from. | ADR-037 D4 |
+
+## Setup commands
+
+- Install the package + the canonical suite: `cd src/ikigai && poetry install`
+- Install the contracts package: `cd src/contracts && uv sync`
+- Start the service: `cd deploy && docker compose up -d --build`
+- Apply the migrations: `cd deploy && docker compose exec api python -m src.contracts.migrations.apply up`
+- Healthcheck: `cd deploy && docker compose exec api python -m src.transport.healthcheck`
+- `deploy/compose.yml` runs three roles off one image: `db`, `api`, `bot`
+- Wire the harness to a running api: `mkdir -p .pi/skills && cp -r specs/harness/skills/* .pi/skills/`
+- Prove the wiring answers: `pi mcp list` — the api is connected, with its six tools
+
+## Testing instructions
+
+- Unit + integration: `cd src/ikigai && poetry run pytest -m "not e2e"`
+  (pytest · pytest-asyncio `asyncio_mode = "auto"` · hypothesis · testcontainers —
+  the store tests reach a **real Postgres**, so they need Docker)
+- E2E tests are marked `e2e` and are excluded from the default run
+- The drift net lives in `src/ikigai/tests/` and is **append-only**: never delete or
+  weaken a guard to make a suite green — add a new file instead
+- Every new behavior gets a test; all tests pass before a PR
+- A guard is only worth what its failure proves: re-introduce the violation and
+  watch it fail before you trust a green run
+
+## Lint & typecheck
+
+- Lint: `cd src/ikigai && poetry run ruff check src/ && poetry run ruff format --check src/`
+- Typecheck: `cd src/ikigai && poetry run mypy -p src.ikigai.src` — **never invoke mypy
+  with a path**; it creates a second module identity for the same files and aborts
+  with "Source file found twice under different module names"
+- The other canonical packages are ruff-only in CI: `src/contracts`, `src/data`,
+  `src/services`, `src/transport`
+- The PR review (`.github/scripts/code_review.py`) runs each package's tools
+  inside that package's own environment. The root bucket — the Python that
+  belongs to no package (the CI tooling, the Telegram client) — runs in the
+  ONE environment the branch publishes: the Ikigai package
+- Pre-commit hooks: `.pre-commit-config.yaml`
+
+## Project layout
+
+- `src/contracts/` — the DOM (Pydantic v2, frozen) + the versioned SQL and its runner
+- `src/data/` — the store client: pooled Postgres, retries, transactions
+- `src/services/` — the domain rules; the ONLY writer of the store
+- `src/transport/` — our MCP transport (FastMCP) over the services + the healthcheck
+- `src/bot/` — the Telegram client; a projection of the DOM
+- `src/ikigai/` — the Poetry package: the strategics loader + the canonical suite
+- `src/life_tatics/` — time-block / screentime CLI (Typer)
+- `src/planner/` — markdown-only planning notes; no code
+- `vault/` — the markdown prose: INPUT to the store, append-only
+- `strategics/` — the PT-BR strategic prose (published; the fork beside it is not)
+- `specs/harness/` — the harness contract: the router, the prompts, the skill specs
+- `specs/harness/skills/` — the published projection of the runtime skills
+- `deploy/` — the container: Dockerfile, compose.yml, the env contract
+- `code-docs/` — adr / brd / design / diagnostic / prd
+- `docs/` — the wiki, including the diagnosis
+- `data/` — test fixtures (gitignored otherwise)
+- `.claude/` — the agent harness: prompts, skills, slash commands
+- `.pi/` — the project's harness configuration: the MCP server and the skill copy
+- `.github/` — CI + the PR-review scripts
+
+## Code style
+
+- Python 3.11 (`.python-version`); `from __future__ import annotations` at the top of
+  every module
+- **The layering is a pyramid: `transport → services → data`.** Only `src/data/` knows
+  the driver; only `src/services/` writes; the transport translates intent and never
+  carries SQL. The drift net enforces it.
+- Pydantic v2 strict — `frozen=True`, `extra="forbid"` on every model, `Literal`
+  discriminators, `Decimal` for KPIs
+- Ruff: `line-length = 100`, `target-version = "py311"`. The real configs are
+  `src/ruff.toml`, `src/contracts/pyproject.toml`, `src/ikigai/pyproject.toml` —
+  per-package, never inherited
+- mypy `strict = true` in `src/ikigai/pyproject.toml`; the root `mypy.ini` governs
+  only a bare `mypy` run from the repository root
+- `src/` has **no `__init__.py`** — `from src.contracts.X` needs the repo root on
+  `sys.path`; `from contracts.X` needs `src/` on it. Both spellings are live
+- **One identity, one source** — `UEID` is defined once, in
+  `src/contracts/common.py`. Never re-define it
+
+## Where to look
 
 | Task | Location | Notes |
 |------|----------|-------|
-| User-facing CLI | `life/cli/` | `python -m life.cli`; see `life/cli/AGENTS.md` |
-| Canonical models | `src/contracts/` | Pydantic v2, the single source of truth (`common`, `task`, `task_change`, `planning`, `metrics` + the DOM set) |
-| Cross-fork task view | `src/mesh/` | cloud-safe adapters (`cli`, `taskdog`); write path via `data/review_queue/` |
-| MCP tool surface | `src/transport/mcp_server.py` | six tools over the data layer; transport via `IKIGAI_MCP_TRANSPORT` (ADR-011) |
-| Domain services | `src/services/` | validation, versioning, idempotency — the only layer a client reaches |
-| Vault I/O | `sys_ikigai/vault/` | `vault_write` = sole vault writer (ADR-012) |
-| Local JSON-RPC gateway | `sys_ikigai/gateway/` | stdlib JSON-RPC; local/legacy path, NOT the client surface |
-| Cybernetic kernel | `vibe-ops/src/pipeline/contracts.py`, `vibe-ops/src/pipeline/policy_engine.py` | Target→Sensor→Adjuster orchestration; `PolicyEngine` = the Adjuster (states PUSH/MAINTAIN/REDUCE/RECOVER with hysteresis); `PolicyState` enum defined in `vibe-ops/src/schemas/pydantic_v2.py` (`vibe-ops/src/cybernetics/engine.py` is a knowledge tree, not the kernel) |
-| Drift net | `src/ikigai/tests/` | `test_canonical_scope.py`, `test_drift_invariants.py`, `test_drift_detector.py`, `test_drift_state.py` |
-| Milestone specs | `specs/` | 95 `M###` dirs + 5 feature dirs; see `specs/AGENTS.md` |
-| Agent harness | `.claude/` | prompts, 39 skills, loop scripts; see `.claude/AGENTS.md` |
-| CI + PR-review bots | `.github/` | 5 workflow jobs, orchestrator scripts |
-| Specs / ADRs | `code-docs/adr/`, `docs/superpowers/` | ADR-012/013/014/029/033/036 |
+| The unified model | `src/contracts/dom.py`, `dom_kinds.py` | one DOM, N projections (ADR-037 D2) |
+| Store constants | `src/contracts/store.py` | provider, schema, dimension, the DSN env var |
+| Identity | `src/contracts/common.py` | `UEID`, ADR-014 4-part — ONE pattern, ONE file |
+| The store client | `src/data/client.py`, `repository.py` | **source**, not runtime state |
+| The domain rules | `src/services/` | validation, versioning, idempotency, the conflict contract |
+| The MCP tool surface | `src/transport/mcp_server.py` | exactly six tools; transport via `IKIGAI_MCP_TRANSPORT` (ADR-011) |
+| The Telegram client | `src/bot/main.py` | speaks MCP; never opens a database; fails closed |
+| The healthcheck | `src/transport/healthcheck.py` | measures the DATA PLANE, not the surface (C-2) |
+| The container | `deploy/Dockerfile`, `compose.yml` | one image, three roles |
+| The harness contract | `specs/harness/router.md` | how an agent finds its prompt, its skill, its cadence |
+| The skill projection | `specs/harness/skills/<id>/SKILL.md` | the source; `pi` loads the copy in `.pi/skills/` |
+| The drift net | `src/ikigai/tests/` | the published surface, the layering, the versioning |
 
-## CODE MAP
+## Code map
 
-| Symbol | Type | Location | Refs | Role |
-|--------|------|----------|------|------|
-| `UEID` | Pydantic model | `src/contracts/common.py` | high | Canonical 4-part join key (ADR-014): `^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$` (`<CLUSTER>:<ENTITY>:<HASH>:<SEQ>`; ADR-023 — the 4-part form wins over the 5-part legacy form) |
-| `Task` / `TaskChange` | Pydantic model | `src/contracts/task.py`, `task_change.py` | high | Shared task + propagation payloads |
-| `ForkAdapter` | Protocol | `src/mesh/adapters/__init__.py` | 2 impls | Fork boundary (Cli, Taskdog) |
-| `vault_write` | function | `sys_ikigai/vault/` | high | Only sanctioned vault write path |
-| `UnifiedMCPGateway` | class | `sys_ikigai/gateway/` | medium | Local stdlib JSON-RPC gateway; the retired fork servers are gone |
-| `LifeConfig` | class | `life/cli/` | medium | Config defaults + plugin discovery |
-| `BaseCentral` | class | `life/centrals/` | medium | task / knowledge / research dispatch |
+| Symbol | Location | Role |
+|--------|----------|------|
+| `Artifact`, `WriteRequest`, `WriteOutcome` | `src/contracts/dom.py` | the spine and the write envelope |
+| `KIND_MODELS` | `src/contracts/dom_kinds.py` | the ten kinds, one typed model each |
+| `UEID` | `src/contracts/common.py` | the canonical 4-part join key (ADR-014) |
+| `DataClient` | `src/data/client.py` | the pooled connection, the retries, the transactions |
+| `ArtifactService` | `src/services/artifacts.py` | the only writer: versioning, idempotency, conflict |
+| `VaultSync` | `src/services/sync.py` | reads the vault prose, upserts it, writes nothing back |
+| `build_services` | `src/services/wiring.py` | the composition root — the service layer, not the transport |
+| `mcp` | `src/transport/mcp_server.py` | the FastMCP server the harness connects to |
+| `Bot` | `src/bot/main.py` | the Telegram loop, owner-only |
 
-## CONVENTIONS
+## Anti-patterns (this project)
 
-- Python 3.11+, `from __future__ import annotations` at the top of every module.
-- Canonical contracts: Pydantic v2 `frozen=True`, `extra="forbid"`, imported from `src/contracts/` only — never re-define `UEID`, `Task`, `TaskChange`.
-- `src/` has **no `__init__.py`**: `from src.contracts.X` needs the repo root on `sys.path`; `from contracts.X` needs `src/` on it (`pytest.ini` sets `pythonpath = src src/ikigai/src`). Both spellings are live in production code.
-- `vibe-ops/src` is a **separate import root** — flat sibling imports (`from pipeline.x import Y`); `vibe-ops/src/contracts/` is *not* the canonical `src/contracts/`.
-- **One `agents` package.** `src/agents/` (planner: `memory/`, `reflection/`) is the only one in the tree; the IKIGAI-internal harness directory that used to merge into it is retired (ADR-037).
-- CLI: Typer sub-apps, `--json` everywhere feasible. Module docstrings carry a task/ADR tag (`M72`, `B3.4`, `ADR-029`) — keep it when editing.
-- Tooling split (do not mix):
+- **Never re-introduce the retired runtime** (ADR-037): no `sys_ikigai/`, no
+  `src/mesh/`, no `interfaces/`, no `life/`, no `vibe-ops/`, no `src/agents/`, no
+  `src/tuiboard/`, no `src/solverforge_calendar/`, no
+  `src/ikigai/src/{agents,chat,mcp_server,plugins}`
+- **Never let a transport tool contain SQL or policy.** The transport translates
+  intent; the services decide
+- **Never import the store client from outside `src/services/`.** The composition
+  root lives in `src/services/wiring.py`; the transport asks the service layer for
+  its wiring
+- **Never write to `vault/` from code.** The vault is prose; the store is canonical
+- **Never publish a file that imports a package the branch does not publish.**
+  `life/cli/cli.py` imported `interfaces.cli.notify_cli` at module scope, and a
+  fresh clone could not import the package at all
+- **Never give the repository root a Python project.** The root has no
+  `pyproject.toml` and no `uv.lock`, on purpose: the retired root project is
+  what `uv run --frozen --extra dev` still pointed at, and it resolved on the
+  owner's disk and in no clone. The one published environment is
+  `src/ikigai/`
+- **Append-only** — never delete or prune `vault/`, `strategics/`
+- **Drift tests are append-only**: never delete or weaken one; add a new file under
+  `src/ikigai/tests/` instead of editing an existing guard
+- **No secret, token or connection string in a tracked file.** Every secret comes
+  from the environment; `.env` is gitignored
+- **No algorithmic layer** while the architecture is still moving (ADR-037 D1).
+  No PAV kernel, no hysteresis FSM, no scoring in the published tree
+- `strategics/planning-with-files/` is a vendored third-party fork with its own
+  `.git/` — untracked here, never commit its contents
+- The stray shell-redirect leftovers in the repo root are **gitignored by shape**
+  (a root name that is a bare identifier, or one that carries a character no file
+  may legitimately contain). Leave them alone
 
-| Subpath | Build system | Notes |
-|---|---|---|
-| root, `src/mesh/`, `src/life_tatics/`, `src/agents/` | setuptools / plain Python | `src/` on `PYTHONPATH`; `src/mesh/` has no `pyproject.toml` |
-| `src/contracts/` | **Hatchling** | own `pyproject.toml`, `uv.lock`, `.venv` |
-| `src/ikigai/` | **Poetry** | own `poetry.lock` + `.venv`; drift net lives in `src/ikigai/tests/` |
-| `interfaces/cli/` | **uv** | own `pyproject.toml`, `pytest.ini`, local ruff/mypy |
-| `vibe-ops/` | **uv** | own `uv.lock`; the Rust TUI is not published |
+## PR & commit conventions
 
-- Ruff: the root `pyproject.toml` has **no** `[tool.ruff]` table. Real configs: `src/mesh/ruff.toml`, `src/contracts/pyproject.toml`, `src/ikigai/pyproject.toml` (line-length 100, py311).
+- Branch from `main`; never push to `main` directly
+- Conventional commits: `feat:` / `fix:` / `docs:` / `refactor:` / `chore:` / `test:`
+- PR template: `.github/PULL_REQUEST_TEMPLATE.md`; CI green (the five-package matrix)
+  before merge
+- Open the PR with `gh pr create` once CI is green
 
-## ANTI-PATTERNS (THIS PROJECT)
+## Security
 
-- **Deep Agent is the only writer to `vault/`** (ADR-012). Interfaces read vault only; user feedback goes to `data/feedback.jsonl`; fork writes go to `data/review_queue/`.
-- **Append-only** — never delete or prune `vault/`, `vibe-ops/`, `strategics/`. vibe-ops additionally requires a stop → action plan → user-approval gate before restructuring *any* file (markdown included).
-- **IKIGAI is planner-only** (ADR-013): no PAV math / policy / scoring tools in the agent layer.
-- **Zero LLM in the pipeline** — daily/weekly pipelines are pure arithmetic. **Storage is a single cloud store plus a local cache** (ADR-037 §4, D3 = Supabase) — the old "SQLite + filesystem only, zero cloud deps" rule was reversed on 2026-11-01.
-- **Drift tests are append-only**: never delete or weaken one; add a new file under `src/ikigai/tests/` instead of editing an existing guard.
-- **Refactor protocol:** touching `vault/`, `vibe-ops/` or `strategics/` → stop → propose an Action Plan → wait for an explicit "go" → verify every pre-existing string survives.
-- **Do not write new algorithm code** while IKIGAI is paused for algorithm decisions (M01/N01/A02/A06, vector weights). The pause covers algorithm decisions only — agent/harness plumbing and Drift net work are allowed.
-- **`strategics/planning-with-files/` is a vendored third-party fork** with its own `.git/`, untracked here (`.gitignore` line 480 `/strategics/planning-with-files/`, M41 unlink) — never commit its contents.
-- **75 zero-byte files sit in the repo root** (`0`, `14`, `agent('Execute`, `console.log(i`, `dict[str`, …) — stray shell-redirect leftovers. None is tracked: they are gitignored, so leave them alone.
+- Never commit secrets — `.env` is gitignored; `.env.example` names every variable
+  the published code reads
+- `IKIGAI_STORE_DSN` above all — without it the service refuses to start
+- **The client fails closed.** `IKIGAI_BOT_ALLOWED_CHAT_IDS` is required; an empty
+  allowlist stops the bot at startup instead of turning it into a public write
+  channel (C-4)
+- **The healthcheck measures the data plane** (C-2): the store answers a query AND
+  a client can reach the transport. A socket that returns bytes is not health —
+  and neither is a socket that answers *itself* while every other container is
+  refused: the check dials the address a client uses
+- **The api binds the loopback.** The public surface is the Telegram client; the
+  harness reaches the transport through an SSH tunnel, and the store is not
+  reachable from outside at all
 
-## UNIQUE STYLES
+## Notes
 
-- Planning Note channel (human → agent): template `vault/ikigai/templates/sonho-log.md` (one section, `## Mudança`), manual trigger after any planning delta, 1–3 bullets, written to `vault/ikigai/closing-2026/<quarter>/04-relatórios-diários/YYYY-MM-DD.md`.
-- Repo vocabulary is PT-BR in `vault/`, `taskwarrior/`, `vibe-ops/` **and `docs/`**; code, docs and commits are EN. The `docs/` docset is rigid — 5 sections (`§1 Intuição em linguagem simples` … `§5 Fontes`) plus a blockquote header.
-- `vibe-ops/src/models/` and `vibe-ops/src/schemas/` are deliberately permissive (`extra="allow"`, mutable) — the inverse of the repo-wide strict contracts. Intentional, not a bug.
-- Temporal model: `src/life_tatics/time-lenghts_reviews.md` is canonical (`rho = 11/15`, `WAVE = 15 D = 11 W`, `CYCLE = 45 D = 33 W`, `PHASE = 180 D = 132 W`); `src/planner/time-lenghts_reviews.md` is the earlier variant. When a temporal number is disputed, the `life_tatics` copy wins.
-
-## COMMANDS
-
-```bash
-pip install -e ".[dev,mesh]"                             # root editable install
-pytest tests/ -v                                         # the entire pytest surface
-cd src/ikigai && poetry install && poetry run pytest     # ikigai suite (drift net)
-cd src/contracts && uv sync && uv run pytest             # contracts suite
-cd vibe-ops && uv sync && uv run pytest                  # vibe-ops suite
-bash scripts/smoke/phase3_v1.sh                          # Phase 3 e2e (isolated temp dir)
-python -m life.cli --help                                # CLI (or `life` after install)
-mypy .                                                   # mypy.ini at root (mypy_path = src .. ../..)
-ruff check .                                             # per-project only: src/mesh, src/contracts, src/ikigai
-pre-commit run --all-files
-```
-
-## NOTES
-
-- **Import identity:** `from src.contracts.X` and `from sys_ikigai.X` are *two distinct module objects* — monkeypatching must patch BOTH. `tests/conftest.py` puts the repo root on `sys.path` and pre-registers legacy `ikigai.*` aliases in `sys.modules`.
-- **Drift net** — CI fails if a load-bearing invariant is weakened without a version bump:
+- **The drift net** — CI fails if a load-bearing invariant is weakened:
 
 | File | Purpose |
 |---|---|
-| `src/ikigai/tests/test_canonical_scope.py` | the retired runtime stays unpublished (ADR-037), canonical surface stays published, contracts are the single source of truth, mesh exposes only the cloud-safe adapters, UEID canonical regex, planner-only + LLM-free guards |
-| `src/ikigai/tests/test_drift_invariants.py` | kill-switch key constants present and mirrored, no kill-switch constants in agent code, `vault_write` wrapper exposes the canonical API, drift invariant E (`vault_write` actor bypasses validator), legacy invariants a–d |
-| `src/ikigai/tests/test_drift_detector.py`, `test_drift_state.py` | detector + state persistence |
-| `src/ikigai/tests/contracts/test_dom_kinds_drift.py` | the 10 artifact kinds and `KIND_TABLES` stay in sync across the contract and SQL ends |
+| `src/ikigai/tests/test_canonical_scope.py` | the retired runtime stays unpublished; the canonical surface AND the vault's prose stay published; no published file imports an unpublished tree; no LLM SDK; everything the image copies is published |
+| `src/ikigai/tests/test_published_surface_integrity.py` | a published file imports only published packages; a junk-named root directory holds nothing |
+| `src/ikigai/tests/test_drift_invariants.py` | the transport exposes exactly six tools; the layering holds; the UEID pattern has one source; every write carries a revision and an idempotency key |
+| `src/ikigai/tests/test_gitignore_root_scope.py` | the repository root stays reachable, and no tracked file is ever ignored |
+| `src/ikigai/tests/test_lint_target_is_not_vacuous.py` | every CI lint target resolves to the Python the branch publishes — a gate that checks no file is green forever |
+| `src/ikigai/tests/test_code_review_gate_integrity.py` | the review runs in an environment the branch publishes (the root is not a package), and a failed check always says why |
+| `src/ikigai/tests/contracts/test_dom_kinds_drift.py` | the ten kinds and `KIND_TABLES` stay in sync across the contract and the SQL ends |
+| `src/ikigai/tests/store/test_store_schema.py` | the SQL and the contracts agree; every migration has a reverse script; the full-text configuration precedes the index that needs it |
+| `src/ikigai/tests/transport/test_bind_address.py` | the transport binds the address a CLIENT uses, and the healthcheck dials that one — not the bind host (C-2) |
+| `src/ikigai/tests/services/test_artifacts_service.py` | the write envelope, the conflict contract, the idempotency gate, and the vault sync — against an in-memory double |
 
-- **Kill switch:** `sys_ikigai/security/kill_switch.py` + CLI `life kill-switch status|pause|resume|history` (registered in `interfaces/cli/kill_switch.py`). The tuning constants live in `sys_ikigai/security/algorithm_constants.json` (ADR-019 R1) — never in Python.
-- **UEID drift is real** — the shipped `src/contracts/common.py::_UEID_PATTERN` is a *wider* triple-pattern (4-part short | 4-part long-UUID | 5-part legacy), so it does **not** match the canonical literal above; a byte-identical copy sits in `src/mesh/adapters/taskdog.py`, `{2,5}` in `src/ikigai/contracts/proposal.py`; `sys_ikigai/types.py` keeps a legacy 5-part form and `vibe-ops/src/storage/ueid.py` builds a 3-part id. Never re-define `UEID` — extend the canonical one.
-- **Mesh v1 scope:** `create`-only is enforced by the cloud-safe adapters (`CliAdapter`, `TaskdogAdapter`); the retired calendar fork adapter is gone with the PC-only scope.
-- **Two `life` console scripts:** root `pyproject.toml` → `life.cli:_main_console`; `interfaces/cli/pyproject.toml` → `interfaces.cli.read_tasks:app`. Root `td` → `src.mesh.taskdog_cli:main` (works only because the repo root is on `sys.path`).
-- **Windows quirks:** `sys.stdin.readline()` hangs on Windows pipes — use `sys.stdin.buffer.readline()` (a stdio MCP server must read binary); pytest-asyncio `PermissionError [WinError 5]` on stale temp dirs → `tests/conftest.py` redirects `tempfile.tempdir` to `data/pytest-tmp/`; the shell suites need a real Git-bash, not the WSL launcher (`tests/conftest.py::bash_exe`).
-- **Known live defects:** `life task today` raises `NameError` (`TASK_BIN` is undefined in `life/centrals/task.py`); knowledge/research centrals always fail (`leitura`/`notes`/`mindmaps`/`research` missing from `DEFAULT_SUBMODULES`). Fixed in the ADR-037 wave: the `{"ok": false, ...}` stdout leak (the PC-only taskdog sub-app was removed) and the `.github/scripts` breakage (all ten modules compile; the four `code_review` modules are tracked).
-- **`.gitignore` swallows 1–4 letter root directories** (`/[a-zA-Z]`, … , `/[a-zA-Z][a-zA-Z][a-zA-Z][a-zA-Z]`, lines 509–513). The negations `!/src/`, `!/docs/`, `!/bin/` and `!/life/` (522–536) let git descend into those four again; `data/` and `logs/` stay swallowed — `git add -f` new files there.
-- **Docs that drifted:** `src/ikigai/README.md` (`poetry run ikigai` does not exist), `src/ikigai/MCP_GATEWAY.md` (describes the retired PC-local gateway; the live surface is `src/transport/mcp_server.py`), `src/ikigai/SPEC.md` D10 ("tri-key" vs 5 components), `code-docs/README.md` + `code-docs/00-INDEX.md` (index a `code-docs/ard/` tree and a `life-ops/` root that no longer exist).
-- **Version pins that bite:** `typer >= 0.21` vendors Click as `typer._click` (so `typer.Exit` is not `click.exceptions.Exit`); `mcp` is pinned `<2` (2.x dropped `mcp.server.fastmcp`).
-- **Taskwarrior is no longer the task store** (taskdog-server on `127.0.0.1:8000` replaced it), yet `taskwarrior/scripts` is still the `task_scripts` path used by `life task daily-review|weekly-review|metrics`.
-- **There is no `Makefile`** (removed with the PC-only scope, ADR-037): run `pytest tests/ -v` from the repo root. `scripts/ruvocal-start.bat` and `scripts/td_shim_build/__main__.py` hardcode the author's absolute repo path. The 12 `.sh`/`.bat` suites under `tests/` aren't pytest-collected (`set -euo pipefail`, sandboxed in `mktemp -d`).
-- **Paperclip is spec-only** now: `specs/M169-paperclip/` (+ M174–M180) and `code-docs/adr/ADR-036` survive; the implementation path was removed with the PC-only scope.
-- Commit conventions: branch from `main`, never push to `main`; conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`, `test:`). No secrets in the repo — `.env` is gitignored, `.env.example` is the template.
+- **The environment is the contract.** Nothing comes from a file; every secret comes
+  from the environment.
+- **UEID drift is real** — the shipped `_UEID_PATTERN` is a wider triple-pattern
+  (4-part short | 4-part long-UUID | 5-part legacy), so it does **not** match the
+  canonical literal `^[a-z]{2,5}:[a-z0-9-]+:[a-f0-9-]+:[a-f0-9-]+$`. The 5-part
+  branch exists only to READ rows written before ADR-014; it is never written. Never
+  re-define `UEID` — extend the canonical one.
+- **Windows quirks:** `sys.stdin.readline()` hangs on Windows pipes — use
+  `sys.stdin.buffer.readline()`; pytest-asyncio `PermissionError [WinError 5]` on
+  stale temp dirs → `src/ikigai/tests/conftest.py` redirects `tempfile.tempdir` to
+  `data/pytest-tmp/`.
+- **Version pins that bite:** `mcp` is pinned `<2` (2.x dropped
+  `mcp.server.fastmcp`); `ruff` is pinned `^0.17.3` in `src/ikigai/pyproject.toml`
+  so the CI gate cannot drift.
+- **Tooling split (do not mix):**
+
+| Subpath | Build system | Notes |
+|---|---|---|
+| `src/ikigai/` | **Poetry** | own `poetry.lock`; the drift net lives in `src/ikigai/tests/` |
+| `src/contracts/` | **Hatchling** | own `pyproject.toml`, `uv.lock` |
+| `src/data/`, `src/services/`, `src/transport/`, `src/bot/` | none | imported as `src.<pkg>.*` with the repo root on `sys.path`; linted, not installed |
+
+- **The deployment is the VPS.** The box runs the compose; the store is the owner's
+  own Postgres there. The operator scripts under `scripts/` are **not published** —
+  they live on the owner's disk and on the box. A fresh clone of the repository
+  carries the service, not the way to operate it.

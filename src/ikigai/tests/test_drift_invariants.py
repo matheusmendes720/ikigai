@@ -1,27 +1,16 @@
-"""Drift invariant (e) — W4.7 retroactive ship per ADR-029 R12.
+"""Drift invariants over the canonical (ADR-037) published surface.
 
-Per ADR-029 R12 + the W5.1.1 brief §"test_drift_invariants.py":
+2026-11-02 — rewritten as part of the ADR-037 cut.
 
-> **Invariant (e)** — ``vault_write(actor='agent')`` without
-> ``transition_validator`` traversal raises ``PermissionError`` / killswitch.
+The previous version of this file guarded the *pre-ADR-037* runtime: the
+kill-switch constants in ``sys_ikigai/security/algorithm_constants.json``, the
+``vault_write`` wrapper as the single enforcement point, and the transition
+validator traversal. Those subjects left the published tree together with the
+rest of the pre-ADR-037 system, so guarding them here guarded nothing.
 
-This test FAILS if the wrapper (``vault_write_wrapper``) is bypassed.
-Detection mechanism: the wrapper is the SINGLE enforcement point
-(ADR-029 R2); this test verifies the wrapper is installed correctly
-by:
-
-1. Asserting ``vault_write_wrapper`` exposes the canonical public API
-   (legal callers, exceptions, factory function).
-2. Asserting ``vault_write(actor='agent')`` through a SONHO entity
-   without a legal_caller raises ``KillSwitchBypassDetected``
-   (the wrapper enforces the transition validator traversal).
-3. Asserting the algorithm_constants.json has the 5 KILL_SWITCH_* +
-   REVIEW_QUEUE_BATCH_SIZE keys (no Python DEFAULT_* constants —
-   ADR-019 R2).
-4. Asserting ``load_constants._defensive_default()`` mirrors the 5
-   new keys (per ADR-019 R6).
-5. Smoke-checking that the legacy invariants (a-d) still pass
-   (regression baseline).
+Drift tests are append-only in spirit: the invariant is not dropped, it is
+**translated** to the surface that replaced it. Each invariant below is the
+canonical form of a retired one, and the mapping is stated in its docstring.
 
 Run::
 
@@ -30,299 +19,269 @@ Run::
 
 from __future__ import annotations
 
-import json
-import re
-import sys
+import ast
+import subprocess
 from pathlib import Path
 
 import pytest
 
-# ---------------------------------------------------------------------------
-# Path resolution (mirror test_canonical_scope.py)
-# ---------------------------------------------------------------------------
 THIS_FILE = Path(__file__).resolve()
-IKIGAI_TESTS = THIS_FILE.parent
-IKIGAI_PKG = IKIGAI_TESTS.parent
-IKIGAI_SRC = IKIGAI_PKG / "src"
+REPO_ROOT = THIS_FILE.parent.parent.parent.parent
 
+# The published transport surface. ADR-037 D6: the old custom MCP gateway
+# (22 tools, 9 of them pointing at tools that did not exist) is gone; the
+# published transport is fastmcp over HTTP with this exact tool set.
+CANONICAL_TOOLS: frozenset[str] = frozenset(
+    {
+        "search_artifacts",
+        "get_artifact",
+        "upsert_artifact",
+        "delete_artifact",
+        "list_relations",
+        "embed_text",
+    }
+)
 
-def _resolve_repo_root() -> Path:
-    """Locate the repo root from this test file.
-
-    Canonical scope (ADR-037): the anchor is the directory that holds
-    ``src/contracts`` and ``src/ikigai/tests``. The retired agent harness
-    (``src/ikigai/src/agents``) is no longer published, so it can no longer
-    be used as the anchor.
-    """
-    for parent in THIS_FILE.parents:
-        if (parent / "src" / "contracts").is_dir() and (
-            parent / "src" / "ikigai" / "tests"
-        ).is_dir():
-            return parent
-    raise RuntimeError(
-        "Could not locate repo root from "
-        f"{THIS_FILE} — expected <repo>/src/ikigai/tests/test_drift_invariants.py"
-    )
-
-
-REPO_ROOT = _resolve_repo_root()
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _iter_python_files(root: Path) -> list[Path]:
-    """Recursively collect .py files under ``root``, skipping __pycache__."""
-    if not root.exists():
-        return []
-    return [p for p in root.rglob("*.py") if "__pycache__" not in p.parts]
-
-
-def _relative_to_repo(file: Path) -> str:
-    """Return path relative to repo root, using forward slashes."""
-    return str(file.relative_to(REPO_ROOT)).replace("\\", "/")
-
-
-# ---------------------------------------------------------------------------
-# Invariant (e) — verification
-# ---------------------------------------------------------------------------
-
-
-# Invariant (e) — 5 new KILL_SWITCH_*/REVIEW_QUEUE_BATCH_SIZE keys (per ADR-019 R2 + ADR-029).
-REQUIRED_KILL_SWITCH_KEYS: tuple[str, ...] = (
-    "KILL_SWITCH_RATE_LIMIT_PER_HOUR",
-    "KILL_SWITCH_RATE_LIMIT_WINDOW_S",
-    "KILL_SWITCH_HALT_TIMEOUT_S",
-    "KILL_SWITCH_NOTIFY_OPERATOR",
-    "REVIEW_QUEUE_BATCH_SIZE",
+# The published source surface, for the layering invariants.
+PUBLISHED_ROOTS: tuple[str, ...] = (
+    "src/contracts",
+    "src/data",
+    "src/services",
+    "src/transport",
 )
 
 
-def test_kill_switch_keys_present_in_json() -> None:
-    """algorithm_constants.json MUST define all 5 KILL_SWITCH_* + BATCH_SIZE keys.
-
-    Per ADR-019 R1 + ADR-029 §W5.1.1 §"Algorithm Constants JSON Keys".
-    Drift detector invariant (l extension) — these 5 keys are the
-    canonical SOT.
-    """
-    json_path = REPO_ROOT / "sys_ikigai" / "security" / "algorithm_constants.json"
-    assert json_path.exists(), (
-        f"canonical algorithm_constants.json missing at {json_path} "
-        "(ADR-019 R1 + ADR-029 §W5.1.1)"
+def _published_files() -> list[str]:
+    """Tracked files under the published source roots."""
+    proc = subprocess.run(
+        ["git", "ls-files", "--", *PUBLISHED_ROOTS],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
     )
-    data = json.loads(json_path.read_text(encoding="utf-8"))
-    missing = [k for k in REQUIRED_KILL_SWITCH_KEYS if k not in data]
-    assert not missing, (
-        f"algorithm_constants.json missing required KILL_SWITCH_* / "
-        f"REVIEW_QUEUE_BATCH_SIZE keys (ADR-029 §W5.1.1): {missing}. "
-        f"Found keys: {sorted(k for k in data if not k.startswith('_'))}"
+    return [line for line in proc.stdout.split() if line]
+
+
+def _git_grep(pattern: str, *paths: str) -> list[str]:
+    proc = subprocess.run(
+        ["git", "grep", "-l", "-E", pattern, "--", *paths],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
     )
+    return [line for line in proc.stdout.split() if line]
 
 
-def test_kill_switch_keys_mirrored_in_canonical_consumer() -> None:
-    """The canonical consumer MUST read its tuning from the canonical JSON.
-
-    The retired agent loader (``load_constants._defensive_default``) left the
-    canonical scope together with the harness (ADR-037). The surviving
-    consumer is ``sys_ikigai/security/vault_write_wrapper.py``: it MUST read
-    the tuning keys from ``algorithm_constants.json`` (ADR-019 R1) and MUST NOT
-    hardcode them.
-    """
-    consumer_path = REPO_ROOT / "sys_ikigai" / "security" / "vault_write_wrapper.py"
-    assert consumer_path.exists(), f"canonical consumer missing: {consumer_path}"
-    consumer_source = consumer_path.read_text(encoding="utf-8")
-    consumed = [
-        "KILL_SWITCH_RATE_LIMIT_PER_HOUR",
-        "KILL_SWITCH_RATE_LIMIT_WINDOW_S",
-        "KILL_SWITCH_NOTIFY_OPERATOR",
-    ]
-    missing = [k for k in consumed if f'"{k}"' not in consumer_source]
-    assert not missing, (
-        f"vault_write_wrapper MUST read the tuning keys from "
-        f"algorithm_constants.json (ADR-019 R1 + ADR-029 §W5.1.1): {missing}"
-    )
-    assert "algorithm_constants.json" in consumer_source, (
-        "vault_write_wrapper MUST load the canonical algorithm_constants.json "
-        f"({REPO_ROOT / 'sys_ikigai' / 'security' / 'algorithm_constants.json'})"
-    )
+def _decorator_name(node: ast.expr) -> str:
+    """The trailing name of a decorator, whether it is Name, Attribute or Call."""
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    if isinstance(node, ast.Call):
+        return _decorator_name(node.func)
+    return ""
 
 
-def test_no_kill_switch_python_constants_in_agent_code() -> None:
-    """No ``DEFAULT_KILL_SWITCH_*`` / ``DEFAULT_REVIEW_QUEUE_BATCH_SIZE`` constants in Python.
+# ---------------------------------------------------------------------------
+# 1. The transport surface is exactly the canonical tool set
+# ---------------------------------------------------------------------------
+# Translation of: "the MCP surface is a fixed, contract-bound set" (the old
+# gateway's 22 tools were the thing that rotted — 9 of them pointed at tools
+# that did not exist).
+def test_transport_exposes_exactly_the_canonical_tools() -> None:
+    source = (REPO_ROOT / "src" / "transport" / "mcp_server.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
 
-    Per ADR-019 R2 + ADR-029 §W5.1.1 — all kill switch tuning MUST live in
-    JSON only. Canonical scope (ADR-037): the guard runs over the canonical
-    agent layer (``src/agents/``) and the canonical security package
-    (``sys_ikigai/security/``), which owns the constants JSON. Extends
-    invariant (l) per W5.1.1 §"Drift Invariants".
-    """
-    canonical_roots = [
-        REPO_ROOT / "src" / "agents",
-        REPO_ROOT / "sys_ikigai" / "security",
-    ]
-    roots = [root for root in canonical_roots if root.exists()]
-    assert roots, (
-        "no canonical agent/security root found — the kill switch constants "
-        f"rule cannot be verified (looked for {canonical_roots})"
-    )
-
-    forbidden_pattern = re.compile(r"^(DEFAULT_KILL_SWITCH_|DEFAULT_REVIEW_QUEUE_BATCH_SIZE).*")
-
-    import ast
-
-    violations: list[str] = []
-    for py_file in [f for root in roots for f in _iter_python_files(root)]:
-        try:
-            tree = ast.parse(py_file.read_text(encoding="utf-8"))
-        except SyntaxError:
+    tools: set[str] = set()
+    for node in tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
-        for node in tree.body:
-            if not isinstance(node, ast.Assign):
-                continue
-            for target in node.targets:
-                name = target.id if isinstance(target, ast.Name) else None
-                if name is None:
-                    continue
-                if forbidden_pattern.match(name):
-                    violations.append(
-                        f"{_relative_to_repo(py_file)}:{node.lineno}: "
-                        f"forbidden kill switch Python constant: {name}"
-                    )
-    assert not violations, (
-        "ADR-019 / ADR-029 §W5.1.1 violation — kill switch tuning MUST live in "
-        "sys_ikigai/security/algorithm_constants.json, NOT in Python code. "
-        "Violations:\n" + "\n".join(sorted(violations))
+        if any("tool" in _decorator_name(dec) for dec in node.decorator_list):
+            tools.add(node.name)
+
+    assert tools == set(CANONICAL_TOOLS), (
+        "the published transport must expose exactly the canonical tool set. "
+        f"extra={sorted(tools - set(CANONICAL_TOOLS))} "
+        f"missing={sorted(set(CANONICAL_TOOLS) - tools)}"
     )
 
 
 # ---------------------------------------------------------------------------
-# Invariant (e) — actual enforcement check
+# 2. The layering holds: transport -> services -> data
 # ---------------------------------------------------------------------------
+# Translation of: "vault_write is the SOLE writer" (ADR-012). The canonical
+# form is that no surface talks to the store directly — the transport speaks
+# to the services, and the services speak to the data client.
+def test_transport_does_not_talk_to_the_data_client_directly() -> None:
+    source = (REPO_ROOT / "src" / "transport" / "mcp_server.py").read_text(encoding="utf-8")
+    assert "src.data" not in source, (
+        "the transport must go through src/services/, not straight to the data "
+        "client — one writer per store (ADR-037 D5)"
+    )
+    assert "src.services" in source, (
+        "the transport must call the services layer (ADR-037 D6)"
+    )
 
 
-def test_vault_write_wrapper_imports_and_exposes_canonical_api() -> None:
-    """W4.7 invariant (e) — wrapper is reachable + exposes the canonical API.
+def test_only_the_service_layer_touches_the_data_client() -> None:
+    """Only the data client and the service layer may reach the store.
 
-    Per ADR-029 R2 — ``vault_write_wrapper`` is the SINGLE enforcement
-    point. If this test fails, either the module was renamed / moved,
-    or the import-path was perturbed (which would break the wrapper's
-    load-bearing guarantee).
+    Translation of: "vault_write is the sole writer" (ADR-012) and ADR-037 D5
+    ("um writer por store"). The published store has exactly one writer — the
+    service layer — and the transport may not bypass it.
     """
-    import importlib
-
-    wrapper_module = importlib.import_module("ikigai.security.vault_write_wrapper")
-    kill_switch_module = importlib.import_module("ikigai.security.kill_switch")
-
-    # Canonical surface exposed by vault_write_wrapper.
-    assert hasattr(wrapper_module, "make_wrapped_vault_write"), (
-        "vault_write_wrapper missing make_wrapped_vault_write factory"
+    offenders = [
+        path
+        for path in _published_files()
+        if path.endswith(".py")
+        and not path.startswith(("src/data/", "src/services/"))
+        and "src.data" in (REPO_ROOT / path).read_text(encoding="utf-8")
+    ]
+    assert not offenders, (
+        "only src/data/ and src/services/ may reach the store — one writer per "
+        f"store (ADR-037 D5). Offenders: {offenders}"
     )
-    assert hasattr(wrapper_module, "LEGAL_CALLERS"), (
-        "vault_write_wrapper missing LEGAL_CALLERS whitelist (R6 + R7)"
-    )
-    # R6/R7 legal callers MUST be present in the whitelist.
-    assert "memory_write_atomic" in wrapper_module.LEGAL_CALLERS
-    assert "dispatch_sub_agents" in wrapper_module.LEGAL_CALLERS
-    assert "tag_and_persist" in wrapper_module.LEGAL_CALLERS
-    assert "skill_orchestrator" in wrapper_module.LEGAL_CALLERS
-
-    # Canonical surface exposed by kill_switch.
-    assert hasattr(kill_switch_module, "KillSwitchActivationStatus")
-    assert hasattr(kill_switch_module, "KillSwitchEvent")
-    assert hasattr(kill_switch_module, "check_kill_switch")
-    assert hasattr(kill_switch_module, "fire_kill_switch")
-    assert hasattr(kill_switch_module, "recover_kill_switch")
 
 
-def test_drift_invariant_e_vault_write_actor_agent_bypasses_validator(
-    tmp_path: Path,
-) -> None:
-    """W4.7 invariant (e) — direct vault_write(actor='agent') on SONHO raises.
+# ---------------------------------------------------------------------------
+# 3. The UEID pattern has a single source
+# ---------------------------------------------------------------------------
+# Translation of: the UEID 4-vs-5-part drift (`ueid-5part-canonical-decision`
+# / `ueid-4part-canonical-decision`). Three regexes used to live in the repo;
+# now the published surface has exactly one.
+def test_ueid_pattern_has_a_single_source() -> None:
+    """The pattern must be DEFINED in exactly one published module.
 
-    Per ADR-029 R12 + W5.1.1 brief: ``vault_write(actor='agent')`` without
-    ``transition_validator`` traversal raises. The wrapper enforces this
-    via R4 + R8.
+    The grep looks for the definition, not for the name: the SQL CHECK in
+    `0001_init.sql` copies the pattern verbatim — by design, and guarded by
+    `test_uid_check_matches_contract_pattern` — and its commentary names the
+    Python constant it was copied from. A grep that counted names would
+    punish the documentation of the invariant.
     """
-    # Build a minimal sandbox.
-    vault_root = tmp_path / "vault"
-    vault_root.mkdir()
-    data_root = tmp_path / "data"
-    review_dir = data_root / "review_queue"
-    review_dir.mkdir(parents=True, exist_ok=True)
-
-    from sys_ikigai.security.vault_write_wrapper import (
-        KillSwitchBypassDetected,
-        _RateLimitTracker,
-        make_wrapped_vault_write,
+    offenders = _git_grep(r"^_UEID_PATTERN\s*=", *PUBLISHED_ROOTS)
+    assert offenders == ["src/contracts/common.py"], (
+        "the UEID pattern must be defined in exactly one published module "
+        f"(src/contracts/common.py). Found: {offenders}"
     )
 
-    tracker = _RateLimitTracker(100, 60.0)
-    wrapped = make_wrapped_vault_write(
-        vault_root_provider=lambda: vault_root,
-        data_root_provider=lambda: data_root,
-        review_queue_dir_provider=lambda: review_dir,
-        rate_limit_tracker=tracker,
+
+# ---------------------------------------------------------------------------
+# 4. Every write is versioned and idempotent
+# ---------------------------------------------------------------------------
+# Translation of: "vault_write is append-only and audited". The canonical
+# form is ADR-037 D5 — `revision` + `idempotency_key`, conflict = 409, never
+# last-write-wins.
+def test_every_write_carries_a_revision_and_an_idempotency_key() -> None:
+    from src.contracts.dom import WriteRequest
+
+    fields = WriteRequest.model_fields
+    for required in ("artifact", "idempotency_key", "client_id"):
+        assert required in fields, f"WriteRequest is missing `{required}`"
+        assert fields[required].is_required(), (
+            f"WriteRequest.{required} must be required — a write without it "
+            "cannot be versioned or de-duplicated"
+        )
+    assert "expected_revision" in fields, (
+        "WriteRequest must carry `expected_revision` — a stale revision is a "
+        "409, never a silent overwrite (ADR-037 D5)"
     )
 
-    # Stub SONHO entity (matches the test_kill_switch.py stub).
-    class _StubSONHO:
-        tier = "SONHO"
-        id = "sonho:drift-test:00000000-0000-0000-0000-000000000000:0000000000000000"
-        cycle_phase = "plan"
 
-    # The invariant: actor=agent + SONHO + no legal_caller => KillSwitchBypassDetected.
-    with pytest.raises(KillSwitchBypassDetected):
-        wrapped(
-            actor="agent",
-            vault_path="sonho/drift-test.md",
-            body="x",
-            entity=_StubSONHO(),
-            frontmatter_fields={},
+# ---------------------------------------------------------------------------
+# 5. The cut is a PUBLICATION cut: nothing retired ships, nothing retired dies
+# ---------------------------------------------------------------------------
+def test_the_retired_runtime_is_neither_published_nor_deleted() -> None:
+    """The pre-ADR-037 system leaves the branch but stays on the owner's disk.
+
+    ADR-037 §"publicação independente": the PC-only surfaces stay out of the
+    remote repository. They are gitignored, not deleted — the owner still runs
+    them locally, and the git history keeps them.
+    """
+    retired = ("sys_ikigai", "src/mesh", "interfaces", "vibe-ops")
+    tracked = set(subprocess.run(
+        ["git", "ls-files"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.split())
+    published = [
+        path for path in tracked if path.split("/")[0] in retired or path.startswith("src/mesh/")
+    ]
+    assert not published, (
+        "the retired runtime is published again: " + ", ".join(sorted(published)[:10])
+    )
+
+    # The corpus lives on the OWNER's disk, and the owner's disk is not the
+    # CI runner's disk: a fresh clone has none of these trees, by design —
+    # that is what "unpublished, not deleted" means for anybody else.
+    #
+    # What must never happen is a HALF-deleted corpus: three trees present
+    # and one gone is what a bad `rm` leaves behind, and the branch cannot
+    # be re-cloned to recover it. So the check is on the PARTIAL state, and
+    # it keeps its teeth exactly where it matters — on the owner's machine.
+    present = [tree for tree in retired if (REPO_ROOT / tree).exists()]
+    if present and len(present) != len(retired):
+        missing = [tree for tree in retired if tree not in present]
+        raise AssertionError(
+            "the retired runtime must stay on the owner's disk (gitignored, "
+            f"not deleted). Missing: {missing}"
         )
 
 
-# ---------------------------------------------------------------------------
-# Regression — legacy invariants (a-d) must still pass
-# ---------------------------------------------------------------------------
+def test_the_legacy_suite_is_excluded_from_collection() -> None:
+    """The retired suite is excluded from collection, not deleted.
 
-
-def test_legacy_drift_invariants_a_d_still_pass() -> None:
-    """Regression: invariants (a-d) from test_canonical_scope.py still pass.
-
-    Per ADR-029 §"Drift Invariants" — the new W5.1.1 invariants (k, l
-    extension + e) MUST coexist with the W3.2 invariant (l) and the
-    W3.5-W3.6 invariant (k). This test sanity-checks that the canonical
-    scope detector remains at its baseline (38/38 PASS as of W4.6 ship).
+    `conftest.py` carries the `collect_ignore` list. If it regresses, the
+    local suite starts collecting modules that import code that is no longer
+    published — and the failure looks like an import error, not like a scope
+    decision.
     """
-    canonical_scope = IKIGAI_TESTS / "test_canonical_scope.py"
-    if not canonical_scope.exists():
-        pytest.skip("test_canonical_scope.py not present")
-    # We do NOT exec pytest here (re-running the full suite is a CI
-    # concern). Instead, we verify the file exists + has the
-    # ``test_no_algorithm_constants_in_agent_code`` invariant asserted
-    # (the canonical invariant (l) per ADR-019 R7).
-    source = canonical_scope.read_text(encoding="utf-8")
-    assert "test_no_algorithm_constants_in_agent_code" in source, (
-        "test_canonical_scope.py: canonical scope invariant (l) regressed"
+    source = (THIS_FILE.parent / "conftest.py").read_text(encoding="utf-8")
+    assert "collect_ignore" in source, (
+        "conftest.py must keep excluding the retired test modules from collection"
+    )
+    assert "LEGACY_TEST_MODULES" in source, (
+        "conftest.py must declare the retired modules explicitly — an implicit "
+        "exclusion is one that rots"
     )
 
 
 # ---------------------------------------------------------------------------
-# sys.modules bookkeeping — proves the wrapper is importable via canonical
-# import path (used by test_kill_switch.py for drift invariant (e) hook)
+# 6. The harness's copy of the skills is the published projection
 # ---------------------------------------------------------------------------
+# The projection in `specs/harness/skills/` is the source; the copy under
+# `.pi/skills/` is what the harness loads. A copy that drifted is an agent
+# running a routine the repository no longer describes — and the drift is
+# invisible, because both files look right on their own.
+#
+# The check is local: the copy is runtime state and does not ship in the
+# branch, so a checkout without it has nothing to compare.
+def test_the_installed_skills_match_the_projection() -> None:
+    projection = REPO_ROOT / "specs" / "harness" / "skills"
+    installed = REPO_ROOT / ".pi" / "skills"
+    if not installed.exists():
+        pytest.skip("the harness's skills are not installed in this checkout")
 
+    def _skills(root: Path) -> dict[str, str]:
+        return {
+            path.parent.name: path.read_text(encoding="utf-8").replace("\r\n", "\n")
+            for path in sorted(root.glob("*/SKILL.md"))
+        }
 
-def test_wrapper_modules_loaded_in_sys_modules() -> None:
-    """Sanity: wrapper + kill switch modules are importable via canonical paths."""
-    # Either importing on test execution (preferred) or already-loaded.
-    if "ikigai.security.vault_write_wrapper" not in sys.modules:
-        # Trigger import via canonical path.
-        import sys_ikigai.security.vault_write_wrapper
-    if "ikigai.security.kill_switch" not in sys.modules:
-        import sys_ikigai.security.kill_switch  # noqa: F401
+    expected = _skills(projection)
+    actual = _skills(installed)
 
-    assert "ikigai.security.vault_write_wrapper" in sys.modules
-    assert "ikigai.security.kill_switch" in sys.modules
+    assert set(actual) == set(expected), (
+        "the harness's copy of the skills is not the projection: "
+        f"only-installed={sorted(set(actual) - set(expected))} "
+        f"only-projected={sorted(set(expected) - set(actual))}"
+    )
+    drifted = sorted(name for name in expected if actual[name] != expected[name])
+    assert not drifted, (
+        "the harness's copy of these skills drifted from the projection: "
+        + ", ".join(drifted)
+    )

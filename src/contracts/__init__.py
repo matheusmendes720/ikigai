@@ -10,13 +10,20 @@ Design rules:
 - No business logic — pure data containers with invariants
 - Enums live here too (shared across layers)
 
+Two families live here, and they share a vocabulary on purpose:
+
+- the **unified DOM** (`dom.py`, `dom_kinds.py`) — the model ADR-037 D2 puts
+  at the centre. The kinds carry `plan_tier` and `ikigai_vectors`, so the
+  two families are not separable;
+- the **plan hierarchy** (`sonho.py`, `tarefa.py`, `planning.py`, …) — the
+  contracts the vault prose is written against.
+
 Layers:
     - vault/      → markdown source of truth (no Python)
     - src/contracts/ → canonical Pydantic contracts (THIS PACKAGE)
-    - src/operational/ → consumer: full domain models (imports from contracts/)
-    - src/ikigai/  → consumer: deep agent reads/writes vault, uses contracts
-    - data/        → runtime: SQLite, chroma, JSON (consumed via contracts)
-    - interfaces/  → consumer: reads data/, writes user feedback
+    - src/data/   → consumer: the store client (imports from contracts/)
+    - src/services/ → consumer: the domain rules (imports from contracts/)
+    - src/transport/ → consumer: the MCP surface (imports from contracts/)
 """
 
 from __future__ import annotations

@@ -19,13 +19,16 @@ data.
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Literal
+from typing import Annotated, Literal
+
+from pydantic import Field
 
 from .common import PlanTier, Priority, VectorKey
 from .dom import Artifact, ArtifactKind
 
 __all__ = [
     "KIND_MODELS",
+    "ArtifactPayload",
     "DecisionArtifact",
     "FaseArtifact",
     "KPIArtifact",
@@ -145,4 +148,25 @@ KIND_MODELS: dict[ArtifactKind, type[Artifact]] = {
 }
 """Which model carries which kind. The sync and the clients use this to build the
 right type instead of the bare spine.
+"""
+
+ArtifactPayload = Annotated[
+    SonhoArtifact
+    | PlanoArtifact
+    | OndaArtifact
+    | FaseArtifact
+    | RevisaoArtifact
+    | NotaArtifact
+    | KPIArtifact
+    | OKRArtifact
+    | DecisionArtifact
+    | TarefaArtifact,
+    Field(discriminator="kind"),
+]
+"""Every kind, discriminated by `kind`.
+
+This is what the tool surface takes — NOT the bare `Artifact`. The spine
+forbids extra fields, so a KPI's `metric` and `target` only survive the wire
+if the parameter is the typed model; and the repository writes the extension
+tables by `isinstance`, so a bare spine drops the typed fields in silence.
 """

@@ -1,9 +1,0 @@
-TASK: Write the ROOT AGENTS.md of C:/Users/mathe/code_space/life-oss/life from the subtree digests only.
-Steps, in order:
-1. Read ONLY these files: the digests C:/Users/mathe/code_space/life-oss/life/.omo/init-deep/digests/src.md, vibe-ops.md, tests.md, interfaces-sys-ikigai.md, tooling-meta.md and the existing root AGENTS.md at C:/Users/mathe/code_space/life-oss/life/AGENTS.md. Never read the chunk reports.
-2. The existing root AGENTS.md already exists and is good - rewrite it per the init-deep root template below, keeping every still-true fact it already carries (invariants, import-path rules, Windows quirks, drift-net table, refactor protocol) and dropping anything stale. The root AGENTS.md currently violates the 50-150 line gate: bring it inside 50-150 lines.
-3. Use the root template from the init-deep skill content loaded with this task: `# PROJECT KNOWLEDGE BASE` with Generated / Commit / Branch lines, then `## OVERVIEW`, `## STRUCTURE`, `## WHERE TO LOOK`, `## CODE MAP`, `## CONVENTIONS`, `## ANTI-PATTERNS (THIS PROJECT)`, `## UNIQUE STYLES`, `## COMMANDS`, `## NOTES`. Keep only deviations from standard practice; no generic advice.
-DELIVERABLE: exactly one file C:/Users/mathe/code_space/life-oss/life/AGENTS.md, 50-150 lines.
-SCOPE: read only the five digests plus the existing root AGENTS.md; write only the root AGENTS.md.
-VERIFY: the file exists, is 50-150 lines, contains every section header listed above.
-STOP WHEN: the root AGENTS.md is written and verified.

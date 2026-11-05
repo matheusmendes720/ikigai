@@ -77,3 +77,31 @@ def test_kinds_with_own_fields_have_a_table() -> None:
             assert table is not None, f"{kind} has fields of its own but no extension table"
         else:
             assert table is None, f"{kind} has no fields of its own but declares table {table}"
+
+
+def test_a_typed_artifact_survives_the_write_envelope() -> None:
+    """The envelope must not flatten the typed model back to the spine.
+
+    `WriteRequest.artifact` is typed as the spine, and the spine forbids extra
+    fields. If the envelope rebuilt the artifact as an `Artifact`, a KPI's
+    `metric` and `target` would be gone before the repository ever saw them —
+    and the repository writes the extension tables by `isinstance`, so the
+    loss would be silent.
+    """
+    from src.contracts.dom import ArtifactKind, WriteRequest, make_uid
+    from src.contracts.dom_kinds import KPIArtifact
+
+    kpi = KPIArtifact(
+        uid=make_uid(ArtifactKind.KPI, "sono", "aaaaaaaa", "0123456789abcdef"),
+        title="Sono",
+        metric="horas de sono",
+        period="2026-11",
+        created_at="2026-11-04T00:00:00+00:00",
+        updated_at="2026-11-04T00:00:00+00:00",
+    )
+    req = WriteRequest(artifact=kpi, idempotency_key="k", client_id="owner")
+
+    assert isinstance(req.artifact, KPIArtifact), (
+        f"the envelope turned the typed artifact into {type(req.artifact).__name__}"
+    )
+    assert req.artifact.metric == "horas de sono"

@@ -1,6 +1,0 @@
-pydantic
-sqlalchemy
-rich
-typer
-pyyaml
-chromadb

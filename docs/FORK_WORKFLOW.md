@@ -1,3 +1,5 @@
+> **[SUPERSEDED 2026-11-02 — ADR-037] The fork mesh and the operator interface this document describes are not published any more. The canonical surface is the data layer — `src/contracts/` → `src/services/` → `src/transport/` — served by the Telegram client. See [ADR-037](../code-docs/adr/ADR-037-data-layer-canonical-turn.md).**
+
 # Fork Workflow — Kohei-Wada/taskdog integration
 
 UX 2026-09-10: configured `upstream` remote pointing to the ORIGINAL

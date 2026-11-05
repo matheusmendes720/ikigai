@@ -29,14 +29,13 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any, Literal
 
 from src.contracts.common import UEID
 from src.contracts.dom import ArtifactKind, Relation, RelationType, WriteRequest, make_uid
 from src.contracts.dom_kinds import KIND_MODELS
-
 from src.data.repository import ArtifactRepository
 
 __all__ = ["SyncReport", "VaultSource", "VaultSync", "default_sources"]
@@ -131,15 +130,23 @@ def _front_matter(text: str) -> dict[str, Any]:
         return {}
     try:
         loaded = yaml.safe_load(match.group(1))
-    except Exception:  # noqa: BLE001 — malformed frontmatter is not fatal to the sync
+    except Exception:  # malformed frontmatter is not fatal to the sync
         return {}
     return loaded if isinstance(loaded, dict) else {}
 
 
 def _timestamp(value: Any) -> datetime | None:
-    """Coerce a frontmatter timestamp into a datetime."""
+    """Coerce a frontmatter timestamp into a datetime.
+
+    PyYAML parses an unquoted `date: 2026-09-07` into a `datetime.date`, not
+    into a string — so a coercion that only knows about strings drops the
+    value without a word. `datetime` is a subclass of `date`, so it has to be
+    tested first.
+    """
     if isinstance(value, datetime):
         return value
+    if isinstance(value, date):
+        return datetime(value.year, value.month, value.day)
     if not isinstance(value, str) or not value:
         return None
     try:
@@ -251,7 +258,6 @@ class VaultSync:
 
         uid = self._uid_for(meta, kind, path, relative)
         title = self._title_for(meta, content, path)
-        heading = _HEADING_RE.search(content)
 
         report.scanned += 1
         existing = await self._repo.get(uid)
@@ -277,15 +283,18 @@ class VaultSync:
         if isinstance(parent, str) and parent:
             fields["parent_uid"] = parent
         created = _timestamp(meta.get("created_at"))
+        if created is None and kind is ArtifactKind.NOTA:
+            # A daily note carries the day it is about, and that day IS its
+            # created_at — the DOM's spine has no second field for it. It used
+            # to be written as `note_date`, a field the model forbids: a note
+            # whose date was quoted was rejected by the model and dropped by
+            # the sync without a word.
+            created = _timestamp(meta.get("date"))
         if created is not None and existing is None:
             fields["created_at"] = created
         updated = _timestamp(meta.get("updated_at"))
         if updated is not None:
             fields["updated_at"] = updated
-        if kind is ArtifactKind.NOTA:
-            note_date = meta.get("date")
-            if isinstance(note_date, str) and note_date:
-                fields["note_date"] = note_date
         if kind is ArtifactKind.SONHO:
             vectors = meta.get("ikigai_vectors")
             if isinstance(vectors, list) and vectors:
@@ -293,7 +302,7 @@ class VaultSync:
 
         try:
             artifact = KIND_MODELS[kind].model_validate(fields)
-        except Exception as exc:  # noqa: BLE001 — one bad file must not stop the run
+        except Exception as exc:  # one bad file must not stop the run
             report.skipped.append(f"{relative}: {exc}")
             return
 
@@ -306,7 +315,7 @@ class VaultSync:
 
         try:
             outcome = await self._repo.upsert(request)
-        except Exception as exc:  # noqa: BLE001 — one bad file must not stop the run
+        except Exception as exc:  # one bad file must not stop the run
             report.skipped.append(f"{relative}: {exc}")
             return
         if outcome.outcome == "created":
@@ -337,11 +346,11 @@ class VaultSync:
                     dst_uid=other,
                     rel=RelationType.REFERENCES,
                 )
-            except Exception:  # noqa: BLE001 — a malformed reference is not fatal
+            except Exception:  # a malformed reference is not fatal
                 continue
             try:
                 await self._repo.upsert_relation(relation)
-            except Exception:  # noqa: BLE001 — the artifact is already stored
+            except Exception:  # the artifact is already stored
                 continue
             report.relations += 1
 

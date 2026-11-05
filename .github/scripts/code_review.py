@@ -176,15 +176,37 @@ def format_review_report(report: ReviewReport) -> str:
     return "\n".join(lines)
 
 
+def _one_line(value: str, limit: int = 900) -> str:
+    """An annotation is ONE line: a newline would end it, a comma would
+    split its properties."""
+    flat = " ".join(str(value).split())
+    return flat[:limit]
+
+
 def format_github_annotations(report: ReviewReport) -> str:
-    """GitHub Actions annotations for CI."""
+    """GitHub Actions annotations for CI.
+
+    A FAILED check ALWAYS produces an annotation. The failure that has no
+    file to point at — the tool could not run, its output could not be
+    parsed, the environment was missing — is exactly the one nobody can
+    debug: the gate exits 1 and the log shows nothing at all. That is how
+    this job stayed red for days with an empty log, and it is a red gate
+    that lies about its own cause.
+    """
     lines = []
     for r in report.results:
+        if r.status == CheckStatus.FAIL:
+            title = _one_line(r.name).replace(",", ";")
+            detail = _one_line(r.details[0]) if r.details else ""
+            message = _one_line(r.summary)
+            if detail:
+                message = f"{message} — {detail}"
+            lines.append(f"::error title={title}::{message}")
         for ann in r.annotations:
             sev = "error" if r.status == CheckStatus.FAIL else "warning"
             lines.append(
                 f"::{sev} file={ann['path']},line={ann['line']},"
-                f"title={ann['title']}::{ann['message']}"
+                f"title={ann['title']}::{_one_line(ann['message'])}"
             )
     return "\n".join(lines)
 

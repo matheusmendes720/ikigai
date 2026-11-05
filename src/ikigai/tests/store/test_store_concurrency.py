@@ -46,8 +46,18 @@ def _apply_migrations(dsn: str) -> None:
 def store_dsn() -> str:
     from testcontainers.postgres import PostgresContainer
 
+    from src.data.client import with_connect_timeout
+
     with PostgresContainer("pgvector/pgvector:pg16") as postgres:
         dsn = postgres.get_connection_url().replace("postgresql+psycopg2://", "postgresql://")
+        # The container publishes on IPv4, and 'localhost' resolves to IPv6
+        # FIRST — an address nothing listens on, which the driver waits out
+        # for the whole OS connect timeout (measured here: 130 seconds)
+        # before it tries the next one. The address is named, and the attempt
+        # is bounded, so the fixture does not spend two minutes on an address
+        # that cannot answer.
+        dsn = dsn.replace("localhost", "127.0.0.1")
+        dsn = with_connect_timeout(dsn)
         _apply_migrations(dsn)
         yield dsn
 
@@ -105,11 +115,18 @@ async def test_two_clients_writing_the_same_artifact(store_dsn: str) -> None:
         successes = [r for r in results if not isinstance(r, BaseException)]
         conflicts = [r for r in results if isinstance(r, ConflictError)]
 
+        # Printed before the assertions, so the evidence survives a failure:
+        # this is the layer that closes the gap L0, L1 and L2 cannot see.
+        print(
+            f"two clients, the same uid, the same revision: "
+            f"{len(successes)} won, {len(conflicts)} were told they lost"
+        )
         assert len(successes) == 1, f"exactly one writer must win, got {results}"
         assert len(conflicts) == 1, f"exactly one writer must be told it lost, got {results}"
 
         stored = await repo.get(uid)
         assert stored is not None
+        print(f"the stored artifact: {stored.title!r} at revision {stored.revision}")
         assert stored.revision == 2
         assert stored.title in {"do laptop", "do celular"}
     finally:

@@ -1,19 +1,25 @@
 """Repository topology: which package owns a file, and which lines the diff touched.
 
-The monorepo is a set of independent packages. Each has its own environment,
+The repository is a set of independent packages. Each has its own environment,
 its own mypy configuration and its own Ruff configuration. A file therefore
 belongs to exactly one bucket, and the review has to run inside that bucket's
 own environment — running the packages together in one mypy invocation is not
-possible (`vibe-ops` is not a valid Python package name, and the Ikigai
-package would be analysed under a second, competing module identity).
+possible (the Ikigai package would be analysed under a second, competing
+module identity).
+
+2026-11-02 (ADR-037 cut): the `vibe-ops`, `interfaces-cli` and `src-mesh`
+buckets were removed with the trees they review. The buckets below are the
+canonical surface: the DOM, the store client, the domain rules, the MCP
+transport, and the package that holds their tests.
 """
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 
-from code_review_model import ROOT, PackageSpec, run
+from code_review_model import ROOT, PackageSpec, run, tool
 
 # Mirrors the `quality-gates` matrix in .github/workflows/ci.yml.
 PACKAGES: tuple[PackageSpec, ...] = (
@@ -25,23 +31,10 @@ PACKAGES: tuple[PackageSpec, ...] = (
         ruff_target="src/",
         pytest=True,
     ),
-    PackageSpec(
-        name="vibe-ops",
-        path="vibe-ops",
-        manager="uv",
-        mypy_target=("src",),
-        ruff_target="src/",
-        pytest=True,
-    ),
-    PackageSpec(
-        name="interfaces-cli",
-        path="interfaces/cli",
-        manager="uv",
-        mypy_target=(".",),
-        ruff_target=".",
-        env=(("MYPYPATH", "../.."), ("PYTHONPATH", "../..")),
-        pytest=True,
-    ),
+    # The canonical data layer (ADR-037): the DOM, the Postgres client, the
+    # domain rules and the MCP transport. None of them has a pyproject.toml,
+    # so they are linted only — their tests live in `src/ikigai/tests/` and
+    # run under the `ikigai` entry.
     PackageSpec(
         name="src-contracts",
         path="src/contracts",
@@ -49,21 +42,33 @@ PACKAGES: tuple[PackageSpec, ...] = (
         ruff_target=".",
     ),
     PackageSpec(
-        name="src-mesh",
-        path="src/mesh",
+        name="src-data",
+        path="src/data",
+        manager="ruff-only",
+        ruff_target=".",
+    ),
+    PackageSpec(
+        name="src-services",
+        path="src/services",
+        manager="ruff-only",
+        ruff_target=".",
+    ),
+    PackageSpec(
+        name="src-transport",
+        path="src/transport",
         manager="ruff-only",
         ruff_target=".",
     ),
 )
 
 # The repository root is not a package: it has no lockfile-driven CI entry.
-# Its Python files (scripts/, plugins/, .claude/, tests/, src/agents/) are
-# reviewed as one bucket with the root environment and the root mypy config.
+# Its Python files (.github/scripts/, deploy/) are reviewed as one bucket with
+# the root environment and the root mypy config.
 ROOT_BUCKET = "root"
 
-# The root has no environment of its own that can even collect its tests
-# (langgraph is missing). The Ikigai Poetry environment can, with the
-# repository root exposed on PYTHONPATH.
+# The root has no environment of its own that can even collect its tests.
+# The canonical suite lives in `src/ikigai/tests/` and runs under the Ikigai
+# Poetry environment, with the repository root exposed on PYTHONPATH.
 #
 # The tool names are resolved lazily (at call time), not at import time: the
 # review job must not fail on import when a manager is absent — it has to
@@ -71,6 +76,75 @@ ROOT_BUCKET = "root"
 ROOT_TEST_CWD = str(ROOT / "src/ikigai")
 ROOT_TEST_PREFIX = ("poetry", "run", "python", "-m", "pytest")
 ROOT_TEST_ENV = {"PYTHONPATH": str(ROOT)}
+
+# ─── The ONE published Python environment ─────────────────────────────────────
+#
+# The published tree has no root `pyproject.toml` and no root `uv.lock`
+# (ADR-037 cut), so the pre-cut root environment — `uv run --frozen --extra
+# dev` — cannot resolve in a fresh clone: uv answers "Failed to spawn: mypy"
+# and the check reports "mypy produced no output (rc=2) — nothing was
+# checked". That failure produced NO annotation, so the CI log showed an
+# exit code 1 and nothing else: a red gate that says nothing about itself.
+#
+# The Ikigai package is the only environment the tree publishes, and it is
+# where the Telegram client's own dependencies (mcp, httpx) are locked. So
+# the root bucket — the Python that belongs to no package — runs THERE, and
+# names its files absolutely so the working directory never decides what is
+# measured.
+#
+# The WORKING DIRECTORY stays at the repository root, because that is where
+# the root's own configuration lives: `mypy.ini` says so in its own first
+# line. The environment and the configuration are two different things, and a
+# review that conflates them measures something nobody declared.
+ROOT_ENV_PACKAGE = "src/ikigai"
+ROOT_ENV_CWD = str(ROOT / ROOT_ENV_PACKAGE)
+
+
+class ReviewEnvironmentError(RuntimeError):
+    """The environment the review needs is not there.
+
+    It is an error, not a crash: the check that needed the environment
+    reports it as a FAIL with the reason attached, so the gate says WHY.
+    """
+
+
+def root_env_python() -> str:
+    """The interpreter of the one published environment.
+
+    Resolved through Poetry instead of guessed: the venv lives in Poetry's
+    cache and its path differs per host, per Python version and per OS. A
+    review that guesses the path measures nothing.
+    """
+    probe = run(
+        [tool("poetry"), "env", "info", "--executable"],
+        cwd=Path(ROOT) / ROOT_ENV_PACKAGE,
+    )
+    if probe.returncode != 0:
+        raise ReviewEnvironmentError(
+            f"code_review: cannot resolve the published environment "
+            f"({ROOT_ENV_PACKAGE}): `poetry env info --executable` failed "
+            f"(rc={probe.returncode}): {(probe.stderr or '').strip()[:500]}"
+        )
+    lines = [line.strip() for line in (probe.stdout or "").splitlines() if line.strip()]
+    if not lines:
+        raise ReviewEnvironmentError(
+            f"code_review: the published environment ({ROOT_ENV_PACKAGE}) has no "
+            "interpreter. Run `poetry install` inside it first — the review "
+            "measures that environment, not the reviewer's shell."
+        )
+    return lines[-1]
+
+
+def check_cwd(spec: PackageSpec | None) -> str:
+    """Where a bucket's checks run.
+
+    A package runs in its own directory. The root bucket runs at the REPOSITORY
+    ROOT, because that is where its configuration lives: `mypy.ini` declares
+    the root's canonical paths and says so in its own first line — "This file
+    governs a bare `mypy` run from the repository root".
+    """
+    return str(ROOT) if spec is None else package_cwd(spec)
+
 
 _HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 

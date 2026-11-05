@@ -1,666 +1,433 @@
-# ─── Agent runtime state ─────────────────────────────────────────
-.pi/
-.atl/
-.life/
+# ─── 1. JUNK — files a malformed shell redirect leaves behind ─────────────
+# ONE RULE PER CLASS, NOT ONE RULE PER INSTANCE.
+#
+# The leak's SOURCE was fixed long ago: a redirect target is written as
+# `cmd > file 2>&1`, never as a bare `> word`. What is left to catch is the
+# SHAPE of what the leak left behind, and the shape is regular:
+#
+#   Class A — a ONE-character name.   `0`, `1`, `6`.
+#   Class B — a bare identifier of two or more characters with NO dot in it.
+#     `global`, `commit`, `STALE_THRESHOLD_DAYS`, `1800s`, `str`.
+#   Class C — a name containing a character no file may legitimately contain:
+#     a quote, a bracket, a brace, a parenthesis, a percent, a dollar, a
+#     percent.   `dict[str`, `agent('Execute')`, `80%`, `1\``.
+#
+#   Class D — a dotted version number.   `0.120.0`.
+#
+# Every legitimate root file in this repository has an extension (`README.md`,
+# `pytest.ini`, `uv.lock`) or is a dotfile (`.gitignore`, `.python-version`),
+# so a root name outside these four classes is junk by construction, not by
+# name. That is what makes one rule per class possible: the previous file
+# carried ~150 one-line patterns for individual junk names (`/None`, `/str`,
+# `/Path`, `/{*}`, `/frontmatter.dumps()`, `/emit`, `/no`, `/but`, `/80%`,
+# `/word`, …) and every one of them is covered by the four rules below.
+#
+# A WORD ON THE SYNTAX, because it is the whole difference between working
+# and not working:
+#
+#   `[A-Za-z0-9_]*`  is the class FOLLOWED BY A WILDCARD — it matches
+#                    "README.md" too, because the wildcard swallows the dot.
+#                    "No dot" is written `[^.]`.
+#   `[*]`            is a class containing a literal asterisk, NOT a
+#                    wildcard. A wildcard is a bare `*`.
+#
+# Class A matches a root DIRECTORY as readily as a file (`src`, `docs`,
+# `data`…), and git never descends into a directory it excluded — so the
+# October and November specification series stayed untracked for two months
+# for exactly that reason. A negation whose pattern ends in "/" matches
+# DIRECTORIES ONLY, so these re-include them: the last rule to match is the
+# one that decides, and a junk file is not a directory, so the junk stays
+# ignored. Every rule further down decides the directories it means.
+/[A-Za-z0-9_]
+/[A-Za-z0-9_][A-Za-z0-9_][^.]*
+/*[^A-Za-z0-9_.-]*
+/[0-9]*.[0-9]*
+/[A-Za-z0-9_][A-Za-z0-9_]
+!/[A-Za-z0-9_]*/
+!/*/
+# The SAME classes, applied to a root DIRECTORY, and placed HERE — after the
+# two re-inclusions above, because they are what let the junk back in.
+#
+# `!/*/` re-includes every root directory, so a directory whose NAME carries a
+# character no file may legitimately contain (`$FT`, a shell-redirect leftover)
+# came back: git descended into it, and the class rules above only match a
+# ROOT NAME — `/*[^A-Za-z0-9_.-]*` cannot match `$FT/.claude/loop/progress.md`
+# because `*` never crosses a `/`. The proof was tracked: one junk file
+# survived the shape sweep because it sat one directory deep.
+#
+# The trailing slash makes it a DIRECTORY rule: git never descends into a
+# directory it excluded, so the whole tree stays out. A legitimate root
+# directory holds only letters, digits, `_`, `.` and `-` — every one of them
+# is inside the class, so no legitimate directory matches this.
+# The drift test `test_no_tracked_file_is_ignored` holds this honest.
+/*[^A-Za-z0-9_.-]*/
+# `strategics/` holds the PT-BR strategic prose, and it IS published: the
+# vault excerpt names these files as the full grounding
+# (`vault/_strategics_excerpt.md`), and the loader that reads them ships.
+#
+# It is the one root directory the shape rules above cannot leave alone.
+# Class B — a bare identifier with no dot — matches the DIRECTORY
+# `strategics`, and git never descends into a directory it excluded: so every
+# file beneath it was invisible to `git add`, and the index sweep took the
+# prose out along with the retired runtime. The directory and the prose are
+# named back explicitly. The vendored third-party fork inside it stays
+# excluded (§6).
+!/strategics/
+!/strategics/*.md
+# The handful of extension-less names a repository may legitimately carry.
+# The legitimate root files. Every one of them carries an extension, so the
+# classes above cannot separate them from the junk on shape alone — and a
+# rule that hides a REAL file is worse than a rule that shows a junk one.
+# The drift test `test_no_tracked_file_is_ignored` holds this list honest.
+!/README.md
+!/AGENTS.md
+!/CHANGELOG.md
+!/CLAUDE.md
+!/constraints.txt
+!/mypy.ini
+!/omo.json
+!/pyproject.toml
+!/pytest.ini
+!/uv.lock
+!/LICENSE
+!/LICENCE
+!/NOTICE
+!/Makefile
+!/Dockerfile
+# A dotted module path (`ast.FunctionDef`) has a dot, and so does every
+# legitimate root file — the classes cannot separate them. Kept explicit,
+# and kept short: a new one of this shape is a signal to widen the rule.
+/ast.FunctionDef
 
-# ─── Stray paths from shell-quote bugs ──────────────────────────
-# Literal-tilde dirs (e.g. `~/` typed in a path that was replayed
-# as a literal string → `src/ikigai/~/.ikigai/*.db` was tracked).
-# These are NOT user-home expansions; treat `~` as a path component.
+# ─── 1b. THE SAME CLASSES, AT DEPTH ───────────────────────────────────────
+# The leaks landed at depth too. A root-anchored pattern never reaches a
+# subdirectory, so the classes are repeated where they actually accumulate.
+# `src/ikigai/` is the only tree that collected them.
+/src/-
+/src/[0-9]*
+src/ikigai/[A-Za-z0-9_]
+src/ikigai/[A-Za-z0-9_][A-Za-z0-9_][^.]*
+src/ikigai/[0-9]*.[0-9]*
+src/ikigai/*[^A-Za-z0-9_.-]*
+!src/ikigai/[A-Za-z0-9_][A-Za-z0-9_]*/
+# The Poetry package IS published: the manifest and the lock are what the
+# container installs the service's dependencies from, and the four documents
+# are the package's own knowledge base. The class rules above swallow every
+# top-level name in this tree, so they are named back one by one.
+!/src/ikigai/pyproject.toml
+!/src/ikigai/poetry.lock
+!/src/ikigai/AGENTS.md
+!/src/ikigai/README.md
+!/src/ikigai/CHANGELOG.md
+!/src/ikigai/SPEC.md
+# The PUBLISHED PYTHON of this package — the strategics loader the image
+# installs. The class rules above swallow the tree's name: "src" is a bare
+# identifier, so Class B matches it, and the re-inclusion on line 112 is a
+# DIRECTORY rule that brings the directory back to git but leaves a file
+# matched deeper down excluded from ruff's walk.
+#
+# That divergence is not cosmetic. It made `ruff check src/` — the CI gate of
+# this very package — resolve to ZERO files: a gate that checks nothing is
+# green forever, and a real `I001` was hiding in the loader the whole time.
+#
+# So the published files are named back one by one, like the documents above.
+# The retired trees under this root are excluded again further down (§7), which
+# is after this rule — the last rule to match is the one that decides.
+!/src/ikigai/src/
+!/src/ikigai/src/strategics/
+!/src/ikigai/src/strategics/__init__.py
+!/src/ikigai/src/strategics/loader.py
+!/src/ikigai/src/strategics/frontmatter_compat.py
+# Scratch artifacts from ad-hoc CLI and debugging sessions.
+/src/ikigai/*.log
+/src/ikigai/chat_*.txt
+/src/ikigai/crud_*.txt
+/src/ikigai/crud_*.py
+/src/ikigai/gw_status*.txt
+/src/ikigai/ikigai.ps1
+/src/ikigai/ikigai_help.txt
+/src/ikigai/list_out.txt
+/src/ikigai/mypy_output.txt
+/src/ikigai/scripts/parse_mypy.py
+/src/ikigai/scripts/strip_unused_ignores.py
+/src/ikigai/scripts/test_regex.py
+# The relative vault root a test run creates (cwd=src/ikigai), and the
+# runtime DBs that belong in `data/` at the repository root.
+/src/ikigai/vault/
+/src/ikigai/data/
+/pytestdebug.log
+/vault/*.log
+# A transcript dump: the session runner wrote its own log beside the code.
+# Its name is only made of legal characters, so the classes above cannot see
+# it — the shape is the only tell.
+*this-session-is-being-continued*
+# Literal-tilde dirs (a `~` typed in a path that was replayed as a literal
+# string). These are NOT user-home expansions; treat `~` as a component.
 **/~/**
 **/~*.db
-# Stray zero-byte / one-char / shell-quote-garbage files at repo root.
-# These came from malformed bash redirection (e.g. `> agent('Execute')`).
-# Listed individually because gitignore glob character classes can't
-# reliably match quotes/backticks/brackets across shells.
-# Examples seen 2026-08-28: '  `  -  0  6.0  None  For  d.classification  list[object]  s.docs
-# Examples seen 2026-08-29: '  2  6  None  com  dict[str  formal  one  str  Algorítmica
-# Root-level bare digits (bash > digit bugs)
-/[0-9]
-# Root-level files starting with shell-special chars (', [, {, `)
-/['\[\{`]
-# Root-level Python keyword / short-token names that appear from
-# malformed redirect targets. Listed individually — gitignore does
-# not support alternation `(a|b)` or braces `{a,b}` in match patterns.
-/None
-/str
-/int
-/float
-/bool
-/list
-/dict
-/com
-/formal
-/one
-# Root-level type-annotation fragments (e.g. `dict[str`, `list[object]`).
-# `\[` matches one literal `[`; `*` matches the rest. Without `*` the
-# pattern would only match the prefix without the bracket content.
-/dict\[*
-/list\[*
-/tuple\[*
-/set\[*
-/frozenset\[*
-# Examples seen 2026-08-29: comma+plus literals, capitalized paths,
-# parens-wrapped calls, backtick fragments, single lowercase words
-# from bash redirects like `> Path`, `> emit`, `> no`, `> frontmatter.dumps()`.
-/0,+,+
-/Path
-/emit
-/no
-/frontmatter.dumps()
-/str\`
-# Examples seen 2026-09-03: short English conjunctions / short common words
-# from bash redirects like `> but`, `> and`, `> or`, `> not`, `> if`.
-# UTF-8 mojibake filenames (e.g. `n??o` where `?` is U+FFFD replacement char)
-# are NOT matched by these literal entries — those need cleanup at the
-# source by ensuring bash redirection uses `cmd 2>/dev/null > file.txt`
-# rather than bare `> word`. See memory `windows-orphan-dir-delete.md`
-# and `bash-heredoc-at-leak.md` for the broader heredoc-redirect problem.
-/but
-/and
-/or
-/not
 
-# ─── Phase 0 audit-closure artifacts (2026-08-31) ──────────────
-# Scratch files accumulated by ad-hoc CLI / debugging sessions.
-# Listed individually because gitignore alternation is not portable.
-# Tmp scratch dirs (pytest runs that escape --basetmp)
+# ─── 2. RUNTIME STATE — regenerated by the daemons and the test suite ────
+# The harness's own directory: pi reads the PROJECT configuration from `.pi/`
+# (the MCP servers in `.pi/mcp.json`, the skills in `.pi/skills/`, the prompt
+# templates in `.pi/prompts/`). The configuration is PUBLISHED — it is the
+# wiring between the harness and the api — so the directory is excluded by its
+# CONTENTS and the configuration named back.
+#
+# The ORDER here is the whole thing, and it is the opposite of what it looks
+# like. A rule that excludes a DIRECTORY stops git from descending into it,
+# and a file re-included beneath an excluded directory stays invisible — the
+# negation cannot take effect, because git never looks. So the directory is
+# named back AFTER the rule that excludes its contents: `/.pi/*` matches the
+# directory itself (its `*` matches the empty remainder), and `!/.pi/` is the
+# last rule that matches it, so git descends. Then the file inside it is
+# named back by its own path.
+#
+# `git add .pi/mcp.json` is what proves it: the drift test asks git which
+# rule decided.
+/.pi/*
+!/.pi/
+!/.pi/mcp.json
+.atl/
+.life/
+.omo/
+.omh/
+.atlas/
+.hermes/
+.hermes_probe/
+.openwiki/
+.claude-flow/
+.langgraph_api/
+.opencode/
+/logs/
+/node_modules/
+/.gitnexus/cache/
+/worktrees/
+/.worktrees/
+/reports/baselines/.passphrase
+/src/ikigai/data/baselines/.passphrase
+/.omo-initdeep-oversized.json
+/openwiki/.run.json
+/openwiki/.last-update.json.tmp
+/.claude/loop/.daemon-heartbeat.json
+/.claude/proven-config.json
+/.claude/.proven-config-version
+/.claude/settings.local.json
+/.claude/scheduled_tasks.lock
+/.claude/helpers/.helpers-version
+/.claude/helpers/helpers.manifest.json
+/src/ikigai/.claude-flow/
+/src/ikigai/.claude/
+/.omh/goals/
+/.claude/loop/logs/
+/.swarm/backups/
+/.swarm/*.db
+/.swarm/*.db-shm
+/.swarm/*.db-wal
+/.swarm/*.sql
+/.swarm/model-router-state.json
+/.swarm/state.json
+
+# ─── 3. PYTHON — venvs, caches, build output ─────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyc
+*.egg-info/
+.eggs/
+dist/
+build/
+**/.venv/
+**/__pycache__/
+**/.ruff_cache/
+**/.mypy_cache/
+**/.pytest_cache/
+/.pytest_cache/
+/.ruff_cache/
+/.mypy_cache/
+/.pytest-tmp/
+/.pytest_tmp/
+/.tmp_test/
+/.tmp/
 /tmp_pytest*/
-/verify_mesh*.py
-# src/ikigai/ zero-byte / shell-quote-garbage files (mirrors root patterns
-# but at src/ikigai/ depth — gitignore patterns anchored to root don't
-# match subdirs without explicit prefix)
-src/ikigai/0
-src/ikigai/0.1
-src/ikigai/1.1
-src/ikigai/15
-src/ikigai/3.12
-src/ikigai/Any
-src/ikigai/bool
-src/ikigai/bytes
-src/ikigai/None
-src/ikigai/Path
-src/ikigai/str
-src/ikigai/from
-src/ikigai/skip
-src/ikigai/ts
-src/ikigai/taskdog_adapter
-src/ikigai/IKIGAiRecord
-# (removed `src/ikigai/\[{'signature'` 2026-08-31: ruff globset chokes on `{'`
-#  as alternate-group opener; pattern no longer needed since source file deleted)
-# Type-annotation fragments (matching root patterns but at src/ikigai/ depth)
-src/ikigai/dict\[*
-src/ikigai/list\[dict\[*
-src/ikigai/Iterator\[dict\[*
-src/ikigai/Callable\[\[Callable\[*
-src/ikigai/Callable\[\[IKIGAiStateDict\]*
-# Root-level ts file (malformed bash redirect, escaped)
-/ts
-# src/ikigai/ stale logs + scratch artifacts (cleaned 2026-08-31)
-src/ikigai/agent_socket_noise.log
-src/ikigai/chat_*.txt
-src/ikigai/crud_*.txt
-src/ikigai/crud_*.py
-src/ikigai/gw_status*.txt
-src/ikigai/ikigai.ps1
-src/ikigai/ikigai_help.txt
-src/ikigai/list_out.txt
-src/ikigai/mypy_output.txt
-# src/ikigai/vault/ — test-run artifact (relative vault root when pytest cwd=src/ikigai)
-src/ikigai/vault/
-# src/ikigai/scripts/ scratch scripts (cleaned 2026-08-31)
-src/ikigai/scripts/parse_mypy.py
-src/ikigai/scripts/strip_unused_ignores.py
-src/ikigai/scripts/test_regex.py
-# Misplaced runtime DBs (canonical location is data/ at repo root)
-src/ikigai/data/
+/.coverage
+htmlcov/
+/src/ikigai/.ruff_cache/
+/src/ikigai/.mypy_cache/
+/src/ikigai/.pytest_cache/
+/src/contracts/.ruff_cache/
+/src/contracts/.mypy_cache/
+/src/contracts/.pytest_cache/
+/src/mesh/.ruff_cache/
+/src/mesh/.mypy_cache/
+/src/mesh/.pytest_cache/
+/vibe-ops/.ruff_cache/
+/vibe-ops/.mypy_cache/
+/vibe-ops/.pytest_cache/
 
-# ─── Bash heredoc-leak follow-up (2026-09-03) ─────────────────────
-# Catch dotted numeric / dotted module paths and other stray tokens
-# that bash heredoc bugs leaked on 2026-09-03 cleanup. Files deleted:
-#   root: 1,  1.0  3  None  bool  dict[str  exit  queue.Queue[tuple[str  str
-#   src/ikigai/: 0.5  1.0  3  None  Taskwarrior  dict[str  list[Path]  refatoracao  str
-# Listed individually — gitignore does not support `(a|b|c)` alternation
-# in match patterns.
-# Root-level: digit+comma, digit-dot-digit, exit, dotted module.path[...]
-/[0-9],
-/[0-9].[0-9]
-/exit
-/queue.*\[*
-# src/ikigai/ depth: broaden `list[dict[...` to all `list[...]`, plus
-# Taskwarrior and refatoracao (PT-BR lowercase; bash > refatoracao leak)
-src/ikigai/[0-9].[0-9]
-src/ikigai/[0-9]
-src/ikigai/Taskwarrior
-src/ikigai/IntentClassification
-src/ikigai/dict
-src/ikigai/list\[*
-src/ikigai/refatoracao
+# ─── 4. DATA — runtime state, not source ─────────────────────────────────
+# The canonical runtime root is `data/`. Two things under it are tracked
+# source and have to stay reachable: the investigation-queue marker and the
+# store test fixtures. Everything else in there is runtime.
+#
+# The ORDER is what makes it work, and the last rule to match is the one that
+# decides. `/data/*` matches the directory ITSELF — its `*` matches the empty
+# remainder — and a directory git excludes is one it never descends into, so
+# a file re-included beneath it stays invisible. `!/data/` therefore comes
+# AFTER `/data/*`: it is then the last rule that matches the directory, the
+# directory is reachable, and git descends far enough to see the negations
+# inside it. The leading slash matters: without it the rule also matched
+# `src/ikigai/data/`.
+/data/*
+!/data/
+!/data/investigation_queue/
+/data/investigation_queue/*
+!/data/investigation_queue/.keep
+!/data/test-fixtures/
+/data/*.db
+/data/*.json
+/data/*.jsonl
+/data/chroma_db/
+/data/*.log
+/data/session-*.md
+/data/*-sessions/
+/data/pytest-tmp/
+# The store layer is PUBLISHED (ADR-037 D4): the pool and the repository are
+# the only code that talks to the driver. `/src/data/` excluded the whole
+# DIRECTORY, and that also killed the negations under it — git never
+# descends into a directory it excluded, so a file re-included beneath an
+# excluded parent stays invisible. The directory is left alone here; only its
+# junk is ignored, and the four real files are named back.
+/src/data/*
+!/src/data/__init__.py
+!/src/data/AGENTS.md
+!/src/data/client.py
+!/src/data/repository.py
+/src/data/ikigai_checkpoints.db
+/src/ikigai/data/
+/src/ikigai/vault/
+/tests/data/pytest-tmp/
+/vibe-ops/**/*.db
+/vibe-ops/chroma_db/
 
-# ─── Bash heredoc-leak follow-up (2026-09-04) ─────────────────────
-# Stray tokens from sub-agent runs: paren-wrapped calls (`agent('Execute')`),
-# paren-balancing close fragments (`'))]+`), bare English words (`The`,
-# `first`, `StateGraph`), multi-digit (`10`), and pydantic-version-like
-# tokens (`2.13.5\``).
-# Each listed individually because gitignore lacks alternation support.
-/agent('Execute')`
-/'))]+
-/The
-/first
-/StateGraph
-/[0-9][0-9]
-/[0-9][0-9][0-9]
-
-# ─── Bash heredoc-leak follow-up (2026-09-05) ─────────────────────
-# Additional stray tokens from sub-agent runs (W6.X item 4 cleanup)
-/Callable\[*
-/FAIL
-/IntentClassification
-/anything
-/ast.FunctionDef
-/data\),
-/global
-/quarterly
-/reasons
-/server
-/shown
-/what
-/vault/sync
-/~[0-9]*
-/\{op.taskdog_create.title\}
-# Python type annotation / constant fragments
-/STALE_THRESHOLD_DAYS
-# Backtick-prefixed expression fragments
-/`.*
-# WriteResult stray from pydantic model dump
-src/ikigai/WriteResult\`
-
-# vibe-ops/ test artifacts (left behind by ad-hoc scripts whose cleanup
-# is commented out). Pre-existing tracked files were untracked in B5.5
-# (`git rm --cached`); this pattern prevents future re-tracking.
-# `data/*.db` (canonical runtime state) is a separate pattern.
-vibe-ops/**/*.db
-# vibe-ops Chroma persistence dir (runtime vector store, recreatable).
-# The `.db` pattern above does not match Chroma's `chroma.sqlite3`.
-vibe-ops/chroma_db/
-# OMH/OMO tool runtime state (init-deep digests, chunks, probe scratch).
-# The canonical roadmap state lives in `.claude/loop/{roadmap,tasks,progress}.md`.
-/.omo/
-
-# ─── Vault (Obsidian KB — runtime only) ─────────────────────────
-# Source vault (wikilinks, markdown) IS tracked.
-# Runtime artifacts inside vault/ are ignored.
+# ─── 5. VAULT — prose is source, runtime artifacts are not ───────────────
+# The source vault (wikilinks, markdown) IS tracked. Runtime artifacts
+# inside it are ignored.
 vault/.venv/
 vault/__pycache__/
 vault/.ruff_cache/
 vault/.mypy_cache/
 vault/.pytest_cache/
 vault/.db
+/vault/.vault_events.jsonl
+/vault/ikigai/decisions/*.jsonl
 
-# ─── BYD D2 Plotly HTMLs (regenerable artifacts) ────────────────
-# 6 Plotly HTMLs at ~4.85 MB each = 27.88 MB committed. Regenerable
-# from src/ikigai/data/matheus/deliverables/byd-d2-outputs/{byd-econometric-vulnerability.py,.ipynb}.
-# Source files (.py, .ipynb, 1-pager-summary.md) stay tracked.
-src/ikigai/data/matheus/**/outputs/*.html
+# ─── 6. BUILD ARTIFACTS AND VENDORED THIRD-PARTY ────────────────────────
+# First-party Go tool at src/operational/medic/ (module github.com/life-oss/medic).
+# 2026-08-28 audit: 24 MB of committed .exe was inflating every clone.
+# Source (.go, go.mod, go.sum) IS tracked; binaries are local build outputs.
+/src/operational/medic/medic.exe
+/src/operational/medic/bin/
+/archive/legacy-pav/src-operational/medic/medic.exe
+/archive/legacy-pav/src-operational/medic/bin/
+# M41 planning-with-files submodule unlink: the directory is a
+# self-contained third-party fork with its own .git/; we don't track it in
+# the parent repo.
+/strategics/planning-with-files/
+# BYD D2 Plotly HTMLs (regenerable artifacts) — 6 HTMLs at ~4.85 MB each.
+/src/ikigai/data/matheus/**/outputs/*.html
 
-# ─── Editor & OS ─────────────────────────────────────────────────
+# ─── 7. SCOPE — the pre-ADR-037 system (ADR-037, 2026-11-02) ─────────────
+# The remote branch carries the canonical, multi-device, prod-deployable code
+# only: the DOM (`src/contracts/`), the store client (`src/data/`), the
+# service layer (`src/services/`), the transport (`src/transport/`), the
+# vault prose, the specs and the tests of those.
+#
+# The pre-ADR-037 runtime is UNPUBLISHED, not deleted: the files stay on the
+# owner's disk and in the git history; they are simply not on the branch.
+# The first execution of ADR-037 ignored individual FILES inside trees that
+# stayed published — so 84 of the 91 files in `sys_ikigai/` and 25 of the 26
+# in `src/mesh/` kept shipping. The trees are now unpublished as units.
+/sys_ikigai/
+/src/mesh/
+/interfaces/
+# The retired root CLI hub. Its manifest was deleted with the root project
+# below — the manifest declared `packages = ["life", ...]`, and the tree it
+# published is this one. It stayed tracked because the cut ignored the
+# DIRECTORY by name only for the manifest, never for the package.
+#
+# It is retired for a reason that is not only architectural: `life/cli/cli.py`
+# imports `interfaces.cli.notify_cli` at module scope, and `interfaces/` is
+# unpublished as a whole tree (ADR-037). A fresh clone therefore could not even
+# import the package — `ModuleNotFoundError: No module named 'interfaces'` —
+# while the tree still shipped as published. The daily/weekly workflow it drove
+# is the Telegram client's and the harness skills' now.
+/life/
+/vibe-ops/
+/src/agents/
+/src/tuiboard/
+/src/solverforge_calendar/
+/src/ikigai/src/agents/
+/src/ikigai/src/chat/
+/src/ikigai/src/mcp_server/
+/src/ikigai/src/plugins/
+/src/ikigai/src/observability/
+/src/ikigai/src/ikigai_wrapper.py
+/src/ikigai/src/gateway_client.py
+/src/ikigai/bin/
+/src/ikigai/MCP_GATEWAY.md
+/src/ikigai/ikigai.bat
+/src/ikigai/start_mcp_gateway.sh
+/plugins/paperclipai/
+/langgraph.json
+# The retired root project. Its manifest declared `packages = ["life", ...]`
+# — a package that does not exist in this repository — and a console script
+# pointing at `src.mesh.taskdog_cli`, the fork mesh that leaves the branch
+# above. The canonical package is `src/ikigai/pyproject.toml`; the service
+# ships as source with an explicit PYTHONPATH (see deploy/Dockerfile).
+/pyproject.toml
+/uv.lock
+/constraints.txt
+# The root-level suite of the retired runtime: it imported `sys_ikigai` and
+# `src.mesh` directly. The canonical suite is `src/ikigai/tests/`.
+/tests/
+# The PC-only operational tooling: the loop daemons, the paperclip spawner,
+# the taskdog shims and the fork smoke scripts. They drive the retired
+# runtime, and a branch that publishes the data layer has no use for them.
+/scripts/
+/bin/
+# The archived PAV kernel (ADR-013). ADR-037 §"publicação independente" is
+# the clause that says the archive stays on the owner's disk and out of the
+# branch.
+/archive/
+# The algorithm docset — 27 documents on the PAV / Q_HE / hysteresis-FSM
+# axiomatic stack. ADR-037 D1 defers the algorithms to LAST: they need real
+# data to be worth anything, and the kernel they describe is archived. The
+# documents stay on the owner's disk; they do not ship.
+/docs/auto-performance-os/
+
+# The retired test suite: every top-level module under src/ikigai/tests/
+# tests the retired runtime, except the ones that survive and are named
+# explicitly. One rule for the class, one for each exception.
+/src/ikigai/tests/*.py
+!/src/ikigai/tests/conftest.py
+!/src/ikigai/tests/test_canonical_scope.py
+!/src/ikigai/tests/test_drift_invariants.py
+!/src/ikigai/tests/test_gitignore_root_scope.py
+!/src/ikigai/tests/test_strategics_loader.py
+!/src/ikigai/tests/test_published_surface_integrity.py
+!/src/ikigai/tests/test_lint_target_is_not_vacuous.py
+!/src/ikigai/tests/test_code_review_gate_integrity.py
+!/src/ikigai/tests/test_ignore_rules_are_platform_invariant.py
+!/src/ikigai/tests/skills/
+!/src/ikigai/tests/contracts/
+!/src/ikigai/tests/store/
+!/src/ikigai/tests/services/
+!/src/ikigai/tests/transport/
+
+# ─── 8. EDITOR AND OS ────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 .DS_Store
-
-# ─── Python ──────────────────────────────────────────────────────
-__pycache__/
-*.py[cod]
-*.egg-info/
-.eggs/
-dist/
-build/
-
-# ─── All venvs (uv + poetry) ─────────────────────────────────────
-**/.venv/
-**/__pycache__/
-**/.ruff_cache/
-**/.mypy_cache/
-**/.pytest_cache/
-
-# ─── Test / coverage ──────────────────────────────────────────────
-.pytest_cache/
-.coverage
-htmlcov/
-
-# ─── Runtime Data Layer ───────────────────────────────────────────
-# All mutable runtime state: SQLite, Chroma, boulder JSON, session logs.
-# Phase 3 v1 mesh queue (canonical write path for TaskChange events).
-data/*.db
-data/*.json
-data/*.jsonl
-data/chroma_db/
-data/*.log
-data/session-*.md
-data/*-sessions/
-data/review_queue/
-logs/
-*.log
-
-# ─── Build artifacts ──────────────────────────────────────────────
-life-ops/operational/.venv/
-life-ops/operational/dist/
-life-ops/operational/build/
-life-ops/operational/*.egg-link
-life-ops/operational/.pytest_cache/
-.pytest-tmp/
-.pytest_tmp/
-.tmp_test/
-vibe-ops/.venv/
-vibe-ops/__pycache__/
-vibe-ops/.ruff_cache/
-vibe-ops/.mypy_cache/
-vibe-ops/.pytest_cache/
-
-# ─── Go build artifacts (medic) ──────────────────────────────────
-# First-party Go tool at src/operational/medic/ (module github.com/life-oss/medic).
-# 2026-08-28 audit: 24 MB of committed .exe was inflating every clone.
-# Source (.go, go.mod, go.sum) IS tracked; binaries are local build outputs.
-# Per structure-audit-2026-08-28 §HIGH "verify-medic-claim" finding.
-src/operational/medic/medic.exe
-src/operational/medic/bin/
-
-# ─── Node (GitNexus runner) ──────────────────────────────────────
-node_modules/
-.gitnexus/cache/
-
-# ─── OpenWiki runtime state ───────────────────────────────────────
-.openwiki/
-openwiki/.run.json
-openwiki/.last-update.json.tmp
-
-# ─── Session archives (moved to data/) ───────────────────────────
-# Kept in .gitignore so they don't creep back to root
-session-ses_*.md
-2026-*-sessions/
-*-sessions/
-
-# Ruflo local secrets and runtime data
 .env
 .env.local
 .env.*.local
-.claude-flow/data/
-.claude-flow/logs/
-.claude-flow/sessions/
-
-# ─── Working-tree hygiene wave 2026-09-05 (post-W6.X) ────────────
-# data/pytest-tmp/ — active scratch dir since W6.X (commit ff3037f
-# redirected tempfile.tempdir here). 809 test-scratch files were
-# tracked accidentally during initial W6.X wiring; must be untracked
-# in a separate `git rm -rf --cached` commit (442 are already deleted
-# from disk and show as ` D`). Mirror exists at src/data/pytest-tmp/.
-data/pytest-tmp/
-src/data/pytest-tmp/
-# tests/data/pytest-tmp/ — same scratch dir, different root. M20 T-20.1
-# caught data/ and src/data/ but missed this third path; 40+ zero-byte
-# .db/.jsonl fixtures tracked from M5-M17 test runs. Add to .gitignore
-# so future pytest runs don't pollute the index.
-tests/data/pytest-tmp/
-# src/data/ — misplaced runtime state (canonical location is data/
-# at repo root). src/data/ikigai_checkpoints.db should move to data/.
-src/data/
-
-# .claude-flow/ broader subdir coverage — existing pattern covers
-# data/, logs/, sessions/. New subdirs (agents/, tasks/, hive-mind/,
-# graph/, hooks/, learning/, workflows/) and root files (agents.json,
-# harness-active-policy.json, memory-package.json) are tool runtime.
-.claude-flow/agents/
-.claude-flow/tasks/
-.claude-flow/hive-mind/
-.claude-flow/graph/
-.claude-flow/hooks/
-.claude-flow/learning/
-.claude-flow/workflows/
-.claude-flow/schedules/
-.claude-flow/agents.json
-.claude-flow/harness-active-policy.json
-.claude-flow/memory-package.json
-
-# .swarm/ — only state.json is tracked (older intent). New tool
-# scratch (memory.db, schema.sql, model-router-state.json) should
-# not be tracked. Pattern narrows to .db + .sql so state.json stays.
-.swarm/*.db
-.swarm/*.sql
-
-# .claude/ — local tool runtime state. Specific files only (do NOT
-# blanket-ignore .claude/ — agents/, commands/, helpers/*.{sh,mjs,cjs}
-# are tracked plugin assets).
-.claude/proven-config.json
-.claude/.proven-config-version
-.claude/settings.local.json
-.claude/scheduled_tasks.lock
-.claude/helpers/.helpers-version
-.claude/helpers/helpers.manifest.json
-# Mirror tool runtime state misplaced under src/ikigai/ (canonical
-# location for these is the repo root). Patterns mirror root-level
-# .claude-flow/ + .claude/ entries; gitignore anchored patterns
-# don't match nested subdirs without explicit prefix.
-src/ikigai/.claude-flow/
-src/ikigai/.claude/
-
-# PAV archive relocated 2026-08-31 (git mv src/operational/ ->
-# archive/legacy-pav/src-operational/). Existing gitignore patterns
-# reference pre-archive paths; mirror them at the new location so the
-# committed Go binary + bin/ don't re-track.
-archive/legacy-pav/src-operational/medic/medic.exe
-archive/legacy-pav/src-operational/medic/bin/
-
-# Stray root-level files from bash heredoc-leak patterns (2026-09-05).
-# PascalCase identifier (`Static`, 0 bytes) and lowercase word (`empty`,
-# 0 bytes) — same root-cause class as existing /None /str /int /Path
-# patterns in the heredoc-leak sections above.
-# Cleanup is via `rm Static empty` in the closeout commit; these
-# patterns prevent recurrence.
-/Static
-/empty
-# Backtick-wrapped expression fragments (e.g. `Proposal(approval_state`,
-# `agent('Execute')`) — bash > word with leading backticks leaks
-# unquoted paren content as a 0-byte filename.
-/``*
-# .swarm/ state files written by claude-flow at runtime. state.json is
-# the only one tracked (older intent). Add backups/ + JSON state files
-# so they don't get picked up if the loose track pattern is broadened.
-.swarm/backups/
-.swarm/model-router-state.json
-# SQLite WAL-mode artifacts emitted alongside .swarm/*.db at runtime —
-# ignored so they don't get tracked on every daemon tick. Mirror pattern
-# at the canonical db-root location (data/) is already in place via
-# data/*.db + data/chroma_db/ + data/review_queue/ above.
-.swarm/*.db-shm
-.swarm/*.db-wal
-# M50 disk-hygiene follow-up: .swarm/state.json was missed by the
-# .swarm/*.db / .swarm/*.sql / .swarm/backups/ / .swarm/model-router-state.json
-# pattern block. Generic catch-all for daemon runtime state below.
-.swarm/state.json
-# Stray root-level zero-byte file from bash heredoc leak (same root
-# cause as /Static /empty /None /str above; cleanup via `rm word`).
-# Recurrence prevention: pattern locks it out if the redirect recurs.
-/word
-# Loop engineering runtime logs — generated on each loop-tick run, would
-# accumulate unbounded if tracked. Scaffolding (loop-tick.sh, roadmap,
-# tasks, progress, specs) IS tracked; only the log output is ignored.
-.claude/loop/logs/
-
-# ─── Bash heredoc-leak follow-up (2026-09-07) ─────────────────────
-# Stray root-level files from bash redirect leaks during M0/M1 loop
-# scaffolding work: `80%` (0-byte from `> 80%` redirect) and `c` (251-byte
-# heredoc fragment from `awk ... OVER_BUDGET ... > c`). Same root-cause
-# class as /Static /empty /None /str /int /Path above.
-# Cleanup: `rm 80% c` in closeout commit.
-# Prevention: bash redirections should use `cmd > file.txt 2>&1` style;
-# bare `> word` with shell-special chars leaks the literal.
-/80%
-/c
-# ─── Bash heredoc-leak follow-up (2026-09-07 cont.) ─────────────
-# Two more stray root-level files from this session's loop wiring work:
-# `c'` (0-byte, trailing single quote) and `word`` (0-byte, trailing
-# backtick). Same root-cause class — bare `> word'` or `> word\`` leaks
-# the literal including trailing shell-special chars. Cleanup via `rm`.
-# Also add .worktrees/ safety pattern (only registered worktrees should
-# exist; stale dirs on disk need PendingFileRenameOperations on Windows
-# reboot per the windows-orphan-dir-delete memory).
-/c'
-/word`
-/.worktrees/
-
-# ─── Bash heredoc-leak patterns (2026-09-14) ────────────────────
-# Five stray root-level zero-byte files from earlier shell redirects
-# per CLAUDE.md Root Layout section (originally cited as /0 /IN /int
-# /None /agent('Execute). On 2026-09-14 audit, three of the five
-# had also leaked into git's index: `IN` from M10 T-10.1 dispatch.sh
-# scaffold (commit b9c9278d), `src/0` from spec-tlc drill-down
-# (commit 0ba1820e), plus IDLE / inline / new / src/- / src/80%
-# from the same redirect class — all removed via `git rm --cached`
-# in the matching closeout commit. Anchored patterns below lock
-# recurrence out at the gitignore level for both root and src/.
-# Cleanup at file level is `rm <name>` for each.
-/0
-/IN
-/int
-/None
-/agent('Execute
-/cygpath
-/{to_profile}
-/mkdir()'
-/recall
-/commit
-# `$(cygpath` (70-byte fragment from `> $(cygpath ...)` redirect leak)
-/$(cygpath
-# `reflect` (additional zero-byte stray from 2026-09-14 session)
-/reflect
-# Same root-cause class tracked in M10 / spec-tlc — add coverage for
-# the broader identifier-leak set so future occurrences don't track.
-/IDLE
-/inline
-/new
-# Mirror coverage at src/ — same redirect-class pattern leaked one
-# level deep into src/ during M10 dispatch.sh scaffold.
-/src/-
-/src/0
-/src/80%
-
-# ─── M20 T-20.1 — Bare Python keywords + template fragments ─────
-# Stray root-level files from bash redirect leaks
-# (`> True`, `> False`, `> async`, `> await`, `> {var}`).
-# Each listed individually because gitignore lacks alternation.
-# Sibling Python keywords (`None`, `int`, `float`, `bool`, `list`,
-# `dict`, `str`, `tuple`, `set`, `frozenset`) and `inline` were
-# already covered in earlier sections — only the ones below are new.
-# Extension M41: also catch multi-digit numerics that the `/[0-9]`
-# rule missed (10, 14, 60, 65, 66, 67, 70, 100, 200, 411 ...).
-/True
-/False
-/async
-/await
-/[0-9]*
-# Template fragments — `> {var}` redirects from Python f-string /
-# format() leakage create literal `{anything}` filenames. gitignore
-# treats `{` and `}` as literal chars; `*` matches the content
-# between them, so `/{*}` matches `{anything}` including
-# `{len(lf_data)}` and `{test}`.
-/{*}
-# M39 daemon watchdog artifact: empty file leaked when shell tried
-# `> WATCHDOG_THRESHOLD_SEC` thinking it was a variable assignment.
-/WATCHDOG_THRESHOLD_SEC
-# M58 taskdog_mcp_stdio scratch cleanup: tests/test_taskdog_mcp_stdio_smoke.py
-# spawns per-test UUID subdirs under .tmp/taskdog_mcp_stdio/ for isolated
-# stdio servers. They were never added to .gitignore and accumulated to 38 dirs.
-# Adding .tmp/ broadly (was only .tmp_test/) captures all future scratch.
-/.tmp/
-# M41 planning-with-files submodule unlink: the directory is a
-# self-contained third-party fork with its own .git/; we don't
-# track it in the parent repo (was a phantom mode-160000 gitlink
-# with no .gitmodules entry — see M41 SPEC).
-/strategics/planning-with-files/
-# M45 loop-status-card scaffolding: OMH metadata files are kept local;
-# the canonical state lives in .claude/loop/{roadmap,tasks,progress}.md.
-/.omh/goals/
-# M46 zero-byte artifact cleanup: missing patterns for bash-redirect leaks
-# that slipped through M20 T-20.1. Both are 0-byte files at repo root:
-#   $10            — bash `> $10` redirect to a $variable reference
-#   {len(lf_data)} — bash heredoc leaked Python f-string fragment
-/\$10
-/{len(lf_data)}
-# M55 zero-byte artifact cleanup: more bash redirect leaks that survived
-# M20 + M46. Single-character / very short filenames from `> N` redirects:
-#   .claude/n       — bash `> .claude/n` (created 2026-09-15 18:55 by daemon loop-tick)
-/n
-/.claude/n
-# M57 zero-byte artifact sweep: aggregate patterns covering the remaining
-# 54 unignored bash-redirect leaks at repo root (verified 2026-09-18 via
-# `find . -maxdepth 1 -type f -size 0`). Two cluster classes:
-#   (a) Python identifier / type-annotation fragments from heredoc-broken
-#       multi-line strings (`> None`, `> str`, `> dict[str`, etc.)
-#   (b) Numeric-only / quote / shell-var tokens (`> 100`, `> '`, ``> ` ``, etc.)
-#
-# Pattern 1: repo-root files whose names contain '[', ']', '(', ')' or
-# start with '$'/'`' — bash redirect targets with no .ext.
-/*[\[\(\)]*
-/$*
-/`*
-# Pattern 2: short filenames at root (≤4 chars) consisting only of
-# letters OR only of digits (collapses 27 individual entries into 2).
-/[a-zA-Z]
-/[0-9]
-/[a-zA-Z][a-zA-Z]
-/[a-zA-Z][a-zA-Z][a-zA-Z]
-/[a-zA-Z][a-zA-Z][a-zA-Z][a-zA-Z]
-/[0-9][0-9]
-/[0-9][0-9][0-9]
-/[0-9][0-9][0-9][0-9]
-# Pattern 2b: exception — `src` is a legitimate root directory that also matches
-# the 3-letter pattern above. Without this negation git matches the directory
-# itself, never descends into it, and every NEW file below it is silently
-# untracked (src/ikigai/poetry.lock, src/ikigai/src/plugins/, ...). Negating the
-# directory lets git descend again; inner rules (e.g. /src/data/) still apply.
-!/src/
-# Pattern 2c: exception — `docs` (4 letters) matches the 4-letter pattern above.
-# Same failure mode as `src`: git matched the directory itself, never descended,
-# and every NEW file under docs/ became silently untracked. Fixed 2026-11-01 —
-# the Vanilla Pivot report and the whole 2026-10-30 + 2026-11-01 spec series
-# were invisible to `git add` for ~2 months. Inner rules still apply.
-!/docs/
-# Pattern 2d: same failure mode for the other legitimate root directories that
-# match the 3- and 4-letter patterns above — `bin` (3) and `life` (4).
-# `life/` holds the meta-package (life/life/) plus its AGENTS.md knowledge
-# files, so every new file there was silently untracked and never reached the
-# remote. Negating the directories lets git descend again; inner rules
-# (__pycache__/, life/.life/) still apply to their contents.
-!/bin/
-!/life/
-# Pattern 3: scattered survivors (M57 spotted them, branchy gitignore)
-/80%
-/100
-/200
-/2x
-/$10
-/{len(lf_data)}
-/Deep-Agent-as-canonical
-/console.log(i
-/done
-
-# M127 baseline signing passphrase (auto-generated)
-reports/baselines/.passphrase
-src/ikigai/data/baselines/.passphrase
-
-# ─── Runtime state — daemons / API servers / vault event log ────────
-# M158g cleanup (2026-10-05): three sources of orphan runtime state
-# accumulated since the last working-tree hygiene wave (2026-09-14):
-#
-#   1. LangGraph dev server pickles — written by `langgraph dev`
-#      under .langgraph_api/ when running on :2024 (or any port).
-#      Contents are checkpoints + ops log + vector store; recreatable
-#      from scratch on every server boot. Safe to ignore wholesale.
-#
-#   2. Loop daemon heartbeat — written every tick by the loop-tick
-#      daemon (scripts/loop-tick.sh) at
-#      .claude/loop/.daemon-heartbeat.json. Used only by the watchdog
-#      to detect stuck ticks. Not source content.
-#
-#   3. Vault event log — appended by ikigai_write_vault on every
-#      write. The vault itself is append-only markdown in vault/
-#      (also gitignored); this events log is the structured mirror.
-#      Recreate on import; no reviewable content.
-#
-# Also: ikibai_checkpoints.db is a runtime SQLite mirror of in-flight
-# LangGraph state for the ikigai graph. Treat as data/.
-/.langgraph_api/
-/.claude/loop/.daemon-heartbeat.json
-/vault/.vault_events.jsonl
-/src/data/ikigai_checkpoints.db
-# src/data/ holds runtime leftovers (pytest-tmp, stray *.db). The canonical
-# data-layer client (ADR-037) lives here as real source, so the directory
-# itself is tracked and only its runtime content is ignored.
-/src/data/*
-!/src/data/client.py
-!/src/data/repository.py
-.atlas/
-
-# ─── Serverless / cloud-native pivot (ADR-037, 2026-11-01) ─────────────
-# The remote branch carries canonical, multi-device, prod-deployable code
-# only. TUI clients, stdio MCP servers and the previous langchain/langgraph
-# harness are PC-only and stay out of the remote repository (tip AND
-# history). The vault, the data layer, the mesh and the harness specs are
-# the published surface.
-/interfaces/tui/
-/vibe-ops/vibeops-tui/
-/src/tuiboard/
-/src/solverforge_calendar/
-/src/mesh/adapters/solverforge_calendar.py
-/tests/interfaces/test_tui_operator.py
-/src/ikigai/src/mcp_server/
-/sys_ikigai/gateway/stdio_server_base.py
-/sys_ikigai/gateway/stdio_adapter.py
-/sys_ikigai/gateway/adapters/tuiboard*.py
-/sys_ikigai/gateway/adapters/solverforge*.py
-/sys_ikigai/gateway/clients/tuiboard.py
-/sys_ikigai/gateway/clients/solverforge_calendar.py
-/src/ikigai/src/agents/
-/src/ikigai/src/chat/
-/src/ikigai/src/plugins/
-/src/ikigai/src/ikigai_wrapper.py
-/src/ikigai/src/gateway_client.py
-/langgraph.json
-/plugins/paperclipai/
-/archive/legacy-pav/
-/.claude-flow/
-/.hermes_probe/
-/scripts/langgraph-dev.bat
-
-# ─── Shell redirect artifacts (0-byte noise) ──────────────────────────
-COST_THRESHOLD_USD``
-MAX_GAP_LOOPS
-None``
-RunRecord
-start
-threshold
-threshold_seconds``.,+,+
-
-# ─── Serverless canonical scope (ADR-037, 2026-11-01) ────────────────
-# PC-only surfaces retired from the published tree: TUI clients, the stdio
-# MCP servers and the legacy langgraph/langchain harness.
-/.hermes/
-/.atlas/
-/src/ikigai/src/observability/
-
-# ─── Legacy harness launchers and probes (PC-only) ────────────────────
-# The stdio MCP gateway, its LangGraph dev CLI and the orchestrator serve
-# entry point were retired by the serverless pivot (ADR-037). They stay on
-# the owner's PC but must not be published.
-/scripts/chat.py
-/scripts/mcp_inspect.py
-/scripts/mcp-inspect.bat
-/scripts/mcp_probe.py
-/scripts/ikigai-serve.sh
-/scripts/ikigai-serve.bat
-/src/ikigai/start_mcp_gateway.sh
-/src/ikigai/ikigai.bat
-/src/ikigai/bin/
-/src/ikigai/MCP_GATEWAY.md
-
-# ─── Retired v2 CLI surface (PC-only, ADR-037) ───────────────────────
-# `interfaces/cli/v2.py` and its skill-invocation helper are dead code:
-# the v2 sub-app is no longer mounted and both import the unpublished
-# langgraph harness. They stay on the owner's PC for reference only.
-/interfaces/cli/v2.py
-/interfaces/cli/invoke_skill.py
-
-# ─── Runtime logs inside vault/ (append-only, not source) ────────────
-# vault/ikigai/decisions/<date>.jsonl is written by the agent reflection
-# layer on every run (and by the test suite). The decision notes are the
-# markdown files next to it; the jsonl is runtime state.
-/vault/ikigai/decisions/*.jsonl
-
-# ─── init-deep local run artifacts ────────────────────────────────────
-# The DAG scope/report/digest files are produced locally by the init-deep
-# run. The published digests are force-added explicitly when a run lands.
-/.omo-initdeep-oversized.json
-
-# Build artifacts (never part of the published source surface).
-*.pyc

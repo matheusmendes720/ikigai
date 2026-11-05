@@ -1,3 +1,5 @@
+> **[SUPERSEDED 2026-11-02 — ADR-037] The interfaces this diagnostic measures are not published any more. The canonical client is the Telegram bot (`src/bot/main.py`), a projection of the DOM over MCP. See [ADR-037](../code-docs/adr/ADR-037-data-layer-canonical-turn.md).**
+
 # Interface Usability Diagnostic — 2026-09-08
 
 **Scope:** `python -m interfaces.cli` (Typer) + `python -m interfaces.tui.operator` (Textual)  

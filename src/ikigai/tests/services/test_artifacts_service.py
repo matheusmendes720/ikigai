@@ -59,9 +59,16 @@ class FakeRepository:
         self.artifacts: dict[str, Artifact] = {}
         self.relations: list[Relation] = []
         self.keys: set[str] = set()
+        self.written_relations: list[Relation] = []
 
     async def get(self, uid: object) -> Artifact | None:
         return self.artifacts.get(str(uid))
+
+    async def require(self, uid: object) -> Artifact:
+        artifact = self.artifacts.get(str(uid))
+        if artifact is None:
+            raise NotFoundError(f"no artifact with uid {uid}")
+        return artifact
 
     async def upsert(self, req: WriteRequest) -> WriteOutcome:
         key = req.idempotency_key
@@ -80,6 +87,7 @@ class FakeRepository:
             if existing is not None:
                 raise ConflictError(f"{uid} already exists")
             self.artifacts[uid] = req.artifact
+            self.written_relations.extend(req.relations)
             return WriteOutcome(
                 uid=req.artifact.uid,
                 revision=req.artifact.revision,
@@ -91,6 +99,7 @@ class FakeRepository:
             raise ConflictError(f"{uid} was changed by someone else")
         updated = req.artifact.model_copy(update={"revision": existing.revision + 1})
         self.artifacts[uid] = updated
+        self.written_relations.extend(req.relations)
         return WriteOutcome(uid=updated.uid, revision=updated.revision, outcome="updated")
 
     async def soft_delete(self, uid: object, expected_revision: int) -> WriteOutcome:
@@ -151,12 +160,14 @@ def _request(
     idempotency_key: str = "key-1",
     client_id: str = "laptop",
     title: str = "Taxa",
+    relations: tuple[Relation, ...] = (),
 ) -> WriteRequest:
     return WriteRequest(
         artifact=_artifact(slug, title=title),
         expected_revision=expected_revision,
         idempotency_key=idempotency_key,
         client_id=client_id,
+        relations=relations,
     )
 
 
@@ -217,6 +228,100 @@ async def test_soft_delete_marks_the_artifact() -> None:
     outcome = await service.delete(_uid("taxa"), 1)
     assert outcome.revision == 2
     assert repo.artifacts[_uid("taxa")].deleted_at is not None
+
+
+async def test_the_envelope_carries_the_edges() -> None:
+    """The edges travel with the artifact, so the store writes them together."""
+    repo = FakeRepository()
+    service = ArtifactService(repo)  # type: ignore[arg-type]
+
+    await service.upsert(_request(slug="meta"))
+    await service.upsert(
+        _request(
+            slug="taxa",
+            idempotency_key="key-2",
+            relations=(
+                Relation(
+                    src_uid=_uid("taxa"),
+                    dst_uid=_uid("meta"),
+                    rel=RelationType.EVIDENCES,
+                ),
+            ),
+        )
+    )
+
+    assert repo.written_relations == [
+        Relation(
+            src_uid=_uid("taxa"),
+            dst_uid=_uid("meta"),
+            rel=RelationType.EVIDENCES,
+        )
+    ]
+
+
+async def test_an_edge_must_start_at_the_artifact() -> None:
+    """An edge from somewhere else is a different intent, and it is refused."""
+    repo = FakeRepository()
+    service = ArtifactService(repo)  # type: ignore[arg-type]
+
+    await service.upsert(_request(slug="meta"))
+
+    with pytest.raises(InvalidPayloadError):
+        await service.upsert(
+            _request(
+                slug="taxa",
+                idempotency_key="key-2",
+                relations=(
+                    Relation(
+                        src_uid=_uid("meta"),
+                        dst_uid=_uid("taxa"),
+                        rel=RelationType.EVIDENCES,
+                    ),
+                ),
+            )
+        )
+
+    assert _uid("taxa") not in repo.artifacts
+
+
+async def test_an_edge_to_something_that_does_not_exist_is_refused() -> None:
+    """A provenance edge points at what came before, so the target must exist."""
+    repo = FakeRepository()
+    service = ArtifactService(repo)  # type: ignore[arg-type]
+
+    with pytest.raises(NotFoundError):
+        await service.upsert(
+            _request(
+                slug="taxa",
+                relations=(
+                    Relation(
+                        src_uid=_uid("taxa"),
+                        dst_uid=_uid("ausente"),
+                        rel=RelationType.EVIDENCES,
+                    ),
+                ),
+            )
+        )
+
+    assert _uid("taxa") not in repo.artifacts
+
+
+async def test_an_artifact_cannot_relate_to_itself() -> None:
+    repo = FakeRepository()
+    service = ArtifactService(repo)  # type: ignore[arg-type]
+
+    with pytest.raises(InvalidPayloadError):
+        await service.upsert(
+            _request(
+                relations=(
+                    Relation(
+                        src_uid=_uid("taxa"),
+                        dst_uid=_uid("taxa"),
+                        rel=RelationType.EVIDENCES,
+                    ),
+                ),
+            )
+        )
 
 
 async def test_relation_traversal_terminates_on_a_cycle() -> None:
@@ -436,3 +541,36 @@ async def test_sync_records_the_parent_edge(tmp_path: Path) -> None:
     assert stored.parent_uid is not None
     assert str(stored.parent_uid) == "ikigai:objective:q3:cbf000ba:c040f222"
     assert report.relations == 1
+
+
+async def test_a_daily_note_keeps_its_date(tmp_path: Path) -> None:
+    """The vault's daily notes carry `date:` in their frontmatter.
+
+    PyYAML parses an unquoted date into a `datetime.date` and a quoted one
+    into a string; both have to reach the artifact's created_at. The day a
+    note is about IS the day it was created — and the note used to be written
+    with a `note_date` field, which the DOM forbids: a note whose date was
+    quoted was rejected by the model, and the sync dropped it in silence.
+    """
+    vault = tmp_path / "closing-2026"
+    notes = vault / "01-q3-2026" / "04-relatórios-diários"
+    notes.mkdir(parents=True)
+    (notes / "2026-09-07.md").write_text(
+        "---\ntype: planning_note\nnote_version: 1.0\ndate: 2026-09-07\n"
+        "status: draft\n---\n\n# Planning Note — 2026-09-07\n\n- delta\n",
+        encoding="utf-8",
+    )
+    (notes / "2026-09-08.md").write_text(
+        '---\ntype: planning_note\ndate: "2026-09-08"\nstatus: draft\n'
+        "---\n\n# Planning Note — 2026-09-08\n\n- delta\n",
+        encoding="utf-8",
+    )
+
+    repo = FakeRepository()
+    sync = VaultSync(repo, sources=[VaultSource(vault, "closing")])  # type: ignore[arg-type]
+
+    report = await sync.ingest()
+
+    assert report.created == 2, f"a note was dropped: {report.skipped}"
+    days = sorted(artifact.created_at.date().isoformat() for artifact in repo.artifacts.values())
+    assert days == ["2026-09-07", "2026-09-08"]

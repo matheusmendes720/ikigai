@@ -13,10 +13,6 @@ packages = [
     # MCP transport lives at `src/transport/mcp_server.py` (repo root) and the
     # data-layer contract surface in `src/contracts`.
     {include = "strategics", from = "src"},
-    # `sys_ikigai` lives at the REPO ROOT (not under src/ikigai), but the
-    # installed package imports it at runtime. Without shipping it, the
-    # console scripts raise ModuleNotFoundError at import time.
-    {include = "sys_ikigai", from = "../.."},
 ]
 
 [tool.poetry.dependencies]
@@ -28,9 +24,28 @@ typer = ">=0.12"
 rich = "^13.7"
 mcp = "^1.1"
 
+# The store client's driver. `psycopg` is the driver, `psycopg-pool` the
+# pool the DataClient hands out, and `httpx` the Telegram client's HTTP.
+#
+# These three were installed by the Dockerfile directly, because the lock
+# could not be regenerated when ADR-037 was written — and a dependency that
+# lives in the image but not in the manifest is a dependency nobody can
+# install anywhere else. The container installs from THIS file, so this file
+# is where the service's dependencies belong.
+psycopg = { version = "^3.2", extras = ["binary"] }
+psycopg-pool = "^3.2"
+httpx = "^0.27"
+
 # The canonical MCP transport (`src/transport/mcp_server.py`, repo root) is
 # exercised by this package's own suite (`tests/transport/`), so the SDK
 # stays a declared dependency of the venv that runs it.
+#
+# Packaging note: the data layer is imported with a dotted prefix
+# (`from src.contracts.dom import ...`), so it is addressed as `src.*` and
+# needs the repository root on the path. This package's pytest config puts it
+# there (`pythonpath = ["src", "../.."]`) and a container sets it explicitly.
+# The distribution does not ship the data layer as a top-level package,
+# because the import identity would then be `contracts`, not `src.contracts`.
 
 [tool.poetry.scripts]
 # The console scripts of the legacy harness (ikigai-maintainer-mcp,
@@ -45,6 +60,11 @@ pytest-asyncio = "^0.23"
 pytest-cov = "^4.1"
 hypothesis = "^6.95"
 mypy = "^1.8"
+# The store tests need a REAL Postgres: the behaviour under test is the
+# SQL's `where revision = $2` guard and the HNSW index, and a double would
+# only prove that the double behaves as written. testcontainers starts one
+# per session, so the suite needs Docker and skips loudly without it.
+testcontainers = { version = "^4.0", extras = ["postgres"] }
 # Pinned to the same Ruff the other CI matrix entries resolve to
 # (0.17.3). An open range would resolve to whatever Ruff is latest at CI
 # time and silently change the gate.
@@ -130,6 +150,12 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 pythonpath = ["src", "../.."]
 addopts = "-v --tb=short"
+# Most of this suite is `async def`: the write contract, the transport's error
+# translation and the vault sync are all asynchronous. pytest-asyncio defaults
+# to "strict", which SKIPS an unmarked async test rather than failing it — a
+# suite with no asyncio_mode runs a fraction of itself and still reports
+# green. "auto" is what makes them run.
+asyncio_mode = "auto"
 # Phase 2 (zazzy-plotting-flask.md §4.1.A.8): DeprecationWarnings for
 # `ikigai.entities.plan.task.TaskEntity` and `ikigai.vault.sync.TaskRecord`
 # fire on construction (PAV-internal models with no production callers

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "ikigai": {
+      "type": "http",
+      "url": "http://127.0.0.1:8000/mcp",
+      "description": "The ikigai store: the vault's artifacts, their relations, and the three ways to search them.",
+      "exposure": "direct"
+    }
+  }
+}

@@ -1,3 +1,5 @@
+> **[SUPERSEDED 2026-11-02 — ADR-037] The LangGraph harness and the dev studio this report exercises are not published any more. The canonical surface is the data layer, and the harness is external. See [ADR-037](../code-docs/adr/ADR-037-data-layer-canonical-turn.md).**
+
 # LangGraph Dev Studio E2E Incident Report
 
 **Date:** 2026-09-29
