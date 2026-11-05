@@ -80,6 +80,10 @@ that imports one is a drift, not a feature.
   with "Source file found twice under different module names"
 - The other canonical packages are ruff-only in CI: `src/contracts`, `src/data`,
   `src/services`, `src/transport`
+- The PR review (`.github/scripts/code_review.py`) runs each package's tools
+  inside that package's own environment. The root bucket — the Python that
+  belongs to no package (the CI tooling, the Telegram client) — runs in the
+  ONE environment the branch publishes: the Ikigai package
 - Pre-commit hooks: `.pre-commit-config.yaml`
 
 ## Project layout
@@ -169,6 +173,11 @@ that imports one is a drift, not a feature.
 - **Never publish a file that imports a package the branch does not publish.**
   `life/cli/cli.py` imported `interfaces.cli.notify_cli` at module scope, and a
   fresh clone could not import the package at all
+- **Never give the repository root a Python project.** The root has no
+  `pyproject.toml` and no `uv.lock`, on purpose: the retired root project is
+  what `uv run --frozen --extra dev` still pointed at, and it resolved on the
+  owner's disk and in no clone. The one published environment is
+  `src/ikigai/`
 - **Append-only** — never delete or prune `vault/`, `strategics/`
 - **Drift tests are append-only**: never delete or weaken one; add a new file under
   `src/ikigai/tests/` instead of editing an existing guard
@@ -216,6 +225,8 @@ that imports one is a drift, not a feature.
 | `src/ikigai/tests/test_published_surface_integrity.py` | a published file imports only published packages; a junk-named root directory holds nothing |
 | `src/ikigai/tests/test_drift_invariants.py` | the transport exposes exactly six tools; the layering holds; the UEID pattern has one source; every write carries a revision and an idempotency key |
 | `src/ikigai/tests/test_gitignore_root_scope.py` | the repository root stays reachable, and no tracked file is ever ignored |
+| `src/ikigai/tests/test_lint_target_is_not_vacuous.py` | every CI lint target resolves to the Python the branch publishes — a gate that checks no file is green forever |
+| `src/ikigai/tests/test_code_review_gate_integrity.py` | the review runs in an environment the branch publishes (the root is not a package), and a failed check always says why |
 | `src/ikigai/tests/contracts/test_dom_kinds_drift.py` | the ten kinds and `KIND_TABLES` stay in sync across the contract and the SQL ends |
 | `src/ikigai/tests/store/test_store_schema.py` | the SQL and the contracts agree; every migration has a reverse script; the full-text configuration precedes the index that needs it |
 | `src/ikigai/tests/transport/test_bind_address.py` | the transport binds the address a CLIENT uses, and the healthcheck dials that one — not the bind host (C-2) |

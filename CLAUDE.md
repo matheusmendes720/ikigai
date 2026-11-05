@@ -142,7 +142,7 @@ ruff-format, mypy and pytest.
 | Changing the model | `src/contracts/dom.py` + `src/contracts/dom_kinds.py` — and the drift test with it |
 | Deploying | [`deploy/README.md`](deploy/README.md) |
 | Driving the agent | [`specs/harness/router.md`](specs/harness/router.md) |
-| Drift net | `src/ikigai/tests/test_canonical_scope.py` · `test_drift_invariants.py` · `test_gitignore_root_scope.py` |
+| Drift net | `src/ikigai/tests/test_canonical_scope.py` · `test_drift_invariants.py` · `test_gitignore_root_scope.py` · `test_lint_target_is_not_vacuous.py` · `test_code_review_gate_integrity.py` |
 
 ---
 
@@ -162,6 +162,11 @@ ruff-format, mypy and pytest.
   need real data to be worth anything.
 - **Don't write to `vault/` from code.** The vault is prose; the store is
   canonical. `VaultSync` reads it and never writes back.
+- **Don't give the repository root a Python project.** No root
+  `pyproject.toml`, no root `uv.lock`: the retired root project is what the
+  review's `uv run --frozen --extra dev` still pointed at, and it resolved
+  on the owner's disk and in no clone. The one published environment is
+  `src/ikigai/`; the review's root bucket runs there.
 - **The bot fails closed.** No `IKIGAI_BOT_ALLOWED_CHAT_IDS`, no bot.
 - **The healthcheck measures the data plane.** A socket that returns bytes is
   not health (contract C-2).
