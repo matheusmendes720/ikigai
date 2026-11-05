@@ -48,6 +48,12 @@ RETIRED_PATHS = (
     "sys_ikigai",
     "src/mesh",
     "interfaces",
+    # The retired root CLI hub. Its manifest was deleted with the root project,
+    # but the package it published stayed tracked — and `life/cli/cli.py`
+    # imports `interfaces.cli.notify_cli` at module scope, so a fresh clone
+    # could not import it at all. A published tree that cannot be imported is
+    # not published, it is broken.
+    "life",
     "vibe-ops",
     "src/agents",
     "src/ikigai/src/agents",

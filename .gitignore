@@ -45,6 +45,22 @@
 /[A-Za-z0-9_][A-Za-z0-9_]
 !/[A-Za-z0-9_]*/
 !/*/
+# The SAME classes, applied to a root DIRECTORY, and placed HERE — after the
+# two re-inclusions above, because they are what let the junk back in.
+#
+# `!/*/` re-includes every root directory, so a directory whose NAME carries a
+# character no file may legitimately contain (`$FT`, a shell-redirect leftover)
+# came back: git descended into it, and the class rules above only match a
+# ROOT NAME — `/*[^A-Za-z0-9_.-]*` cannot match `$FT/.claude/loop/progress.md`
+# because `*` never crosses a `/`. The proof was tracked: one junk file
+# survived the shape sweep because it sat one directory deep.
+#
+# The trailing slash makes it a DIRECTORY rule: git never descends into a
+# directory it excluded, so the whole tree stays out. A legitimate root
+# directory holds only letters, digits, `_`, `.` and `-` — every one of them
+# is inside the class, so no legitimate directory matches this.
+# The drift test `test_no_tracked_file_is_ignored` holds this honest.
+/*[^A-Za-z0-9_.-]*/
 # `strategics/` holds the PT-BR strategic prose, and it IS published: the
 # vault excerpt names these files as the full grounding
 # (`vault/_strategics_excerpt.md`), and the loader that reads them ships.
@@ -104,6 +120,24 @@ src/ikigai/*[^A-Za-z0-9_.-]*
 !/src/ikigai/README.md
 !/src/ikigai/CHANGELOG.md
 !/src/ikigai/SPEC.md
+# The PUBLISHED PYTHON of this package — the strategics loader the image
+# installs. The class rules above swallow the tree's name: "src" is a bare
+# identifier, so Class B matches it, and the re-inclusion on line 112 is a
+# DIRECTORY rule that brings the directory back to git but leaves a file
+# matched deeper down excluded from ruff's walk.
+#
+# That divergence is not cosmetic. It made `ruff check src/` — the CI gate of
+# this very package — resolve to ZERO files: a gate that checks nothing is
+# green forever, and a real `I001` was hiding in the loader the whole time.
+#
+# So the published files are named back one by one, like the documents above.
+# The retired trees under this root are excluded again further down (§7), which
+# is after this rule — the last rule to match is the one that decides.
+!/src/ikigai/src/
+!/src/ikigai/src/strategics/
+!/src/ikigai/src/strategics/__init__.py
+!/src/ikigai/src/strategics/loader.py
+!/src/ikigai/src/strategics/frontmatter_compat.py
 # Scratch artifacts from ad-hoc CLI and debugging sessions.
 /src/ikigai/*.log
 /src/ikigai/chat_*.txt
@@ -315,6 +349,18 @@ vault/.db
 /sys_ikigai/
 /src/mesh/
 /interfaces/
+# The retired root CLI hub. Its manifest was deleted with the root project
+# below — the manifest declared `packages = ["life", ...]`, and the tree it
+# published is this one. It stayed tracked because the cut ignored the
+# DIRECTORY by name only for the manifest, never for the package.
+#
+# It is retired for a reason that is not only architectural: `life/cli/cli.py`
+# imports `interfaces.cli.notify_cli` at module scope, and `interfaces/` is
+# unpublished as a whole tree (ADR-037). A fresh clone therefore could not even
+# import the package — `ModuleNotFoundError: No module named 'interfaces'` —
+# while the tree still shipped as published. The daily/weekly workflow it drove
+# is the Telegram client's and the harness skills' now.
+/life/
 /vibe-ops/
 /src/agents/
 /src/tuiboard/
@@ -359,14 +405,16 @@ vault/.db
 /docs/auto-performance-os/
 
 # The retired test suite: every top-level module under src/ikigai/tests/
-# tests the retired runtime, except the four that survive and are named
-# explicitly. One rule for the class, four for the exceptions.
+# tests the retired runtime, except the five that survive and are named
+# explicitly. One rule for the class, five for the exceptions.
 /src/ikigai/tests/*.py
 !/src/ikigai/tests/conftest.py
 !/src/ikigai/tests/test_canonical_scope.py
 !/src/ikigai/tests/test_drift_invariants.py
 !/src/ikigai/tests/test_gitignore_root_scope.py
 !/src/ikigai/tests/test_strategics_loader.py
+!/src/ikigai/tests/test_published_surface_integrity.py
+!/src/ikigai/tests/test_lint_target_is_not_vacuous.py
 !/src/ikigai/tests/skills/
 !/src/ikigai/tests/contracts/
 !/src/ikigai/tests/store/
