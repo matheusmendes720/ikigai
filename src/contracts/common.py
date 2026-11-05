@@ -46,14 +46,17 @@ _UEID_PATTERN = re.compile(
     r"[a-z]{2,8}:[a-z_]+:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9]{4,8}:[a-f0-9]{4,8}"
     r")$"
 )
-"""UEID regex: 4-part format type:slug:uuid:hash.
+"""UEID regex: 4-part format ``type:slug:uuid:hash``.
 
-Canonical 5-part format (`<namespace>:<entity_type>:<slug>:<uuid_short>:
-<content_hash_short>`) lives at `src/ikigai/src/ikigai/types.py:UEID` per
-`ueid-5part-canonical-decision-2026-08-31`. This 4-part regex is the
-legacy alias — accepted for vault reads only, never written. Phase 1 of
-zazzy-plotting-flask.md unifies the canonical; until that ships, this
-regex remains the contract surface for legacy adapters.
+Canonical per ADR-014 (which supersedes the 5-part claim recorded in
+`ueid-5part-canonical-decision-2026-08-31`). The 5-part form and the module
+that declared it (``sys_ikigai/types.py``) left the published tree together
+with the pre-ADR-037 runtime (2026-11-02), so this pattern is the only UEID
+the published surface accepts.
+
+The regex is a triple-pattern: 4-part short | 4-part long-UUID | 5-part
+legacy. The 5-part branch exists so that rows written before the ADR-014
+change still READ. It is never written.
 """
 
 

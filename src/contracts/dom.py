@@ -120,7 +120,14 @@ class Relation(BaseModel):
 
 
 class WriteRequest(BaseModel):
-    """The write envelope: optimistic revision + idempotency key + originating client."""
+    """The write envelope: optimistic revision + idempotency key + originating client.
+
+    `relations` travel WITH the artifact, and are written in the same
+    transaction. An edge written on its own can survive the artifact it
+    describes — a graph that points at a node that was never stored — and an
+    edge whose node failed leaves a graph that points at nothing. The graph is
+    written with the node, or not at all.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -128,6 +135,7 @@ class WriteRequest(BaseModel):
     expected_revision: int | None = None
     idempotency_key: str
     client_id: str
+    relations: tuple[Relation, ...] = ()
 
 
 class WriteOutcome(BaseModel):

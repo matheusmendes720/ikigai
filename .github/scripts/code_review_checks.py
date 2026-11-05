@@ -26,7 +26,10 @@ from code_review_topology import (
     ROOT_TEST_ENV,
     ROOT_TEST_PREFIX,
     Bucket,
+    ReviewEnvironmentError,
+    check_cwd,
     package_cwd,
+    root_env_python,
 )
 
 # The rule set every package in the matrix uses. The repository root has no
@@ -55,10 +58,13 @@ def _rel_to_repo(path: str, cwd: Path) -> str:
 def _manager_prefix(spec: PackageSpec | None) -> list[str]:
     """The command prefix that runs a tool inside the package's environment."""
     if spec is None:
-        # The root has no environment of its own: the `dev` extra provides
-        # Ruff / mypy / pytest. `--frozen` keeps the lockfile untouched — a
-        # review must never rewrite a lock.
-        return [tool("uv"), "run", "--frozen", "--extra", "dev"]
+        # The root has no environment of its own — the published tree has no
+        # root `pyproject.toml` and no root `uv.lock` (ADR-037 cut), so the
+        # pre-cut `uv run --frozen --extra dev` cannot resolve in a clone.
+        # The ONE published environment is the Ikigai package; the review
+        # runs its tools through its interpreter (`python -m <tool>`), so the
+        # pinned versions are the ones the lock declares.
+        return [root_env_python(), "-m"]
     if spec.manager == "poetry":
         return [tool("poetry"), "run"]
     if spec.manager == "uv":
@@ -87,8 +93,26 @@ def _relative_files(bucket: Bucket, files: list[str]) -> list[str]:
     prefix = (bucket.spec.path + "/") if bucket.spec else ""
     out = []
     for f in files:
-        out.append(f[len(prefix):] if prefix and f.startswith(prefix) else f)
+        out.append(f[len(prefix) :] if prefix and f.startswith(prefix) else f)
     return out
+
+
+def _absolute_files(bucket: Bucket, files: list[str]) -> list[str]:
+    """Absolute paths — for a bucket that runs outside the repository root.
+
+    The root bucket runs in the published environment, whose working
+    directory is the package directory. A relative path would be resolved
+    against the wrong root, and the check would measure a file that does not
+    exist instead of the one the change touched.
+    """
+    return [str((ROOT / f).resolve()) for f in files]
+
+
+def _bucket_files(bucket: Bucket, files: list[str]) -> list[str]:
+    """The paths a bucket's tools receive, in the form their cwd needs."""
+    if bucket.spec is None:
+        return _absolute_files(bucket, files)
+    return _relative_files(bucket, files)
 
 
 # ─── mypy ─────────────────────────────────────────────────────────────────────
@@ -157,9 +181,14 @@ def check_mypy(bucket: Bucket, strict: bool = False) -> CheckResult:
             f"{bucket.name} is ruff-only in the CI matrix — not type checked",
         )
 
-    cwd = Path(package_cwd(bucket.spec))
+    cwd = Path(check_cwd(bucket.spec))
+    try:
+        prefix = _manager_prefix(bucket.spec)
+    except ReviewEnvironmentError as exc:
+        return CheckResult(name, CheckStatus.FAIL, str(exc), [str(exc)])
+
     cmd = [
-        *_manager_prefix(bucket.spec),
+        *prefix,
         "mypy",
         "--output=json",
         "--no-error-summary",
@@ -172,7 +201,7 @@ def check_mypy(bucket: Bucket, strict: bool = False) -> CheckResult:
         # attribution of the findings; ignoring missing imports keeps the
         # analysis on the files that were actually changed.
         cmd += ["--ignore-missing-imports", "--follow-imports=silent"]
-        cmd += _relative_files(bucket, bucket.files)
+        cmd += _absolute_files(bucket, bucket.files)
     else:
         # The package's canonical target is authoritative. A path-based
         # invocation gives the Ikigai package a SECOND module identity and
@@ -224,7 +253,9 @@ def check_mypy(bucket: Bucket, strict: bool = False) -> CheckResult:
 
     if errors:
         summary = f"{len(errors)} error(s) introduced by this change"
-        return CheckResult(name, CheckStatus.FAIL, summary, errors[:20], annotations, preexisting[:10])
+        return CheckResult(
+            name, CheckStatus.FAIL, summary, errors[:20], annotations, preexisting[:10]
+        )
     summary = "Clean" if not preexisting else "Clean (no new errors)"
     return CheckResult(name, CheckStatus.PASS, summary, [], [], preexisting[:10])
 
@@ -239,9 +270,14 @@ def check_ruff(bucket: Bucket) -> CheckResult:
     if not scope:
         return CheckResult(name, CheckStatus.SKIP, "No source files changed")
 
-    cwd = Path(package_cwd(bucket.spec))
-    files = _relative_files(bucket, scope)
-    cmd = [*_manager_prefix(bucket.spec), "ruff", "check", "--output-format=concise"]
+    cwd = Path(check_cwd(bucket.spec))
+    files = _bucket_files(bucket, scope)
+    try:
+        prefix = _manager_prefix(bucket.spec)
+    except ReviewEnvironmentError as exc:
+        return CheckResult(name, CheckStatus.FAIL, str(exc), [str(exc)])
+
+    cmd = [*prefix, "ruff", "check", "--output-format=concise"]
     if bucket.spec is None:
         cmd += [
             "--select",
@@ -274,7 +310,7 @@ def check_ruff(bucket: Bucket) -> CheckResult:
         line = int(m.group("line"))
         rest = m.group("rest")
         code = rest.split(" ", 1)[0] if rest else ""
-        msg = rest[len(code):].strip() if rest else ""
+        msg = rest[len(code) :].strip() if rest else ""
         entry = f"  {rel}:{line}  [{code}] {msg}"
         if line in bucket.touched.get(rel, set()):
             new_findings.append(entry)
@@ -307,11 +343,21 @@ def check_ruff_format(bucket: Bucket) -> CheckResult:
     if not scope:
         return CheckResult(name, CheckStatus.SKIP, "No source files changed")
 
-    cwd = Path(package_cwd(bucket.spec))
-    files = _relative_files(bucket, scope)
-    cmd = [*_manager_prefix(bucket.spec), "ruff", "format", "--check", "--diff"]
+    cwd = Path(check_cwd(bucket.spec))
+    files = _bucket_files(bucket, scope)
+    try:
+        prefix = _manager_prefix(bucket.spec)
+    except ReviewEnvironmentError as exc:
+        return CheckResult(name, CheckStatus.FAIL, str(exc), [str(exc)])
+
+    cmd = [*prefix, "ruff", "format", "--check", "--diff"]
     if bucket.spec is None:
-        cmd += ["--line-length", CANONICAL_LINE_LENGTH, "--target-version", CANONICAL_TARGET_VERSION]
+        cmd += [
+            "--line-length",
+            CANONICAL_LINE_LENGTH,
+            "--target-version",
+            CANONICAL_TARGET_VERSION,
+        ]
     cmd += files
 
     result = run(cmd, cwd=cwd, env=_package_env(bucket.spec))

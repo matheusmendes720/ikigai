@@ -1,80 +1,58 @@
-# IKIGAi — Meta-Brain of the Algorithmic Life OS
+# ikigai
 
-> **Standalone, local-first, deterministic IKIGAi meta-brain.**
-> Single source of truth: **Markdown frontmatter**. All external apps consume markdown.
+The Poetry package of the canonical service (ADR-037, renewed 2026-11-02).
 
-## Quick Start
+It holds two things, and only two things:
+
+1. **`strategics/`** — the read-only loader that reads the PT-BR strategic
+   prose (`strategics/*.md`) into typed documents for an agent. It never
+   writes.
+2. **`tests/`** — the drift net: the canonical test suite, including the
+   guards that hold the published surface, the layering and the versioning
+   in place.
+
+The service itself is not a distribution. `src/contracts/`, `src/data/`,
+`src/services/`, `src/transport/` and `src/bot/` are imported as
+`src.<package>.*` with the repository root on `sys.path` — the container sets
+that explicitly (`deploy/Dockerfile`). This package is the one that has a
+lockfile, so it is the one the CI installs.
+
+## Install and test
 
 ```bash
 poetry install
-poetry run ikigai --help
-poetry run ikigai vector list --json
-poetry run ikigai plan dream list --json
-poetry run ikigai sync
+poetry run pytest -m "not e2e" -q
+poetry run ruff check src/ && poetry run ruff format --check src/
+poetry run mypy -p src.ikigai.src      # never invoke mypy with a path
 ```
 
-## Architecture
-
-- **Canonical SoT**: Markdown vault with YAML frontmatter (`ueid`, `entity_type`, `slug`, etc.)
-- **Internal mirror**: SQLite (append-only, DB-triggered)
-- **Optional**: ChromaDB for semantic search
-- **Fractal regime**: Global → Cluster → Vector → SubVector (per-level hysteresis)
-- **5 vectors**: passion, skill, market, revenue, course (5th is external/obligation)
-- **Deterministic**: All heuristics are pure arithmetic (no LLM, no NLP)
-
-## Module Layout
-
-```
-src/ikigai/
-├── types.py          UEID (tri-key), ScoreValue (with unit), Path
-├── enums.py          EntityType, VectorType, RegimeType, Phase, StatusType, ScoreUnit
-├── exceptions.py     11 PAV error codes + custom
-├── entities/
-│   ├── base.py       PlanEntity (polymorphic, fractal-friendly)
-│   ├── vector.py     IKIGAiVectorEntity, VectorScorePoint
-│   ├── profile.py    IKIGAiProfile (5-vector snapshot)
-│   ├── skill.py      SkillNode
-│   ├── opportunity.py OpportunitySignal
-│   ├── plan/         Dream → Goal → Objective → Project → Task → Deliverable
-│   └── ops/          Routine, TimeBlock, Ritual, Pomodoro
-├── core/
-│   ├── scoring/      5-vector scoring, hybrid meta-vetor (geo + harmonic), Q_HE, RICE
-│   └── heuristics/   regime, phase_pivot, UCB, opportunity_fit, skill_velocity, cross_priority
-├── state_machines/   8 state machines (Dream through Habit)
-├── propagation/      markdown_db (canonical), sqlite_adapter, triagem
-├── persistence/      markdown_vault, sqlite_repo, chroma_repo
-├── override/         RegimeOverride with recommendation_score
-└── cli/              Typer (--json everywhere)
-```
-
-## Design Decisions (locked)
-
-See `SPEC.md` for the full canonical specification. All 16 architectural questions resolved.
-
-## Status
-
-🟡 **MVP** — Entities, scoring, heuristics, markdown DB, SQLite mirror, state machines, CLI, 250+ tests.
-
-## Observability
-
-OpenTelemetry wiring (LangSmith + Langfuse dual export, OTLP/HTTP):
+The store tests (`tests/store/`) reach a real Postgres through
+testcontainers, so the driver and the container runtime have to be in the same
+environment that runs pytest:
 
 ```bash
-# Enable tracing (no-op when keys absent; server boots when OTEL_ENABLED=false)
-export OTEL_ENABLED=true
-export LANGSMITH_API_KEY=ls__...            # optional
-export LANGSMITH_PROJECT=ikigai              # default: ikigai
-export LANGFUSE_PUBLIC_KEY=pk-lf-...         # optional
-export LANGFUSE_SECRET_KEY=sk-lf-...         # optional
-export LANGFUSE_HOST=https://cloud.langfuse.com
-
-poetry run ikigai-mcp
+poetry run pip install "psycopg[binary]" psycopg-pool "testcontainers[postgres]"
 ```
 
-Reliability layer in `src/agents/tools.py`: `@circuit_breaker` outer + `@retry_with_backoff` inner (so CB counts logical calls, not attempts), with scoped cache invalidation.
+## The drift net
 
-Follow-up specs for the observability sprint live at `docs/observability/`:
-- `01-server-side-reliability.md` — mirror reliability onto the 3 external MCP servers (tuiboard, taskdog, solverforge)
-- `02-integration-smoke-test.md` — e2e smoke test that boots all 4 servers with OTEL, verifies spans in both backends
-- `03-merge-plan.md` — dependency-ordered merge procedure for the 4 OTel feature branches
-- `04-dissolve-worktree.md` — post-merge cleanup for `life-mcp-observability-worktree`
+| File | Holds |
+|---|---|
+| `tests/test_canonical_scope.py` | the retired runtime stays unpublished; the canonical surface stays published; no published file imports an unpublished tree; no LLM SDK in the published tree |
+| `tests/test_drift_invariants.py` | the transport exposes exactly six tools; the layering `transport → services → data` holds; the UEID pattern has one source; every write carries a revision and an idempotency key |
+| `tests/test_gitignore_root_scope.py` | the repository root stays reachable by git, and no tracked file is ever ignored |
+| `tests/contracts/test_dom_kinds_drift.py` | the ten artifact kinds and `KIND_TABLES` stay in sync across the contract and the SQL ends |
+
+These grow with the system and are never weakened to make a suite green.
+
+## What is not here
+
+The pre-ADR-037 runtime — the LangChain/LangGraph harness, the local chat
+REPL, the stdio MCP fork servers, the operator CLI and the tracing stack — is
+**unpublished**. The files stay on the owner's disk and in the git history;
+they are not on the branch. ADR-037 §"publicação independente" is the clause
+that says so.
+
+The algorithm layer is deferred (ADR-037 D1): no PAV kernel, no hysteresis
+FSM, no scoring in the published tree. They come last, and they need real
+data to be worth anything.

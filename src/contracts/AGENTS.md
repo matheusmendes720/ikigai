@@ -1,6 +1,6 @@
 # AGENTS.md — `src/contracts/`
 
-**Score 15 (20 Python modules + 6 SQL migrations, own Hatchling config, 59 exports, imported by 91 repo files) — updated: distinct domain.** The only contract surface shared by every layer — and, since ADR-037, also the contract surface of the store.
+**Score 15 (20 Python modules + 5 SQL migrations, own Hatchling config, 59 exports, imported by 91 repo files) — updated: distinct domain.** The only contract surface shared by every layer — and, since ADR-037, also the contract surface of the store.
 
 ## OVERVIEW
 Two families live here and they do not overlap:
@@ -14,7 +14,7 @@ No logic beyond validation. `migrations/` holds the store's physical SQL.
 |---|---|
 | `Artifact` spine, `ArtifactKind` (10), `Relation` / `RelationType`, `WriteRequest` / `WriteOutcome`, `SearchQuery` / `SearchResult`, `make_uid` | `dom.py` |
 | `KIND_MODELS` + the 10 typed kinds (`SonhoArtifact` … `TarefaArtifact`) | `dom_kinds.py` |
-| `DOMAIN="ikig"`, `EMBEDDING_DIM=1536`, `KIND_TABLES`, `PROVIDER="supabase"`, `RLS_CLIENT_CLAIM`, `STORE_DSN_ENV` | `store.py` |
+| `DOMAIN="ikig"`, `EMBEDDING_DIM=1536`, `KIND_TABLES`, `PROVIDER="postgres"`, `RLS_CLIENT_CLAIM`, `STORE_DSN_ENV` | `store.py` |
 | `DataLayerError` + `ConflictError` / `InvalidPayloadError` / `ForbiddenError` / `NotFoundError` | `errors.py` |
 | `UEID`, `Period`, `Priority`, `EntityType`, `RegimeState`, `TimestampMixin` | `common.py` |
 | `UEID` regex + `PaeCyclePhase` / `PlanTier` / `VectorKey` literals | `common.py` |
@@ -26,6 +26,7 @@ No logic beyond validation. `migrations/` holds the store's physical SQL.
 | `Burndown` `ExecutionRate` `QHEScore` | `metrics.py` |
 | `Investigation` `InvestigationStatus` | `investigation.py` |
 | The store's SQL: schema `ikig`, indexes, RLS policies | `migrations/` |
+| The full-text configuration the index needs | `migrations/0001_text_search.sql` — Postgres ships only `english` and `simple`; this creates `portuguese` BEFORE `0002_indexes.sql` builds the GIN index over it |
 
 ## CONVENTIONS
 - **`__all__` in `__init__.py` is grouped by domain, not alphabetical** (`common` → plan hierarchy → task → **dom → dom errors** → metrics → investigation). The `RUF022` noqa on the assignment is deliberate — do not "fix" the ordering.
@@ -45,7 +46,7 @@ No logic beyond validation. `migrations/` holds the store's physical SQL.
   ^[a-z]{2,8}:[a-z0-9][a-z0-9_-]{0,62}[a-z0-9]:[a-f0-9]{4,8}:[a-f0-9]{4,8}$   (or long-uuid, or 5-part)
   ```
   The SQL `artifacts_uid_format` CHECK in `migrations/0001_init.sql` copies this pattern **verbatim** — keep it that way.
-  Two other regexes exist elsewhere and are NOT kept in sync: `src/mesh/adapters/taskdog.py` (byte-identical copy of this one, inlined to dodge a circular import) and `src/ikigai/contracts/proposal.py` (`{2,5}` 4-part). A third copy lived in `src/ikigai/src/chat/schema.py` (`{2,10}` 4-part) and was removed with the PC-only scope (ADR-037). Do not "unify" the survivors — the drift tests assert each one separately.
+  One other regex exists in the published tree and is NOT kept in sync: `src/ikigai/contracts/proposal.py` (`_UEID_REGEX`, `{2,5}` 4-part). A byte-identical copy lived in `src/mesh/adapters/taskdog.py` and left the branch together with the fork mesh (ADR-037); a third lived in `src/ikigai/src/chat/schema.py` and went with the PC-only scope. The published surface has exactly one source, and `test_drift_invariants.py` holds it to that.
 - **`QHEScore.qhe` and `.regime_predicted` raise `NotImplementedError`** by design (ADR-013). Do not implement the formula here; the PAV kernel is archived.
 - **Never re-define `UEID`, `Task`, or `TaskChange` outside this package.** `src/ikigai/contracts/proposal.py` still defines its own `Proposal` class with a *different* field set (`approval_state` vs `status`) — it is not the canonical `TaskChange`. The second copy, `src/ikigai/src/chat/schema.py`, was removed with the PC-only scope (ADR-037).
 - **Never add business logic to a contract model.** `base.py` keeps `_check_vector_subset` as a *static helper* for the application layer precisely because the validator cannot reach the parent registry.

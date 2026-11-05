@@ -9,7 +9,7 @@ Exactly six tools, each expressing one domain intent. A tool that exposed a tabl
 | Item | Where |
 |---|---|
 | The six tools | `mcp_server.py` — `search_artifacts`, `get_artifact`, `upsert_artifact`, `delete_artifact`, `list_relations`, `embed_text` |
-| The server instance | `mcp = FastMCP("ikigai-data")` |
+| The server instance | `mcp = FastMCP("ikigai-data", host=transport_host(), port=transport_port())` |
 | Wiring | `Services` dataclass, `build_services()`, `get_services()`, `set_services()` |
 | Transport selection | `resolve_transport()` — reads `IKIGAI_MCP_TRANSPORT` (ADR-011) |
 | Entry point | `main()` → `mcp.run(transport=...)` |
@@ -20,7 +20,8 @@ Exactly six tools, each expressing one domain intent. A tool that exposed a tabl
 - **Typed domain errors cross the boundary as a `RuntimeError` whose message starts with the error code.** `_translate_errors` wraps every tool; `_tool_error` renders `"<code>: <message> (<detail>)"` from `DataLayerError.to_dict()`. The four codes — `conflict`, `validation`, `forbidden`, `not_found` — must stay distinguishable: a conflict means reread, a validation failure means fix the payload, a forbidden means stop, a missing artifact means check the UID.
 - **Tool docstrings are PT-BR and are part of the contract** — they are what the calling model reads to decide which tool to reach for.
 - **`get_services()` builds the wiring once per process and caches it; `set_services()` replaces it.** Tests, and any bootstrap that injects a client, use `set_services`.
-- **The transport is selected by env, not by code.** `stdio` (local), `http` → `streamable-http`, `sse`. Host and port come from FastMCP's own settings (`FASTMCP_HOST` / `FASTMCP_PORT`).
+- **The transport is selected by env, not by code.** `stdio` (local), `http` → `streamable-http`, `sse`.
+- **The bind address is resolved HERE, not by FastMCP.** FastMCP takes the host as a constructor argument and reads nothing from the environment — `mcp.run()` accepts only the transport, and the default host is the loopback. `transport_host()` and `transport_port()` read `FASTMCP_HOST` / `FASTMCP_PORT` and are handed to the constructor, so the server and the healthcheck cannot drift apart. A container that set the env and trusted the library would get a server no other container can reach.
 
 ## ANTI-PATTERNS
 - **Never add a seventh tool without updating the drift test.** The expected set lives in `src/ikigai/tests/transport/test_mcp_tools.py`; a new tool is a contract change, not a convenience.
@@ -33,7 +34,13 @@ Exactly six tools, each expressing one domain intent. A tool that exposed a tabl
 ```bash
 python -m src.transport.mcp_server                          # stdio by default
 IKIGAI_MCP_TRANSPORT=http python -m src.transport.mcp_server
+FASTMCP_HOST=0.0.0.0 FASTMCP_PORT=8000 IKIGAI_MCP_TRANSPORT=http \
+  python -m src.transport.mcp_server                        # what a container runs
 ```
+
+## ANTI-PATTERNS (the bind address)
+- **Never let the server bind the loopback in a deployment.** `FASTMCP_HOST=0.0.0.0` is what the compose sets; the default is the loopback because a service must not be exposed by accident.
+- **Never make the healthcheck dial the bind host.** A server bound to `127.0.0.1` also answers a connection to `0.0.0.0` — the kernel resolves it to the loopback — so the check would pass on a service no client can reach. The healthcheck dials the address a client uses.
 
 ## NOTES
 - `src/services/` is the only layer clients reach (ADR-037 §6 rule 2); this module is its only caller.

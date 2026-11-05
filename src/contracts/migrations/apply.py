@@ -47,12 +47,12 @@ def _dsn() -> str:
     return dsn
 
 
-def _connect(dsn: str):  # noqa: ANN202 — psycopg is an optional runtime dependency
+def _connect(dsn: str):  # psycopg is an optional runtime dependency
     try:
         import psycopg
     except ImportError as exc:
         raise MigrationError(
-            'psycopg is required to apply migrations. '
+            "psycopg is required to apply migrations. "
             'Install it with: pip install "psycopg[binary]"'
         ) from exc
     return psycopg.connect(dsn)
@@ -67,14 +67,22 @@ def _checksum(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _applied(conn) -> dict[str, str]:  # noqa: ANN001 — psycopg connection
+def _applied(conn) -> dict[str, str]:  # psycopg connection
     rows = conn.execute("select name, checksum from ikig.schema_migrations").fetchall()
-    return {name: checksum for name, checksum in rows}
+    return dict(rows)
 
 
-def apply_pending(conn) -> list[str]:  # noqa: ANN001 — psycopg connection
+def apply_pending(conn) -> list[str]:  # psycopg connection
     applied: list[str] = []
     recorded = _applied(conn)
+    # The SELECT above opened an implicit transaction. psycopg's
+    # `conn.transaction()` nests into an open transaction as a SAVEPOINT, and
+    # the enclosing transaction is only ended by an explicit commit — so the
+    # migration AND its ledger row would both be discarded by the rollback
+    # that closes the run, and the runner would report "applied" for a schema
+    # that does not exist. The transaction is closed here so that each
+    # migration below owns its own.
+    conn.commit()
     for path in _migration_files():
         checksum = _checksum(path)
         if path.name in recorded:
@@ -94,10 +102,12 @@ def apply_pending(conn) -> list[str]:  # noqa: ANN001 — psycopg connection
     return applied
 
 
-def rollback_last(conn) -> str | None:  # noqa: ANN001 — psycopg connection
+def rollback_last(conn) -> str | None:  # psycopg connection
     row = conn.execute(
         "select name from ikig.schema_migrations order by applied_at desc, name desc limit 1"
     ).fetchone()
+    # The same reason as in apply_pending: the SELECT opened a transaction.
+    conn.commit()
     if row is None:
         return None
     name = row[0]
@@ -110,7 +120,7 @@ def rollback_last(conn) -> str | None:  # noqa: ANN001 — psycopg connection
     return name
 
 
-def status(conn) -> list[tuple[str, str, str]]:  # noqa: ANN001 — psycopg connection
+def status(conn) -> list[tuple[str, str, str]]:  # psycopg connection
     rows = conn.execute(
         "select name, checksum, applied_at from ikig.schema_migrations order by name"
     ).fetchall()

@@ -10,7 +10,6 @@ from __future__ import annotations
 from typing import Any
 
 from src.contracts.dom import Relation, RelationType
-
 from src.data.repository import ArtifactRepository
 
 __all__ = ["RelationService"]
@@ -47,11 +46,7 @@ class RelationService:
                 for relation in await self._repo.list_relations(node, rel):
                     if relation not in collected:
                         collected.append(relation)
-                    other = (
-                        relation.dst_uid
-                        if str(relation.src_uid) == node
-                        else relation.src_uid
-                    )
+                    other = relation.dst_uid if str(relation.src_uid) == node else relation.src_uid
                     key = str(other)
                     if key not in seen:
                         seen.add(key)

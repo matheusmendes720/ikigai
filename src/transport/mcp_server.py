@@ -15,10 +15,10 @@ from __future__ import annotations
 import functools
 import os
 from collections.abc import Awaitable, Callable, Mapping
-from dataclasses import dataclass
 from typing import Any, TypeVar
 
 from mcp.server.fastmcp import FastMCP
+
 from src.contracts.common import UEID
 from src.contracts.dom import (
     ArtifactBundle,
@@ -29,39 +29,49 @@ from src.contracts.dom import (
     WriteOutcome,
     WriteRequest,
 )
+from src.contracts.dom_kinds import ArtifactPayload
 from src.contracts.errors import DataLayerError
-from src.data.client import DataClient
-from src.data.repository import ArtifactRepository
-from src.services.artifacts import ArtifactService
-from src.services.embeddings import EmbeddingService
-from src.services.relations import RelationService
+from src.services.wiring import Services, build_services, prepare_runtime
 
-__all__ = ["Services", "get_services", "mcp", "resolve_transport", "set_services"]
+__all__ = [
+    "Services",
+    "get_services",
+    "mcp",
+    "resolve_transport",
+    "set_services",
+    "transport_host",
+    "transport_port",
+]
 
-mcp = FastMCP("ikigai-data")
+TRANSPORT_HOST_ENV = "FASTMCP_HOST"
+TRANSPORT_PORT_ENV = "FASTMCP_PORT"
+
+
+def transport_host() -> str:
+    """The address the transport binds.
+
+    FastMCP takes the host as a CONSTRUCTOR argument and reads nothing from
+    the environment: `mcp.run()` accepts only the transport, and the default
+    host is the loopback. A deployment that sets FASTMCP_HOST and trusts the
+    library to honour it ends up with a server no other container can reach —
+    and a healthcheck that connects to itself reports it healthy anyway.
+    """
+    return (os.environ.get(TRANSPORT_HOST_ENV) or "127.0.0.1").strip()
+
+
+def transport_port() -> int:
+    """The port the transport binds."""
+    raw = (os.environ.get(TRANSPORT_PORT_ENV) or "8000").strip()
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise ValueError(f"{TRANSPORT_PORT_ENV} is not a port number: {raw!r}") from exc
+
+
+mcp = FastMCP("ikigai-data", host=transport_host(), port=transport_port())
 """The server the harness connects to."""
 
 _T = TypeVar("_T")
-
-
-@dataclass
-class Services:
-    """The service wiring the tools call into."""
-
-    artifacts: ArtifactService
-    relations: RelationService
-    embeddings: EmbeddingService
-
-
-def build_services() -> Services:
-    """Wire the services against the configured store."""
-    client = DataClient()
-    repo = ArtifactRepository(client)
-    return Services(
-        artifacts=ArtifactService(repo),
-        relations=RelationService(repo),
-        embeddings=EmbeddingService(client),
-    )
 
 
 _services: Services | None = None
@@ -128,13 +138,37 @@ async def get_artifact(uid: UEID, depth: int = 1) -> ArtifactBundle:
 
 @mcp.tool()
 @_translate_errors
-async def upsert_artifact(req: WriteRequest) -> WriteOutcome:
+async def upsert_artifact(
+    artifact: ArtifactPayload,
+    idempotency_key: str,
+    client_id: str,
+    expected_revision: int | None = None,
+    relations: tuple[Relation, ...] = (),
+) -> WriteOutcome:
     """Escreve um artefato com versionamento otimista.
 
     Conflito de revisão retorna CONFLICT: releia o artefato e reaplique. Nunca
     sobrescreve o trabalho de outro cliente em silêncio.
+
+    The artifact is the TYPED model for its kind, not the bare spine: a KPI
+    carries its metric and its target, and the store keeps them in the
+    extension table. `expected_revision` is null for a create and the
+    revision you read for an update.
+
+    `relations` are the edges the artifact STARTS, and they are written with
+    it, in the same transaction: the graph is written with the node, or not at
+    all. Each edge names the destination, which must already exist; the
+    source is the artifact being written.
     """
-    return await get_services().artifacts.upsert(req)
+    return await get_services().artifacts.upsert(
+        WriteRequest(
+            artifact=artifact,
+            expected_revision=expected_revision,
+            idempotency_key=idempotency_key,
+            client_id=client_id,
+            relations=relations,
+        )
+    )
 
 
 @mcp.tool()
@@ -188,6 +222,8 @@ def resolve_transport(env: Mapping[str, str] | None = None) -> str:
 
 def main() -> None:
     """Run the server. The harness decides how to reach it."""
+    # Before mcp.run(): the policy has to be chosen before the loop exists.
+    prepare_runtime()
     mcp.run(transport=resolve_transport())
 
 
