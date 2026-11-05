@@ -28,6 +28,7 @@ Run::
 
 from __future__ import annotations
 
+import fnmatch
 import re
 import subprocess
 from pathlib import Path
@@ -68,6 +69,37 @@ RETIRED_PATHS = (
     "vibe-ops/vibeops-tui",
     "plugins/paperclipai",
     "langgraph.json",
+    # The documents that present the retired system AS THE RUNNING SYSTEM.
+    # ADR-037 §"publicação independente": the branch publishes the product,
+    # and the material that speaks about the old system in the present tense
+    # stays on the owner's disk. The decision record — the ADRs, the
+    # data-layer series, the dated audits, the cut — stays published,
+    # because a decision that cites what it eliminated is how it is
+    # evaluated.
+    ".claude/loop",
+    ".claude/commands",
+    ".claude/helpers",
+    "reports",
+    "docs/architecture",
+    "docs/design-system",
+    "docs/integrations",
+    "docs/specs",
+    "docs/superpowers/glossaries",
+    "docs/ARCHITECTURE_INDEX.md",
+    "docs/CONCEPTUAL_MODEL.md",
+    "docs/SPEC.md",
+    "docs/SYSTEMS_TOPOLOGY.md",
+    "docs/LANGRAPH_DEV.md",
+    "docs/FORK_WORKFLOW.md",
+    "docs/PAV_INVENTORY.md",
+    "docs/M139-blocked.md",
+    "docs/2026-09-29-langgraph-dev-studio-e2e.md",
+    "docs/.sdd-progress.md",
+    "docs/ÍNDICE PROGRESSIVO.md",
+    # The specs numbered by the retired roadmap (M<n>-*). One class, one
+    # pattern: the canonical specs are not numbered — specs/harness/ and
+    # specs/data-layer/ are.
+    "specs/M[0-9]*",
 )
 
 # ── Canonical surface (must stay published) ────────────────────────────────
@@ -119,9 +151,22 @@ def _tracked(repo: Path) -> set[str]:
 # ---------------------------------------------------------------------------
 # 1. The retired runtime is gone from the published tree
 # ---------------------------------------------------------------------------
+def _is_retired(path: str, retired: str) -> bool:
+    """Does `path` belong to a retired entry?
+
+    A plain entry is a path or a tree: the path itself, or anything under it.
+    An entry with a wildcard is a CLASS — the specs numbered by the retired
+    roadmap are ninety-five directories, and naming each of them would be a
+    list that goes stale the moment one is added.
+    """
+    if "*" in retired or "?" in retired:
+        return fnmatch.fnmatch(path, retired)
+    return path == retired or path.startswith(retired + "/")
+
+
 def test_retired_runtime_is_not_published() -> None:
     tracked = _tracked(REPO_ROOT)
-    offenders = [p for p in RETIRED_PATHS if any(f == p or f.startswith(p + "/") for f in tracked)]
+    offenders = [p for p in RETIRED_PATHS if any(_is_retired(f, p) for f in tracked)]
     assert not offenders, (
         "Retired PC-only runtime is published again (ADR-037): " + ", ".join(offenders)
     )
