@@ -1,18 +1,49 @@
 # ikigai
 
-**The service.** A personal, single-player agent system: one Postgres store
-that holds the vault as typed, versioned, queryable artifacts; one MCP
-transport over HTTP; one Telegram client that writes and reads through it.
+**A personal life OS with one canonical store and one external agent.**
 
-This repository IS the deployment. There is no separate service repo, no
-"backend" folder to copy out, and no framework underneath.
+One Postgres (with pgvector) holds the vault as typed, versioned, queryable
+artifacts. Our own MCP over HTTP is the only way in. The Telegram client is a
+projection of that model. The agent that operates it is `pi` — external, and
+deliberately not in this repository.
+
+There is no framework underneath. No LangGraph, no model SDK, no orchestrator,
+no second service to copy out. **This repository is the deployment.**
 
 > The decision is recorded in
-> [ADR-037 — Virada Canônica: camada de dados primeiro](code-docs/adr/ADR-037-data-layer-canonical-turn.md)
-> and the renewed scope of 2026-11-02. The one-line version: *"stop building
-> machine and build the data layer, on a harness that already exists."*
+> [ADR-037 — Virada Canônica: camada de dados primeiro](code-docs/adr/ADR-037-data-layer-canonical-turn.md),
+> renewed on 2026-11-02. The one-line version: *"stop building machine and
+> build the data layer, on a harness that already exists."*
 
 ---
+
+## The shape
+
+```text
+   owner ──Telegram──▶ ┌──────────────────────────────────────────┐
+                       │  src/bot/        a projection of the DOM  │
+                       └───────────────────┬──────────────────────┘
+                                           │  MCP over HTTP — six tools
+                       ┌───────────────────▼──────────────────────┐
+                       │  src/transport/   the surface              │
+                       └───────────────────┬──────────────────────┘
+                                           │  in-process
+                       ┌───────────────────▼──────────────────────┐
+                       │  src/services/    the ONLY writer          │
+                       └───────────────────┬──────────────────────┘
+                                           │  SQL
+                       ┌───────────────────▼──────────────────────┐
+                       │  Postgres + pgvector — the canonical state│
+                       └──────────────────────────────────────────┘
+
+   agent ─────────────▶ ┌──────────────────────────────────────────┐
+      (external: pi)    │  .pi/mcp.json + .pi/skills/               │
+                        └──────────────────────────────────────────┘
+```
+
+The prose enters on the left and leaves as rows: `vault/` (markdown) is read
+by `VaultSync`, which writes through the service layer into the store. The
+store is canonical; the markdown is the prose it came from.
 
 ## What is in here
 
@@ -24,16 +55,17 @@ src/data/          the store client — the pooled connection and the retries
                    client.py · repository.py
 src/services/      the domain rules. ONE writer per store.
                    artifacts.py · relations.py · embeddings.py · sync.py
+                   wiring.py — the composition root
 src/transport/     the MCP transport over HTTP, and the healthcheck
                    mcp_server.py · healthcheck.py
 src/bot/           the Telegram client — a projection of the DOM
-src/ikigai/        the python package: contracts surface, tests, packaging
+src/ikigai/        the python package: the strategics loader, the suite, the lock
 vault/             the prose source (markdown). INPUT to the store.
-strategics/        the PT-BR strategic prose. Published; the fork beside it is not.
+strategics/        the PT-BR strategic prose, published; the fork beside it is not.
 deploy/            the container: Dockerfile + compose + the env contract
-specs/             the harness specs and the data-layer series
+specs/harness/     the harness contract: router, prompts, the skill projection
 code-docs/adr/     the decisions, with the reasoning that eliminated the rest
-docs/              the wiki — including the diagnosis that produced this shape
+docs/              the wiki — the record, and the canonical map
 ```
 
 ## The four rules
@@ -45,17 +77,42 @@ docs/              the wiki — including the diagnosis that produced this shape
 | 3 | **The agent is external.** The harness is `pi`; this repository builds no framework, no graph, no orchestrator. | ADR-037 D7 |
 | 4 | **The store wins.** On a structured field, Postgres is canonical and the markdown is the prose it came from. | ADR-037 D4 |
 
+## The stack
+
+| Piece | What it is | Where it runs |
+|---|---|---|
+| **The store** | Postgres 16 + pgvector, schema `ikig`, migrations applied by the api at boot | one container |
+| **The api** | our MCP over HTTP — six tools, no SQL, no policy | one container, bound to `127.0.0.1:8000` |
+| **The bot** | the Telegram client — writes and reads through the api, never touches the database | one container |
+| **The harness** | `pi`, external: it loads `.pi/mcp.json` and `.pi/skills/` | wherever the agent runs |
+
+The api and the bot are the **same image**. The role is the command, not the
+build — so the client and the transport cannot drift apart in the build.
+
 ## Running it
 
 ```bash
 cd deploy
-docker compose up -d --build
+docker compose up -d --build          # db + api + bot
 docker compose exec api python -m src.contracts.migrations.apply up
 docker compose exec api python -m src.transport.healthcheck
 ```
 
-The secrets are named in [`deploy/README.md`](deploy/README.md). None of them
-belongs in a tracked file.
+The api applies the migrations itself before it serves, so the chain holds
+without a manual step. The secrets are named in
+[`deploy/README.md`](deploy/README.md); none of them belongs in a tracked
+file. The bot **fails closed**: without `IKIGAI_BOT_ALLOWED_CHAT_IDS` there is
+no bot.
+
+The api binds the **loopback** on purpose. The public surface is the Telegram
+bot, and the harness reaches the transport through an SSH tunnel:
+
+```bash
+ssh -L 8000:127.0.0.1:8000 <the box>     # then point the harness at http://127.0.0.1:8000/mcp
+```
+
+On the box, `bash scripts/deploy-vps.sh` does the whole thing: fetch,
+checkout, `compose up -d --build`, migrations, healthcheck.
 
 ## The API
 
@@ -70,6 +127,39 @@ Six tools, and the transport is the contract:
 | `list_relations` | walk the typed edges out of one node |
 | `embed_text` | the vector for a string |
 
+## The workflow — the skills
+
+**The skills are the workflow.** A routine is a skill the harness runs, not a
+subcommand a desktop CLI mounts. `specs/harness/skills/<id>/SKILL.md` is the
+published projection; `.pi/skills/` is the copy `pi` loads.
+
+| Routine | Skill | Produces | Cadence |
+|---|---|---|---|
+| Daily | `daily-note` | `nota` | every day |
+| Weekly | `weekly-review` | `revisao` | five-day consolidation |
+| Monthly | `monthly-review` | `desc` / `decisao` | three-week analysis |
+| Quarterly | `quarterly-plan` | `plano` with `fase`, `okr`, `onda` | three-month planning |
+| On demand | `store-read` | — | find, read, follow the graph |
+| On demand | `store-write` | — | write under the conflict contract |
+| On demand | `vault-sync` | — | when the prose changes |
+
+The proportion behind it: five days of execution, three weeks of analysis,
+three months of planning. The 45-day `onda` is the cycle; the 180-day
+macro-phase is the quarter.
+
+The harness contract — how an agent finds its prompt, its skill and its
+cadence — is [`specs/harness/router.md`](specs/harness/router.md).
+
+## The client
+
+Telegram. `/nota` writes the day's note, `/sonho` writes a dream, `/busca`
+queries the store, `/uid` reads an artifact and its edges. The bot is
+owner-only and **fails closed**: no allowlist, no bot.
+
+It is a **projection**, not a fork. The bot never opens a database
+connection; it speaks MCP to the api, and every write carries a revision and
+an idempotency key. One writer per store holds for the client too.
+
 ## The tests
 
 ```bash
@@ -79,36 +169,50 @@ poetry run ruff check src/ && poetry run ruff format --check src/
 poetry run mypy -p src.ikigai.src
 ```
 
-The drift net is the guard: `test_canonical_scope.py` holds the published
-surface, `test_drift_invariants.py` holds the writing and layering rules, and
-`test_gitignore_root_scope.py` holds the repository root reachable. They grow
-with the system and are never weakened to make a suite green.
+The drift net is the specification. It is **append-only**: a guard is never
+weakened to make a suite green, and a new invariant gets a new file.
 
-The PT-BR strategic prose is published too, at `strategics/` — the grounding
-`vault/_strategics_excerpt.md` names as the full foundation. The loader that
-reads it ships as a library under `src/ikigai/src/`. The vendored
-`planning-with-files/` fork beside it is a third-party repository, and it is
-not published.
+| Guard | What it holds |
+|---|---|
+| `test_canonical_scope.py` | the retired runtime stays unpublished; the canonical surface and the vault's prose stay published; no LLM SDK in the tree |
+| `test_published_surface_integrity.py` | a published file imports only published packages; every tracked file exists on disk |
+| `test_drift_invariants.py` | six tools, the layering, the single UEID source, revision + idempotency key on every write |
+| `test_gitignore_root_scope.py` | the repository root stays reachable, and no tracked file is ever ignored |
+| `test_lint_target_is_not_vacuous.py` | every CI lint target resolves to the Python the branch publishes |
+| `test_code_review_gate_integrity.py` | the review runs in an environment the branch publishes, and a failed check always says why |
+| `test_ignore_rules_are_platform_invariant.py` | the ignore rules decide the same thing on every machine |
 
-## What is NOT here, and why
+CI runs five package gates — `ikigai`, `src-contracts`, `src-data`,
+`src-services`, `src-transport` — over ruff, mypy and pytest, plus a
+pre-merge review of the changed files.
 
-The pre-ADR-037 system — the langchain/langgraph harness, the operator CLI,
-the fork mesh, the cybernetic engine, the vault-markdown write path — is
-**unpublished, not deleted**. The files stay on the owner's disk and in the
-git history; they are simply not on this branch. ADR-037 §"publicação
-independente" is the clause that says so.
+## The state of play
 
-The algorithms are **deferred** (ADR-037 D1): no PAV kernel, no hysteresis
-FSM, no scoring in the published tree. They come last, and they need real
-data to be worth anything.
+**Live.** The store, the transport, the client, the harness contract, the
+skill projection, the container, the drift net.
 
-## The client
+**Deferred, on purpose** (ADR-037 D1): no PAV kernel, no hysteresis FSM, no
+scoring in the published tree. They come last, and they need real data to be
+worth anything.
 
-Telegram. `/nota` writes the day's note, `/sonho` writes a dream, `/busca`
-queries the store, `/uid` reads an artifact and its edges. The bot is
-owner-only and **fails closed**: no allowlist, no bot.
+**Unpublished, not deleted.** The pre-ADR-037 system — the langchain/langgraph
+harness, the operator CLI, the fork mesh, the cybernetic engine, the
+vault-markdown write path — is **not on this branch**. The files stay on the
+owner's disk and in the git history. ADR-037 §"publicação independente" is
+the clause that says so, and a drift test fails if any of it comes back.
 
-The intent is the metric: one note written from a client without editing a
-file by hand, zero lost updates with two clients active, and a structured
-search under 100ms at p95. Fourteen days of that decides whether this shape
-worked.
+**The document record is not the architecture.** `docs/` and `code-docs/`
+keep the dated material that explains how the decisions were reached — a
+decision that cites what it eliminated is history, not architecture. What is
+current is what the drift net holds.
+
+## The metric that decides this shape
+
+One note written from a client without editing a file by hand · zero lost
+updates with two clients active · a structured search under 100ms at p95.
+Fourteen days of that decides whether this shape worked — and the intent is
+the metric, not the feature count.
+
+---
+
+*ikigai — the algorithmic life OS. The store wins.*
