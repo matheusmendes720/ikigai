@@ -112,11 +112,31 @@ def run(
     merged = {k: v for k, v in os.environ.items() if k not in _INHERITED_LEAK_VARS}
     if env:
         merged.update(env)
-    return subprocess.run(
-        cmd,
-        check=False,
-        cwd=str(cwd or ROOT),
-        capture_output=True,
-        text=True,
-        env=merged,
-    )
+    try:
+        return subprocess.run(
+            cmd,
+            check=False,
+            cwd=str(cwd or ROOT),
+            capture_output=True,
+            text=True,
+            env=merged,
+        )
+    except FileNotFoundError:
+        # The executable is not there. That is a fact about the environment,
+        # and a fact the review can REPORT: a missing tool becomes a failed
+        # check with the reason attached, instead of a traceback that takes
+        # the whole report down and leaves the log saying nothing about the
+        # checks that did run.
+        return subprocess.CompletedProcess(
+            cmd,
+            127,
+            "",
+            f"code_review: executable not found: {cmd[0]!r} (command: {' '.join(cmd)})",
+        )
+    except OSError as exc:
+        return subprocess.CompletedProcess(
+            cmd,
+            126,
+            "",
+            f"code_review: cannot execute {cmd[0]!r}: {exc}",
+        )
