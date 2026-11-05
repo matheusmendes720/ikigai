@@ -19,10 +19,41 @@ operates it is external — the harness is `pi`.
 
 ---
 
+## The product
+
+Four pieces, and nothing else. A change that does not serve one of them is
+outside the product.
+
+| Piece | What it is | Where it lives |
+|---|---|---|
+| **The store** | One Postgres + pgvector. The DOM lives in the `ikig` schema. The only state. | `src/contracts/migrations/` · `src/data/` |
+| **The transport** | **Our own MCP**, six tools, over HTTP. The only writer. | `src/transport/mcp_server.py` (ADR-011) |
+| **The client** | Telegram. A projection of the DOM, never a fork of it. | `src/bot/main.py` |
+| **The agent** | **The `pi` harness — external.** It reads the project's MCP servers from `.pi/mcp.json` and its skills from `.pi/skills/`. Nothing in this repository imports it. | `specs/harness/` · `.pi/` |
+
+**The skills are the workflow.** `specs/harness/skills/<id>/SKILL.md` is the
+published projection of the routines — `daily-note`, `weekly-review`,
+`monthly-review`, `quarterly-plan`, `store-read`, `store-write`, `vault-sync`.
+`pi` loads them from `.pi/skills/`, and the copy is regenerated from the
+projection. The skills adapt the workflow **into the Telegram client**: a
+routine is a skill the harness runs, not a subcommand a desktop CLI mounts.
+
+**No LangGraph, no model SDK, no orchestrator in the published tree.** The
+harness is `pi` and it is not in this repository (ADR-037 D7). A published file
+that imports one is a drift, not a feature.
+
+---
+
 ## Architecture
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
+│  AGENT — external, the `pi` harness                        │
+│  specs/harness/skills/  ->  .pi/skills/  ->  the routines   │
+│  No model SDK, no graph, no orchestrator in this tree.      │
+└────────────────────────────┬────────────────────────────────┘
+                             │ MCP over HTTP (our own, six tools)
+┌────────────────────────────▼────────────────────────────────┐
 │  CLIENTS — projections of the DOM                            │
 │  Telegram (the bot) · later: TUI, web                      │
 └────────────────────────────┬────────────────────────────────┘
