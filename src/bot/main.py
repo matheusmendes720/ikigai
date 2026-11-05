@@ -14,11 +14,23 @@ bot refuses to start rather than answering anyone who finds the token.
 
 Commands
 --------
-``/nota <texto>``   write a NOTA (the daily report)
-``/sonho <texto>``  write a SONHO (a dream — the top of the pyramid)
-``/busca <texto>``  search the store
-``/uid <uid>``      read one artifact and its edges
-``/help``           the catalogue
+``/nota <texto>``       write a NOTA (the daily report)
+``/sonho <texto>``      write a SONHO (a dream — the top of the pyramid)
+``/revisao <texto>``    write a REVISAO (the weekly review)
+``/plano <texto>``      write a PLANO (the quarterly plan)
+``/onda <texto>``       write an ONDA (a 15-day cycle)
+``/fase <texto>``       write a FASE (a phase row of the plan)
+``/desc <decisão>``     write a DESC — TWO lines: the decision, then why
+``/okr <objetivo>``     write an OKR — TWO lines: the objective, then the KR
+``/busca <texto>``      search the store
+``/uid <uid>``          read one artifact and its edges
+``/help``               the catalogue
+
+The two structured kinds — a decision and an OKR — carry fields of their own,
+and the contract will not take them without those fields. They read them from
+the message: the first line is the head, the second is what the kind also
+needs. A decision without a rationale is not a decision, so the bot asks for
+the second line instead of sending a payload the contract would refuse.
 
 Run::
 
@@ -47,14 +59,66 @@ from typing import Any
 import httpx
 
 from src.contracts.dom import ArtifactKind, make_uid
+from src.contracts.dom_kinds import KIND_MODELS
 
 TELEGRAM_API = "https://api.telegram.org"
 
 #: The kinds the bot may write. It is a projection of the owner's day, not
 #: an editor of the whole pyramid.
+#:
+#: The six that came with the pivot are the cadence kinds: what the daily,
+#: weekly, monthly and quarterly routines produce. The pi harness runs those
+#: routines, but the owner is the one holding the phone at the moment the
+#: decision is taken — so the client writes them too, in the same kinds the
+#: skills write.
 WRITABLE: dict[str, ArtifactKind] = {
     "/nota": ArtifactKind.NOTA,
     "/sonho": ArtifactKind.SONHO,
+    "/revisao": ArtifactKind.REVISAO,
+    "/plano": ArtifactKind.PLANO,
+    "/onda": ArtifactKind.ONDA,
+    "/fase": ArtifactKind.FASE,
+    "/desc": ArtifactKind.DESC,
+    "/okr": ArtifactKind.OKR,
+}
+
+#: The kinds whose contract carries fields of their own, and the order those
+#: fields appear in the message. The first line is the head; the second is
+#: what the kind also needs.
+#:
+#: ``decision`` and ``rationale`` for a DESC, ``objective`` and
+#: ``key_result`` for an OKR. The monthly-review skill says it plainly: a
+#: decision without a rationale is not a decision. So the rationale is not
+#: optional here even though the model leaves it nullable — the bot asks for
+#: it rather than sending a decision with no reason behind it.
+HEAD_FIELDS: dict[ArtifactKind, tuple[str, ...]] = {
+    ArtifactKind.DESC: ("decision", "rationale"),
+    ArtifactKind.OKR: ("objective", "key_result"),
+}
+
+#: What the bot asks for when the message is short of what the kind needs.
+_MISSING_HEAD: dict[ArtifactKind, str] = {
+    ArtifactKind.DESC: (
+        "A decisão precisa do porquê.\nDuas linhas: a primeira é a decisão, a segunda é o racional."
+    ),
+    ArtifactKind.OKR: (
+        "O objetivo precisa do key result.\n"
+        "Duas linhas: a primeira é o objetivo, a segunda é o key result."
+    ),
+}
+
+#: The catalogue the owner reads. It is built FROM ``WRITABLE``, so a command
+#: that can be written is a command the help lists — and a command that is
+#: listed is a command that can be written.
+_COMMANDS: dict[str, tuple[str, str]] = {
+    "/nota": ("<texto>", "registra a nota do dia"),
+    "/sonho": ("<texto>", "registra um sonho"),
+    "/revisao": ("<texto>", "registra a revisão da semana"),
+    "/plano": ("<texto>", "registra o plano do trimestre"),
+    "/onda": ("<texto>", "registra a onda"),
+    "/fase": ("<texto>", "registra a fase do plano"),
+    "/desc": ("<decisão>", "registra a decisão e o porquê — duas linhas"),
+    "/okr": ("<objetivo>", "registra o objetivo e o key result — duas linhas"),
 }
 
 _SLUG_STRIP = re.compile(r"[^a-z0-9]+")
@@ -81,6 +145,7 @@ def _artifact_payload(
     title: str,
     body: str,
     uuid_short: str,
+    head: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the Artifact the transport expects.
 
@@ -88,9 +153,14 @@ def _artifact_payload(
     comes from the Telegram message id and the hash half from the body. Two
     sends of the same message are the same intent, which is what makes the
     write idempotent (ADR-037 D5).
+
+    `head` carries the fields the kind has of its own — the decision and its
+    rationale, the objective and its key result. They are part of the body
+    too: the body is the prose, the typed fields are the structured reading
+    of the same prose.
     """
     now = datetime.now(UTC).isoformat()
-    return {
+    artifact: dict[str, Any] = {
         "uid": str(make_uid(kind, _slugify(title), uuid_short, _hash8(body))),
         "kind": kind.value,
         "title": title,
@@ -99,6 +169,9 @@ def _artifact_payload(
         "created_at": now,
         "updated_at": now,
     }
+    if head:
+        artifact.update(head)
+    return artifact
 
 
 def _write_arguments(
@@ -107,6 +180,7 @@ def _write_arguments(
     body: str,
     uuid_short: str,
     client_id: str,
+    head: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """The arguments for `upsert_artifact` — ONE place, so the client and the
     transport cannot drift apart.
@@ -117,13 +191,44 @@ def _write_arguments(
     fields flat — and every write from Telegram failed with a validation
     error that nothing in the suite noticed.
     """
-    artifact = _artifact_payload(kind, title, body, uuid_short)
+    artifact = _artifact_payload(kind, title, body, uuid_short, head)
     return {
         "artifact": artifact,
         "expected_revision": None,
         "idempotency_key": f"{artifact['uid']}:{artifact['body_hash']}",
         "client_id": client_id,
     }
+
+
+def _head_fields(
+    kind: ArtifactKind,
+    argument: str,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """The kind's own fields, taken from the lines of the message.
+
+    Returns ``(fields, complaint)``. A complaint means the message was short
+    of what the kind needs, and the bot asks for it instead of sending a
+    payload the contract would refuse. A kind with no fields of its own
+    returns ``(None, None)``.
+    """
+    fields = HEAD_FIELDS.get(kind)
+    if fields is None:
+        return None, None
+    lines = argument.splitlines()
+    if len(lines) < len(fields):
+        return None, _MISSING_HEAD[kind]
+    return dict(zip(fields, lines[: len(fields)], strict=True)), None
+
+
+def _validate_artifact(kind: ArtifactKind, artifact: dict[str, Any]) -> None:
+    """The payload must satisfy the kind's OWN model before it leaves the bot.
+
+    The api would refuse it anyway — but the refusal arrives as a transport
+    error, after the message was typed. Validating here names the missing
+    field at the moment the owner is reading the answer, and it is the same
+    model the transport validates against, so the two cannot drift.
+    """
+    KIND_MODELS[kind].model_validate(artifact)
 
 
 class McpClient:
@@ -208,21 +313,21 @@ class Bot:
 
     async def _dispatch(self, command: str, argument: str, message_id: str) -> str:
         if command == "/help":
-            return (
-                "O que eu faço:\n"
-                "/nota <texto> — registra a nota do dia\n"
-                "/sonho <texto> — registra um sonho\n"
-                "/busca <texto> — procura no store\n"
-                "/uid <uid> — lê um artefato e suas arestas\n"
-            )
+            return _catalogue()
 
         if command in WRITABLE:
             if not argument:
                 return "Diz o que é, em uma linha."
             kind = WRITABLE[command]
+            head, complaint = _head_fields(kind, argument)
+            if complaint is not None:
+                return complaint
             title = argument.splitlines()[0][:120]
             body = argument
-            arguments = _write_arguments(kind, title, body, _hash8(message_id), self._client_id)
+            arguments = _write_arguments(
+                kind, title, body, _hash8(message_id), self._client_id, head
+            )
+            _validate_artifact(kind, arguments["artifact"])
             await self._client.call("upsert_artifact", arguments)
             return f"Registado ({kind.value}).\n{arguments['artifact']['uid']}"
 
@@ -261,6 +366,24 @@ class Bot:
                 message = update.get("message") or update.get("edited_message")
                 if message:
                     await self._handle(message)
+
+
+def _catalogue() -> str:
+    """The catalogue of what the bot does.
+
+    It is built FROM ``WRITABLE``, so it cannot drift: a command that can be
+    written is a command the owner is told about, and a command the owner is
+    told about exists in ``WRITABLE``. The two dictionaries are the same
+    length — the catalogue would raise on a command without a description,
+    and the drift test holds them together.
+    """
+    lines = ["O que eu faço:"]
+    for command in WRITABLE:
+        usage, description = _COMMANDS[command]
+        lines.append(f"{command} {usage} — {description}")
+    lines.append("/busca <texto> — procura no store")
+    lines.append("/uid <uid> — lê um artefato e suas arestas")
+    return "\n".join(lines)
 
 
 def _render_search(result: Any) -> str:
