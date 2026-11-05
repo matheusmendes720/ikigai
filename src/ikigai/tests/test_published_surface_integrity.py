@@ -31,6 +31,7 @@ rots.
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -133,17 +134,118 @@ def test_every_tracked_file_exists_on_disk() -> None:
     interpreter that has to import it.
 
     This is the invariant that says the two agree.
+
+    A symlink counts as materialized when the LINK is there, dangling or
+    not: whether it resolves is a different question, and it has its own
+    guard below.
     """
     tracked = _tracked(REPO_ROOT)
     if not tracked:
         return
 
-    missing = [path for path in sorted(tracked) if not (REPO_ROOT / path).exists()]
+    missing = [path for path in sorted(tracked) if not os.path.lexists(REPO_ROOT / path)]
 
     assert not missing, (
         f"{len(missing)} tracked file(s) are not on disk: "
         + ", ".join(missing[:20])
         + ". The index and the worktree disagree."
+    )
+
+
+def test_no_published_symlink_points_outside_the_repository() -> None:
+    """A published symlink has to resolve inside the branch, for everybody.
+
+    The four cadence skills of `.claude/skills/` were published as symlinks
+    to ABSOLUTE paths on the owner's machine, pointing into
+    `src/ikigai/src/agents/` — the tree ADR-037 unpublished and that no
+    clone carries. On the owner's disk they were already dangling; in a
+    clone they are dangling links to a directory that does not exist. The
+    agent that loads them finds nothing, and nothing says why.
+
+    The target is read from the BLOB, not from the worktree: a checkout
+    without symlink support materialises the link as a plain file carrying
+    the path as text, and the guard has to see what git will write
+    everywhere, not what one platform happened to write here.
+    """
+    proc = subprocess.run(
+        ["git", "ls-files", "-s", "-z"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        encoding="utf-8",
+        errors="surrogateescape",
+        check=False,
+    )
+    if proc.returncode != 0:
+        return
+
+    offenders: list[str] = []
+    for entry in proc.stdout.split("\0"):
+        if not entry:
+            continue
+        meta, _, path = entry.partition("\t")
+        mode, sha = meta.split()[0], meta.split()[1]
+        if mode != "120000":  # only symlinks carry a target
+            continue
+        blob = subprocess.run(
+            ["git", "cat-file", "blob", sha],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        target = blob.stdout.strip()
+        if not target:
+            continue
+        if Path(target).is_absolute() or target.startswith("~"):
+            offenders.append(f"{path} -> {target} (absolute)")
+            continue
+        resolved = (REPO_ROOT / path).parent / target
+        try:
+            resolved.resolve().relative_to(REPO_ROOT.resolve())
+        except ValueError:
+            offenders.append(f"{path} -> {target} (escapes the repository)")
+            continue
+        if not os.path.lexists(resolved):
+            offenders.append(f"{path} -> {target} (dangling)")
+
+    assert not offenders, (
+        "published symlinks that do not resolve inside the branch: "
+        + "; ".join(offenders[:20])
+    )
+
+
+def test_the_published_cadence_skills_are_the_projection() -> None:
+    """`.claude/skills/ikigai-*` carries the published skills, byte for byte.
+
+    The four cadence skills — daily, weekly, monthly, quarterly — were
+    published as symlinks into the retired harness, so the agent that loads
+    them found a broken pointer instead of a routine. They are copies of the
+    projection now, and this is what keeps them copies: a skill that drifts
+    is an agent running a routine the repository no longer describes.
+    """
+    projection = REPO_ROOT / "specs" / "harness" / "skills"
+    published = {
+        "ikigai-daily": "daily-note",
+        "ikigai-weekly": "weekly-review",
+        "ikigai-monthly": "monthly-review",
+        "ikigai-quarterly": "quarterly-plan",
+    }
+
+    drifted: list[str] = []
+    for target_name, source_name in published.items():
+        source = projection / source_name / "SKILL.md"
+        target = REPO_ROOT / ".claude" / "skills" / target_name / "SKILL.md"
+        if not source.exists() or not target.exists():
+            drifted.append(f"{target_name} (missing)")
+            continue
+        if source.read_text(encoding="utf-8").replace("\r\n", "\n") != target.read_text(
+            encoding="utf-8"
+        ).replace("\r\n", "\n"):
+            drifted.append(f"{target_name} (drifted)")
+
+    assert not drifted, (
+        "the published cadence skills are not the projection: " + ", ".join(drifted)
     )
 
 
