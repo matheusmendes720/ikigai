@@ -1,7 +1,7 @@
 """Shared Pydantic v2 contracts for the Algorithmic Life OS.
 
 This package contains canonical Pydantic v2 models that are shared across
-ALL layers (agent, interface, data). These are the ONLY contracts
+ALL layers (data, services, transport, clients). These are the ONLY contracts
 between layers.
 
 Design rules:
@@ -10,13 +10,13 @@ Design rules:
 - No business logic — pure data containers with invariants
 - Enums live here too (shared across layers)
 
-Two families live here, and they share a vocabulary on purpose:
+ONE family lives here, and it is the DOM (ADR-037 D2):
 
-- the **unified DOM** (`dom.py`, `dom_kinds.py`) — the model ADR-037 D2 puts
-  at the centre. The kinds carry `plan_tier` and `ikigai_vectors`, so the
-  two families are not separable;
-- the **plan hierarchy** (`sonho.py`, `tarefa.py`, `planning.py`, …) — the
-  contracts the vault prose is written against.
+- the **unified DOM** (`dom.py`, `dom_kinds.py`) — the model at the centre:
+  ten artifact kinds, each a typed model, with the store's constants
+  (`store.py`) and the error surface (`errors.py`) beside it;
+- the **identity** (`common.py`) — the UEID and the two vocabularies the
+  kinds share: the tier they sit at (`PlanTier`) and the priority axis.
 
 Layers:
     - vault/      → markdown source of truth (no Python)
@@ -28,16 +28,10 @@ Layers:
 
 from __future__ import annotations
 
-from .base import BasePlanContract
 from .common import (
     UEID,
-    EntityType,
-    PaeCyclePhase,
-    Period,
     PlanTier,
     Priority,
-    RegimeState,
-    TimestampMixin,
     VectorKey,
 )
 from .dom import (
@@ -66,7 +60,6 @@ from .dom_kinds import (
     SonhoArtifact,
     TarefaArtifact,
 )
-from .entrega import Entrega
 from .errors import (
     ConflictError,
     DataLayerError,
@@ -75,59 +68,16 @@ from .errors import (
     InvalidPayloadError,
     NotFoundError,
 )
-from .investigation import Investigation, InvestigationStatus
-from .meta import Meta
-from .metrics import Burndown, ExecutionRate, QHEScore
-from .objetivo import Objetivo
-from .planning import PlanningCycle, Sprint, VaultEvent, Wave
-from .projeto import Projeto
-from .sonho import Sonho
-from .tarefa import Tarefa
-from .task import (
-    ChecklistItem,
-    Deliverable,
-    Milestone,
-    Project,
-    Subtask,
-    Task,
-)
 
-# (alphabetical sort would destroy the intentional # common / # plan hierarchy / # metrics groupings)
+# (alphabetical sort would destroy the intentional # common / # dom / # dom errors grouping)
 # Ruff RUF022 cannot apply noqa to `__all__ = [...]` itself, so we suppress at the module level via per-file-ignore.
 # See: pyproject.toml [tool.ruff.lint.per-file-ignores] for the canonical suppression.
 __all__ = [  # noqa: RUF022 — entries are grouped by domain with comments, not alphabetically sorted
     # common
     "UEID",
-    "Period",
     "Priority",
-    "EntityType",
-    "RegimeState",
-    "TimestampMixin",
-    # new enums
-    "PaeCyclePhase",
     "PlanTier",
     "VectorKey",
-    # base
-    "BasePlanContract",
-    # plan hierarchy
-    "Sonho",
-    "Objetivo",
-    "Meta",
-    "Projeto",
-    "Entrega",
-    "Tarefa",
-    # task
-    "Task",
-    "Subtask",
-    "ChecklistItem",
-    "Project",
-    "Milestone",
-    "Deliverable",
-    # planning
-    "PlanningCycle",
-    "Wave",
-    "Sprint",
-    "VaultEvent",
     # dom (unified data model — ADR-037 D2)
     "KIND_MODELS",
     "Artifact",
@@ -158,17 +108,4 @@ __all__ = [  # noqa: RUF022 — entries are grouped by domain with comments, not
     "InvalidPayloadError",
     "ForbiddenError",
     "NotFoundError",
-    # metrics
-    "Burndown",
-    "ExecutionRate",
-    "QHEScore",
-    # investigation
-    "Investigation",
-    "InvestigationStatus",
 ]
-
-
-# TaskChange — Phase 3 v1 review queue model
-# (TaskChange / TaskStatus are imported via dotted-prefix
-# `from src.contracts.task_change import ...` — not re-exported here
-# to avoid a circular import surface; see src/mesh/queue.py)

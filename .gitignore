@@ -264,9 +264,15 @@ htmlcov/
 /vibe-ops/.pytest_cache/
 
 # ─── 4. DATA — runtime state, not source ─────────────────────────────────
-# The canonical runtime root is `data/`. Two things under it are tracked
-# source and have to stay reachable: the investigation-queue marker and the
-# store test fixtures. Everything else in there is runtime.
+# The canonical runtime root is `data/`. One thing under it is tracked source
+# and has to stay reachable: the investigation-queue marker. Everything else
+# in there is runtime.
+#
+# `!/data/test-fixtures/` is still a NAMED rule — the platform-invariance guard
+# names it explicitly, and a named rule is a rule somebody can reason about
+# instead of an accident of ordering. §9 excludes the directory itself now (the
+# fixtures belonged to the store that is Postgres now), and the last rule to
+# match decides: the exclusion wins.
 #
 # The ORDER is what makes it work, and the last rule to match is the one that
 # decides. `/data/*` matches the directory ITSELF — its `*` matches the empty
@@ -446,8 +452,13 @@ vault/.db
 # same clause that keeps the ADRs keeps them.
 
 # The retired test suite: every top-level module under src/ikigai/tests/
-# tests the retired runtime, except the ones that survive and are named
-# explicitly. One rule for the class, one for each exception.
+# tests the retired runtime, except the ones that ship and are named
+# explicitly — the survivors of the retired suite, and the guards written
+# after it. One rule for the class, one for each exception.
+#
+# A module that is NOT named here is silently unpublishable: `git add` refuses
+# it, the file stays on the owner's disk, the suite runs it, and a clone does
+# not have it. `test_published_surface_integrity.py` says so.
 /src/ikigai/tests/*.py
 !/src/ikigai/tests/conftest.py
 !/src/ikigai/tests/test_canonical_scope.py
@@ -455,6 +466,7 @@ vault/.db
 !/src/ikigai/tests/test_gitignore_root_scope.py
 !/src/ikigai/tests/test_strategics_loader.py
 !/src/ikigai/tests/test_published_surface_integrity.py
+!/src/ikigai/tests/test_published_scope_is_clean.py
 !/src/ikigai/tests/test_lint_target_is_not_vacuous.py
 !/src/ikigai/tests/test_code_review_gate_integrity.py
 !/src/ikigai/tests/test_ignore_rules_are_platform_invariant.py
@@ -472,3 +484,137 @@ vault/.db
 .env
 .env.local
 .env.*.local
+
+# ─── 9. THE POST-PIVOT SCOPE ─────────────────────────────────────────────
+# The repository has to read like a NEW project: a cold agent that clones it
+# must not meet the architecture of a system that no longer exists. The trees
+# below are that system's own description — its decision surface, its
+# diagnostics, its design canvases, its agent skills, its vendored tools, its
+# planners, its examples, its wiki.
+#
+# They stop being PUBLISHED. None is deleted: they stay on the owner's disk
+# and in the history (ADR-037 §"publicação independente").
+#
+# What stays published is what the current scope rests on: the product, the
+# prose it ingests, the contract it enforces, and the decisions that define
+# it — ADR-011 (the transport), ADR-013 (the scope discipline), ADR-014 and
+# ADR-033 (the UEID), ADR-037 (the pivot), and the data-layer series.
+
+# The decision surface, reduced to the decisions the contracts rest on.
+/code-docs/brd/
+/code-docs/prd/
+/code-docs/diagnostic/
+/code-docs/design/
+/code-docs/ikigai/
+/code-docs/observability/
+/code-docs/proposals/
+/code-docs/specs/
+/code-docs/00-INDEX.md
+/code-docs/00-INDEX-specs.md
+/code-docs/README.md
+/code-docs/glossary.md
+# One rule for the class, one for each exception: the ADRs of the replaced
+# architecture go; the five the contracts rest on stay.
+/code-docs/adr/*.md
+!/code-docs/adr/README.md
+!/code-docs/adr/ADR-011-ikigai-mcp-http-sse-transport.md
+!/code-docs/adr/ADR-013-canonical-scope-discipline.md
+!/code-docs/adr/ADR-014-ueid-canonical-format.md
+!/code-docs/adr/ADR-033-ueid-single-source-mandate.md
+!/code-docs/adr/ADR-037-data-layer-canonical-turn.md
+
+# The dated audits and plans of the system that was replaced.
+/docs/diagnostics/
+/docs/decisions/
+/docs/research/
+/docs/archive/
+/docs/openwiki-visualizer/
+/docs/superpowers/plans/
+# The specs of the retired roadmap: one class, one for each exception — the
+# pivot's own series and the record of the previous cut stay.
+/docs/superpowers/specs/*.md
+!/docs/superpowers/specs/2026-10-30-05-cut.md
+!/docs/superpowers/specs/2026-11-01-00-data-layer-series.md
+!/docs/superpowers/specs/2026-11-01-01-unified-dom.md
+!/docs/superpowers/specs/2026-11-01-02-cloud-store.md
+!/docs/superpowers/specs/2026-11-01-03-service-transport-pi.md
+/docs/DEPLOY.md
+/docs/memory-audit-2026-09.md
+/docs/interface-usability-diagnostic-2026-09-08.md
+/docs/vanilla-pivot.html
+
+# The old harness: third-party skills, agent personas, its own settings. The
+# four ikigai-* skills stay — they are the published projection of the
+# cadences, and a drift test holds them byte for byte.
+/.agents/skills/
+/.claude/skills/*
+!/.claude/skills/ikigai-daily/
+!/.claude/skills/ikigai-weekly/
+!/.claude/skills/ikigai-monthly/
+!/.claude/skills/ikigai-quarterly/
+/.claude/agents/
+/.claude/workflows/
+/.claude/AGENTS.md
+/.claude/settings.json
+
+# The old pipeline, the old planners, and a vendored fork of another product.
+/taskwarrior/
+/tools/
+/src/planner/
+/src/life_tatics/
+
+# The package's residue: the personas, the dead tools, the repro scripts, the
+# old docs, and the changelog of a runtime that is not published.
+/src/ikigai/souls/
+/src/ikigai/tools/
+/src/ikigai/scripts/
+/src/ikigai/docs/
+/src/ikigai/contracts/
+/src/ikigai/tests/reports/
+/src/ikigai/CHANGELOG.md
+/src/ikigai/SPEC.md
+
+# The planning tree of the pre-ADR-037 model. Nothing imported it: the DOM
+# is the model, and the store's SQL mirrors the DOM, not the tree.
+/src/contracts/base.py
+/src/contracts/entrega.py
+/src/contracts/investigation.py
+/src/contracts/meta.py
+/src/contracts/metrics.py
+/src/contracts/objetivo.py
+/src/contracts/planning.py
+/src/contracts/projeto.py
+/src/contracts/sonho.py
+/src/contracts/tarefa.py
+/src/contracts/task.py
+/src/contracts/task_change.py
+
+# The specs of the retired roadmap. The harness and the data layer keep
+# theirs: they are not numbered.
+/specs/agentic-markdown-system/
+/specs/period-reports-sync/
+/specs/vault-bidirectional-sync/
+
+# The old wiki, its diagrams, its examples and its notes.
+/.github/wiki/
+/.github/ISSUE_TEMPLATE/
+/diagrams/
+/examples/
+/notes/
+/openwiki/
+/.codex/
+
+# The SQLite databases of a store that is Postgres now. This rule comes LAST
+# on purpose: §4 still names the directory back, and the last rule to match is
+# the one that decides — so this exclusion is the verdict.
+/data/test-fixtures/
+
+# The tooling of a project that does not exist, and the cruft of a scan.
+/.github/scripts/test_review.py
+/.github/scripts/type_review.py
+/.github/scripts/setup_hooks.py
+/.github/workflows/openwiki-update.yml
+/.pre-commit-config.yaml
+/omo.json
+/.omo-initdeep-*.json
+/CHANGELOG.md

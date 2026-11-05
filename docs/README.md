@@ -27,17 +27,17 @@
 
 | Precisas de… | Vai aqui |
 |---|---|
-| o que o produto é, em 60 segundos | o [README da raiz](</../README.md>) |
-| a decisão que produziu esta forma | [ADR-037 — Virada Canônica](</../code-docs/adr/ADR-037-data-layer-canonical-turn.md>) |
-| o que um agente pode e não pode fazer | [ADR-013 — disciplina de scope](</../code-docs/adr/ADR-013-canonical-scope-discipline.md>) |
-| como o harness encontra prompt, skill e cadência | [specs/harness/router.md](</../specs/harness/router.md>) |
-| os prompts por papel | [specs/harness/SYSTEM-PROMPTS.md](</../specs/harness/SYSTEM-PROMPTS.md>) |
-| o contrato de cada skill | [specs/harness/SKILL-SPECS.md](</../specs/harness/SKILL-SPECS.md>) |
-| a projecção das skills | [specs/harness/skills/](</../specs/harness/skills/>) |
-| o modelo de dados e o SQL | [src/contracts/](</../src/contracts/>) · [specs/data-layer/TECH.md](</../specs/data-layer/TECH.md>) |
+| o que o produto é, em 60 segundos | o [README da raiz](../README.md) |
+| a decisão que produziu esta forma | [ADR-037 — Virada Canônica](../code-docs/adr/ADR-037-data-layer-canonical-turn.md) |
+| o que um agente pode e não pode fazer | [ADR-013 — disciplina de scope](../code-docs/adr/ADR-013-canonical-scope-discipline.md) |
+| como o harness encontra prompt, skill e cadência | [specs/harness/router.md](../specs/harness/router.md) |
+| os prompts por papel | [specs/harness/SYSTEM-PROMPTS.md](../specs/harness/SYSTEM-PROMPTS.md) |
+| o contrato de cada skill | [specs/harness/SKILL-SPECS.md](../specs/harness/SKILL-SPECS.md) |
+| a projecção das skills | [specs/harness/skills/](../specs/harness/skills/) |
+| o modelo de dados e o SQL | [src/contracts/](../src/contracts/) · [specs/data-layer/TECH.md](../specs/data-layer/TECH.md) |
 | a especificação da série da camada de dados | [00 — a série](superpowers/specs/2026-11-01-00-data-layer-series.md) · [01 DOM](superpowers/specs/2026-11-01-01-unified-dom.md) · [02 Store](superpowers/specs/2026-11-01-02-cloud-store.md) · [03 Service + Transporte](superpowers/specs/2026-11-01-03-service-transport-pi.md) |
 | o que foi removido da branch, e porquê | [o corte](superpowers/specs/2026-10-30-05-cut.md) |
-| o que corre, e o que está adiado | o [README da raiz](</../README.md>) · [estado do jogo](</../README.md#the-state-of-play) |
+| o que corre, e o que está adiado | o [README da raiz](../README.md) · [estado do jogo](../README.md#the-state-of-play) |
 
 ## O que esta branch publica
 
@@ -52,7 +52,7 @@ vault/           a prosa (markdown). INPUT do store.
 strategics/      o material estratégico PT-BR. Somente leitura.
 deploy/          o container: Dockerfile + compose + o contrato de ambiente
 specs/           as specs do harness e da série da camada de dados
-code-docs/adr/   as decisões, com o raciocínio que eliminou o resto
+code-docs/adr/   as cinco decisões de que os contratos dependem
 docs/            este wiki — o mapa canônico e o registo
 ```
 
@@ -71,24 +71,24 @@ seis tools, as skills, e o que **não** está aqui.
 ## O que NÃO está aqui — e porquê
 
 O sistema pré-ADR-037 — o harness langchain/langgraph, o CLI do operador, a
-malha de forks, o motor cybernético, a suite de testes da raiz — é
-**não publicado, não deletado**. Os ficheiros ficam no disco do dono e no
-histórico do git; não estão nesta branch. A cláusula é ADR-037
-§"publicação independente".
+malha de forks, o motor cybernético, a suite de testes da raiz, o taskdog, a
+pirâmide de planos — é **não publicado, não deletado**. Os ficheiros ficam no
+disco do dono e no histórico do git; não estão nesta branch. A cláusula é
+ADR-037 §"publicação independente".
 
 Os algoritmos estão **adiados** (ADR-037 D1): sem kernel PAV, sem FSM de
 histerese, sem scoring na árvore publicada. Vêm por último, e precisam de
 dados reais para valerem algo.
 
-O mesmo vale para os **documentos** que descreviam esse sistema como se fosse
-o actual: o índice de arquitetura, a topologia de sistemas, o modelo
-conceptual, o inventário do kernel, as 95 specs numeradas da roadmap
-retirada, as canvases do design system antigo, o estado e os scripts do loop.
-Um documento que afirma o que o sistema *é* — datado ou não, com banner ou
-sem — apresenta o sistema antigo a um leitor que não tem como saber que já
-não é. O que fica é o registo da decisão: as ADRs, a série da camada de
-dados, as auditorias datadas, os planos datados, e o documento do próprio
-corte. É aí que uma decisão se avalia.
+O mesmo vale para os **documentos** e para o **código** que descreviam esse
+sistema como se fosse o actual: o índice de arquitetura, a topologia de
+sistemas, o modelo conceptual, o inventário do kernel, as specs numeradas da
+roadmap retirada, as canvases do design system antigo, as auditorias datadas,
+os planos datados, as skills de terceiros, o wiki antigo — e os módulos de
+contratos da pirâmide de planos (`metrics`, `planning`, `task`, …), que nada
+importava. O teste é a **relevância**: fica o que o âmbito actual assenta —
+o produto, a prosa que ingere, o contrato que impõe, e as decisões que o
+definem. É aí que uma decisão se avalia.
 
 ---
 
@@ -99,11 +99,10 @@ corte. É aí que uma decisão se avalia.
 > decisões foram tomadas** — e uma decisão sem o que eliminou não se
 > avalia. Para saber como o sistema funciona hoje, volta ao mapa canónico.
 
-- [`docs/superpowers/`](superpowers/) — specs formais, planos de implementação, e as revisões por camada datadas de 2026-09-12
-- [`docs/diagnostics/`](diagnostics/) — auditorias e migrações (structure-audit, doc-migration)
-- [`code-docs/adr/`](</../code-docs/adr/>) — as ADRs, com o raciocínio que eliminou as alternativas
-- [`vault/`](</../vault/>) — a prosa: ciclos de planejamento, decisões, metas
-- [`vanilla-pivot.html`](vanilla-pivot.html) — o relatório que precede a virada (2026-10-30)
+- [`code-docs/adr/`](../code-docs/adr/) — as cinco decisões de que os contratos dependem: o transporte (011), a disciplina de âmbito (013), o UEID (014, 033) e a virada (037)
+- [`docs/superpowers/specs/`](superpowers/specs/) — a série da camada de dados (2026-11-01) e o registo do corte que a precedeu (2026-10-30)
+- [`vault/`](../vault/) — a prosa: ciclos de planejamento, decisões, metas
+- [`strategics/`](../strategics/) — o material estratégico PT-BR que as skills leem
 
 ## Modo atual
 
@@ -135,12 +134,12 @@ com dois clientes ativos; busca estruturada com p95 < 100ms.
 
 | Persona | Comece aqui |
 |---|---|
-| Agente implementando a camada de dados | [ADR-037](</../code-docs/adr/ADR-037-data-layer-canonical-turn.md>) → [série 2026-11-01](superpowers/specs/2026-11-01-00-data-layer-series.md) → [TECH.md](</../specs/data-layer/TECH.md>) |
+| Agente implementando a camada de dados | [ADR-037](../code-docs/adr/ADR-037-data-layer-canonical-turn.md) → [série 2026-11-01](superpowers/specs/2026-11-01-00-data-layer-series.md) → [TECH.md](../specs/data-layer/TECH.md) |
 | Agente implementando um feature | `src/contracts/` + a ADR relevante — **e confira a ordem em ADR-037 §3 D1 antes de aceitar** |
-| Agente construindo uma skill | [specs/harness/SKILL-SPECS.md](</../specs/harness/SKILL-SPECS.md>) → a projecção em [specs/harness/skills/](</../specs/harness/skills/>) |
+| Agente construindo uma skill | [specs/harness/SKILL-SPECS.md](../specs/harness/SKILL-SPECS.md) → a projecção em [specs/harness/skills/](../specs/harness/skills/) |
 | Agente auditando o scope | `src/ikigai/tests/test_canonical_scope.py` + `test_drift_invariants.py` — a rede de drift é a especificação |
-| Humano querendo entender o sistema | o [README da raiz](</../README.md>) |
-| Humano querendo usar | `/nota` · `/sonho` · `/busca` · `/uid` no Telegram; e `deploy/README.md` para o container |
+| Humano querendo entender o sistema | o [README da raiz](../README.md) |
+| Humano querendo usar | `/nota` · `/sonho` · `/revisao` · `/plano` · `/onda` · `/fase` · `/desc` · `/okr` · `/busca` · `/uid` no Telegram; e `deploy/README.md` para o container |
 
 ---
 
