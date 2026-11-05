@@ -416,6 +416,7 @@ vault/.db
 !/src/ikigai/tests/test_published_surface_integrity.py
 !/src/ikigai/tests/test_lint_target_is_not_vacuous.py
 !/src/ikigai/tests/test_code_review_gate_integrity.py
+!/src/ikigai/tests/test_ignore_rules_are_platform_invariant.py
 !/src/ikigai/tests/skills/
 !/src/ikigai/tests/contracts/
 !/src/ikigai/tests/store/
