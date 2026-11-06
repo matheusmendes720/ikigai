@@ -15,29 +15,34 @@
 - [ ] Infrastructure / CI-CD
 
 ### Subsystem
-<!-- Which part of the codebase -->
-- [ ] life-ops/operational
-- [ ] vibe-ops
-- [ ] life/ (root CLI)
-- [ ] taskwarrior
+<!-- Which part of the codebase. The published tree: transport → services → data. -->
+- [ ] `src/contracts/` — the DOM and the versioned SQL
+- [ ] `src/data/` — the store client
+- [ ] `src/services/` — the domain rules
+- [ ] `src/transport/` — the MCP transport and the healthcheck
+- [ ] `src/bot/` — the Telegram client
+- [ ] `src/ikigai/` — the package and the canonical suite
+- [ ] `specs/` — the harness contract and the planning tree
+- [ ] `deploy/` — the container
+- [ ] `.github/` — CI and the review scripts
 - [ ] documentation
 - [ ] other: ___
 
 ### How to test
-<!-- Step-by-step to verify this works -->
+<!-- Step-by-step to verify this works. The ONE published environment is src/ikigai/. -->
 1.
 2.
 3.
 
 ```bash
-# Commands to verify
-uv run pytest
-uv run ruff check
-uv run mypy
+# The repository root has no Python project: the environment lives in src/ikigai/
+cd src/ikigai && poetry install && poetry run pytest -m "not e2e"
+cd src/ikigai && poetry run ruff check src/ && poetry run ruff format --check src/
+cd src/ikigai && poetry run mypy -p src.ikigai.src
 ```
 
 ### Acceptance criteria
-<!-- What defines "done"? -->
+<!-- What defines "done"? A falsifiable PASS, not a promise. -->
 - [ ]
 - [ ]
 

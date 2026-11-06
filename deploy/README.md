@@ -93,9 +93,16 @@ Two things follow, and both are enforced rather than assumed:
   `select 1`. A trivial query answers fine under a bound role — RLS does not
   apply to it — while every real write is refused, so `select 1` would have
   reported the container healthy while the store was unusable;
-- `tests/store/test_store_rls.py` proves the policies isolate clients, using
+- `src/ikigai/tests/store/test_store_rls.py` proves the policies isolate clients, using
   a role they actually bind, and proves that the healthcheck's probe is
   refused by such a role.
+
+**This is not a debt to be paid; it is the shape of a single-player store.**
+The `client_id` is an audit label, not a boundary: the deployment is one
+owner, and a second `client_id` is what would make the isolation real (then
+the claim has to be set, and the role must stop owning the tables). The
+decision and its trigger are in `specs/production-readiness/PRODUCT.md` §6 and
+§7 — ADR-038 is where it is recorded.
 
 If the deployment ever moves to a role that does not own the tables, the
 service has to start setting the claim: `select set_config(RLS_CLIENT_CLAIM,
