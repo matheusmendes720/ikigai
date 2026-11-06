@@ -34,6 +34,63 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 #: brackets (`](<path>)`), which is how a path with spaces is written.
 _LINK = re.compile(r"\[[^\]\n]*\]\(\s*(<[^>\n]*>|[^)\s]+)\s*\)")
 
+#: A line that DECLARES a repository path: a BULLET, or a table row, whose
+#: first content is a code-spanned path. "- `src/planner/` — markdown-only
+#: planning notes" is a declaration.
+#:
+#: The bullet marker is required, and that is the whole trick: a wrapped
+#: continuation ("  `src/mesh/`, no `interfaces/`") does not declare a
+#: location, it continues one. Only the line that STARTS the item declares
+#: something, so only it is held to account.
+_DECLARES_PATH = re.compile(r"^\s*(?:[-*+]\s+|\|\s*)`([^`\n]+)`")
+
+
+#: A declaration is a PATH: it crosses a directory separator and it is not a
+#: command. `uv run --frozen --extra dev` has spaces; `sys.path` and
+#: `Artifact` have no separator. Neither declares a location in this tree.
+def _is_a_path(token: str) -> bool:
+    return "/" in token and " " not in token.strip()
+
+
+#: Markers of ABSENCE. A line that declares a path may say, ON THAT SAME
+#: LINE, that the path is gone. The marker has to be on the declaration's own
+#: line: a neighbour's "never" is not a permission — that is exactly the
+#: loophole that let a stale bullet hide behind the anti-pattern above it.
+#:
+#: "no" is deliberately NOT one of them: "markdown-only planning notes; no
+#: code" describes a tree that is not there.
+_ABSENCE = (
+    "never",
+    "retired",
+    "unpublished",
+    "not published",
+    "not deleted",
+    "gone",
+    "cut",
+    "removed",
+    "no longer",
+    "does not publish",
+    "do not publish",
+)
+
+#: The trees that are PROSE, not a description of the repository. The vault
+#: and the strategic tree are the owner's own writing: they are allowed to
+#: speak of a system the branch does not publish — the owner decided that the
+#: whole vault stays published (2026-11-05) even though most of it describes
+#: the retired runtime. A guard that forced edits to that prose would be
+#: guarding the wrong thing.
+_PROSE_TREES = ("vault/", "strategics/")
+
+#: The documents that describe the tree AS IT IS, and that a cold agent reads
+#: first. A guide is not history: it says what is here now, so a path it
+#: declares has to exist now.
+#:
+#: The historical documents are exempt by category, not by listing: an ADR
+#: records a decision at a date and the dated spec series records a design at
+#: a date — the same clause that keeps the dated audits keeps them. They may
+#: name a tree that is gone; that is what being a record means.
+_GUIDES = ("AGENTS.md", "README.md")
+
 #: The modules the published contract surface is made of: the DOM, its
 #: kinds, the store's constants, the error surface, and the identity.
 _CONTRACT_MODULES = ("common", "dom", "dom_kinds", "errors")
@@ -109,6 +166,96 @@ def test_a_published_document_links_only_to_published_paths() -> None:
         "published documents link to paths the branch does not publish: "
         + "; ".join(offenders[:20])
     )
+
+
+def test_a_published_document_declares_only_published_paths() -> None:
+    """A guide that names a tree the branch does not publish sends the reader
+    looking for files that are not there.
+
+    This is the other half of the link guard above. A link is a pointer the
+    reader follows; a DECLARATION is a statement about the shape of the tree,
+    and a cold agent reads it as fact. The scope cut took the trees away and
+    left three guides still describing them — `AGENTS.md` listing
+    `src/life_tatics/` and `src/planner/`, `specs/AGENTS.md` describing a
+    hundred files across ninety-five milestone directories, and the pull
+    request template telling contributors to run `uv run pytest` at a root
+    that has no Python project.
+
+    A declaration may be relative to the repository root or to the document's
+    own directory; both are accepted, because both are used.
+    """
+    tracked = _tracked()
+    offenders: list[str] = []
+    for rel in sorted(path for path in tracked if path.endswith(".md")):
+        if rel.startswith(_PROSE_TREES):
+            continue
+        if posixpath.basename(rel) not in _GUIDES:
+            continue
+        text = (REPO_ROOT / rel).read_text(encoding="utf-8", errors="replace")
+        lines = text.splitlines()
+        for lineno, line in enumerate(lines):
+            match = _DECLARES_PATH.match(line)
+            if not match:
+                continue
+            if any(marker in _item_text(lines, lineno) for marker in _ABSENCE):
+                continue
+            target = match.group(1).strip()
+            if not _is_a_path(target):
+                continue
+            if not _is_published(rel, target, tracked):
+                offenders.append(f"{rel}:{lineno} -> {target}")
+
+    assert not offenders, (
+        "published documents declare paths the branch does not publish: "
+        + "; ".join(offenders[:20])
+    )
+
+
+def _item_text(lines: list[str], lineno: int) -> str:
+    """The list item that starts at `lineno`: the line and its continuations.
+
+    A marker of absence may sit on the declaration's own line or on the lines
+    that CONTINUE the same item — "…is a vendored third-party fork with its own
+    `.git/` — untracked here, never commit its contents" is one sentence in two
+    lines. It may NOT sit on the previous item: that is how a stale bullet
+    hides behind the anti-pattern above it.
+    """
+    collected = [lines[lineno]]
+    for following in lines[lineno + 1 :]:
+        stripped = following.strip()
+        if not stripped or stripped.startswith(("-", "*", "+", "|")):
+            break
+        collected.append(following)
+    return " ".join(" ".join(collected).split()).lower()
+
+
+def _is_published(rel: str, target: str, tracked: set[str]) -> bool:
+    """Is this declared path one the branch publishes?
+
+    Accepted: a path relative to the repository root, a path relative to the
+    document's own directory, a path with a line range on it, and a
+    SHORT-HAND — the tail of a published path, which is how a guide inside
+    `src/services/` writes `services/`.
+    """
+    text = target.strip().rstrip("/")
+    # A line range is not part of the path: `src/contracts/common.py:40-48`.
+    text = text.split(":", 1)[0] if re.fullmatch(r"[^:]+:\d+(-\d+)?", text) else text
+    if not text or text.startswith(("/", "~", "$", "<")):
+        return True
+    if any(char in text for char in "*?["):
+        return True
+
+    candidates = {text, posixpath.normpath(posixpath.join(posixpath.dirname(rel), text))}
+    for candidate in candidates:
+        if candidate in tracked or candidate + ".md" in tracked:
+            return True
+        if any(path.startswith(candidate + "/") for path in tracked):
+            return True
+    # The short-hand: `services/` means `src/services/`, and
+    # `tests/store/test_store_rls.py` means `src/ikigai/tests/store/...`.
+    if any(text in path.split("/") for path in tracked):
+        return True
+    return any(path.endswith("/" + text) for path in tracked)
 
 
 def test_the_contracts_package_exposes_only_the_dom() -> None:

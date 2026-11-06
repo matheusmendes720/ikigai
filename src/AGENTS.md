@@ -91,8 +91,9 @@ src/
   `src/contracts/common.py` — and only there.
 - **Never write to `vault/` from code.** The vault is prose; the store is
   canonical.
-- **Never treat `src/planner/` as code.** It is markdown-only; no Python
-  module may be added there.
+- **Never let a published guide describe a tree the branch does not publish.**
+  The `src/planner/` notes are gone with the pre-ADR-037 scope: a guide that
+  still lists them sends a cold agent looking for files that are not there.
 
 ## COMMANDS
 
