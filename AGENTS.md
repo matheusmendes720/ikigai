@@ -65,7 +65,9 @@ that imports one is a drift, not a feature.
 - Unit + integration: `cd src/ikigai && poetry run pytest -m "not e2e"`
   (pytest · pytest-asyncio `asyncio_mode = "auto"` · hypothesis · testcontainers —
   the store tests reach a **real Postgres**, so they need Docker)
-- E2E tests are marked `e2e` and are excluded from the default run
+- **There is no e2e yet.** `-m "not e2e"` excludes nothing today: no published test
+  file carries the `e2e` marker. The integrated path (Telegram → `/mcp` → Postgres →
+  read back) has never been run — see `specs/production-readiness/ROADMAP.md` (G1–G5)
 - The drift net lives in `src/ikigai/tests/` and is **append-only**: never delete or
   weaken a guard to make a suite green — add a new file instead
 - Every new behavior gets a test; all tests pass before a PR
@@ -94,18 +96,20 @@ that imports one is a drift, not a feature.
 - `src/transport/` — our MCP transport (FastMCP) over the services + the healthcheck
 - `src/bot/` — the Telegram client; a projection of the DOM
 - `src/ikigai/` — the Poetry package: the strategics loader + the canonical suite
-- `src/life_tatics/` — time-block / screentime CLI (Typer)
-- `src/planner/` — markdown-only planning notes; no code
 - `vault/` — the markdown prose: INPUT to the store, append-only
 - `strategics/` — the PT-BR strategic prose (published; the fork beside it is not)
 - `specs/harness/` — the harness contract: the router, the prompts, the skill specs
 - `specs/harness/skills/` — the published projection of the runtime skills
+- `specs/data-layer/` — the data-layer tech spec (ADR-037)
+- `specs/production-readiness/` — the product state, the plan to close the gap, and the
+  roadmap: `PRODUCT.md` · `TECH.md` · `ROADMAP.md`
 - `deploy/` — the container: Dockerfile, compose.yml, the env contract
-- `code-docs/` — adr / brd / design / diagnostic / prd
-- `docs/` — the wiki, including the diagnosis
-- `data/` — test fixtures (gitignored otherwise)
-- `.claude/` — the agent harness: prompts, skills, slash commands
-- `.pi/` — the project's harness configuration: the MCP server and the skill copy
+- `code-docs/adr/` — the five decisions the contracts rest on (011, 013, 014, 033, 037)
+- `docs/` — the index, and the data-layer spec series under `docs/superpowers/specs/`
+- `data/` — runtime state (gitignored); one tracked marker under `data/investigation_queue/`
+- `.claude/skills/` — the published projection of the four cadence skills
+- `.pi/` — the project's harness configuration: the MCP declaration (`mcp.json`); the
+  skills copy is runtime state and is not published
 - `.github/` — CI + the PR-review scripts
 
 ## Code style
