@@ -31,6 +31,7 @@ from __future__ import annotations
 import importlib.util
 import shutil
 import time
+from collections.abc import Sequence
 from typing import Any
 
 import pytest
@@ -66,7 +67,25 @@ def _p95(samples: list[float]) -> float:
     return ordered[index]
 
 
-async def _settle(repo: Any, query: SearchQuery) -> None:
+def _query_vector(text: str) -> list[float]:
+    """The vector of a query, as the service layer would produce it.
+
+    The repository does not embed the query: it RECEIVES the vector (ADR-039),
+    because the data layer does not know which model wrote the rows and a
+    query vector from another model lands in another space. A test that calls
+    the repository directly therefore has to hand it one — and the one it
+    hands is the one the service would.
+    """
+    from src.services.embeddings import local_embedding
+
+    return local_embedding(text)
+
+
+async def _settle(
+    repo: Any,
+    query: SearchQuery,
+    embedding: Sequence[float] | None = None,
+) -> None:
     """Run the query until the statement settles on its plan.
 
     The driver prepares a statement after a few executions, and the server
@@ -81,7 +100,7 @@ async def _settle(repo: Any, query: SearchQuery) -> None:
     owes the statement it measures.
     """
     for _ in range(WARMUP):
-        await repo.search(query)
+        await repo.search(query, embedding=embedding)
 
 
 class _RecordingClient:
@@ -222,11 +241,12 @@ async def test_semantic_search_p95(store_dsn: str) -> None:
     repo = ArtifactRepository(client)
     try:
         query = SearchQuery(text="texto de benchmark numero", semantic=True, limit=20)
-        await _settle(repo, query)
+        embedding = _query_vector(query.text or "")
+        await _settle(repo, query, embedding)
         samples: list[float] = []
         for _ in range(SAMPLES):
             started = time.perf_counter()
-            await repo.search(query)
+            await repo.search(query, embedding=embedding)
             samples.append((time.perf_counter() - started) * 1000)
 
         p95 = _p95(samples)
@@ -254,14 +274,20 @@ async def test_the_planner_uses_an_index(store_dsn: str) -> None:
     client = DataClient(store_dsn)
     try:
         searches = {
-            "structured": SearchQuery(kinds=(ArtifactKind.KPI,), quarter="Q4-2026", limit=20),
-            "full-text": SearchQuery(text="benchmark numero", limit=20),
-            "semantic": SearchQuery(text="texto de benchmark numero", semantic=True, limit=20),
+            "structured": (
+                SearchQuery(kinds=(ArtifactKind.KPI,), quarter="Q4-2026", limit=20),
+                None,
+            ),
+            "full-text": (SearchQuery(text="benchmark numero", limit=20), None),
+            "semantic": (
+                SearchQuery(text="texto de benchmark numero", semantic=True, limit=20),
+                _query_vector("texto de benchmark numero"),
+            ),
         }
-        for name, query in searches.items():
+        for name, (query, embedding) in searches.items():
             recorder = _RecordingClient(client)
             repo = ArtifactRepository(recorder)
-            await repo.search(query)
+            await repo.search(query, embedding=embedding)
             assert recorder.calls, f"the {name} search sent no SQL"
             sql, params = recorder.calls[0]
             # The plan comes back as one row per line, so it is read in full:
