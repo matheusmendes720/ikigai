@@ -206,9 +206,14 @@ that imports one is a drift, not a feature.
 
 - Branch from `main`; never push to `main` directly
 - Conventional commits: `feat:` / `fix:` / `docs:` / `refactor:` / `chore:` / `test:`
-- PR template: `.github/PULL_REQUEST_TEMPLATE.md`; CI green (the five-package matrix)
-  before merge
-- Open the PR with `gh pr create` once CI is green
+- PR template: `.github/PULL_REQUEST_TEMPLATE.md`; CI green (the five-package matrix
+  and the container job) before merge
+- Open the PR with `gh pr create` once CI is green — **with `--repo
+  matheusmendes720/ikigai`**. The owner's checkout carries a leftover `upstream`
+  remote from the retired runtime (the taskdog bridge), and `gh` resolves the
+  repository from it: the command then fails with "No commits between main and
+  <branch>", which reads like a broken push and is not one. Either name the
+  repository or remove the remote (`git remote remove upstream`).
 
 ## Security
 
