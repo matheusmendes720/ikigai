@@ -1,0 +1,115 @@
+name: Deploy
+
+# The CI/CD half of the service (ADR-039).
+#
+# The image is built ONCE, on the runner, and the server runs THAT image —
+# not one it builds itself. A server that builds on deploy compiles the
+# deploy, and a deploy that compiles something else than CI tested is a
+# deploy nobody verified.
+#
+# Three steps: build the image, push it to GHCR, and tell the server to run
+# it. The gates in `ci.yml` run first — a red gate here means the code was
+# never tested, and the deploy skips itself.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time. Two overlapping deploys would race for the same
+# compose project, and the loser would leave the services in a state neither
+# of them chose.
+concurrency:
+  group: ikigai-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    name: Build and publish the image
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.image.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: The image name
+        id: image
+        run: |
+          # GHCR paths are lowercase; the repository owner is not always
+          # spelled that way in the event payload.
+          echo "name=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/ikigai" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to the server
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: The image tag to run
+        id: target
+        run: echo "tag=${{ needs.build.outputs.image }}:sha-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          IKIGAI_IMAGE: ${{ steps.target.outputs.tag }}
+        with:
+          host: ${{ secrets.IKIGAI_DEPLOY_HOST }}
+          username: ${{ secrets.IKIGAI_DEPLOY_USER }}
+          key: ${{ secrets.IKIGAI_DEPLOY_SSH_KEY }}
+          script: |
+            set -eu
+
+            # The private package needs a login before it can be pulled. The
+            # token is optional: a public package pulls without one, and the
+            # deploy must not fail on a secret it does not need.
+            if [ -n "${IKIGAI_DEPLOY_GHCR_TOKEN:-}" ]; then
+              echo "$IKIGAI_DEPLOY_GHCR_TOKEN" \
+                | docker login ghcr.io --username "$IKIGAI_DEPLOY_GHCR_USER" --password-stdin
+            fi
+
+            cd "$IKIGAI_DEPLOY_PATH"
+            git fetch --all --tags
+            git checkout main
+            git pull --ff-only origin main
+
+            export IKIGAI_IMAGE
+            # `pull` fetches the image the CI just pushed; `--no-build` keeps
+            # the server from building its own.
+            docker compose pull
+            docker compose up -d --remove-orphans --no-build
+            docker compose ps

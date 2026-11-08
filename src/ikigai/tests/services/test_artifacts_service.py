@@ -10,6 +10,7 @@ They do NOT prove the SQL behaves the same way. That is what
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -60,6 +61,9 @@ class FakeRepository:
         self.relations: list[Relation] = []
         self.keys: set[str] = set()
         self.written_relations: list[Relation] = []
+        # The vector each artifact was written with, so a test can ask
+        # whether the retrieval layer was fed.
+        self.embeddings: dict[str, list[float] | None] = {}
 
     async def get(self, uid: object) -> Artifact | None:
         return self.artifacts.get(str(uid))
@@ -70,7 +74,11 @@ class FakeRepository:
             raise NotFoundError(f"no artifact with uid {uid}")
         return artifact
 
-    async def upsert(self, req: WriteRequest) -> WriteOutcome:
+    async def upsert(
+        self,
+        req: WriteRequest,
+        embedding: Sequence[float] | None = None,
+    ) -> WriteOutcome:
         key = req.idempotency_key
         uid = str(req.artifact.uid)
         if key in self.keys:
@@ -87,6 +95,7 @@ class FakeRepository:
             if existing is not None:
                 raise ConflictError(f"{uid} already exists")
             self.artifacts[uid] = req.artifact
+            self.embeddings[uid] = list(embedding) if embedding is not None else None
             self.written_relations.extend(req.relations)
             return WriteOutcome(
                 uid=req.artifact.uid,
@@ -99,6 +108,7 @@ class FakeRepository:
             raise ConflictError(f"{uid} was changed by someone else")
         updated = req.artifact.model_copy(update={"revision": existing.revision + 1})
         self.artifacts[uid] = updated
+        self.embeddings[uid] = list(embedding) if embedding is not None else None
         self.written_relations.extend(req.relations)
         return WriteOutcome(uid=updated.uid, revision=updated.revision, outcome="updated")
 
@@ -115,7 +125,11 @@ class FakeRepository:
         self.artifacts[key] = deleted
         return WriteOutcome(uid=existing.uid, revision=deleted.revision, outcome="updated")
 
-    async def search(self, query: SearchQuery) -> SearchResult:
+    async def search(
+        self,
+        query: SearchQuery,
+        embedding: Sequence[float] | None = None,
+    ) -> SearchResult:
         found = [
             artifact
             for artifact in self.artifacts.values()

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import sys
 from collections.abc import AsyncIterator, Mapping, Sequence
 from contextlib import asynccontextmanager
@@ -35,6 +36,10 @@ __all__ = [
 _MAX_ATTEMPTS = 3
 _BACKOFF_BASE_S = 0.2
 _DEFAULT_CONNECT_TIMEOUT_S = 10
+
+# A channel name reaches the SQL as a literal, so it is checked rather than
+# trusted: only the shape Postgres accepts for an identifier passes.
+_CHANNEL_RE = re.compile(r"^[a-z_][a-z0-9_]*$")
 
 # The Windows-only classes, resolved once and only on Windows. They do not
 # exist on Linux, so they cannot be referenced unconditionally: the name
@@ -219,6 +224,31 @@ class DataClient:
         async with self._pool.connection() as conn:
             async with conn.transaction():
                 yield conn
+
+    @asynccontextmanager
+    async def listen(self, channel: str) -> AsyncIterator[AsyncIterator[Any]]:
+        """A dedicated connection that LISTENs on a channel.
+
+        LISTEN cannot share the pool: a notification arrives on the connection
+        that asked for it, and a pooled connection is handed to whoever asks
+        next. So this opens a connection of its own, in autocommit — LISTEN
+        inside a transaction only takes effect at commit — and hands back the
+        stream of notifications.
+        """
+        if psycopg is None:
+            raise StoreUnavailableError(
+                "psycopg is required to listen for changes. "
+                'Install it with: pip install "psycopg[binary]"'
+            )
+        if not _CHANNEL_RE.match(channel):
+            raise ValueError(f"not a channel name: {channel!r}")
+        await self.connect()
+        conn = await psycopg.AsyncConnection.connect(self._dsn, autocommit=True)
+        try:
+            await conn.execute(f'LISTEN "{channel}"')
+            yield conn.notifies()
+        finally:
+            await conn.close()
 
     async def _execute_once(
         self,

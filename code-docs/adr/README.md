@@ -25,6 +25,7 @@ Accepted; superseded ADRs are linked, never edited.
 | `ADR-014-ueid-canonical-format.md` | Accepted | 2026-09-04 | UEID canonical format = 4-part — the identity `src/contracts/common.py` defines |
 | `ADR-033-ueid-single-source-mandate.md` | Accepted | 2026-09-21 | The UEID pattern has exactly one source — `src/contracts/common.py` |
 | `ADR-037-data-layer-canonical-turn.md` | Accepted | 2026-11-01 | **Virada canônica: camada de dados primeiro** — unified DOM + Postgres store + services/MCP transport; the harness `pi` reused; Telegram as client; the algorithms deferred |
+| `ADR-039-websocket-sync-transport.md` | Accepted | 2026-11-08 | **O canal websocket e a camada de recuperação que o alimenta** — o vetor escrito com o artefacto, o store a anunciar as suas mudanças, um canal bidireccional ao lado do MCP |
 
 ---
 
@@ -47,6 +48,7 @@ Accepted; superseded ADRs are linked, never edited.
 | What may and may not be touched | `ADR-013-canonical-scope-discipline.md` |
 | The identity, and its single source | `ADR-014-ueid-canonical-format.md` · `ADR-033-ueid-single-source-mandate.md` |
 | **Data-layer canonical turn (2026-11-01)** | `ADR-037-data-layer-canonical-turn.md` — DOM + store + services/MCP |
+| The websocket sync channel and the retrieval layer | `ADR-039-websocket-sync-transport.md` — the vector written with the artifact, the store announcing its changes |
 | The series that specified the pivot | [`docs/superpowers/specs/2026-11-01-00-data-layer-series.md`](../../docs/superpowers/specs/2026-11-01-00-data-layer-series.md) |
 | The cut that preceded the pivot | [`docs/superpowers/specs/2026-10-30-05-cut.md`](../../docs/superpowers/specs/2026-10-30-05-cut.md) |
 
@@ -58,7 +60,7 @@ When adding a new ADR:
 
 1. **Append-only** — never edit an Accepted ADR. Supersede, don't rewrite.
 2. **Filename convention** — `ADR-NNN-kebab-slug.md`.
-3. **Numbering** — sequential: next is **ADR-038** (ADR-037 was used by the canonical turn of 2026-11-01).
+3. **Numbering** — sequential: **ADR-038 is reserved** for the single-player-store decision (`specs/production-readiness/ROADMAP.md` O2), so the next free number is **ADR-040**. ADR-039 is the websocket sync channel.
 4. **Cross-reference** — every ADR points to canonical source (file + line range or section).
 5. **Update this README** — add the row to the index table.
 6. **Publish it deliberately.** The ignore rules exclude `code-docs/adr/*.md`

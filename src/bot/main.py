@@ -9,6 +9,13 @@ therefore:
 * reads through ``search_artifacts`` — the store is queried by index, not by
   grepping markdown (D4).
 
+It has TWO transports, and the same interface on both. The MCP call asks the
+store a question. The websocket (``src/bot/ws_client.py``) asks the same
+questions AND receives what the store changed — the writes made by the vault
+ingestion, by another device, by the harness. A bot that only ever learns
+about its own writes is a bot that is perpetually behind, so the websocket is
+used whenever ``IKIGAI_WS_URL`` names one.
+
 Owner-only, and it FAILS CLOSED: if the allowlist is missing or empty, the
 bot refuses to start rather than answering anyone who finds the token.
 
@@ -40,6 +47,9 @@ Environment
 -----------
 ``IKIGAI_BOT_TOKEN``            the Telegram bot token (never in the repo)
 ``IKIGAI_MCP_URL``              the api's MCP endpoint
+``IKIGAI_WS_URL``               the websocket endpoint (optional; when set, the
+                                bot uses it and receives the store's changes)
+``IKIGAI_WS_TOKEN``             the token the websocket asks for
 ``IKIGAI_CLIENT_ID``            the identity written on every write
 ``IKIGAI_BOT_ALLOWED_CHAT_IDS`` comma-separated owner chat ids (required)
 """
@@ -58,6 +68,7 @@ from typing import Any
 
 import httpx
 
+from src.bot.ws_client import WebSocketClient
 from src.contracts.dom import ArtifactKind, make_uid
 from src.contracts.dom_kinds import KIND_MODELS
 
@@ -277,13 +288,26 @@ class McpClient:
 class Bot:
     """The Telegram loop. One command per message, one answer per command."""
 
-    def __init__(self, token: str, client: McpClient, allowed: set[str], client_id: str) -> None:
+    def __init__(
+        self,
+        token: str,
+        client: Any,
+        allowed: set[str],
+        client_id: str,
+        events: Any | None = None,
+    ) -> None:
         self._token = token
         self._client = client
         self._allowed = allowed
         self._client_id = client_id
         self._http = httpx.AsyncClient(timeout=httpx.Timeout(60.0, read=60.0))
         self._offset = 0
+        # The stream of pushed events, when the transport carries them.
+        self._events = events
+        # The uids this bot just wrote. A write is announced by the store
+        # like any other, and the owner does not need to be told about the
+        # note they just dictated.
+        self._own_writes: set[str] = set()
 
     async def _send(self, chat_id: str, text: str) -> None:
         await self._http.post(
@@ -329,7 +353,9 @@ class Bot:
             )
             _validate_artifact(kind, arguments["artifact"])
             await self._client.call("upsert_artifact", arguments)
-            return f"Registado ({kind.value}).\n{arguments['artifact']['uid']}"
+            uid = str(arguments["artifact"]["uid"])
+            self._own_writes.add(uid)
+            return f"Registado ({kind.value}).\n{uid}"
 
         if command == "/busca":
             if not argument:
@@ -349,6 +375,15 @@ class Bot:
         return "Não conheço esse comando. /help"
 
     async def run(self) -> None:
+        """Both halves of the loop: what arrives, and what changes.
+
+        The poll asks Telegram for commands; the event stream carries the
+        changes the store announces. A transport without events simply has
+        nothing to listen to, and the second half returns at once.
+        """
+        await asyncio.gather(self._poll_loop(), self._event_loop())
+
+    async def _poll_loop(self) -> None:
         while True:
             try:
                 response = await self._http.get(
@@ -366,6 +401,39 @@ class Bot:
                 message = update.get("message") or update.get("edited_message")
                 if message:
                     await self._handle(message)
+
+    async def _event_loop(self) -> None:
+        """Forward the store's changes to the owner."""
+        if self._events is None:
+            return
+        async for frame in self._events:
+            try:
+                await self._announce(frame)
+            except Exception as exc:  # an event failure is not fatal
+                print(f"event failed: {exc}", file=sys.stderr)
+
+    async def _announce(self, frame: dict[str, Any]) -> None:
+        """Tell the owner that something changed — unless it was our own write."""
+        data = frame.get("data") or {}
+        uid = str(data.get("uid") or "")
+        if not uid:
+            return
+        if uid in self._own_writes:
+            self._own_writes.discard(uid)
+            return
+
+        title = uid
+        try:
+            bundle = await self._client.call("get_artifact", {"uid": uid, "depth": 0})
+            if isinstance(bundle, dict):
+                title = str((bundle.get("artifact") or {}).get("title") or uid)
+        except Exception:
+            # The artifact may be gone by the time we look. The uid still
+            # names what changed, so the owner is told something useful.
+            pass
+
+        for chat_id in self._allowed:
+            await self._send(chat_id, f"• {title}\n  {uid}")
 
 
 def _catalogue() -> str:
@@ -437,7 +505,21 @@ def main() -> None:
     url = os.environ.get("IKIGAI_MCP_URL", "http://localhost:8000/mcp")
     client_id = os.environ.get("IKIGAI_CLIENT_ID", "owner")
 
-    bot = Bot(token, McpClient(url), allowed, client_id)
+    # Two transports, one interface. The websocket carries the changes the
+    # store announces — the writes made elsewhere — and the MCP call does not.
+    # A bot that only ever learns about its own writes is a bot that is
+    # perpetually behind, so the websocket is preferred when it is configured.
+    ws_url = (os.environ.get("IKIGAI_WS_URL") or "").strip()
+    events: Any | None = None
+    if ws_url:
+        client: Any = WebSocketClient(
+            ws_url, (os.environ.get("IKIGAI_WS_TOKEN") or "").strip() or None
+        )
+        events = client.events()
+    else:
+        client = McpClient(url)
+
+    bot = Bot(token, client, allowed, client_id, events=events)
     asyncio.run(bot.run())
 
 

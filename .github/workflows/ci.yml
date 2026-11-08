@@ -160,6 +160,40 @@ jobs:
           poetry run mypy ${{ matrix.mypy_target || matrix.ruff_target }}
           poetry run pytest -m "not e2e"
 
+  container:
+    name: Container
+    runs-on: ubuntu-latest
+    # The image is what the service ships as, and the compose file is what
+    # ships it. Both are checked here — on every pull request, before the
+    # deploy workflow ever sees the branch. A compose file that no longer
+    # interpolates, or an image that no longer builds, has to fail HERE and
+    # not on the server, at the deploy, with the service down.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # `docker compose config` resolves every substitution, and a missing
+      # one is an error — so the secrets it insists on are named here as
+      # placeholders. This checks the SHAPE of the compose file, never a
+      # secret's value.
+      - name: The compose file resolves
+        env:
+          IKIGAI_DB_PASSWORD: ci-placeholder
+          IKIGAI_BOT_TOKEN: ci-placeholder
+          IKIGAI_BOT_ALLOWED_CHAT_IDS: ci-placeholder
+          IKIGAI_WS_TOKEN: ci-placeholder
+        run: docker compose -f deploy/compose.yml config --quiet
+
+      - name: The image builds
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/Dockerfile
+          push: false
+          cache-from: type=gha
+
   # REMOVED 2026-11-02 (ADR-037 cut) — the jobs below gated surfaces that
   # are not published any more:
   #

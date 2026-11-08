@@ -1,29 +1,40 @@
 # deploy/ — the service, as a container
 
-One box, three containers, one compose (ADR-037, renewed scope 2026-11-02).
+One box, five containers, one compose (ADR-037, renewed scope 2026-11-02;
+ADR-039 adds the websocket and the ingestion).
 
 | Container | Image | Command | What it is |
 |---|---|---|---|
 | `db` | `pgvector/pgvector:pg16` | — | the store. The DOM lives in the `ikig` schema |
 | `api` | built from `deploy/Dockerfile` | `python -m src.transport.mcp_server` | the MCP transport over HTTP. **The only writer** |
+| `ws` | the SAME image | `python -m src.transport.ws_server` | the websocket sync channel: the same six tools, plus the changes the store announces |
+| `sync` | the SAME image | `python -m src.services.sync` | the ingestion: the vault prose into the store, and from there into the vector index |
 | `bot` | the SAME image | `python -m src.bot.main` | the Telegram client. A projection of the DOM, not a fork |
 
-The api and the bot share the image on purpose: they share the contracts, the
+All four of them run the same image on purpose: they share the contracts, the
 store client and the service layer, so they must not be allowed to drift apart
 in the build. The role is the **command**, not the build.
 
 ## The rules this compose encodes
 
-- **One writer per store (ADR-037 D5).** Only the api holds a DSN. The bot
+- **One writer per store (ADR-037 D5).** Only the api, the ws and the sync
+  hold a DSN — and all three go through the same service layer. The bot
   speaks MCP to the api — it has no `IKIGAI_STORE_DSN`, because a fallback to
   the database would be a second writer waiting to happen.
 - **The bot fails closed (contract C-4).** `IKIGAI_BOT_ALLOWED_CHAT_IDS` is
   required; an empty allowlist stops the bot at startup instead of turning it
   into a public write channel.
+- **The websocket fails closed too (ADR-039).** `IKIGAI_WS_TOKEN` is
+  required: the channel is a write path, and a token is the only thing
+  between "the bot" and "anyone who reached the network".
 - **The healthcheck measures the data plane (contract C-2).** It checks that
   the store answers a query and that the transport is listening **on the
   address a client uses** — not that a socket returns bytes, and not that the
   server answered a connection to itself. `python -m src.transport.healthcheck`.
+- **The vault is a volume, not a copy.** `./vault` is mounted read-only into
+  the ingestion. The image carries the prose of the commit it was built from;
+  the volume carries the prose of now. An ingestion that only saw the copy
+  would answer from a stale memory while the vault says otherwise.
 - **Secrets never live in the repo (contract C-5).** Every secret comes from
   the environment; the compose file names each required variable with a `:?`
   guard, so a missing one stops the stack with a readable message.
@@ -36,6 +47,14 @@ in the build. The role is the **command**, not the build.
 | `IKIGAI_DB_USER` | no (default `ikigai`) | the database user |
 | `IKIGAI_DB_PASSWORD` | **yes** | the database password |
 | `IKIGAI_MCP_TRANSPORT` | no (default `http`) | ADR-011: `http` for a deployment, `stdio` for the local harness |
+| `IKIGAI_WS_TOKEN` | **yes** | the token the websocket asks for — it is a write channel, so it fails closed |
+| `IKIGAI_VAULT_SYNC_INTERVAL` | no (default `60`) | seconds between two ingestion runs |
+| `IKIGAI_VAULT_ROOTS` | no | the trees the ingestion reads, `path=layout`, comma-separated |
+| `IKIGAI_EMBEDDING_PROVIDER` | no (default `local`) | `local` (the hashing trick, no key) or `openai` (any compatible endpoint) |
+| `IKIGAI_EMBEDDING_BASE_URL` | with `openai` | the endpoint, e.g. `https://api.openai.com/v1` |
+| `IKIGAI_EMBEDDING_MODEL` | with `openai` | the model name |
+| `IKIGAI_EMBEDDING_API_KEY` | no | the key; it never leaves the environment |
+| `IKIGAI_IMAGE` | no | the image the stack runs; the CI/CD workflow sets it to the tag it published |
 | `IKIGAI_BOT_TOKEN` | **yes** | the Telegram bot token — belongs to the bot process only |
 | `IKIGAI_BOT_ALLOWED_CHAT_IDS` | **yes** | comma-separated owner chat ids; empty stops the bot |
 | `IKIGAI_CLIENT_ID` | no (default `owner`) | the identity written on every write. It is written into the ROW; it is **not** the claim the RLS policies filter on — see below |
@@ -49,7 +68,51 @@ belongs in a tracked file.
 docker compose up -d --build
 docker compose ps
 docker compose exec api python -m src.transport.healthcheck
+docker compose exec ws python -m src.transport.healthcheck --host 0.0.0.0 --port 8001
 docker compose logs -f bot
+```
+
+## The CI/CD — the image is built once and published
+
+Two workflows, and the order matters.
+
+**`ci.yml`** gates every pull request: the five-package matrix (ruff, mypy,
+pytest) and a `container` job that resolves the compose file and BUILDS the
+image. A compose file that no longer interpolates, or an image that no longer
+builds, fails there — not on the server, at the deploy, with the service down.
+
+**`deploy.yml`** runs on `main` and does three things:
+
+1. builds the image on the runner and pushes it to GHCR
+   (`ghcr.io/matheusmendes720/ikigai`), tagged with the commit SHA;
+2. SSHes into the server;
+3. pulls THAT image and runs it — `docker compose pull` then
+   `docker compose up -d --no-build`.
+
+The server never builds the image it runs. A server that builds on deploy
+compiles the deploy, and a deploy that compiles something else than CI tested
+is a deploy nobody verified.
+
+The secrets it needs, all in the repository settings:
+
+| Secret | Meaning |
+|---|---|
+| `IKIGAI_DEPLOY_HOST` | the server |
+| `IKIGAI_DEPLOY_USER` | the user to log in as |
+| `IKIGAI_DEPLOY_SSH_KEY` | the key |
+| `IKIGAI_DEPLOY_PATH` | where the repository is checked out on the server |
+| `IKIGAI_DEPLOY_GHCR_TOKEN` | optional — only for a private package |
+| `IKIGAI_DEPLOY_GHCR_USER` | optional — the user that token belongs to |
+
+The server keeps a clone of this repository at `IKIGAI_DEPLOY_PATH`; the
+workflow fetches it, checks out `main` and pulls. The `.env` with the runtime
+secrets lives on the server and never travels through CI.
+
+To deploy by hand, without the workflow:
+
+```bash
+IKIGAI_IMAGE=ghcr.io/matheusmendes720/ikigai:sha-<commit> docker compose pull
+IKIGAI_IMAGE=ghcr.io/matheusmendes720/ikigai:sha-<commit> docker compose up -d --no-build
 ```
 
 ## The migrations
