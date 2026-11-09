@@ -211,8 +211,33 @@ desaparece em silêncio.
 |---|---|---|
 | **Sync bi-direccional do vault** | ADR-012: `vault_write` é o único writer de `vault/`, e o vault é append-only. ADR-037 D4: o store ganha em campo estruturado, o markdown é a prosa de entrada. Escrever do store para o vault cria um segundo writer e um segundo canónico. | Uma ADR que **substitua** ADR-012 explicitamente, com a direção, o conflito e o lock escritos. Não é um incremento: é a troca de um invariante. |
 | **Índice/compressão "hysteresis"** | ADR-037 D1 adia a camada algorítmica; `PRODUCT.md` §5: "a camada algorítmica — PAV, *hysteresis*, scoring: adiada por ADR-037 D1, e o repo não publica kernel nenhum". Não existe na árvore publicada. | Dados reais e uma ADR que a promova — e ela vem **depois** do store, não antes. |
-| **Retomar o feed** | Exige uma tabela de eventos: o trigger de `0004` anuncia sem persistir, e um `NOTIFY` não é lido por quem não estava ligado. | Uma migração `0007` com `ikig.artifact_events` + sequência + cursor no `hello`. É o degrau seguinte, e é pequeno. |
+| **Retomar o feed** ~~Exige uma tabela de eventos~~ **SUBIU-SE — ver §10.1** | Exigia uma tabela de eventos: o trigger de `0004` anunciava sem persistir, e um `NOTIFY` não é lido por quem não estava ligado. | Feito: migração `0007` com `ikig.artifact_events` (sequência `bigserial`) + frame `resume` + `sequence` no `hello`. |
 
+### 10.1 Emenda: o degrau do feed subiu-se na mesma série
+
+Escrito acima que retomar o feed ficava fora de âmbito, ele foi feito logo a
+seguir, e a ADR fica corrigida em vez de ficar bonita: um documento que diz
+"fora de escopo" sobre uma coisa que já corre é pior do que um documento
+emendado.
+
+- **A migração `0007`** faz o trigger de `0004` escrever a linha em
+  `ikig.artifact_events` na **mesma transação** da escrita do artifact, e
+  anunciar a sequência que escreveu. O anúncio continua — é o que faz o feed
+  ser imediato; a linha é o que o torna retomável.
+- **O frame `resume`** devolve o que veio depois de uma sequência, na ordem do
+  store, com `tip` e `truncated`. Um cliente que esteve ausente sabe o que
+  perdeu em vez de o perder em silêncio.
+- **O `hello` passou a trazer `sequence`**, para o cliente distinguir "nada
+  aconteceu" de "perdi alguma coisa" no momento em que liga.
+- **A sequência é `bigserial`, não um timestamp**: duas escritas no mesmo
+  microssegundo são dois eventos, e um relógio não os ordena.
+- **O log é limitado** (`prune_artifact_events`, 10 000 por defeito, uma vez
+  por arranque). É a única tabela aqui que pode esquecer: um evento só
+  interessa a quem ainda não o retomou, e o artifact continua legível na sua
+  própria linha.
+
+Isto não muda o veredito de §1: o vault continua a não ser escrito de volta
+(ADR-012), e a camada algorítmica continua adiada (ADR-037 D1).
 **Sobre "bi-direccional":** o transporte **já é** bi-direccional (chamadas num
 sentido, eventos no outro). O que o dono pediu pode já estar cumprido no que
 toca ao transporte, e ser só a *escrita de volta para o vault* que está barrada.

@@ -276,7 +276,7 @@ def test_a_change_becomes_an_event_frame() -> None:
 
 
 def test_the_hello_frame_names_the_tools() -> None:
-    frame = ws_server.hello_frame({"search_artifacts", "embed_text"})
+    frame = ws_server.hello_frame({"search_artifacts", "embed_text"}, sequence=0)
 
     assert frame["type"] == "hello"
     assert frame["tools"] == ["embed_text", "search_artifacts"]

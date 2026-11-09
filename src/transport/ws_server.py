@@ -56,6 +56,7 @@ import secrets
 import sys
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from dataclasses import is_dataclass
 from datetime import UTC, datetime
 from typing import Any
 
@@ -84,6 +85,11 @@ WS_ALLOW_ANONYMOUS_ENV = "IKIGAI_WS_ALLOW_ANONYMOUS"
 CLIENT_ID_ENV = "IKIGAI_CLIENT_ID"
 
 _DEFAULT_PORT = 8001
+
+#: How many change events the log keeps. It is a bound for a log that only
+#: grows, not a promise: a client that was away longer than this gets
+#: `truncated` and rereads what it cares about.
+EVENT_LOG_KEEP = 10000
 
 #: The four things a client does with a draft. They are NOT tools: the tool
 #: surface is the six of ADR-037 D6, and a draft is state, not an operation on
@@ -155,9 +161,19 @@ def ws_port() -> int:
 
 
 def _jsonable(value: Any) -> Any:
-    """A result the wire can carry."""
+    """A result the wire can carry.
+
+    A dataclass is here on purpose: `ChangeEvent` and `Replay` are the domain
+    events, and they are plain frozen dataclasses rather than Pydantic models
+    — the service layer holds meaning, and it does not need a validation
+    framework for two fields. `json.dumps` does not know how to serialise one,
+    so a conversion that skips this branch sends an object over a socket and
+    fails on the client's side of the wire.
+    """
     if isinstance(value, BaseModel):
         return value.model_dump(mode="json")
+    if is_dataclass(value) and not isinstance(value, type):
+        return {field: _jsonable(getattr(value, field)) for field in value.__dataclass_fields__}
     if isinstance(value, (list, tuple)):
         return [_jsonable(item) for item in value]
     if isinstance(value, dict):
@@ -189,16 +205,26 @@ def error_frame(
 
 
 def event_frame(event: ChangeEvent) -> dict[str, Any]:
-    """The frame that carries a change to the clients."""
-    return {
-        "type": "event",
-        "event": f"artifact.{event.op.lower()}",
-        "data": {"uid": event.uid, "op": event.op},
-    }
+    """The frame that carries a change to the clients.
+
+    It carries the store's SEQUENCE, and that is what lets a client survive a
+    dropped connection: it remembers the last one it saw, and asks for what
+    came after it on the next connect (`resume`). Without the sequence the
+    client would have to reread everything to find out what it missed.
+    """
+    data: dict[str, Any] = {"uid": event.uid, "op": event.op}
+    if event.seq is not None:
+        data["seq"] = event.seq
+    return {"type": "event", "event": f"artifact.{event.op.lower()}", "data": data}
 
 
-def hello_frame(tools: set[str]) -> dict[str, Any]:
-    """The first frame of a connection: who this is and what it can do."""
+def hello_frame(tools: set[str], sequence: int) -> dict[str, Any]:
+    """The first frame of a connection: who this is, and where the feed is.
+
+    `sequence` is the store's tip AT THIS MOMENT. A client that reconnects
+    compares it with the last sequence it saw: equal means nothing happened
+    while it was away, and a difference is the gap it has to ask for.
+    """
     return {
         "type": "hello",
         "server": "ikigai-ws",
@@ -206,6 +232,8 @@ def hello_frame(tools: set[str]) -> dict[str, Any]:
         # The drafts are not tools, and a client that only knows the tool list
         # would never try one. This is the frame that tells it they exist.
         "drafts": ["save", "get", "list", "discard"],
+        # Where the change log stands right now.
+        "sequence": sequence,
     }
 
 
@@ -306,6 +334,20 @@ class Router:
     async def leave(self, websocket: WebSocket) -> None:
         self._clients.discard(websocket)
 
+    async def tip(self) -> int:
+        """Where the change log stands, or 0 when it cannot be read.
+
+        A store that cannot answer must not stop the connection from opening:
+        the live feed still works, and a client that gets 0 simply has no gap
+        to replay. Failing the handshake would turn a degraded replay into no
+        client at all.
+        """
+        try:
+            return await self.services.changes.tip()
+        except Exception as exc:
+            print(f"the change log tip is unreadable: {exc}", file=sys.stderr)
+            return 0
+
     async def broadcast(self, event: ChangeEvent) -> None:
         """Push a change to everyone who is listening."""
         frame = event_frame(event)
@@ -330,6 +372,9 @@ class Router:
         frame_type = frame.get("type")
         if frame_type == "draft":
             await self._handle_draft(websocket, request_id, frame)
+            return
+        if frame_type == "resume":
+            await self._handle_resume(websocket, request_id, frame)
             return
         if frame_type != "call":
             await self._send(
@@ -372,6 +417,49 @@ class Router:
             return
 
         await self._send(websocket, result_frame(request_id, _jsonable(result)))
+
+    async def _handle_resume(
+        self, websocket: WebSocket, request_id: str, frame: dict[str, Any]
+    ) -> None:
+        """Replay the changes a client missed while it was away.
+
+        The client sends the last sequence it saw — the `sequence` from its
+        `hello`, or the `seq` of the last event it received — and gets what
+        came after it, oldest first, with the store's tip and whether the gap
+        was bigger than one page.
+
+        This is the half a `NOTIFY` cannot give. The channel reaches whoever is
+        listening at that instant and nobody else, so without this a client
+        that was reconnecting when a write happened would never learn it
+        happened, and the gap would be silent and permanent.
+        """
+        since = frame.get("since")
+        if since is None or since == "":
+            await self._send(
+                websocket,
+                error_frame(request_id, "validation", "the resume frame names no 'since'"),
+            )
+            return
+        limit = int(frame.get("limit") or 500)
+        try:
+            replay = await self.services.changes.replay(int(since), limit)
+        except Exception as exc:
+            code, message, detail = _domain_error(exc)
+            await self._send(websocket, error_frame(request_id, code, message, detail))
+            return
+
+        await self._send(
+            websocket,
+            result_frame(
+                request_id,
+                {
+                    "events": [_jsonable(event) for event in replay.events],
+                    "tip": replay.tip,
+                    "truncated": replay.truncated,
+                    "last_seq": replay.last_seq,
+                },
+            ),
+        )
 
     async def _handle_draft(
         self, websocket: WebSocket, request_id: str, frame: dict[str, Any]
@@ -469,6 +557,26 @@ class Router:
             return
 
 
+async def _prune_once(router: Router) -> None:
+    """Keep the change log bounded, once per start.
+
+    An event is only interesting to a client that has not replayed it yet, so
+    the log does not have to be forever — and a table that only grows is a
+    table that eventually costs a backup. Pruning on startup, and not on a
+    timer, keeps it off the request path and out of the scheduler.
+
+    It NEVER fails the boot: an unreadable log is a log nobody replays, and a
+    service that refuses to start over its own housekeeping is worse than a
+    log that grew.
+    """
+    try:
+        removed = await router.services.changes.prune(EVENT_LOG_KEEP)
+        if removed:
+            print(f"pruned {removed} old change events", file=sys.stderr)
+    except Exception as exc:
+        print(f"the change log was not pruned: {exc}", file=sys.stderr)
+
+
 async def _pump(router: Router) -> None:
     """Forward the store's changes to the connected clients.
 
@@ -499,6 +607,7 @@ def build_app(services: Services, *, token: str | None = None) -> Starlette:
     @asynccontextmanager
     async def lifespan(app: Starlette) -> AsyncIterator[None]:
         await router.load_tools()
+        await _prune_once(router)
         pump = asyncio.create_task(_pump(router))
         try:
             yield
@@ -531,7 +640,7 @@ def build_app(services: Services, *, token: str | None = None) -> Starlette:
         await websocket.accept()
         await router.join(websocket)
         try:
-            await websocket.send_json(hello_frame(router.tool_names))
+            await websocket.send_json(hello_frame(router.tool_names, await router.tip()))
             while True:
                 message = await websocket.receive_text()
                 await router.handle(websocket, message)

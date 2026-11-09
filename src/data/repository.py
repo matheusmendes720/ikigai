@@ -573,6 +573,45 @@ class ArtifactRepository:
                 if isinstance(payload, dict):
                     yield payload
 
+    async def events_since(self, since: int, limit: int = 500) -> list[dict[str, Any]]:
+        """The events written AFTER `since`, oldest first.
+
+        This is the repair for the announcement's one hole: a `NOTIFY` reaches
+        whoever is listening at that instant and nobody else, so a client that
+        was reconnecting when the write happened never learns it happened. The
+        rows are what make the feed resumable.
+
+        Ordered by the sequence the store assigned, not by a clock: two writes
+        in the same microsecond are two events, and a timestamp cannot order
+        them.
+        """
+        rows = await self._client.execute(
+            "select seq, uid, op, created_at from ikig.artifact_events "
+            "where seq > %s order by seq limit %s",
+            (since, limit),
+        )
+        return [dict(row) for row in rows]
+
+    async def event_tip(self) -> int:
+        """The sequence of the last event the store wrote, or 0 for none."""
+        row = await self._client.fetch_one(
+            "select coalesce(max(seq), 0) as tip from ikig.artifact_events"
+        )
+        return int(row["tip"]) if row else 0
+
+    async def prune_events(self, keep: int = 10000) -> int:
+        """Forget all but the last `keep` events, and say how many went.
+
+        The event log is the one table here that is allowed to forget: it is
+        operational state, not content. An artifact that changed is still
+        readable through its own row; an event is only interesting to a client
+        that has not replayed it yet.
+        """
+        row = await self._client.fetch_one(
+            "select ikig.prune_artifact_events(%s) as removed", (keep,)
+        )
+        return int(row["removed"]) if row else 0
+
     async def count(self) -> int:
         row = await self._client.fetch_one("select count(*) as n from ikig.artifacts")
         return int(row["n"]) if row else 0

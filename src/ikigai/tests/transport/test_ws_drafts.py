@@ -242,10 +242,11 @@ async def test_a_read_of_something_absent_is_a_not_found() -> None:
 
 async def test_the_hello_frame_advertises_the_drafts() -> None:
     """A client that only knows the tool list would never try a draft."""
-    frame = ws_server.hello_frame({"search_artifacts"})
+    frame = ws_server.hello_frame({"search_artifacts"}, sequence=7)
 
     assert frame["tools"] == ["search_artifacts"]
     assert frame["drafts"] == ["save", "get", "list", "discard"]
+    assert frame["sequence"] == 7, "the client needs the tip to know its gap"
 
 
 def test_the_client_defaults_to_the_deployment_identity(monkeypatch: pytest.MonkeyPatch) -> None:
