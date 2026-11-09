@@ -265,7 +265,14 @@ services:
       IKIGAI_MCP_URL: http://api:8000/mcp
       # The websocket gives the bot the other direction: it receives what the
       # store changed, including the writes made by the ingestion above.
-      IKIGAI_WS_URL: http://ws:8001/sync
+      #
+      # The scheme is `ws://`, NOT `http://`. They share port 8001, and that
+      # is exactly the trap: `http://` is a different protocol on the same
+      # port, so the client refuses the URL and the bot's whole store leg —
+      # search, read, write, the change stream — dies while the container
+      # still reports healthy. Measured on the box: `http://` failed in 591 ms
+      # ("scheme isn't ws or wss"), `ws://` answered a real call in 99 ms.
+      IKIGAI_WS_URL: ws://ws:8001/sync
       IKIGAI_WS_TOKEN: ${IKIGAI_WS_TOKEN:?set IKIGAI_WS_TOKEN in .env}
       IKIGAI_CLIENT_ID: ${IKIGAI_CLIENT_ID:-owner}
       IKIGAI_BOT_ALLOWED_CHAT_IDS: ${IKIGAI_BOT_ALLOWED_CHAT_IDS:?set IKIGAI_BOT_ALLOWED_CHAT_IDS in .env}

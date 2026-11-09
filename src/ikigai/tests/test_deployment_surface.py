@@ -78,6 +78,34 @@ def test_the_compose_runs_the_websocket() -> None:
     )
 
 
+def test_the_bot_speaks_the_websocket_scheme() -> None:
+    """The bot's change stream names a WEBSOCKET, and the scheme is the protocol.
+
+    The websocket answers on 8001 and so would an HTTP server: the port says
+    nothing about the protocol. The compose said `http://ws:8001/sync` — the
+    right host, the right port, the wrong protocol — so the bot's whole store
+    leg (search, read, write, the change stream) was refused before a socket
+    opened, while the container reported healthy. Measured on the box: 591 ms
+    to fail on `http://`, 99 ms to answer a real call on `ws://`.
+
+    Nothing measured this, which is why it survived; the guard is the
+    measurement.
+    """
+    services = _compose_services()
+    environment = services["bot"].get("environment") or {}
+    url = str(environment.get("IKIGAI_WS_URL") or "")
+
+    assert url, (
+        "the bot has no websocket: it would only ever learn about its own writes, "
+        "and every write made by the ingestion would stay invisible"
+    )
+    assert url.startswith(("ws://", "wss://")), (
+        f"the bot's websocket URL is {url!r}: an http:// URL is a different "
+        "protocol that happens to share the port, and the call fails even when "
+        "the service is healthy"
+    )
+
+
 def _compose_services() -> dict[str, Any]:
     """The compose, parsed.
 
