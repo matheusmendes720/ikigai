@@ -434,11 +434,11 @@ def test_the_deploy_path_reaches_the_remote_script() -> None:
     steps = [
         step for job in (document.get("jobs") or {}).values() for step in (job.get("steps") or [])
     ]
-    ssh = [step for step in steps if "ssh-action" in str(step.get("uses") or "")]
-    assert ssh, "no appleboy/ssh-action step in the deploy workflow"
+    ssh = [step for step in steps if step.get("name") == "Deploy over SSH"]
+    assert ssh, "the deploy step is not in the deploy workflow"
 
     step = ssh[0]
-    script = str((step.get("with") or {}).get("script") or "")
+    script = _remote_script()
     envs = str((step.get("with") or {}).get("envs") or "")
     names = [name.strip() for name in envs.split(",") if name.strip()]
 
@@ -611,19 +611,41 @@ def test_the_compose_never_falls_back_to_a_tag_that_can_float() -> None:
 
 
 def _deploy_step() -> dict[str, Any]:
-    """The one step that speaks SSH, read as data instead of as text."""
+    """The one step that ships to the box, read as data instead of as text."""
     workflow = yaml.safe_load(_deploy_workflow())
     steps = workflow["jobs"]["deploy"]["steps"]
     step = next(
-        (candidate for candidate in steps if "ssh-action" in str(candidate.get("uses", ""))),
+        (candidate for candidate in steps if candidate.get("name") == "Deploy over SSH"),
         None,
     )
-    assert step is not None, "the deploy no longer uses an ssh action"
+    assert step is not None, "the deploy step is gone"
     return step
 
 
+def _remote_script() -> str:
+    """The script the remote receives, wherever it is carried.
+
+    The transport changed twice: an action's `with.script`, and now a heredoc
+    in a `run:` block. The guard follows the script, not the transport — the
+    assertions below are about WHAT the remote runs, and they must not have
+    to be rewritten every time the way of sending it changes.
+    """
+    step = _deploy_step()
+    with_script = str((step.get("with") or {}).get("script") or "")
+    if with_script:
+        return with_script
+    match = re.search(
+        r"<<'DEPLOY_SCRIPT'\n(.*?)\nDEPLOY_SCRIPT\n", str(step.get("run") or ""), re.DOTALL
+    )
+    assert match is not None, (
+        "the deploy carries no remote script — neither in the step's input nor "
+        "in a heredoc, so the box would run nothing"
+    )
+    return match.group(1)
+
+
 def _deploy_script() -> str:
-    return str(_deploy_step()["with"]["script"])
+    return _remote_script()
 
 
 def _script_commands() -> list[str]:
@@ -648,7 +670,7 @@ def test_the_deploy_carries_its_values_in_the_script_and_not_through_envs() -> N
     forwarding left to get wrong.
     """
     deploy = _deploy_step()
-    assert "envs" not in deploy["with"], (
+    assert "envs" not in (deploy.get("with") or {}), (
         "the deploy carries its values through `envs:` again — that is the arm "
         "that delivered nothing to the remote, twice, with every secret set"
     )
@@ -664,9 +686,11 @@ def test_the_deploy_carries_its_values_in_the_script_and_not_through_envs() -> N
             "the remote shell happened to have"
         )
 
-    assert "command_timeout" in deploy["with"], (
-        "the ssh action keeps its 10m default while the deploy waits 180s for the "
-        "service and pulls two images; the timeout has to be able to see the end"
+    # The ceiling on the remote command. An ssh action had `command_timeout`;
+    # the plain ssh does not, so the ceiling is the runner's own job timeout
+    # and the script's `--wait` has to fit inside it.
+    assert "--wait-timeout 240" in script, (
+        "the remote script no longer bounds its own wait for the services"
     )
 
 

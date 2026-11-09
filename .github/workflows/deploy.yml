@@ -160,8 +160,23 @@ jobs:
           fi
 
       - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1
-        # THE VALUES ARE INTERPOLATED INTO THE SCRIPT, and not carried by the
+        # PLAIN SSH, AND NOT THE ACTION.
+        #
+        # `appleboy/ssh-action` downloads the `drone-ssh` binary from GitHub
+        # Releases on EVERY run, and that download is the pipeline's weakest
+        # link: measured, a run died on six consecutive `504`s from the
+        # release CDN — the action's own `curl --retry 5` gave up after 31
+        # seconds of refusals, and the deploy was red for a reason that had
+        # nothing to do with the commit it was shipping.
+        #
+        # The runner's own `ssh` does the same job with nothing to download.
+        # The remote script is written to a file and piped over stdin
+        # (`bash -s`), which is exactly what the action did with it, and the
+        # attempt is retried here — the script is idempotent (it checks out
+        # `origin/main`, resets the tree, skips images already on disk and
+        # re-runs `compose up`), so a retry cannot half-apply anything.
+        #
+        # THE VALUES ARE INTERPOLATED INTO THE SCRIPT, and not carried by an
         # action's `envs:`. Measured on two deploys: with `envs:` set, the
         # remote script received NONE of them — `bash: line 3:
         # IKIGAI_DEPLOY_PATH: the deploy path is not set`, while the step
@@ -171,12 +186,20 @@ jobs:
         #
         # A single quote in a path would break the assignment. No real deploy
         # path has one, and a silent `cd ""` costs more than this caveat.
-        with:
-          host: ${{ secrets.IKIGAI_DEPLOY_HOST }}
-          username: ${{ secrets.IKIGAI_DEPLOY_USER }}
-          key: ${{ secrets.IKIGAI_DEPLOY_SSH_KEY }}
-          command_timeout: 20m
-          script: |
+        env:
+          IKIGAI_DEPLOY_HOST: ${{ secrets.IKIGAI_DEPLOY_HOST }}
+          IKIGAI_DEPLOY_USER: ${{ secrets.IKIGAI_DEPLOY_USER }}
+          IKIGAI_DEPLOY_KEY: ${{ secrets.IKIGAI_DEPLOY_SSH_KEY }}
+        run: |
+            set -eu
+
+            # The key never reaches the box: it is a file the runner uses and
+            # then deletes, and it is written with the mode ssh insists on.
+            key_file="$RUNNER_TEMP/deploy_key"
+            printf '%s\n' "$IKIGAI_DEPLOY_KEY" > "$key_file"
+            chmod 600 "$key_file"
+
+            cat > "$RUNNER_TEMP/deploy.sh" <<'DEPLOY_SCRIPT'
             set -eu
 
             IKIGAI_DEPLOY_PATH='${{ secrets.IKIGAI_DEPLOY_PATH }}'
@@ -296,3 +319,38 @@ jobs:
             # down must not fail the deploy of the store.
             docker compose up -d --wait --wait-timeout 240 db api ws sync bot
             docker compose ps
+            DEPLOY_SCRIPT
+
+            # THE ATTEMPT. Three tries, with a growing wait, because the
+            # failure modes this deploy has actually suffered are transient:
+            # a release CDN in 504, a registry that has not caught up with the
+            # tag that was published seconds ago, a host that was busy.
+            #
+            # `BatchMode=yes` matters more than it looks: without it, a key
+            # that does not authenticate asks for a password, and a
+            # non-interactive runner waits on that prompt until the job dies
+            # with no error at all.
+            attempt=1
+            while :; do
+              if ssh -i "$key_file" \
+                  -o IdentitiesOnly=yes \
+                  -o BatchMode=yes \
+                  -o StrictHostKeyChecking=accept-new \
+                  -o ConnectTimeout=30 \
+                  -o ServerAliveInterval=30 \
+                  -o ServerAliveCountMax=20 \
+                  "${IKIGAI_DEPLOY_USER}@${IKIGAI_DEPLOY_HOST}" \
+                  'bash -s' < "$RUNNER_TEMP/deploy.sh"; then
+                rm -f "$key_file"
+                exit 0
+              fi
+              if [ "$attempt" -ge 3 ]; then
+                echo "::error::the deploy failed after $attempt attempts"
+                rm -f "$key_file"
+                exit 1
+              fi
+              wait_s=$((attempt * 20))
+              echo "::warning::deploy attempt $attempt failed; retrying in ${wait_s}s"
+              sleep "$wait_s"
+              attempt=$((attempt + 1))
+            done

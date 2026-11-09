@@ -483,6 +483,9 @@ vault/.db
 # The clock and the table: a next-run that is off by an hour, and a Markdown
 # table the client renders as debris. Both are wrong without a socket too.
 !/src/ikigai/tests/test_bot_cadence.py
+# The deploy's SHAPE — the script it carries, the retry, the key. Every
+# failure this pipeline had was a failure of shape, not of logic.
+!/src/ikigai/tests/test_deploy_transport.py
 # The guard that a published module is a CLONE's module: it asks git which
 # files are tracked, which is the one thing the suite cannot take for granted.
 !/src/ikigai/tests/test_every_imported_module_is_tracked.py
