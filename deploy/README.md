@@ -73,7 +73,8 @@ MCP. It is never given a DSN.
 | `IKIGAI_EMBEDDING_BASE_URL` | with `openai` | the endpoint, e.g. `https://api.openai.com/v1` |
 | `IKIGAI_EMBEDDING_MODEL` | with `openai` | the model name |
 | `IKIGAI_EMBEDDING_API_KEY` | no | the key; it never leaves the environment |
-| `IKIGAI_IMAGE` | no | the image the stack runs; the CI/CD workflow sets it to the tag it published |
+| `IKIGAI_IMAGE` | no | the image the stack runs; the CI/CD workflow sets it to the tag it published (`sha-<commit>`). Unset ⇒ the compose builds and runs `ikigai:local` |
+| `IKIGAI_HARNESS_IMAGE` | no | the agent's image, same rule; unset ⇒ `ikigai-harness:local` |
 | `IKIGAI_BOT_TOKEN` | **yes** | the Telegram bot token — belongs to the bot process only |
 | `IKIGAI_BOT_ALLOWED_CHAT_IDS` | **yes** | comma-separated owner chat ids; empty stops the bot |
 | `IKIGAI_HARNESS_URL` | no (default `http://harness:8002`) | the agent's door, as the bot sees it. Unset ⇒ the bot still writes and reads, and refuses the routines with a reason |
@@ -191,6 +192,15 @@ is a deploy nobody verified.
 **Both images are published, because the compose names both.** The agent is
 external (ADR-037 D7) and has its own image; an image the pipeline does not
 publish is a deploy that stops at the pull.
+
+**The tag names the commit, and there is no other.** The pipeline publishes
+`type=sha` and nothing else — no `latest`, no branch tag. A floating tag is a
+second truth about what a build is: the registry would hold "the newest main"
+beside "the commit that was tested", and the two drift apart the moment `main`
+moves. It is also the tag a human reaches for by mistake, on a box that runs
+something else entirely. The deploy pulls `sha-<commit>` by name, and the
+compose's own default is a LOCAL name (`ikigai:local`), so a stack started
+without the variable builds for itself and never pulls something that floats.
 
 **The two images are pulled BY NAME, and `docker compose pull` is not used.**
 `compose pull` sends a HEAD for every manifest, and that is the request GHCR

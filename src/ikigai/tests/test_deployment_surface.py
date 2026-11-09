@@ -511,6 +511,76 @@ def test_the_container_names_the_agent_directory_the_agent_reads() -> None:
     )
 
 
+def test_the_pipeline_publishes_only_tags_that_name_the_commit() -> None:
+    """A floating tag is a second truth about what a build is.
+
+    The metadata action published `latest` on the default branch beside
+    `sha-<commit>`. Nothing consumed it — the deploy pulls the sha tag by
+    name — and the registry therefore held two answers to "what is the
+    current build": the commit CI tested, and "the newest main", which is
+    something else the moment `main` moves. Measured on the box: the running
+    containers were on `sha-77ebb161…` while `latest` was three commits
+    behind, and a human pulling `latest` by habit would have deployed
+    older code than the one the deploy had just verified.
+
+    The rule is not "no `latest` by name" — it is "every published tag
+    names the commit". A branch tag (`type=ref`) floats in exactly the same
+    way, so the guard reads the metadata steps and requires every tag they
+    publish to be a sha.
+    """
+    document = yaml.safe_load(_deploy_workflow())
+    steps = [
+        step for job in (document.get("jobs") or {}).values() for step in (job.get("steps") or [])
+    ]
+    metadata = [step for step in steps if "metadata-action" in str(step.get("uses") or "")]
+    assert metadata, "the pipeline publishes no image at all"
+
+    for step in metadata:
+        tags = str((step.get("with") or {}).get("tags") or "")
+        published = [line.strip() for line in tags.splitlines() if line.strip()]
+        assert published, "a metadata step publishes no tag"
+        for tag in published:
+            assert tag.startswith("type=sha"), (
+                f"the pipeline publishes the tag {tag!r}, which does not name the "
+                "commit: it floats, and the registry then holds two truths about "
+                "what the current build is"
+            )
+
+
+def test_the_compose_never_falls_back_to_a_tag_that_can_float() -> None:
+    """The compose's default image must be a LOCAL name.
+
+    The default was the repository's own registry path with a `latest` tag,
+    so a stack started without `IKIGAI_IMAGE` ran whatever the registry
+    held at that moment. The variable that names the tag is the only thing
+    that pins a deployment, and the default quietly removed it.
+
+    The default is now `ikigai:local`: a name with no registry in it, which
+    a fresh clone builds for itself and which nothing can pull by accident.
+    The guard therefore checks two things — no `:latest` anywhere, and no
+    registry path in the fallback — because a default that names a registry
+    is a default that can be pulled from somewhere else than the deploy.
+    """
+    services = _compose_services()
+    for name, service in services.items():
+        image = str(service.get("image") or "")
+        assert ":latest" not in image, (
+            f"the {name} service names a floating tag: {image!r}. The deploy "
+            "pulls a tag that names the commit, and the fallback must not "
+            "contradict it"
+        )
+
+        fallback = re.search(r"\$\{IKIGAI(?:_HARNESS)?_IMAGE:-([^}]+)\}", image)
+        if fallback is None:
+            continue
+        default = fallback.group(1)
+        assert "/" not in default, (
+            f"the {name} service falls back to a REGISTRY image ({default!r}): "
+            "a default that names a registry can be pulled from somewhere else "
+            "than the deploy that tested it"
+        )
+
+
 # ─── the deploy's three arms ────────────────────────────────────────────────
 #
 # Six deploys ran red with every secret set, and each failure named something

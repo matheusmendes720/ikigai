@@ -15,9 +15,16 @@
 #   docker compose exec db psql -U ikigai -d ikigai -c '\dt'
 #
 # The image is published to GHCR and the CI/CD workflow pushes it before the
-# deploy — `IKIGAI_IMAGE` names which tag this compose runs. The default is
-# the repository's own registry path, so a plain `docker compose up -d` on a
-# fresh clone still builds and runs the same thing.
+# deploy — `IKIGAI_IMAGE` names which tag this compose runs.
+#
+# THE DEFAULT IS A LOCAL NAME, and it is deliberate: the default used to be
+# the repository's own registry path with a `latest` tag, so a stack started
+# without the variable ran whatever the registry held at that moment — a
+# floating tag for a system whose whole point is that a deployment is the
+# thing that was tested. The pipeline publishes ONLY `sha-<commit>` (there is
+# no `latest` to float to) and the deploy always exports the tag it built.
+# `ikigai:local` is what a fresh clone builds for itself, and it names
+# nothing that can be pulled from a registry by accident.
 name: ikigai
 
 services:
@@ -119,7 +126,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
-    image: ${IKIGAI_IMAGE:-ghcr.io/matheusmendes720/ikigai:latest}
+    image: ${IKIGAI_IMAGE:-ikigai:local}
     # The api applies the migrations before it serves. The runner is
     # idempotent and takes an advisory lock, so this is safe with more than
     # one replica — and it means a broken schema is a container that never
@@ -161,7 +168,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
-    image: ${IKIGAI_IMAGE:-ghcr.io/matheusmendes720/ikigai:latest}
+    image: ${IKIGAI_IMAGE:-ikigai:local}
     command: ["python", "-m", "src.transport.ws_server"]
     environment:
       IKIGAI_STORE_DSN: postgresql://${IKIGAI_DB_USER:-ikigai}:${IKIGAI_DB_PASSWORD}@db:5432/${IKIGAI_DB_NAME:-ikigai}
@@ -200,7 +207,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
-    image: ${IKIGAI_IMAGE:-ghcr.io/matheusmendes720/ikigai:latest}
+    image: ${IKIGAI_IMAGE:-ikigai:local}
     command:
       - sh
       - -c
@@ -274,7 +281,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
-    image: ${IKIGAI_IMAGE:-ghcr.io/matheusmendes720/ikigai:latest}
+    image: ${IKIGAI_IMAGE:-ikigai:local}
     command: ["python", "-m", "src.bot.main"]
     environment:
       # NOTE: no IKIGAI_STORE_DSN here on purpose. The bot is a CLIENT of the
@@ -352,7 +359,7 @@ services:
       build:
         context: ..
         dockerfile: deploy/harness/Dockerfile
-      image: ${IKIGAI_HARNESS_IMAGE:-ghcr.io/matheusmendes720/ikigai-harness:latest}
+      image: ${IKIGAI_HARNESS_IMAGE:-ikigai-harness:local}
       environment:
         # The harness reaches the store through the api's MCP — the same door
         # the bot uses. It is NOT given a DSN: two writers of one store is the
