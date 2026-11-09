@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 COMPOSE = REPO_ROOT / "deploy" / "compose.yml"
@@ -379,4 +380,129 @@ def test_the_deploy_publishes_every_image_the_compose_names() -> None:
     assert "deploy/Dockerfile" in workflow, "the canonical image is not published"
     assert "deploy/harness/Dockerfile" in workflow, (
         "the agent's image is not published, and the deploy pulls every image the compose names"
+    )
+
+
+# ─── the deploy's three arms ────────────────────────────────────────────────
+#
+# Six deploys ran red with every secret set, and each failure named something
+# that was not the cause. The fix is in the workflow; this is the guard,
+# because a pipeline that has failed six times in a row is a pipeline whose
+# shape has to be held by something stronger than a comment.
+
+
+def _deploy_step() -> dict[str, Any]:
+    """The one step that speaks SSH, read as data instead of as text."""
+    workflow = yaml.safe_load(_deploy_workflow())
+    steps = workflow["jobs"]["deploy"]["steps"]
+    step = next(
+        (candidate for candidate in steps if "ssh-action" in str(candidate.get("uses", ""))),
+        None,
+    )
+    assert step is not None, "the deploy no longer uses an ssh action"
+    return step
+
+
+def _deploy_script() -> str:
+    return str(_deploy_step()["with"]["script"])
+
+
+def _script_commands() -> list[str]:
+    """The script's EXECUTABLE lines.
+
+    The comments name the failures ("`docker compose pull` is NOT used"), so a
+    plain substring search over the whole script reads the explanation as the
+    defect.
+    """
+    return [line for line in _deploy_script().splitlines() if not line.lstrip().startswith("#")]
+
+
+def test_the_deploy_carries_its_values_in_the_script_and_not_through_envs() -> None:
+    """`envs:` delivered NONE of the values to the remote script.
+
+    Measured twice: the step above ("The deploy is configured") read the same
+    secrets and passed, the SSH connection succeeded, and the remote died on
+    `bash: line 3: IKIGAI_DEPLOY_PATH: the deploy path is not set`.
+
+    The values are assigned in the script instead, with the form Actions
+    substitutes on the RUNNER before the script is sent — so there is no
+    forwarding left to get wrong.
+    """
+    deploy = _deploy_step()
+    assert "envs" not in deploy["with"], (
+        "the deploy carries its values through `envs:` again — that is the arm "
+        "that delivered nothing to the remote, twice, with every secret set"
+    )
+
+    script = _deploy_script()
+    for name in ("IKIGAI_DEPLOY_PATH", "IKIGAI_IMAGE", "IKIGAI_HARNESS_IMAGE"):
+        assignment = script.find(f"{name}='")
+        guard = script.find(f': "${{{name}:?')
+        assert assignment != -1, f"the deploy never assigns {name} to a value"
+        assert guard != -1, f"the deploy never asserts that {name} is set"
+        assert assignment < guard, (
+            f"{name} is asserted before it is assigned, so the guard reads whatever "
+            "the remote shell happened to have"
+        )
+
+    assert "command_timeout" in deploy["with"], (
+        "the ssh action keeps its 10m default while the deploy waits 180s for the "
+        "service and pulls two images; the timeout has to be able to see the end"
+    )
+
+
+def test_the_deploy_repairs_the_clone_refspec_before_it_fetches() -> None:
+    """A clone with a NARROW refspec never sees `main`.
+
+    The box was configured with `+refs/heads/feat/harness-container:...`, so
+    `git fetch --all` brought that one branch, `checkout main` landed on a
+    stale local branch, and `pull --ff-only` refused. The deploy had every
+    secret and a working connection, and still could not reach the commit it
+    had just built: it would have run one commit while reporting another.
+
+    The repair is in the pipeline, so a clone configured by hand cannot make
+    the deploy lie again.
+    """
+    commands = "\n".join(_script_commands())
+    refspec = "+refs/heads/*:refs/remotes/origin/*"
+    assert refspec in commands, (
+        "the deploy no longer widens the clone's refspec, so a narrow clone "
+        "fetches every branch except the one it deploys"
+    )
+    assert commands.index(refspec) < commands.index("git fetch"), (
+        "the refspec is repaired AFTER the fetch, which is one deploy too late"
+    )
+    assert "checkout -q -B main origin/main" in commands, (
+        "the deploy checks out a LOCAL main, which may be the stale branch the "
+        "narrow refspec was hiding"
+    )
+    assert "reset --hard origin/main" in commands, (
+        "the deploy does not reset the tree it is about to run, so drift on the "
+        "box changes what gets deployed"
+    )
+
+
+def test_the_deploy_pulls_the_two_images_by_name_and_retries() -> None:
+    """`docker compose pull` HEADs every manifest, and that is what GHCR denies.
+
+    Measured twice: `denied` on the manifest while the same tag came down by
+    name minutes later. The images are named explicitly instead, a tag already
+    on the host is not pulled at all, and a refused pull is retried with a
+    growing wait before the deploy gives up.
+    """
+    commands = "\n".join(_script_commands())
+    assert "docker compose pull" not in commands, (
+        "the deploy runs `docker compose pull` again: it HEADs every manifest, "
+        "and that is the request the registry refuses"
+    )
+    assert 'docker pull "$image"' in commands, "the deploy pulls no image by name"
+    assert "docker image inspect" in commands, (
+        "the deploy pulls a tag that is already on the host, so a redeploy of the "
+        "same commit can fail on the registry for no reason"
+    )
+    assert "attempt" in commands, (
+        "a refused pull is no longer retried, so one flaky anonymous pull ends the deploy"
+    )
+    assert "-ge 5" in commands, (
+        "the pull retry has no ceiling, so a registry that keeps refusing hangs the deploy"
     )
