@@ -210,3 +210,31 @@ def test_the_deploy_publishes_every_image_the_compose_names() -> None:
     assert "deploy/harness/Dockerfile" in workflow, (
         "the agent's image is not published, and the deploy pulls every image the compose names"
     )
+
+
+def test_the_container_names_the_agent_directory_the_agent_reads() -> None:
+    """The agent reads its directory from `PI_CODING_AGENT_DIR` — measured.
+
+    The image used to declare `PI_AGENT_DIR`, which the agent does NOT read.
+    The two only coincided because HOME was /root and the default is
+    `~/.pi/agent`, so the container worked BY LUCK: an operator who moved
+    `PI_AGENT_DIR` moved the provider catalogue away from the agent, and
+    every routine then failed with "Unknown provider" — a container that is
+    healthy, answers, and cannot run a single routine.
+
+    The name is the guard. A container that names the directory with the
+    variable the agent reads cannot drift from it.
+    """
+    dockerfile = (REPO_ROOT / "deploy" / "harness" / "Dockerfile").read_text(encoding="utf-8")
+    assert "PI_CODING_AGENT_DIR=" in dockerfile, (
+        "the image does not name the agent's directory with the variable the agent reads"
+    )
+    assert "PI_AGENT_DIR=" not in dockerfile, (
+        "the image declares PI_AGENT_DIR, which the agent does not read — the provider "
+        "catalogue would land where the agent never looks"
+    )
+
+    entrypoint = (REPO_ROOT / "deploy" / "harness" / "entrypoint.sh").read_text(encoding="utf-8")
+    assert "PI_CODING_AGENT_DIR" in entrypoint, (
+        "the boot does not write the provider catalogue where the agent reads it"
+    )

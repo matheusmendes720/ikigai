@@ -150,6 +150,14 @@ on the way out, so the caller may send the raw key it has.
 catalog with the literal `"$HARNESS_PROVIDER_API_KEY"`, and pi resolves that
 from the environment when it builds the request.
 
+**The agent's directory.** Pi keeps its settings, its sessions and its
+provider catalog in one directory, and it reads that directory from
+`PI_CODING_AGENT_DIR` — pi's own variable. The image used to declare
+`PI_AGENT_DIR`, which pi does **not** read: the two only coincided because
+`HOME` was `/root` and the default is `~/.pi/agent`. Measured on 2026-11-08:
+with only `PI_AGENT_DIR` set, the agent started with `Unknown provider
+"harness"` — a container that is healthy, answers, and cannot run a routine.
+
 ## The volumes
 
 | Volume | Mounted at | What survives |

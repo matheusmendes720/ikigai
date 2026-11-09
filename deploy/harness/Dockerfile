@@ -29,8 +29,14 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends bash ca-certificates git ripgrep \
  && rm -rf /var/lib/apt/lists/*
 
+# `PI_CODING_AGENT_DIR` is the AGENT's own variable: measured, the agent
+# reads its directory from it, and from `~/.pi/agent` when it is unset. The
+# image used to declare `PI_AGENT_DIR`, which the agent does NOT read — the
+# two only coincided because HOME was /root and the default is `~/.pi/agent`.
+# An operator who moved `PI_AGENT_DIR` moved the provider catalogue away
+# from the agent, and every routine failed with "Unknown provider".
 ENV NODE_ENV=production \
-    PI_AGENT_DIR=/root/.pi/agent \
+    PI_CODING_AGENT_DIR=/root/.pi/agent \
     PI_SESSION_DIR=/root/.pi/agent/sessions \
     PI_CLI_PATH=/app/harness/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js \
     HARNESS_HOME=/app/harness \

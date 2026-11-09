@@ -8,7 +8,15 @@
 set -eu
 
 HARNESS_HOME="${HARNESS_HOME:-/app/harness}"
-PI_AGENT_DIR="${PI_AGENT_DIR:-/root/.pi/agent}"
+# The AGENT's directory: where the agent keeps its settings, its sessions and
+# its provider catalogue.
+#
+# `PI_CODING_AGENT_DIR` is the variable the agent itself reads (measured: with
+# only `PI_AGENT_DIR` set, the agent started with "Unknown provider" — the
+# catalogue was written somewhere the agent never looked). The old name is
+# still honoured as a fallback, so a deployment that already sets it keeps
+# working.
+AGENT_DIR="${PI_CODING_AGENT_DIR:-${PI_AGENT_DIR:-/root/.pi/agent}}"
 PROJECT_DIR="${HARNESS_CWD:-/app}"
 SKILLS_SRC="${HARNESS_ROUTINES_DIR:-/app/specs/harness/skills}"
 SKILLS_DIR="${PI_SKILLS_DIR:-$PROJECT_DIR/.pi/skills}"
@@ -32,8 +40,8 @@ cp -R "$SKILLS_SRC/." "$SKILLS_DIR/"
 # The key is written as the LITERAL "$HARNESS_PROVIDER_API_KEY" on purpose:
 # pi resolves that from the environment when it builds the request, so the
 # key is never in a file.
-mkdir -p "$PI_AGENT_DIR"
-cat > "$PI_AGENT_DIR/models.json" <<JSON
+mkdir -p "$AGENT_DIR"
+cat > "$AGENT_DIR/models.json" <<JSON
 {
   "\$schema": "https://pi.dev/schemas/models.schema.json",
   "providers": {
