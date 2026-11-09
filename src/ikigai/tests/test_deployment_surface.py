@@ -164,6 +164,27 @@ def test_the_compose_gives_the_bot_the_agent_door() -> None:
     assert "harness" in (bot.get("depends_on") or {}), "the bot starts before the agent it talks to"
 
 
+def test_the_compose_fires_the_cadence() -> None:
+    """The cadence is the only trigger with no input, and the clock is HERE.
+
+    A bot image that is told no time runs exactly as it did before the cadence
+    existed, so the deployment is where the clock is set. The offset is
+    asserted separately and on purpose: a cadence with no clock fires at the
+    CONTAINER's hour — UTC — and the report lands three hours before the day
+    it reports on has ended.
+    """
+    bot = _compose_services()["bot"]
+    environment = bot.get("environment") or {}
+
+    assert "IKIGAI_CADENCE_AT" in environment, "the deployment never asks for a cadence"
+    assert environment["IKIGAI_CADENCE_AT"], (
+        "the cadence time is empty; `IKIGAI_CADENCE_AT=off` is how to say no"
+    )
+    assert "IKIGAI_CADENCE_UTC_OFFSET" in environment, (
+        "the cadence has no clock, so it fires at the container's UTC hour"
+    )
+
+
 def test_the_provider_key_is_a_file_and_not_an_environment_variable() -> None:
     """The agent's key must not travel in the environment.
 
