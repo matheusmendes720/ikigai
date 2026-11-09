@@ -90,12 +90,14 @@ import re
 import sys
 import time
 import unicodedata
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timezone
 from typing import Any
 
 import httpx
 
+from src.bot.cadence import Cadence, cadence_from_env
 from src.bot.harness_client import DEFAULT_TIMEOUT_S, HarnessClient
+from src.bot.rich import markdown_table, plain_table, report_markdown, rich_payload
 from src.bot.router import callback_data, parse_callback, route
 from src.bot.ws_client import WebSocketClient
 from src.contracts.dom import ArtifactKind, make_uid
@@ -368,6 +370,7 @@ class Bot:
         client_id: str,
         events: Any | None = None,
         harness: HarnessClient | None = None,
+        cadence: Cadence | None = None,
     ) -> None:
         self._token = token
         self._client = client
@@ -393,6 +396,10 @@ class Bot:
         # references may be collected mid-run, and the owner's answer would
         # never arrive.
         self._running: set[asyncio.Task[None]] = set()
+        # The clock. `None` is a bot that runs exactly as it did before the
+        # cadence existed: a deployment that does not set a time is not a
+        # deployment that wanted one.
+        self._cadence = cadence
 
     async def _send(self, chat_id: str, text: str, buttons: Keyboard | None = None) -> None:
         """One message, optionally with a decision under it.
@@ -924,6 +931,141 @@ class Bot:
             return
         await self._send(chat_id, _render_routine(routine, result))
 
+    async def _cadence_loop(self) -> None:
+        """Sleep until the clock says it is time, run, and schedule again.
+
+        The wait is recomputed from the wall clock on every pass rather than
+        decremented, so a machine that suspends for an hour does not fire at
+        the wrong hour — and a restart needs no state to recover, because the
+        next occurrence is a function of the current time.
+
+        A cadence that dies is a cadence that never happened, so the failure
+        is reported to the chat that was supposed to receive the report.
+        """
+        cadence = self._cadence
+        if cadence is None:
+            return
+
+        while True:
+            now = datetime.now(UTC)
+            target = cadence.next_run(now)
+            wait = (target - now).total_seconds()
+            print(
+                f"cadence: {cadence.routine} in {wait / 3600:.1f}h "
+                f"(at {target.isoformat()})",
+                file=sys.stderr,
+            )
+            await asyncio.sleep(max(wait, 1.0))
+            try:
+                await self._run_cadence(cadence)
+            except Exception as exc:  # a nightly failure must not be silent
+                print(f"cadence failed: {exc}", file=sys.stderr)
+                await self._send(
+                    cadence.chat_id, f"A rotina {cadence.routine} falhou: {exc}"
+                )
+
+    async def _run_cadence(self, cadence: Cadence) -> None:
+        """Run the routine, then send what it produced as a rich message."""
+        harness = self._harness
+        if harness is None:
+            # No agent, no cadence. Repeating that every night would be noise
+            # about a configuration the handshake already reports.
+            return
+
+        result = await harness.run_routine(
+            cadence.routine,
+            session_id=f"tg:{cadence.chat_id}",
+            chat_id=cadence.chat_id,
+            message="",
+        )
+
+        zone = cadence.zone or timezone(cadence.offset)
+        day = datetime.now(UTC).astimezone(zone).strftime("%Y-%m-%d")
+        rows = await self._touched_today(cadence)
+        headers = ("Tipo", "Título", "Hora")
+
+        title = f"{cadence.routine} — {day}"
+        body = str(result.get("text") or "").strip()
+        duration = result.get("duration_ms")
+        footer = f"{len(rows)} artefato(s) hoje"
+        if isinstance(duration, int):
+            footer = f"{footer} · {duration / 1000:.1f}s"
+
+        markdown = report_markdown(
+            title, markdown_table(headers, rows, ("left", "left", "right")), body, footer
+        )
+        fallback = "\n\n".join(
+            block
+            for block in (title, plain_table(headers, rows), body)
+            if block
+        )
+        await self._send_rich(cadence.chat_id, markdown, fallback)
+
+    async def _touched_today(self, cadence: Cadence) -> list[tuple[str, str, str]]:
+        """What the store says was written today, newest first.
+
+        The date filter is CLIENT-side on purpose: `SearchQuery` has no
+        `since`, and the structured search already orders by `updated_at`
+        descending — so the newest rows are the ones a day can contain, and a
+        day that wrote more than the limit reports what it asked for.
+
+        A store that does not answer is not a cadence that fails: the report
+        the agent wrote is still worth sending.
+        """
+        try:
+            result = await self._client.call("search_artifacts", {"query": {"limit": 20}})
+        except Exception as exc:
+            print(f"cadence: the store did not answer ({exc})", file=sys.stderr)
+            return []
+
+        items = result.get("artifacts") if isinstance(result, dict) else None
+        zone = cadence.zone or timezone(cadence.offset)
+        today = datetime.now(UTC).astimezone(zone).date()
+
+        rows: list[tuple[str, str, str]] = []
+        for item in items or []:
+            if not isinstance(item, dict):
+                continue
+            stamp = str(item.get("updated_at") or "")
+            try:
+                when = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+            except ValueError:
+                continue
+            local = when.astimezone(zone)
+            if local.date() != today:
+                continue
+            rows.append(
+                (
+                    str(item.get("kind") or "?"),
+                    str(item.get("title") or item.get("uid") or "?"),
+                    local.strftime("%H:%M"),
+                )
+            )
+        return rows
+
+    async def _send_rich(self, chat_id: str, markdown: str, fallback: str) -> None:
+        """`sendRichMessage`, and an honest fallback.
+
+        The rich API is new, and a client that cannot render it answers with
+        an error rather than a message. The bot sends the plain table instead
+        of losing the report — and it says so on stderr, because a fallback
+        that has become permanent is a bug that looks like a style choice.
+        """
+        try:
+            response = await self._http.post(
+                f"{TELEGRAM_API}/bot{self._token}/sendRichMessage",
+                json=rich_payload(chat_id, markdown),
+            )
+            body = response.json()
+            if body.get("ok"):
+                return
+            print(
+                f"sendRichMessage refused: {body.get('description')}", file=sys.stderr
+            )
+        except Exception as exc:
+            print(f"sendRichMessage failed: {exc}", file=sys.stderr)
+        await self._send(chat_id, fallback)
+
     async def _memory(self, chat_id: str) -> str:
         """What the agent remembers about this chat."""
         harness = self._harness
@@ -935,7 +1077,7 @@ class Bot:
         return _render_memory(result)
 
     async def run(self) -> None:
-        """Both halves of the loop: what arrives, and what changes.
+        """Every half of the loop: what arrives, what changes, and the clock.
 
         The poll asks Telegram for commands; the event stream carries the
         changes the store announces. A transport without events simply has
@@ -944,8 +1086,17 @@ class Bot:
         The handshake is the third: the greeting that says what is
         connected. It runs beside the other two, so a slow agent delays the
         greeting and nothing else.
+
+        The cadence is the fourth, and the only one with no input: it sleeps
+        until the wall clock says it is time, and the loop dies with the
+        process. Nothing is lost that a clock can reconstruct.
         """
-        await asyncio.gather(self._poll_loop(), self._event_loop(), self._handshake())
+        await asyncio.gather(
+            self._poll_loop(),
+            self._event_loop(),
+            self._handshake(),
+            self._cadence_loop(),
+        )
 
     async def _poll_loop(self) -> None:
         while True:
@@ -1178,7 +1329,21 @@ def main() -> None:
     else:
         client = McpClient(url)
 
-    bot = Bot(token, client, allowed, client_id, events=events, harness=harness)
+    # The clock. A time that is SET and malformed raises here, on purpose: a
+    # bot that boots with a cadence it silently ignores looks exactly like a
+    # bot with no cadence at all, and nobody finds out until a report is
+    # missing at the end of the day.
+    cadence = cadence_from_env(os.environ, allowed)
+
+    bot = Bot(
+        token,
+        client,
+        allowed,
+        client_id,
+        events=events,
+        harness=harness,
+        cadence=cadence,
+    )
     asyncio.run(bot.run())
 
 
