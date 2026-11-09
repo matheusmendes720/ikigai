@@ -162,6 +162,30 @@ jobs:
           ruff check ${{ matrix.ruff_target }}
           ruff format --check ${{ matrix.ruff_target }}
 
+      # The Mini App's PAGE is JavaScript that ships in the image and that the
+      # owner reads his session through — and it had no gate. The client's
+      # PYTHON was gated; the client's JavaScript was not. A page that stopped
+      # finding the credential looked exactly like a page that worked: the
+      # only symptom was the server's refusal, read by a human, on a phone,
+      # hours later.
+      #
+      # The same gap the `src-bot` entry closed for the Telegram client, one
+      # level down. Node 24 is the image's version, for the same reason the
+      # harness's gate is on 24: a suite that passes on the runner's node and
+      # fails in the container is a gate that measures the runner.
+      - name: Set up Node 24
+        if: matrix.package == 'src-bot'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      # The glob is QUOTED, for the same reason as the harness's: node
+      # expands it, the shell does not.
+      - name: The panel's page, run by a JS engine
+        if: matrix.package == 'src-bot'
+        working-directory: src/bot
+        run: node --test "test/*.test.mjs"
+
       - name: Run quality gates — poetry (${{ matrix.package }})
         if: matrix.manager == 'poetry'
         working-directory: ${{ matrix.path }}
