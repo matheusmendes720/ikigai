@@ -43,9 +43,18 @@ at all — it is a client of the api — so the compose file overrides its
 healthcheck with the one thing the bot actually depends on: the api's MCP
 endpoint being reachable.
 
+The third role is the WORKER: the ingestion holds a DSN and serves no surface
+at all. It cannot inherit the image's healthcheck either — that one dials the
+MCP transport on 8000, which the ingestion never opens, so it would report
+unhealthy forever. A container that reports unhealthy forever is a lie in the
+other direction, and a deploy that waits for health would never finish. So
+``--store-only`` measures the half the worker actually depends on: the store
+can be written.
+
 Run::
 
     python -m src.transport.healthcheck
+    python -m src.transport.healthcheck --store-only
 """
 
 from __future__ import annotations
@@ -146,6 +155,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m src.transport.healthcheck")
     parser.add_argument("--host", default=None, help="the address to dial")
     parser.add_argument("--port", type=int, default=None, help="the port to dial")
+    parser.add_argument(
+        "--store-only",
+        action="store_true",
+        help="measure only the store — for the workers that hold a DSN and serve no surface",
+    )
     args = parser.parse_args(argv)
 
     dsn = os.environ.get(STORE_DSN_ENV)
@@ -153,11 +167,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{STORE_DSN_ENV} is not set", file=sys.stderr)
         return 1
 
-    host = args.host if args.host is not None else transport_host()
-    port = args.port if args.port is not None else transport_port()
-
     try:
-        probe(dsn, host, port)
+        if args.store_only:
+            # A worker: it writes, and it serves nothing. The surface half of
+            # the probe would measure a port this process never opens.
+            _check_store(dsn)
+        else:
+            host = args.host if args.host is not None else transport_host()
+            port = args.port if args.port is not None else transport_port()
+            probe(dsn, host, port)
     except Exception as exc:  # a healthcheck reports, it does not raise
         print(f"unhealthy: {exc}", file=sys.stderr)
         return 1

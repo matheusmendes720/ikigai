@@ -233,6 +233,22 @@ services:
       # looking healthy. The vault is tracked at the repository root, one
       # level up.
       - ../vault:/app/vault:ro
+    healthcheck:
+      # The ingestion is a WORKER: it holds a DSN and serves no surface. It
+      # cannot inherit the image's healthcheck — that one dials the MCP
+      # transport on 8000, which the ingestion never opens, so the container
+      # would report unhealthy forever. A container that reports unhealthy
+      # forever is a lie in the other direction, and a deploy that waits for
+      # health would never finish. What the ingestion actually depends on is
+      # the STORE: it writes the vault into it, and the retrieval layer reads
+      # it back. So the check measures the store.
+      test:
+        - CMD-SHELL
+        - "python -m src.transport.healthcheck --store-only"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     restart: unless-stopped
 
   bot:
