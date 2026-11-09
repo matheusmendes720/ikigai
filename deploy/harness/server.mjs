@@ -63,11 +63,31 @@ const ROUTINES_DIR = process.env.HARNESS_ROUTINES_DIR || "/app/specs/harness/ski
 const MEMORY_DB = process.env.HARNESS_MEMORY_DB || "/app/memory/memory.sqlite";
 const MAX_SESSIONS = Number(process.env.HARNESS_MAX_SESSIONS || 8);
 const SESSION_TTL_MS = Number(process.env.HARNESS_SESSION_TTL_MS || 15 * 60 * 1000);
-const RUN_TIMEOUT_MS = Number(process.env.HARNESS_TIMEOUT_MS || 10 * 60 * 1000);
 // The ceiling of ONE question to the owner. It is longer than a routine's
 // poll window and shorter than the patience of a person who forgot they were
 // being asked.
 const OWNER_TIMEOUT_MS = Number(process.env.HARNESS_OWNER_TIMEOUT_MS || 15 * 60 * 1000);
+// THE CEILING OF ONE ROUTINE — DERIVED from the question's ceiling.
+//
+// WHY DERIVED: a routine that asks the owner WAITS for the answer; the agent
+// is SUSPENDED on the question (see `owner.mjs`). So the run has to be able
+// to OUTLIVE the question, or the run dies while the owner is still reading.
+// Measured on the box (2026-11-09): with the run's ceiling at 10 min and the
+// question's at 15 min, NO routine that asked a question could ever finish —
+// the run was killed by its own ceiling.
+const RUN_TIMEOUT_MS = Number(process.env.HARNESS_TIMEOUT_MS || OWNER_TIMEOUT_MS + 5 * 60 * 1000);
+// The margin between the run's ceiling and the SERVER's patience.
+//
+// WHAT THIS IS NOT: a fix for the 300 s that killed the monthly review on
+// 2026-11-09. That 300 s came from the CALLER — the isolation (same handler,
+// same 310 s delay, on the box's own Node 24) shows the response arriving at
+// 310 s against a server with Node's default `requestTimeout`, and dying at
+// 301 s against `fetch`, whose undici default `headersTimeout` is 300 s.
+//
+// WHAT THIS IS: the server declares its own patience, derived from the run it
+// is allowed to take, so the order of the product's ceilings is stated in the
+// product instead of inherited from a runtime's defaults.
+const REQUEST_MARGIN_MS = Number(process.env.HARNESS_REQUEST_MARGIN_MS || 60 * 1000);
 // The routing table: which agentic runtime serves which client. A file is
 // the readable form; the environment variable is the one-shot form.
 const RUNTIMES_FILE = String(process.env.HARNESS_RUNTIMES_FILE || "").trim();
@@ -512,7 +532,11 @@ async function runRoutine({ routine, session_id, chat_id, client, message, conte
 
   const sessionId = sanitiseSessionId(session_id || `anon-${chat_id || "0"}`);
   const started = Date.now();
-  const timeout = Number(timeout_ms) || RUN_TIMEOUT_MS;
+  // The ceiling of THIS run. A caller may ask for LESS (the harness's own
+  // ceiling is the most the socket can hold), never for more: a run that
+  // outlives the socket is a run whose answer nobody receives — the work
+  // lands in the store and the caller hears nothing.
+  const timeout = Math.min(Number(timeout_ms) || RUN_TIMEOUT_MS, RUN_TIMEOUT_MS);
 
   const entry = await acquire(sessionId, runtime);
   entry.busy = true;
@@ -910,6 +934,17 @@ const server = createServer(async (req, res) => {
     });
   }
 });
+
+// THE SERVER'S PATIENCE.
+//
+// Declared, and derived from the run: the server must not be able to cut a
+// run that its own ceiling allows. Node's `requestTimeout` (300 s by default)
+// governs the RECEIVING of the request, not the sending of the response —
+// measured on the box (2026-11-09), the response arrives at 310 s against a
+// server with the default. So this is not a patch for the 300 s that killed a
+// run; it is the product stating the order of its own ceilings instead of
+// inheriting them from a runtime's defaults.
+server.requestTimeout = RUN_TIMEOUT_MS + REQUEST_MARGIN_MS;
 
 const timer = setInterval(() => {
   reapIdle().catch(() => {});

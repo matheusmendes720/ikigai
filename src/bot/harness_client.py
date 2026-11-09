@@ -34,12 +34,18 @@ import httpx
 #: The margin between the run's ceiling and the socket's patience. The
 #: harness bounds the run; this waits a little longer, so a run that hits its
 #: ceiling comes back as the harness's answer and not as a timeout here.
-TIMEOUT_MARGIN_S = 30.0
+#:
+#: It has to be at least as long as the harness's own margin
+#: (`HARNESS_REQUEST_MARGIN_MS`, 60 s), or the bot's socket gives up BEFORE
+#: the harness's — and the owner is told the routine failed while the agent
+#: is still working on it.
+TIMEOUT_MARGIN_S = 90.0
 
 #: The default ceiling of a routine, in seconds. It is the harness's own
-#: default (`HARNESS_TIMEOUT_MS`, 600000 ms): the two agree on who gives up
-#: first — the agent, not the socket.
-DEFAULT_TIMEOUT_S = 600.0
+#: default (`HARNESS_TIMEOUT_MS`, 1200000 ms = the owner's question ceiling
+#: plus the room the answer needs): the two agree on who gives up first — the
+#: agent, not the socket.
+DEFAULT_TIMEOUT_S = 1200.0
 
 
 class HarnessError(RuntimeError):
