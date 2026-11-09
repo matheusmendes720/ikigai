@@ -749,3 +749,121 @@ def test_the_deploy_pulls_the_two_images_by_name_and_retries() -> None:
     assert "-ge 5" in commands, (
         "the pull retry has no ceiling, so a registry that keeps refusing hangs the deploy"
     )
+
+
+# ─── the readiness probe measures the provider the routines use ──────────────
+#
+# Measured on the box (2026-11-09): the probe spawned the agent WITHOUT the
+# provider flags, so pi fell back to its own default — the SECOND provider in
+# the catalogue — and the harness reported `provider: deepseek` while every
+# routine ran on `harness`/MiniMax. The container's HEALTHCHECK reads that
+# probe, so the container was healthy on the strength of the provider of
+# reserve, and the healthcheck said nothing about the primary.
+
+
+def _js_function(source: str, name: str) -> str:
+    """The body of one top-level JS function, by its closing brace at column 0.
+
+    The functions of the harness are written with the closing brace of the
+    function at column 0 and the nested braces indented, so the first line
+    that is exactly `}` ends the function.
+    """
+    marker = f"function {name}("
+    assert marker in source, f"the harness has no function {name}"
+    start = source.index(marker)
+    end = source.index("\n}\n", start)
+    return source[start:end]
+
+
+def _js_code(source: str) -> str:
+    """The code WITHOUT the comments.
+
+    A comment that names a thing reads as that thing to a substring search —
+    the same trap the deploy script has with `docker compose pull`. The
+    comment in `acquire` says "`providerArgs()`", and a guard that reads the
+    comment as the code would call the fixed code broken.
+    """
+    out: list[str] = []
+    in_block = False
+    for line in source.splitlines():
+        stripped = line.strip()
+        if in_block:
+            if "*/" in stripped:
+                in_block = False
+            continue
+        if stripped.startswith("/*"):
+            if "*/" not in stripped:
+                in_block = True
+            continue
+        if stripped.startswith("//"):
+            continue
+        out.append(line)
+    return "\n".join(out)
+
+
+def _harness_server() -> str:
+    return (REPO_ROOT / "deploy" / "harness" / "server.mjs").read_text(encoding="utf-8")
+
+
+def test_the_readiness_probe_measures_the_provider_the_routines_use() -> None:
+    """The probe and the routines must agree on WHICH provider the agent uses.
+
+    The guard is the SHARED HELPER: one place owns the provider flags, and
+    both callers use it. A probe that carries its own list can drift from the
+    routines again — and it did, silently: nothing failed, the container said
+    "healthy", and the model it named was not the one any routine would use.
+
+    Falsifiable by construction: against the old server.mjs the first
+    assertion fails, because the helper did not exist.
+    """
+    server = _harness_server()
+    code = _js_code(server)
+
+    helper = _js_function(code, "providerArgs")
+    assert '"--model"' in helper, (
+        "the shared helper does not carry the model flag, so the probe and the "
+        "routines can still name different models"
+    )
+    assert '"--provider"' in helper, (
+        "the shared helper does not carry the provider flag, so the probe and "
+        "the routines can still name different providers"
+    )
+    assert "registry.default" in helper, (
+        "the shared helper does not resolve the DEFAULT RUNTIME of the routing "
+        "table, so the probe measures the environment while the routines "
+        "measure the table — the same drift, one level up"
+    )
+
+    assert "providerArgs(" in _js_function(code, "piArgs"), (
+        "the routines do not use the shared provider flags — the two paths can "
+        "drift apart again"
+    )
+    acquire = _js_function(code, "acquire")
+    assert "runtime?.provider" in acquire, (
+        "the session pool does not hand the ROUTED runtime's provider to the "
+        "shared chain — the routine and the probe resolve it differently"
+    )
+    assert "|| PI_PROVIDER" not in acquire, (
+        "the session pool short-circuits the resolution with the environment "
+        "before the routing table is consulted"
+    )
+    assert "providerArgs(" in _js_function(code, "ready"), (
+        "the readiness probe spawns the agent without the provider flags: it "
+        "measures pi's own default (the fallback) instead of the provider the "
+        "routines use, and the healthcheck inherits the lie"
+    )
+
+
+def test_the_readiness_probe_does_not_spend_tokens() -> None:
+    """The probe asks the agent for its STATE — it does not make it answer.
+
+    The owner's decision (2026-11-09): the probe certifies the primary, the
+    same way the routines are configured, and it must not cost a token per
+    check. So it asks for the state and stops there.
+    """
+    ready = _js_function(_harness_server(), "ready")
+    assert "getState()" in ready, "the probe no longer reads the agent's state"
+    assert "promptAndWait" not in ready, (
+        "the probe now makes the model answer — that spends tokens on every "
+        "healthcheck, which is a cost decision and not a technical one"
+    )

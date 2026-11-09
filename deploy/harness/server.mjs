@@ -184,7 +184,38 @@ let routines = loadRoutines();
 /** session id -> { client, routine, lastUsed, chain } */
 const sessions = new Map();
 
-function piArgs(sessionId, { provider = PI_PROVIDER, model = PI_MODEL } = {}) {
+/**
+ * The flags that decide WHICH provider the agent talks to.
+ *
+ * ONE resolution, ONE helper, BOTH callers:
+ *
+ *     explicit → the routed runtime → the DEFAULT runtime of the table → the
+ *     environment
+ *
+ * The routines and the readiness probe must agree on it. Measured on the box
+ * (2026-11-09): with two providers in the catalogue, a probe that spawns the
+ * agent WITHOUT `--provider`/`--model` gets pi's OWN default — the fallback —
+ * and reports it as the model the container is on. The container was "healthy"
+ * on the strength of the provider of reserve, while the routines were
+ * configured for another one, and nothing said so.
+ *
+ * A probe that carries its own list of flags is exactly how they drifted the
+ * first time. So: the probe asks for the DEFAULT RUNTIME — what a routine
+ * gets when no client rule applies — and the routines pass the runtime the
+ * routing table gave them.
+ */
+function providerArgs({ provider, model } = {}) {
+  const registry = currentRegistry();
+  const fallback = registry?.runtimes?.get(registry.default);
+  const args = [];
+  const chosenModel = model || fallback?.model || PI_MODEL;
+  const chosenProvider = provider || fallback?.provider || PI_PROVIDER;
+  if (chosenModel) args.push("--model", chosenModel);
+  if (chosenProvider) args.push("--provider", chosenProvider);
+  return args;
+}
+
+function piArgs(sessionId, { provider, model } = {}) {
   const args = [
     "--mode",
     "rpc",
@@ -203,9 +234,7 @@ function piArgs(sessionId, { provider = PI_PROVIDER, model = PI_MODEL } = {}) {
     // nothing about the cause.
     "--approve",
   ];
-  if (model) args.push("--model", model);
-  if (provider) args.push("--provider", provider);
-  return args;
+  return [...args, ...providerArgs({ provider, model })];
 }
 
 /**
@@ -334,8 +363,11 @@ async function acquire(sessionId, runtime) {
     await release(oldest.id);
   }
   const client = await spawnPi(sessionId, {
-    provider: runtime?.provider || PI_PROVIDER,
-    model: runtime?.model || PI_MODEL,
+    // The ROUTED runtime's provider, if the routing table gave one. The rest
+    // of the chain — the default runtime, then the environment — is resolved
+    // by `providerArgs()`, the same helper the readiness probe uses.
+    provider: runtime?.provider,
+    model: runtime?.model,
   });
   const entry = {
     client,
@@ -668,6 +700,18 @@ function health() {
  * not health (contract C-2). So the probe spawns a `pi`, asks it for its
  * state, and checks that a model came back. A container that cannot do that
  * cannot run a routine, and saying so is the whole point of the probe.
+ *
+ * AND IT MEASURES THE SAME PROVIDER THE ROUTINES USE — `providerArgs()`, the
+ * same helper `piArgs()` uses. Measured on the box (2026-11-09): the probe
+ * used to spawn the agent WITHOUT the provider flags, so it got pi's own
+ * default (the fallback) and reported `provider: deepseek` while the routines
+ * ran on `harness`/MiniMax. The container was healthy on the strength of the
+ * provider of reserve, and the healthcheck — which reads this probe — said
+ * nothing about the primary.
+ *
+ * It does NOT authenticate: the probe asks for the agent's state, not for a
+ * model to answer, so it costs no tokens. What it certifies is "the path the
+ * routines take is configured and starts" — not "the provider is serving".
  */
 async function ready() {
   const started = Date.now();
@@ -676,7 +720,7 @@ async function ready() {
     client = new RpcClient({
       cliPath: PI_CLI || undefined,
       cwd: PI_CWD,
-      args: ["--mode", "rpc", "--no-session", "--no-extensions"],
+      args: ["--mode", "rpc", "--no-session", "--no-extensions", ...providerArgs()],
     });
     await client.start();
     const state = await client.getState();
