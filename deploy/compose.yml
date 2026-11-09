@@ -335,8 +335,9 @@ services:
       # The ceiling of a routine, in seconds. The harness bounds the run with
       # the same number, so the two agree on who gives up first. It has to be
       # LONGER than the harness's own ceiling: a routine that asks the owner
-      # waits for the answer (15 min), and the bot's socket must outlive it.
-      IKIGAI_HARNESS_TIMEOUT_S: ${IKIGAI_HARNESS_TIMEOUT_S:-1200}
+      # waits for the answer (15 min) and then works, and the bot's socket
+      # must outlive all of it.
+      IKIGAI_HARNESS_TIMEOUT_S: ${IKIGAI_HARNESS_TIMEOUT_S:-1800}
       # The Mini App's port and its public address. The PORT is what the bot
       # binds its own HTTP surface to; the URL is what the button points at.
       # The URL is empty by default: a bot without a panel is the bot as it
@@ -437,10 +438,13 @@ services:
         HARNESS_SESSION_TTL_MS: ${HARNESS_SESSION_TTL_MS:-900000}
         # The ceiling of ONE routine. It has to be LONGER than the ceiling of
         # one question to the owner (900000 ms below): a routine that asks the
-        # owner waits for the answer, and a run that dies while the owner is
-        # still reading never produces an artifact. The harness derives the
-        # same number when this is unset.
-        HARNESS_TIMEOUT_MS: ${HARNESS_TIMEOUT_MS:-1200000}
+        # owner waits for the answer and then works, and a run that dies
+        # before the artifact is written never produces one. Measured on the
+        # box (2026-11-09): with a 20-minute run the monthly review's
+        # questions expired at 21:41:53Z and the run was cut at 21:47:21Z —
+        # the agent was still working. The harness derives the same number
+        # when this is unset.
+        HARNESS_TIMEOUT_MS: ${HARNESS_TIMEOUT_MS:-1800000}
         # THE ROUTING TABLE (ADR-041): which agentic runtime serves which
         # client. A FILE is the readable form — several runtimes is a table,
         # and a table inside an environment variable is a table nobody can

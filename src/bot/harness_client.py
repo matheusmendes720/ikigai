@@ -42,10 +42,10 @@ import httpx
 TIMEOUT_MARGIN_S = 90.0
 
 #: The default ceiling of a routine, in seconds. It is the harness's own
-#: default (`HARNESS_TIMEOUT_MS`, 1200000 ms = the owner's question ceiling
-#: plus the room the answer needs): the two agree on who gives up first — the
-#: agent, not the socket.
-DEFAULT_TIMEOUT_S = 1200.0
+#: default (`HARNESS_TIMEOUT_MS`, 1800000 ms = the owner's question ceiling
+#: plus the room the agent needs to write the artifact): the two agree on who
+#: gives up first — the agent, not the socket.
+DEFAULT_TIMEOUT_S = 1800.0
 
 
 class HarnessError(RuntimeError):

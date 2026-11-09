@@ -75,7 +75,15 @@ const OWNER_TIMEOUT_MS = Number(process.env.HARNESS_OWNER_TIMEOUT_MS || 15 * 60 
 // Measured on the box (2026-11-09): with the run's ceiling at 10 min and the
 // question's at 15 min, NO routine that asked a question could ever finish —
 // the run was killed by its own ceiling.
-const RUN_TIMEOUT_MS = Number(process.env.HARNESS_TIMEOUT_MS || OWNER_TIMEOUT_MS + 5 * 60 * 1000);
+//
+// THE MARGIN IS MEASURED, NOT GUESSED. The question's ceiling is 15 min; the
+// agent then has to read the store, write the artifact through MCP and report
+// — and that work takes MORE than 5 minutes. Measured: with a margin of
+// 5 min (a 20-minute run), the monthly review's two questions expired at
+// 21:41:53Z and the run died at 21:47:21Z with the ceiling (1 200 191 ms of
+// wall clock) — the agent was still working when the run was cut. The margin
+// is 15 minutes: the question, and then the work.
+const RUN_TIMEOUT_MS = Number(process.env.HARNESS_TIMEOUT_MS || OWNER_TIMEOUT_MS + 15 * 60 * 1000);
 // The margin between the run's ceiling and the SERVER's patience.
 //
 // WHAT THIS IS NOT: a fix for the 300 s that killed the monthly review on
