@@ -101,12 +101,14 @@ The secrets it needs, all in the repository settings:
 | `IKIGAI_DEPLOY_USER` | the user to log in as |
 | `IKIGAI_DEPLOY_SSH_KEY` | the key |
 | `IKIGAI_DEPLOY_PATH` | where the repository is checked out on the server |
-| `IKIGAI_DEPLOY_GHCR_TOKEN` | optional — only for a private package |
-| `IKIGAI_DEPLOY_GHCR_USER` | optional — the user that token belongs to |
 
 The server keeps a clone of this repository at `IKIGAI_DEPLOY_PATH`; the
 workflow fetches it, checks out `main` and pulls. The `.env` with the runtime
 secrets lives on the server and never travels through CI.
+
+The registry is **not** a secret of the workflow: a private package needs
+`docker login ghcr.io` on the server, once, by hand. The deploy never carries
+a token — a token in CI is a token that can leak from CI.
 
 To deploy by hand, without the workflow:
 

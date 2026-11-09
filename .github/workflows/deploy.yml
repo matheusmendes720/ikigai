@@ -83,24 +83,45 @@ jobs:
         id: target
         run: echo "tag=${{ needs.build.outputs.image }}:sha-${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
+      # The deploy is configured by four secrets, and a deploy that is not
+      # configured must say WHICH are missing. The action's own failure
+      # ("missing server host") names one of them and leaves the other three
+      # to a guess — and the owner has never seen these names before.
+      - name: The deploy is configured
+        env:
+          DEPLOY_HOST: ${{ secrets.IKIGAI_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.IKIGAI_DEPLOY_USER }}
+          DEPLOY_KEY: ${{ secrets.IKIGAI_DEPLOY_SSH_KEY }}
+          DEPLOY_PATH: ${{ secrets.IKIGAI_DEPLOY_PATH }}
+        run: |
+          missing=()
+          [ -n "$DEPLOY_HOST" ] || missing+=("IKIGAI_DEPLOY_HOST")
+          [ -n "$DEPLOY_USER" ] || missing+=("IKIGAI_DEPLOY_USER")
+          [ -n "$DEPLOY_KEY" ] || missing+=("IKIGAI_DEPLOY_SSH_KEY")
+          [ -n "$DEPLOY_PATH" ] || missing+=("IKIGAI_DEPLOY_PATH")
+          if [ "${#missing[@]}" -ne 0 ]; then
+            echo "::error::the deploy is not configured — missing ${missing[*]}"
+            echo "Set them in the repository: Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1
-        env:
-          IKIGAI_IMAGE: ${{ steps.target.outputs.tag }}
+        # `envs` is what reaches the REMOTE script. The step's own `env:` is
+        # the runner's environment and the remote never sees it — so a script
+        # that reads a variable the step declared, and not the action, reads
+        # an empty string on the other side. This is the difference between a
+        # deploy that works and a `cd ""` that fails with the secrets set.
         with:
           host: ${{ secrets.IKIGAI_DEPLOY_HOST }}
           username: ${{ secrets.IKIGAI_DEPLOY_USER }}
           key: ${{ secrets.IKIGAI_DEPLOY_SSH_KEY }}
+          envs: IKIGAI_IMAGE=${{ steps.target.outputs.tag }},IKIGAI_DEPLOY_PATH=${{ secrets.IKIGAI_DEPLOY_PATH }}
           script: |
             set -eu
 
-            # The private package needs a login before it can be pulled. The
-            # token is optional: a public package pulls without one, and the
-            # deploy must not fail on a secret it does not need.
-            if [ -n "${IKIGAI_DEPLOY_GHCR_TOKEN:-}" ]; then
-              echo "$IKIGAI_DEPLOY_GHCR_TOKEN" \
-                | docker login ghcr.io --username "$IKIGAI_DEPLOY_GHCR_USER" --password-stdin
-            fi
+            : "${IKIGAI_DEPLOY_PATH:?the deploy path is not set}"
+            : "${IKIGAI_IMAGE:?the image tag is not set}"
 
             cd "$IKIGAI_DEPLOY_PATH"
             git fetch --all --tags
@@ -108,8 +129,14 @@ jobs:
             git pull --ff-only origin main
 
             export IKIGAI_IMAGE
-            # `pull` fetches the image the CI just pushed; `--no-build` keeps
-            # the server from building its own.
+            # `pull` fetches the image CI just pushed; `--no-build` keeps the
+            # server from building its own. A private package needs the
+            # registry to be known on THIS host: the owner logs in once
+            # (`docker login ghcr.io`) and the deploy never carries the token.
+            if ! docker pull "$IKIGAI_IMAGE" >/dev/null; then
+              echo "the image could not be pulled — a private package needs 'docker login ghcr.io' on this host, once"
+              exit 1
+            fi
             docker compose pull
             docker compose up -d --remove-orphans --no-build
             docker compose ps
