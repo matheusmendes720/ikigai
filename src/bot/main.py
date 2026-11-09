@@ -103,6 +103,7 @@ from src.bot.channel import (
     question_keyboard,
     question_text,
 )
+from src.bot.draft import REFRESH_S, Draft, Drafts
 from src.bot.harness_client import DEFAULT_TIMEOUT_S, HarnessClient
 from src.bot.rich import markdown_table, plain_table, report_markdown, rich_payload
 from src.bot.router import callback_data, parse_callback, route
@@ -438,6 +439,11 @@ class Bot:
         # cadence existed: a deployment that does not set a time is not a
         # deployment that wanted one.
         self._cadence = cadence
+        # The PREVIEWS: the drafts the owner watches while a routine runs,
+        # and the Stop button they carry. Telegram owns their lifetime; the
+        # bot owns the mapping from a draft's id to the work behind it,
+        # because that is how a stop finds the run it belongs to.
+        self._drafts = Drafts(self._post_draft)
 
     def _client_key(self, chat_id: str) -> str:
         """The routing key of a chat: `tg:<chat_id>`.
@@ -495,6 +501,32 @@ class Bot:
             payload["text"] = text[:200]
         await self._http.post(f"{TELEGRAM_API}/bot{self._token}/answerCallbackQuery", json=payload)
 
+    async def _post_draft(self, payload: dict[str, Any]) -> bool:
+        """One `sendMessageDraft`, and whether Telegram took it.
+
+        A refusal is not an error the owner reads: a draft is a private-chat
+        surface, and a chat that cannot have one gets a message instead. So
+        the answer is a boolean and the caller decides what to do about it.
+        """
+        try:
+            response = await self._http.post(
+                f"{TELEGRAM_API}/bot{self._token}/sendMessageDraft",
+                json=payload,
+            )
+            # A transport that answers nothing has not complained: the same
+            # convention as `_send`, which reads no answer at all.
+            body = response.json() if response is not None else {"ok": True}
+        except Exception as exc:
+            print(f"sendMessageDraft failed: {exc}", file=sys.stderr)
+            return False
+        if not body.get("ok"):
+            print(
+                f"sendMessageDraft refused: {body.get('description')}",
+                file=sys.stderr,
+            )
+            return False
+        return True
+
     async def _handle(self, message: dict[str, Any]) -> None:
         chat = message.get("chat") or {}
         chat_id = str(chat.get("id", ""))
@@ -528,6 +560,10 @@ class Bot:
             body, buttons = answer
         else:
             body, buttons = answer, None
+        if not body:
+            # Nothing to say: the preview is already on the screen. A message
+            # here would REPLACE it — and with it the Stop button.
+            return
         # Two positional arguments when there is no decision to offer: a
         # transport that only knows `(chat_id, text)` keeps working, and the
         # signature grows only where it has to.
@@ -800,7 +836,12 @@ class Bot:
                 text = await self._discard_draft(chat_id)
             elif verb == "run":
                 await self._answer_callback(callback_id)
-                await self._send(chat_id, await self._start_routine(chat_id, argument, ""))
+                started = await self._start_routine(chat_id, argument, "")
+                if started:
+                    # An empty answer means the PREVIEW is on the screen. A
+                    # message here would replace it — and with it the Stop
+                    # button.
+                    await self._send(chat_id, started)
                 return
             elif verb.startswith("ask."):
                 # The agent asked something, and the owner pressed a button.
@@ -813,9 +854,66 @@ class Bot:
         await self._answer_callback(callback_id)
         if isinstance(text, tuple):
             body, buttons = text
+        else:
+            body, buttons = text, None
+        if not body:
+            # Nothing to say: the preview is already on the screen. A message
+            # here would REPLACE it — and with it the Stop button.
+            return
+        if buttons:
             await self._send(chat_id, body, buttons)
         else:
-            await self._send(chat_id, text)
+            await self._send(chat_id, body)
+
+    async def _on_generation_stopped(self, stopped: dict[str, Any]) -> None:
+        """The owner pressed Stop.
+
+        Telegram's Stop does not stop anything by itself: it is an UPDATE —
+        "the owner wants the generation to stop" — and what has to stop is the
+        AGENT, a `pi` process holding a turn with the store open. Cancelling
+        only the bot's wait would leave the agent working, and an agent that
+        keeps working keeps writing: the owner cancelled the routine and the
+        note arrived anyway.
+
+        The preview carried the button, so the preview's id is what says
+        WHICH run to stop.
+        """
+        chat = stopped.get("chat") or {}
+        chat_id = str(chat.get("id", ""))
+        if chat_id not in self._allowed:
+            # Fail closed, like every other door.
+            return
+        try:
+            draft_id = int(stopped.get("draft_id") or 0)
+        except (TypeError, ValueError):
+            return
+        draft = self._drafts.find(draft_id)
+        if draft is None:
+            # A stop for a preview that is gone, or for one that was never
+            # ours. There is nothing to stop, and nothing to say about it.
+            return
+        if draft.finished:
+            self._drafts.close(draft)
+            await self._send(chat_id, "A rotina já tinha terminado.")
+            return
+
+        task = draft.task
+        if task is not None and not task.done():
+            task.cancel()
+        harness = self._harness
+        if harness is not None:
+            try:
+                await harness.cancel_routine(self._client_key(chat_id))
+            except Exception as exc:
+                # The owner asked for a stop and the harness did not take it.
+                # The bot says so — silently claiming a stop that did not
+                # happen is the kind of lie this repo keeps refusing.
+                print(f"the harness did not stop the run: {exc}", file=sys.stderr)
+        self._drafts.close(draft)
+        await self._send(
+            chat_id,
+            "Parada — a rotina foi cancelada. O que ela tiver escrito até aí fica.",
+        )
 
     # -- the questions the agent asked --------------------------------------
     #
@@ -1117,18 +1215,54 @@ class Bot:
         loop must not wait for it, or the phone goes silent for the whole run
         and the owner cannot tell a slow routine from a dead bot. So the
         routine runs in its own task and the report lands as a second message.
+
+        THE PREVIEW is the answer now, when Telegram allows one: the owner
+        watches a live draft with a **Stop** button instead of a chat that
+        went quiet. A preview is a private-chat surface, so a chat that cannot
+        have one gets the message it always got — and the run works exactly
+        the same way.
         """
         if self._harness is None:
             return "O agente não está configurado neste bot (IKIGAI_HARNESS_URL)."
         if not chat_id:
             return "Não sei a quem devolver a rotina."
 
-        task = asyncio.create_task(self._run_routine(chat_id, routine, argument))
+        draft = await self._drafts.open(chat_id, f"A rotina {routine} está a correr…")
+        task = asyncio.create_task(self._run_routine(chat_id, routine, argument, draft))
+        if draft is not None:
+            draft.task = task
         self._running.add(task)
         task.add_done_callback(self._running.discard)
+        if draft is not None:
+            # The preview IS the "it started" message. A message HERE would
+            # replace the preview — and with it the Stop button.
+            return ""
         return f"A rotina {routine} começou. Aviso quando terminar."
 
-    async def _run_routine(self, chat_id: str, routine: str, argument: str) -> None:
+    async def _keep_draft_alive(self, draft: Draft | None) -> None:
+        """Keep the preview — and its Stop button — alive while the work runs.
+
+        The preview is a thirty-second thing and a routine is not. Without
+        this, the button the owner needs disappears halfway through the very
+        run it was meant for.
+        """
+        if draft is None:
+            return
+        while True:
+            await asyncio.sleep(REFRESH_S)
+            if not await self._drafts.refresh(draft):
+                # Telegram refused the refresh: there is no preview left to
+                # keep alive, and a refresh that fails forever is a loop that
+                # never stops.
+                return
+
+    async def _run_routine(
+        self,
+        chat_id: str,
+        routine: str,
+        argument: str,
+        draft: Draft | None = None,
+    ) -> None:
         """Run the routine and deliver the agent's report to the chat.
 
         The session is the chat: one Telegram chat is one conversation with
@@ -1139,6 +1273,9 @@ class Bot:
         harness = self._harness
         if harness is None:
             return
+        keepalive = (
+            asyncio.create_task(self._keep_draft_alive(draft)) if draft is not None else None
+        )
         try:
             result = await harness.run_routine(
                 routine,
@@ -1151,12 +1288,32 @@ class Bot:
                 # conversation, the client is the door.
                 client=self._client_key(chat_id),
             )
+        except asyncio.CancelledError:
+            # The owner pressed Stop. The message they get is the one the
+            # stop handler sends: a cancelled run did not FAIL, and saying
+            # it failed would be a lie about the agent.
+            raise
         except Exception as exc:
             # A routine that dies in the background is a routine that never
             # happened. The owner is told WHY.
+            if draft is not None:
+                draft.finished = True
             await self._send(chat_id, f"A rotina {routine} falhou: {exc}")
             return
-        await self._send(chat_id, _render_routine(routine, result))
+        else:
+            if draft is not None:
+                # The work is over: a stop that arrives now has nothing to
+                # stop, and the owner is told so instead of the report being
+                # cut in half.
+                draft.finished = True
+            await self._send(chat_id, _render_routine(routine, result))
+        finally:
+            if keepalive is not None:
+                keepalive.cancel()
+            # The preview is NOT closed here: a Stop that arrives late has to
+            # find the run it belongs to, so it can say "já tinha terminado"
+            # instead of leaving the owner pressing a button that does
+            # nothing. The registry forgets it on its own (MAX_REMEMBERED).
 
     async def _cadence_loop(self) -> None:
         """Sleep until the clock says it is time, run, and schedule again.
@@ -1339,6 +1496,12 @@ class Bot:
 
             for update in payload.get("result", []):
                 self._offset = update["update_id"] + 1
+                # The Stop. It arrives as its own update, not as a message:
+                # "the owner wants the generation to stop", and nothing else.
+                stopped = update.get("stopped_message_generation")
+                if stopped:
+                    await self._on_generation_stopped(stopped)
+                    continue
                 callback = update.get("callback_query")
                 if callback:
                     await self._on_callback(callback)

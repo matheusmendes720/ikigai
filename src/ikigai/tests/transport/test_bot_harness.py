@@ -162,10 +162,18 @@ class _RecordingTelegram:
 
     def __init__(self) -> None:
         self.sent: list[dict[str, Any]] = []
+        #: The PREVIEWS, kept apart from the messages. A draft is not an
+        #: answer: it is the live state of a run that is still going. A
+        #: recorder that counted the two together could not tell "the answer
+        #: came before the run finished" from "the preview was opened".
+        self.drafts: list[dict[str, Any]] = []
 
     async def post(self, url: str, json: dict[str, Any]) -> None:
         # The parameter is named `json` because httpx names it that, and the
         # bot calls it by keyword.
+        if "sendMessageDraft" in url:
+            self.drafts.append(json)
+            return
         self.sent.append(json)
 
     async def get(self, url: str, params: dict[str, Any]) -> Any:
@@ -339,8 +347,15 @@ async def test_a_routine_command_does_not_block_the_bot(harness_server: _Harness
     elapsed = time.monotonic() - started
 
     assert elapsed < 1.0, f"the bot waited {elapsed:.2f}s for the agent"
-    assert "daily-note" in answer
+    assert answer == "", (
+        "the dispatch still had something to say — a message would replace the preview"
+    )
     assert telegram.sent == [], "the answer came before the run finished"
+    # The PREVIEW is the answer now: it says which routine started, and it
+    # carries the Stop button. A message sent here would replace it — and
+    # with it the button the owner needs.
+    assert telegram.drafts, "the run opened no preview — the owner watches a silent chat"
+    assert "daily-note" in telegram.drafts[0]["text"]
 
     tasks = list(bot._running)
     assert tasks, "the routine did not start"

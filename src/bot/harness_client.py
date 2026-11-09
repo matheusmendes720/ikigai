@@ -47,6 +47,11 @@ TIMEOUT_MARGIN_S = 90.0
 #: gives up first — the agent, not the socket.
 DEFAULT_TIMEOUT_S = 1800.0
 
+#: The ceiling of a STOP, in seconds. A stop that takes longer than the
+#: owner's patience is a stop that did not happen: the gate is two seconds,
+#: and this is the bot's half of that budget.
+CANCEL_TIMEOUT_S = 5.0
+
 
 class HarnessError(RuntimeError):
     """The harness refused the routine, or was not there at all.
@@ -112,6 +117,25 @@ class HarnessClient:
         if context:
             payload["context"] = context
         return await self._post("/v1/routine", payload)
+
+    async def cancel_routine(
+        self,
+        session_id: str,
+        timeout_s: float = CANCEL_TIMEOUT_S,
+    ) -> dict[str, Any]:
+        """Stop a routine that is running.
+
+        The bot's wait is NOT the work: the agent is a `pi` process with the
+        store open, and it keeps working — and keeps writing — after the bot
+        stops listening. So a stop has to reach the harness, or the owner
+        cancels a routine that goes on to write the note they cancelled.
+
+        The answer says whether there WAS something to stop: a stop that
+        arrives after the run is over cancels nothing, and the owner is told
+        so rather than being given a stop that stopped nothing.
+        """
+        payload = {"session_id": session_id}
+        return await self._post("/v1/routine/cancel", payload, timeout_s=timeout_s)
 
     async def route(self, client: str, timeout_s: float | None = None) -> dict[str, Any]:
         """Which runtime answers this client.
@@ -201,9 +225,18 @@ class HarnessClient:
         path = f"/v1/memory?session={quote(session)}&limit={limit}"
         return await self._get(path, timeout_s=timeout_s)
 
-    async def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+    async def _post(
+        self,
+        path: str,
+        payload: dict[str, Any],
+        timeout_s: float | None = None,
+    ) -> dict[str, Any]:
         try:
-            response = await self._http.post(f"{self._base}{path}", json=payload)
+            response = await self._http.post(
+                f"{self._base}{path}",
+                json=payload,
+                timeout=httpx.Timeout(timeout_s) if timeout_s is not None else None,
+            )
         except httpx.HTTPError as exc:
             raise HarnessError(f"the harness did not answer: {exc}") from exc
         return self._body(response, path)

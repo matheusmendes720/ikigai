@@ -48,6 +48,7 @@ import {
   readRegistryConfig,
   routeClient,
 } from "./runtimes.mjs";
+import { requestStop, stoppedRun } from "./stop.mjs";
 
 // ── configuration ────────────────────────────────────────────────────────────
 // Everything is an environment variable: this file ships in a container and a
@@ -413,6 +414,10 @@ async function acquire(sessionId, runtime) {
     // at 20:41:59Z — the agent was writing at 20:41:53Z. The routine's work
     // was lost and nobody was told.
     turns: 0,
+    // Whether the owner stopped the run in flight. It is set by the stop
+    // route and read by the run itself, so the two agree on one fact: a
+    // cancelled run answers "cancelled", not "failed".
+    cancelled: false,
     chain: Promise.resolve(),
     runtime: runtime?.id || DEFAULT_RUNTIME_ID,
   };
@@ -590,6 +595,29 @@ async function runRoutine({ routine, session_id, chat_id, client, message, conte
       text = (await entry.client.getLastAssistantText()) || textFromEvents(events);
     } catch (err) {
       failure = err && err.message ? err.message : String(err);
+    }
+
+    // The owner pressed Stop. The agent's process is gone, so the turn ended
+    // in an error — but this was not a FAILURE: it was a cancellation. The
+    // answer says "cancelled", and the bot tells the owner "parada" because
+    // of this block. A cancelled run produced nothing, and nothing is
+    // remembered as its work.
+    const stopped = stoppedRun(entry, failure);
+    if (stopped) {
+      memory.logEvent({
+        kind: "routine.cancelled",
+        key: routine,
+        session: sessionId,
+        payload: { chat_id, runtime: runtime.id, client: clientKey },
+      });
+      return {
+        ...stopped,
+        routine,
+        session_id: sessionId,
+        runtime: runtime.id,
+        client: clientKey,
+        duration_ms: Date.now() - started,
+      };
     }
 
     // A provider refusal is NOT a thrown error: the turn ends with an assistant
@@ -931,6 +959,30 @@ const server = createServer(async (req, res) => {
         return json(res, 409, { ok: false, error: answer.error });
       }
       return json(res, 200, { ok: true, question: answer.question });
+    }
+    if (req.method === "POST" && url.pathname === "/v1/routine/cancel") {
+      // The owner pressed Stop. Telegram's button stops nothing by itself:
+      // it says the owner wants the generation to stop, and the AGENT is
+      // what has to stop.
+      //
+      // Two things happen here, and both are needed. The session is MARKED,
+      // so the run in flight answers "cancelled" instead of "failed"; and
+      // the session is RELEASED, which kills the `pi` process holding the
+      // turn — because a run that keeps going keeps writing, and the owner
+      // just cancelled it.
+      const body = await readBody(req);
+      const sessionId = sanitiseSessionId(body.session_id || "");
+      const entry = sessions.get(sessionId);
+      const outcome = requestStop(entry);
+      if (outcome.cancelled && entry) {
+        await release(sessionId);
+      }
+      return json(res, 200, {
+        ok: true,
+        cancelled: outcome.cancelled,
+        session_id: sessionId,
+        reason: outcome.reason,
+      });
     }
     if (req.method === "POST" && url.pathname === "/v1/routine") {
       const body = await readBody(req);
