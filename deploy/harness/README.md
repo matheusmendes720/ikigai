@@ -167,13 +167,19 @@ It is now a compose secret, mounted at `/run/secrets/harness_provider_key`,
 and the entrypoint gives the agent its **path**, not its value:
 
 ```json
-"apiKey": "!tr -d '\n' < /run/secrets/harness_provider_key"
+"apiKey": "!cat /run/secrets/harness_provider_key"
 ```
 
-`!command` is the documented form — pi runs it when the key is first needed and
-caches the output for the process lifetime. The `tr` is there because a
-trailing newline is invisible in a file and fatal in an `Authorization` header;
-write the file with `printf '%s'`, never `echo`.
+`!command` is the documented form — `models.md`: *"`apiKey` … can use `$NAME` or
+`${NAME}` environment interpolation, a literal value, or a leading
+`!command`"*, and those commands run at request time. It is `!cat` and not a
+`tr` with a redirect on purpose: a redirect assumes pi runs the command through
+a shell, and that assumption is **not verified**, so the form that needs no
+shell is the one that stays.
+
+The cost is that the file must not end in a newline, because nothing strips it:
+write it with `printf '%s'`, never `echo`. A stray newline fails loudly at the
+next request (401), which is the one thing a silently wrong key cannot do.
 
 Create it once, mode 600, outside the repository (`deploy/secrets/` is
 gitignored):

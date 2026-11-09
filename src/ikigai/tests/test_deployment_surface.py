@@ -180,6 +180,20 @@ def test_the_provider_key_is_a_file_and_not_an_environment_variable() -> None:
         f"the operator cannot protect: {declaration!r}"
     )
 
+    # The third half of the contract, and the one that catches a change that
+    # went only half way: the agent must be told the FILE. A compose without
+    # the variable AND an entrypoint still resolving `$HARNESS_PROVIDER_API_KEY`
+    # would start, find nothing, and fail at the first request with "invalid
+    # api key" — a message that names the credential and not the wiring.
+    entrypoint = (REPO_ROOT / "deploy" / "harness" / "entrypoint.sh").read_text(encoding="utf-8")
+    assert "/run/secrets/harness_provider_key" in entrypoint, (
+        "the entrypoint never names the secret mount: the agent would read the key "
+        "from an environment variable that is no longer set"
+    )
+    assert '"$HARNESS_PROVIDER_API_KEY"' not in entrypoint, (
+        "the entrypoint still resolves the key from the environment"
+    )
+
 
 def test_the_agent_does_not_hold_a_dsn() -> None:
     """The agent is a client of the api, like every other client.

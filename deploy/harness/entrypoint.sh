@@ -36,18 +36,19 @@ cp -R "$SKILLS_SRC/." "$SKILLS_DIR/"
 # the environment is gone, so `docker inspect` cannot print the key and no
 # child process inherits it.
 #
-# `tr -d` and not a bare `cat`: a trailing newline is invisible in a file and
-# fatal in an `Authorization` header. The compose comment asks the operator to
-# write the file with `printf '%s'`, and this strips the newline anyway — the
-# guard is on both sides of the contract, because only one of them is a
-# human writing a file at midnight.
+# `!command` is the documented form — `models.md`: "For an authenticated
+# endpoint, `apiKey` … can use `$NAME` or `${NAME}` environment interpolation,
+# a literal value, or a leading `!command`", and those commands run at request
+# time. `!cat` and not `!tr -d '\n' < …`: the redirection assumes pi runs the
+# command through a shell, and that assumption is NOT verified — while the
+# credential was rejected (401 "invalid api key", on every header and both
+# endpoints) no form could be distinguished. `!cat` needs no shell, so it is
+# correct under either execution model.
 #
-# DO NOT DOUBLE THE BACKSLASH. The line below is written `'\n'` inside the
-# JSON, and JSON decodes that escape to a REAL newline before the shell sees
-# it, so `tr` deletes newlines. `'\\n'` would reach `tr` as backslash and `n`
-# — and then `tr -d` would strip every `n` and every backslash out of the key,
-# turning a valid credential into a 401. Verified with `od -c` on the box: the
-# heredoc writes backslash + `n`, and JSON is what turns it into a newline.
+# The cost of that choice is that the FILE must not end in a newline, since
+# nothing strips it now: the compose comment and `.env.example` both say
+# `printf '%s'`, never `echo`. A stray newline fails loudly at the next
+# request (401), which is the one thing a silent key cannot do.
 mkdir -p "$PI_AGENT_DIR"
 cat > "$PI_AGENT_DIR/models.json" <<JSON
 {
@@ -56,7 +57,7 @@ cat > "$PI_AGENT_DIR/models.json" <<JSON
     "${HARNESS_PROVIDER_ID:-harness}": {
       "baseUrl": "${HARNESS_PROVIDER_BASE_URL:?HARNESS_PROVIDER_BASE_URL is required}",
       "api": "${HARNESS_PROVIDER_API:-anthropic-messages}",
-      "apiKey": "!tr -d '\\n' < ${HARNESS_PROVIDER_KEY_FILE:-/run/secrets/harness_provider_key}",
+      "apiKey": "!cat ${HARNESS_PROVIDER_KEY_FILE:-/run/secrets/harness_provider_key}",
       "models": [
         {
           "id": "${HARNESS_MODEL_ID:?HARNESS_MODEL_ID is required}",
