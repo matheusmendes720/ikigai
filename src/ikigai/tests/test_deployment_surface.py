@@ -69,6 +69,30 @@ def test_the_compose_runs_the_ingestion() -> None:
     assert "IKIGAI_VAULT_ROOTS" in compose, "the ingestion is not told where the prose is"
 
 
+def test_the_zones_tree_is_mounted_for_the_ingestion() -> None:
+    """The knowledge zones reach the ingestion as a VOLUME.
+
+    They are synced onto the Cloud Volume by Syncthing and they are the
+    owner's own markdown — the same argument as the vault above: a container
+    that only sees the copy baked into its image answers from the prose of the
+    commit it was built from.
+    """
+    compose = _compose()
+    assert "/app/zonas:ro" in compose, (
+        "the zones are not mounted — the ingestion would read the copy baked "
+        "into the image, which is the prose of the build, not of now"
+    )
+
+
+def test_the_deployment_names_the_zones_layout() -> None:
+    """The layout the zones are read with is named in the deployment."""
+    compose = _compose()
+    assert "=zones" in compose, (
+        "the zones layout is not named in the deployment — the ingestion would "
+        "read the zones with the layout of another tree"
+    )
+
+
 def test_the_compose_runs_the_websocket() -> None:
     compose = _compose()
     assert "src.transport.ws_server" in compose, "the websocket is not deployed"

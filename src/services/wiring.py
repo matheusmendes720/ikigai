@@ -17,9 +17,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from src.data.client import DataClient, ensure_compatible_event_loop
+from src.data.drafts import DraftRepository
 from src.data.repository import ArtifactRepository
 from src.services.artifacts import ArtifactService
 from src.services.changes import ChangeFeed
+from src.services.drafts import DraftService
 from src.services.embeddings import EmbeddingService
 from src.services.relations import RelationService
 
@@ -34,6 +36,10 @@ class Services:
     relations: RelationService
     embeddings: EmbeddingService
     changes: ChangeFeed
+    #: The state of a client that has not finished thinking. It is NOT a sixth
+    #: tool: the tool surface is the six of ADR-037 D6, and a draft is reached
+    #: over the websocket's own frames (ADR-040).
+    drafts: DraftService
 
 
 def prepare_runtime() -> None:
@@ -70,4 +76,5 @@ def build_services() -> Services:
         relations=RelationService(repo),
         embeddings=embeddings,
         changes=ChangeFeed(repo),
+        drafts=DraftService(DraftRepository(client)),
     )

@@ -10,6 +10,13 @@
 *.cmd   text eol=crlf
 *.ps1   text eol=crlf
 
+# A shell script is the other way round: bash reads the shebang LINE, and a
+# CRLF checkout leaves a "\r" on it — "#!/usr/bin/env bash\r" is not an
+# interpreter path, and the script dies with "bad interpreter" on the first
+# run. The deployment scripts (the backup, the restore) are run by cron on a
+# Linux box, from a clone that a Windows contributor may have produced.
+*.sh    text eol=lf
+
 # Git reads the ignore rules BYTE FOR BYTE, and a CRLF checkout changes what
 # it decides. A pattern that ends in "/" is a DIRECTORY rule, and the "\r"
 # that CRLF leaves at the end of the line is part of the pattern — so the

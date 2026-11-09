@@ -78,6 +78,7 @@ MCP. It is never given a DSN.
 | `IKIGAI_BOT_ALLOWED_CHAT_IDS` | **yes** | comma-separated owner chat ids; empty stops the bot |
 | `IKIGAI_CLIENT_ID` | no (default `owner`) | the identity written on every write. It is written into the ROW; it is **not** the claim the RLS policies filter on — see below |
 | `IKIGAI_PGDATA` | no (default `db-data`) | where the store's PGDATA lives. A **path** is a bind mount, a **name** is a Docker named volume |
+| `IKIGAI_VAULT_ZONES_PATH` | no (default `zonas`) | where the knowledge zones live. A **path** is a bind mount, a **name** is a Docker named volume |
 
 ## Where the store lives
 
@@ -112,6 +113,44 @@ optional.
 
 Put them in a `.env` file beside this one. `.env*` is gitignored; no secret
 belongs in a tracked file.
+
+## Where the prose lives
+
+The ingestion reads **two trees**, and `IKIGAI_VAULT_ROOTS` names both:
+
+| Tree | Mounted at | Layout | What it is |
+|---|---|---|---|
+| the closing tree | `/app/vault` | `closing` | `vault/ikigai/closing-2026/<quarter>/<kind>/` — the planning prose of the repository |
+| the knowledge zones | `/app/zonas` | `zones` | the owner's six buckets of markdown, synced from the desktop onto the Cloud Volume |
+
+```bash
+IKIGAI_VAULT_ROOTS=/app/vault/ikigai/closing-2026=closing,/app/zonas=zones
+```
+
+Both mounts are **read-only**: the ingestion reads the prose and never writes it
+(ADR-012). The zones tree is a bind mount on the deployment box —
+`IKIGAI_VAULT_ZONES_PATH` points it at the directory Syncthing fills — and a
+named volume by default, because a local checkout has no zones.
+
+The `zones` layout reads the **zone** as the first path segment, and the zone
+decides the kind of the artifact:
+
+| Zone | Kind | Why |
+|---|---|---|
+| `1_norte` | `sonho` | the north star: the dreams and the primary objectives |
+| `2_projeto` | `plano` | planned work with a horizon |
+| every other zone | `nota` | a bucket of notes. A seventh zone needs no release |
+
+The vault's own `type:` in the frontmatter does **not** decide the kind: it is
+the vault's vocabulary and not the DOM's, and in the real tree it calls a
+control-theory note a `project` and one file `Line`. The type stays in the
+body, where the prose keeps it.
+
+What the store keeps of the provenance is the **path**, relative to the tree:
+`2_projeto/business/Business_SRC.md`. Its first segment is the zone, so a
+client asks for a bucket with `SearchQuery.zone` and the store answers with a
+prefix match; the whole path is what a write-back needs to know where to
+write.
 
 ## Running it
 

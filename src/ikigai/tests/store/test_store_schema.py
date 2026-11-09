@@ -204,3 +204,51 @@ def test_rls_filters_on_the_client_claim() -> None:
         "the migration disagree about the same name"
     )
     assert "auth.uid()" not in rls, "the client is one person with several devices, not a user"
+
+
+def test_the_provenance_column_is_in_the_schema() -> None:
+    """The column that says where the prose came from has to exist.
+
+    It carries the ZONE (the first segment of the path) and the FILE. Without
+    it the store holds the content of a vault note and forgets the note.
+    """
+    sql = _statements(_read("0005_vault_path.sql"))
+    assert re.search(r"alter table ikig\.artifacts add column vault_path text", sql), (
+        "the migration does not add the vault_path column"
+    )
+
+
+def test_every_spine_field_is_read_by_the_repository() -> None:
+    """The SELECT list and the spine must agree, and the spine is the side that is derived.
+
+    A copy of the field list inside this test would pass forever, which is the
+    failure this file exists to prevent. The list is read from the model.
+    """
+    from src.contracts.dom import Artifact
+    from src.data.repository import _ARTIFACT_COLUMNS
+
+    columns = {column.strip() for column in _ARTIFACT_COLUMNS.split(",")}
+    missing = set(Artifact.model_fields) - columns
+    assert not missing, f"the spine has fields the repository never reads: {sorted(missing)}"
+
+
+def test_the_provenance_column_is_indexed_for_the_prefix_match() -> None:
+    """The zone filter is a prefix match, so the index has to be a prefix index."""
+    sql = _statements(_read("0005_vault_path.sql"))
+    assert "text_pattern_ops" in sql, (
+        "the zone filter is a LIKE prefix and a plain b-tree index does not serve it"
+    )
+
+
+def test_the_revision_history_records_when_the_revision_was_written() -> None:
+    """What the row gives up on its dates, the history keeps.
+
+    The row holds the dates the artifact states, because the model makes both
+    of them required and the store cannot know better. The moment of the
+    WRITE is not lost with them: it is the `created_at` of the revision the
+    write appends, and it is the clock's.
+    """
+    revisions = _table_block(_read("0001_init.sql"), "artifact_revisions")
+    assert re.search(r"created_at\s+timestamptz\s+not null default now\(\)", revisions), (
+        "the revision history does not record when the revision was written"
+    )
