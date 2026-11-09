@@ -1,7 +1,7 @@
 # deploy/ — the service, as a container
 
-One box, five containers, one compose (ADR-037, renewed scope 2026-11-02;
-ADR-039 adds the websocket and the ingestion).
+One box, six containers, one compose (ADR-037, renewed scope 2026-11-02;
+ADR-039 adds the websocket and the ingestion; ADR-037 D7 adds the agent).
 
 | Container | Image | Command | What it is |
 |---|---|---|---|
@@ -10,10 +10,18 @@ ADR-039 adds the websocket and the ingestion).
 | `ws` | the SAME image | `python -m src.transport.ws_server` | the websocket sync channel: the same six tools, plus the changes the store announces |
 | `sync` | the SAME image | `python -m src.services.sync` | the ingestion: the vault prose into the store, and from there into the vector index |
 | `bot` | the SAME image | `python -m src.bot.main` | the Telegram client. A projection of the DOM, not a fork |
+| `harness` | built from `deploy/harness/Dockerfile` | `node server.mjs` | **the agent**: the `pi` harness, behind an HTTP door, with a SQLite memory. See [`harness/README.md`](./harness/README.md) |
 
 All four of them run the same image on purpose: they share the contracts, the
 store client and the service layer, so they must not be allowed to drift apart
 in the build. The role is the **command**, not the build.
+
+**The harness is the exception, and it is an exception on purpose.** The agent
+is EXTERNAL (ADR-037 D7): it is a Node process, it is not part of the
+canonical service, and putting it in the canonical image would put the model
+runtime in every container of the product. It has its own image — and it
+still reaches the store the way every other client does, through the api's
+MCP. It is never given a DSN.
 
 ## The rules this compose encodes
 
@@ -31,10 +39,15 @@ in the build. The role is the **command**, not the build.
   the store answers a query and that the transport is listening **on the
   address a client uses** — not that a socket returns bytes, and not that the
   server answered a connection to itself. `python -m src.transport.healthcheck`.
-- **The vault is a volume, not a copy.** `./vault` is mounted read-only into
+- **The vault is a volume, not a copy.** `../vault` is mounted read-only into
   the ingestion. The image carries the prose of the commit it was built from;
   the volume carries the prose of now. An ingestion that only saw the copy
-  would answer from a stale memory while the vault says otherwise.
+  would answer from a stale memory while the vault says otherwise. The path is
+  `../vault` and not `./vault`: a relative path in a compose file is resolved
+  against the project directory — the directory of the compose file, which is
+  `deploy/` — and `deploy/vault` is not in the repository. Docker would have
+  created it empty, and the ingestion would have read nothing while looking
+  healthy.
 - **Secrets never live in the repo (contract C-5).** Every secret comes from
   the environment; the compose file names each required variable with a `:?`
   guard, so a missing one stops the stack with a readable message.
@@ -58,6 +71,38 @@ in the build. The role is the **command**, not the build.
 | `IKIGAI_BOT_TOKEN` | **yes** | the Telegram bot token — belongs to the bot process only |
 | `IKIGAI_BOT_ALLOWED_CHAT_IDS` | **yes** | comma-separated owner chat ids; empty stops the bot |
 | `IKIGAI_CLIENT_ID` | no (default `owner`) | the identity written on every write. It is written into the ROW; it is **not** the claim the RLS policies filter on — see below |
+| `IKIGAI_PGDATA` | no (default `db-data`) | where the store's PGDATA lives. A **path** is a bind mount, a **name** is a Docker named volume |
+
+## Where the store lives
+
+The `db` service mounts `${IKIGAI_PGDATA:-db-data}` at `/var/lib/postgresql/data`. The
+default is a Docker named volume, which is what a local checkout wants: portable,
+disposable, and it never touches the root disk of a machine that has a real one.
+
+On the deployment box, `IKIGAI_PGDATA` points at a directory on the Hetzner Cloud
+Volume — the networked block device that outlives a rebuilt server — so the DOM
+survives the server and the store's write path is a network device instead of the
+root disk. Nothing else changes: the compose file does not know which one it is,
+and the deploy workflow does not need to know where the server keeps its store.
+
+Two things the deployment box has to get right, and the compose does not:
+
+- **the volume's filesystem is `ext4`, mounted `noatime,nodelalloc` and without
+  `discard`.** `discard` on a network volume is a round trip per freed block and
+  the provider charges for the provisioned size, not the used one — so it is pure
+  overhead with no benefit. `nodelalloc` keeps the `ENOSPC` from arriving at the
+  `fsync` instead of at the `write`.
+- **the store's `PGDATA` is a directory INSIDE the mount point**, never the mount
+  point itself: the mount point belongs to `root`, and a cluster whose data
+  directory is the mount point breaks on `pg_upgrade` and on a volume that goes
+  offline.
+
+And one thing that is not a filesystem question at all: **a Cloud Volume has no
+snapshot and no backup.** A server backup does not include it. The store is the
+DOM, and the DOM is not reproducible from the prose in `vault/` — `VaultSync`
+reads the prose and never writes it back, so everything a client wrote exists
+only in Postgres. The backup of the store is a separate thing, and it is not
+optional.
 
 Put them in a `.env` file beside this one. `.env*` is gitignored; no secret
 belongs in a tracked file.
