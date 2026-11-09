@@ -1,10 +1,10 @@
 # ikigai — ROADMAP
 
 **Feature id:** `production-readiness`
-**Data:** 2026-11-06
+**Data:** 2026-11-09 (remedição; a primeira versão é de 2026-11-06)
 **Estado:** execução — as decisões D1–D4 estão fechadas; os gates G1–G5 são a sequência
 **Âncora:** [`PRODUCT.md`](./PRODUCT.md) (o que é e em que estado) · [`TECH.md`](./TECH.md) (o plano e os PASS)
-**Código medido:** `e675b438`
+**Código medido:** `e675b438` · **remedição de 2026-11-09**: box `ab2a9f0c`, store com 1 954 artefactos
 
 > Este documento liga a **árvore de planeamento** (o que existe e o que falta
 > em cada nível), o **grafo de dependências** (o que tem de vir antes do quê) e
@@ -137,6 +137,7 @@ que conta como falha, e a variante manual (para o VPS, quando o box voltar).
 | **Falso positivo** | um teste com fixtures inventadas a passar — o teste tem de apontar para o **corpus publicado** |
 | **Falsificação** | remover o `tags:` de um `strategics/*.md` ⇒ o índice perde-o ⇒ o teste falha |
 | **Invariantes** | B8, B9 |
+| **Medido em 2026-11-09** | **(a) PROVADO** — 1 954 artefactos (1 953 com `vault_path`), `sha256(ficheiro)` = `body_hash` em 40/40, e a search devolve o artefacto com o hash do ficheiro. **(b) FALSIFICADO** — `load_strategics` devolve **0 documentos** e índice **vazio**: os 9 ficheiros não têm frontmatter, e o loader filtra por `tags:` contendo *"strategic"*. O gate **não fecha** até isto ser corrigido (§5.1) |
 
 ### G3 · Harness — *o `pi` corre uma rotina de verdade*
 
@@ -149,6 +150,7 @@ que conta como falha, e a variante manual (para o VPS, quando o box voltar).
 | **Falso positivo** | o agente responder em prosa sem chamar tool nenhuma — o critério é a **tool chamada** e a **linha no store**, não a resposta |
 | **Falsificação** | apontar `.pi/mcp.json` para uma porta errada ⇒ `pi mcp list` tem de mostrar o erro, e o gate tem de reprovar |
 | **Invariantes** | B10, B1 |
+| **Medido em 2026-11-09** | **`daily-note` PROVADO** — correu no box, escreveu a `nota` do tipo certo (`not:2026-11-09:74dfed05:…`), revisão 1→**4**, com o corpo a citar o plano ingerido. As outras três **fizeram perguntas ao dono e ficaram à espera** (HITL, ADR-041): `revisao`, `desc`, `okr` e `fase` continuam a **0** no store até as respostas chegarem (§5.1) |
 
 ### G4 · Telegram — *o dono escreve do telefone, e editar revisa*
 
@@ -195,23 +197,78 @@ dias** vive depois da O4.
 ## 5. Critérios de aceitação do produto
 
 As invariantes do `PRODUCT.md` §2, mapeadas no gate que as prova. A coluna
-**hoje** é a medição de 2026-11-06.
+**hoje** é a medição de **2026-11-09**, feita no box do dono e **pelo caminho
+real** — MCP sobre HTTP, o vault como está montado, o store como está. O que
+não foi remedido hoje está marcado como tal; a coluna não diz "provado" por
+herança.
 
 | Invariante | Gate | Critério de aceitação | Hoje |
 |---|:-:|---|:-:|
-| **B1** nota escrita no Telegram existe no store e é relida pelo `pi` | G1, G3, G4 | o artefacto existe com o tipo certo, a revisão certa e o corpo lido de volta | não provado |
-| **B2** zero escritas perdidas; revisão obsoleta = 409 | G1, G3, G4 | duas escritas concorrentes com a mesma revisão ⇒ **1× 409, 0 sobrescrita** | parcial (o store sim; o cliente não chega lá) |
-| **B3** idempotência | G1 | a mesma `idempotency_key` duas vezes ⇒ **uma** escrita | provado em memória |
-| **B4** o cliente falha fechado | G3, G4 | sem `IKIGAI_BOT_ALLOWED_CHAT_IDS` o bot **não arranca** | provado |
-| **B5** o bot nunca abre a base de dados | G4 | o bot não tem DSN no compose e fala MCP | provado |
-| **B6** o transporte nunca transporta SQL | G1, G3 | zero `select\|insert\|update\|delete` em `mcp_server.py` | provado |
-| **B7** o healthcheck mede o plano de dados | G1 | a inserção de sonda passa (ou é recusada pela RLS) — nunca `select 1` | provado |
-| **B8** a prosa entra pelo vault e sai como linhas tipadas | G2 | uma linha por ficheiro ingerido, com o `body_hash` certo | **não provado** |
-| **B9** o grounding estratégico chega ao agente | G2, G3 | o índice tem os 9 documentos e o agente os cita | **não provado** |
-| **B10** a cadência produz o artefacto do seu tipo, com os campos que o tipo exige | G3 | o `pi` produz uma `desc` com `rationale`, um `okr` com `key_result` | parcial |
+| **B1** nota escrita no Telegram existe no store e é relida pelo `pi` | G1, G3, G4 | o artefacto existe com o tipo certo, a revisão certa e o corpo lido de volta | **provado** — `not:2026-11-09:74dfed05:d6ad7bd8023c5f59`: nota criada na sessão do dono (`tg-2115322359`, 01:31:44Z), relida e revista pelo `pi` (revisão 4, `read_at` 13:12Z), corpo a citar o plano ingerido |
+| **B2** zero escritas perdidas; revisão obsoleta = 409 | G1, G3, G4 | duas escritas concorrentes com a mesma revisão ⇒ **1× 409, 0 sobrescrita** | **provado** — `expected_revision=1` em duas escritas concorrentes: 1 aceite (revisão 2), 1 recusada (*"expected_revision is stale — reread and reapply"*); corpo final = um dos dois, **0 sobrescritas** |
+| **B3** idempotência | G1 | a mesma `idempotency_key` duas vezes ⇒ **uma** escrita | provado em memória (não remedido hoje) |
+| **B4** o cliente falha fechado | G3, G4 | sem `IKIGAI_BOT_ALLOWED_CHAT_IDS` o bot **não arranca** | provado (não remedido hoje) |
+| **B5** o bot nunca abre a base de dados | G4 | o bot não tem DSN no compose e fala MCP | provado (não remedido hoje) |
+| **B6** o transporte nunca transporta SQL | G1, G3 | zero `select\|insert\|update\|delete` em `mcp_server.py` | provado (não remedido hoje) |
+| **B7** o healthcheck mede o plano de dados | G1 | a inserção de sonda passa (ou é recusada pela RLS) — nunca `select 1` | provado (não remedido hoje) |
+| **B8** a prosa entra pelo vault e sai como linhas tipadas | G2 | uma linha por ficheiro ingerido, com o `body_hash` certo | **provado** — 1 954 artefactos (1 953 com `vault_path`); `sha256(ficheiro)` = `body_hash` em **40/40**; e a `search_artifacts` devolveu o artefacto cujo `body_hash` é o do ficheiro |
+| **B9** o grounding estratégico chega ao agente | G2, G3 | o índice tem os 9 documentos e o agente os cita | **parcial** — o *agente* cita o grounding (o "AG3" vive no `pln:deep-agent-build-q4-2026:…`), mas o caminho escrito **falha**: `load_strategics` devolve **0 documentos** e índice **vazio** (§5.1) |
+| **B10** a cadência produz o artefacto do seu tipo, com os campos que o tipo exige | G3 | o `pi` produz uma `desc` com `rationale`, um `okr` com `key_result` | **parcial** — o `daily-note` produz a `nota` do tipo certo (revisão 1→4); `revisao`/`desc`/`okr`/`fase` ainda são **0** — as três rotinas fazem **perguntas ao dono** (HITL) e ficam à espera da resposta (§5.1) |
 
-**Contagem**: 5 provadas · 3 parciais · 2 não provadas. **Depois da O4**: 10
-provadas, e o único teste que falta é o dos 14 dias.
+**Contagem**: **8 provadas** (4 delas remedidas hoje) · **2 parciais** · **0 não
+provadas**. Antes (2026-11-06): 5 · 3 · 2. **Depois da O4**: 10 provadas, e o
+único teste que falta é o dos 14 dias.
+
+### 5.1 A remedição de 2026-11-09: o que foi medido, e como
+
+Tudo pelo caminho real: o **MCP sobre HTTP** (as seis tools do ADR-011,
+`tools/list` lido do próprio servidor), o **vault como está montado** no
+contentor (`/app/zonas` com 2 551 ficheiros), e o **store como está** (1 954
+artefactos, 10 páginas de `search_artifacts`).
+
+**O que o `body_hash` é, lido do código que corre** (`src/services/sync.py`):
+`content = path.read_text("utf-8")` · `body_hash = sha256(content)`. A regra é
+reproduzível fora do store — e por isso é verificável.
+
+**O que ficou provado:**
+
+| Medida | Resultado |
+|---|---|
+| B8 · hash do ficheiro = `body_hash` | **40/40** conferidos, 0 divergências |
+| B8 · a search devolve o artefacto certo | 1 hit, `body_hash` **igual** ao do ficheiro |
+| B2 · escritas concorrentes | 1 aceite · 1 recusada · **0 sobrescritas** |
+| B1 · a nota do dono relida pelo `pi` | revisão **4**, `opened_at` 01:31:44Z → `read_at` 13:12Z |
+
+**O que ficou FALSIFICADO — e é uma correcção a fazer:**
+
+> **G2 (b) é falso hoje.** `load_strategics(<raiz real>)` devolve **0
+> documentos** e um índice **vazio** — os 9 ficheiros de `strategics/` estão lá,
+> mas **nenhum tem frontmatter**, e o loader filtra por `tags:` contendo
+> *"strategic"*. O critério do gate pede 9 documentos e um índice não vazio.
+>
+> O grounding **chega** ao agente por outro caminho — o `plano` trimestral
+> ingerido (`02-q4-2026/01-plano-trimestral/deep-agent-build-q4-2026.md`),
+> que é onde o "AG3" vive. Mas o caminho **escrito** no gate não funciona, e
+> um gate que não funciona é um gate que não prova nada.
+>
+> **A correcção:** dar frontmatter `tags: [strategic]` aos 9 ficheiros — ou
+> alinhar o filtro do loader com o que o gate promete. Uma das duas; e um
+> guard que conte os documentos.
+
+**O que ficou à espera do dono (e porquê):**
+
+O `daily-note` correu e escreveu. As outras três rotinas **fizeram perguntas
+ao dono e ficaram à espera** — é o HITL a funcionar (ADR-041), não uma falha:
+
+| Rotina | Pergunta | Opções |
+|---|---|---|
+| `weekly-review` | que semana cobrir: a W45 (fechada, sem revisão registada) ou a W46 (a correr)? | W45 · W46 |
+| `weekly-review` | o gate AG3 (MERGE ou DISCARD do gateway órfão) sai do plano ou permanece, vencido? | Sai do plano · Permanece (not started) |
+| `monthly-review` | que janela cobrir: Outubro de 2026, o Q4-2026 até agora, ou Novembro em curso? | Outubro · Q4 até agora · Novembro |
+
+A pergunta suspende a chamada da ferramenta do agente até haver resposta
+(prazo: **15 minutos**), e a resposta é o botão no Telegram. Sem a resposta
+deles, `revisao`, `desc`, `okr` e `fase` ficam em **0** — e o G3 não fecha.
 
 ---
 
