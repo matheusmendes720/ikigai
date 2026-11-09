@@ -374,6 +374,23 @@ services:
         HARNESS_PROVIDER_BASE_URL: ${HARNESS_PROVIDER_BASE_URL:?set HARNESS_PROVIDER_BASE_URL in .env}
         HARNESS_PROVIDER_API: ${HARNESS_PROVIDER_API:-anthropic-messages}
         HARNESS_MODEL_ID: ${HARNESS_MODEL_ID:-MiniMax-M2.7}
+        # THE FALLBACK. When the primary provider refuses with a code that
+        # means "not now" — 429, a 5xx, a timeout — the routine is repeated on
+        # this provider instead of returning an empty answer. A 400 or a 401 is
+        # NOT retried: a wrong request is wrong everywhere.
+        #
+        # `pi` supports this natively through a virtual model, but virtual
+        # models are registered by an EXTENSION and this container runs
+        # `--no-extensions` (an extension that opens a dialog would block the
+        # agent forever — RpcClient has no `extension_ui`). So the retry lives
+        # in `server.mjs`.
+        HARNESS_FALLBACK_PROVIDER: ${HARNESS_FALLBACK_PROVIDER:-deepseek}
+        # The API ID. DeepSeek lists `deepseek-flash` and `deepseek-v4-pro`;
+        # `deepseek-v4.1-flash` is the name pi's bundled catalogue uses for the
+        # same tier and the API rejects it with a 400 (measured on the box).
+        HARNESS_FALLBACK_MODEL: ${HARNESS_FALLBACK_MODEL:-deepseek-flash}
+        HARNESS_FALLBACK_BASE_URL: ${HARNESS_FALLBACK_BASE_URL:-https://api.deepseek.com}
+        HARNESS_FALLBACK_ON: ${HARNESS_FALLBACK_ON:-429,500,502,503,504,timeout}
         HARNESS_MODEL_CONTEXT_WINDOW: ${HARNESS_MODEL_CONTEXT_WINDOW:-204800}
         HARNESS_MODEL_MAX_TOKENS: ${HARNESS_MODEL_MAX_TOKENS:-131072}
         HARNESS_MAX_SESSIONS: ${HARNESS_MAX_SESSIONS:-8}
@@ -409,6 +426,11 @@ services:
         # /run/secrets/harness_provider_key"` — and pi resolves the value when
         # it is first needed.
         - harness_provider_key
+        # The SECOND provider's key, for the fallback. Its absence is a
+        # working state: the fallback then fails with an authentication
+        # error and the routine reports that, instead of pretending the
+        # primary answered.
+        - deepseek_api_key
       ports:
         # Bound to loopback: the harness is reached by the api (or the bot),
         # not from the internet.
@@ -439,6 +461,13 @@ secrets:
   # never `echo`.
   harness_provider_key:
     file: ./secrets/harness_provider_key
+  # The fallback provider's key. `docker compose` FAILS when a file secret is
+  # missing, so this file must exist even when the fallback is not configured:
+  # an empty one is the honest "no fallback available" — the retry then fails
+  # with an authentication error, which the routine reports, rather than the
+  # container refusing to start.
+  deepseek_api_key:
+    file: ./secrets/deepseek_api_key
 
 volumes:
   db-data:

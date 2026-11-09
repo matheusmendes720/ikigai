@@ -220,6 +220,52 @@ def test_the_provider_key_is_a_file_and_not_an_environment_variable() -> None:
     )
 
 
+def test_the_fallback_provider_is_declared_and_mounted() -> None:
+    """A refusal from the primary provider must not become an empty answer.
+
+    Measured on the box with a quota-exhausted key: the turn ended with
+    `stopReason: "error"` on the assistant message and an empty text, and the
+    routine answered `ok: true` with zero bytes — the owner asked for the day's
+    report and got nothing, with a green status.
+
+    The retry needs three things wired together, and a missing one is silent:
+    the trigger list (what is worth retrying), the fallback provider/model the
+    harness passes to `pi`, and a key it can read. The key is a FILE for the
+    same reason as the primary's: `docker inspect` prints the environment.
+    """
+    services = _compose_services()
+    environment = services["harness"].get("environment") or {}
+
+    assert str(environment.get("HARNESS_FALLBACK_PROVIDER") or ""), (
+        "no fallback provider is declared: a refused routine would come back empty"
+    )
+    assert str(environment.get("HARNESS_FALLBACK_MODEL") or ""), (
+        "the fallback provider has no model: pi would have to guess one"
+    )
+    triggers = str(environment.get("HARNESS_FALLBACK_ON") or "")
+    assert "429" in triggers, (
+        f"the trigger list does not include 429, the meter that started all this: {triggers!r}"
+    )
+    assert "401" not in triggers, (
+        "401 is in the trigger list: a wrong key is not a transient refusal, and "
+        "retrying it hides the cause behind a second provider's answer"
+    )
+
+    mounted = services["harness"].get("secrets") or []
+    names = {
+        entry if isinstance(entry, str) else str((entry or {}).get("source")) for entry in mounted
+    }
+    assert "deepseek_api_key" in names, f"the fallback key is not mounted: {sorted(names)}"
+
+    import yaml
+
+    document = yaml.safe_load(_compose())
+    declaration = (document.get("secrets") or {}).get("deepseek_api_key") or {}
+    assert str(declaration.get("file") or "").endswith("deepseek_api_key"), (
+        f"the fallback key is not a file secret: {declaration!r}"
+    )
+
+
 def test_the_agent_does_not_hold_a_dsn() -> None:
     """The agent is a client of the api, like every other client.
 
@@ -335,6 +381,60 @@ def test_the_ingestion_declares_a_healthcheck_it_can_pass() -> None:
     )
     assert "--store-only" in block, (
         "the ingestion's healthcheck must measure the store, the only thing it actually depends on"
+    )
+
+
+def test_the_deploy_path_reaches_the_remote_script() -> None:
+    """The remote script must RECEIVE the deploy path — by one of two ways.
+
+    Written after three deploys died on the same line with every secret set:
+
+        bash: line 3: IKIGAI_DEPLOY_PATH: the deploy path is not set
+
+    `appleboy/ssh-action` forwards NAMES from `envs` and takes the values from
+    the step's `env:`. The old step used `envs: IKIGAI_DEPLOY_PATH=${{ … }}`,
+    which forwards nothing, so the guard fired before anything was deployed.
+    The log made it worse by showing `IKIGAI_DEPLOY_PATH=***`, which reads like
+    the value arrived — GitHub masks secrets.
+
+    There are two ways that work, and the guard accepts both because the
+    choice belongs to the workflow:
+
+    (a) `envs` lists NAMES and every name is declared in `env:`;
+    (b) the value is interpolated into `script:` with `${{ }}`, so Actions
+        substitutes it on the runner and there is no forwarding to get wrong.
+
+    What it rejects is the third form — `KEY=VALUE` inside `envs` — for
+    `IKIGAI_DEPLOY_PATH`, and any name listed without a value.
+    """
+    import yaml
+
+    document = yaml.safe_load(_deploy_workflow())
+    steps = [
+        step for job in (document.get("jobs") or {}).values() for step in (job.get("steps") or [])
+    ]
+    ssh = [step for step in steps if "ssh-action" in str(step.get("uses") or "")]
+    assert ssh, "no appleboy/ssh-action step in the deploy workflow"
+
+    step = ssh[0]
+    script = str((step.get("with") or {}).get("script") or "")
+    envs = str((step.get("with") or {}).get("envs") or "")
+    names = [name.strip() for name in envs.split(",") if name.strip()]
+
+    offenders = [name for name in names if "=" in name]
+    assert not offenders, (
+        f"envs contains 'KEY=VALUE' ({offenders}). The action forwards names only, "
+        "so these arrive empty on the remote and the deploy dies at its first guard"
+    )
+
+    declared = set((step.get("env") or {}).keys())
+    forwarded = bool(names) and all(name in declared for name in names)
+    interpolated = "secrets.IKIGAI_DEPLOY_PATH" in script
+
+    assert forwarded or interpolated, (
+        "the deploy path reaches the remote script by neither mechanism: "
+        f"envs={names!r} (declared: {sorted(declared)}) and the script does not "
+        "interpolate secrets.IKIGAI_DEPLOY_PATH"
     )
 
 

@@ -64,6 +64,37 @@ const RUN_TIMEOUT_MS = Number(process.env.HARNESS_TIMEOUT_MS || 10 * 60 * 1000);
 const PI_MODEL = process.env.HARNESS_MODEL_ID || "";
 const PI_PROVIDER = process.env.HARNESS_PROVIDER_ID || "";
 
+// ── the fallback ─────────────────────────────────────────────────────────────
+// When the primary provider refuses, the routine is retried on a second one.
+//
+// WHY IT LIVES HERE AND NOT IN A VIRTUAL MODEL: `pi` supports model fallback
+// through `virtual-models` — `route(request)` receives `request.failed` and may
+// dispatch the retry to another model — but virtual models are registered by
+// an EXTENSION, and this harness runs `--no-extensions` on purpose (RpcClient
+// does not implement the `extension_ui` sub-protocol, so an extension that
+// opens a dialog blocks the agent forever). So the retry is ours.
+//
+// WHAT A FAILURE LOOKS LIKE, measured on the box against a quota-exhausted
+// provider: `promptAndWait` does NOT throw. It returns the event stream, and
+// the assistant message carries `stopReason: "error"` with an `errorMessage`
+// holding the provider's answer ("429 {… rate_limit_error …}"). The text is
+// empty, so the routine used to report `ok: true` with nothing in it — a
+// green answer for a request that never reached a model.
+const FALLBACK_PROVIDER = process.env.HARNESS_FALLBACK_PROVIDER || "deepseek";
+// The API ID, not the catalogue name. DeepSeek's own `/models` lists
+// `deepseek-flash` and `deepseek-v4-pro`; asking for `deepseek-v4.1-flash` —
+// the name pi's bundled catalogue uses for the same tier — returns
+// 400 "The supported API model names are deepseek-flash, deepseek-v4-pro".
+// Measured on the box, so the default here is the one the API accepts.
+const FALLBACK_MODEL = process.env.HARNESS_FALLBACK_MODEL || "deepseek-flash";
+// The codes that mean "the provider refused", not "the request was wrong".
+// A 400 or a 401 is a configuration problem: retrying it elsewhere hides the
+// mistake and costs a second round trip.
+const FALLBACK_ON = String(process.env.HARNESS_FALLBACK_ON || "429,500,502,503,504,timeout")
+  .split(",")
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
+
 const memory = new Memory(MEMORY_DB);
 
 // ── the routines ─────────────────────────────────────────────────────────────
@@ -95,7 +126,7 @@ let routines = loadRoutines();
 /** session id -> { client, routine, lastUsed, chain } */
 const sessions = new Map();
 
-function piArgs(sessionId) {
+function piArgs(sessionId, { provider = PI_PROVIDER, model = PI_MODEL } = {}) {
   const args = [
     "--mode",
     "rpc",
@@ -114,9 +145,61 @@ function piArgs(sessionId) {
     // nothing about the cause.
     "--approve",
   ];
-  if (PI_MODEL) args.push("--model", PI_MODEL);
-  if (PI_PROVIDER) args.push("--provider", PI_PROVIDER);
+  if (model) args.push("--model", model);
+  if (provider) args.push("--provider", provider);
   return args;
+}
+
+/**
+ * Did the turn reach a model at all?
+ *
+ * The agent reports a provider refusal as an ASSISTANT MESSAGE with
+ * `stopReason: "error"` — not as a thrown error, and not as a failed exit.
+ * Measured with a quota-exhausted key: `promptAndWait` resolved with 36 events,
+ * the text was empty, and the only evidence was
+ * `{"stopReason":"error","errorMessage":"429 {…}"}` on the message.
+ *
+ * Returns `null` when the last assistant message finished normally, so a
+ * caller can tell "the model answered nothing" (a real, if unhelpful, answer)
+ * from "the model never ran".
+ */
+function lastAssistantFailure(events) {
+  let last = null;
+  for (const event of events || []) {
+    const message = event && event.message;
+    if (message && message.role === "assistant") last = message;
+  }
+  if (!last) return null;
+  const stop = String(last.stopReason || "");
+  if (!stop || stop === "stop" || stop === "end_turn" || stop === "tool_use") return null;
+  return {
+    stopReason: stop,
+    errorMessage: String(last.errorMessage || ""),
+    provider: String(last.provider || ""),
+    model: String(last.model || ""),
+  };
+}
+
+/**
+ * Is this refusal worth retrying on another provider?
+ *
+ * `codes` carries both HTTP codes ("429") and the word "timeout". Anything
+ * else — a 400, a 401, a tool error — is NOT retried: a wrong request is
+ * wrong everywhere, and a masked 401 sends the reader to the wrong place.
+ */
+function isFallbackTrigger(errorMessage, codes) {
+  const text = String(errorMessage || "").toLowerCase();
+  if (!text) return false;
+  for (const code of codes) {
+    if (code === "timeout") {
+      if (text.includes("timeout") || text.includes("timed out")) return true;
+      continue;
+    }
+    // A three-digit code has to appear as a token: searching for "429" inside
+    // a request id would fire on a healthy response.
+    if (new RegExp(`(^|[^0-9])${code}([^0-9]|$)`).test(text)) return true;
+  }
+  return false;
 }
 
 /**
@@ -138,11 +221,11 @@ function sanitiseSessionId(raw) {
   return trimmed || "session";
 }
 
-async function spawnPi(sessionId) {
+async function spawnPi(sessionId, opts) {
   const client = new RpcClient({
     cliPath: PI_CLI || undefined,
     cwd: PI_CWD,
-    args: piArgs(sessionId),
+    args: piArgs(sessionId, opts),
   });
   await client.start();
   return client;
@@ -188,6 +271,60 @@ async function reapIdle() {
   const now = Date.now();
   for (const [id, s] of [...sessions]) {
     if (!s.busy && now - s.lastUsed > SESSION_TTL_MS) await release(id);
+  }
+}
+
+/**
+ * Repeat the turn on the secondary provider, in the SAME session.
+ *
+ * The primary client is stopped first and only then the secondary is spawned:
+ * two `pi` processes must never write the same session file. The session id is
+ * kept, so the conversation continues where it was — `pi` names the physical
+ * model on every assistant message, which is what makes a mid-conversation
+ * provider switch legal (models.md: replaying across models works like a
+ * manual switch).
+ *
+ * Returns `{ ok, text, events, error }` and never throws: the caller decides
+ * what a failed fallback means.
+ */
+async function runOnFallback(sessionId, prompt, timeout, refusal) {
+  await release(sessionId);
+  let client = null;
+  try {
+    client = await spawnPi(sessionId, {
+      provider: FALLBACK_PROVIDER,
+      model: FALLBACK_MODEL,
+    });
+    const events = await client.promptAndWait(prompt, undefined, timeout);
+    const text = (await client.getLastAssistantText()) || textFromEvents(events);
+    const again = lastAssistantFailure(events);
+    if (again) {
+      return {
+        ok: false,
+        events,
+        error: `${again.stopReason}: ${again.errorMessage}`,
+        refusal,
+      };
+    }
+    if (!text) {
+      return { ok: false, events, error: "the fallback answered with no text", refusal };
+    }
+    return { ok: true, events, text, refusal };
+  } catch (err) {
+    return {
+      ok: false,
+      events: [],
+      error: err && err.message ? err.message : String(err),
+      refusal,
+    };
+  } finally {
+    if (client) {
+      try {
+        await client.stop();
+      } catch {
+        /* the process is already gone */
+      }
+    }
   }
 }
 
@@ -257,11 +394,50 @@ async function runRoutine({ routine, session_id, chat_id, message, context, date
     let events = [];
     let text = "";
     let failure = null;
+    let fellBack = null;
     try {
       events = await entry.client.promptAndWait(prompt, undefined, timeout);
       text = (await entry.client.getLastAssistantText()) || textFromEvents(events);
     } catch (err) {
       failure = err && err.message ? err.message : String(err);
+    }
+
+    // A provider refusal is NOT a thrown error: the turn ends with an assistant
+    // message carrying `stopReason: "error"`. Without this check the routine
+    // answered `ok: true` with an empty text — the green lie, in the one place
+    // the owner reads the agent's work.
+    let refusal = failure ? null : lastAssistantFailure(events);
+
+    if (!failure && refusal && isFallbackTrigger(refusal.errorMessage, FALLBACK_ON)) {
+      memory.logEvent({
+        kind: "routine.fallback",
+        key: routine,
+        session: sessionId,
+        payload: {
+          from: `${refusal.provider}/${refusal.model}`,
+          to: `${FALLBACK_PROVIDER}/${FALLBACK_MODEL}`,
+          reason: refusal.errorMessage.slice(0, 300),
+        },
+      });
+      const second = await runOnFallback(sessionId, prompt, timeout, refusal);
+      if (second.ok) {
+        events = second.events;
+        text = second.text;
+        fellBack = {
+          provider: FALLBACK_PROVIDER,
+          model: FALLBACK_MODEL,
+          primary_error: refusal.errorMessage.slice(0, 300),
+        };
+        refusal = null;
+      } else {
+        failure =
+          `the primary provider refused (${refusal.errorMessage.slice(0, 200)}) ` +
+          `and the fallback ${FALLBACK_PROVIDER}/${FALLBACK_MODEL} failed: ${second.error}`;
+      }
+    } else if (!failure && refusal) {
+      // Not a trigger: a 400 or a 401 is a wrong request or a wrong key, and
+      // repeating it elsewhere would hide the cause and cost a second call.
+      failure = `the provider refused: ${refusal.stopReason}: ${refusal.errorMessage.slice(0, 300)}`;
     }
 
     if (failure) {
@@ -289,7 +465,7 @@ async function runRoutine({ routine, session_id, chat_id, message, context, date
       kind: "routine.finished",
       key: routine,
       session: sessionId,
-      payload: { chat_id, bytes: text.length, entry_id: wrote.id },
+      payload: { chat_id, bytes: text.length, entry_id: wrote.id, fell_back: fellBack },
     });
 
     return {
@@ -299,6 +475,9 @@ async function runRoutine({ routine, session_id, chat_id, message, context, date
       text,
       bytes: text.length,
       events: (events || []).length,
+      // Present only when the answer came from the secondary provider, so the
+      // bot can say so instead of presenting it as the primary's work.
+      fell_back: fellBack,
       memory_entry_id: wrote.id,
       duration_ms: Date.now() - started,
     };
