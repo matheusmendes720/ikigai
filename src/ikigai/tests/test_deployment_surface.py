@@ -982,3 +982,42 @@ def test_the_declared_ceilings_agree_with_each_other() -> None:
         "owner is told the routine failed while the agent is still working"
     )
 
+
+def test_a_refused_request_cannot_release_a_running_turn() -> None:
+    """A refusal must not release the turn that is running.
+
+    Measured on the box (2026-11-09): the quarterly-plan's request was REFUSED
+    — *"Agent is already processing"*, a correct refusal — and its `finally`
+    put `busy = false` on the monthly-review's turn, which was still running.
+    The reaper then saw an idle session and **killed the agent mid-write**, at
+    20:41:59Z; the agent was writing at 20:41:53Z. The routine's work was
+    lost, and nobody was told.
+
+    So the session COUNTS its turns in flight, and everything that might
+    release a session — the reaper, the eviction — looks at the count.
+
+    Falsifiable by construction: against the old server.mjs the first
+    assertion fails, because the flag was there instead of the count.
+    """
+    code = _js_code(_harness_server())
+
+    routine = _js_function(code, "runRoutine")
+    assert "entry.busy = false" not in routine, (
+        "a refused request still releases the mark of the turn that is running"
+    )
+    assert "entry.turns" in routine, (
+        "the session does not count its turns in flight, so a refusal can "
+        "release a live one"
+    )
+
+    reap = _js_function(code, "reapIdle")
+    assert "turns" in reap, (
+        "the reaper does not look at the turns in flight — it can kill a live "
+        "agent that is in the middle of a routine"
+    )
+
+    acquire = _js_function(code, "acquire")
+    assert "s.turns > 0" in acquire, (
+        "the eviction does not skip the sessions with a turn in flight"
+    )
+

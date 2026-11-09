@@ -374,7 +374,7 @@ async function acquire(sessionId, runtime) {
     // evicted: killing a running agent loses the turn it is in the middle of.
     let oldest = null;
     for (const [id, s] of sessions) {
-      if (s.busy) continue;
+      if (s.turns > 0) continue;
       if (!oldest || s.lastUsed < oldest.lastUsed) oldest = { id, s };
     }
     if (!oldest) {
@@ -393,7 +393,18 @@ async function acquire(sessionId, runtime) {
     client,
     routine: "",
     lastUsed: Date.now(),
-    busy: false,
+    // THE TURNS IN FLIGHT, COUNTED — not a flag.
+    //
+    // WHY A COUNTER: a request that is REFUSED (the agent is busy with another
+    // turn) must not clear the mark of the turn that is actually running. With
+    // a flag, the refused request's `finally` cleared it, the reaper saw an
+    // idle session, and it KILLED a live agent mid-write.
+    //
+    // Measured on the box (2026-11-09): the quarterly-plan's refusal cleared
+    // the monthly-review's flag at 20:26:59Z, and the reaper killed the agent
+    // at 20:41:59Z — the agent was writing at 20:41:53Z. The routine's work
+    // was lost and nobody was told.
+    turns: 0,
     chain: Promise.resolve(),
     runtime: runtime?.id || DEFAULT_RUNTIME_ID,
   };
@@ -415,7 +426,7 @@ async function release(sessionId) {
 async function reapIdle() {
   const now = Date.now();
   for (const [id, s] of [...sessions]) {
-    if (!s.busy && now - s.lastUsed > SESSION_TTL_MS) await release(id);
+    if (s.turns === 0 && now - s.lastUsed > SESSION_TTL_MS) await release(id);
   }
 }
 
@@ -539,7 +550,10 @@ async function runRoutine({ routine, session_id, chat_id, client, message, conte
   const timeout = Math.min(Number(timeout_ms) || RUN_TIMEOUT_MS, RUN_TIMEOUT_MS);
 
   const entry = await acquire(sessionId, runtime);
-  entry.busy = true;
+  // THE TURN IS COUNTED, not flagged: a request that is REFUSED must not
+  // release the mark of the turn that is running (see the counter's note in
+  // `acquire`).
+  entry.turns += 1;
   entry.lastUsed = Date.now();
   try {
     const prompt = buildPrompt(routine, {
@@ -654,7 +668,7 @@ async function runRoutine({ routine, session_id, chat_id, client, message, conte
       duration_ms: Date.now() - started,
     };
   } finally {
-    entry.busy = false;
+    entry.turns = Math.max(0, entry.turns - 1);
     entry.lastUsed = Date.now();
   }
 }
@@ -703,7 +717,7 @@ function health() {
       skills_dir: PI_SKILLS_DIR,
       routines: routines.size,
       live_sessions: sessions.size,
-      busy_sessions: [...sessions.values()].filter((s) => s.busy).length,
+      busy_sessions: [...sessions.values()].filter((s) => s.turns > 0).length,
     },
     // The routing table, as the harness sees it. A deployment that routes
     // two clients to two runtimes can SEE that it does.
