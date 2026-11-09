@@ -75,6 +75,7 @@ class HarnessClient:
         message: str = "",
         context: dict[str, Any] | None = None,
         date: str | None = None,
+        client: str | None = None,
     ) -> dict[str, Any]:
         """Run a routine and wait for the agent's report.
 
@@ -83,6 +84,11 @@ class HarnessClient:
         on arrival and on the way out, so the caller may send the raw key it
         has — a Telegram chat id, a composite — and still find what the
         agent remembered.
+
+        `client` is the ROUTING key: the harness decides which agentic runtime
+        answers it. It is the same key as the session, today — `tg:<chat_id>`
+        — but it is sent separately because the two are different things: the
+        session is the conversation, the client is the door.
         """
         payload: dict[str, Any] = {
             "routine": routine,
@@ -95,9 +101,75 @@ class HarnessClient:
         }
         if date:
             payload["date"] = date
+        if client:
+            payload["client"] = client
         if context:
             payload["context"] = context
         return await self._post("/v1/routine", payload)
+
+    async def route(self, client: str, timeout_s: float | None = None) -> dict[str, Any]:
+        """Which runtime answers this client.
+
+        The answer is a runtime and a reason: a client that was routed by a
+        rule and a client that fell back to the default are both answers, and
+        only one of them is a decision somebody made.
+        """
+        path = f"/v1/routing?client={quote(client)}"
+        return await self._get(path, timeout_s=timeout_s)
+
+    async def session(self, client: str, timeout_s: float | None = None) -> dict[str, Any]:
+        """The session of a client: its id, its runtime, and what it owes.
+
+        The pending questions are here, so a client that restarted can show
+        the owner what is still waiting instead of a chat that went quiet.
+        """
+        path = f"/v1/session?client={quote(client)}"
+        return await self._get(path, timeout_s=timeout_s)
+
+    async def events(
+        self,
+        session: str,
+        since: int = 0,
+        limit: int = 200,
+        timeout_s: float | None = None,
+    ) -> dict[str, Any]:
+        """The agent's event log, FORWARD, from a cursor.
+
+        The same shape as the store's change feed (ADR-039): the client says
+        what it has and gets what it does not, in order. The agent's side
+        carries the questions it asked and the answers it got.
+        """
+        path = f"/v1/events?session={quote(session)}&since={int(since)}&limit={int(limit)}"
+        return await self._get(path, timeout_s=timeout_s)
+
+    async def question(self, question_id: str, timeout_s: float | None = None) -> dict[str, Any]:
+        """The state of one question the agent asked.
+
+        `pending`, `answered` or `expired`. It is how the client knows a
+        question is still worth drawing: a question that was answered, or
+        that ran out of time, must not be shown again.
+        """
+        path = f"/v1/owner/answer?question_id={quote(question_id)}"
+        return await self._get(path, timeout_s=timeout_s)
+
+    async def answer(
+        self,
+        question_id: str,
+        value: str | None = None,
+        option_index: int | None = None,
+    ) -> dict[str, Any]:
+        """The owner's answer, and the agent's turn continues.
+
+        The answer travels as the TEXT the owner typed, or as the INDEX of
+        the option the owner picked — a channel's button payload is capped at
+        64 bytes, and the option's text belongs to the runtime anyway.
+        """
+        payload: dict[str, Any] = {"question_id": question_id}
+        if option_index is not None:
+            payload["option_index"] = int(option_index)
+        else:
+            payload["value"] = "" if value is None else value
+        return await self._post("/v1/owner/answer", payload)
 
     async def routines(self, timeout_s: float | None = None) -> list[str]:
         """The routines the harness published — the projection it reads.

@@ -76,10 +76,44 @@ CREATE TABLE IF NOT EXISTS events (
 );
 
 CREATE INDEX IF NOT EXISTS events_session ON events(session, seq);
+
+-- The questions the agent asked the owner, and the answers that unblocked it.
+-- The row IS the waiting room: it survives the bot, the harness and the
+-- phone, so a question asked before a restart is still answerable after it.
+CREATE TABLE IF NOT EXISTS questions (
+    id          TEXT PRIMARY KEY,
+    session     TEXT NOT NULL DEFAULT '',
+    client      TEXT NOT NULL DEFAULT '',
+    kind        TEXT NOT NULL DEFAULT 'text',
+    question    TEXT NOT NULL,
+    options     TEXT NOT NULL DEFAULT '[]',
+    state       TEXT NOT NULL DEFAULT 'pending',
+    value       TEXT,
+    created_at  INTEGER NOT NULL,
+    deadline_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS questions_session ON questions(session, state);
 `;
 
 export function hashContent(content) {
   return createHash("sha256").update(content, "utf8").digest("hex");
+}
+
+/**
+ * Read a JSON column that may be anything.
+ *
+ * A row written by an older build, or by a hand, is not a crash: the value
+ * that cannot be read becomes an empty object, and the reader sees a missing
+ * field rather than a dead process.
+ */
+function safeParse(raw) {
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
 /**
@@ -240,6 +274,119 @@ export class Memory {
     return this.db
       .prepare(`SELECT * FROM events ${where} ORDER BY seq DESC LIMIT ?`)
       .all(...params);
+  }
+
+  /**
+   * The log of a session, FORWARD, from a cursor.
+   *
+   * The change feed of the store (ADR-039) answers two questions with one
+   * page: "what is new" and "what did I already have". This is the same
+   * shape, on the agent's side — the client sends the sequence it has and
+   * gets the events it does not, in order, with nothing repeated. The
+   * `limit` is the floor: a page that came back empty because everything was
+   * consumed is not the same as a page that came back empty because the log
+   * was pruned under the reader.
+   */
+  eventsSince({ session = "", since = 0, limit = 200 } = {}) {
+    const params = [];
+    let where = "";
+    if (session) {
+      where = "WHERE session = ? AND seq > ?";
+      params.push(session, Number(since) || 0);
+    } else {
+      where = "WHERE seq > ?";
+      params.push(Number(since) || 0);
+    }
+    params.push(Math.min(Math.max(Number(limit) || 200, 1), 1000));
+    const rows = this.db
+      .prepare(`SELECT * FROM events ${where} ORDER BY seq ASC LIMIT ?`)
+      .all(...params);
+    const tip = this.db.prepare("SELECT MAX(seq) AS seq FROM events").get();
+    const floor = this.db.prepare("SELECT MIN(seq) AS seq FROM events").get();
+    return {
+      events: rows.map((row) => ({
+        seq: Number(row.seq),
+        ts: Number(row.ts),
+        kind: row.kind,
+        key: row.key,
+        agent: row.agent,
+        session: row.session,
+        payload: safeParse(row.payload),
+      })),
+      tip: tip && tip.seq ? Number(tip.seq) : 0,
+      floor: floor && floor.seq ? Number(floor.seq) : 0,
+    };
+  }
+
+  // ── the questions ───────────────────────────────────────────────────────
+
+  /** Register a question. The id is the agent's handle on it. */
+  putQuestion({ id, session = "", client = "", kind = "text", question = "", options = [], state = "pending", value = null, created_at = Date.now(), deadline_at = Date.now() }) {
+    this.db
+      .prepare(
+        `INSERT INTO questions
+         (id, session, client, kind, question, options, state, value, created_at, deadline_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        session,
+        client,
+        kind,
+        question,
+        JSON.stringify(options || []),
+        state,
+        value,
+        created_at,
+        deadline_at,
+      );
+    return this.getQuestion(id);
+  }
+
+  getQuestion(id) {
+    const row = this.db.prepare("SELECT * FROM questions WHERE id = ?").get(String(id));
+    if (!row) return null;
+    return {
+      id: row.id,
+      session: row.session,
+      client: row.client,
+      kind: row.kind,
+      question: row.question,
+      options: safeParse(row.options) || [],
+      state: row.state,
+      value: row.value ?? null,
+      created_at: Number(row.created_at),
+      deadline_at: Number(row.deadline_at),
+    };
+  }
+
+  updateQuestion(id, { state, value }) {
+    const current = this.getQuestion(id);
+    if (!current) return null;
+    const nextState = state ?? current.state;
+    const nextValue = value === undefined ? current.value : value;
+    this.db
+      .prepare("UPDATE questions SET state = ?, value = ? WHERE id = ?")
+      .run(nextState, nextValue, String(id));
+    return this.getQuestion(id);
+  }
+
+  listQuestions({ session = "", state = "" } = {}) {
+    const clauses = [];
+    const params = [];
+    if (session) {
+      clauses.push("session = ?");
+      params.push(session);
+    }
+    if (state) {
+      clauses.push("state = ?");
+      params.push(state);
+    }
+    const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+    const rows = this.db
+      .prepare(`SELECT id FROM questions ${where} ORDER BY created_at DESC`)
+      .all(...params);
+    return rows.map((row) => this.getQuestion(row.id)).filter(Boolean);
   }
 
   stats() {

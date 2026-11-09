@@ -33,7 +33,8 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime, time as clock_time, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
+from datetime import time as clock_time
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 __all__ = ["Cadence", "cadence_from_env"]
@@ -79,9 +80,7 @@ class Cadence:
         """
         zone = self.zone or timezone(self.offset)
         local = now.astimezone(zone)
-        candidate = local.replace(
-            hour=self.at.hour, minute=self.at.minute, second=0, microsecond=0
-        )
+        candidate = local.replace(hour=self.at.hour, minute=self.at.minute, second=0, microsecond=0)
         if candidate <= local:
             candidate += timedelta(days=1)
         return candidate.astimezone(UTC)
@@ -122,9 +121,7 @@ def _parse_zone(raw: str) -> ZoneInfo | None:
         return None
 
 
-def cadence_from_env(
-    env: Mapping[str, str], allowed: set[str]
-) -> Cadence | None:
+def cadence_from_env(env: Mapping[str, str], allowed: set[str]) -> Cadence | None:
     """The cadence the environment asks for, or `None`.
 
     `None` is not an error: a deployment that does not set `IKIGAI_CADENCE_AT`

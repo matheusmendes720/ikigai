@@ -22,8 +22,8 @@ from collections.abc import Iterable, Sequence
 from typing import Any
 
 __all__ = [
-    "MAX_MARKDOWN",
     "MAX_COLUMNS",
+    "MAX_MARKDOWN",
     "markdown_table",
     "plain_table",
     "report_markdown",
@@ -106,9 +106,7 @@ def plain_table(headers: Sequence[str], rows: Iterable[Sequence[Any]]) -> str:
             widths[index] = max(widths[index], len(cell))
 
     def line(values: Sequence[str]) -> str:
-        padded = [
-            value.ljust(widths[index]) for index, value in enumerate(values[: len(widths)])
-        ]
+        padded = [value.ljust(widths[index]) for index, value in enumerate(values[: len(widths)])]
         return "  ".join(padded).rstrip()
 
     out = [line(header), "  ".join("-" * width for width in widths)]

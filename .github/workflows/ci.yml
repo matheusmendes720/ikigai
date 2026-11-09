@@ -121,6 +121,16 @@ jobs:
             python: "3.11"
             manager: ruff-only
             ruff_target: .
+          # The Telegram client. It is PUBLISHED code — it ships in the image
+          # and it speaks to the api and to the agent — and it was the one
+          # package the matrix did not gate: a file under `src/bot/` could
+          # fail the style rules and nobody would say so, because the gate
+          # that would have said so was not there.
+          - package: src-bot
+            path: src/bot
+            python: "3.11"
+            manager: ruff-only
+            ruff_target: .
 
     steps:
       - uses: actions/checkout@v4

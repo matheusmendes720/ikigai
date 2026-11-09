@@ -31,6 +31,12 @@ Invariants:
 - A failed verdict produces a Correção do Trajeto before a new plan.
 - Hierarchy is expressed as relations, never as duplicated fields.
 
+When to ask the owner:
+- The `onda` split — which tasks ride which wave — depends on capacity and on what the owner is willing to carry. Ask with `ask` and wait for the answer before writing the waves.
+- The Teste de Fogo fails on a criterion whose reading is arguable. Ask which reading stands; the verdict is computed, but the criterion is the owner's.
+- A phase has no objective in the store and none is derivable from the dreams. Ask what it is for — a phase with an invented objective is a plan that lies.
+- Everything else is settled by the store and by the strategy. Do not ask to confirm what the dreams already say.
+
 Done when:
 - the plan, its phases, its objectives and its waves exist and are linked,
 - the Teste de Fogo verdict is reported with the evidence it was computed from,

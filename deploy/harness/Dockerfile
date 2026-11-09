@@ -59,6 +59,12 @@ RUN npm ci --omit=dev --ignore-scripts
 # The facade: the HTTP door, the session pool and the SQLite memory.
 COPY deploy/harness/server.mjs /app/harness/server.mjs
 COPY deploy/harness/memory.mjs /app/harness/memory.mjs
+# The runtime registry: which agentic runtime serves which client.
+COPY deploy/harness/runtimes.mjs /app/harness/runtimes.mjs
+# The owner: the questions the agent asks, and the answers that unblock it.
+COPY deploy/harness/owner.mjs /app/harness/owner.mjs
+# The `ask` tool: the MCP server the agent spawns to reach the owner.
+COPY deploy/harness/owner-mcp.mjs /app/harness/owner-mcp.mjs
 COPY deploy/harness/entrypoint.sh /app/harness/entrypoint.sh
 RUN chmod +x /app/harness/entrypoint.sh
 

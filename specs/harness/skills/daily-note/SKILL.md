@@ -29,6 +29,11 @@ Invariants:
 - Every classification cites evidence. A recollection is not evidence.
 - The body never contains a secret, a token or a connection string.
 
+When to ask the owner:
+- The evidence for a task points both ways, and the class would change what the day says. Ask with `ask` and wait for the answer; the call blocks, and the answer arrives as the tool result.
+- A task was dropped and the store holds no reason. Ask why — the reason is the owner's, not something to infer from a missing note.
+- Everything else is settled by the evidence. Do not ask to confirm what the store already says.
+
 Done when:
 - the note exists at its uid with the counts and the evidence,
 - and the report names the uid, the counts per class and the tools that ran.
