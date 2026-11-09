@@ -34,6 +34,7 @@ class RecordingRepository:
     def __init__(self) -> None:
         self.written: dict[str, Any] = {}
         self.reads: list[str] = []
+        self.keys: list[str] = []
 
     async def get(self, uid: Any) -> Any:
         self.reads.append(str(uid))
@@ -46,6 +47,7 @@ class RecordingRepository:
     ) -> WriteOutcome:
         existed = str(req.artifact.uid) in self.written
         self.written[str(req.artifact.uid)] = req.artifact
+        self.keys.append(req.idempotency_key)
         return WriteOutcome(
             uid=req.artifact.uid,
             revision=req.artifact.revision,
@@ -184,3 +186,29 @@ async def test_the_kind_of_a_broken_frontmatter_file_is_still_the_zone(tmp_path:
     artifact = next(iter(repo.written.values()))
     assert artifact.kind is ArtifactKind.PLANO
     assert artifact.vault_path == "2_projeto/broken.md"
+
+
+async def test_the_idempotency_key_carries_the_revision(tmp_path: Path) -> None:
+    """A correction is not a repeat of a write that already happened.
+
+    A key built from the body hash alone says "this file, at these bytes" —
+    and a correction to the mapping produces the same bytes and a different
+    artifact. The store would recognise the key as a write it already did and
+    refuse it, and the correction would never reach the row.
+    """
+    root = tmp_path / "vault"
+    _write(root, "3_indice/AI-Engineer-MOC.md", BROKEN_TAGS)
+
+    repo, _ = await _ingest(root)
+    first_key = repo.keys[0]
+
+    stale = next(iter(repo.written.values())).model_copy(update={"title": "MOC Specific"})
+    repo.written[str(stale.uid)] = stale
+
+    sync = VaultSync(repo, sources=[VaultSource(root, "zones")])  # type: ignore[arg-type]
+    await sync.ingest()
+    second_key = repo.keys[1]
+
+    assert first_key != second_key, (
+        "the correction would be refused as a repeat of the write that already happened"
+    )

@@ -476,7 +476,23 @@ class VaultSync:
         request = WriteRequest(
             artifact=artifact,
             expected_revision=existing.revision if existing else None,
-            idempotency_key=f"vault:{source.layout}:{relative}:{body_hash[:16]}",
+            # The key identifies the WRITE, not the file.
+            #
+            # A key built from the body hash alone says "this file, at these
+            # bytes" — and a correction to the MAPPING (a frontmatter that
+            # becomes readable, a title read from another field) produces the
+            # same bytes and a different artifact. The store would recognise
+            # that key as a write it already did and refuse it, and the
+            # correction would never reach the row.
+            #
+            # The revision is in the key because it is what makes a write
+            # different from the one before it: a successful write advances
+            # it, and a refused one leaves it stale — so a write that is
+            # retried after a conflict carries a key the ledger has not seen.
+            idempotency_key=(
+                f"vault:{source.layout}:{relative}:{body_hash[:16]}:"
+                f"{existing.revision if existing else 0}"
+            ),
             client_id=self._client_id,
         )
 
