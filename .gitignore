@@ -307,6 +307,12 @@ htmlcov/
 !/src/data/AGENTS.md
 !/src/data/client.py
 !/src/data/repository.py
+# The drafts: the persistence of the prose a client is still writing (ADR-040).
+# It was MISSING from this list while `src/services/drafts.py` imported it, so
+# the module existed on the owner's disk and in no clone — the service raised
+# ImportError for everyone else while the suite here was green. A deny-all rule
+# under a directory is a rule that every new file has to be named back into.
+!/src/data/drafts.py
 /src/data/ikigai_checkpoints.db
 /src/ikigai/data/
 /src/ikigai/vault/
@@ -471,6 +477,9 @@ vault/.db
 !/src/ikigai/tests/test_code_review_gate_integrity.py
 !/src/ikigai/tests/test_deployment_surface.py
 !/src/ikigai/tests/test_ignore_rules_are_platform_invariant.py
+# The guard that a published module is a CLONE's module: it asks git which
+# files are tracked, which is the one thing the suite cannot take for granted.
+!/src/ikigai/tests/test_every_imported_module_is_tracked.py
 !/src/ikigai/tests/skills/
 !/src/ikigai/tests/contracts/
 !/src/ikigai/tests/store/
