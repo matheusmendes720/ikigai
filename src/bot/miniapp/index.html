@@ -285,6 +285,16 @@
     </section>
   </div>
 
+<!--
+  The official Telegram Web App SDK. It is what CREATES `Telegram.WebApp`
+  (the client does not have to) and it is what parses the payload the client
+  puts in the URL FRAGMENT. Loaded BEFORE the page's own script, and without
+  `async`/`defer`, so it has run by the time the page reads the bridge.
+
+  The page does not DEPEND on it: the payload is also read straight from the
+  fragment, so a client that cannot reach telegram.org still authenticates.
+-->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
 (function () {
   "use strict";
@@ -293,12 +303,97 @@
    * Telegram bridge
    * ------------------------------------------------------------------ */
 
-  var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-
   // initData IS the credential: the backend validates its HMAC and refuses
   // anything forged. It travels on EVERY call and never leaves this origin.
-  var INIT_DATA = (tg && typeof tg.initData === "string") ? tg.initData : "";
-  var START_PARAM = (tg && typeof tg.startParam === "string") ? tg.startParam : "";
+  //
+  // WHERE IT COMES FROM. The Telegram client opens a Mini App with the
+  // payload in the URL FRAGMENT:
+  //
+  //   https://<host>/#tgWebAppData=<signed payload>&tgWebAppVersion=…
+  //
+  // and the official SDK (telegram-web-app.js) is what parses that fragment
+  // into `Telegram.WebApp.initData`. The SDK is what CREATES the
+  // `Telegram.WebApp` object at all — the client does not have to.
+  //
+  // The page used to read `window.Telegram.WebApp` and nothing else, and it
+  // never loaded the SDK. On every client that does not inject the whole
+  // object by itself, `tg` was null, the page sent an EMPTY initData, and
+  // the server refused with "the initData carries no hash" — a refusal that
+  // reads like a wrong signature and is really a missing one. It was found
+  // by opening the panel on a real Telegram client and reading what the
+  // server said (2026-11-09).
+  //
+  // So the payload is read from the FRAGMENT here, and read AGAIN at every
+  // request: a bridge that arrives late is still a bridge, and a page that
+  // captured the credential once at load can only ever be right at load.
+  // The SDK's own decoding, mirrored: '+' is a space.
+  //
+  // This has to be the SAME decoding the SDK does, and the same one the
+  // server does (Python's parse_qsl, which also reads '+' as a space). The
+  // server checks ONE string; the two ways of finding it have to produce the
+  // same bytes, or the signature that Telegram computed never matches.
+  function urlSafeDecode(value) {
+    try {
+      return decodeURIComponent(String(value).replace(/\+/g, "%20"));
+    } catch (err) {
+      return String(value);
+    }
+  }
+
+  // The hash is a query string: split on '&', each part on its FIRST '=', and
+  // decode both sides. This is the SDK's urlParseHashParams, and it is
+  // mirrored rather than reinvented for exactly that reason.
+  function fragmentInitData() {
+    var hash = (window.location.hash || "").replace(/^#/, "");
+    if (!hash.length) { return ""; }
+    if (hash.indexOf("=") < 0 && hash.indexOf("?") < 0) { return ""; }
+    var qIndex = hash.indexOf("?");
+    if (qIndex >= 0) { hash = hash.substr(qIndex + 1); }
+    var parts = hash.split("&");
+    for (var i = 0; i < parts.length; i++) {
+      var pair = parts[i].split("=");
+      if (pair[0] !== "tgWebAppData") { continue; }
+      if (pair.length < 2) { return ""; }
+      return urlSafeDecode(pair[1]);
+    }
+    return "";
+  }
+
+  function bridge() {
+    return (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+  }
+
+  function initData() {
+    var app = bridge();
+    if (app && typeof app.initData === "string" && app.initData) { return app.initData; }
+    return fragmentInitData();
+  }
+
+  function startParam() {
+    var app = bridge();
+    if (app && typeof app.startParam === "string" && app.startParam) { return app.startParam; }
+    return "";
+  }
+
+  // The bridge as it is RIGHT NOW. It is re-read in start(), because the SDK
+  // is a network fetch and may land after this script ran.
+  var tg = bridge();
+
+  // What the owner is told when the server refuses the credential.
+  //
+  // "Not authenticated" is not a diagnosis. Two very different things arrive
+  // as a 401: the credential was refused (it is there and it is wrong), or
+  // there was NO credential (the client handed over nothing). The second one
+  // used to be dressed up as the first, which sent the hunt after the
+  // signature instead of after the missing payload.
+  function unauthenticatedMessage(detail) {
+    if (!initData()) {
+      return "O Telegram não entregou o initData. Abre a aplicação a partir do Telegram.";
+    }
+    return "Ligação não autenticada." +
+      (detail ? " " + detail : "") +
+      " Abre a aplicação a partir do Telegram.";
+  }
 
   var POLL_BASE_MS = 4000;   // cadence while there are pending questions
   var POLL_IDLE_MS = 15000;  // slower cadence while idle, to catch new questions
@@ -585,8 +680,9 @@
       render();
     }
 
-    var body = { init_data: INIT_DATA };
-    if (START_PARAM) { body.start_param = START_PARAM; }
+    var body = { init_data: initData() };
+    var param = startParam();
+    if (param) { body.start_param = param; }
 
     return apiFetch("/api/session", body).then(function (payload) {
       applySession(payload);
@@ -597,9 +693,7 @@
     }).catch(function (error) {
       if (error && error.code === "unauthenticated") {
         state.status = "unauthenticated";
-        state.message = "Ligação não autenticada." +
-          (error.detail ? " " + error.detail : "") +
-          " Abre a aplicação a partir do Telegram.";
+        state.message = unauthenticatedMessage(error.detail);
         stopPolling();
       } else {
         state.status = "offline";
@@ -641,7 +735,7 @@
     state.sending = questionId;
     render();
 
-    var body = { init_data: INIT_DATA, question_id: questionId };
+    var body = { init_data: initData(), question_id: questionId };
     if (payload && typeof payload.option_index === "number") {
       body.option_index = payload.option_index;
     } else {
@@ -673,9 +767,7 @@
     }).catch(function (error) {
       if (error && error.code === "unauthenticated") {
         state.status = "unauthenticated";
-        state.message = "Ligação não autenticada." +
-          (error.detail ? " " + error.detail : "") +
-          " Abre a aplicação a partir do Telegram.";
+        state.message = unauthenticatedMessage(error.detail);
         stopPolling();
       } else {
         state.status = "offline";
@@ -1133,6 +1225,8 @@
   }
 
   function start() {
+    // The SDK is a network fetch; it may have landed after this script ran.
+    tg = bridge();
     applyTheme();
     wire();
 
