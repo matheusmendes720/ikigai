@@ -238,3 +238,17 @@ def test_the_provenance_column_is_indexed_for_the_prefix_match() -> None:
     assert "text_pattern_ops" in sql, (
         "the zone filter is a LIKE prefix and a plain b-tree index does not serve it"
     )
+
+
+def test_the_revision_history_records_when_the_revision_was_written() -> None:
+    """What the row gives up on its dates, the history keeps.
+
+    The row holds the dates the artifact states, because the model makes both
+    of them required and the store cannot know better. The moment of the
+    WRITE is not lost with them: it is the `created_at` of the revision the
+    write appends, and it is the clock's.
+    """
+    revisions = _table_block(_read("0001_init.sql"), "artifact_revisions")
+    assert re.search(r"created_at\s+timestamptz\s+not null default now\(\)", revisions), (
+        "the revision history does not record when the revision was written"
+    )

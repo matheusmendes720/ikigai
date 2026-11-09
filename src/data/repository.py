@@ -205,11 +205,25 @@ class ArtifactRepository:
         req: WriteRequest,
         embedding: Sequence[float] | None = None,
     ) -> tuple[str, int]:
+        """Write the artifact over the stored one, at the revision it expects.
+
+        The DATES come from the artifact, not from the clock. Both are
+        required fields of the model, so a writer has always stated them and
+        the store cannot know better: `created_at` is when the artifact came
+        into being, `updated_at` is when its content last changed, and only
+        the writer knows the second. A store that substitutes its own clock
+        holds a value nobody wrote — and a comparison that decides whether a
+        row is still correct never matches, so the same rows are rewritten
+        on every round, forever.
+
+        The moment of the WRITE is not lost: it is `created_at` of the
+        revision this write appends.
+        """
         artifact = req.artifact
         cursor = await conn.execute(
             "update ikig.artifacts set title=%s, body=%s, body_hash=%s, parent_uid=%s, "
-            "quarter=%s, status=%s, vault_path=%s, kind=%s, revision=revision+1, "
-            "updated_at=now(), embedding=%s::vector "
+            "quarter=%s, status=%s, vault_path=%s, kind=%s, created_at=%s, updated_at=%s, "
+            "revision=revision+1, embedding=%s::vector "
             "where uid=%s and revision=%s and deleted_at is null",
             (
                 artifact.title,
@@ -220,6 +234,8 @@ class ArtifactRepository:
                 artifact.status,
                 artifact.vault_path,
                 str(artifact.kind),
+                artifact.created_at,
+                artifact.updated_at,
                 _vector_literal(embedding) if embedding is not None else None,
                 str(artifact.uid),
                 req.expected_revision,
