@@ -170,11 +170,28 @@ jobs:
             IKIGAI_DEPLOY_PATH='${{ secrets.IKIGAI_DEPLOY_PATH }}'
             IKIGAI_IMAGE='${{ steps.target.outputs.tag }}'
             IKIGAI_HARNESS_IMAGE='${{ steps.target.outputs.harness }}'
-            # Optional, and UNSET today: the four deploy secrets are the host,
-            # the user, the key and the path. With no `read:packages` token
-            # the pulls are anonymous; see the retry below.
+            # THE REGISTRY CREDENTIAL, and it is the job's OWN token.
+            #
+            # The images are PRIVATE: an anonymous pull of a tag that exists is
+            # `denied: denied`, measured five times in a row on the manifest of
+            # an image the build job had published seconds earlier. So there is
+            # no anonymous path, and the earlier hope that there was one is
+            # what kept this pipeline red.
+            #
+            # `GITHUB_TOKEN` can read THIS repository's packages when the job
+            # asks for `packages:` — this workflow asks for `write` — it costs
+            # no new secret, and it expires in an hour. The host had a `ghs_`
+            # App token stored from a manual login and GHCR refuses it now.
+            #
+            # An explicit PAT wins when the owner configures one: it is the
+            # escape hatch for a package that stops being readable by the
+            # actions token, and it is not required.
             IKIGAI_GHCR_TOKEN='${{ secrets.IKIGAI_DEPLOY_GHCR_TOKEN }}'
             IKIGAI_GHCR_USER='${{ secrets.IKIGAI_DEPLOY_GHCR_USER }}'
+            if [ -z "$IKIGAI_GHCR_TOKEN" ]; then
+              IKIGAI_GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}'
+              IKIGAI_GHCR_USER='${{ github.actor }}'
+            fi
 
             : "${IKIGAI_DEPLOY_PATH:?the deploy path is not set}"
             : "${IKIGAI_IMAGE:?the image tag is not set}"
@@ -213,28 +230,26 @@ jobs:
 
             export IKIGAI_IMAGE IKIGAI_HARNESS_IMAGE
 
-            # GHCR: the packages are PRIVATE and this host has no token, so
-            # the pulls are ANONYMOUS — and an anonymous pull of a package
-            # published seconds ago is FLAKY. Measured: `denied` on the
-            # manifest for a tag that pulled fine minutes later, and a
-            # `docker compose pull` denied while the same image came down by
-            # name. So:
+            # GHCR. The packages are PRIVATE and the pull is authenticated —
+            # see the credential at the top of this script. Three smaller
+            # things are still worth having here, because each of them cost a
+            # red deploy:
             #
             #   * `docker compose pull` is NOT used. It HEADs every manifest,
-            #     and that is the request the registry denies. The two images
+            #     and that is the request the registry refuses; the two images
             #     are named explicitly and `up --no-build` uses what is here.
             #   * a tag already on disk is not pulled at all, which makes a
-            #     redeploy of the same commit immune to the flakiness;
-            #   * a pull that fails is retried, with a growing wait.
+            #     redeploy of the same commit immune to the registry;
+            #   * a pull that fails is retried, because a package published
+            #     seconds ago is not always readable seconds later.
             #
-            # Add `IKIGAI_DEPLOY_GHCR_TOKEN` (a PAT with `read:packages`) and
-            # `IKIGAI_DEPLOY_GHCR_USER` to make it authenticated instead.
-            if [ -n "$IKIGAI_GHCR_TOKEN" ]; then
-              echo "$IKIGAI_GHCR_TOKEN" \
-                | docker login ghcr.io --username "${IKIGAI_GHCR_USER:-owner}" --password-stdin
-              echo "pulling as an authenticated client"
-            else
-              echo "no GHCR token: pulling anonymously, with retries"
+            # The login REPLACES whatever credential the host had: a stale one
+            # is worse than none, because docker tries it and gets `denied`
+            # with no hint that the token is the problem.
+            if ! echo "$IKIGAI_GHCR_TOKEN" \
+                | docker login ghcr.io --username "$IKIGAI_GHCR_USER" --password-stdin; then
+              echo "::error::ghcr.io refused the login for '$IKIGAI_GHCR_USER'"
+              exit 1
             fi
 
             for image in "$IKIGAI_IMAGE" "$IKIGAI_HARNESS_IMAGE"; do
