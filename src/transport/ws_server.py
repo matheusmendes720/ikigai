@@ -17,6 +17,11 @@ So the websocket carries two kinds of traffic on one socket:
   it (the trigger is in the migrations), the service layer turns the
   announcement into a domain event, and this module forwards it to whoever is
   connected.
+- **drafts** — the client's unfinished prose. It is a THIRD kind of frame and
+  deliberately not a seventh tool: the tool surface is the six of ADR-037 D6,
+  and a draft is not an operation on the DOM. It rides here because it is the
+  only surface with a connection that outlives a request — the whole point of
+  a draft is that it survives the client going away (ADR-040).
 
 The rules the rest of the system depends on still hold here:
 
@@ -26,7 +31,8 @@ The rules the rest of the system depends on still hold here:
   through the same service layer, with the same revision guard and the same
   idempotency key, as a write that arrives over MCP.
 - **The tool surface is the six.** Not seven: the websocket is another way to
-  reach them, not another set.
+  reach them, not another set. A draft is not a tool — it is state, and it is
+  reached with its own frame type.
 
 Run::
 
@@ -43,12 +49,14 @@ Environment
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import secrets
 import sys
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, ValidationError, validate_call
@@ -58,21 +66,68 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from src.contracts.errors import DataLayerError
+from src.contracts.dom import ArtifactKind
+from src.contracts.drafts import Draft
+from src.contracts.errors import DataLayerError, InvalidPayloadError, NotFoundError
 from src.contracts.store import STORE_DSN_ENV
 from src.services.changes import ChangeEvent
 from src.services.wiring import Services, build_services, prepare_runtime
 from src.transport import mcp_server
 from src.transport.healthcheck import probe
 
-__all__ = ["Router", "build_app", "main", "ws_host", "ws_port"]
+__all__ = ["Router", "build_app", "draft_frame", "main", "ws_host", "ws_port"]
 
 WS_HOST_ENV = "IKIGAI_WS_HOST"
 WS_PORT_ENV = "IKIGAI_WS_PORT"
 WS_TOKEN_ENV = "IKIGAI_WS_TOKEN"
 WS_ALLOW_ANONYMOUS_ENV = "IKIGAI_WS_ALLOW_ANONYMOUS"
+CLIENT_ID_ENV = "IKIGAI_CLIENT_ID"
 
 _DEFAULT_PORT = 8001
+
+#: The four things a client does with a draft. They are NOT tools: the tool
+#: surface is the six of ADR-037 D6, and a draft is state, not an operation on
+#: the DOM.
+_DRAFT_OPS = ("save", "get", "list", "discard")
+
+
+def default_client_id() -> str:
+    """The identity a draft belongs to, when the frame names none.
+
+    It is the same `IKIGAI_CLIENT_ID` the write envelope carries: one person
+    with several devices. A draft scoped to a socket would be a draft that dies
+    with it, which is the thing drafts exist to avoid.
+    """
+    return (os.environ.get(CLIENT_ID_ENV) or "owner").strip()
+
+
+def _require_draft_id(frame: dict[str, Any]) -> str:
+    draft_id = str(frame.get("draft_id") or "").strip()
+    if not draft_id:
+        raise InvalidPayloadError(
+            "the frame names no draft_id",
+            detail="a draft is addressed by (client_id, draft_id) and the id is required",
+        )
+    return draft_id
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    return int(value)
+
+
+def _draft_key(client_id: str, draft_id: str, body: str, at: datetime) -> str:
+    """The de-duplication key of one save.
+
+    It carries the CONTENT and the moment: two saves of the same text are the
+    same intent, so a client that retries after a dropped socket does not turn
+    one save into two. Two saves of different text are two saves, even a
+    second apart.
+    """
+    digest = hashlib.sha256(body.encode("utf-8")).hexdigest()[:16]
+    return f"draft:{client_id}:{draft_id}:{digest}:{at.isoformat(timespec='seconds')}"
+
 
 # The codes the service layer raises. A frame that carries one of them says
 # what the caller should do next, and they have to stay distinguishable: a
@@ -144,7 +199,24 @@ def event_frame(event: ChangeEvent) -> dict[str, Any]:
 
 def hello_frame(tools: set[str]) -> dict[str, Any]:
     """The first frame of a connection: who this is and what it can do."""
-    return {"type": "hello", "server": "ikigai-ws", "tools": sorted(tools)}
+    return {
+        "type": "hello",
+        "server": "ikigai-ws",
+        "tools": sorted(tools),
+        # The drafts are not tools, and a client that only knows the tool list
+        # would never try one. This is the frame that tells it they exist.
+        "drafts": ["save", "get", "list", "discard"],
+    }
+
+
+def draft_frame(draft: Any) -> dict[str, Any]:
+    """A draft on the wire.
+
+    It carries the revision because that is what the client has to send back
+    to save over it — a draft without its revision is a draft the client can
+    only overwrite blindly.
+    """
+    return {"type": "draft", "draft": _jsonable(draft)}
 
 
 def _domain_error(exc: Exception) -> tuple[str, str, str]:
@@ -255,10 +327,14 @@ class Router:
             return
 
         request_id = str(frame.get("id") or "")
-        if frame.get("type") != "call":
+        frame_type = frame.get("type")
+        if frame_type == "draft":
+            await self._handle_draft(websocket, request_id, frame)
+            return
+        if frame_type != "call":
             await self._send(
                 websocket,
-                error_frame(request_id, "malformed", f"unknown frame type: {frame.get('type')!r}"),
+                error_frame(request_id, "malformed", f"unknown frame type: {frame_type!r}"),
             )
             return
 
@@ -296,6 +372,94 @@ class Router:
             return
 
         await self._send(websocket, result_frame(request_id, _jsonable(result)))
+
+    async def _handle_draft(
+        self, websocket: WebSocket, request_id: str, frame: dict[str, Any]
+    ) -> None:
+        """Save, read, list or discard a draft.
+
+        Four operations on one frame type. The client states the draft and the
+        revision it expects; the service states the clock and the guard.
+
+        A client that sends no `client_id` gets the one the deployment was
+        configured with — the same identity the artifacts carry, because one
+        person with several devices is the model here, and a draft scoped to a
+        socket would be a draft that dies with it.
+        """
+        op = frame.get("op")
+        if op not in _DRAFT_OPS:
+            await self._send(
+                websocket,
+                error_frame(request_id, "malformed", f"unknown draft op: {op!r}"),
+            )
+            return
+
+        client_id = str(frame.get("client_id") or default_client_id()).strip()
+        if not client_id:
+            await self._send(
+                websocket,
+                error_frame(request_id, "validation", "the frame names no client"),
+            )
+            return
+
+        try:
+            if op == "save":
+                result = await self._draft_save(client_id, frame)
+            elif op == "get":
+                result = await self._draft_get(client_id, frame)
+            elif op == "list":
+                result = await self.services.drafts.open_drafts(
+                    client_id, int(frame.get("limit") or 50)
+                )
+            else:
+                result = await self.services.drafts.discard(
+                    client_id,
+                    _require_draft_id(frame),
+                    expected_revision=_optional_int(frame.get("expected_revision")),
+                )
+        except Exception as exc:
+            code, message, detail = _domain_error(exc)
+            await self._send(websocket, error_frame(request_id, code, message, detail))
+            return
+
+        if isinstance(result, list):
+            await self._send(
+                websocket,
+                result_frame(request_id, {"drafts": [_jsonable(item) for item in result]}),
+            )
+            return
+        if isinstance(result, Draft):
+            await self._send(websocket, result_frame(request_id, draft_frame(result)["draft"]))
+            return
+        await self._send(websocket, result_frame(request_id, _jsonable(result)))
+
+    async def _draft_save(self, client_id: str, frame: dict[str, Any]) -> Any:
+        """A save: the draft as the client stated it, plus the clock."""
+        now = datetime.now(UTC)
+        draft = Draft(
+            client_id=client_id,
+            draft_id=_require_draft_id(frame),
+            kind=frame.get("kind") or ArtifactKind.NOTA,
+            title=frame.get("title"),
+            body=str(frame.get("body") or ""),
+            parent_uid=frame.get("parent_uid") or None,
+            created_at=now,
+            updated_at=now,
+        )
+        return await self.services.drafts.save(
+            draft,
+            expected_revision=_optional_int(frame.get("expected_revision")),
+            idempotency_key=_draft_key(client_id, draft.draft_id, draft.body, now),
+        )
+
+    async def _draft_get(self, client_id: str, frame: dict[str, Any]) -> Any:
+        draft = await self.services.drafts.get(client_id, _require_draft_id(frame))
+        if draft is None:
+            raise NotFoundError(
+                f"no draft {frame.get('draft_id')!r} for {client_id!r}",
+                detail="a draft that was never saved cannot be read",
+            )
+        return draft
 
     @staticmethod
     async def _send(websocket: WebSocket, frame: dict[str, Any]) -> None:

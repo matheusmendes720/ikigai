@@ -524,6 +524,7 @@ vault/.db
 !/code-docs/adr/ADR-033-ueid-single-source-mandate.md
 !/code-docs/adr/ADR-037-data-layer-canonical-turn.md
 !/code-docs/adr/ADR-039-websocket-sync-transport.md
+!/code-docs/adr/ADR-040-client-state-and-drafts.md
 
 # The dated audits and plans of the system that was replaced.
 /docs/diagnostics/

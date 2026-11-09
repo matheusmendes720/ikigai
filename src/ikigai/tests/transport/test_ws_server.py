@@ -62,6 +62,7 @@ def _services(error: Exception | None = None) -> Any:
         relations=object(),
         embeddings=object(),
         changes=object(),
+        drafts=object(),
     )
 
 
