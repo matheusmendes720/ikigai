@@ -3,12 +3,20 @@
 #
 # Everything this script does is DERIVED. Nothing is written that the repo
 # does not already publish, and nothing is written that a secret touches:
-# the provider's key is resolved by pi FROM THE ENVIRONMENT at request time,
-# so it never lands in a file, not even inside the container.
+# the provider's key is read by pi FROM A FILE at request time, so it never
+# lands in a file this script writes, and never in the environment.
 set -eu
 
 HARNESS_HOME="${HARNESS_HOME:-/app/harness}"
-PI_AGENT_DIR="${PI_AGENT_DIR:-/root/.pi/agent}"
+# The AGENT's directory: where the agent keeps its settings, its sessions and
+# its provider catalogue.
+#
+# `PI_CODING_AGENT_DIR` is the variable the agent itself reads (measured: with
+# only `PI_AGENT_DIR` set, the agent started with "Unknown provider" — the
+# catalogue was written somewhere the agent never looked). The old name is
+# still honoured as a fallback, so a deployment that already sets it keeps
+# working.
+AGENT_DIR="${PI_CODING_AGENT_DIR:-${PI_AGENT_DIR:-/root/.pi/agent}}"
 PROJECT_DIR="${HARNESS_CWD:-/app}"
 SKILLS_SRC="${HARNESS_ROUTINES_DIR:-/app/specs/harness/skills}"
 SKILLS_DIR="${PI_SKILLS_DIR:-$PROJECT_DIR/.pi/skills}"
@@ -49,8 +57,8 @@ cp -R "$SKILLS_SRC/." "$SKILLS_DIR/"
 # nothing strips it now: the compose comment and `.env.example` both say
 # `printf '%s'`, never `echo`. A stray newline fails loudly at the next
 # request (401), which is the one thing a silent key cannot do.
-mkdir -p "$PI_AGENT_DIR"
-cat > "$PI_AGENT_DIR/models.json" <<JSON
+mkdir -p "$AGENT_DIR"
+cat > "$AGENT_DIR/models.json" <<JSON
 {
   "\$schema": "https://pi.dev/schemas/models.schema.json",
   "providers": {
