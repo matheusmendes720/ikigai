@@ -233,6 +233,18 @@ services:
       # looking healthy. The vault is tracked at the repository root, one
       # level up.
       - ../vault:/app/vault:ro
+    # The image carries a HEALTHCHECK, and it probes the MCP transport's HTTP
+    # endpoint — which is right for the api and for the ws, and WRONG here.
+    # The ingestion is not a server: it is a timer that reads the prose and
+    # writes the store, so the probe gets "Connection refused" every time and
+    # the container reports itself unhealthy while it is doing its job.
+    #
+    # A healthcheck that always fails is a lie in the OTHER direction, and it
+    # is the same lie the bot's healthcheck was removed for. The evidence
+    # that the ingestion works is in its logs ("scanned=… created=…") and in
+    # the store itself: the artifacts it wrote.
+    healthcheck:
+      disable: true
     restart: unless-stopped
 
   bot:
