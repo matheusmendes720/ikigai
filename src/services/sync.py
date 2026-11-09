@@ -250,17 +250,34 @@ def _timestamp(value: Any) -> datetime | None:
     into a string — so a coercion that only knows about strings drops the
     value without a word. `datetime` is a subclass of `date`, so it has to be
     tested first.
+
+    The result is ALWAYS timezone-aware. A vault that writes `created:
+    2026-01-15` writes a CALENDAR DATE, and a calendar date is stored at
+    midnight UTC — the store's column is `timestamptz`, and a naive
+    timestamp handed to it is read in the timezone of whichever server
+    happens to be running. That is two problems at once: the date lands on a
+    different instant depending on the box, and the comparison that decides
+    whether a row is still correct never matches — so the ingestion rewrites
+    the same rows every round, forever.
     """
     if isinstance(value, datetime):
-        return value
+        return _as_utc(value)
     if isinstance(value, date):
-        return datetime(value.year, value.month, value.day)
+        return datetime(value.year, value.month, value.day, tzinfo=UTC)
     if not isinstance(value, str) or not value:
         return None
     try:
-        return datetime.fromisoformat(value)
+        parsed = datetime.fromisoformat(value)
     except ValueError:
         return None
+    return _as_utc(parsed)
+
+
+def _as_utc(value: datetime) -> datetime:
+    """The same instant, with a timezone."""
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _locate_closing(path: Path, root: Path) -> tuple[ArtifactKind, str | None] | None:

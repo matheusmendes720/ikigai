@@ -21,7 +21,7 @@ Three things have to hold, and none of them is visible in the code:
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -156,8 +156,8 @@ async def test_the_vault_dates_are_the_dates_the_vault_declares(zones_tree: Path
     by_path = {artifact.vault_path: artifact for artifact in repo.written.values()}
 
     norte = by_path["1_norte/NORTE.md"]
-    assert norte.created_at == datetime(2026, 1, 1)
-    assert norte.updated_at == datetime(2026, 6, 13)
+    assert norte.created_at == datetime(2026, 1, 1, tzinfo=UTC)
+    assert norte.updated_at == datetime(2026, 6, 13, tzinfo=UTC)
 
 
 async def test_the_title_is_the_topic_when_there_is_one(zones_tree: Path) -> None:

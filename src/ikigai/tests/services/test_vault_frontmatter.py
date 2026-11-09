@@ -20,12 +20,25 @@ see that the artifact it maps to is now a different artifact.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from src.contracts.dom import ArtifactKind, WriteOutcome, WriteRequest
 from src.services.sync import VaultSource, VaultSync
+
+
+def _as_the_store_returns(value: datetime) -> datetime:
+    """What the store gives back for a timestamp.
+
+    The column is `timestamptz`, so a timestamp comes out with a timezone
+    whatever went in — and a naive one is read in the timezone of whichever
+    server is running. A fake that handed back exactly what it was given
+    would hide that, and the row would be rewritten on every round.
+    """
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value
 
 
 class RecordingRepository:
@@ -46,7 +59,14 @@ class RecordingRepository:
         embedding: Any = None,
     ) -> WriteOutcome:
         existed = str(req.artifact.uid) in self.written
-        self.written[str(req.artifact.uid)] = req.artifact
+        artifact = req.artifact
+        stored = artifact.model_copy(
+            update={
+                "created_at": _as_the_store_returns(artifact.created_at),
+                "updated_at": _as_the_store_returns(artifact.updated_at),
+            }
+        )
+        self.written[str(req.artifact.uid)] = stored
         self.keys.append(req.idempotency_key)
         return WriteOutcome(
             uid=req.artifact.uid,
@@ -97,8 +117,8 @@ async def test_a_frontmatter_yaml_refuses_is_still_read(tmp_path: Path) -> None:
     artifact = next(iter(repo.written.values()))
     assert artifact.title == "ai-engineer"
     assert artifact.status == "active"
-    assert artifact.created_at == datetime(2026, 1, 15)
-    assert artifact.updated_at == datetime(2026, 4, 30)
+    assert artifact.created_at == datetime(2026, 1, 15, tzinfo=UTC)
+    assert artifact.updated_at == datetime(2026, 4, 30, tzinfo=UTC)
 
 
 async def test_the_broken_tags_line_is_the_only_thing_lost(tmp_path: Path) -> None:
@@ -125,7 +145,7 @@ async def test_a_frontmatter_yaml_accepts_is_read_the_same_way(tmp_path: Path) -
 
     artifact = next(iter(repo.written.values()))
     assert artifact.title == "plain"
-    assert artifact.created_at == datetime(2026, 1, 15)
+    assert artifact.created_at == datetime(2026, 1, 15, tzinfo=UTC)
 
 
 async def test_a_correction_to_the_mapping_reaches_the_row(tmp_path: Path) -> None:
@@ -142,7 +162,7 @@ async def test_a_correction_to_the_mapping_reaches_the_row(tmp_path: Path) -> No
     sync = VaultSync(repo, sources=[VaultSource(root, "zones")])  # type: ignore[arg-type]
     await sync.ingest()
     first = next(iter(repo.written.values()))
-    assert first.created_at == datetime(2026, 1, 15)
+    assert first.created_at == datetime(2026, 1, 15, tzinfo=UTC)
 
     # The row as it was written by a mapping that could not read the block:
     # the same bytes, the wrong date.
@@ -153,7 +173,7 @@ async def test_a_correction_to_the_mapping_reaches_the_row(tmp_path: Path) -> No
 
     assert report.updated == 1, f"the correction did not reach the row: {report}"
     assert report.unchanged == 0
-    assert repo.written[str(first.uid)].created_at == datetime(2026, 1, 15)
+    assert repo.written[str(first.uid)].created_at == datetime(2026, 1, 15, tzinfo=UTC)
     assert repo.written[str(first.uid)].title == "ai-engineer"
 
 
@@ -212,3 +232,32 @@ async def test_the_idempotency_key_carries_the_revision(tmp_path: Path) -> None:
     assert first_key != second_key, (
         "the correction would be refused as a repeat of the write that already happened"
     )
+
+
+async def test_a_declared_date_does_not_rewrite_the_row_every_round(tmp_path: Path) -> None:
+    """A calendar date is stored at midnight UTC, and it stays put.
+
+    The store's column is `timestamptz`: a naive timestamp handed to it is
+    read in the timezone of whichever server is running, and it comes back
+    with a timezone. The comparison that decides whether the row is still
+    correct then never matches, and the ingestion rewrites the same rows
+    every round — forever, on a timer.
+    """
+    root = tmp_path / "vault"
+    _write(
+        root,
+        "3_indice/dated.md",
+        "---\ntopic: dated\ncreated: 2026-01-15\nupdated: 2026-04-30\n---\n\n# Dated\n",
+    )
+
+    repo, _ = await _ingest(root)
+    sync = VaultSync(repo, sources=[VaultSource(root, "zones")])  # type: ignore[arg-type]
+    second = await sync.ingest()
+
+    assert second.created == 0
+    assert second.updated == 0, "the row is rewritten on every round"
+    assert second.unchanged == 1
+
+    artifact = next(iter(repo.written.values()))
+    assert artifact.created_at == datetime(2026, 1, 15, tzinfo=UTC)
+    assert artifact.updated_at == datetime(2026, 4, 30, tzinfo=UTC)
