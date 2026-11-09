@@ -20,8 +20,17 @@ jobs:
         uses: actions/setup-python@v5
         with: { python-version: "3.11" }
 
+      # Nothing in this job uses `uv`: the checks run on Poetry (the package's
+      # own environment) and on the runner's Python. Measured: `uv` appears
+      # nowhere else in `.github/`.
+      #
+      # The step stays, but it cannot kill the checks: the release CDN answered
+      # 504 twice in a row (2026-11-09) and the job died on the DOWNLOAD —
+      # before a single check ran, and only on PRs, because this job is
+      # `if: pull_request`. A flaky installer is not a gate.
       - name: Install uv
         uses: astral-sh/setup-uv@v4
+        continue-on-error: true
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
