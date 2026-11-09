@@ -19,6 +19,11 @@ Two tree shapes are ingested, because the repo has two of them:
 - `persona` — `dreams/`, `objectives/`, `projects/`, `ikigai_state/`,
   `deliverables/`, the flat layout the production persona vault uses.
 
+A third one is ingested because the deployment has one: `zones` — the owner's
+knowledge tree, six buckets of markdown synced from the desktop onto the
+Cloud Volume. There, the first path segment IS the zone, and the zone decides
+the kind.
+
 Where a file declares its own `ueid` in frontmatter, that identity wins. It is
 the one the rest of the system already links to, and it survives a move of the
 file between the two trees.
@@ -71,8 +76,28 @@ _PERSONA_KINDS: dict[str, ArtifactKind] = {
     "deliverables": ArtifactKind.NOTA,
 }
 
+#: The zones tree: the owner's knowledge base, synced from the desktop.
+#:
+#: The first path segment is the zone, and the zone decides the kind. Only the
+#: zones that are NOT a bucket of notes are named here; every other zone is a
+#: note zone, so adding a seventh bucket needs no code change.
+#:
+#: The zone's own `type:` in the frontmatter is deliberately NOT consulted.
+#: It is the vault's taxonomy, not the DOM's, and it is not reliable: in the
+#: real tree it types a control-theory note as `project`, a study plan as
+#: `inbox`, and one file as `Line`. Promoting a note to a planning kind
+#: because of that would put the wrong thing in the wrong drawer of the DOM.
+#: The type stays in the body, where the prose keeps it.
+_ZONE_KINDS: dict[str, ArtifactKind] = {
+    "1_norte": ArtifactKind.SONHO,
+    "2_projeto": ArtifactKind.PLANO,
+}
+
+#: The kind of a zone that is not named in `_ZONE_KINDS`.
+_ZONE_DEFAULT_KIND = ArtifactKind.NOTA
+
 _ARCHIVE_DIR = "99-archive"
-_LAYOUTS = ("closing", "persona")
+_LAYOUTS = ("closing", "persona", "zones")
 
 #: Where the ingestion reads its trees from, when the container says so.
 #:
@@ -90,7 +115,7 @@ class VaultSource:
     """One markdown tree to ingest, and the shape it is laid out in."""
 
     root: Path
-    layout: Literal["closing", "persona"]
+    layout: Literal["closing", "persona", "zones"]
 
 
 @dataclass
@@ -240,6 +265,28 @@ def _locate_persona(path: Path, root: Path) -> tuple[ArtifactKind, str | None] |
     return kind, quarter
 
 
+def _locate_zones(path: Path, root: Path) -> tuple[ArtifactKind, str | None] | None:
+    """Find the kind of a file in the zones tree.
+
+    The first path segment is the zone, and the zone decides the kind. A file
+    that sits at the root of the tree belongs to no zone — the root holds the
+    zones and the metadata of the sync, not artifacts — so it is skipped.
+    """
+    try:
+        relative = path.relative_to(root)
+    except ValueError:
+        return None
+    if len(relative.parts) < 2:
+        return None
+    zone = relative.parts[0]
+    kind = _ZONE_KINDS.get(zone, _ZONE_DEFAULT_KIND)
+    quarter = None
+    match = _SLUG_QUARTER_RE.search(path.stem)
+    if match:
+        quarter = f"Q{match.group(1)}-{match.group(2)}"
+    return kind, quarter
+
+
 class VaultSync:
     """Reads the vault's markdown and upserts it into the store."""
 
@@ -271,16 +318,21 @@ class VaultSync:
                 # READMEs are scaffolding for the tree, not artifacts in it.
                 report.skipped.append(str(path))
                 continue
-            located = (
-                _locate_closing(path, source.root)
-                if source.layout == "closing"
-                else _locate_persona(path, source.root)
-            )
+            located = self._locate(path, source)
             if located is None:
                 report.skipped.append(str(path))
                 continue
             kind, quarter = located
             await self._ingest_file(path, source, kind, quarter, report)
+
+    @staticmethod
+    def _locate(path: Path, source: VaultSource) -> tuple[ArtifactKind, str | None] | None:
+        """The kind and the quarter of a file, by the shape of its tree."""
+        if source.layout == "closing":
+            return _locate_closing(path, source.root)
+        if source.layout == "persona":
+            return _locate_persona(path, source.root)
+        return _locate_zones(path, source.root)
 
     async def _ingest_file(
         self,
@@ -311,6 +363,11 @@ class VaultSync:
             "body": content,
             "body_hash": body_hash,
             "quarter": quarter,
+            # WHERE the prose came from. The path is relative to the tree the
+            # ingestion read, so its first segment is the zone — which is what
+            # makes the tree queryable by bucket — and the whole thing is what
+            # a write-back needs to know where to write.
+            "vault_path": relative,
             "revision": existing.revision if existing else 1,
             "created_at": existing.created_at if existing else _now(),
             "updated_at": _now(),
@@ -321,7 +378,7 @@ class VaultSync:
         parent = meta.get("parent_ueid")
         if isinstance(parent, str) and parent:
             fields["parent_uid"] = parent
-        created = _timestamp(meta.get("created_at"))
+        created = _timestamp(meta.get("created_at")) or _timestamp(meta.get("created"))
         if created is None and kind is ArtifactKind.NOTA:
             # A daily note carries the day it is about, and that day IS its
             # created_at — the DOM's spine has no second field for it. It used
@@ -331,7 +388,7 @@ class VaultSync:
             created = _timestamp(meta.get("date"))
         if created is not None and existing is None:
             fields["created_at"] = created
-        updated = _timestamp(meta.get("updated_at"))
+        updated = _timestamp(meta.get("updated_at")) or _timestamp(meta.get("updated"))
         if updated is not None:
             fields["updated_at"] = updated
         if kind is ArtifactKind.SONHO:
@@ -427,6 +484,13 @@ class VaultSync:
         declared = meta.get("title")
         if isinstance(declared, str) and declared.strip():
             return declared.strip()
+        # The knowledge vault titles its notes with `topic`, not `title`
+        # ("Life Vision & Goals", "projects-hub"). Without this, the artifact
+        # is called NORTE or 02-onda, and the vector — which is the title and
+        # the body — carries a filename instead of a subject.
+        topic = meta.get("topic")
+        if isinstance(topic, str) and topic.strip():
+            return topic.strip()
         heading = _HEADING_RE.search(content)
         return heading.group(1).strip() if heading else path.stem
 

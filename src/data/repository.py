@@ -43,8 +43,8 @@ except ImportError:  # pragma: no cover
 __all__ = ["ARTIFACT_EVENTS_CHANNEL", "ArtifactRepository"]
 
 _ARTIFACT_COLUMNS = (
-    "uid, kind, title, body, body_hash, parent_uid, quarter, status, revision, "
-    "created_at, updated_at, deleted_at"
+    "uid, kind, title, body, body_hash, parent_uid, quarter, status, vault_path, "
+    "revision, created_at, updated_at, deleted_at"
 )
 
 #: The channel the change trigger announces on. It is named in one place, and
@@ -63,6 +63,7 @@ def _to_artifact(row: Mapping[str, Any]) -> Artifact:
         parent_uid=row["parent_uid"],
         quarter=row["quarter"],
         status=row["status"],
+        vault_path=row["vault_path"],
         revision=row["revision"],
         created_at=row["created_at"],
         updated_at=row["updated_at"],
@@ -99,6 +100,19 @@ def _decode_cursor(cursor: str) -> tuple[str, str]:
         raise InvalidPayloadError(f"malformed cursor: {cursor!r}")
     updated_at, uid = payload
     return str(updated_at), str(uid)
+
+
+def _zone_pattern(zone: str) -> str:
+    """The LIKE pattern that matches one zone and nothing else.
+
+    `_` is a wildcard in LIKE and every zone name has one in it
+    (`2_projeto`, `5_atomicas`), so an unescaped pattern would also answer for
+    `2Xprojeto` — a bucket that does not exist. A search that returns a zone
+    nobody asked for is a search that lies, so the wildcards are escaped and
+    the clause names the escape character.
+    """
+    escaped = zone.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return escaped.rstrip("/") + "/%"
 
 
 class ArtifactRepository:
@@ -158,8 +172,8 @@ class ArtifactRepository:
         artifact = req.artifact
         cursor = await conn.execute(
             "insert into ikig.artifacts (uid, kind, title, body, body_hash, parent_uid, "
-            "quarter, status, revision, client_id, created_at, updated_at, embedding) "
-            "values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::vector) "
+            "quarter, status, vault_path, revision, client_id, created_at, updated_at, embedding) "
+            "values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::vector) "
             "on conflict (uid) do nothing",
             (
                 str(artifact.uid),
@@ -170,6 +184,7 @@ class ArtifactRepository:
                 str(artifact.parent_uid) if artifact.parent_uid else None,
                 artifact.quarter,
                 artifact.status,
+                artifact.vault_path,
                 artifact.revision,
                 req.client_id,
                 artifact.created_at,
@@ -193,8 +208,8 @@ class ArtifactRepository:
         artifact = req.artifact
         cursor = await conn.execute(
             "update ikig.artifacts set title=%s, body=%s, body_hash=%s, parent_uid=%s, "
-            "quarter=%s, status=%s, kind=%s, revision=revision+1, updated_at=now(), "
-            "embedding=%s::vector "
+            "quarter=%s, status=%s, vault_path=%s, kind=%s, revision=revision+1, "
+            "updated_at=now(), embedding=%s::vector "
             "where uid=%s and revision=%s and deleted_at is null",
             (
                 artifact.title,
@@ -203,6 +218,7 @@ class ArtifactRepository:
                 str(artifact.parent_uid) if artifact.parent_uid else None,
                 artifact.quarter,
                 artifact.status,
+                artifact.vault_path,
                 str(artifact.kind),
                 _vector_literal(embedding) if embedding is not None else None,
                 str(artifact.uid),
@@ -437,6 +453,9 @@ class ArtifactRepository:
         if query.parent_uid is not None:
             clauses.append("parent_uid = %s")
             params.append(str(query.parent_uid))
+        if query.zone is not None:
+            clauses.append("vault_path like %s escape E'\\\\'")
+            params.append(_zone_pattern(query.zone))
         if query.text:
             clauses.append(
                 "to_tsvector('portuguese', coalesce(title,'') || ' ' || coalesce(body,'')) "
@@ -481,6 +500,9 @@ class ArtifactRepository:
         if query.quarter is not None:
             clauses.append("quarter = %s")
             params.append(query.quarter)
+        if query.zone is not None:
+            clauses.append("vault_path like %s escape E'\\\\'")
+            params.append(_zone_pattern(query.zone))
 
         where = " and ".join(clauses)
         sql = (

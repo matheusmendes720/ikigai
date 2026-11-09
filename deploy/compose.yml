@@ -207,15 +207,28 @@ services:
       - "exec python -m src.services.sync --interval ${IKIGAI_VAULT_SYNC_INTERVAL:-60}"
     environment:
       IKIGAI_STORE_DSN: postgresql://${IKIGAI_DB_USER:-ikigai}:${IKIGAI_DB_PASSWORD}@db:5432/${IKIGAI_DB_NAME:-ikigai}
-      # Where the prose lives. The volume below is mounted read-only: the
-      # ingestion reads the vault and NEVER writes it (ADR-012).
-      IKIGAI_VAULT_ROOTS: ${IKIGAI_VAULT_ROOTS:-/app/vault/ikigai/closing-2026=closing}
+      # Where the prose lives. TWO trees, and the second one is the owner's
+      # knowledge zones: the markdown that Syncthing brings from the desktop
+      # onto the Cloud Volume, filed in six buckets. The volumes below are
+      # mounted read-only: the ingestion reads the vault and NEVER writes it
+      # (ADR-012).
+      #
+      # The zones tree is read with the `zones` layout, where the first path
+      # segment IS the zone (`1_norte`, `2_projeto`, `6_permanentes`) and the
+      # zone decides the kind of the artifact.
+      IKIGAI_VAULT_ROOTS: ${IKIGAI_VAULT_ROOTS:-/app/vault/ikigai/closing-2026=closing,/app/zonas=zones}
       IKIGAI_EMBEDDING_PROVIDER: ${IKIGAI_EMBEDDING_PROVIDER:-local}
       IKIGAI_EMBEDDING_BASE_URL: ${IKIGAI_EMBEDDING_BASE_URL:-}
       IKIGAI_EMBEDDING_MODEL: ${IKIGAI_EMBEDDING_MODEL:-}
       IKIGAI_EMBEDDING_API_KEY: ${IKIGAI_EMBEDDING_API_KEY:-}
     depends_on:
       db:
+        condition: service_healthy
+      # The schema before the prose. The api applies the migrations when it
+      # boots, and the ingestion reads the tables it created — so it waits for
+      # the api to be healthy instead of racing it and failing its first round
+      # on a column that does not exist yet.
+      api:
         condition: service_healthy
     volumes:
       # The vault as a VOLUME, not as a copy baked into the image. The image
@@ -233,6 +246,16 @@ services:
       # looking healthy. The vault is tracked at the repository root, one
       # level up.
       - ../vault:/app/vault:ro
+      # The knowledge zones: the owner's six buckets of markdown, synced from
+      # the desktop by Syncthing onto the Cloud Volume that outlives the
+      # server. The path is the operator's to set — `IKIGAI_VAULT_ZONES_PATH`
+      # points it at the directory Syncthing fills.
+      #
+      # The default is a NAMED VOLUME, which is empty: a local checkout has
+      # no zones, and an empty tree is the honest answer for it. The ingestion
+      # reports "vault root not found" for a tree with nothing in it, rather
+      # than pretending it read something.
+      - ${IKIGAI_VAULT_ZONES_PATH:-zonas}:/app/zonas:ro
     # The image carries a HEALTHCHECK, and it probes the MCP transport's HTTP
     # endpoint — which is right for the api and for the ws, and WRONG here.
     # The ingestion is not a server: it is a timer that reads the prose and
@@ -351,6 +374,11 @@ services:
 
 volumes:
   db-data:
+  # The knowledge zones — the six buckets of markdown that the owner syncs
+  # from the desktop. It is a named volume by default, because a local
+  # checkout has no zones; the deployment replaces it with the directory
+  # Syncthing fills (IKIGAI_VAULT_ZONES_PATH).
+  zonas:
   # The agent's sessions and settings.
   harness-state:
   # The agent's persistent memory (SQLite).

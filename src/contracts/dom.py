@@ -91,6 +91,17 @@ class Artifact(BaseModel):
     parent_uid: UEID | None = None
     quarter: str | None = None
     status: str | None = None
+    # Where the prose came from, relative to the tree the ingestion read.
+    #
+    # It is the provenance of the artifact, and it carries two things at once:
+    # the ZONE (its first segment — `2_projeto`, `6_permanentes`) and the file
+    # itself. The zone is what makes a knowledge tree queryable by bucket; the
+    # file is what a write-back needs to know where to write.
+    #
+    # It is nullable because not every artifact comes from a file: the Telegram
+    # bot writes artifacts that were never in the vault, and a NULL is the
+    # honest answer for those.
+    vault_path: str | None = None
     revision: int = Field(default=1, ge=1)
     created_at: datetime
     updated_at: datetime
@@ -163,6 +174,13 @@ class SearchQuery(BaseModel):
     quarter: str | None = None
     status: str | None = None
     parent_uid: UEID | None = None
+    # One zone of the knowledge tree — `2_projeto`, `6_permanentes`.
+    #
+    # It is a bucket, not a field: the zone is the first segment of
+    # `vault_path`, so the store answers it with a prefix match and the
+    # client never has to know how the path is spelled. A tree with no zones
+    # (the closing tree) simply has nothing under this filter.
+    zone: str | None = None
     semantic: bool = False
     limit: int = Field(default=20, ge=1, le=200)
     cursor: str | None = None
