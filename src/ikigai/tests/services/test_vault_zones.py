@@ -182,6 +182,25 @@ async def test_a_readme_is_scaffolding_and_not_an_artifact(zones_tree: Path) -> 
     assert any("README.md" in skipped for skipped in report.skipped)
 
 
+async def test_a_hidden_directory_is_not_a_zone(zones_tree: Path) -> None:
+    """The tree carries a `.git` — the owner's vault is a repository.
+
+    A zone called `.git` is not a bucket of knowledge: it is whatever a
+    repository happens to keep in markdown.
+    """
+    _write(zones_tree, ".git/notes.md", "# A commit message\n")
+    _write(zones_tree, ".obsidian/workspace.md", "# Workspace\n")
+
+    repo, report = await _ingest(zones_tree)
+    paths = {str(artifact.vault_path) for artifact in repo.written.values()}
+    # The skipped paths are reported as they are on disk, and the separator is
+    # the platform's — so they are normalised before they are compared.
+    skipped = {Path(item).as_posix() for item in report.skipped}
+
+    assert not any(path.startswith(".") for path in paths)
+    assert any(".git/notes.md" in item for item in skipped)
+
+
 async def test_the_ingestion_is_idempotent(zones_tree: Path) -> None:
     """A second run recognises every file as already ingested."""
     repo = RecordingRepository()

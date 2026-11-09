@@ -271,12 +271,19 @@ def _locate_zones(path: Path, root: Path) -> tuple[ArtifactKind, str | None] | N
     The first path segment is the zone, and the zone decides the kind. A file
     that sits at the root of the tree belongs to no zone — the root holds the
     zones and the metadata of the sync, not artifacts — so it is skipped.
+
+    A HIDDEN directory is not a zone either. The tree carries a `.git` (the
+    owner's vault is a repository) and a `.stfolder`, and a zone called `.git`
+    is not a bucket of knowledge: it is a bucket of whatever a repository
+    happens to keep in markdown.
     """
     try:
         relative = path.relative_to(root)
     except ValueError:
         return None
     if len(relative.parts) < 2:
+        return None
+    if any(part.startswith(".") for part in relative.parts):
         return None
     zone = relative.parts[0]
     kind = _ZONE_KINDS.get(zone, _ZONE_DEFAULT_KIND)
