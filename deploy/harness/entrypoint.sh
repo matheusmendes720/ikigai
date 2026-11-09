@@ -65,6 +65,10 @@ cat > "$PI_AGENT_DIR/models.json" <<JSON
           "maxTokens": ${HARNESS_MODEL_MAX_TOKENS:-131072}
         }
       ]
+    },
+    "${HARNESS_FALLBACK_PROVIDER:-deepseek}": {
+      "baseUrl": "${HARNESS_FALLBACK_BASE_URL:-https://api.deepseek.com}",
+      "apiKey": "!cat ${HARNESS_FALLBACK_KEY_FILE:-/run/secrets/deepseek_api_key}"
     }
   }
 }

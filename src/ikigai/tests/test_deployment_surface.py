@@ -195,6 +195,52 @@ def test_the_provider_key_is_a_file_and_not_an_environment_variable() -> None:
     )
 
 
+def test_the_fallback_provider_is_declared_and_mounted() -> None:
+    """A refusal from the primary provider must not become an empty answer.
+
+    Measured on the box with a quota-exhausted key: the turn ended with
+    `stopReason: "error"` on the assistant message and an empty text, and the
+    routine answered `ok: true` with zero bytes — the owner asked for the day's
+    report and got nothing, with a green status.
+
+    The retry needs three things wired together, and a missing one is silent:
+    the trigger list (what is worth retrying), the fallback provider/model the
+    harness passes to `pi`, and a key it can read. The key is a FILE for the
+    same reason as the primary's: `docker inspect` prints the environment.
+    """
+    services = _compose_services()
+    environment = services["harness"].get("environment") or {}
+
+    assert str(environment.get("HARNESS_FALLBACK_PROVIDER") or ""), (
+        "no fallback provider is declared: a refused routine would come back empty"
+    )
+    assert str(environment.get("HARNESS_FALLBACK_MODEL") or ""), (
+        "the fallback provider has no model: pi would have to guess one"
+    )
+    triggers = str(environment.get("HARNESS_FALLBACK_ON") or "")
+    assert "429" in triggers, (
+        f"the trigger list does not include 429, the meter that started all this: {triggers!r}"
+    )
+    assert "401" not in triggers, (
+        "401 is in the trigger list: a wrong key is not a transient refusal, and "
+        "retrying it hides the cause behind a second provider's answer"
+    )
+
+    mounted = services["harness"].get("secrets") or []
+    names = {
+        entry if isinstance(entry, str) else str((entry or {}).get("source")) for entry in mounted
+    }
+    assert "deepseek_api_key" in names, f"the fallback key is not mounted: {sorted(names)}"
+
+    import yaml
+
+    document = yaml.safe_load(_compose())
+    declaration = (document.get("secrets") or {}).get("deepseek_api_key") or {}
+    assert str(declaration.get("file") or "").endswith("deepseek_api_key"), (
+        f"the fallback key is not a file secret: {declaration!r}"
+    )
+
+
 def test_the_agent_does_not_hold_a_dsn() -> None:
     """The agent is a client of the api, like every other client.
 

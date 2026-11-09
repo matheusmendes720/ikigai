@@ -197,6 +197,7 @@ jobs:
         run: |
           mkdir -p deploy/secrets
           printf '%s' 'ci-placeholder' > deploy/secrets/harness_provider_key
+          printf '%s' 'ci-placeholder' > deploy/secrets/deepseek_api_key
           docker compose -f deploy/compose.yml config --quiet
 
       - name: The image builds
