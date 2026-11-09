@@ -17,8 +17,10 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Any
 
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 COMPOSE = REPO_ROOT / "deploy" / "compose.yml"
@@ -69,11 +71,226 @@ def test_the_compose_runs_the_ingestion() -> None:
     assert "IKIGAI_VAULT_ROOTS" in compose, "the ingestion is not told where the prose is"
 
 
+def test_the_zones_tree_is_mounted_for_the_ingestion() -> None:
+    """The knowledge zones reach the ingestion as a VOLUME.
+
+    They are synced onto the Cloud Volume by Syncthing and they are the
+    owner's own markdown — the same argument as the vault above: a container
+    that only sees the copy baked into its image answers from the prose of the
+    commit it was built from.
+    """
+    compose = _compose()
+    assert "/app/zonas:ro" in compose, (
+        "the zones are not mounted — the ingestion would read the copy baked "
+        "into the image, which is the prose of the build, not of now"
+    )
+
+
+def test_the_deployment_names_the_zones_layout() -> None:
+    """The layout the zones are read with is named in the deployment."""
+    compose = _compose()
+    assert "=zones" in compose, (
+        "the zones layout is not named in the deployment — the ingestion would "
+        "read the zones with the layout of another tree"
+    )
+
+
 def test_the_compose_runs_the_websocket() -> None:
     compose = _compose()
     assert "src.transport.ws_server" in compose, "the websocket is not deployed"
     assert "IKIGAI_WS_TOKEN" in compose, (
         "the websocket is a write channel and it is deployed without a token"
+    )
+
+
+def test_the_bot_speaks_the_websocket_scheme() -> None:
+    """The bot's change stream names a WEBSOCKET, and the scheme is the protocol.
+
+    The websocket answers on 8001 and so would an HTTP server: the port says
+    nothing about the protocol. The compose said `http://ws:8001/sync` — the
+    right host, the right port, the wrong protocol — so the bot's whole store
+    leg (search, read, write, the change stream) was refused before a socket
+    opened, while the container reported healthy. Measured on the box: 591 ms
+    to fail on `http://`, 99 ms to answer a real call on `ws://`.
+
+    Nothing measured this, which is why it survived; the guard is the
+    measurement.
+    """
+    services = _compose_services()
+    environment = services["bot"].get("environment") or {}
+    url = str(environment.get("IKIGAI_WS_URL") or "")
+
+    assert url, (
+        "the bot has no websocket: it would only ever learn about its own writes, "
+        "and every write made by the ingestion would stay invisible"
+    )
+    assert url.startswith(("ws://", "wss://")), (
+        f"the bot's websocket URL is {url!r}: an http:// URL is a different "
+        "protocol that happens to share the port, and the call fails even when "
+        "the service is healthy"
+    )
+
+
+def _compose_services() -> dict[str, Any]:
+    """The compose, parsed.
+
+    The file is YAML, so the guards read it as YAML: a service that holds a
+    DSN is a fact about the compose, not a string that happens to be near it.
+    """
+    import yaml
+
+    document = yaml.safe_load(_compose())
+    services = document.get("services") or {}
+    assert services, "the compose declares no services"
+    return services
+
+
+def test_the_compose_gives_the_bot_the_agent_door() -> None:
+    """The bot reaches the agent, and the agent is deployed.
+
+    Without the door the bot still writes, searches and reads — but the
+    routines ARE the cadences the product runs, and a compose that deploys
+    the agent without wiring it to anything is a product that ships an
+    expensive process and never asks it for anything.
+    """
+    services = _compose_services()
+    assert "harness" in services, "the agent is not deployed"
+
+    bot = services["bot"]
+    url = str((bot.get("environment") or {}).get("IKIGAI_HARNESS_URL") or "")
+    assert "http://harness:8002" in url, (
+        f"the bot's door does not point at the agent's service: {url!r}"
+    )
+    assert "harness" in (bot.get("depends_on") or {}), "the bot starts before the agent it talks to"
+
+
+def test_the_provider_key_is_a_file_and_not_an_environment_variable() -> None:
+    """The agent's key must not travel in the environment.
+
+    An `environment:` entry is not a secret store. The engine keeps it in the
+    container's `Config.Env` — so `docker inspect` prints the key — and in
+    `/proc/1/environ` inside the container, where every process the agent
+    spawns inherits it. Measured on the box before this guard existed: the
+    125-character key was one `docker inspect` away from anyone allowed to run
+    `docker` there.
+
+    A file secret is mounted at `/run/secrets/<name>` and exists only inside
+    the container that declares it, so the two assertions are one contract:
+    the variable is gone AND the file is there. Keeping only the first would
+    pass for a compose that forgot to mount the key at all, and the agent
+    would fail at the first request with a message about authentication.
+    """
+    services = _compose_services()
+    environment = services["harness"].get("environment") or {}
+
+    assert "HARNESS_PROVIDER_API_KEY" not in environment, (
+        "the provider's key is in the container's environment: `docker inspect` "
+        "prints Config.Env, and every child process inherits it"
+    )
+
+    mounted = services["harness"].get("secrets") or []
+    names = {
+        entry if isinstance(entry, str) else str((entry or {}).get("source")) for entry in mounted
+    }
+    assert "harness_provider_key" in names, (
+        f"the harness mounts no provider-key secret: {sorted(names)}"
+    )
+
+    import yaml
+
+    document = yaml.safe_load(_compose())
+    declaration = (document.get("secrets") or {}).get("harness_provider_key") or {}
+    assert str(declaration.get("file") or "").endswith("harness_provider_key"), (
+        "the secret is not backed by a file: the key would come from somewhere "
+        f"the operator cannot protect: {declaration!r}"
+    )
+
+    # The third half of the contract, and the one that catches a change that
+    # went only half way: the agent must be told the FILE. A compose without
+    # the variable AND an entrypoint still resolving `$HARNESS_PROVIDER_API_KEY`
+    # would start, find nothing, and fail at the first request with "invalid
+    # api key" — a message that names the credential and not the wiring.
+    entrypoint = (REPO_ROOT / "deploy" / "harness" / "entrypoint.sh").read_text(encoding="utf-8")
+    assert "/run/secrets/harness_provider_key" in entrypoint, (
+        "the entrypoint never names the secret mount: the agent would read the key "
+        "from an environment variable that is no longer set"
+    )
+    assert '"$HARNESS_PROVIDER_API_KEY"' not in entrypoint, (
+        "the entrypoint still resolves the key from the environment"
+    )
+
+
+def test_the_fallback_provider_is_declared_and_mounted() -> None:
+    """A refusal from the primary provider must not become an empty answer.
+
+    Measured on the box with a quota-exhausted key: the turn ended with
+    `stopReason: "error"` on the assistant message and an empty text, and the
+    routine answered `ok: true` with zero bytes — the owner asked for the day's
+    report and got nothing, with a green status.
+
+    The retry needs three things wired together, and a missing one is silent:
+    the trigger list (what is worth retrying), the fallback provider/model the
+    harness passes to `pi`, and a key it can read. The key is a FILE for the
+    same reason as the primary's: `docker inspect` prints the environment.
+    """
+    services = _compose_services()
+    environment = services["harness"].get("environment") or {}
+
+    assert str(environment.get("HARNESS_FALLBACK_PROVIDER") or ""), (
+        "no fallback provider is declared: a refused routine would come back empty"
+    )
+    assert str(environment.get("HARNESS_FALLBACK_MODEL") or ""), (
+        "the fallback provider has no model: pi would have to guess one"
+    )
+    triggers = str(environment.get("HARNESS_FALLBACK_ON") or "")
+    assert "429" in triggers, (
+        f"the trigger list does not include 429, the meter that started all this: {triggers!r}"
+    )
+    assert "401" not in triggers, (
+        "401 is in the trigger list: a wrong key is not a transient refusal, and "
+        "retrying it hides the cause behind a second provider's answer"
+    )
+
+    mounted = services["harness"].get("secrets") or []
+    names = {
+        entry if isinstance(entry, str) else str((entry or {}).get("source")) for entry in mounted
+    }
+    assert "deepseek_api_key" in names, f"the fallback key is not mounted: {sorted(names)}"
+
+    import yaml
+
+    document = yaml.safe_load(_compose())
+    declaration = (document.get("secrets") or {}).get("deepseek_api_key") or {}
+    assert str(declaration.get("file") or "").endswith("deepseek_api_key"), (
+        f"the fallback key is not a file secret: {declaration!r}"
+    )
+
+
+def test_the_agent_does_not_hold_a_dsn() -> None:
+    """The agent is a client of the api, like every other client.
+
+    A DSN in the agent's container would be a second writer of one store
+    waiting to happen (ADR-037 D5) — and the agent has no need of one: it
+    reaches the DOM through the api's MCP.
+    """
+    services = _compose_services()
+    environment = services["harness"].get("environment") or {}
+    assert "IKIGAI_STORE_DSN" not in environment, (
+        "the agent holds a DSN — it is a second writer of the store"
+    )
+
+
+def test_the_bot_does_not_hold_a_dsn() -> None:
+    """The bot gained a second door, and it did not gain a store.
+
+    A door to the agent is a door to a CLIENT of the api, not to the
+    database. A DSN in the bot would be a fallback to the database — a
+    second writer waiting to happen (ADR-037 D5, D6).
+    """
+    services = _compose_services()
+    environment = services["bot"].get("environment") or {}
+    assert "IKIGAI_STORE_DSN" not in environment, (
+        "the bot holds a DSN — it is a second writer of the store"
     )
 
 
@@ -167,6 +384,60 @@ def test_the_ingestion_declares_a_healthcheck_it_can_pass() -> None:
     )
 
 
+def test_the_deploy_path_reaches_the_remote_script() -> None:
+    """The remote script must RECEIVE the deploy path — by one of two ways.
+
+    Written after three deploys died on the same line with every secret set:
+
+        bash: line 3: IKIGAI_DEPLOY_PATH: the deploy path is not set
+
+    `appleboy/ssh-action` forwards NAMES from `envs` and takes the values from
+    the step's `env:`. The old step used `envs: IKIGAI_DEPLOY_PATH=${{ … }}`,
+    which forwards nothing, so the guard fired before anything was deployed.
+    The log made it worse by showing `IKIGAI_DEPLOY_PATH=***`, which reads like
+    the value arrived — GitHub masks secrets.
+
+    There are two ways that work, and the guard accepts both because the
+    choice belongs to the workflow:
+
+    (a) `envs` lists NAMES and every name is declared in `env:`;
+    (b) the value is interpolated into `script:` with `${{ }}`, so Actions
+        substitutes it on the runner and there is no forwarding to get wrong.
+
+    What it rejects is the third form — `KEY=VALUE` inside `envs` — for
+    `IKIGAI_DEPLOY_PATH`, and any name listed without a value.
+    """
+    import yaml
+
+    document = yaml.safe_load(_deploy_workflow())
+    steps = [
+        step for job in (document.get("jobs") or {}).values() for step in (job.get("steps") or [])
+    ]
+    ssh = [step for step in steps if "ssh-action" in str(step.get("uses") or "")]
+    assert ssh, "no appleboy/ssh-action step in the deploy workflow"
+
+    step = ssh[0]
+    script = str((step.get("with") or {}).get("script") or "")
+    envs = str((step.get("with") or {}).get("envs") or "")
+    names = [name.strip() for name in envs.split(",") if name.strip()]
+
+    offenders = [name for name in names if "=" in name]
+    assert not offenders, (
+        f"envs contains 'KEY=VALUE' ({offenders}). The action forwards names only, "
+        "so these arrive empty on the remote and the deploy dies at its first guard"
+    )
+
+    declared = set((step.get("env") or {}).keys())
+    forwarded = bool(names) and all(name in declared for name in names)
+    interpolated = "secrets.IKIGAI_DEPLOY_PATH" in script
+
+    assert forwarded or interpolated, (
+        "the deploy path reaches the remote script by neither mechanism: "
+        f"envs={names!r} (declared: {sorted(declared)}) and the script does not "
+        "interpolate secrets.IKIGAI_DEPLOY_PATH"
+    )
+
+
 def test_the_deploy_runs_compose_from_the_directory_that_holds_it() -> None:
     """`docker compose` with no `-f` looks for a compose file in the CURRENT
     directory, and the repository root has none: the compose file is
@@ -237,4 +508,129 @@ def test_the_container_names_the_agent_directory_the_agent_reads() -> None:
     entrypoint = (REPO_ROOT / "deploy" / "harness" / "entrypoint.sh").read_text(encoding="utf-8")
     assert "PI_CODING_AGENT_DIR" in entrypoint, (
         "the boot does not write the provider catalogue where the agent reads it"
+    )
+
+
+# ─── the deploy's three arms ────────────────────────────────────────────────
+#
+# Six deploys ran red with every secret set, and each failure named something
+# that was not the cause. The fix is in the workflow; this is the guard,
+# because a pipeline that has failed six times in a row is a pipeline whose
+# shape has to be held by something stronger than a comment.
+
+
+def _deploy_step() -> dict[str, Any]:
+    """The one step that speaks SSH, read as data instead of as text."""
+    workflow = yaml.safe_load(_deploy_workflow())
+    steps = workflow["jobs"]["deploy"]["steps"]
+    step = next(
+        (candidate for candidate in steps if "ssh-action" in str(candidate.get("uses", ""))),
+        None,
+    )
+    assert step is not None, "the deploy no longer uses an ssh action"
+    return step
+
+
+def _deploy_script() -> str:
+    return str(_deploy_step()["with"]["script"])
+
+
+def _script_commands() -> list[str]:
+    """The script's EXECUTABLE lines.
+
+    The comments name the failures ("`docker compose pull` is NOT used"), so a
+    plain substring search over the whole script reads the explanation as the
+    defect.
+    """
+    return [line for line in _deploy_script().splitlines() if not line.lstrip().startswith("#")]
+
+
+def test_the_deploy_carries_its_values_in_the_script_and_not_through_envs() -> None:
+    """`envs:` delivered NONE of the values to the remote script.
+
+    Measured twice: the step above ("The deploy is configured") read the same
+    secrets and passed, the SSH connection succeeded, and the remote died on
+    `bash: line 3: IKIGAI_DEPLOY_PATH: the deploy path is not set`.
+
+    The values are assigned in the script instead, with the form Actions
+    substitutes on the RUNNER before the script is sent — so there is no
+    forwarding left to get wrong.
+    """
+    deploy = _deploy_step()
+    assert "envs" not in deploy["with"], (
+        "the deploy carries its values through `envs:` again — that is the arm "
+        "that delivered nothing to the remote, twice, with every secret set"
+    )
+
+    script = _deploy_script()
+    for name in ("IKIGAI_DEPLOY_PATH", "IKIGAI_IMAGE", "IKIGAI_HARNESS_IMAGE"):
+        assignment = script.find(f"{name}='")
+        guard = script.find(f': "${{{name}:?')
+        assert assignment != -1, f"the deploy never assigns {name} to a value"
+        assert guard != -1, f"the deploy never asserts that {name} is set"
+        assert assignment < guard, (
+            f"{name} is asserted before it is assigned, so the guard reads whatever "
+            "the remote shell happened to have"
+        )
+
+    assert "command_timeout" in deploy["with"], (
+        "the ssh action keeps its 10m default while the deploy waits 180s for the "
+        "service and pulls two images; the timeout has to be able to see the end"
+    )
+
+
+def test_the_deploy_repairs_the_clone_refspec_before_it_fetches() -> None:
+    """A clone with a NARROW refspec never sees `main`.
+
+    The box was configured with `+refs/heads/feat/harness-container:...`, so
+    `git fetch --all` brought that one branch, `checkout main` landed on a
+    stale local branch, and `pull --ff-only` refused. The deploy had every
+    secret and a working connection, and still could not reach the commit it
+    had just built: it would have run one commit while reporting another.
+
+    The repair is in the pipeline, so a clone configured by hand cannot make
+    the deploy lie again.
+    """
+    commands = "\n".join(_script_commands())
+    refspec = "+refs/heads/*:refs/remotes/origin/*"
+    assert refspec in commands, (
+        "the deploy no longer widens the clone's refspec, so a narrow clone "
+        "fetches every branch except the one it deploys"
+    )
+    assert commands.index(refspec) < commands.index("git fetch"), (
+        "the refspec is repaired AFTER the fetch, which is one deploy too late"
+    )
+    assert "checkout -q -B main origin/main" in commands, (
+        "the deploy checks out a LOCAL main, which may be the stale branch the "
+        "narrow refspec was hiding"
+    )
+    assert "reset --hard origin/main" in commands, (
+        "the deploy does not reset the tree it is about to run, so drift on the "
+        "box changes what gets deployed"
+    )
+
+
+def test_the_deploy_pulls_the_two_images_by_name_and_retries() -> None:
+    """`docker compose pull` HEADs every manifest, and that is what GHCR denies.
+
+    Measured twice: `denied` on the manifest while the same tag came down by
+    name minutes later. The images are named explicitly instead, a tag already
+    on the host is not pulled at all, and a refused pull is retried with a
+    growing wait before the deploy gives up.
+    """
+    commands = "\n".join(_script_commands())
+    assert "docker compose pull" not in commands, (
+        "the deploy runs `docker compose pull` again: it HEADs every manifest, "
+        "and that is the request the registry refuses"
+    )
+    assert 'docker pull "$image"' in commands, "the deploy pulls no image by name"
+    assert "docker image inspect" in commands, (
+        "the deploy pulls a tag that is already on the host, so a redeploy of the "
+        "same commit can fail on the registry for no reason"
+    )
+    assert "attempt" in commands, (
+        "a refused pull is no longer retried, so one flaky anonymous pull ends the deploy"
+    )
+    assert "-ge 5" in commands, (
+        "the pull retry has no ceiling, so a registry that keeps refusing hangs the deploy"
     )

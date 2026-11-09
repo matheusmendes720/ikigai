@@ -76,8 +76,11 @@ MCP. It is never given a DSN.
 | `IKIGAI_IMAGE` | no | the image the stack runs; the CI/CD workflow sets it to the tag it published |
 | `IKIGAI_BOT_TOKEN` | **yes** | the Telegram bot token — belongs to the bot process only |
 | `IKIGAI_BOT_ALLOWED_CHAT_IDS` | **yes** | comma-separated owner chat ids; empty stops the bot |
+| `IKIGAI_HARNESS_URL` | no (default `http://harness:8002`) | the agent's door, as the bot sees it. Unset ⇒ the bot still writes and reads, and refuses the routines with a reason |
+| `IKIGAI_HARNESS_TIMEOUT_S` | no (default `600`) | the ceiling of a routine, in seconds. The harness bounds the run with the same number |
 | `IKIGAI_CLIENT_ID` | no (default `owner`) | the identity written on every write. It is written into the ROW; it is **not** the claim the RLS policies filter on — see below |
 | `IKIGAI_PGDATA` | no (default `db-data`) | where the store's PGDATA lives. A **path** is a bind mount, a **name** is a Docker named volume |
+| `IKIGAI_VAULT_ZONES_PATH` | no (default `zonas`) | where the knowledge zones live. A **path** is a bind mount, a **name** is a Docker named volume |
 
 ## Where the store lives
 
@@ -113,6 +116,44 @@ optional.
 Put them in a `.env` file beside this one. `.env*` is gitignored; no secret
 belongs in a tracked file.
 
+## Where the prose lives
+
+The ingestion reads **two trees**, and `IKIGAI_VAULT_ROOTS` names both:
+
+| Tree | Mounted at | Layout | What it is |
+|---|---|---|---|
+| the closing tree | `/app/vault` | `closing` | `vault/ikigai/closing-2026/<quarter>/<kind>/` — the planning prose of the repository |
+| the knowledge zones | `/app/zonas` | `zones` | the owner's six buckets of markdown, synced from the desktop onto the Cloud Volume |
+
+```bash
+IKIGAI_VAULT_ROOTS=/app/vault/ikigai/closing-2026=closing,/app/zonas=zones
+```
+
+Both mounts are **read-only**: the ingestion reads the prose and never writes it
+(ADR-012). The zones tree is a bind mount on the deployment box —
+`IKIGAI_VAULT_ZONES_PATH` points it at the directory Syncthing fills — and a
+named volume by default, because a local checkout has no zones.
+
+The `zones` layout reads the **zone** as the first path segment, and the zone
+decides the kind of the artifact:
+
+| Zone | Kind | Why |
+|---|---|---|
+| `1_norte` | `sonho` | the north star: the dreams and the primary objectives |
+| `2_projeto` | `plano` | planned work with a horizon |
+| every other zone | `nota` | a bucket of notes. A seventh zone needs no release |
+
+The vault's own `type:` in the frontmatter does **not** decide the kind: it is
+the vault's vocabulary and not the DOM's, and in the real tree it calls a
+control-theory note a `project` and one file `Line`. The type stays in the
+body, where the prose keeps it.
+
+What the store keeps of the provenance is the **path**, relative to the tree:
+`2_projeto/business/Business_SRC.md`. Its first segment is the zone, so a
+client asks for a bucket with `SearchQuery.zone` and the store answers with a
+prefix match; the whole path is what a write-back needs to know where to
+write.
+
 ## Running it
 
 ```bash
@@ -139,7 +180,7 @@ builds, fails there — not on the server, at the deploy, with the service down.
    (`ghcr.io/matheusmendes720/ikigai` and `.../ikigai-harness`), tagged with
    the commit SHA;
 2. SSHes into the server;
-3. pulls THOSE images and runs them — `docker compose pull` then
+3. pulls THOSE images, by name, and runs them —
    `docker compose up -d --no-build`, and then waits for the service to be
    healthy.
 
@@ -148,9 +189,33 @@ compiles the deploy, and a deploy that compiles something else than CI tested
 is a deploy nobody verified.
 
 **Both images are published, because the compose names both.** The agent is
-external (ADR-037 D7) and has its own image; `docker compose pull` pulls
-every image the compose names, so an image the pipeline does not publish is a
-deploy that stops at the pull.
+external (ADR-037 D7) and has its own image; an image the pipeline does not
+publish is a deploy that stops at the pull.
+
+**The two images are pulled BY NAME, and `docker compose pull` is not used.**
+`compose pull` sends a HEAD for every manifest, and that is the request GHCR
+refuses on this deployment — measured twice: `denied` on the manifest while
+the same tag came down by name minutes later. A tag already on the host is not
+pulled again (so a redeploy of the same commit cannot fail on the registry),
+and a pull that fails is retried with a growing wait.
+
+**The pulls are anonymous.** The four deploy secrets are the host, the user,
+the key and the path — there is no `read:packages` token. Adding
+`IKIGAI_DEPLOY_GHCR_TOKEN` and `IKIGAI_DEPLOY_GHCR_USER` makes the deploy log
+in first, and the workflow does it when they are present.
+
+**The deploy repairs the clone's remote before it fetches.** A clone whose
+`remote.origin.fetch` is a single branch — which this box's was — makes
+`git fetch --all` bring that one branch and never `main`; `git checkout main`
+then lands on a stale local branch and `git pull --ff-only` refuses. The
+workflow sets the refspec to `+refs/heads/*:refs/remotes/origin/*` on every
+run, then `git checkout -B main origin/main` and `git reset --hard`, so the
+commit it runs is the commit it built.
+
+**The values reach the remote script by INTERPOLATION, not by `envs:`.** With
+`envs:` the remote received none of them — `IKIGAI_DEPLOY_PATH: the deploy
+path is not set` at line 3, while the step that checks the secrets passed.
+`${{ }}` is substituted on the runner, before the script is sent.
 
 **The deploy runs compose from `deploy/`, not from the repository root.**
 `docker compose` with no `-f` looks for a compose file in the current
@@ -174,19 +239,25 @@ The secrets it needs, all in the repository settings:
 | `IKIGAI_DEPLOY_USER` | the user to log in as |
 | `IKIGAI_DEPLOY_SSH_KEY` | the key |
 | `IKIGAI_DEPLOY_PATH` | where the repository is checked out on the server |
+| `IKIGAI_DEPLOY_GHCR_TOKEN` | optional — a PAT with `read:packages`, when the anonymous pulls stop working |
+| `IKIGAI_DEPLOY_GHCR_USER` | optional — the user that token belongs to |
 
 The server keeps a clone of this repository at `IKIGAI_DEPLOY_PATH`; the
-workflow fetches it, checks out `main` and pulls. The `.env` with the runtime
-secrets lives on the server and never travels through CI.
+workflow repairs the clone's refspec, fetches it, and hard-aligns `main` to
+`origin/main`. The `.env` with the runtime secrets lives on the server and
+never travels through CI.
 
-The registry is **not** a secret of the workflow: a private package needs
-`docker login ghcr.io` on the server, once, by hand. The deploy never carries
-a token — a token in CI is a token that can leak from CI.
+The registry is **not** a secret of the workflow today: the images pull
+anonymously, and the deploy retries because that pull is flaky for a package
+published seconds earlier. The two optional secrets above are the way out if
+it stops working — and they are optional on purpose: a token in CI is a token
+that can leak from CI, so it is only carried when the owner decides it must be.
 
 To deploy by hand, without the workflow:
 
 ```bash
-IKIGAI_IMAGE=ghcr.io/matheusmendes720/ikigai:sha-<commit> docker compose pull
+IKIGAI_IMAGE=ghcr.io/matheusmendes720/ikigai:sha-<commit> docker pull \
+  ghcr.io/matheusmendes720/ikigai:sha-<commit>
 IKIGAI_IMAGE=ghcr.io/matheusmendes720/ikigai:sha-<commit> docker compose up -d --no-build
 ```
 
@@ -309,6 +380,41 @@ pi -a --print "liste os KPIs do Q4-2026"       # the harness asks the store a qu
 `-a` trusts the project's configuration for that one command, which is what
 makes the run scriptable. The verification is the EFFECT, not the format: the
 answer comes from the store, and the store is what the api serves.
+
+## How the bot reaches the harness
+
+The agent is external, and the bot is the client's door to it. The owner asks
+for a cadence from Telegram; the bot asks the harness to run it; the agent
+reads the store through the api's MCP, writes what it decides, and answers;
+the bot delivers the answer as a second message.
+
+```text
+  Telegram ──▶ bot ──▶ harness ──▶ pi (RPC) ──▶ api ──▶ store
+                   │                                  ▲
+                   └── the report, as a message        │
+                                                      └── the agent's MCP
+```
+
+**Why the bot and not the api.** The api's surface is exactly six tools, it is
+drift-guarded, and a seventh is a *contract change* (ADR-011), not a
+convenience. It would also make the canonical service depend on the agent's
+availability and on the agent's vocabulary — which is what "the agent is
+external" forbids. The agent is reached from the client, and the client is
+where the owner's intent lives.
+
+**The flow is linear, and that is the point.** The bot asks, the harness
+runs, the agent calls back into the api. The api is never in the middle of a
+request while the agent calls back into it, so there is nothing to deadlock
+and nothing to re-enter: the agent's write is an ordinary MCP request, and the
+api serves it like any other.
+
+**The bot never waits for the agent.** A routine takes minutes — it reads the
+store, classifies, writes and reports. The bot answers at once ("a rotina
+começou") and delivers the report when it lands; its poll loop stays free, so
+the phone answers the next message while the agent is still working.
+
+**One writer per store, still.** The agent writes through the api like every
+other client. The bot gains a door, not a DSN.
 
 ## What is NOT here, and why
 

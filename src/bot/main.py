@@ -16,6 +16,14 @@ ingestion, by another device, by the harness. A bot that only ever learns
 about its own writes is a bot that is perpetually behind, so the websocket is
 used whenever ``IKIGAI_WS_URL`` names one.
 
+And it has a THIRD door, to the AGENT (ADR-037 D7): the harness
+(``src/bot/harness_client.py``) is an external process that runs the
+cadences. The bot asks for a routine, waits, and reports what the agent
+said — it does not orchestrate. The agent writes through the api like every
+other client, so there is still one writer per store. The door is optional:
+without ``IKIGAI_HARNESS_URL`` the bot still writes, searches and reads, and
+the routines say that the agent is not configured.
+
 Owner-only, and it FAILS CLOSED: if the allowlist is missing or empty, the
 bot refuses to start rather than answering anyone who finds the token.
 
@@ -31,7 +39,22 @@ Commands
 ``/okr <objetivo>``     write an OKR — TWO lines: the objective, then the KR
 ``/busca <texto>``      search the store
 ``/uid <uid>``          read one artifact and its edges
+``/memoria``            what the agent remembers about this chat
+``/start``              the handshake — what is connected, and what is not
 ``/help``               the catalogue
+
+And the ROUTINES — the cadences the agent runs, named after the published
+skills they invoke:
+
+``/daily-note [texto]``     the agent records the day
+``/weekly-review [texto]``  the agent consolidates the week
+``/monthly-review [texto]`` the agent reviews the month
+``/quarterly-plan [texto]`` the agent plans the quarter
+
+A routine takes minutes, not milliseconds, so the bot answers at once and
+delivers the agent's report as a second message. The bot's poll loop never
+waits for the agent: a phone that goes silent for the length of a routine is
+a phone that looks broken.
 
 The two structured kinds — a decision and an OKR — carry fields of their own,
 and the contract will not take them without those fields. They read them from
@@ -52,6 +75,9 @@ Environment
 ``IKIGAI_WS_TOKEN``             the token the websocket asks for
 ``IKIGAI_CLIENT_ID``            the identity written on every write
 ``IKIGAI_BOT_ALLOWED_CHAT_IDS`` comma-separated owner chat ids (required)
+``IKIGAI_HARNESS_URL``          the agent's door (optional; without it the
+                                routines are refused)
+``IKIGAI_HARNESS_TIMEOUT_S``    the ceiling of a routine, in seconds
 """
 
 from __future__ import annotations
@@ -62,17 +88,47 @@ import json
 import os
 import re
 import sys
+import time
 import unicodedata
 from datetime import UTC, datetime
 from typing import Any
 
 import httpx
 
+from src.bot.harness_client import DEFAULT_TIMEOUT_S, HarnessClient
 from src.bot.ws_client import WebSocketClient
 from src.contracts.dom import ArtifactKind, make_uid
 from src.contracts.dom_kinds import KIND_MODELS
 
 TELEGRAM_API = "https://api.telegram.org"
+
+#: The routines the owner may run from the phone, and what each one does.
+#:
+#: The key IS the published skill id: the harness's whitelist is the
+#: published projection (``specs/harness/skills/<id>/SKILL.md``), so the name
+#: the owner types is the name the agent knows. A second spelling would be a
+#: second list, and a second list drifts.
+#:
+#: The four cadences are the router's (``specs/harness/router.md`` §3): the
+#: daily note, the weekly review, the monthly review and the quarterly plan.
+#: The other three published skills — ``store-read``, ``store-write`` and
+#: ``vault-sync`` — are the ROLES, not the cadences: they are what the agent
+#: does inside a routine, and the owner does not call them by hand.
+ROUTINES: dict[str, str] = {
+    "daily-note": "corrige o dia — classifica as tarefas com a evidência",
+    "weekly-review": "consolida a semana",
+    "monthly-review": "revê o mês e as decisões",
+    "quarterly-plan": "planeja o trimestre — fases, OKRs e ondas",
+}
+
+#: The door to the agent, and the ceiling of a routine.
+HARNESS_URL_ENV = "IKIGAI_HARNESS_URL"
+HARNESS_TIMEOUT_ENV = "IKIGAI_HARNESS_TIMEOUT_S"
+
+#: The ceiling of ONE probe of the handshake, in seconds. The greeting has to
+#: arrive: an agent that is slow, or down, must produce a line that says so
+#: — not a greeting that never comes.
+HANDSHAKE_TIMEOUT_S = 10.0
 
 #: The kinds the bot may write. It is a projection of the owner's day, not
 #: an editor of the whole pyramid.
@@ -286,7 +342,11 @@ class McpClient:
 
 
 class Bot:
-    """The Telegram loop. One command per message, one answer per command."""
+    """The Telegram loop. One command per message, one answer per command.
+
+    A routine is the exception: it is one command and TWO answers — "it
+    started" now, and the agent's report when the agent is done.
+    """
 
     def __init__(
         self,
@@ -295,6 +355,7 @@ class Bot:
         allowed: set[str],
         client_id: str,
         events: Any | None = None,
+        harness: HarnessClient | None = None,
     ) -> None:
         self._token = token
         self._client = client
@@ -308,6 +369,18 @@ class Bot:
         # like any other, and the owner does not need to be told about the
         # note they just dictated.
         self._own_writes: set[str] = set()
+        # The draft each chat has open, and the revision it was last saved at.
+        # It is a CACHE of the store, never the truth: `_list_drafts` reads the
+        # store, because a draft that only exists in this dictionary dies with
+        # the process — which is the thing drafts exist to avoid.
+        self._open: dict[str, dict[str, Any]] = {}
+        # The agent's door. Without it the bot still writes, searches and
+        # reads — it just cannot run a routine, and it says so.
+        self._harness = harness
+        # The routines in flight. The task is HELD on purpose: a task nobody
+        # references may be collected mid-run, and the owner's answer would
+        # never arrive.
+        self._running: set[asyncio.Task[None]] = set()
 
     async def _send(self, chat_id: str, text: str) -> None:
         await self._http.post(
@@ -325,19 +398,61 @@ class Bot:
 
         text = str(message.get("text") or "")
         message_id = str(message.get("message_id", "0"))
-        command, _, argument = text.partition(" ")
-        argument = argument.strip()
 
         try:
-            answer = await self._dispatch(command, argument, message_id)
+            if text.startswith("/"):
+                command, _, argument = text.partition(" ")
+                answer = await self._dispatch(command, argument.strip(), message_id, chat_id)
+            else:
+                # A message that is NOT a command is prose, and prose belongs to
+                # the draft that is open. The command path splits on the first
+                # space, which would throw the first word of the paragraph away.
+                answer = await self._append(chat_id, text.strip(), message_id)
         except Exception as exc:  # the bot reports, it does not crash
             answer = f"Não consegui completar isso: {exc}"
 
         await self._send(chat_id, answer)
 
-    async def _dispatch(self, command: str, argument: str, message_id: str) -> str:
+    async def _dispatch(
+        self,
+        command: str,
+        argument: str,
+        message_id: str,
+        chat_id: str = "",
+    ) -> str:
+        """Route one command to its answer.
+
+        ``chat_id`` is where the answer goes. The deterministic commands do
+        not need it — they answer in the message they are handling. The
+        routines do: the agent's answer arrives later, in another message, to
+        the chat that asked for it.
+        """
         if command == "/help":
             return _catalogue()
+
+        if command == "/start":
+            # The greeting, on demand: the same handshake the bot sends when
+            # it comes up — what is connected, and what is not.
+            return await self._handshake_text(chat_id)
+
+        routine = command[1:] if command.startswith("/") else ""
+        if routine in ROUTINES:
+            return await self._start_routine(chat_id, routine, argument)
+
+        if command == "/memoria":
+            return await self._memory(chat_id)
+
+        if command == "/rascunho":
+            return await self._start_draft(chat_id, argument)
+
+        if command == "/guardar":
+            return await self._commit_draft(chat_id, message_id)
+
+        if command == "/descartar":
+            return await self._discard_draft(chat_id)
+
+        if command == "/rascunhos":
+            return await self._list_drafts()
 
         if command in WRITABLE:
             if not argument:
@@ -374,14 +489,337 @@ class Bot:
 
         return "Não conheço esse comando. /help"
 
+    # -- the draft flow ----------------------------------------------------
+    #
+    # A paragraph is not a message. The owner thinks in several sends, and
+    # before this the second send of the same thought was either a new artifact
+    # or "Não conheço esse comando". The draft is the state a conversation
+    # needs: prose in progress, in the store, so it survives the bot restarting
+    # or the phone losing signal (ADR-040).
+    #
+    # The draft is reached with `client.draft(...)`, which exists only on the
+    # websocket client. A bot on the MCP transport has no drafts and says so
+    # rather than pretending the command worked.
+
+    def _draft_key(self, chat_id: str) -> str:
+        """One open draft per chat. Two chats composing are two drafts."""
+        return f"telegram-{chat_id or 'ninguem'}"
+
+    def _speaks_drafts(self) -> bool:
+        return callable(getattr(self._client, "draft", None))
+
+    async def _read_draft(self, chat_id: str) -> dict[str, Any] | None:
+        """The open draft, or None when there is none.
+
+        A missing draft is not an error in a conversation — it is the answer
+        to "what was I writing?" when the answer is "nothing". The transport
+        reports it as `not_found`, which is right for a caller that asked for
+        a specific thing, and wrong for a bot that is asking whether one
+        exists.
+        """
+        try:
+            found = await self._client.draft(
+                "get", client_id=self._client_id, draft_id=self._draft_key(chat_id)
+            )
+        except RuntimeError as exc:
+            if "not_found" in str(exc):
+                self._open.pop(chat_id, None)
+                return None
+            raise
+        return found if isinstance(found, dict) else None
+
+    async def _start_draft(self, chat_id: str, argument: str) -> str:
+        if not self._speaks_drafts():
+            return (
+                "Sem rascunhos neste transporte: eles viajam pelo websocket.\n"
+                "Configure IKIGAI_WS_URL e eu volto a guardar o que fica a meio."
+            )
+        if not argument:
+            return await self._show_draft(chat_id)
+
+        kinds = {command.lstrip("/"): kind for command, kind in WRITABLE.items()}
+        kind = kinds.get(argument.strip().lower())
+        if kind is None:
+            return "Que tipo? " + ", ".join(sorted(kinds))
+
+        # Resuming an open draft keeps what was already written; starting one
+        # over it would silently throw the paragraph away. After a restart the
+        # bot has no revision in memory, so the save comes back as a CONFLICT —
+        # and the conflict is the correct answer, not a failure: it means
+        # "there is already a draft here". It is reread and resumed.
+        key = self._draft_key(chat_id)
+        try:
+            answer = await self._client.draft(
+                "save",
+                client_id=self._client_id,
+                draft_id=key,
+                kind=kind.value,
+                title="",
+                body="",
+                expected_revision=self._open.get(chat_id, {}).get("revision"),
+            )
+        except RuntimeError as exc:
+            if "conflict" not in str(exc):
+                raise
+            current = await self._read_draft(chat_id)
+            if current is None:  # pragma: no cover — a conflict means it exists
+                raise
+            self._open[chat_id] = {
+                "kind": str(current.get("kind")),
+                "revision": int(current["revision"]),
+            }
+            return (
+                f"Já havia um rascunho de {current.get('kind')} aberto — retomei-o.\n"
+                "Manda o texto. /rascunho sozinho mostra o que está lá; /guardar fecha."
+            )
+        self._open[chat_id] = {"kind": kind.value, "revision": int(answer["revision"])}
+        return (
+            f"Rascunho de {kind.value} aberto.\n"
+            "Manda o texto em quantas mensagens quiseres. /guardar fecha, /descartar deita fora."
+        )
+
+    async def _append(self, chat_id: str, text: str, message_id: str) -> str:
+        """A message that is not a command: it is prose, and it grows the draft."""
+        if not text:
+            return ""
+        if not self._speaks_drafts():
+            return "Não conheço esse comando. /help"
+        state = self._open.get(chat_id)
+
+        current = await self._read_draft(chat_id)
+        if current is None:
+            return "Não há rascunho aberto.\n/rascunho <tipo> começa um. Ou /help para os comandos."
+        if state is None:
+            # The cache is cold — this process may have just started. The STORE
+            # is the truth, so a paragraph typed after a restart joins the draft
+            # that is still open instead of being refused. A conversation that
+            # has to be reopened by hand after every restart loses the sentence
+            # in between.
+            state = {"kind": str(current.get("kind"))}
+            self._open[chat_id] = state
+        body = str(current.get("body") or "")
+        grown = f"{body}\n{text}".strip() if body else text
+        answer = await self._client.draft(
+            "save",
+            client_id=self._client_id,
+            draft_id=self._draft_key(chat_id),
+            kind=state["kind"],
+            title=grown.splitlines()[0][:120],
+            body=grown,
+            expected_revision=int(current["revision"]),
+        )
+        self._open[chat_id] = {"kind": state["kind"], "revision": int(answer["revision"])}
+        lines = len(grown.splitlines())
+        return f"Anotado. {lines} linha(s) no rascunho. /guardar quando estiver."
+
+    async def _show_draft(self, chat_id: str) -> str:
+        draft = await self._read_draft(chat_id)
+        if draft is None:
+            return "Nenhum rascunho aberto."
+        body = str(draft.get("body") or "")
+        if not body:
+            return f"Rascunho de {draft.get('kind')} vazio. Manda o texto."
+        return f"{draft.get('kind')} · rev {draft.get('revision')}\n\n{body}"
+
+    async def _commit_draft(self, chat_id: str, message_id: str) -> str:
+        """Close the draft as an artifact, through the SAME write path as always.
+
+        The draft never commits itself: it is state. Turning it into an
+        artifact is `upsert_artifact`, with its own envelope and its own
+        revision guard — a draft that committed on its own would be a second
+        writer of the DOM wearing the draft's name.
+        """
+        if not self._speaks_drafts():
+            return "Sem rascunhos neste transporte."
+        draft = await self._read_draft(chat_id)
+        if draft is None:
+            return "Nenhum rascunho para guardar."
+        body = str(draft.get("body") or "").strip()
+        if not body:
+            return "O rascunho está vazio — não há o que guardar."
+
+        kind = ArtifactKind(str(draft.get("kind")))
+        head, complaint = _head_fields(kind, body)
+        if complaint is not None:
+            return complaint
+        title = body.splitlines()[0][:120]
+        arguments = _write_arguments(
+            kind,
+            title,
+            body,
+            _hash8(f"{self._draft_key(chat_id)}:{message_id}"),
+            self._client_id,
+            head,
+        )
+        _validate_artifact(kind, arguments["artifact"])
+        await self._client.call("upsert_artifact", arguments)
+        uid = str(arguments["artifact"]["uid"])
+        self._own_writes.add(uid)
+        await self._client.draft(
+            "discard",
+            client_id=self._client_id,
+            draft_id=self._draft_key(chat_id),
+            expected_revision=int(draft["revision"]),
+        )
+        self._open.pop(chat_id, None)
+        return f"Guardado ({kind.value}).\n{uid}"
+
+    async def _discard_draft(self, chat_id: str) -> str:
+        if not self._speaks_drafts():
+            return "Sem rascunhos neste transporte."
+        draft = await self._read_draft(chat_id)
+        if draft is None:
+            return "Nenhum rascunho para descartar."
+        await self._client.draft(
+            "discard",
+            client_id=self._client_id,
+            draft_id=self._draft_key(chat_id),
+            expected_revision=int(draft["revision"]),
+        )
+        self._open.pop(chat_id, None)
+        return "Descartado."
+
+    async def _list_drafts(self) -> str:
+        """What was left half-written — the answer after a restart.
+
+        It reads the STORE and not the memory on purpose: a draft that only
+        exists in this process's dictionary is a draft that dies with the
+        process, which is the thing drafts exist to avoid.
+        """
+        if not self._speaks_drafts():
+            return "Sem rascunhos neste transporte."
+        answer = await self._client.draft("list", client_id=self._client_id)
+        drafts = (answer or {}).get("drafts") or []
+        if not drafts:
+            return "Nenhum rascunho aberto."
+        lines = ["Rascunhos abertos:"]
+        for item in drafts:
+            body = str(item.get("body") or "")
+            first = body.splitlines()[0][:60] if body else "(vazio)"
+            lines.append(f"• {item.get('kind')} · rev {item.get('revision')} — {first}")
+        return "\n".join(lines)
+
+    async def _handshake(self) -> None:
+        """Greet the owner, and say what is connected.
+
+        A bot that comes up silently is a bot the owner cannot tell from a
+        dead one. So the FIRST thing it says is what it can reach — the
+        store, the agent, the agent's memory — and it says it only to the
+        allowed chats: the allowlist is the boundary, and this message goes
+        through it like every other one.
+
+        It runs BESIDE the poll loop, not in front of it: a greeting that
+        waits for a slow agent must never stop the bot from answering.
+        """
+        for chat_id in self._allowed:
+            try:
+                await self._send(chat_id, await self._handshake_text(chat_id))
+            except Exception as exc:  # a greeting that fails is not a crash
+                print(f"handshake failed: {exc}", file=sys.stderr)
+
+    async def _handshake_text(self, chat_id: str) -> str:
+        """The handshake: the store, the agent, and the agent's memory.
+
+        Each probe is BOUNDED, and each failure is REPORTED rather than
+        hidden: a greeting that says "everything is fine" while the agent is
+        closed would be the one lie this bot must not tell.
+        """
+        lines = ["🔌 Ligado."]
+
+        started = time.monotonic()
+        try:
+            await self._client.call("search_artifacts", {"query": {"limit": 1}})
+            elapsed = int((time.monotonic() - started) * 1000)
+            lines.append(f"• store: ok ({elapsed} ms)")
+        except Exception as exc:
+            lines.append(f"• store: falhou — {exc}")
+
+        harness = self._harness
+        if harness is None:
+            lines.append("• agente: sem porta (IKIGAI_HARNESS_URL)")
+        else:
+            try:
+                routines = await harness.routines(timeout_s=HANDSHAKE_TIMEOUT_S)
+                lines.append(f"• agente: ok — {len(routines)} rotinas")
+            except Exception as exc:
+                lines.append(f"• agente: falhou — {exc}")
+            if chat_id:
+                try:
+                    memory = await harness.memory(f"tg:{chat_id}", timeout_s=HANDSHAKE_TIMEOUT_S)
+                    entries = len(memory.get("entries") or [])
+                    lines.append(f"• memória: {entries} entrada(s) nesta conversa")
+                except Exception as exc:
+                    lines.append(f"• memória: falhou — {exc}")
+
+        lines.append("Comandos: /help")
+        return "\n".join(lines)
+
+    async def _start_routine(self, chat_id: str, routine: str, argument: str) -> str:
+        """Ask the agent to run a routine, and answer NOW.
+
+        A routine is the agent's work — it reads the store, classifies, writes
+        and reports — and it takes minutes, not milliseconds. The bot's poll
+        loop must not wait for it, or the phone goes silent for the whole run
+        and the owner cannot tell a slow routine from a dead bot. So the
+        routine runs in its own task and the report lands as a second message.
+        """
+        if self._harness is None:
+            return "O agente não está configurado neste bot (IKIGAI_HARNESS_URL)."
+        if not chat_id:
+            return "Não sei a quem devolver a rotina."
+
+        task = asyncio.create_task(self._run_routine(chat_id, routine, argument))
+        self._running.add(task)
+        task.add_done_callback(self._running.discard)
+        return f"A rotina {routine} começou. Aviso quando terminar."
+
+    async def _run_routine(self, chat_id: str, routine: str, argument: str) -> None:
+        """Run the routine and deliver the agent's report to the chat.
+
+        The session is the chat: one Telegram chat is one conversation with
+        the agent, and two chats cannot share a context. The key is the raw
+        chat id — the harness sanitises it on the way in and on the way out,
+        so the same raw key finds the same memory.
+        """
+        harness = self._harness
+        if harness is None:
+            return
+        try:
+            result = await harness.run_routine(
+                routine,
+                session_id=f"tg:{chat_id}",
+                chat_id=chat_id,
+                message=argument,
+            )
+        except Exception as exc:
+            # A routine that dies in the background is a routine that never
+            # happened. The owner is told WHY.
+            await self._send(chat_id, f"A rotina {routine} falhou: {exc}")
+            return
+        await self._send(chat_id, _render_routine(routine, result))
+
+    async def _memory(self, chat_id: str) -> str:
+        """What the agent remembers about this chat."""
+        harness = self._harness
+        if harness is None:
+            return "O agente não está configurado neste bot (IKIGAI_HARNESS_URL)."
+        if not chat_id:
+            return "Não sei de que sessão ler."
+        result = await harness.memory(f"tg:{chat_id}")
+        return _render_memory(result)
+
     async def run(self) -> None:
         """Both halves of the loop: what arrives, and what changes.
 
         The poll asks Telegram for commands; the event stream carries the
         changes the store announces. A transport without events simply has
         nothing to listen to, and the second half returns at once.
+
+        The handshake is the third: the greeting that says what is
+        connected. It runs beside the other two, so a slow agent delays the
+        greeting and nothing else.
         """
-        await asyncio.gather(self._poll_loop(), self._event_loop())
+        await asyncio.gather(self._poll_loop(), self._event_loop(), self._handshake())
 
     async def _poll_loop(self) -> None:
         while True:
@@ -444,6 +882,9 @@ def _catalogue() -> str:
     told about exists in ``WRITABLE``. The two dictionaries are the same
     length — the catalogue would raise on a command without a description,
     and the drift test holds them together.
+
+    The routines are listed from ``ROUTINES``, the same way: a routine the
+    owner cannot run is a routine he does not need to be told about.
     """
     lines = ["O que eu faço:"]
     for command in WRITABLE:
@@ -451,6 +892,68 @@ def _catalogue() -> str:
         lines.append(f"{command} {usage} — {description}")
     lines.append("/busca <texto> — procura no store")
     lines.append("/uid <uid> — lê um artefato e suas arestas")
+    lines.append("/rascunho <tipo> — abre um rascunho; sem argumento, mostra o que está lá")
+    lines.append("/guardar — fecha o rascunho como artefato")
+    lines.append("/descartar — deita fora o rascunho")
+    lines.append("/rascunhos — o que ficou a meio, lido do store")
+    lines.append("/memoria — o que o agente lembra desta conversa")
+    lines.append("/start — o handshake: o que está ligado")
+    lines.append("")
+    lines.append("Rotinas (o agente corre o ciclo e responde quando acabar):")
+    for routine, description in ROUTINES.items():
+        lines.append(f"/{routine} [texto] — {description}")
+    return "\n".join(lines)
+
+
+def _render_routine(routine: str, result: dict[str, Any]) -> str:
+    """The agent's report, as the owner reads it.
+
+    The harness returns what the agent said — the report the skill asks for:
+    the uid it wrote, the counts per class, the tools that ran. That is the
+    answer, and it comes first. The receipt (how long it took, what the
+    agent remembered) follows it, because the owner asked a question and the
+    answer is the agent's, not the receipt's.
+    """
+    text = str(result.get("text") or "").strip()
+    lines = [f"✔ {routine}"]
+    if text:
+        lines.append(text)
+    receipt: list[str] = []
+    duration = result.get("duration_ms")
+    if isinstance(duration, int):
+        receipt.append(f"{duration / 1000:.1f}s")
+    entry = result.get("memory_entry_id")
+    if entry is not None:
+        receipt.append(f"memória #{entry}")
+    if receipt:
+        lines.append("(" + " · ".join(receipt) + ")")
+    return "\n".join(lines)
+
+
+def _render_memory(result: dict[str, Any]) -> str:
+    """What the agent remembers, as the owner reads it.
+
+    The entries are the agent's own words. The memory is the AGENT's state —
+    the DOM is the store's — so this is a reading of the agent's notebook,
+    not of the canonical record.
+    """
+    entries = result.get("entries") or []
+    if not isinstance(entries, list):
+        return "O agente não lembra de nada."
+    if not entries:
+        return "O agente ainda não guardou nada desta conversa."
+    lines: list[str] = []
+    for entry in entries[-5:]:
+        if not isinstance(entry, dict):
+            continue
+        content = str(entry.get("content") or "").strip()
+        key = str(entry.get("key") or "?")
+        stamp = str(entry.get("created_at") or "")
+        lines.append(f"• {key}" + (f" · {stamp}" if stamp else ""))
+        if content:
+            lines.append(f"  {content[:400]}")
+    if not lines:
+        return "O agente ainda não guardou nada desta conversa."
     return "\n".join(lines)
 
 
@@ -489,6 +992,23 @@ def _render_bundle(bundle: Any) -> str:
     return "\n".join(lines)
 
 
+def _harness_timeout_s() -> float:
+    """The ceiling of a routine, in seconds.
+
+    The harness bounds the run with the same number, so the two agree on who
+    gives up first: the agent, not the socket. A value that is not a number
+    falls back to the harness's own default rather than failing the bot at
+    boot — a typo in a timeout must not take the owner offline.
+    """
+    raw = (os.environ.get(HARNESS_TIMEOUT_ENV) or "").strip()
+    if not raw:
+        return DEFAULT_TIMEOUT_S
+    try:
+        return max(30.0, float(raw))
+    except ValueError:
+        return DEFAULT_TIMEOUT_S
+
+
 def main() -> None:
     token = os.environ.get("IKIGAI_BOT_TOKEN")
     if not token:
@@ -505,6 +1025,15 @@ def main() -> None:
     url = os.environ.get("IKIGAI_MCP_URL", "http://localhost:8000/mcp")
     client_id = os.environ.get("IKIGAI_CLIENT_ID", "owner")
 
+    # The agent's door. It is OPTIONAL: without it the bot still writes,
+    # searches and reads, and the routines are refused with a reason. The
+    # bot does not fail closed here — it fails closed on the ALLOWLIST,
+    # because that is what decides who may write at all.
+    harness: HarnessClient | None = None
+    harness_url = (os.environ.get(HARNESS_URL_ENV) or "").strip()
+    if harness_url:
+        harness = HarnessClient(harness_url, timeout_s=_harness_timeout_s())
+
     # Two transports, one interface. The websocket carries the changes the
     # store announces — the writes made elsewhere — and the MCP call does not.
     # A bot that only ever learns about its own writes is a bot that is
@@ -519,7 +1048,7 @@ def main() -> None:
     else:
         client = McpClient(url)
 
-    bot = Bot(token, client, allowed, client_id, events=events)
+    bot = Bot(token, client, allowed, client_id, events=events, harness=harness)
     asyncio.run(bot.run())
 
 

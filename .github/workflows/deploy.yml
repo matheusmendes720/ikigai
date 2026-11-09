@@ -149,35 +149,79 @@ jobs:
 
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1
-        # `envs` is what reaches the REMOTE script. The step's own `env:` is
-        # the runner's environment and the remote never sees it — so a script
-        # that reads a variable the step declared, and not the action, reads
-        # an empty string on the other side. This is the difference between a
-        # deploy that works and a `cd ""` that fails with the secrets set.
+        # THE VALUES ARE INTERPOLATED INTO THE SCRIPT, and not carried by the
+        # action's `envs:`. Measured on two deploys: with `envs:` set, the
+        # remote script received NONE of them — `bash: line 3:
+        # IKIGAI_DEPLOY_PATH: the deploy path is not set`, while the step
+        # above it ("The deploy is configured") read the same secret and
+        # passed. `${{ }}` is substituted by Actions on the RUNNER, before the
+        # script is sent, so there is no forwarding left to get wrong.
+        #
+        # A single quote in a path would break the assignment. No real deploy
+        # path has one, and a silent `cd ""` costs more than this caveat.
         with:
           host: ${{ secrets.IKIGAI_DEPLOY_HOST }}
           username: ${{ secrets.IKIGAI_DEPLOY_USER }}
           key: ${{ secrets.IKIGAI_DEPLOY_SSH_KEY }}
-          envs: IKIGAI_IMAGE=${{ steps.target.outputs.tag }},IKIGAI_HARNESS_IMAGE=${{ steps.target.outputs.harness }},IKIGAI_DEPLOY_PATH=${{ secrets.IKIGAI_DEPLOY_PATH }}
+          command_timeout: 20m
           script: |
             set -eu
+
+            IKIGAI_DEPLOY_PATH='${{ secrets.IKIGAI_DEPLOY_PATH }}'
+            IKIGAI_IMAGE='${{ steps.target.outputs.tag }}'
+            IKIGAI_HARNESS_IMAGE='${{ steps.target.outputs.harness }}'
+            # THE REGISTRY CREDENTIAL, and it is the job's OWN token.
+            #
+            # The images are PRIVATE: an anonymous pull of a tag that exists is
+            # `denied: denied`, measured five times in a row on the manifest of
+            # an image the build job had published seconds earlier. So there is
+            # no anonymous path, and the earlier hope that there was one is
+            # what kept this pipeline red.
+            #
+            # `GITHUB_TOKEN` can read THIS repository's packages when the job
+            # asks for `packages:` — this workflow asks for `write` — it costs
+            # no new secret, and it expires in an hour. The host had a `ghs_`
+            # App token stored from a manual login and GHCR refuses it now.
+            #
+            # An explicit PAT wins when the owner configures one: it is the
+            # escape hatch for a package that stops being readable by the
+            # actions token, and it is not required.
+            IKIGAI_GHCR_TOKEN='${{ secrets.IKIGAI_DEPLOY_GHCR_TOKEN }}'
+            IKIGAI_GHCR_USER='${{ secrets.IKIGAI_DEPLOY_GHCR_USER }}'
+            if [ -z "$IKIGAI_GHCR_TOKEN" ]; then
+              IKIGAI_GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}'
+              IKIGAI_GHCR_USER='${{ github.actor }}'
+            fi
 
             : "${IKIGAI_DEPLOY_PATH:?the deploy path is not set}"
             : "${IKIGAI_IMAGE:?the image tag is not set}"
             : "${IKIGAI_HARNESS_IMAGE:?the harness image tag is not set}"
 
             cd "$IKIGAI_DEPLOY_PATH"
-            git fetch --all --tags
-            git checkout main
-            git pull --ff-only origin main
+
+            # THE CLONE'S REMOTE, BEFORE THE FETCH.
+            #
+            # This box's clone was configured with a NARROW refspec —
+            # `+refs/heads/feat/harness-container:refs/remotes/origin/...` —
+            # so `git fetch --all` brought that one branch and NEVER `main`.
+            # `git checkout main` then landed on a stale local branch and
+            # `git pull --ff-only` refused to fast-forward. The deploy had
+            # every secret set and could not reach the commit it had just
+            # built: a deploy that builds one commit and runs another is worse
+            # than one that stops.
+            #
+            # The refspec is repaired here, on every run, so a clone that was
+            # set up by hand cannot make the pipeline lie again.
+            git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+            git fetch --all --tags --prune
+            git checkout -q -B main origin/main
+            git reset --hard origin/main
+            echo "deploying $(git log --oneline -1)"
 
             # The compose file is NOT at the root of the repository: it is
-            # `deploy/compose.yml`. A `docker compose` run from the root finds
-            # no configuration file at all and refuses to deploy anything —
-            # the deploy would end at "no configuration file provided" with
-            # every secret set. The compose file, the `.env` and the relative
-            # volume paths all resolve from the directory that holds the
-            # compose file, so the deploy runs from there.
+            # `deploy/compose.yml`. The compose file, the `.env` and the
+            # relative volume paths all resolve from the directory that holds
+            # the compose file, so the deploy runs from there.
             cd deploy
             if [ ! -f compose.yml ]; then
               echo "deploy/compose.yml is not where the deploy expects it"
@@ -186,17 +230,48 @@ jobs:
 
             export IKIGAI_IMAGE IKIGAI_HARNESS_IMAGE
 
-            # `pull` fetches the images the pipeline just pushed; `--no-build`
-            # keeps the server from building its own. A private package needs
-            # the registry to be known on THIS host: the owner logs in once
-            # (`docker login ghcr.io`) and the deploy never carries the token.
+            # GHCR. The packages are PRIVATE and the pull is authenticated —
+            # see the credential at the top of this script. Three smaller
+            # things are still worth having here, because each of them cost a
+            # red deploy:
+            #
+            #   * `docker compose pull` is NOT used. It HEADs every manifest,
+            #     and that is the request the registry refuses; the two images
+            #     are named explicitly and `up --no-build` uses what is here.
+            #   * a tag already on disk is not pulled at all, which makes a
+            #     redeploy of the same commit immune to the registry;
+            #   * a pull that fails is retried, because a package published
+            #     seconds ago is not always readable seconds later.
+            #
+            # The login REPLACES whatever credential the host had: a stale one
+            # is worse than none, because docker tries it and gets `denied`
+            # with no hint that the token is the problem.
+            if ! echo "$IKIGAI_GHCR_TOKEN" \
+                | docker login ghcr.io --username "$IKIGAI_GHCR_USER" --password-stdin; then
+              echo "::error::ghcr.io refused the login for '$IKIGAI_GHCR_USER'"
+              exit 1
+            fi
+
             for image in "$IKIGAI_IMAGE" "$IKIGAI_HARNESS_IMAGE"; do
-              if ! docker pull "$image" >/dev/null; then
-                echo "the image $image could not be pulled — a private package needs 'docker login ghcr.io' on this host, once"
-                exit 1
+              if docker image inspect "$image" >/dev/null 2>&1; then
+                echo "already on this host: $image"
+                continue
               fi
+              attempt=1
+              while :; do
+                if docker pull "$image"; then break; fi
+                if [ "$attempt" -ge 5 ]; then
+                  echo "::error::the image $image could not be pulled after $attempt attempts"
+                  echo "If the registry keeps refusing, add IKIGAI_DEPLOY_GHCR_TOKEN (read:packages)."
+                  exit 1
+                fi
+                wait_s=$((attempt * 5))
+                echo "pull $attempt/5 failed for $image; retrying in ${wait_s}s"
+                sleep "$wait_s"
+                attempt=$((attempt + 1))
+              done
             done
-            docker compose pull
+
             docker compose up -d --remove-orphans --no-build
 
             # The deploy succeeds only when the SERVICE is healthy. A deploy
@@ -206,7 +281,6 @@ jobs:
             #
             # The AGENT is not waited for: its readiness measures the
             # PROVIDER (the model has to resolve), and a provider that is
-            # down must not fail the deploy of the store. The agent is
-            # deployed with the stack; its own readiness is its own question.
-            docker compose up -d --wait --wait-timeout 180 db api ws sync bot
+            # down must not fail the deploy of the store.
+            docker compose up -d --wait --wait-timeout 240 db api ws sync bot
             docker compose ps
