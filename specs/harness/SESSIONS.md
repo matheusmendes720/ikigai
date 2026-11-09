@@ -65,6 +65,23 @@ readable form) or `HARNESS_RUNTIMES` (the same JSON inline). With neither,
 there is exactly one runtime, built from the container's own provider
 settings: **the behaviour that existed before this file**.
 
+### 1.0 Where the table lives, in a deployment
+
+The deployment carries the table in **`deploy/runtimes.json`**: a file
+**versioned in the repository**, mounted **read-only** into the agent at
+`/etc/ikigai/runtimes.json`, and named by `HARNESS_RUNTIMES_FILE`.
+
+| Choice | Why |
+|---|---|
+| a file, not a variable | several runtimes is a table, and a table in a JSON string in an env file is a table nobody can review |
+| versioned, not on the box alone | the table is the deployment's map of its own clients; a map that travels with the deploy cannot describe a different deployment than the one it runs with |
+| mounted, not baked | the image carries the code of the commit it was built from; the mount carries the table of NOW — and the harness **re-reads it when its mtime changes**, so editing the table is not a restart |
+
+The table is **refused loudly**: `GET /v1/runtimes` reports every problem, and
+the table the deployment carries is checked by the registry's own code in
+`deploy/harness/test/deployment.test.mjs` — a table the registry refuses is a
+deployment whose routing silently answers every client with the default.
+
 ### 1.1 The routing table
 
 ```json
@@ -278,9 +295,10 @@ writer with a screen.
 
 | # | Gate | PASS |
 |---|---|---|
-| G1 | the registry decides, and refuses with a reason | `node --test deploy/harness/test/` |
+| G1 | the registry decides, and refuses with a reason | `node --test deploy/harness/test/` — **in CI**, in the job *The agent's own gate* |
 | G2 | the `ask` blocks and returns the answer | the MCP test: the call does not return, the question reaches the broker, the answer comes back |
 | G3 | an unanswered question ends | the same test with the deadline passed: `isError`, and the agent is told why |
 | G4 | the channel draws the four kinds | `tests/transport/test_bot_channel.py` |
 | G5 | the panel knows who is asking | `tests/transport/test_bot_miniapp.py` |
 | G6 | the routing is visible | `GET /v1/routing?client=…` answers with the runtime **and the reason** |
+| G7 | the table the deployment carries is **accepted** | `deploy/harness/test/deployment.test.mjs`: the registry reports **no** problem with `deploy/runtimes.json`, the default exists, and at least one client is routed |

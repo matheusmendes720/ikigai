@@ -1,0 +1,24 @@
+{
+  "default": "owner",
+  "runtimes": {
+    "owner": {
+      "label": "Owner",
+      "provider": "harness",
+      "model": "MiniMax-M2.7",
+      "memory": "owner"
+    },
+    "fast": {
+      "label": "Read-only",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "routines": [
+        "store-read",
+        "store-write"
+      ],
+      "memory": "fast"
+    }
+  },
+  "clients": {
+    "tg:2115322359": "owner"
+  }
+}

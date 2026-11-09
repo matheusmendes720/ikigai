@@ -558,6 +558,8 @@ deploy/secrets/
 !/code-docs/adr/ADR-040-client-state-and-drafts.md
 # The runtime routing, the blocking question and the panel (ADR-041).
 !/code-docs/adr/ADR-041-runtime-routing-and-human-in-the-loop.md
+# The routing table in the repository, and the harness's own gate (ADR-042).
+!/code-docs/adr/ADR-042-routing-table-in-the-repository.md
 
 # The dated audits and plans of the system that was replaced.
 /docs/diagnostics/

@@ -437,9 +437,17 @@ services:
         # THE ROUTING TABLE (ADR-041): which agentic runtime serves which
         # client. A FILE is the readable form — several runtimes is a table,
         # and a table inside an environment variable is a table nobody can
-        # review. With no file, there is exactly one runtime, built from the
-        # provider settings above: the behaviour that existed before.
-        HARNESS_RUNTIMES_FILE: ${HARNESS_RUNTIMES_FILE:-}
+        # review.
+        #
+        # The file is VERSIONED (`deploy/runtimes.json`) and mounted read-only
+        # below: the table is the deployment's map of its own clients, and a
+        # map that travels with the deploy is a map that cannot describe a
+        # different deployment than the one it is deployed with.
+        #
+        # The harness RE-READS it when its mtime changes, so editing the table
+        # is not a restart: a table that needs a container restart to be
+        # edited is a table that stops being edited.
+        HARNESS_RUNTIMES_FILE: ${HARNESS_RUNTIMES_FILE:-/etc/ikigai/runtimes.json}
         # The ceiling of ONE question to the owner. The question expires with
         # a clean answer for the agent ("nobody answered"), and the MCP
         # transport's own timeout is longer than this so that the question
@@ -468,6 +476,14 @@ services:
         # The PERSISTENT MEMORY: the SQLite database of what the agent learned.
         # A volume of its own, so the memory outlives the image.
         - harness-memory:/app/memory
+        # THE ROUTING TABLE, read-only. `./runtimes.json` and NOT `./runtimes`:
+        # a relative path in a compose file is resolved against the PROJECT
+        # DIRECTORY — the directory that holds the compose file, `deploy/` —
+        # so the table is `deploy/runtimes.json`, the file this repository
+        # publishes. The file is VERSIONED, so it is always there: a bind
+        # mount of a MISSING file makes docker create a DIRECTORY, and the
+        # harness would read an empty table while looking healthy.
+        - ./runtimes.json:/etc/ikigai/runtimes.json:ro
       secrets:
         # The provider's key, mounted at /run/secrets/harness_provider_key.
         # The engine writes it there and nothing else sees it: it is not in the

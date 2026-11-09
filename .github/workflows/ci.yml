@@ -179,6 +179,43 @@ jobs:
           poetry run mypy ${{ matrix.mypy_target || matrix.ruff_target }}
           poetry run pytest -m "not e2e"
 
+  harness:
+    name: The agent's own gate (node)
+    runs-on: ubuntu-latest
+    # The agent is PUBLISHED code: it ships in its own image, it answers the
+    # owner, and it holds the routing table the deployment carries. It was
+    # also the one surface the matrix did not gate — the harness's own suite
+    # (`deploy/harness/test/`) ran on the owner's desk and nowhere else, so a
+    # file under `deploy/harness/` could break the routing, the broker or the
+    # `ask` tool and this workflow would say nothing about it.
+    #
+    # The same gap the `src-bot` entry closed for the Telegram client: a
+    # published tree without a gate is a tree where a broken file is found by
+    # the person it breaks, not by the pipeline.
+    steps:
+      - uses: actions/checkout@v4
+
+      # The version is the image's: `node:24-bookworm-slim`. A suite that
+      # passes on the runner's node and fails in the container is a gate that
+      # measures the runner.
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      # `npm ci` and not `npm install`: the lock is what makes the container
+      # the same container on the runner and in production, and what lets the
+      # CI say "the agent is the version we said it was".
+      - name: Install the agent's dependencies (the lock is the contract)
+        working-directory: deploy/harness
+        run: npm ci --omit=dev --ignore-scripts
+
+      # The glob is QUOTED on purpose: node expands it, and the shell does
+      # not. The suite is the tests, not the directory.
+      - name: The agent's own suite
+        working-directory: deploy/harness
+        run: node --test "test/*.test.mjs"
+
   container:
     name: Container
     runs-on: ubuntu-latest
