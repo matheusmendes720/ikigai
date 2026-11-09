@@ -69,9 +69,20 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ steps.image.outputs.name }}
+          # ONE TAG, and it names the commit.
+          #
+          # The metadata action used to publish a second tag, `latest`, on
+          # the default branch. Nothing consumed it — the deploy pulls
+          # `sha-<commit>` — and a floating tag is a second truth about what
+          # a build is: the registry holds "the newest main" beside "the
+          # commit that was tested", and the two drift apart the moment main
+          # moves. It is also the tag a human reaches for by mistake, on a
+          # box that runs something else entirely.
+          #
+          # A tag that names the commit cannot drift: it resolves to exactly
+          # the image CI built and CI tested.
           tags: |
             type=sha,format=long
-            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -94,9 +105,10 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ steps.harness_image.outputs.name }}
+          # The same one rule as the canonical image above: the agent's tag
+          # names the commit too, or it is not the agent CI tested.
           tags: |
             type=sha,format=long
-            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push the harness image
         uses: docker/build-push-action@v5
