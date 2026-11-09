@@ -91,12 +91,23 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "PT", "RUF"]
 ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+# `src` is THIS repository's package: the canonical import style is the dotted
+# prefix (`from src.contracts.dom import ...`), and the image puts the
+# repository root on PYTHONPATH so that is the only identity the code has at
+# runtime (deploy/Dockerfile). Without this, Ruff classifies `src.contracts.*`
+# as THIRD-PARTY — and the import block of every test that reaches the
+# canonical layers sorts as if the code under test were a library.
+#
+# The sibling packages already say so (`src/ruff.toml`); this package is the
+# one that holds the suite, and the suite is where those imports live.
+known-first-party = ["src"]
 # B008 (function call in default argument) is Typer's documented pattern
 # for `typer.Option(...)` / `typer.Argument(...)` — false positive in this CLI module.
 [tool.ruff.lint.per-file-ignores]
 # Every entry that used to live here pointed at the retired harness
 # (src/agents/**, src/mcp_server/**) and was removed with it (ADR-037).
-
 [tool.mypy]
 python_version = "3.11"
 strict = true

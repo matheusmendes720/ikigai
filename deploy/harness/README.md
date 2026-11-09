@@ -11,9 +11,11 @@ agent. `pi` speaks JSONL on its own stdin/stdout (its *RPC mode*); this
 process owns that pipe and exposes it on a socket.
 
 ```text
-  Telegram ──▶ bot ──▶ api ──▶ harness (this) ──▶ pi (RPC subprocess)
-                                 ▲                    │
-                                 └──── MCP ───────────┘
+  Telegram ──▶ bot ──▶ harness (this) ──▶ pi (RPC subprocess) ──▶ api
+                   │                                        │
+                   └──────── the report, as a message        │
+                                                            ▼
+                                                          store
 ```
 
 The arrow that matters is the one coming back: **the harness reaches the
@@ -21,6 +23,15 @@ store through the api's MCP**, exactly like every other client. It never
 opens the database and it is never given a DSN. The harness writes the DOM
 through `store-write` and reads it through `store-read`; this facade is not
 in that path.
+
+**Who calls it:** the bot. The owner asks for a cadence from Telegram, the
+bot asks the harness to run it, and the harness answers with the agent's
+report — which the bot delivers as a second message. The api is NOT in the
+middle: its surface is exactly six tools (ADR-011), and a seventh would make
+the canonical service depend on the agent's availability and vocabulary,
+which is what "the agent is external" forbids. The flow is linear, so there
+is nothing to deadlock — the agent's write back into the api is an ordinary
+MCP request.
 
 ## The three pieces
 

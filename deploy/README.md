@@ -76,6 +76,8 @@ MCP. It is never given a DSN.
 | `IKIGAI_IMAGE` | no | the image the stack runs; the CI/CD workflow sets it to the tag it published |
 | `IKIGAI_BOT_TOKEN` | **yes** | the Telegram bot token — belongs to the bot process only |
 | `IKIGAI_BOT_ALLOWED_CHAT_IDS` | **yes** | comma-separated owner chat ids; empty stops the bot |
+| `IKIGAI_HARNESS_URL` | no (default `http://harness:8002`) | the agent's door, as the bot sees it. Unset ⇒ the bot still writes and reads, and refuses the routines with a reason |
+| `IKIGAI_HARNESS_TIMEOUT_S` | no (default `600`) | the ceiling of a routine, in seconds. The harness bounds the run with the same number |
 | `IKIGAI_CLIENT_ID` | no (default `owner`) | the identity written on every write. It is written into the ROW; it is **not** the claim the RLS policies filter on — see below |
 | `IKIGAI_PGDATA` | no (default `db-data`) | where the store's PGDATA lives. A **path** is a bind mount, a **name** is a Docker named volume |
 
@@ -309,6 +311,41 @@ pi -a --print "liste os KPIs do Q4-2026"       # the harness asks the store a qu
 `-a` trusts the project's configuration for that one command, which is what
 makes the run scriptable. The verification is the EFFECT, not the format: the
 answer comes from the store, and the store is what the api serves.
+
+## How the bot reaches the harness
+
+The agent is external, and the bot is the client's door to it. The owner asks
+for a cadence from Telegram; the bot asks the harness to run it; the agent
+reads the store through the api's MCP, writes what it decides, and answers;
+the bot delivers the answer as a second message.
+
+```text
+  Telegram ──▶ bot ──▶ harness ──▶ pi (RPC) ──▶ api ──▶ store
+                   │                                  ▲
+                   └── the report, as a message        │
+                                                      └── the agent's MCP
+```
+
+**Why the bot and not the api.** The api's surface is exactly six tools, it is
+drift-guarded, and a seventh is a *contract change* (ADR-011), not a
+convenience. It would also make the canonical service depend on the agent's
+availability and on the agent's vocabulary — which is what "the agent is
+external" forbids. The agent is reached from the client, and the client is
+where the owner's intent lives.
+
+**The flow is linear, and that is the point.** The bot asks, the harness
+runs, the agent calls back into the api. The api is never in the middle of a
+request while the agent calls back into it, so there is nothing to deadlock
+and nothing to re-enter: the agent's write is an ordinary MCP request, and the
+api serves it like any other.
+
+**The bot never waits for the agent.** A routine takes minutes — it reads the
+store, classifies, writes and reports. The bot answers at once ("a rotina
+começou") and delivers the report when it lands; its poll loop stays free, so
+the phone answers the next message while the agent is still working.
+
+**One writer per store, still.** The agent writes through the api like every
+other client. The bot gains a door, not a DSN.
 
 ## What is NOT here, and why
 

@@ -269,11 +269,31 @@ services:
       IKIGAI_WS_TOKEN: ${IKIGAI_WS_TOKEN:?set IKIGAI_WS_TOKEN in .env}
       IKIGAI_CLIENT_ID: ${IKIGAI_CLIENT_ID:-owner}
       IKIGAI_BOT_ALLOWED_CHAT_IDS: ${IKIGAI_BOT_ALLOWED_CHAT_IDS:?set IKIGAI_BOT_ALLOWED_CHAT_IDS in .env}
+      # The AGENT's door (ADR-037 D7). The owner asks for a cadence and the
+      # harness runs it; the bot asks, waits, and reports what the agent
+      # said. The bot does not become an orchestrator, and it does not gain a
+      # DSN: the agent writes through the api like every other client, so
+      # there is still one writer per store.
+      #
+      # It is NOT required, on purpose. The bot without the agent still
+      # writes, searches and reads — it just refuses the routines with a
+      # reason, instead of refusing to start.
+      IKIGAI_HARNESS_URL: ${IKIGAI_HARNESS_URL:-http://harness:8002}
+      # The ceiling of a routine, in seconds. The harness bounds the run with
+      # the same number, so the two agree on who gives up first.
+      IKIGAI_HARNESS_TIMEOUT_S: ${IKIGAI_HARNESS_TIMEOUT_S:-600}
     depends_on:
       api:
         condition: service_healthy
       ws:
         condition: service_healthy
+      harness:
+        # NOT service_healthy, and the difference matters. The harness's deep
+        # probe spawns a real agent to ask it for a model, and the bot must
+        # not wait for that to be able to write a note. The bot needs the
+        # harness to be THERE, not to be ready — a routine that finds the
+        # door closed says so, and the owner retries.
+        condition: service_started
     # The image's healthcheck measures the STORE — and the bot has none: it
     # is a client of the api (ADR-037 D5), which is exactly why it holds no
     # DSN. Left as it is, the bot would report "unhealthy" forever, which is

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -74,6 +75,67 @@ def test_the_compose_runs_the_websocket() -> None:
     assert "src.transport.ws_server" in compose, "the websocket is not deployed"
     assert "IKIGAI_WS_TOKEN" in compose, (
         "the websocket is a write channel and it is deployed without a token"
+    )
+
+
+def _compose_services() -> dict[str, Any]:
+    """The compose, parsed.
+
+    The file is YAML, so the guards read it as YAML: a service that holds a
+    DSN is a fact about the compose, not a string that happens to be near it.
+    """
+    import yaml
+
+    document = yaml.safe_load(_compose())
+    services = document.get("services") or {}
+    assert services, "the compose declares no services"
+    return services
+
+
+def test_the_compose_gives_the_bot_the_agent_door() -> None:
+    """The bot reaches the agent, and the agent is deployed.
+
+    Without the door the bot still writes, searches and reads — but the
+    routines ARE the cadences the product runs, and a compose that deploys
+    the agent without wiring it to anything is a product that ships an
+    expensive process and never asks it for anything.
+    """
+    services = _compose_services()
+    assert "harness" in services, "the agent is not deployed"
+
+    bot = services["bot"]
+    url = str((bot.get("environment") or {}).get("IKIGAI_HARNESS_URL") or "")
+    assert "http://harness:8002" in url, (
+        f"the bot's door does not point at the agent's service: {url!r}"
+    )
+    assert "harness" in (bot.get("depends_on") or {}), "the bot starts before the agent it talks to"
+
+
+def test_the_agent_does_not_hold_a_dsn() -> None:
+    """The agent is a client of the api, like every other client.
+
+    A DSN in the agent's container would be a second writer of one store
+    waiting to happen (ADR-037 D5) — and the agent has no need of one: it
+    reaches the DOM through the api's MCP.
+    """
+    services = _compose_services()
+    environment = services["harness"].get("environment") or {}
+    assert "IKIGAI_STORE_DSN" not in environment, (
+        "the agent holds a DSN — it is a second writer of the store"
+    )
+
+
+def test_the_bot_does_not_hold_a_dsn() -> None:
+    """The bot gained a second door, and it did not gain a store.
+
+    A door to the agent is a door to a CLIENT of the api, not to the
+    database. A DSN in the bot would be a fallback to the database — a
+    second writer waiting to happen (ADR-037 D5, D6).
+    """
+    services = _compose_services()
+    environment = services["bot"].get("environment") or {}
+    assert "IKIGAI_STORE_DSN" not in environment, (
+        "the bot holds a DSN — it is a second writer of the store"
     )
 
 
