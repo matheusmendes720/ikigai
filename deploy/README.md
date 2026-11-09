@@ -39,6 +39,12 @@ MCP. It is never given a DSN.
   the store answers a query and that the transport is listening **on the
   address a client uses** — not that a socket returns bytes, and not that the
   server answered a connection to itself. `python -m src.transport.healthcheck`.
+- **A container that serves no surface does not pretend to.** The ingestion is
+  a worker: it writes the vault into the store and serves nothing. It cannot
+  inherit the image's healthcheck — that one dials the MCP transport on 8000,
+  which the ingestion never opens, so it would report unhealthy forever. It
+  declares its own instead, and that one measures the store:
+  `python -m src.transport.healthcheck --store-only`.
 - **The vault is a volume, not a copy.** `../vault` is mounted read-only into
   the ingestion. The image carries the prose of the commit it was built from;
   the volume carries the prose of now. An ingestion that only saw the copy
@@ -114,6 +120,7 @@ docker compose up -d --build
 docker compose ps
 docker compose exec api python -m src.transport.healthcheck
 docker compose exec ws python -m src.transport.healthcheck --host 0.0.0.0 --port 8001
+docker compose exec sync python -m src.transport.healthcheck --store-only
 docker compose logs -f bot
 ```
 
@@ -128,15 +135,36 @@ builds, fails there — not on the server, at the deploy, with the service down.
 
 **`deploy.yml`** runs on `main` and does three things:
 
-1. builds the image on the runner and pushes it to GHCR
-   (`ghcr.io/matheusmendes720/ikigai`), tagged with the commit SHA;
+1. builds the images on the runner and pushes them to GHCR
+   (`ghcr.io/matheusmendes720/ikigai` and `.../ikigai-harness`), tagged with
+   the commit SHA;
 2. SSHes into the server;
-3. pulls THAT image and runs it — `docker compose pull` then
-   `docker compose up -d --no-build`.
+3. pulls THOSE images and runs them — `docker compose pull` then
+   `docker compose up -d --no-build`, and then waits for the service to be
+   healthy.
 
 The server never builds the image it runs. A server that builds on deploy
 compiles the deploy, and a deploy that compiles something else than CI tested
 is a deploy nobody verified.
+
+**Both images are published, because the compose names both.** The agent is
+external (ADR-037 D7) and has its own image; `docker compose pull` pulls
+every image the compose names, so an image the pipeline does not publish is a
+deploy that stops at the pull.
+
+**The deploy runs compose from `deploy/`, not from the repository root.**
+`docker compose` with no `-f` looks for a compose file in the current
+directory, and the repository root has none — the compose file is
+`deploy/compose.yml`. The compose file, the `.env` and the relative volume
+paths all resolve from the directory that holds the compose file.
+
+**The deploy succeeds only when the service is healthy.** It waits for the
+api, the websocket, the ingestion and the bot to report healthy
+(`--wait --wait-timeout 180`), because a deploy that reports success while
+the api is down is the green lie contract C-2 exists to prevent. The agent is
+deployed with the stack but not waited for: its readiness measures the
+PROVIDER, and a provider that is down must not fail the deploy of the store.
+The server needs Docker Compose v2.17 or newer for `--wait-timeout`.
 
 The secrets it needs, all in the repository settings:
 

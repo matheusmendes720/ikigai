@@ -7,9 +7,14 @@ name: Deploy
 # deploy, and a deploy that compiles something else than CI tested is a
 # deploy nobody verified.
 #
-# Three steps: build the image, push it to GHCR, and tell the server to run
-# it. The gates in `ci.yml` run first — a red gate here means the code was
-# never tested, and the deploy skips itself.
+# TWO images, because the compose has two kinds of container: the canonical
+# Python service (the api, the websocket, the ingestion and the bot) and the
+# AGENT, which is external (ADR-037 D7) and therefore has its own runtime and
+# its own image. `docker compose pull` pulls EVERY image the compose names —
+# so an image the pipeline does not publish is a deploy that cannot finish.
+#
+# The gates in `ci.yml` run first — a red gate here means the code was never
+# tested, and the deploy skips itself.
 
 on:
   push:
@@ -29,10 +34,11 @@ permissions:
 
 jobs:
   build:
-    name: Build and publish the image
+    name: Build and publish the images
     runs-on: ubuntu-latest
     outputs:
       image: ${{ steps.image.outputs.name }}
+      harness_image: ${{ steps.harness_image.outputs.name }}
     steps:
       - uses: actions/checkout@v4
 
@@ -45,6 +51,11 @@ jobs:
           # GHCR paths are lowercase; the repository owner is not always
           # spelled that way in the event payload.
           echo "name=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/ikigai" >> "$GITHUB_OUTPUT"
+
+      - name: The harness image name
+        id: harness_image
+        run: |
+          echo "name=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/ikigai-harness" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -73,15 +84,46 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # The agent has its OWN image (ADR-037 D7): the model runtime does not
+      # belong in the canonical service's build. It is published HERE, by the
+      # same pipeline, because the compose names it and `docker compose pull`
+      # pulls every image the compose names — an image nobody published is a
+      # deploy that stops at the pull.
+      - name: Harness image metadata
+        id: harness_meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.harness_image.outputs.name }}
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push the harness image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/harness/Dockerfile
+          push: true
+          tags: ${{ steps.harness_meta.outputs.tags }}
+          labels: ${{ steps.harness_meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   deploy:
     name: Deploy to the server
     needs: build
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: The image tag to run
+      - name: The image tags to run
         id: target
-        run: echo "tag=${{ needs.build.outputs.image }}:sha-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+        run: |
+          # The same tag the metadata action pushed: `sha-<commit>`. The
+          # publisher and the deployer must name the image the same way — a
+          # deploy that pulls a tag nobody pushed stops on a manifest that
+          # does not exist.
+          echo "tag=${{ needs.build.outputs.image }}:sha-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "harness=${{ needs.build.outputs.harness_image }}:sha-${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
       # The deploy is configured by four secrets, and a deploy that is not
       # configured must say WHICH are missing. The action's own failure
@@ -116,27 +158,55 @@ jobs:
           host: ${{ secrets.IKIGAI_DEPLOY_HOST }}
           username: ${{ secrets.IKIGAI_DEPLOY_USER }}
           key: ${{ secrets.IKIGAI_DEPLOY_SSH_KEY }}
-          envs: IKIGAI_IMAGE=${{ steps.target.outputs.tag }},IKIGAI_DEPLOY_PATH=${{ secrets.IKIGAI_DEPLOY_PATH }}
+          envs: IKIGAI_IMAGE=${{ steps.target.outputs.tag }},IKIGAI_HARNESS_IMAGE=${{ steps.target.outputs.harness }},IKIGAI_DEPLOY_PATH=${{ secrets.IKIGAI_DEPLOY_PATH }}
           script: |
             set -eu
 
             : "${IKIGAI_DEPLOY_PATH:?the deploy path is not set}"
             : "${IKIGAI_IMAGE:?the image tag is not set}"
+            : "${IKIGAI_HARNESS_IMAGE:?the harness image tag is not set}"
 
             cd "$IKIGAI_DEPLOY_PATH"
             git fetch --all --tags
             git checkout main
             git pull --ff-only origin main
 
-            export IKIGAI_IMAGE
-            # `pull` fetches the image CI just pushed; `--no-build` keeps the
-            # server from building its own. A private package needs the
-            # registry to be known on THIS host: the owner logs in once
-            # (`docker login ghcr.io`) and the deploy never carries the token.
-            if ! docker pull "$IKIGAI_IMAGE" >/dev/null; then
-              echo "the image could not be pulled — a private package needs 'docker login ghcr.io' on this host, once"
+            # The compose file is NOT at the root of the repository: it is
+            # `deploy/compose.yml`. A `docker compose` run from the root finds
+            # no configuration file at all and refuses to deploy anything —
+            # the deploy would end at "no configuration file provided" with
+            # every secret set. The compose file, the `.env` and the relative
+            # volume paths all resolve from the directory that holds the
+            # compose file, so the deploy runs from there.
+            cd deploy
+            if [ ! -f compose.yml ]; then
+              echo "deploy/compose.yml is not where the deploy expects it"
               exit 1
             fi
+
+            export IKIGAI_IMAGE IKIGAI_HARNESS_IMAGE
+
+            # `pull` fetches the images the pipeline just pushed; `--no-build`
+            # keeps the server from building its own. A private package needs
+            # the registry to be known on THIS host: the owner logs in once
+            # (`docker login ghcr.io`) and the deploy never carries the token.
+            for image in "$IKIGAI_IMAGE" "$IKIGAI_HARNESS_IMAGE"; do
+              if ! docker pull "$image" >/dev/null; then
+                echo "the image $image could not be pulled — a private package needs 'docker login ghcr.io' on this host, once"
+                exit 1
+              fi
+            done
             docker compose pull
             docker compose up -d --remove-orphans --no-build
+
+            # The deploy succeeds only when the SERVICE is healthy. A deploy
+            # that reports success while the api is down is the green lie the
+            # healthcheck exists to prevent (contract C-2), and it is a lie
+            # that costs a day: the first sign is a client that cannot write.
+            #
+            # The AGENT is not waited for: its readiness measures the
+            # PROVIDER (the model has to resolve), and a provider that is
+            # down must not fail the deploy of the store. The agent is
+            # deployed with the stack; its own readiness is its own question.
+            docker compose up -d --wait --wait-timeout 180 db api ws sync bot
             docker compose ps
