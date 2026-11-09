@@ -63,6 +63,8 @@ COPY deploy/harness/memory.mjs /app/harness/memory.mjs
 COPY deploy/harness/runtimes.mjs /app/harness/runtimes.mjs
 # The owner: the questions the agent asks, and the answers that unblock it.
 COPY deploy/harness/owner.mjs /app/harness/owner.mjs
+# The Stop: what a stop means for a run in flight.
+COPY deploy/harness/stop.mjs /app/harness/stop.mjs
 # The `ask` tool: the MCP server the agent spawns to reach the owner.
 COPY deploy/harness/owner-mcp.mjs /app/harness/owner-mcp.mjs
 COPY deploy/harness/entrypoint.sh /app/harness/entrypoint.sh

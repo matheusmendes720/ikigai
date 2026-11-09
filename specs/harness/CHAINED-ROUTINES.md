@@ -233,6 +233,21 @@ answer arrives later as a second message. With drafts:
 - **Stop** cancels the routine — the tag: "não para de gerar" is a real user need, and the
   client now has a native gesture for it.
 
+**WHAT IS BUILT (G7, 2026-11-09).** The bot opens a **preview** when a routine starts
+(`sendMessageDraft` with `can_stop`), refreshes it while the work runs — a preview lives about
+thirty seconds, and a routine does not — and handles the `stopped_message_generation` update
+that the button produces. The stop does TWO things: it cancels the bot's wait, and it asks the
+harness to release the session, which kills the `pi` process holding the turn. The second one
+is the one that matters: a bot that only stops waiting leaves an agent working, and an agent
+that keeps working keeps writing. A run that was stopped answers **"cancelled", not "failed"** —
+a cancelled routine did not fail, and the owner is told the truth.
+
+**WHAT THE PREVIEW IS NOT.** It carries the **state** of the run, not the **tokens** of the
+report: the harness does not publish the agent's text as it is generated, so there is nothing to
+stream into it yet. The finished report is still sent as a message — a draft is a thirty-second
+preview, and the message is what stays in the chat. Streaming the report itself needs the
+harness to publish the deltas, which is a separate piece of work.
+
 ### 6.3 The state machine
 
 ```
@@ -372,6 +387,12 @@ is a **projection** (ADR-037 D8), and the DOM does not know it exists.
 | G8 | Two clients converge | a write from the phone appears on the desktop through the ws, and neither reorders |
 
 G1–G2 are the deployment; G3–G8 are this spec. Nothing below G2 is testable while G1 is red.
+
+**WHAT "NO ARTIFACT IS WRITTEN" MEANS.** The store is append-only, and the routine writes its
+note at the END of its turn (the skill's step 5). So a stop before that write leaves the store
+untouched; a stop after it keeps what was already written, because a note that exists is a note
+the owner asked for, and deleting it would be the opposite of stopping. The gate's promise is
+about the write that had not happened yet.
 
 ---
 
