@@ -40,6 +40,14 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { RpcClient } from "@earendil-works/pi-coding-agent";
 import { Memory } from "./memory.mjs";
+import { Owner } from "./owner.mjs";
+import {
+  DEFAULT_RUNTIME_ID,
+  buildRegistry,
+  describeRuntime,
+  readRegistryConfig,
+  routeClient,
+} from "./runtimes.mjs";
 
 // ── configuration ────────────────────────────────────────────────────────────
 // Everything is an environment variable: this file ships in a container and a
@@ -56,6 +64,13 @@ const MEMORY_DB = process.env.HARNESS_MEMORY_DB || "/app/memory/memory.sqlite";
 const MAX_SESSIONS = Number(process.env.HARNESS_MAX_SESSIONS || 8);
 const SESSION_TTL_MS = Number(process.env.HARNESS_SESSION_TTL_MS || 15 * 60 * 1000);
 const RUN_TIMEOUT_MS = Number(process.env.HARNESS_TIMEOUT_MS || 10 * 60 * 1000);
+// The ceiling of ONE question to the owner. It is longer than a routine's
+// poll window and shorter than the patience of a person who forgot they were
+// being asked.
+const OWNER_TIMEOUT_MS = Number(process.env.HARNESS_OWNER_TIMEOUT_MS || 15 * 60 * 1000);
+// The routing table: which agentic runtime serves which client. A file is
+// the readable form; the environment variable is the one-shot form.
+const RUNTIMES_FILE = String(process.env.HARNESS_RUNTIMES_FILE || "").trim();
 
 // A model override, when the container should not use whatever the host had.
 // The vocabulary is ONE: `HARNESS_PROVIDER_ID` and `HARNESS_MODEL_ID` are the
@@ -96,6 +111,49 @@ const FALLBACK_ON = String(process.env.HARNESS_FALLBACK_ON || "429,500,502,503,5
   .filter(Boolean);
 
 const memory = new Memory(MEMORY_DB);
+
+/**
+ * The owner: the questions the agent asks, and the answers that unblock it.
+ *
+ * The broker is the WAITING ROOM (see `owner.mjs`). It lives here, in the
+ * runtime, because the agent is suspended on the question: a question that
+ * lived in the bot would die with the bot, and the agent would keep waiting
+ * for an answer that nobody could give.
+ */
+const owner = new Owner({ memory, defaultTimeoutMs: OWNER_TIMEOUT_MS });
+
+/**
+ * The runtime registry.
+ *
+ * It is READ FROM THE ENVIRONMENT, and it is re-read when the file it comes
+ * from changes: a routing table that needs a container restart to be edited
+ * is a routing table that stops being edited. The mtime is the cheap test —
+ * one stat per lookup, and a lookup happens once per client per routing call.
+ */
+let registry = null;
+let registryStamp = "";
+
+function currentRegistry() {
+  const file = String(process.env.HARNESS_RUNTIMES_FILE || "").trim();
+  let stamp = "";
+  if (file) {
+    try {
+      stamp = `${file}:${statSync(file).mtimeMs}`;
+    } catch {
+      stamp = `${file}:missing`;
+    }
+  } else {
+    stamp = `inline:${String(process.env.HARNESS_RUNTIMES || "").length}`;
+  }
+  if (registry && stamp === registryStamp) return registry;
+
+  const { config, error } = readRegistryConfig(process.env);
+  const built = buildRegistry({ env: process.env, config });
+  if (error) built.problems.push(error);
+  registry = built;
+  registryStamp = stamp;
+  return registry;
+}
 
 // ── the routines ─────────────────────────────────────────────────────────────
 
@@ -226,16 +284,41 @@ async function spawnPi(sessionId, opts) {
     cliPath: PI_CLI || undefined,
     cwd: PI_CWD,
     args: piArgs(sessionId, opts),
+    // The session id travels to the agent's CHILDREN as well.
+    //
+    // The `ask` tool is an MCP server, and MCP servers are spawned by the
+    // agent — so the server that asks the owner a question is a grandchild
+    // of this process. It needs to know WHICH session is asking, or the
+    // question goes to the wrong conversation. The environment is the
+    // carrier: the agent inherits it (the SDK merges, it does not replace —
+    // `env: { ...process.env, ...this.options.env }`), and the MCP server
+    // reads it from its own.
+    env: { ...(opts?.env || {}), IKIGAI_SESSION_ID: sessionId },
   });
   await client.start();
   return client;
 }
 
-async function acquire(sessionId) {
+/**
+ * The session entry.
+ *
+ * `runtime` is part of it, and it is part of it because the runtime decides
+ * the MODEL and the ROUTINES. A client re-routed to another runtime gets
+ * another `pi` process — the old one is released, and the conversation
+ * continues in the new profile with the same session id, because the session
+ * id is the CONVERSATION and the runtime is the MACHINE that holds it.
+ */
+async function acquire(sessionId, runtime) {
   const live = sessions.get(sessionId);
   if (live) {
-    live.lastUsed = Date.now();
-    return live;
+    // A session whose runtime changed is a different machine for the same
+    // conversation: the old process is released and a new one is spawned.
+    if (runtime && live.runtime !== runtime.id) {
+      await release(sessionId);
+    } else {
+      live.lastUsed = Date.now();
+      return live;
+    }
   }
   if (sessions.size >= MAX_SESSIONS) {
     // The oldest idle session gives its slot. A session in use is never
@@ -250,8 +333,18 @@ async function acquire(sessionId) {
     }
     await release(oldest.id);
   }
-  const client = await spawnPi(sessionId);
-  const entry = { client, routine: "", lastUsed: Date.now(), busy: false, chain: Promise.resolve() };
+  const client = await spawnPi(sessionId, {
+    provider: runtime?.provider || PI_PROVIDER,
+    model: runtime?.model || PI_MODEL,
+  });
+  const entry = {
+    client,
+    routine: "",
+    lastUsed: Date.now(),
+    busy: false,
+    chain: Promise.resolve(),
+    runtime: runtime?.id || DEFAULT_RUNTIME_ID,
+  };
   sessions.set(sessionId, entry);
   return entry;
 }
@@ -359,18 +452,37 @@ function textFromEvents(events) {
   return out;
 }
 
-async function runRoutine({ routine, session_id, chat_id, message, context, date, timeout_ms }) {
+async function runRoutine({ routine, session_id, chat_id, client, message, context, date, timeout_ms }) {
   if (!routines.has(routine)) {
     throw Object.assign(
       new Error(`unknown routine: ${routine}`),
       { status: 400, detail: `known routines: ${[...routines.keys()].join(", ")}` },
     );
   }
+
+  // THE ROUTING: the client is not the agent. The client is routed to a
+  // runtime — a profile with its own model, its own routines and its own
+  // memory — and the runtime is what answers.
+  const registry = currentRegistry();
+  const clientKey = String(client || (chat_id ? `tg:${chat_id}` : session_id || ""));
+  const routed = routeClient(registry, clientKey);
+  const runtime = routed.runtime;
+
+  // A runtime that may not run this routine says so, and says WHICH
+  // routines it may run: a refusal that names the alternatives is a
+  // sentence the owner can act on.
+  if (Array.isArray(runtime.routines) && !runtime.routines.includes(routine)) {
+    throw Object.assign(
+      new Error(`the runtime "${runtime.id}" does not run ${routine}`),
+      { status: 403, detail: `this runtime runs: ${runtime.routines.join(", ") || "nothing"}` },
+    );
+  }
+
   const sessionId = sanitiseSessionId(session_id || `anon-${chat_id || "0"}`);
   const started = Date.now();
   const timeout = Number(timeout_ms) || RUN_TIMEOUT_MS;
 
-  const entry = await acquire(sessionId);
+  const entry = await acquire(sessionId, runtime);
   entry.busy = true;
   entry.lastUsed = Date.now();
   try {
@@ -388,7 +500,7 @@ async function runRoutine({ routine, session_id, chat_id, message, context, date
       kind: "routine.started",
       key: routine,
       session: sessionId,
-      payload: { chat_id, date },
+      payload: { chat_id, date, runtime: runtime.id, client: clientKey },
     });
 
     let events = [];
@@ -472,6 +584,10 @@ async function runRoutine({ routine, session_id, chat_id, message, context, date
       ok: true,
       routine,
       session_id: sessionId,
+      // Which runtime answered — so the client can say "the archive model
+      // answered" and not present it as the primary's work.
+      runtime: runtime.id,
+      client: clientKey,
       text,
       bytes: text.length,
       events: (events || []).length,
@@ -522,6 +638,7 @@ function health() {
   } catch (err) {
     memoryDetail = err.message;
   }
+  const registry = currentRegistry();
   return {
     ok: memoryOk,
     service: "ikigai-harness",
@@ -531,6 +648,14 @@ function health() {
       routines: routines.size,
       live_sessions: sessions.size,
       busy_sessions: [...sessions.values()].filter((s) => s.busy).length,
+    },
+    // The routing table, as the harness sees it. A deployment that routes
+    // two clients to two runtimes can SEE that it does.
+    runtimes: {
+      default: registry.default,
+      count: registry.runtimes.size,
+      clients: registry.clients.size,
+      problems: registry.problems,
     },
     memory: memoryOk ? memory.stats() : { error: memoryDetail },
   };
@@ -610,12 +735,120 @@ const server = createServer(async (req, res) => {
         events: memory.events({ session, limit: 100 }),
       });
     }
+    if (req.method === "GET" && url.pathname === "/v1/runtimes") {
+      const registry = currentRegistry();
+      return json(res, 200, {
+        default: registry.default,
+        runtimes: [...registry.runtimes.values()].map((runtime) =>
+          describeRuntime(runtime, [...routines.keys()]),
+        ),
+        // What was REFUSED, and why. A routing table that refuses something
+        // quietly is a routing table the operator cannot fix.
+        problems: registry.problems,
+      });
+    }
+    if (req.method === "GET" && url.pathname === "/v1/routing") {
+      // The routing answer for one client: which runtime answers it, and
+      // whether that was a RULE or the default.
+      const registry = currentRegistry();
+      const client = String(url.searchParams.get("client") || "");
+      const routed = routeClient(registry, client);
+      return json(res, 200, {
+        client: routed.client,
+        runtime: describeRuntime(routed.runtime, [...routines.keys()]),
+        routed: routed.routed,
+        reason: routed.reason,
+        session_id: sanitiseSessionId(client || "anon-0"),
+        problems: registry.problems,
+      });
+    }
+    if (req.method === "GET" && url.pathname === "/v1/session") {
+      // The session of one client: its id, its runtime, and the questions
+      // that are still open. The client polls this to know what it missed
+      // after a restart.
+      const registry = currentRegistry();
+      const client = String(url.searchParams.get("client") || "");
+      const routed = routeClient(registry, client);
+      const sessionId = sanitiseSessionId(client || "anon-0");
+      return json(res, 200, {
+        client,
+        session_id: sessionId,
+        runtime: describeRuntime(routed.runtime, [...routines.keys()]),
+        questions: owner.pending(sessionId),
+      });
+    }
+    if (req.method === "GET" && url.pathname === "/v1/events") {
+      // The agent's own event log, FORWARD, from a cursor — the same shape
+      // as the store's change feed (ADR-039): the client sends what it has
+      // and gets what it does not, in order.
+      //
+      // The session is SANITISED here, so the client may send the key it
+      // knows (`tg:9138296750`) or the session id it was given
+      // (`tg-9138296750`) — the two are the same conversation, and the
+      // client should not have to know which spelling the agent's id rules
+      // want.
+      const raw = String(url.searchParams.get("session") || "");
+      const session = raw ? sanitiseSessionId(raw) : "";
+      const since = Number(url.searchParams.get("since") || 0);
+      const limit = Number(url.searchParams.get("limit") || 200);
+      const page = memory.eventsSince({ session, since, limit });
+      return json(res, 200, { session_id: session || null, ...page });
+    }
+    if (req.method === "POST" && url.pathname === "/v1/owner/ask") {
+      // The agent asked the owner something. The question is REGISTERED here
+      // and the waiting happens in the caller's tool call — so a question
+      // that outlives its asker is still answerable.
+      const body = await readBody(req);
+      const asked = owner.ask({
+        session: String(body.session || ""),
+        client: String(body.client || ""),
+        question: body.question,
+        options: body.options,
+        kind: body.kind,
+        timeoutMs: body.timeout_ms,
+      });
+      if (!asked.ok) {
+        return json(res, 400, { ok: false, error: asked.error });
+      }
+      return json(res, 200, { ok: true, question: asked.question });
+    }
+    if (req.method === "GET" && url.pathname === "/v1/owner/answer") {
+      // The state of one question, as the WAITING tool call sees it.
+      const questionId = String(url.searchParams.get("question_id") || "");
+      const answer = owner.read(questionId);
+      if (!answer.ok) return json(res, 404, { ok: false, error: answer.error });
+      return json(res, 200, {
+        ok: true,
+        state: answer.state,
+        value: answer.value,
+        question: answer.question,
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/v1/owner/answer") {
+      // The owner's answer. It unblocks the agent's suspended tool call.
+      //
+      // It arrives either as TEXT (a free-form answer the owner typed) or as
+      // an INDEX (the option the owner picked — the index is what travels
+      // through a channel with a 64-byte button payload, and the TEXT of the
+      // option comes from here, from the question the runtime asked).
+      const body = await readBody(req);
+      const answer = owner.answer(
+        String(body.question_id || ""),
+        body.value ?? null,
+        body.option_index ?? null,
+      );
+      if (!answer.ok) {
+        return json(res, 409, { ok: false, error: answer.error });
+      }
+      return json(res, 200, { ok: true, question: answer.question });
+    }
     if (req.method === "POST" && url.pathname === "/v1/routine") {
       const body = await readBody(req);
       const out = await runRoutine({
         routine: String(body.routine || ""),
         session_id: body.session_id,
         chat_id: body.chat_id,
+        client: body.client,
         message: body.message,
         context: body.context,
         date: body.date,

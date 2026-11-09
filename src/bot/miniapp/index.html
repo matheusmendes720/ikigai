@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>ikigai</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  :root {
+    color-scheme: dark;
+    --bg: #0e1014;
+    --surface: #161920;
+    --surface-2: #1d212a;
+    --text: #e8eaf0;
+    --hint: #98a1b2;
+    --accent: #3b82f6;
+    --accent-text: #ffffff;
+    --link: #6aa6ff;
+    --border: #262b35;
+    --danger: #ff7a7a;
+    --warn: #f0c05a;
+    --radius: 14px;
+  }
+
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(96px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+  }
+
+  .wrap { max-width: 640px; margin: 0 auto; padding: 12px 12px 24px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .card > h2 {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--hint);
+  }
+
+  .count { font-weight: 500; letter-spacing: 0.02em; text-transform: none; }
+
+  /* ---------- header ---------- */
+
+  .head-top { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; }
+
+  .eyebrow {
+    margin: 0;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--hint);
+  }
+
+  .runtime { margin: 2px 0 0; font-size: 22px; font-weight: 650; line-height: 1.25; }
+
+  .sub { margin: 2px 0 0; font-size: 13px; color: var(--hint); }
+
+  .head-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 14px 0 0; }
+  .meta > div { min-width: 0; }
+  .meta dt { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--hint); }
+  .meta dd {
+    margin: 2px 0 0;
+    font-size: 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    overflow-wrap: anywhere;
+  }
+
+  details.artifacts { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+  details.artifacts > summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--hint);
+    list-style: none;
+  }
+  details.artifacts > summary::-webkit-details-marker { display: none; }
+  details.artifacts > summary::before { content: "▸ "; }
+  details.artifacts[open] > summary::before { content: "▾ "; }
+  details.artifacts > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .stamp { margin: 12px 0 0; font-size: 12px; color: var(--hint); }
+
+  .artifact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    align-items: baseline;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+  }
+  .artifact:first-child { border-top: 0; padding-top: 8px; }
+  .artifact-kind {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 1px 7px;
+  }
+  .artifact-title { flex: 1 1 160px; font-size: 14px; overflow-wrap: anywhere; }
+  .artifact-uid {
+    flex-basis: 100%;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    color: var(--hint);
+    overflow-wrap: anywhere;
+  }
+
+  /* ---------- questions ---------- */
+
+  .question {
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-2);
+  }
+  .question + .question { margin-top: 12px; }
+  .question.answered { opacity: 0.75; }
+
+  .q-head { display: flex; gap: 8px; align-items: baseline; justify-content: space-between; }
+  .q-kind { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--hint); }
+  .q-state { font-size: 12px; color: var(--warn); white-space: nowrap; }
+  .q-state.done { color: var(--hint); }
+  .q-text { margin: 8px 0 12px; font-size: 16px; }
+  .q-answer {
+    margin: 0;
+    padding: 8px 10px;
+    border-left: 2px solid var(--accent);
+    background: var(--bg);
+    border-radius: 0 8px 8px 0;
+    font-size: 14px;
+    color: var(--text);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .options { display: flex; flex-wrap: wrap; gap: 8px; }
+  .option { flex: 1 1 auto; min-width: 120px; }
+
+  .field { display: block; }
+  .field-label { display: block; }
+
+  .input {
+    width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font: inherit;
+    resize: vertical;
+  }
+  .input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .actions { display: flex; gap: 8px; margin-top: 10px; }
+
+  /* ---------- history ---------- */
+
+  .event { padding: 10px 0; border-top: 1px solid var(--border); }
+  .event:first-child { border-top: 0; padding-top: 0; }
+  .e-head { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; }
+  .e-kind { font-size: 13px; font-weight: 600; }
+  .e-time { font-size: 12px; color: var(--hint); text-align: right; }
+  .e-body { margin: 4px 0 0; font-size: 14px; color: var(--hint); overflow-wrap: anywhere; }
+
+  /* ---------- shared ---------- */
+
+  .empty { margin: 0; font-size: 14px; color: var(--hint); }
+
+  button {
+    font: inherit;
+    font-size: 15px;
+    cursor: pointer;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    padding: 9px 14px;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button:disabled { opacity: 0.55; cursor: not-allowed; }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: transparent; }
+  button.ghost { background: transparent; color: var(--hint); }
+
+  .banner {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 14px;
+  }
+  .banner.loading { color: var(--hint); }
+  .banner.offline { border-color: rgba(240, 192, 90, 0.45); color: var(--warn); }
+  .banner.error { border-color: rgba(255, 122, 122, 0.5); color: var(--danger); }
+
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="status-banner" class="banner" role="status" hidden></div>
+    <p id="live-region" class="sr-only" aria-live="polite"></p>
+
+    <header class="card" id="session-header">
+      <div class="head-top">
+        <div>
+          <p class="eyebrow">ikigai</p>
+          <h1 class="runtime" id="runtime-name">—</h1>
+          <p class="sub" id="runtime-model">a carregar o runtime…</p>
+        </div>
+        <div class="head-actions">
+          <button type="button" id="refresh-btn" class="ghost" aria-label="Atualizar a sessão">Atualizar</button>
+          <button type="button" id="close-btn" class="ghost" aria-label="Fechar a aplicação">Fechar</button>
+        </div>
+      </div>
+
+      <dl class="meta">
+        <div>
+          <dt>Runtime</dt>
+          <dd id="runtime-id">—</dd>
+        </div>
+        <div>
+          <dt>Sessão</dt>
+          <dd id="session-id">—</dd>
+        </div>
+        <div>
+          <dt>Cliente</dt>
+          <dd id="client-id">—</dd>
+        </div>
+      </dl>
+
+      <details class="artifacts" id="artifacts-details">
+        <summary id="artifacts-summary">Artefactos</summary>
+        <div id="artifacts-list"></div>
+      </details>
+
+      <p class="stamp" id="last-update"></p>
+    </header>
+
+    <section class="card" id="questions-section" aria-labelledby="questions-heading">
+      <h2 id="questions-heading">Perguntas <span class="count" id="questions-count"></span></h2>
+      <div id="questions-list"></div>
+    </section>
+
+    <section class="card" id="history-section" aria-labelledby="history-heading">
+      <h2 id="history-heading">Histórico</h2>
+      <div id="history-list"></div>
+    </section>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ------------------------------------------------------------------ *
+   * Telegram bridge
+   * ------------------------------------------------------------------ */
+
+  var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+
+  // initData IS the credential: the backend validates its HMAC and refuses
+  // anything forged. It travels on EVERY call and never leaves this origin.
+  var INIT_DATA = (tg && typeof tg.initData === "string") ? tg.initData : "";
+  var START_PARAM = (tg && typeof tg.startParam === "string") ? tg.startParam : "";
+
+  var POLL_BASE_MS = 4000;   // cadence while there are pending questions
+  var POLL_IDLE_MS = 15000;  // slower cadence while idle, to catch new questions
+  var POLL_MAX_MS = 30000;   // backoff ceiling
+  var CLOSE_GRACE_MS = 900;  // let the owner read "resposta enviada" before closing
+
+  /* ------------------------------------------------------------------ *
+   * State
+   * ------------------------------------------------------------------ */
+
+  var state = {
+    session: null,
+    runtime: null,
+    questions: [],
+    events: [],
+    artifacts: [],
+    drafts: Object.create(null),   // question id -> typed answer
+    status: "loading",             // loading | online | offline | unauthenticated
+    message: "",
+    busy: false,
+    sending: null,
+    pollDelay: POLL_BASE_MS,
+    pollTimer: null,
+    lastAnswered: null,
+    closed: false,
+    lastUpdate: "",
+    lastQuestionsSignature: null,
+    lastHistorySignature: null,
+    lastArtifactsSignature: null,
+    focus: null
+  };
+
+  var el = {
+    banner: document.getElementById("status-banner"),
+    live: document.getElementById("live-region"),
+    runtimeName: document.getElementById("runtime-name"),
+    runtimeModel: document.getElementById("runtime-model"),
+    runtimeId: document.getElementById("runtime-id"),
+    sessionId: document.getElementById("session-id"),
+    clientId: document.getElementById("client-id"),
+    artifactsSummary: document.getElementById("artifacts-summary"),
+    artifactsList: document.getElementById("artifacts-list"),
+    lastUpdate: document.getElementById("last-update"),
+    questionsCount: document.getElementById("questions-count"),
+    questionsList: document.getElementById("questions-list"),
+    historyList: document.getElementById("history-list"),
+    refreshBtn: document.getElementById("refresh-btn"),
+    closeBtn: document.getElementById("close-btn")
+  };
+
+  /* ------------------------------------------------------------------ *
+   * Small helpers
+   * ------------------------------------------------------------------ */
+
+  function clear(node) {
+    while (node && node.firstChild) { node.removeChild(node.firstChild); }
+  }
+
+  function make(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) { node.className = className; }
+    if (text !== undefined && text !== null) { node.textContent = String(text); }
+    return node;
+  }
+
+  function asText(value) {
+    if (value === null || value === undefined) { return ""; }
+    if (typeof value === "string") { return value; }
+    if (typeof value === "number" || typeof value === "boolean") { return String(value); }
+    if (Array.isArray(value)) {
+      return value.map(asText).join(", ");
+    }
+    try { return JSON.stringify(value); } catch (err) { return ""; }
+  }
+
+  function prefersReducedMotion() {
+    return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  function isPending(question) {
+    if (!question) { return false; }
+    var s = question.state;
+    if (s === undefined || s === null || s === "") { return true; }
+    return s === "pending";
+  }
+
+  function isFreeForm(kind) { return kind === "text" || kind === "editor"; }
+
+  function pendingQuestions() {
+    return state.questions.filter(isPending);
+  }
+
+  function findQuestion(id) {
+    for (var i = 0; i < state.questions.length; i++) {
+      if (state.questions[i].id === id) { return state.questions[i]; }
+    }
+    return null;
+  }
+
+  function kindLabel(kind) {
+    if (kind === "choice") { return "escolha"; }
+    if (kind === "confirm") { return "confirmação"; }
+    if (kind === "text") { return "texto"; }
+    if (kind === "editor") { return "editor"; }
+    return asText(kind) || "pergunta";
+  }
+
+  function eventLabel(kind) {
+    if (kind === "routine.started") { return "rotina iniciada"; }
+    if (kind === "routine.finished") { return "rotina terminada"; }
+    if (kind === "question.asked") { return "pergunta pedida"; }
+    if (kind === "question.answered") { return "pergunta respondida"; }
+    return asText(kind).replace(/_/g, " ") || "evento";
+  }
+
+  function formatTime(ts) {
+    var value = Number(ts);
+    if (!isFinite(value) || value <= 0) { return ""; }
+    var date = new Date(value);
+    if (isNaN(date.getTime())) { return ""; }
+    return date.toLocaleString();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Theme — Telegram's palette, with a dark fallback of our own
+   * ------------------------------------------------------------------ */
+
+  var DARK = {
+    bg: "#0e1014", surface: "#161920", surface2: "#1d212a", text: "#e8eaf0",
+    hint: "#98a1b2", accent: "#3b82f6", accentText: "#ffffff", link: "#6aa6ff",
+    border: "#262b35"
+  };
+
+  var LIGHT = {
+    bg: "#ffffff", surface: "#f6f7fa", surface2: "#eef0f5", text: "#12151b",
+    hint: "#667080", accent: "#2f6fe4", accentText: "#ffffff", link: "#2f6fe4",
+    border: "#dfe3ea"
+  };
+
+  function applyTheme() {
+    var params = (tg && tg.themeParams) ? tg.themeParams : {};
+    var light = !!(tg && tg.colorScheme === "light");
+    var base = light ? LIGHT : DARK;
+
+    var vars = {
+      "--bg": params.backgroundColor || base.bg,
+      "--surface": params.secondaryBackgroundColor || base.surface,
+      "--surface-2": params.headerBackgroundColor || base.surface2,
+      "--text": params.textColor || base.text,
+      "--hint": params.hintColor || base.hint,
+      "--accent": params.buttonColor || base.accent,
+      "--accent-text": params.buttonTextColor || base.accentText,
+      "--link": params.linkColor || base.link,
+      "--border": base.border
+    };
+
+    var root = document.documentElement;
+    Object.keys(vars).forEach(function (name) {
+      root.style.setProperty(name, vars[name]);
+    });
+    root.style.colorScheme = light ? "light" : "dark";
+
+    if (tg) {
+      try {
+        if (typeof tg.setHeaderColor === "function") {
+          tg.setHeaderColor(params.headerBackgroundColor || params.backgroundColor || base.bg);
+        }
+        if (typeof tg.setBackgroundColor === "function") {
+          tg.setBackgroundColor(params.backgroundColor || base.bg);
+        }
+      } catch (err) { /* the client may not support these — the CSS fallback stands */ }
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * API — same origin only, initData on every call
+   * ------------------------------------------------------------------ */
+
+  function apiFetch(path, body) {
+    var init = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      credentials: "same-origin",
+      cache: "no-store"
+    };
+
+    return fetch(path, init).then(function (response) {
+      return response.json().catch(function () { return null; }).then(function (payload) {
+        if (response.status === 401) {
+          var authError = new Error("Ligação não autenticada.");
+          authError.code = "unauthenticated";
+          authError.detail = payload && payload.error ? asText(payload.error) : "";
+          throw authError;
+        }
+        if (!response.ok || !payload || payload.ok !== true) {
+          var failure = new Error(
+            (payload && payload.error) ? asText(payload.error) : ("Erro " + response.status + ".")
+          );
+          failure.code = "server";
+          throw failure;
+        }
+        return payload;
+      });
+    }, function () {
+      var offline = new Error("Sem ligação.");
+      offline.code = "offline";
+      throw offline;
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Session
+   * ------------------------------------------------------------------ */
+
+  function normalizeQuestions(raw) {
+    if (!Array.isArray(raw)) { return []; }
+    var out = [];
+    raw.forEach(function (item) {
+      if (!item || typeof item !== "object") { return; }
+      var id = asText(item.id).trim();
+      if (!id) { return; }
+      out.push({
+        id: id,
+        kind: asText(item.kind) || "text",
+        question: asText(item.question),
+        options: Array.isArray(item.options) ? item.options.map(asText) : [],
+        state: item.state,
+        answer: item.answer !== undefined ? item.answer : item.value
+      });
+    });
+    return out;
+  }
+
+  function normalizeEvents(raw) {
+    if (!Array.isArray(raw)) { return []; }
+    var out = [];
+    raw.forEach(function (item) {
+      if (!item || typeof item !== "object") { return; }
+      out.push({
+        seq: Number(item.seq) || 0,
+        ts: item.ts,
+        kind: asText(item.kind),
+        payload: (item.payload && typeof item.payload === "object") ? item.payload : {}
+      });
+    });
+    out.sort(function (a, b) { return a.seq - b.seq; });
+    return out;
+  }
+
+  function normalizeArtifacts(raw) {
+    if (!Array.isArray(raw)) { return []; }
+    var out = [];
+    raw.forEach(function (item) {
+      if (!item || typeof item !== "object") { return; }
+      var uid = asText(item.uid).trim();
+      if (!uid) { return; }
+      out.push({ uid: uid, kind: asText(item.kind), title: asText(item.title) });
+    });
+    return out;
+  }
+
+  function applySession(payload) {
+    var session = (payload && payload.session) || null;
+    state.session = session;
+    state.runtime = (session && session.runtime) ? session.runtime : null;
+    state.questions = normalizeQuestions(payload && payload.questions);
+    state.events = normalizeEvents(payload && payload.events);
+    state.artifacts = normalizeArtifacts(payload && payload.artifacts);
+  }
+
+  function loadSession(options) {
+    var opts = options || {};
+
+    if (state.busy) {
+      // A request is already in flight — keep the poll loop alive.
+      schedulePoll();
+      return Promise.resolve();
+    }
+    state.busy = true;
+
+    if (!opts.silent && state.status !== "offline") {
+      state.status = "loading";
+      render();
+    }
+
+    var body = { init_data: INIT_DATA };
+    if (START_PARAM) { body.start_param = START_PARAM; }
+
+    return apiFetch("/api/session", body).then(function (payload) {
+      applySession(payload);
+      state.status = "online";
+      state.message = "";
+      state.pollDelay = POLL_BASE_MS;
+      state.lastUpdate = new Date().toLocaleTimeString();
+    }).catch(function (error) {
+      if (error && error.code === "unauthenticated") {
+        state.status = "unauthenticated";
+        state.message = "Ligação não autenticada." +
+          (error.detail ? " " + error.detail : "") +
+          " Abre a aplicação a partir do Telegram.";
+        stopPolling();
+      } else {
+        state.status = "offline";
+        state.message = state.session
+          ? "Sem ligação — a mostrar a última resposta recebida."
+          : "Sem ligação — a tentar novamente em instantes.";
+        state.pollDelay = Math.min(state.pollDelay * 2, POLL_MAX_MS);
+      }
+    }).then(function () {
+      state.busy = false;
+      render();
+      schedulePoll();
+    });
+  }
+
+  function schedulePoll() {
+    if (state.pollTimer) { window.clearTimeout(state.pollTimer); state.pollTimer = null; }
+    if (state.status === "unauthenticated") { return; }
+
+    var pending = pendingQuestions().length > 0;
+    var delay = pending ? state.pollDelay : POLL_IDLE_MS;
+    state.pollTimer = window.setTimeout(function () {
+      loadSession({ silent: true });
+    }, delay);
+  }
+
+  function stopPolling() {
+    if (state.pollTimer) { window.clearTimeout(state.pollTimer); state.pollTimer = null; }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Answers
+   * ------------------------------------------------------------------ */
+
+  function submitAnswer(questionId, payload) {
+    if (state.sending) { return; }
+    state.sending = questionId;
+    render();
+
+    var body = { init_data: INIT_DATA, question_id: questionId };
+    if (payload && typeof payload.option_index === "number") {
+      body.option_index = payload.option_index;
+    } else {
+      body.value = (payload && payload.value !== undefined && payload.value !== null)
+        ? String(payload.value)
+        : "";
+    }
+
+    apiFetch("/api/answer", body).then(function (data) {
+      var answered = (data && data.question) ? data.question : null;
+      if (answered) {
+        var known = findQuestion(answered.id);
+        if (known) {
+          known.state = answered.state !== undefined ? answered.state : "answered";
+          known.answer = answered.answer !== undefined
+            ? answered.answer
+            : (answered.value !== undefined ? answered.value : known.answer);
+        }
+      } else {
+        var local = findQuestion(questionId);
+        if (local) { local.state = "answered"; }
+      }
+      delete state.drafts[questionId];
+      state.lastAnswered = questionId;
+      state.status = "online";
+      state.message = "";
+      state.pollDelay = POLL_BASE_MS;
+      return loadSession({ silent: true });
+    }).catch(function (error) {
+      if (error && error.code === "unauthenticated") {
+        state.status = "unauthenticated";
+        state.message = "Ligação não autenticada." +
+          (error.detail ? " " + error.detail : "") +
+          " Abre a aplicação a partir do Telegram.";
+        stopPolling();
+      } else {
+        state.status = "offline";
+        state.message = "Sem ligação — a resposta não foi enviada.";
+        state.pollDelay = Math.min(state.pollDelay * 2, POLL_MAX_MS);
+      }
+    }).then(function () {
+      state.sending = null;
+      render();
+      maybeCloseAfterAnswer();
+    });
+  }
+
+  function maybeCloseAfterAnswer() {
+    if (state.closed || !tg || typeof tg.close !== "function") { return; }
+
+    // The app only closes when the question really ended up answered.
+    var answered = findQuestion(state.lastAnswered);
+    if (!answered || isPending(answered)) { return; }
+    // And only when there is nothing left to answer.
+    if (pendingQuestions().length > 0) { return; }
+
+    state.closed = true;
+    window.setTimeout(function () {
+      try { tg.close(); } catch (err) { /* the client refused — the app stays open */ }
+    }, CLOSE_GRACE_MS);
+  }
+
+  function closeApp() {
+    if (!tg || typeof tg.close !== "function") { return; }
+    if (pendingQuestions().length > 0) {
+      var section = document.getElementById("questions-section");
+      if (section && section.scrollIntoView) {
+        section.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+      }
+      announce("Ainda há perguntas por responder.");
+      return;
+    }
+    try { tg.close(); } catch (err) { /* ignore */ }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Rendering
+   * ------------------------------------------------------------------ */
+
+  function announce(message) {
+    if (el.live) { el.live.textContent = message; }
+  }
+
+  function renderStatus() {
+    var message = "";
+    if (state.status === "loading") {
+      message = "A carregar a sessão…";
+    } else if (state.status === "offline") {
+      message = state.message || "Sem ligação.";
+    } else if (state.status === "unauthenticated") {
+      message = state.message || "Ligação não autenticada.";
+    }
+
+    if (el.banner) {
+      el.banner.textContent = message;
+      el.banner.className = "banner " + state.status;
+      el.banner.hidden = !message;
+    }
+    if (state.status === "online") { announce("Ligado."); }
+    else if (message) { announce(message); }
+  }
+
+  function renderHeader() {
+    var runtime = state.runtime || {};
+    var label = asText(runtime.label) || asText(runtime.id);
+    var model = asText(runtime.model);
+
+    el.runtimeName.textContent = label || "—";
+    el.runtimeModel.textContent = model
+      ? model
+      : (state.status === "loading" ? "a carregar o runtime…" : "modelo desconhecido");
+    el.runtimeId.textContent = asText(runtime.id) || "—";
+    el.sessionId.textContent = (state.session && asText(state.session.id)) || "—";
+    el.clientId.textContent = (state.session && asText(state.session.client)) || "—";
+    el.lastUpdate.textContent = state.lastUpdate ? ("última actualización às " + state.lastUpdate) : "";
+  }
+
+  function renderArtifacts() {
+    var signature = state.artifacts.map(function (artifact) {
+      return artifact.uid + "#" + artifact.kind + "#" + artifact.title;
+    }).join("||");
+    if (signature === state.lastArtifactsSignature) { return; }
+    state.lastArtifactsSignature = signature;
+
+    el.artifactsSummary.textContent = state.artifacts.length
+      ? ("Artefactos (" + state.artifacts.length + ")")
+      : "Artefactos";
+
+    clear(el.artifactsList);
+    if (!state.artifacts.length) {
+      el.artifactsList.appendChild(make("p", "empty", "Sem artefactos nesta sessão."));
+      return;
+    }
+    state.artifacts.forEach(function (artifact) {
+      var row = make("div", "artifact");
+      row.appendChild(make("span", "artifact-kind", artifact.kind || "—"));
+      row.appendChild(make("span", "artifact-title", artifact.title || artifact.uid));
+      row.appendChild(make("span", "artifact-uid", artifact.uid));
+      el.artifactsList.appendChild(row);
+    });
+  }
+
+  function buildPendingQuestion(question) {
+    var article = make("article", "question");
+
+    var head = make("div", "q-head");
+    head.appendChild(make("span", "q-kind", kindLabel(question.kind)));
+    head.appendChild(make("span", "q-state", "por responder"));
+    article.appendChild(head);
+
+    article.appendChild(make("p", "q-text", question.question || ""));
+
+    var kind = question.kind;
+    if (kind === "choice" || kind === "confirm") {
+      var options = question.options.length ? question.options.slice() : [];
+      if (!options.length && kind === "confirm") { options = ["Sim", "Não"]; }
+
+      if (!options.length) {
+        article.appendChild(make("p", "empty", "Esta pergunta não tem opções."));
+        return article;
+      }
+
+      var group = make("div", "options");
+      group.setAttribute("role", "group");
+      group.setAttribute("aria-label", "Opções de resposta");
+      options.forEach(function (option, index) {
+        var button = make("button", "option", option);
+        button.type = "button";
+        // The INDEX travels, never the text: the runtime owns the wording.
+        button.setAttribute("aria-label", "Responder \"" + option + "\"");
+        button.addEventListener("click", function () {
+          submitAnswer(question.id, { option_index: index });
+        });
+        group.appendChild(button);
+      });
+      article.appendChild(group);
+      return article;
+    }
+
+    var input;
+    if (kind === "editor") {
+      input = make("textarea", "input");
+      input.rows = 6;
+    } else {
+      input = make("input", "input");
+      input.type = "text";
+    }
+    input.value = state.drafts[question.id] || "";
+    input.dataset.questionId = question.id;
+    input.addEventListener("input", function () {
+      state.drafts[question.id] = input.value;
+      syncMainButton();
+    });
+
+    // The label wraps the field so the question names the input for
+    // screen readers; only the TEXT of the label is hidden — the field
+    // itself must stay visible.
+    var label = make("label", "field-label");
+    label.appendChild(make("span", "sr-only", question.question || "Resposta"));
+    label.appendChild(input);
+
+    var field = make("div", "field");
+    field.appendChild(label);
+
+    var actions = make("div", "actions");
+    var send = make("button", "primary", "Enviar resposta");
+    send.type = "button";
+    send.setAttribute("aria-label", "Enviar resposta");
+    send.addEventListener("click", function () {
+      submitAnswer(question.id, { value: input.value });
+    });
+    actions.appendChild(send);
+    field.appendChild(actions);
+
+    article.appendChild(field);
+    return article;
+  }
+
+  function buildAnsweredQuestion(question) {
+    var article = make("article", "question answered");
+
+    var head = make("div", "q-head");
+    head.appendChild(make("span", "q-kind", kindLabel(question.kind)));
+    head.appendChild(make("span", "q-state done", "respondida"));
+    article.appendChild(head);
+
+    article.appendChild(make("p", "q-text", question.question || ""));
+
+    var answer = asText(question.answer).trim();
+    if (answer) {
+      article.appendChild(make("p", "q-answer", answer));
+    }
+    return article;
+  }
+
+  function renderQuestions() {
+    clear(el.questionsList);
+
+    var pending = pendingQuestions();
+    var answered = state.questions.filter(function (question) { return !isPending(question); });
+
+    el.questionsCount.textContent = pending.length
+      ? ("(" + pending.length + (pending.length === 1 ? " por responder)" : " por responder)"))
+      : "(nada por responder)";
+
+    if (!state.questions.length) {
+      el.questionsList.appendChild(make("p", "empty", "Sem perguntas nesta sessão."));
+      return;
+    }
+
+    pending.forEach(function (question) {
+      el.questionsList.appendChild(buildPendingQuestion(question));
+    });
+    answered.forEach(function (question) {
+      el.questionsList.appendChild(buildAnsweredQuestion(question));
+    });
+  }
+
+  function describeEvent(event) {
+    var payload = event.payload || {};
+    var parts = [];
+
+    function push(prefix, value) {
+      var text = asText(value).trim();
+      if (text) { parts.push(prefix + text); }
+    }
+
+    push("rotina: ", payload.routine);
+    push("tipo: ", payload.kind);
+    push("", payload.question);
+    if (Array.isArray(payload.options) && payload.options.length) {
+      push("opções: ", payload.options.map(asText).join(", "));
+    }
+    if (payload.answer !== undefined && payload.answer !== null && asText(payload.answer).trim()) {
+      push("resposta: ", payload.answer);
+    }
+    if (payload.value !== undefined && payload.value !== null && asText(payload.value).trim()) {
+      push("resposta: ", payload.value);
+    }
+    if (payload.option_index !== undefined && payload.option_index !== null) {
+      push("opção #", payload.option_index);
+    }
+    push("estado: ", payload.status);
+    push("", payload.summary);
+    push("", payload.result);
+
+    if (!parts.length) {
+      Object.keys(payload).forEach(function (key) {
+        var value = payload[key];
+        if (value === null || value === undefined) { return; }
+        if (typeof value === "object") { return; }
+        push(key + ": ", value);
+      });
+    }
+
+    return parts.join(" — ") || "sem detalhes";
+  }
+
+  function renderHistory() {
+    clear(el.historyList);
+
+    if (!state.events.length) {
+      el.historyList.appendChild(make("p", "empty", "Ainda não há eventos."));
+      return;
+    }
+
+    state.events.forEach(function (event) {
+      var article = make("article", "event");
+      var head = make("div", "e-head");
+      head.appendChild(make("span", "e-kind", eventLabel(event.kind)));
+      var time = formatTime(event.ts);
+      if (time) { head.appendChild(make("span", "e-time", time)); }
+      article.appendChild(head);
+      article.appendChild(make("p", "e-body", describeEvent(event)));
+      el.historyList.appendChild(article);
+    });
+  }
+
+  function captureFocus() {
+    var active = document.activeElement;
+    if (active && active.dataset && active.dataset.questionId) {
+      state.focus = {
+        id: active.dataset.questionId,
+        start: active.selectionStart,
+        end: active.selectionEnd
+      };
+    }
+  }
+
+  function restoreFocus() {
+    if (!state.focus) { return; }
+    var inputs = el.questionsList.querySelectorAll("input, textarea");
+    for (var i = 0; i < inputs.length; i++) {
+      if (inputs[i].dataset.questionId === state.focus.id) {
+        inputs[i].focus();
+        try {
+          if (typeof inputs[i].setSelectionRange === "function" && state.focus.start !== null) {
+            inputs[i].setSelectionRange(state.focus.start, state.focus.end);
+          }
+        } catch (err) { /* selection is a nicety, not a requirement */ }
+        return;
+      }
+    }
+  }
+
+  function render() {
+    captureFocus();
+    renderStatus();
+    renderHeader();
+    renderArtifacts();
+
+    var questionsSignature = state.questions.map(function (question) {
+      return [
+        question.id,
+        question.kind,
+        question.state,
+        question.options.join("|"),
+        question.question
+      ].join("~");
+    }).join("||");
+    if (questionsSignature !== state.lastQuestionsSignature) {
+      state.lastQuestionsSignature = questionsSignature;
+      renderQuestions();
+      restoreFocus();
+    }
+
+    var historySignature = state.events.map(function (event) {
+      return event.seq + "#" + event.kind;
+    }).join("||");
+    if (historySignature !== state.lastHistorySignature) {
+      state.lastHistorySignature = historySignature;
+      renderHistory();
+    }
+
+    syncMainButton();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Telegram MainButton / BackButton
+   * ------------------------------------------------------------------ */
+
+  function primaryAction() {
+    var pending = pendingQuestions();
+
+    for (var i = 0; i < pending.length; i++) {
+      var question = pending[i];
+      if (!isFreeForm(question.kind)) { continue; }
+      var draft = (state.drafts[question.id] || "").trim();
+      if (draft) {
+        return {
+          label: "Enviar resposta",
+          run: function () { submitAnswer(question.id, { value: state.drafts[question.id] }); }
+        };
+      }
+    }
+
+    if (pending.length) {
+      return { label: "Atualizar", run: function () { loadSession(); } };
+    }
+
+    return null;
+  }
+
+  function syncMainButton() {
+    if (!tg || !tg.MainButton) { return; }
+    var button = tg.MainButton;
+    var action = primaryAction();
+
+    if (!action) {
+      button.hide();
+      return;
+    }
+    button.setText(action.label);
+    button.enable();
+    button.show();
+  }
+
+  function scrollToTop() {
+    try {
+      window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+    } catch (err) {
+      window.scrollTo(0, 0);
+    }
+  }
+
+  function updateBackButton() {
+    if (!tg || !tg.BackButton) { return; }
+    if (window.pageYOffset > 220) {
+      tg.BackButton.show();
+    } else {
+      tg.BackButton.hide();
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Wiring
+   * ------------------------------------------------------------------ */
+
+  function wire() {
+    el.refreshBtn.addEventListener("click", function () {
+      loadSession();
+    });
+
+    el.closeBtn.addEventListener("click", function () {
+      closeApp();
+    });
+
+    if (tg && tg.MainButton) {
+      tg.MainButton.onClick(function () {
+        var action = primaryAction();
+        if (action) { action.run(); }
+      });
+    }
+
+    if (tg && tg.BackButton) {
+      // Back returns to the top of the session view — the only thing
+      // "back" means in a single-screen app.
+      tg.BackButton.onClick(function () { scrollToTop(); });
+    }
+
+    var scrollPending = false;
+    window.addEventListener("scroll", function () {
+      if (scrollPending) { return; }
+      scrollPending = true;
+      window.requestAnimationFrame(function () {
+        scrollPending = false;
+        updateBackButton();
+      });
+    }, { passive: true });
+
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        loadSession({ silent: true });
+      }
+    });
+
+    if (tg && typeof tg.onEvent === "function") {
+      try {
+        tg.onEvent("themeChanged", applyTheme);
+        tg.onEvent("viewportChanged", updateBackButton);
+      } catch (err) { /* older clients may not know these events */ }
+    }
+
+    updateBackButton();
+  }
+
+  function start() {
+    applyTheme();
+    wire();
+
+    if (tg) {
+      try { tg.ready(); } catch (err) { /* ignore */ }
+      try { tg.expand(); } catch (err) { /* ignore */ }
+      try { if (typeof tg.disableVerticalSwipes === "function") { tg.disableVerticalSwipes(); } } catch (err) { /* ignore */ }
+      try { if (typeof tg.enableClosingConfirmation === "function") { tg.enableClosingConfirmation(); } } catch (err) { /* ignore */ }
+    }
+
+    render();
+    loadSession();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start);
+  } else {
+    start();
+  }
+})();
+</script>
+</body>
+</html>

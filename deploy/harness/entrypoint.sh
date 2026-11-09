@@ -94,10 +94,37 @@ cat > "$PROJECT_DIR/.pi/mcp.json" <<JSON
       "url": "${IKIGAI_MCP_URL:?IKIGAI_MCP_URL is required}",
       "description": "The ikigai store: the vault's artifacts, their relations, and the three ways to search them.",
       "exposure": "direct"
+    },
+    "owner": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${HARNESS_HOME}/owner-mcp.mjs"],
+      "env": {
+        "IKIGAI_SESSION_ID": "\${IKIGAI_SESSION_ID}"
+      },
+      "description": "The owner: ask a question and wait for the answer.",
+      "exposure": "direct",
+      "timeout": ${HARNESS_OWNER_MCP_TIMEOUT_S:-960}
     }
   }
 }
 JSON
+
+# The `owner` server is the AGENT's tool surface, and it is NOT a seventh tool
+# on the api: the api's surface is exactly six tools, drift-guarded
+# (ADR-011), and asking the owner is not a store operation. The owner lives
+# next to the agent, in the agent's own image, and the agent's turn BLOCKS on
+# it until the owner answers.
+#
+# The session id is LITERAL here ("\${IKIGAI_SESSION_ID}"): the harness writes
+# it into the agent's environment when it spawns the agent, and the agent
+# resolves it when it reads this file. The shell must not resolve it at boot,
+# where there is no session yet — the variable is per-session, and the shell
+# is per-container.
+#
+# The timeout is longer than the question's own ceiling (HARNESS_OWNER_TIMEOUT_MS,
+# 15 minutes) so that a question EXPIRES with a clean answer for the agent
+# rather than the transport cutting the call short.
 
 # ── 4. the door ─────────────────────────────────────────────────────────────
 exec node "$HARNESS_HOME/server.mjs"

@@ -315,6 +315,17 @@ services:
       # The ceiling of a routine, in seconds. The harness bounds the run with
       # the same number, so the two agree on who gives up first.
       IKIGAI_HARNESS_TIMEOUT_S: ${IKIGAI_HARNESS_TIMEOUT_S:-600}
+      # The Mini App's port and its public address. The PORT is what the bot
+      # binds its own HTTP surface to; the URL is what the button points at.
+      # The URL is empty by default: a bot without a panel is the bot as it
+      # was, and a deployment that has no address to give must not send the
+      # owner to a page that does not exist.
+      IKIGAI_MINIAPP_PORT: ${IKIGAI_MINIAPP_PORT:-8003}
+      IKIGAI_MINIAPP_URL: ${IKIGAI_MINIAPP_URL:-}
+    ports:
+      # The Mini App's surface. Bound to loopback on purpose: the public
+      # door is the proxy that owns the certificate, not this port.
+      - "127.0.0.1:${IKIGAI_MINIAPP_PORT:-8003}:${IKIGAI_MINIAPP_PORT:-8003}"
     depends_on:
       api:
         condition: service_healthy
@@ -403,6 +414,18 @@ services:
         HARNESS_MAX_SESSIONS: ${HARNESS_MAX_SESSIONS:-8}
         HARNESS_SESSION_TTL_MS: ${HARNESS_SESSION_TTL_MS:-900000}
         HARNESS_TIMEOUT_MS: ${HARNESS_TIMEOUT_MS:-600000}
+        # THE ROUTING TABLE (ADR-041): which agentic runtime serves which
+        # client. A FILE is the readable form — several runtimes is a table,
+        # and a table inside an environment variable is a table nobody can
+        # review. With no file, there is exactly one runtime, built from the
+        # provider settings above: the behaviour that existed before.
+        HARNESS_RUNTIMES_FILE: ${HARNESS_RUNTIMES_FILE:-}
+        # The ceiling of ONE question to the owner. The question expires with
+        # a clean answer for the agent ("nobody answered"), and the MCP
+        # transport's own timeout is longer than this so that the question
+        # always expires first.
+        HARNESS_OWNER_TIMEOUT_MS: ${HARNESS_OWNER_TIMEOUT_MS:-900000}
+        HARNESS_OWNER_MCP_TIMEOUT_S: ${HARNESS_OWNER_MCP_TIMEOUT_S:-960}
       depends_on:
         api:
           condition: service_healthy

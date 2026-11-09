@@ -30,6 +30,11 @@ Invariants:
 - An item with no evidence stays open.
 - A stale `expected_revision` is a conflict. Reread and reapply; never force.
 
+When to ask the owner:
+- A planned item has evidence for two different classes, and the count changes with it. Ask with `ask` and wait for the answer; the call blocks, and the answer arrives as the tool result.
+- An item was cancelled without the plan being updated. Ask whether it leaves the plan or stays — that is a decision about the plan, not about the review.
+- Everything else is settled by the evidence. Do not ask to confirm what the store already says.
+
 Done when:
 - the review exists at its uid with the counts,
 - every planned item has a class and a piece of evidence,

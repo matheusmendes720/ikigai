@@ -306,6 +306,14 @@ The procedure:
    expected revision.
 4. Report the artifact uid, the counts per class, and the commands that ran.
 
+When the routine needs a decision only the owner can make — a classification the
+evidence does not settle, a choice between two readings, a gap that changes what
+the cycle means — ASK it, with the `ask` tool, and WAIT for the answer. The call
+blocks; the answer arrives as the tool result, and the routine continues where it
+stopped. Do not guess a decision the owner owns, and do not end the turn hoping
+for a reply: there is a tool for exactly this, and it is the difference between an
+agent that waits for a human and an agent that waits for a message.
+
 Rules:
 - The routine produces one artifact per cycle. It does not rewrite the previous
   cycle.
@@ -313,6 +321,8 @@ Rules:
   pointing at one. Not a recollection.
 - If a routine cannot find its inputs, that is a finding worth reporting, not a
   reason to invent them.
+- A question is asked when the owner's answer CHANGES the artifact. If the
+  evidence settles it, the routine settles it and moves on.
 ```
 
 ---

@@ -95,6 +95,13 @@ from typing import Any
 
 import httpx
 
+from src.bot.channel import (
+    Question,
+    answer_buttons,
+    parse_question,
+    question_keyboard,
+    question_text,
+)
 from src.bot.harness_client import DEFAULT_TIMEOUT_S, HarnessClient
 from src.bot.router import callback_data, parse_callback, route
 from src.bot.ws_client import WebSocketClient
@@ -137,10 +144,27 @@ ROUTINES: dict[str, str] = {
 HARNESS_URL_ENV = "IKIGAI_HARNESS_URL"
 HARNESS_TIMEOUT_ENV = "IKIGAI_HARNESS_TIMEOUT_S"
 
+#: The Mini App's public address. It is a URL, not a port: the page is
+#: served by this bot and reached through the proxy that owns the
+#: certificate, and Telegram will only open an HTTPS address.
+MINIAPP_URL_ENV = "IKIGAI_MINIAPP_URL"
+
+#: The port the Mini App's HTTP surface listens on. Zero means the panel is
+#: NOT served — the bot without a panel is the bot as it was, and a
+#: deployment that does not want the page does not open the door.
+MINIAPP_PORT_ENV = "IKIGAI_MINIAPP_PORT"
+
 #: The ceiling of ONE probe of the handshake, in seconds. The greeting has to
 #: arrive: an agent that is slow, or down, must produce a line that says so
 #: — not a greeting that never comes.
 HANDSHAKE_TIMEOUT_S = 10.0
+
+#: How often the bot looks at the agent's log for a question the agent asked.
+#: It is a poll, not a push: the harness is a process behind a socket, and a
+#: poll is the simplest thing that cannot lose an event. Two seconds is fast
+#: enough that the owner does not watch a spinner, and slow enough that the
+#: harness is not asked for nothing sixty times a minute.
+RUNTIME_POLL_S = 2.0
 
 #: The kinds the bot may write. It is a projection of the owner's day, not
 #: an editor of the whole pyramid.
@@ -393,25 +417,63 @@ class Bot:
         # references may be collected mid-run, and the owner's answer would
         # never arrive.
         self._running: set[asyncio.Task[None]] = set()
+        # The question each chat is ANSWERING: the id of the question the
+        # agent is suspended on, waiting for prose.
+        #
+        # It is a CACHE, and it is a cache of the RUNTIME's state, not of
+        # the store's: the question itself lives in the harness (so a restart
+        # does not lose it), and this dictionary only says "the next message
+        # in this chat is the answer". The harness refuses an answer to a
+        # question that is not open, so a stale entry here costs one
+        # complaint, not a wrong answer.
+        self._awaiting: dict[str, str] = {}
+        # The event cursor of each chat's session: what the bot has already
+        # seen of the agent's log. The same shape as the store's change feed
+        # (ADR-039) — the client says what it has and gets what it does not.
+        self._cursors: dict[str, int] = {}
 
-    async def _send(self, chat_id: str, text: str, buttons: Keyboard | None = None) -> None:
+    def _client_key(self, chat_id: str) -> str:
+        """The routing key of a chat: `tg:<chat_id>`.
+
+        It is the key the harness routes on AND the key the session is
+        named after, which is why it is written in ONE place: two spellings
+        of the same key is one key that finds nothing.
+        """
+        return f"tg:{chat_id}"
+
+    async def _send(
+        self,
+        chat_id: str,
+        text: str,
+        buttons: Keyboard | None = None,
+        web_app: tuple[str, str] | None = None,
+    ) -> None:
         """One message, optionally with a decision under it.
 
         `reply_markup` is what makes the chat a UI instead of a prompt: the
         button carries the verb, and the owner does not type `/guardar` to
         agree with what they just read.
+
+        `web_app` is the Mini App's door: a button that opens a page INSIDE
+        the chat, with Telegram's own identity attached. It is a different
+        kind of button because it is a different kind of thing — a surface,
+        not a verb — and Telegram's payload for the two is not the same.
         """
         payload: dict[str, Any] = {"chat_id": chat_id, "text": text[:4000]}
+        rows: list[list[dict[str, Any]]] = []
         if buttons:
-            payload["reply_markup"] = {
-                "inline_keyboard": [
-                    [
-                        {"text": label, "callback_data": callback_data(verb, argument)}
-                        for label, verb, argument in row
-                    ]
-                    for row in buttons
+            rows = [
+                [
+                    {"text": label, "callback_data": callback_data(verb, argument)}
+                    for label, verb, argument in row
                 ]
-            }
+                for row in buttons
+            ]
+        if web_app:
+            label, url = web_app
+            rows.append([{"text": label, "web_app": {"url": url}}])
+        if rows:
+            payload["reply_markup"] = {"inline_keyboard": rows}
         await self._http.post(f"{TELEGRAM_API}/bot{self._token}/sendMessage", json=payload)
 
     async def _answer_callback(self, callback_id: str, text: str = "") -> None:
@@ -424,9 +486,7 @@ class Bot:
         payload: dict[str, Any] = {"callback_query_id": callback_id}
         if text:
             payload["text"] = text[:200]
-        await self._http.post(
-            f"{TELEGRAM_API}/bot{self._token}/answerCallbackQuery", json=payload
-        )
+        await self._http.post(f"{TELEGRAM_API}/bot{self._token}/answerCallbackQuery", json=payload)
 
     async def _handle(self, message: dict[str, Any]) -> None:
         chat = message.get("chat") or {}
@@ -443,6 +503,11 @@ class Bot:
             answer: Answer
             if text.startswith("/"):
                 command, _, argument = text.partition(" ")
+                if command == "/painel":
+                    # The Mini App is a SURFACE, not an answer: it is sent on
+                    # its own, with its own button, and the chat carries on.
+                    await self._send_panel(chat_id)
+                    return
                 answer = await self._dispatch(command, argument.strip(), message_id, chat_id)
             else:
                 # A message that is NOT a command is prose, and prose belongs to
@@ -634,6 +699,12 @@ class Bot:
         """A message that is not a command: it is prose, and it grows the draft."""
         if not text:
             return ""
+        # A QUESTION the agent asked takes the message first. While the agent
+        # is suspended on it, the owner's prose IS the answer — and a draft
+        # that swallowed it would be a draft holding a reply to the agent.
+        awaiting = self._awaiting.get(chat_id)
+        if awaiting:
+            return await self._deliver_answer(chat_id, awaiting, text)
         if not self._speaks_drafts():
             return "Não conheço esse comando. /help"
         state = self._open.get(chat_id)
@@ -681,9 +752,7 @@ class Bot:
         """
         routed = route(text, ROUTINES)
         if routed is not None:
-            return await self._start_routine(
-                chat_id, routed.routine, routed.slots.get("when", "")
-            )
+            return await self._start_routine(chat_id, routed.routine, routed.slots.get("when", ""))
 
         rows: Keyboard = [[(f"/{routine}", "run", routine)] for routine in ROUTINES]
         return (
@@ -726,6 +795,9 @@ class Bot:
                 await self._answer_callback(callback_id)
                 await self._send(chat_id, await self._start_routine(chat_id, argument, ""))
                 return
+            elif verb.startswith("ask."):
+                # The agent asked something, and the owner pressed a button.
+                text = await self._answer_question(chat_id, verb, argument)
             else:
                 text = "Não conheço esse botão."
         except Exception as exc:  # the bot reports, it does not crash
@@ -737,6 +809,139 @@ class Bot:
             await self._send(chat_id, body, buttons)
         else:
             await self._send(chat_id, text)
+
+    # -- the questions the agent asked --------------------------------------
+    #
+    # The agent, in the middle of a turn, calls `ask` and WAITS. This is the
+    # client's half of that wait: the question is drawn as buttons, the
+    # owner's answer is carried back to the runtime, and the agent's call
+    # returns with it.
+    #
+    # The question lives in the RUNTIME, not here. That is the whole reason
+    # this works when the bot restarts: the agent is suspended on a question
+    # the harness holds, and the bot is only the surface it is shown on.
+
+    async def _answer_question(self, chat_id: str, verb: str, argument: str) -> str:
+        """The owner pressed a button of a question the agent asked."""
+        harness = self._harness
+        if harness is None:
+            return "O agente não está configurado neste bot (IKIGAI_HARNESS_URL)."
+        parsed = answer_buttons(verb, argument)
+        if parsed is None:
+            return "Não conheço esse botão."
+        question_id, choice = parsed
+        if choice == "#type":
+            # The answer is prose: the button does not carry it, it ARMS the
+            # chat, and the next message the owner writes IS the answer.
+            self._awaiting[chat_id] = question_id
+            return (
+                "Escreve a resposta — a próxima mensagem é a resposta ao agente.\n"
+                "O agente está à espera dela."
+            )
+        try:
+            await harness.answer(question_id, option_index=int(choice.lstrip("#")))
+        except Exception as exc:
+            return f"Não consegui entregar a resposta: {exc}"
+        self._awaiting.pop(chat_id, None)
+        return "Resposta entregue. O agente continua."
+
+    async def _deliver_answer(self, chat_id: str, question_id: str, text: str) -> str:
+        """The owner TYPED the answer to a question the agent asked."""
+        harness = self._harness
+        if harness is None:
+            return "O agente não está configurado neste bot (IKIGAI_HARNESS_URL)."
+        try:
+            await harness.answer(question_id, value=text)
+        except Exception as exc:
+            # The question may have expired while the owner was writing. The
+            # arming is dropped either way: keeping it would swallow the
+            # NEXT message into a question nobody is waiting for.
+            self._awaiting.pop(chat_id, None)
+            return f"Não consegui entregar a resposta: {exc}"
+        self._awaiting.pop(chat_id, None)
+        return "Resposta entregue. O agente continua."
+
+    async def _runtime_loop(self) -> None:
+        """Watch the agent's own log, and draw what it asks.
+
+        The questions arrive as events on the session's log — the same
+        forward feed the store has (ADR-039), and the same cursor. The bot
+        polls it: the harness is a process behind a socket, and a poll is
+        the simplest thing that cannot lose an event.
+        """
+        if self._harness is None:
+            return
+        while True:
+            for chat_id in list(self._allowed):
+                try:
+                    await self._drain_runtime(chat_id)
+                except Exception as exc:  # a feed failure is not fatal
+                    print(f"runtime feed failed: {exc}", file=sys.stderr)
+            await asyncio.sleep(RUNTIME_POLL_S)
+
+    async def _drain_runtime(self, chat_id: str) -> None:
+        """Read what the agent did since the last time, and draw it."""
+        harness = self._harness
+        if harness is None:
+            return
+        since = self._cursors.get(chat_id, 0)
+        page = await harness.events(self._client_key(chat_id), since=since)
+        events = page.get("events") or []
+        tip = int(page.get("tip") or 0)
+        if events:
+            self._cursors[chat_id] = tip or since
+        for event in events:
+            if event.get("kind") != "question.asked":
+                continue
+            question = parse_question(event.get("payload") or {})
+            if question is None:
+                continue
+            # A question the owner already answered is not a question any
+            # more: the runtime says so, and the bot does not re-ask it.
+            if await self._already_answered(question):
+                continue
+            await self._send(chat_id, question_text(question), question_keyboard(question))
+
+    async def _already_answered(self, question: Question) -> bool:
+        """Has this question already been answered (or has it expired)?
+
+        The runtime is the truth: it holds the question, and it says what
+        happened to it. The bot asks, because a question that was answered
+        must not be drawn again — a second copy of the same question is the
+        client pretending not to have listened.
+        """
+        harness = self._harness
+        if harness is None:
+            return False
+        try:
+            state = await harness.question(question.id)
+        except Exception:
+            # The runtime did not answer: draw the question rather than hide
+            # it. A question that is hidden is a question nobody can answer.
+            return False
+        return str(state.get("state") or "") != "pending"
+
+    async def _send_panel(self, chat_id: str) -> None:
+        """Open the Mini App: the session's panel, inside the chat.
+
+        The URL is the deployment's: the panel is served by the bot itself
+        (it holds the token that authenticates the page), behind the proxy
+        that owns the certificate. The button opens it INSIDE the chat, with
+        Telegram's identity attached — which is what makes the page able to
+        prove who is asking.
+        """
+        url = (os.environ.get(MINIAPP_URL_ENV) or "").strip()
+        if not url:
+            await self._send(
+                chat_id,
+                "O painel não está configurado neste bot (IKIGAI_MINIAPP_URL).",
+            )
+            return
+        await self._send(
+            chat_id,
+            "O painel da sessão: a rotina em curso, as perguntas à espera e o que o agente fez.",
+            web_app=("📊 Abrir painel", url),
+        )
 
     async def _show_draft(self, chat_id: str) -> str:
         draft = await self._read_draft(chat_id)
@@ -913,9 +1118,14 @@ class Bot:
         try:
             result = await harness.run_routine(
                 routine,
-                session_id=f"tg:{chat_id}",
+                session_id=self._client_key(chat_id),
                 chat_id=chat_id,
                 message=argument,
+                # The ROUTING key: the harness decides which agentic runtime
+                # answers this client. It is sent apart from the session
+                # because the two are different things — the session is the
+                # conversation, the client is the door.
+                client=self._client_key(chat_id),
             )
         except Exception as exc:
             # A routine that dies in the background is a routine that never
@@ -935,17 +1145,27 @@ class Bot:
         return _render_memory(result)
 
     async def run(self) -> None:
-        """Both halves of the loop: what arrives, and what changes.
+        """The halves of the loop: what arrives, and what changed.
 
         The poll asks Telegram for commands; the event stream carries the
         changes the store announces. A transport without events simply has
-        nothing to listen to, and the second half returns at once.
+        nothing to listen to, and that half returns at once.
 
-        The handshake is the third: the greeting that says what is
-        connected. It runs beside the other two, so a slow agent delays the
+        The third is the AGENT's own log: the questions the agent asked while
+        a routine was running, and the report it produced. It is polled, not
+        pushed, and it is a separate half so that a slow agent never stops
+        the bot from answering a command.
+
+        The handshake is the fourth: the greeting that says what is
+        connected. It runs beside the other three, so a slow agent delays the
         greeting and nothing else.
         """
-        await asyncio.gather(self._poll_loop(), self._event_loop(), self._handshake())
+        await asyncio.gather(
+            self._poll_loop(),
+            self._event_loop(),
+            self._runtime_loop(),
+            self._handshake(),
+        )
 
     async def _poll_loop(self) -> None:
         while True:
@@ -1027,6 +1247,7 @@ def _catalogue() -> str:
     lines.append("/descartar — deita fora o rascunho")
     lines.append("/rascunhos — o que ficou a meio, lido do store")
     lines.append("/memoria — o que o agente lembra desta conversa")
+    lines.append("/painel — o painel da sessão, dentro do chat")
     lines.append("/start — o handshake: o que está ligado")
     lines.append("")
     lines.append("Rotinas (o agente corre o ciclo e responde quando acabar):")
@@ -1139,6 +1360,51 @@ def _harness_timeout_s() -> float:
         return DEFAULT_TIMEOUT_S
 
 
+def _miniapp_port() -> int:
+    """The port the Mini App listens on, or zero when there is none.
+
+    A value that is not a number is zero, not a crash: a typo in a port
+    must not take the bot offline — the chat is the product, and the panel
+    is a surface on top of it.
+    """
+    raw = (os.environ.get(MINIAPP_PORT_ENV) or "").strip()
+    if not raw:
+        return 0
+    try:
+        port = int(raw)
+    except ValueError:
+        return 0
+    return port if 1 <= port <= 65535 else 0
+
+
+async def _serve(bot: Bot) -> None:
+    """The chat's loop, and the panel's surface, in ONE process.
+
+    The Mini App is served by the bot because the bot is the only holder of
+    the token the page's identity is made of. A separate service would need
+    the token too, and a token in two places is a token that leaks from the
+    place nobody remembered.
+    """
+    port = _miniapp_port()
+    if not port:
+        await bot.run()
+        return
+
+    import uvicorn
+
+    from src.bot.miniapp import create_app
+
+    server = uvicorn.Server(
+        uvicorn.Config(
+            create_app(bot),
+            host="0.0.0.0",  # the container's network, not the host's
+            port=port,
+            log_level="warning",
+        )
+    )
+    await asyncio.gather(bot.run(), server.serve())
+
+
 def main() -> None:
     token = os.environ.get("IKIGAI_BOT_TOKEN")
     if not token:
@@ -1179,7 +1445,7 @@ def main() -> None:
         client = McpClient(url)
 
     bot = Bot(token, client, allowed, client_id, events=events, harness=harness)
-    asyncio.run(bot.run())
+    asyncio.run(_serve(bot))
 
 
 if __name__ == "__main__":

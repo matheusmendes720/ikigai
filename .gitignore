@@ -200,6 +200,14 @@ src/ikigai/*[^A-Za-z0-9_.-]*
 .opencode/
 /logs/
 /node_modules/
+# The harness's own dependencies, in the tree. The image installs them from
+# the lock (`npm ci`), so they are never part of the repository — and the
+# root-anchored rule above only covers the root, which is why the tree under
+# `deploy/harness/` was showing up as untracked.
+**/node_modules/
+# The scratch directory of a probe: scripts written to measure the box, and
+# the files they bring back.
+**/.probe/
 /.gitnexus/cache/
 /worktrees/
 /.worktrees/
@@ -542,6 +550,8 @@ deploy/secrets/
 !/code-docs/adr/ADR-037-data-layer-canonical-turn.md
 !/code-docs/adr/ADR-039-websocket-sync-transport.md
 !/code-docs/adr/ADR-040-client-state-and-drafts.md
+# The runtime routing, the blocking question and the panel (ADR-041).
+!/code-docs/adr/ADR-041-runtime-routing-and-human-in-the-loop.md
 
 # The dated audits and plans of the system that was replaced.
 /docs/diagnostics/
