@@ -41,6 +41,7 @@ import asyncio
 import json
 from collections.abc import AsyncIterator
 from typing import Any
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 __all__ = ["WebSocketClient"]
@@ -58,6 +59,28 @@ def _event_frame(uid: str, op: str, seq: int | None) -> dict[str, Any]:
     if seq is not None:
         data["seq"] = seq
     return {"type": "event", "event": f"artifact.{str(op).lower()}", "data": data}
+
+
+def _url_complaint(url: str) -> str | None:
+    """Why this URL cannot be a websocket, or ``None`` when it can.
+
+    A function of its own because it is the one thing about a connection that
+    can be checked with no network at all — and because the port is SHARED
+    with the MCP transport: ``http://ws:8001/sync`` names the right host and
+    the right port and is still wrong, since the scheme is the protocol.
+    Measured on the box before this guard existed: the bot's whole store leg
+    failed in 591 ms (*"scheme isn't ws or wss"*) while the container kept
+    reporting healthy, and the message it produced sent the reader to
+    ``http:8001/sync`` — an address that does not exist.
+    """
+    if url.startswith(("ws://", "wss://")):
+        return None
+    return (
+        f"the websocket URL must start with ws:// or wss://, and {url!r} does not. "
+        "The transport speaks the websocket protocol, and an http:// URL is a "
+        "different protocol that happens to share the port — the call fails even "
+        "when the service is healthy."
+    )
 
 
 class WebSocketClient:
@@ -150,6 +173,10 @@ class WebSocketClient:
             self._pending.pop(request_id, None)
 
     async def _connect(self) -> None:
+        complaint = _url_complaint(self._url)
+        if complaint is not None:
+            raise RuntimeError(complaint)
+
         from websockets.asyncio.client import connect
 
         headers: dict[str, str] = {}
@@ -158,10 +185,11 @@ class WebSocketClient:
         try:
             self._connection = await connect(self._url, additional_headers=headers)
         except Exception as exc:
+            parsed = urlsplit(self._url)
+            where = f"{parsed.hostname}:{parsed.port}"
             raise RuntimeError(
                 f"the websocket at {self._url} refused the connection: {exc}. "
-                f"The bot needs {self._url.replace('ws://', '').split(':')[0]}:"
-                f"{self._url.rsplit(':', 1)[-1]} to be reachable and the token to be right."
+                f"The bot needs {where} to be reachable and the token to be right."
             ) from exc
         self._reader = asyncio.create_task(self._read())
 

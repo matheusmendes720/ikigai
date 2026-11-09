@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -98,6 +99,151 @@ def test_the_compose_runs_the_websocket() -> None:
     assert "src.transport.ws_server" in compose, "the websocket is not deployed"
     assert "IKIGAI_WS_TOKEN" in compose, (
         "the websocket is a write channel and it is deployed without a token"
+    )
+
+
+def test_the_bot_speaks_the_websocket_scheme() -> None:
+    """The bot's change stream names a WEBSOCKET, and the scheme is the protocol.
+
+    The websocket answers on 8001 and so would an HTTP server: the port says
+    nothing about the protocol. The compose said `http://ws:8001/sync` — the
+    right host, the right port, the wrong protocol — so the bot's whole store
+    leg (search, read, write, the change stream) was refused before a socket
+    opened, while the container reported healthy. Measured on the box: 591 ms
+    to fail on `http://`, 99 ms to answer a real call on `ws://`.
+
+    Nothing measured this, which is why it survived; the guard is the
+    measurement.
+    """
+    services = _compose_services()
+    environment = services["bot"].get("environment") or {}
+    url = str(environment.get("IKIGAI_WS_URL") or "")
+
+    assert url, (
+        "the bot has no websocket: it would only ever learn about its own writes, "
+        "and every write made by the ingestion would stay invisible"
+    )
+    assert url.startswith(("ws://", "wss://")), (
+        f"the bot's websocket URL is {url!r}: an http:// URL is a different "
+        "protocol that happens to share the port, and the call fails even when "
+        "the service is healthy"
+    )
+
+
+def _compose_services() -> dict[str, Any]:
+    """The compose, parsed.
+
+    The file is YAML, so the guards read it as YAML: a service that holds a
+    DSN is a fact about the compose, not a string that happens to be near it.
+    """
+    import yaml
+
+    document = yaml.safe_load(_compose())
+    services = document.get("services") or {}
+    assert services, "the compose declares no services"
+    return services
+
+
+def test_the_compose_gives_the_bot_the_agent_door() -> None:
+    """The bot reaches the agent, and the agent is deployed.
+
+    Without the door the bot still writes, searches and reads — but the
+    routines ARE the cadences the product runs, and a compose that deploys
+    the agent without wiring it to anything is a product that ships an
+    expensive process and never asks it for anything.
+    """
+    services = _compose_services()
+    assert "harness" in services, "the agent is not deployed"
+
+    bot = services["bot"]
+    url = str((bot.get("environment") or {}).get("IKIGAI_HARNESS_URL") or "")
+    assert "http://harness:8002" in url, (
+        f"the bot's door does not point at the agent's service: {url!r}"
+    )
+    assert "harness" in (bot.get("depends_on") or {}), "the bot starts before the agent it talks to"
+
+
+def test_the_provider_key_is_a_file_and_not_an_environment_variable() -> None:
+    """The agent's key must not travel in the environment.
+
+    An `environment:` entry is not a secret store. The engine keeps it in the
+    container's `Config.Env` — so `docker inspect` prints the key — and in
+    `/proc/1/environ` inside the container, where every process the agent
+    spawns inherits it. Measured on the box before this guard existed: the
+    125-character key was one `docker inspect` away from anyone allowed to run
+    `docker` there.
+
+    A file secret is mounted at `/run/secrets/<name>` and exists only inside
+    the container that declares it, so the two assertions are one contract:
+    the variable is gone AND the file is there. Keeping only the first would
+    pass for a compose that forgot to mount the key at all, and the agent
+    would fail at the first request with a message about authentication.
+    """
+    services = _compose_services()
+    environment = services["harness"].get("environment") or {}
+
+    assert "HARNESS_PROVIDER_API_KEY" not in environment, (
+        "the provider's key is in the container's environment: `docker inspect` "
+        "prints Config.Env, and every child process inherits it"
+    )
+
+    mounted = services["harness"].get("secrets") or []
+    names = {
+        entry if isinstance(entry, str) else str((entry or {}).get("source")) for entry in mounted
+    }
+    assert "harness_provider_key" in names, (
+        f"the harness mounts no provider-key secret: {sorted(names)}"
+    )
+
+    import yaml
+
+    document = yaml.safe_load(_compose())
+    declaration = (document.get("secrets") or {}).get("harness_provider_key") or {}
+    assert str(declaration.get("file") or "").endswith("harness_provider_key"), (
+        "the secret is not backed by a file: the key would come from somewhere "
+        f"the operator cannot protect: {declaration!r}"
+    )
+
+    # The third half of the contract, and the one that catches a change that
+    # went only half way: the agent must be told the FILE. A compose without
+    # the variable AND an entrypoint still resolving `$HARNESS_PROVIDER_API_KEY`
+    # would start, find nothing, and fail at the first request with "invalid
+    # api key" — a message that names the credential and not the wiring.
+    entrypoint = (REPO_ROOT / "deploy" / "harness" / "entrypoint.sh").read_text(encoding="utf-8")
+    assert "/run/secrets/harness_provider_key" in entrypoint, (
+        "the entrypoint never names the secret mount: the agent would read the key "
+        "from an environment variable that is no longer set"
+    )
+    assert '"$HARNESS_PROVIDER_API_KEY"' not in entrypoint, (
+        "the entrypoint still resolves the key from the environment"
+    )
+
+
+def test_the_agent_does_not_hold_a_dsn() -> None:
+    """The agent is a client of the api, like every other client.
+
+    A DSN in the agent's container would be a second writer of one store
+    waiting to happen (ADR-037 D5) — and the agent has no need of one: it
+    reaches the DOM through the api's MCP.
+    """
+    services = _compose_services()
+    environment = services["harness"].get("environment") or {}
+    assert "IKIGAI_STORE_DSN" not in environment, (
+        "the agent holds a DSN — it is a second writer of the store"
+    )
+
+
+def test_the_bot_does_not_hold_a_dsn() -> None:
+    """The bot gained a second door, and it did not gain a store.
+
+    A door to the agent is a door to a CLIENT of the api, not to the
+    database. A DSN in the bot would be a fallback to the database — a
+    second writer waiting to happen (ADR-037 D5, D6).
+    """
+    services = _compose_services()
+    environment = services["bot"].get("environment") or {}
+    assert "IKIGAI_STORE_DSN" not in environment, (
+        "the bot holds a DSN — it is a second writer of the store"
     )
 
 

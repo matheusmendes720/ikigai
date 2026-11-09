@@ -11,9 +11,11 @@ agent. `pi` speaks JSONL on its own stdin/stdout (its *RPC mode*); this
 process owns that pipe and exposes it on a socket.
 
 ```text
-  Telegram ──▶ bot ──▶ api ──▶ harness (this) ──▶ pi (RPC subprocess)
-                                 ▲                    │
-                                 └──── MCP ───────────┘
+  Telegram ──▶ bot ──▶ harness (this) ──▶ pi (RPC subprocess) ──▶ api
+                   │                                        │
+                   └──────── the report, as a message        │
+                                                            ▼
+                                                          store
 ```
 
 The arrow that matters is the one coming back: **the harness reaches the
@@ -21,6 +23,15 @@ store through the api's MCP**, exactly like every other client. It never
 opens the database and it is never given a DSN. The harness writes the DOM
 through `store-write` and reads it through `store-read`; this facade is not
 in that path.
+
+**Who calls it:** the bot. The owner asks for a cadence from Telegram, the
+bot asks the harness to run it, and the harness answers with the agent's
+report — which the bot delivers as a second message. The api is NOT in the
+middle: its surface is exactly six tools (ADR-011), and a seventh would make
+the canonical service depend on the agent's availability and vocabulary,
+which is what "the agent is external" forbids. The flow is linear, so there
+is nothing to deadlock — the agent's write back into the api is an ordinary
+MCP request.
 
 ## The three pieces
 
@@ -139,16 +150,49 @@ on the way out, so the caller may send the raw key it has.
 | `HARNESS_PROVIDER_ID` | `harness` | the provider's name |
 | `HARNESS_PROVIDER_BASE_URL` | **required** | the endpoint |
 | `HARNESS_PROVIDER_API` | `anthropic-messages` | the wire protocol |
-| `HARNESS_PROVIDER_API_KEY` | **required** | the credential |
 | `HARNESS_MODEL_ID` | `MiniMax-M2.7` | the model |
 | `HARNESS_MAX_SESSIONS` | `8` | how many `pi` processes may live |
 | `HARNESS_SESSION_TTL_MS` | `900000` | idle eviction |
 | `HARNESS_TIMEOUT_MS` | `600000` | the run's ceiling |
 | `IKIGAI_MCP_URL` | **required** | the store's door |
 
-**The key never touches a file.** The entrypoint writes the provider
-catalog with the literal `"$HARNESS_PROVIDER_API_KEY"`, and pi resolves that
-from the environment when it builds the request.
+**The key is a FILE, not an environment variable.** It used to be an
+`environment:` entry, and an environment entry is not a secret store: the
+engine keeps it in the container's `Config.Env`, so `docker inspect` prints it,
+and in `/proc/1/environ`, so every process the agent spawns inherits it.
+Measured on the box before the change: the 125-character key was one
+`docker inspect` away from anyone allowed to run `docker` there.
+
+It is now a compose secret, mounted at `/run/secrets/harness_provider_key`,
+and the entrypoint gives the agent its **path**, not its value:
+
+```json
+"apiKey": "!cat /run/secrets/harness_provider_key"
+```
+
+`!command` is the documented form — `models.md`: *"`apiKey` … can use `$NAME` or
+`${NAME}` environment interpolation, a literal value, or a leading
+`!command`"*, and those commands run at request time. It is `!cat` and not a
+`tr` with a redirect on purpose: a redirect assumes pi runs the command through
+a shell, and that assumption is **not verified**, so the form that needs no
+shell is the one that stays.
+
+The cost is that the file must not end in a newline, because nothing strips it:
+write it with `printf '%s'`, never `echo`. A stray newline fails loudly at the
+next request (401), which is the one thing a silently wrong key cannot do.
+
+Create it once, mode 600, outside the repository (`deploy/secrets/` is
+gitignored):
+
+```bash
+mkdir -p deploy/secrets
+install -m 600 /dev/null deploy/secrets/harness_provider_key
+printf '%s' '<the key>' > deploy/secrets/harness_provider_key
+```
+
+The engine does not encrypt a file secret at rest, so the filesystem is what
+protects it. What the change removes is the **copy**: nothing in `docker
+inspect`, nothing in `/proc/*/environ`, nothing inherited by child processes.
 
 ## The volumes
 

@@ -494,6 +494,11 @@ vault/.db
 .env
 .env.local
 .env.*.local
+# The provider's key, as a file, for the compose secret. The engine mounts it
+# at /run/secrets/harness_provider_key; it is mode 600 and lives OUTSIDE the
+# repository, because a secret that is committed is a secret that leaked the
+# moment it was pushed — history keeps it even after the file is deleted.
+deploy/secrets/
 
 # ─── 9. THE POST-PIVOT SCOPE ─────────────────────────────────────────────
 # The repository has to read like a NEW project: a cold agent that clones it
