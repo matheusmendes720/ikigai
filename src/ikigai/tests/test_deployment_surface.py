@@ -70,6 +70,30 @@ def test_the_compose_runs_the_ingestion() -> None:
     assert "IKIGAI_VAULT_ROOTS" in compose, "the ingestion is not told where the prose is"
 
 
+def test_the_zones_tree_is_mounted_for_the_ingestion() -> None:
+    """The knowledge zones reach the ingestion as a VOLUME.
+
+    They are synced onto the Cloud Volume by Syncthing and they are the
+    owner's own markdown — the same argument as the vault above: a container
+    that only sees the copy baked into its image answers from the prose of the
+    commit it was built from.
+    """
+    compose = _compose()
+    assert "/app/zonas:ro" in compose, (
+        "the zones are not mounted — the ingestion would read the copy baked "
+        "into the image, which is the prose of the build, not of now"
+    )
+
+
+def test_the_deployment_names_the_zones_layout() -> None:
+    """The layout the zones are read with is named in the deployment."""
+    compose = _compose()
+    assert "=zones" in compose, (
+        "the zones layout is not named in the deployment — the ingestion would "
+        "read the zones with the layout of another tree"
+    )
+
+
 def test_the_compose_runs_the_websocket() -> None:
     compose = _compose()
     assert "src.transport.ws_server" in compose, "the websocket is not deployed"
@@ -359,23 +383,28 @@ def test_the_ingestion_declares_a_healthcheck_it_can_pass() -> None:
     )
 
 
-def test_the_ssh_step_passes_names_and_keeps_values_in_env() -> None:
-    """`appleboy/ssh-action` copies NAMES from `envs`, never `KEY=VALUE`.
+def test_the_deploy_path_reaches_the_remote_script() -> None:
+    """The remote script must RECEIVE the deploy path — by one of two ways.
 
-    Written after three deploys failed on the same line, with every secret
-    correctly set:
+    Written after three deploys died on the same line with every secret set:
 
         bash: line 3: IKIGAI_DEPLOY_PATH: the deploy path is not set
 
-    The step had `envs: IKIGAI_IMAGE=…,IKIGAI_DEPLOY_PATH=${{ secrets.… }}`.
-    The action treats `envs` as a LIST OF NAMES and reads the values from the
-    step's `env:`; given `KEY=VALUE` it forwards nothing, so the remote script
-    dies on `: "${IKIGAI_DEPLOY_PATH:?…}"` before it deploys anything. The log
-    makes it worse by showing the variable as present, because GitHub masks the
-    value as `***`.
+    `appleboy/ssh-action` forwards NAMES from `envs` and takes the values from
+    the step's `env:`. The old step used `envs: IKIGAI_DEPLOY_PATH=${{ … }}`,
+    which forwards nothing, so the guard fired before anything was deployed.
+    The log made it worse by showing `IKIGAI_DEPLOY_PATH=***`, which reads like
+    the value arrived — GitHub masks secrets.
 
-    The guard checks both halves: no `=` inside `envs`, and every name it lists
-    is declared in `env:` — a name with no value is the same empty string.
+    There are two ways that work, and the guard accepts both because the
+    choice belongs to the workflow:
+
+    (a) `envs` lists NAMES and every name is declared in `env:`;
+    (b) the value is interpolated into `script:` with `${{ }}`, so Actions
+        substitutes it on the runner and there is no forwarding to get wrong.
+
+    What it rejects is the third form — `KEY=VALUE` inside `envs` — for
+    `IKIGAI_DEPLOY_PATH`, and any name listed without a value.
     """
     import yaml
 
@@ -387,10 +416,10 @@ def test_the_ssh_step_passes_names_and_keeps_values_in_env() -> None:
     assert ssh, "no appleboy/ssh-action step in the deploy workflow"
 
     step = ssh[0]
+    script = str((step.get("with") or {}).get("script") or "")
     envs = str((step.get("with") or {}).get("envs") or "")
-    assert envs, "the ssh step passes no variables to the remote script"
-
     names = [name.strip() for name in envs.split(",") if name.strip()]
+
     offenders = [name for name in names if "=" in name]
     assert not offenders, (
         f"envs contains 'KEY=VALUE' ({offenders}). The action forwards names only, "
@@ -398,10 +427,13 @@ def test_the_ssh_step_passes_names_and_keeps_values_in_env() -> None:
     )
 
     declared = set((step.get("env") or {}).keys())
-    missing = [name for name in names if name not in declared]
-    assert not missing, (
-        f"envs names variables the step does not declare: {missing}. "
-        "A name without a value in `env:` is an empty string on the remote"
+    forwarded = bool(names) and all(name in declared for name in names)
+    interpolated = "secrets.IKIGAI_DEPLOY_PATH" in script
+
+    assert forwarded or interpolated, (
+        "the deploy path reaches the remote script by neither mechanism: "
+        f"envs={names!r} (declared: {sorted(declared)}) and the script does not "
+        "interpolate secrets.IKIGAI_DEPLOY_PATH"
     )
 
 

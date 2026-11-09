@@ -19,6 +19,11 @@ Two tree shapes are ingested, because the repo has two of them:
 - `persona` — `dreams/`, `objectives/`, `projects/`, `ikigai_state/`,
   `deliverables/`, the flat layout the production persona vault uses.
 
+A third one is ingested because the deployment has one: `zones` — the owner's
+knowledge tree, six buckets of markdown synced from the desktop onto the
+Cloud Volume. There, the first path segment IS the zone, and the zone decides
+the kind.
+
 Where a file declares its own `ueid` in frontmatter, that identity wins. It is
 the one the rest of the system already links to, and it survives a move of the
 file between the two trees.
@@ -71,8 +76,28 @@ _PERSONA_KINDS: dict[str, ArtifactKind] = {
     "deliverables": ArtifactKind.NOTA,
 }
 
+#: The zones tree: the owner's knowledge base, synced from the desktop.
+#:
+#: The first path segment is the zone, and the zone decides the kind. Only the
+#: zones that are NOT a bucket of notes are named here; every other zone is a
+#: note zone, so adding a seventh bucket needs no code change.
+#:
+#: The zone's own `type:` in the frontmatter is deliberately NOT consulted.
+#: It is the vault's taxonomy, not the DOM's, and it is not reliable: in the
+#: real tree it types a control-theory note as `project`, a study plan as
+#: `inbox`, and one file as `Line`. Promoting a note to a planning kind
+#: because of that would put the wrong thing in the wrong drawer of the DOM.
+#: The type stays in the body, where the prose keeps it.
+_ZONE_KINDS: dict[str, ArtifactKind] = {
+    "1_norte": ArtifactKind.SONHO,
+    "2_projeto": ArtifactKind.PLANO,
+}
+
+#: The kind of a zone that is not named in `_ZONE_KINDS`.
+_ZONE_DEFAULT_KIND = ArtifactKind.NOTA
+
 _ARCHIVE_DIR = "99-archive"
-_LAYOUTS = ("closing", "persona")
+_LAYOUTS = ("closing", "persona", "zones")
 
 #: Where the ingestion reads its trees from, when the container says so.
 #:
@@ -90,7 +115,7 @@ class VaultSource:
     """One markdown tree to ingest, and the shape it is laid out in."""
 
     root: Path
-    layout: Literal["closing", "persona"]
+    layout: Literal["closing", "persona", "zones"]
 
 
 @dataclass
@@ -167,9 +192,55 @@ def _front_matter(text: str) -> dict[str, Any]:
         return {}
     try:
         loaded = yaml.safe_load(match.group(1))
-    except Exception:  # malformed frontmatter is not fatal to the sync
-        return {}
+    except Exception:
+        # The vault writes its tags the Obsidian way — `tags: [#moc, #ai]` —
+        # and in YAML a `#` opens a comment. The list is therefore never
+        # closed, the parser gives up, and the WHOLE block is lost with it.
+        #
+        # Measured on the real tree: 242 of the 1800 files with a frontmatter
+        # lose it that way, and with it the date, the topic and the status.
+        # The block is not garbage — it is a list of `key: value` lines with
+        # ONE broken line in it — so the lines are read one by one, and the
+        # broken one is the only thing lost.
+        return _front_matter_lines(match.group(1))
     return loaded if isinstance(loaded, dict) else {}
+
+
+def _front_matter_lines(block: str) -> dict[str, Any]:
+    """Read a frontmatter block that YAML refused, one line at a time."""
+    values: dict[str, Any] = {}
+    for line in block.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        key, separator, raw = line.partition(":")
+        if not separator:
+            continue
+        key = key.strip()
+        if not key or key in values:
+            continue
+        values[key] = _scalar(raw.strip())
+    return values
+
+
+def _scalar(raw: str) -> Any:
+    """A frontmatter value read from a line, without a YAML parser.
+
+    Only what the ingestion needs: a date, a datetime, a list of strings, or
+    the text itself.
+    """
+    if not raw:
+        return ""
+    if raw.startswith("[") and raw.endswith("]"):
+        inner = raw[1:-1]
+        return [item.strip().strip("'\"") for item in inner.split(",") if item.strip()]
+    if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in "'\"":
+        return raw[1:-1]
+    lowered = raw.lower()
+    if lowered in ("true", "false"):
+        return lowered == "true"
+    stamp = _timestamp(raw)
+    return stamp if stamp is not None else raw
 
 
 def _timestamp(value: Any) -> datetime | None:
@@ -179,17 +250,34 @@ def _timestamp(value: Any) -> datetime | None:
     into a string — so a coercion that only knows about strings drops the
     value without a word. `datetime` is a subclass of `date`, so it has to be
     tested first.
+
+    The result is ALWAYS timezone-aware. A vault that writes `created:
+    2026-01-15` writes a CALENDAR DATE, and a calendar date is stored at
+    midnight UTC — the store's column is `timestamptz`, and a naive
+    timestamp handed to it is read in the timezone of whichever server
+    happens to be running. That is two problems at once: the date lands on a
+    different instant depending on the box, and the comparison that decides
+    whether a row is still correct never matches — so the ingestion rewrites
+    the same rows every round, forever.
     """
     if isinstance(value, datetime):
-        return value
+        return _as_utc(value)
     if isinstance(value, date):
-        return datetime(value.year, value.month, value.day)
+        return datetime(value.year, value.month, value.day, tzinfo=UTC)
     if not isinstance(value, str) or not value:
         return None
     try:
-        return datetime.fromisoformat(value)
+        parsed = datetime.fromisoformat(value)
     except ValueError:
         return None
+    return _as_utc(parsed)
+
+
+def _as_utc(value: datetime) -> datetime:
+    """The same instant, with a timezone."""
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _locate_closing(path: Path, root: Path) -> tuple[ArtifactKind, str | None] | None:
@@ -240,6 +328,35 @@ def _locate_persona(path: Path, root: Path) -> tuple[ArtifactKind, str | None] |
     return kind, quarter
 
 
+def _locate_zones(path: Path, root: Path) -> tuple[ArtifactKind, str | None] | None:
+    """Find the kind of a file in the zones tree.
+
+    The first path segment is the zone, and the zone decides the kind. A file
+    that sits at the root of the tree belongs to no zone — the root holds the
+    zones and the metadata of the sync, not artifacts — so it is skipped.
+
+    A HIDDEN directory is not a zone either. The tree carries a `.git` (the
+    owner's vault is a repository) and a `.stfolder`, and a zone called `.git`
+    is not a bucket of knowledge: it is a bucket of whatever a repository
+    happens to keep in markdown.
+    """
+    try:
+        relative = path.relative_to(root)
+    except ValueError:
+        return None
+    if len(relative.parts) < 2:
+        return None
+    if any(part.startswith(".") for part in relative.parts):
+        return None
+    zone = relative.parts[0]
+    kind = _ZONE_KINDS.get(zone, _ZONE_DEFAULT_KIND)
+    quarter = None
+    match = _SLUG_QUARTER_RE.search(path.stem)
+    if match:
+        quarter = f"Q{match.group(1)}-{match.group(2)}"
+    return kind, quarter
+
+
 class VaultSync:
     """Reads the vault's markdown and upserts it into the store."""
 
@@ -271,16 +388,21 @@ class VaultSync:
                 # READMEs are scaffolding for the tree, not artifacts in it.
                 report.skipped.append(str(path))
                 continue
-            located = (
-                _locate_closing(path, source.root)
-                if source.layout == "closing"
-                else _locate_persona(path, source.root)
-            )
+            located = self._locate(path, source)
             if located is None:
                 report.skipped.append(str(path))
                 continue
             kind, quarter = located
             await self._ingest_file(path, source, kind, quarter, report)
+
+    @staticmethod
+    def _locate(path: Path, source: VaultSource) -> tuple[ArtifactKind, str | None] | None:
+        """The kind and the quarter of a file, by the shape of its tree."""
+        if source.layout == "closing":
+            return _locate_closing(path, source.root)
+        if source.layout == "persona":
+            return _locate_persona(path, source.root)
+        return _locate_zones(path, source.root)
 
     async def _ingest_file(
         self,
@@ -300,9 +422,6 @@ class VaultSync:
 
         report.scanned += 1
         existing = await self._repo.get(uid)
-        if existing is not None and existing.body_hash == body_hash:
-            report.unchanged += 1
-            return
 
         fields: dict[str, Any] = {
             "uid": uid,
@@ -311,6 +430,11 @@ class VaultSync:
             "body": content,
             "body_hash": body_hash,
             "quarter": quarter,
+            # WHERE the prose came from. The path is relative to the tree the
+            # ingestion read, so its first segment is the zone — which is what
+            # makes the tree queryable by bucket — and the whole thing is what
+            # a write-back needs to know where to write.
+            "vault_path": relative,
             "revision": existing.revision if existing else 1,
             "created_at": existing.created_at if existing else _now(),
             "updated_at": _now(),
@@ -321,7 +445,7 @@ class VaultSync:
         parent = meta.get("parent_ueid")
         if isinstance(parent, str) and parent:
             fields["parent_uid"] = parent
-        created = _timestamp(meta.get("created_at"))
+        created = _timestamp(meta.get("created_at")) or _timestamp(meta.get("created"))
         if created is None and kind is ArtifactKind.NOTA:
             # A daily note carries the day it is about, and that day IS its
             # created_at — the DOM's spine has no second field for it. It used
@@ -329,15 +453,36 @@ class VaultSync:
             # whose date was quoted was rejected by the model and dropped by
             # the sync without a word.
             created = _timestamp(meta.get("date"))
-        if created is not None and existing is None:
+        if created is not None:
+            # A declared date is a FACT about the prose. The clock is only the
+            # fallback for a file that declares none — and a fallback that
+            # shadows the truth afterwards is a date that lies.
             fields["created_at"] = created
-        updated = _timestamp(meta.get("updated_at"))
+        updated = _timestamp(meta.get("updated_at")) or _timestamp(meta.get("updated"))
         if updated is not None:
             fields["updated_at"] = updated
         if kind is ArtifactKind.SONHO:
             vectors = meta.get("ikigai_vectors")
             if isinstance(vectors, list) and vectors:
                 fields["ikigai_vectors"] = tuple(vectors)
+
+        # The file did not change — but the MAPPING might have. A file whose
+        # frontmatter used to be unreadable and is read NOW has another title
+        # and another date, and the body hash cannot see that: the bytes are
+        # the same bytes. Without this, a correction to the mapping would
+        # never reach the rows that were written with the wrong one.
+        declared: tuple[str, ...] = ()
+        if created is not None:
+            declared += ("created_at",)
+        if updated is not None:
+            declared += ("updated_at",)
+        if (
+            existing is not None
+            and existing.body_hash == body_hash
+            and _same_mapping(existing, fields, declared)
+        ):
+            report.unchanged += 1
+            return
 
         try:
             artifact = KIND_MODELS[kind].model_validate(fields)
@@ -348,7 +493,23 @@ class VaultSync:
         request = WriteRequest(
             artifact=artifact,
             expected_revision=existing.revision if existing else None,
-            idempotency_key=f"vault:{source.layout}:{relative}:{body_hash[:16]}",
+            # The key identifies the WRITE, not the file.
+            #
+            # A key built from the body hash alone says "this file, at these
+            # bytes" — and a correction to the MAPPING (a frontmatter that
+            # becomes readable, a title read from another field) produces the
+            # same bytes and a different artifact. The store would recognise
+            # that key as a write it already did and refuse it, and the
+            # correction would never reach the row.
+            #
+            # The revision is in the key because it is what makes a write
+            # different from the one before it: a successful write advances
+            # it, and a refused one leaves it stale — so a write that is
+            # retried after a conflict carries a key the ledger has not seen.
+            idempotency_key=(
+                f"vault:{source.layout}:{relative}:{body_hash[:16]}:"
+                f"{existing.revision if existing else 0}"
+            ),
             client_id=self._client_id,
         )
 
@@ -427,12 +588,38 @@ class VaultSync:
         declared = meta.get("title")
         if isinstance(declared, str) and declared.strip():
             return declared.strip()
+        # The knowledge vault titles its notes with `topic`, not `title`
+        # ("Life Vision & Goals", "projects-hub"). Without this, the artifact
+        # is called NORTE or 02-onda, and the vector — which is the title and
+        # the body — carries a filename instead of a subject.
+        topic = meta.get("topic")
+        if isinstance(topic, str) and topic.strip():
+            return topic.strip()
         heading = _HEADING_RE.search(content)
         return heading.group(1).strip() if heading else path.stem
 
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+#: The fields the ingestion DERIVES from a file, as opposed to the ones it
+#: reads from the clock. They are compared on every run, because a file that
+#: did not change can still map to a different artifact.
+_DERIVED_FIELDS = ("title", "kind", "quarter", "status", "vault_path")
+
+
+def _same_mapping(existing: Any, fields: dict[str, Any], declared: tuple[str, ...]) -> bool:
+    """Whether the stored artifact is the one this file maps to.
+
+    `declared` names the fields the file states itself — its dates. The ones
+    the clock filled in are not compared: the clock answers with a different
+    value every run, and comparing it would make every file look changed.
+    """
+    for name in (*_DERIVED_FIELDS, *declared):
+        if getattr(existing, name, None) != fields.get(name):
+            return False
+    return True
 
 
 def _report_line(report: SyncReport) -> str:

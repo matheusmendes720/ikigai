@@ -369,6 +369,11 @@ class Bot:
         # like any other, and the owner does not need to be told about the
         # note they just dictated.
         self._own_writes: set[str] = set()
+        # The draft each chat has open, and the revision it was last saved at.
+        # It is a CACHE of the store, never the truth: `_list_drafts` reads the
+        # store, because a draft that only exists in this dictionary dies with
+        # the process — which is the thing drafts exist to avoid.
+        self._open: dict[str, dict[str, Any]] = {}
         # The agent's door. Without it the bot still writes, searches and
         # reads — it just cannot run a routine, and it says so.
         self._harness = harness
@@ -393,18 +398,27 @@ class Bot:
 
         text = str(message.get("text") or "")
         message_id = str(message.get("message_id", "0"))
-        command, _, argument = text.partition(" ")
-        argument = argument.strip()
 
         try:
-            answer = await self._dispatch(command, argument, message_id, chat_id)
+            if text.startswith("/"):
+                command, _, argument = text.partition(" ")
+                answer = await self._dispatch(command, argument.strip(), message_id, chat_id)
+            else:
+                # A message that is NOT a command is prose, and prose belongs to
+                # the draft that is open. The command path splits on the first
+                # space, which would throw the first word of the paragraph away.
+                answer = await self._append(chat_id, text.strip(), message_id)
         except Exception as exc:  # the bot reports, it does not crash
             answer = f"Não consegui completar isso: {exc}"
 
         await self._send(chat_id, answer)
 
     async def _dispatch(
-        self, command: str, argument: str, message_id: str, chat_id: str = ""
+        self,
+        command: str,
+        argument: str,
+        message_id: str,
+        chat_id: str = "",
     ) -> str:
         """Route one command to its answer.
 
@@ -427,6 +441,18 @@ class Bot:
 
         if command == "/memoria":
             return await self._memory(chat_id)
+
+        if command == "/rascunho":
+            return await self._start_draft(chat_id, argument)
+
+        if command == "/guardar":
+            return await self._commit_draft(chat_id, message_id)
+
+        if command == "/descartar":
+            return await self._discard_draft(chat_id)
+
+        if command == "/rascunhos":
+            return await self._list_drafts()
 
         if command in WRITABLE:
             if not argument:
@@ -462,6 +488,216 @@ class Bot:
             return _render_bundle(bundle)
 
         return "Não conheço esse comando. /help"
+
+    # -- the draft flow ----------------------------------------------------
+    #
+    # A paragraph is not a message. The owner thinks in several sends, and
+    # before this the second send of the same thought was either a new artifact
+    # or "Não conheço esse comando". The draft is the state a conversation
+    # needs: prose in progress, in the store, so it survives the bot restarting
+    # or the phone losing signal (ADR-040).
+    #
+    # The draft is reached with `client.draft(...)`, which exists only on the
+    # websocket client. A bot on the MCP transport has no drafts and says so
+    # rather than pretending the command worked.
+
+    def _draft_key(self, chat_id: str) -> str:
+        """One open draft per chat. Two chats composing are two drafts."""
+        return f"telegram-{chat_id or 'ninguem'}"
+
+    def _speaks_drafts(self) -> bool:
+        return callable(getattr(self._client, "draft", None))
+
+    async def _read_draft(self, chat_id: str) -> dict[str, Any] | None:
+        """The open draft, or None when there is none.
+
+        A missing draft is not an error in a conversation — it is the answer
+        to "what was I writing?" when the answer is "nothing". The transport
+        reports it as `not_found`, which is right for a caller that asked for
+        a specific thing, and wrong for a bot that is asking whether one
+        exists.
+        """
+        try:
+            found = await self._client.draft(
+                "get", client_id=self._client_id, draft_id=self._draft_key(chat_id)
+            )
+        except RuntimeError as exc:
+            if "not_found" in str(exc):
+                self._open.pop(chat_id, None)
+                return None
+            raise
+        return found if isinstance(found, dict) else None
+
+    async def _start_draft(self, chat_id: str, argument: str) -> str:
+        if not self._speaks_drafts():
+            return (
+                "Sem rascunhos neste transporte: eles viajam pelo websocket.\n"
+                "Configure IKIGAI_WS_URL e eu volto a guardar o que fica a meio."
+            )
+        if not argument:
+            return await self._show_draft(chat_id)
+
+        kinds = {command.lstrip("/"): kind for command, kind in WRITABLE.items()}
+        kind = kinds.get(argument.strip().lower())
+        if kind is None:
+            return "Que tipo? " + ", ".join(sorted(kinds))
+
+        # Resuming an open draft keeps what was already written; starting one
+        # over it would silently throw the paragraph away. After a restart the
+        # bot has no revision in memory, so the save comes back as a CONFLICT —
+        # and the conflict is the correct answer, not a failure: it means
+        # "there is already a draft here". It is reread and resumed.
+        key = self._draft_key(chat_id)
+        try:
+            answer = await self._client.draft(
+                "save",
+                client_id=self._client_id,
+                draft_id=key,
+                kind=kind.value,
+                title="",
+                body="",
+                expected_revision=self._open.get(chat_id, {}).get("revision"),
+            )
+        except RuntimeError as exc:
+            if "conflict" not in str(exc):
+                raise
+            current = await self._read_draft(chat_id)
+            if current is None:  # pragma: no cover — a conflict means it exists
+                raise
+            self._open[chat_id] = {
+                "kind": str(current.get("kind")),
+                "revision": int(current["revision"]),
+            }
+            return (
+                f"Já havia um rascunho de {current.get('kind')} aberto — retomei-o.\n"
+                "Manda o texto. /rascunho sozinho mostra o que está lá; /guardar fecha."
+            )
+        self._open[chat_id] = {"kind": kind.value, "revision": int(answer["revision"])}
+        return (
+            f"Rascunho de {kind.value} aberto.\n"
+            "Manda o texto em quantas mensagens quiseres. /guardar fecha, /descartar deita fora."
+        )
+
+    async def _append(self, chat_id: str, text: str, message_id: str) -> str:
+        """A message that is not a command: it is prose, and it grows the draft."""
+        if not text:
+            return ""
+        if not self._speaks_drafts():
+            return "Não conheço esse comando. /help"
+        state = self._open.get(chat_id)
+
+        current = await self._read_draft(chat_id)
+        if current is None:
+            return "Não há rascunho aberto.\n/rascunho <tipo> começa um. Ou /help para os comandos."
+        if state is None:
+            # The cache is cold — this process may have just started. The STORE
+            # is the truth, so a paragraph typed after a restart joins the draft
+            # that is still open instead of being refused. A conversation that
+            # has to be reopened by hand after every restart loses the sentence
+            # in between.
+            state = {"kind": str(current.get("kind"))}
+            self._open[chat_id] = state
+        body = str(current.get("body") or "")
+        grown = f"{body}\n{text}".strip() if body else text
+        answer = await self._client.draft(
+            "save",
+            client_id=self._client_id,
+            draft_id=self._draft_key(chat_id),
+            kind=state["kind"],
+            title=grown.splitlines()[0][:120],
+            body=grown,
+            expected_revision=int(current["revision"]),
+        )
+        self._open[chat_id] = {"kind": state["kind"], "revision": int(answer["revision"])}
+        lines = len(grown.splitlines())
+        return f"Anotado. {lines} linha(s) no rascunho. /guardar quando estiver."
+
+    async def _show_draft(self, chat_id: str) -> str:
+        draft = await self._read_draft(chat_id)
+        if draft is None:
+            return "Nenhum rascunho aberto."
+        body = str(draft.get("body") or "")
+        if not body:
+            return f"Rascunho de {draft.get('kind')} vazio. Manda o texto."
+        return f"{draft.get('kind')} · rev {draft.get('revision')}\n\n{body}"
+
+    async def _commit_draft(self, chat_id: str, message_id: str) -> str:
+        """Close the draft as an artifact, through the SAME write path as always.
+
+        The draft never commits itself: it is state. Turning it into an
+        artifact is `upsert_artifact`, with its own envelope and its own
+        revision guard — a draft that committed on its own would be a second
+        writer of the DOM wearing the draft's name.
+        """
+        if not self._speaks_drafts():
+            return "Sem rascunhos neste transporte."
+        draft = await self._read_draft(chat_id)
+        if draft is None:
+            return "Nenhum rascunho para guardar."
+        body = str(draft.get("body") or "").strip()
+        if not body:
+            return "O rascunho está vazio — não há o que guardar."
+
+        kind = ArtifactKind(str(draft.get("kind")))
+        head, complaint = _head_fields(kind, body)
+        if complaint is not None:
+            return complaint
+        title = body.splitlines()[0][:120]
+        arguments = _write_arguments(
+            kind,
+            title,
+            body,
+            _hash8(f"{self._draft_key(chat_id)}:{message_id}"),
+            self._client_id,
+            head,
+        )
+        _validate_artifact(kind, arguments["artifact"])
+        await self._client.call("upsert_artifact", arguments)
+        uid = str(arguments["artifact"]["uid"])
+        self._own_writes.add(uid)
+        await self._client.draft(
+            "discard",
+            client_id=self._client_id,
+            draft_id=self._draft_key(chat_id),
+            expected_revision=int(draft["revision"]),
+        )
+        self._open.pop(chat_id, None)
+        return f"Guardado ({kind.value}).\n{uid}"
+
+    async def _discard_draft(self, chat_id: str) -> str:
+        if not self._speaks_drafts():
+            return "Sem rascunhos neste transporte."
+        draft = await self._read_draft(chat_id)
+        if draft is None:
+            return "Nenhum rascunho para descartar."
+        await self._client.draft(
+            "discard",
+            client_id=self._client_id,
+            draft_id=self._draft_key(chat_id),
+            expected_revision=int(draft["revision"]),
+        )
+        self._open.pop(chat_id, None)
+        return "Descartado."
+
+    async def _list_drafts(self) -> str:
+        """What was left half-written — the answer after a restart.
+
+        It reads the STORE and not the memory on purpose: a draft that only
+        exists in this process's dictionary is a draft that dies with the
+        process, which is the thing drafts exist to avoid.
+        """
+        if not self._speaks_drafts():
+            return "Sem rascunhos neste transporte."
+        answer = await self._client.draft("list", client_id=self._client_id)
+        drafts = (answer or {}).get("drafts") or []
+        if not drafts:
+            return "Nenhum rascunho aberto."
+        lines = ["Rascunhos abertos:"]
+        for item in drafts:
+            body = str(item.get("body") or "")
+            first = body.splitlines()[0][:60] if body else "(vazio)"
+            lines.append(f"• {item.get('kind')} · rev {item.get('revision')} — {first}")
+        return "\n".join(lines)
 
     async def _handshake(self) -> None:
         """Greet the owner, and say what is connected.
@@ -656,6 +892,10 @@ def _catalogue() -> str:
         lines.append(f"{command} {usage} — {description}")
     lines.append("/busca <texto> — procura no store")
     lines.append("/uid <uid> — lê um artefato e suas arestas")
+    lines.append("/rascunho <tipo> — abre um rascunho; sem argumento, mostra o que está lá")
+    lines.append("/guardar — fecha o rascunho como artefato")
+    lines.append("/descartar — deita fora o rascunho")
+    lines.append("/rascunhos — o que ficou a meio, lido do store")
     lines.append("/memoria — o que o agente lembra desta conversa")
     lines.append("/start — o handshake: o que está ligado")
     lines.append("")

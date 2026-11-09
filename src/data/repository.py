@@ -43,8 +43,8 @@ except ImportError:  # pragma: no cover
 __all__ = ["ARTIFACT_EVENTS_CHANNEL", "ArtifactRepository"]
 
 _ARTIFACT_COLUMNS = (
-    "uid, kind, title, body, body_hash, parent_uid, quarter, status, revision, "
-    "created_at, updated_at, deleted_at"
+    "uid, kind, title, body, body_hash, parent_uid, quarter, status, vault_path, "
+    "revision, created_at, updated_at, deleted_at"
 )
 
 #: The channel the change trigger announces on. It is named in one place, and
@@ -63,6 +63,7 @@ def _to_artifact(row: Mapping[str, Any]) -> Artifact:
         parent_uid=row["parent_uid"],
         quarter=row["quarter"],
         status=row["status"],
+        vault_path=row["vault_path"],
         revision=row["revision"],
         created_at=row["created_at"],
         updated_at=row["updated_at"],
@@ -99,6 +100,19 @@ def _decode_cursor(cursor: str) -> tuple[str, str]:
         raise InvalidPayloadError(f"malformed cursor: {cursor!r}")
     updated_at, uid = payload
     return str(updated_at), str(uid)
+
+
+def _zone_pattern(zone: str) -> str:
+    """The LIKE pattern that matches one zone and nothing else.
+
+    `_` is a wildcard in LIKE and every zone name has one in it
+    (`2_projeto`, `5_atomicas`), so an unescaped pattern would also answer for
+    `2Xprojeto` — a bucket that does not exist. A search that returns a zone
+    nobody asked for is a search that lies, so the wildcards are escaped and
+    the clause names the escape character.
+    """
+    escaped = zone.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return escaped.rstrip("/") + "/%"
 
 
 class ArtifactRepository:
@@ -158,8 +172,8 @@ class ArtifactRepository:
         artifact = req.artifact
         cursor = await conn.execute(
             "insert into ikig.artifacts (uid, kind, title, body, body_hash, parent_uid, "
-            "quarter, status, revision, client_id, created_at, updated_at, embedding) "
-            "values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::vector) "
+            "quarter, status, vault_path, revision, client_id, created_at, updated_at, embedding) "
+            "values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::vector) "
             "on conflict (uid) do nothing",
             (
                 str(artifact.uid),
@@ -170,6 +184,7 @@ class ArtifactRepository:
                 str(artifact.parent_uid) if artifact.parent_uid else None,
                 artifact.quarter,
                 artifact.status,
+                artifact.vault_path,
                 artifact.revision,
                 req.client_id,
                 artifact.created_at,
@@ -190,11 +205,25 @@ class ArtifactRepository:
         req: WriteRequest,
         embedding: Sequence[float] | None = None,
     ) -> tuple[str, int]:
+        """Write the artifact over the stored one, at the revision it expects.
+
+        The DATES come from the artifact, not from the clock. Both are
+        required fields of the model, so a writer has always stated them and
+        the store cannot know better: `created_at` is when the artifact came
+        into being, `updated_at` is when its content last changed, and only
+        the writer knows the second. A store that substitutes its own clock
+        holds a value nobody wrote — and a comparison that decides whether a
+        row is still correct never matches, so the same rows are rewritten
+        on every round, forever.
+
+        The moment of the WRITE is not lost: it is `created_at` of the
+        revision this write appends.
+        """
         artifact = req.artifact
         cursor = await conn.execute(
             "update ikig.artifacts set title=%s, body=%s, body_hash=%s, parent_uid=%s, "
-            "quarter=%s, status=%s, kind=%s, revision=revision+1, updated_at=now(), "
-            "embedding=%s::vector "
+            "quarter=%s, status=%s, vault_path=%s, kind=%s, created_at=%s, updated_at=%s, "
+            "revision=revision+1, embedding=%s::vector "
             "where uid=%s and revision=%s and deleted_at is null",
             (
                 artifact.title,
@@ -203,7 +232,10 @@ class ArtifactRepository:
                 str(artifact.parent_uid) if artifact.parent_uid else None,
                 artifact.quarter,
                 artifact.status,
+                artifact.vault_path,
                 str(artifact.kind),
+                artifact.created_at,
+                artifact.updated_at,
                 _vector_literal(embedding) if embedding is not None else None,
                 str(artifact.uid),
                 req.expected_revision,
@@ -437,6 +469,9 @@ class ArtifactRepository:
         if query.parent_uid is not None:
             clauses.append("parent_uid = %s")
             params.append(str(query.parent_uid))
+        if query.zone is not None:
+            clauses.append("vault_path like %s escape E'\\\\'")
+            params.append(_zone_pattern(query.zone))
         if query.text:
             clauses.append(
                 "to_tsvector('portuguese', coalesce(title,'') || ' ' || coalesce(body,'')) "
@@ -481,6 +516,9 @@ class ArtifactRepository:
         if query.quarter is not None:
             clauses.append("quarter = %s")
             params.append(query.quarter)
+        if query.zone is not None:
+            clauses.append("vault_path like %s escape E'\\\\'")
+            params.append(_zone_pattern(query.zone))
 
         where = " and ".join(clauses)
         sql = (
@@ -534,6 +572,57 @@ class ArtifactRepository:
                     continue
                 if isinstance(payload, dict):
                     yield payload
+
+    async def events_since(self, since: int, limit: int = 500) -> list[dict[str, Any]]:
+        """The events written AFTER `since`, oldest first.
+
+        This is the repair for the announcement's one hole: a `NOTIFY` reaches
+        whoever is listening at that instant and nobody else, so a client that
+        was reconnecting when the write happened never learns it happened. The
+        rows are what make the feed resumable.
+
+        Ordered by the sequence the store assigned, not by a clock: two writes
+        in the same microsecond are two events, and a timestamp cannot order
+        them.
+        """
+        rows = await self._client.execute(
+            "select seq, uid, op, created_at from ikig.artifact_events "
+            "where seq > %s order by seq limit %s",
+            (since, limit),
+        )
+        return [dict(row) for row in rows]
+
+    async def event_tip(self) -> int:
+        """The sequence of the last event the store wrote, or 0 for none."""
+        row = await self._client.fetch_one(
+            "select coalesce(max(seq), 0) as tip from ikig.artifact_events"
+        )
+        return int(row["tip"]) if row else 0
+
+    async def event_floor(self) -> int:
+        """The OLDEST sequence still in the log, or 0 when it is empty.
+
+        It exists so that a client can be told the difference between "you are
+        up to date" and "your cursor is older than what I still keep". Both
+        answer with an empty page, and only one of them is good news.
+        """
+        row = await self._client.fetch_one(
+            "select coalesce(min(seq), 0) as floor from ikig.artifact_events"
+        )
+        return int(row["floor"]) if row else 0
+
+    async def prune_events(self, keep: int = 10000) -> int:
+        """Forget all but the last `keep` events, and say how many went.
+
+        The event log is the one table here that is allowed to forget: it is
+        operational state, not content. An artifact that changed is still
+        readable through its own row; an event is only interesting to a client
+        that has not replayed it yet.
+        """
+        row = await self._client.fetch_one(
+            "select ikig.prune_artifact_events(%s) as removed", (keep,)
+        )
+        return int(row["removed"]) if row else 0
 
     async def count(self) -> int:
         row = await self._client.fetch_one("select count(*) as n from ikig.artifacts")
