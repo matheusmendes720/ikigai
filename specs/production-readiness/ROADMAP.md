@@ -223,7 +223,7 @@ provadas**. Antes (2026-11-06): 5 · 3 · 2. **Depois da O4**: 10 provadas, e o
 
 Tudo pelo caminho real: o **MCP sobre HTTP** (as seis tools do ADR-011,
 `tools/list` lido do próprio servidor), o **vault como está montado** no
-contentor (`/app/zonas` com 2 551 ficheiros), e o **store como está** (1 954
+contentor (`/app/zonas` com 2 551 ficheiros), e o **store como está** (1 955
 artefactos, 10 páginas de `search_artifacts`).
 
 **O que o `body_hash` é, lido do código que corre** (`src/services/sync.py`):
@@ -313,16 +313,22 @@ O limite de 300 s vinha do **cliente** — e o prazo do cliente nunca foi
 próprio do produto para fixar. O que o produto é dono é a **ordem dos seus
 próprios tetos**, e era essa ordem que estava errada.
 
-**Um segundo defeito, medido na mesma noite (ainda por corrigir).** A sessão
+**Um segundo defeito, medido na mesma noite (corrigido no PR #45).** A sessão
 do dono tem um turno de cada vez, e o harness recusa o segundo pedido com
 *"Agent is already processing"* — recusa **correcta**, mas o `finally` do
 pedido recusado põe `busy = false` no turno que **está a correr**. O reaper
 (15 min sem uso) viu a sessão como livre e **matou o `pi` a meio do
-trabalho**, às 20:41:59Z — o agente estava a escrever nesse momento. A
+trabalho**, às 20:41:59Z — o agente estava a escrever nesse momento.
+
+O PR #45 troca a flag por uma **contagem**: a sessão conta os turnos em curso,
+e o reaper, a evictação e a sondagem olham para a contagem. A recusa
+**continua** a ser uma recusa (502) — o que muda é que já não mata o turno
+que está a correr.
+
+**Fica por decidir:** se a segunda rotina deve **esperar a sua vez**. A
 sessão tem `entry.chain` (`server.mjs:377`) desde o início: a serialização
-está desenhada e não está implementada. Corrigir isso muda o contrato de
-concorrência (a segunda rotina passa a **esperar** a vez em vez de ser
-recusada) — é decisão do dono, e fica fora do PR #43.
+está desenhada e não está implementada. Implementá-la muda o contrato de
+concorrência — é decisão do dono.
 
 ### 5.3 O que a medição deixou por medir
 
