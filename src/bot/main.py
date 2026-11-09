@@ -96,11 +96,23 @@ from typing import Any
 import httpx
 
 from src.bot.harness_client import DEFAULT_TIMEOUT_S, HarnessClient
+from src.bot.router import callback_data, parse_callback, route
 from src.bot.ws_client import WebSocketClient
 from src.contracts.dom import ArtifactKind, make_uid
 from src.contracts.dom_kinds import KIND_MODELS
 
 TELEGRAM_API = "https://api.telegram.org"
+
+#: One row of buttons: (label, verb, argument). The verb is what
+#: `parse_callback` gives back, and the argument is what the verb acts on —
+#: a routine id, or nothing for a decision that is already in the chat.
+Button = tuple[str, str, str]
+Keyboard = list[list[Button]]
+
+#: What a handler may answer. Most answer with a string; the ones that offer a
+#: decision answer with the string AND the buttons, and `_handle` is the one
+#: place that sends either.
+Answer = str | tuple[str, Keyboard]
 
 #: The routines the owner may run from the phone, and what each one does.
 #:
@@ -382,10 +394,38 @@ class Bot:
         # never arrive.
         self._running: set[asyncio.Task[None]] = set()
 
-    async def _send(self, chat_id: str, text: str) -> None:
+    async def _send(self, chat_id: str, text: str, buttons: Keyboard | None = None) -> None:
+        """One message, optionally with a decision under it.
+
+        `reply_markup` is what makes the chat a UI instead of a prompt: the
+        button carries the verb, and the owner does not type `/guardar` to
+        agree with what they just read.
+        """
+        payload: dict[str, Any] = {"chat_id": chat_id, "text": text[:4000]}
+        if buttons:
+            payload["reply_markup"] = {
+                "inline_keyboard": [
+                    [
+                        {"text": label, "callback_data": callback_data(verb, argument)}
+                        for label, verb, argument in row
+                    ]
+                    for row in buttons
+                ]
+            }
+        await self._http.post(f"{TELEGRAM_API}/bot{self._token}/sendMessage", json=payload)
+
+    async def _answer_callback(self, callback_id: str, text: str = "") -> None:
+        """Stop the spinner.
+
+        An unanswered callback query spins on the owner's screen until it
+        times out, whatever the bot is doing — so this is called on every
+        path, including the one that refuses the button.
+        """
+        payload: dict[str, Any] = {"callback_query_id": callback_id}
+        if text:
+            payload["text"] = text[:200]
         await self._http.post(
-            f"{TELEGRAM_API}/bot{self._token}/sendMessage",
-            json={"chat_id": chat_id, "text": text[:4000]},
+            f"{TELEGRAM_API}/bot{self._token}/answerCallbackQuery", json=payload
         )
 
     async def _handle(self, message: dict[str, Any]) -> None:
@@ -400,6 +440,7 @@ class Bot:
         message_id = str(message.get("message_id", "0"))
 
         try:
+            answer: Answer
             if text.startswith("/"):
                 command, _, argument = text.partition(" ")
                 answer = await self._dispatch(command, argument.strip(), message_id, chat_id)
@@ -411,7 +452,17 @@ class Bot:
         except Exception as exc:  # the bot reports, it does not crash
             answer = f"Não consegui completar isso: {exc}"
 
-        await self._send(chat_id, answer)
+        if isinstance(answer, tuple):
+            body, buttons = answer
+        else:
+            body, buttons = answer, None
+        # Two positional arguments when there is no decision to offer: a
+        # transport that only knows `(chat_id, text)` keeps working, and the
+        # signature grows only where it has to.
+        if buttons:
+            await self._send(chat_id, body, buttons)
+        else:
+            await self._send(chat_id, body)
 
     async def _dispatch(
         self,
@@ -419,7 +470,7 @@ class Bot:
         argument: str,
         message_id: str,
         chat_id: str = "",
-    ) -> str:
+    ) -> Answer:
         """Route one command to its answer.
 
         ``chat_id`` is where the answer goes. The deterministic commands do
@@ -528,7 +579,7 @@ class Bot:
             raise
         return found if isinstance(found, dict) else None
 
-    async def _start_draft(self, chat_id: str, argument: str) -> str:
+    async def _start_draft(self, chat_id: str, argument: str) -> Answer:
         if not self._speaks_drafts():
             return (
                 "Sem rascunhos neste transporte: eles viajam pelo websocket.\n"
@@ -575,10 +626,11 @@ class Bot:
         self._open[chat_id] = {"kind": kind.value, "revision": int(answer["revision"])}
         return (
             f"Rascunho de {kind.value} aberto.\n"
-            "Manda o texto em quantas mensagens quiseres. /guardar fecha, /descartar deita fora."
+            "Manda o texto em quantas mensagens quiseres. /guardar fecha, /descartar deita fora.",
+            [[("Guardar", "draft.guardar", ""), ("Descartar", "draft.descartar", "")]],
         )
 
-    async def _append(self, chat_id: str, text: str, message_id: str) -> str:
+    async def _append(self, chat_id: str, text: str, message_id: str) -> Answer:
         """A message that is not a command: it is prose, and it grows the draft."""
         if not text:
             return ""
@@ -588,7 +640,10 @@ class Bot:
 
         current = await self._read_draft(chat_id)
         if current is None:
-            return "Não há rascunho aberto.\n/rascunho <tipo> começa um. Ou /help para os comandos."
+            # No draft is open, so this sentence is not prose waiting to be
+            # kept — it is either a routine the owner named in their own words
+            # or an instruction the bot does not understand.
+            return await self._route_or_ask(chat_id, text)
         if state is None:
             # The cache is cold — this process may have just started. The STORE
             # is the truth, so a paragraph typed after a restart joins the draft
@@ -611,6 +666,77 @@ class Bot:
         self._open[chat_id] = {"kind": state["kind"], "revision": int(answer["revision"])}
         lines = len(grown.splitlines())
         return f"Anotado. {lines} linha(s) no rascunho. /guardar quando estiver."
+
+    async def _route_or_ask(self, chat_id: str, text: str) -> Answer:
+        """A sentence with no draft open: a routine, or a question back.
+
+        The deterministic table answers first, because it is the half that
+        cannot invent a routine id — and the harness refuses an id it does not
+        know, so a confident guess is a 400 in the owner's face.
+
+        When the table abstains, the answer is a question with the four
+        routines as buttons. That is strictly better than the old answer
+        ("there is no open draft"), which was true and described a feature the
+        owner was not using.
+        """
+        routed = route(text, ROUTINES)
+        if routed is not None:
+            return await self._start_routine(
+                chat_id, routed.routine, routed.slots.get("when", "")
+            )
+
+        rows: Keyboard = [[(f"/{routine}", "run", routine)] for routine in ROUTINES]
+        return (
+            "Não há rascunho aberto, e não percebi se é uma rotina.\n"
+            "Escolhe uma, ou começa um rascunho com /rascunho <tipo>.",
+            rows,
+        )
+
+    async def _on_callback(self, callback: dict[str, Any]) -> None:
+        """A button was pressed. Answer it, then do what it says.
+
+        Every path answers the callback query: an unanswered one spins on the
+        owner's screen for the whole timeout, and a spinner is the client
+        telling the owner the bot is thinking when it is not.
+        """
+        callback_id = str(callback.get("id", ""))
+        message = callback.get("message") or {}
+        chat = message.get("chat") or {}
+        chat_id = str(chat.get("id", ""))
+        message_id = str(message.get("message_id", "0"))
+        parsed = parse_callback(str(callback.get("data") or ""))
+
+        if parsed is None:
+            await self._answer_callback(callback_id, "Não conheço esse botão.")
+            return
+        if chat_id not in self._allowed:
+            # Fail closed, like every other door: an unlisted chat learns
+            # nothing about what the button would have done.
+            await self._answer_callback(callback_id)
+            return
+
+        verb, argument = parsed
+        text: Answer
+        try:
+            if verb == "draft.guardar":
+                text = await self._commit_draft(chat_id, message_id)
+            elif verb == "draft.descartar":
+                text = await self._discard_draft(chat_id)
+            elif verb == "run":
+                await self._answer_callback(callback_id)
+                await self._send(chat_id, await self._start_routine(chat_id, argument, ""))
+                return
+            else:
+                text = "Não conheço esse botão."
+        except Exception as exc:  # the bot reports, it does not crash
+            text = f"Não consegui completar isso: {exc}"
+
+        await self._answer_callback(callback_id)
+        if isinstance(text, tuple):
+            body, buttons = text
+            await self._send(chat_id, body, buttons)
+        else:
+            await self._send(chat_id, text)
 
     async def _show_draft(self, chat_id: str) -> str:
         draft = await self._read_draft(chat_id)
@@ -836,6 +962,10 @@ class Bot:
 
             for update in payload.get("result", []):
                 self._offset = update["update_id"] + 1
+                callback = update.get("callback_query")
+                if callback:
+                    await self._on_callback(callback)
+                    continue
                 message = update.get("message") or update.get("edited_message")
                 if message:
                     await self._handle(message)

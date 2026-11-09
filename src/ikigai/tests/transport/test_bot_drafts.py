@@ -91,9 +91,15 @@ class MuteBot(Bot):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.outbox: list[str] = []
+        #: The buttons offered with a message, when there were any. A decision
+        #: is part of the answer, and a recorder that drops it tests less than
+        #: the bot does.
+        self.keyboards: list[Any] = []
 
-    async def _send(self, chat_id: str, text: str) -> None:
+    async def _send(self, chat_id: str, text: str, buttons: Any = None) -> None:
         self.outbox.append(text)
+        if buttons:
+            self.keyboards.append(buttons)
 
     async def say(self, text: str, message_id: str = "1") -> str:
         await self._handle({"chat": {"id": "chat-1"}, "text": text, "message_id": message_id})
@@ -217,6 +223,33 @@ async def test_descartar_throws_it_away() -> None:
     assert "Descartado" in await bot.say("/descartar")
     assert client.drafts == {}
     assert "Não há rascunho aberto" in await bot.say("outro texto")
+
+
+async def test_a_sentence_that_names_a_routine_reaches_the_agent() -> None:
+    """Without a slash, a routine is still reachable.
+
+    The router is deterministic and the bot has no harness in this test, so
+    the proof that the sentence was ROUTED is the answer that only the
+    routine path can produce — "o agente não está configurado". Before the
+    router, this sentence answered "não há rascunho aberto".
+    """
+    client = FakeClient()
+
+    answer = await _bot(client).say("fecha o dia")
+
+    assert "agente não está configurado" in answer
+
+
+async def test_the_draft_confirmation_offers_the_decision() -> None:
+    """The chat is a UI: agreeing with what you just read is a button, not a
+    command you have to remember."""
+    bot = _bot(FakeClient())
+
+    await bot.say("/rascunho nota")
+
+    assert bot.keyboards, "the confirmation carried no buttons"
+    labels = [label for row in bot.keyboards[0] for label, _, _ in row]
+    assert labels == ["Guardar", "Descartar"]
 
 
 async def test_a_bot_on_the_mcp_transport_admits_it_has_no_drafts() -> None:
