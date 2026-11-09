@@ -456,6 +456,11 @@ class Router:
                     "events": [_jsonable(event) for event in replay.events],
                     "tip": replay.tip,
                     "truncated": replay.truncated,
+                    # The oldest event still kept. `lost` is the difference
+                    # between "you are up to date" and "I no longer have what
+                    # you missed" — the same empty page answers both.
+                    "floor": replay.floor,
+                    "lost": replay.lost,
                     "last_seq": replay.last_seq,
                 },
             ),

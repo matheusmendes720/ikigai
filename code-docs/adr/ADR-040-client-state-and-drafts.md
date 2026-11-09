@@ -235,6 +235,12 @@ emendado.
   por arranque). É a única tabela aqui que pode esquecer: um evento só
   interessa a quem ainda não o retomou, e o artifact continua legível na sua
   própria linha.
+- **"Estás em dia" e "já não tenho o que perdeste" são respostas diferentes.**
+  Ambas devolvem uma página vazia, e só uma é boa notícia — por isso o replay
+  lê o *floor* do log e devolve `lost` quando o cursor do cliente é mais antigo
+  do que o evento mais velho que ainda existe. Sem isto, um cliente a quem o
+  prune passou por cima acreditaria estar sincronizado. Medido no ensaio
+  ponta-a-ponta: `resume(since=1)` com o chão em 268 devolve `lost=True`.
 
 Isto não muda o veredito de §1: o vault continua a não ser escrito de volta
 (ADR-012), e a camada algorítmica continua adiada (ADR-037 D1).

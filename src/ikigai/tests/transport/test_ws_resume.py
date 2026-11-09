@@ -31,9 +31,15 @@ MIGRATIONS = Path(__file__).resolve().parents[3] / "contracts" / "migrations"
 class FakeRepo:
     """A repository that answers the log the way the store does."""
 
-    def __init__(self, rows: list[dict[str, Any]] | None = None, tip: int = 0) -> None:
+    def __init__(
+        self,
+        rows: list[dict[str, Any]] | None = None,
+        tip: int = 0,
+        floor: int = 0,
+    ) -> None:
         self.rows = rows or []
         self.tip = tip
+        self.floor = floor
         self.asked: list[tuple[int, int]] = []
         self.pruned: list[int] = []
 
@@ -43,6 +49,9 @@ class FakeRepo:
 
     async def event_tip(self) -> int:
         return self.tip
+
+    async def event_floor(self) -> int:
+        return self.floor
 
     async def prune_events(self, keep: int) -> int:
         self.pruned.append(keep)
@@ -259,3 +268,40 @@ def test_a_replay_is_a_plain_value() -> None:
 
     assert isinstance(replay.events, tuple)
     assert replay.last_seq == 1
+
+
+# ---------------------------------------------------------------------------
+# 6. "you are up to date" and "I no longer have it" are different answers
+# ---------------------------------------------------------------------------
+async def test_a_cursor_older_than_the_log_is_not_good_news() -> None:
+    """An empty page answers two questions, and only one of them is good.
+
+    A client whose cursor the prune has overtaken gets no events. That looks
+    exactly like being current, and it is the opposite: the events it needed
+    are gone for good, and silence would leave it believing it is in sync.
+    """
+    repo = FakeRepo(rows=[], tip=40, floor=30)
+    replay = await ChangeFeed(repo).replay(since=10)  # type: ignore[arg-type]
+
+    assert replay.events == ()
+    assert replay.truncated is True, "a cursor the prune overtook must be told"
+    assert replay.lost is True
+    assert replay.floor == 30
+
+
+async def test_a_cursor_inside_the_log_is_up_to_date() -> None:
+    repo = FakeRepo(rows=[], tip=40, floor=30)
+    replay = await ChangeFeed(repo).replay(since=40)  # type: ignore[arg-type]
+
+    assert replay.events == ()
+    assert replay.truncated is False, "being current is not a loss"
+    assert replay.lost is False
+
+
+async def test_an_empty_log_never_claims_a_loss() -> None:
+    """Nothing written yet is not something forgotten."""
+    repo = FakeRepo(rows=[], tip=0, floor=0)
+    replay = await ChangeFeed(repo).replay(since=0)  # type: ignore[arg-type]
+
+    assert replay.truncated is False
+    assert replay.lost is False

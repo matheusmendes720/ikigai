@@ -59,21 +59,37 @@ class ChangeEvent:
 
 @dataclass(frozen=True)
 class Replay:
-    """What happened after a sequence, and whether there is more.
+    """What happened after a sequence, and whether anything was LOST.
 
-    `truncated` is the honest part: a client that was away for a long time gets
-    the first `limit` events and is told the gap is bigger than that. It can
-    then decide — ask again from the last sequence it received, or reread the
-    artifacts it cares about. Silence would be worse than either.
+    `truncated` is the honest part, and it covers the two ways a client can be
+    behind without knowing it:
+
+    - **more than one page** — the gap is bigger than `limit`, so the client
+      gets the first page and is told to ask again from where it stopped;
+    - **older than the log** — the prune has already forgotten the events the
+      client needs. An empty page is the answer to both "you are up to date"
+      and "I no longer have what you missed", and only one of them is good
+      news. `floor` is what tells them apart.
     """
 
     events: tuple[ChangeEvent, ...]
     tip: int
     truncated: bool = False
+    #: The oldest sequence the log still holds. A `since` below it lost events.
+    floor: int = 0
+    #: The cursor the replay was asked for. `lost` cannot be answered without
+    #: it: an empty page means "up to date" AFTER the floor and "gone" BEFORE
+    #: it, and the two are the same page.
+    since: int = 0
 
     @property
     def last_seq(self) -> int | None:
         return self.events[-1].seq if self.events else None
+
+    @property
+    def lost(self) -> bool:
+        """Whether events the client needed are gone for good."""
+        return bool(self.floor) and self.since + 1 < self.floor
 
 
 def _event(payload: Mapping[str, Any]) -> ChangeEvent | None:
@@ -111,16 +127,26 @@ class ChangeFeed:
     async def replay(self, since: int, limit: int = 500) -> Replay:
         """The changes written after `since`, oldest first.
 
-        It asks for one row more than it was willing to return, so `truncated`
-        is a fact and not a guess: a client that gets it knows the gap is
-        bigger than one page and can decide what to do next.
+        It asks for one row more than it was willing to return, so "there is
+        more" is a fact and not a guess. And it reads the FLOOR of the log,
+        because a cursor older than the oldest event kept is a client that
+        missed something the store already forgot — which is a different
+        answer from "nothing happened", and must not look like one.
         """
         rows = await self._repo.events_since(since, limit + 1)
-        truncated = len(rows) > limit
+        floor = await self._repo.event_floor()
+        # A gap bigger than one page, or a cursor the prune has overtaken.
+        truncated = len(rows) > limit or (bool(floor) and since + 1 < floor)
         events = tuple(
             event for event in (_event(row) for row in rows[:limit]) if event is not None
         )
-        return Replay(events=events, tip=await self.tip(), truncated=truncated)
+        return Replay(
+            events=events,
+            tip=await self.tip(),
+            truncated=truncated,
+            floor=floor,
+            since=since,
+        )
 
     async def tip(self) -> int:
         """The sequence of the last event the store wrote, or 0 for none."""

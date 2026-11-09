@@ -46,6 +46,9 @@ class EventsRepo:
     async def event_tip(self) -> int:
         return max((int(row["seq"]) for row in self.rows), default=0)
 
+    async def event_floor(self) -> int:
+        return min((int(row["seq"]) for row in self.rows), default=0)
+
     async def prune_events(self, keep: int) -> int:
         return 0
 

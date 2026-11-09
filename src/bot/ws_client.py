@@ -264,10 +264,20 @@ class WebSocketClient:
             )
         self._resuming = False
         self._flush()
-        if isinstance(data, dict) and data.get("truncated"):
-            # More happened than one page holds. The consumer is told, so it
-            # can reread what it cares about instead of believing it is current.
-            self._events.put_nowait({"type": "gap", "truncated": True, "tip": tip})
+        if isinstance(data, dict) and (data.get("truncated") or data.get("lost")):
+            # The gap was bigger than one page, OR the cursor was older than
+            # what the log still keeps. Both mean "you are not current", and
+            # the consumer is told so it can reread what it cares about
+            # instead of believing a silence is a sign of being up to date.
+            self._events.put_nowait(
+                {
+                    "type": "gap",
+                    "truncated": bool(data.get("truncated")),
+                    "lost": bool(data.get("lost")),
+                    "floor": data.get("floor"),
+                    "tip": tip,
+                }
+            )
 
     def _flush(self) -> None:
         buffered, self._buffer = self._buffer, []

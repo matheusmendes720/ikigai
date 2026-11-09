@@ -599,6 +599,18 @@ class ArtifactRepository:
         )
         return int(row["tip"]) if row else 0
 
+    async def event_floor(self) -> int:
+        """The OLDEST sequence still in the log, or 0 when it is empty.
+
+        It exists so that a client can be told the difference between "you are
+        up to date" and "your cursor is older than what I still keep". Both
+        answer with an empty page, and only one of them is good news.
+        """
+        row = await self._client.fetch_one(
+            "select coalesce(min(seq), 0) as floor from ikig.artifact_events"
+        )
+        return int(row["floor"]) if row else 0
+
     async def prune_events(self, keep: int = 10000) -> int:
         """Forget all but the last `keep` events, and say how many went.
 
