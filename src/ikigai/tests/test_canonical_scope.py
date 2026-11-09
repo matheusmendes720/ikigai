@@ -202,6 +202,8 @@ RETIRED_EXCEPTIONS = (
     "code-docs/adr/ADR-039-websocket-sync-transport.md",
     # The client state: the drafts, and what is deliberately NOT here.
     "code-docs/adr/ADR-040-client-state-and-drafts.md",
+    # The runtime routing, the blocking question and the panel (ADR-041).
+    "code-docs/adr/ADR-041-runtime-routing-and-human-in-the-loop.md",
     # The pivot's own series, and the record of the cut that preceded it.
     "docs/superpowers/specs/2026-10-30-05-cut.md",
     "docs/superpowers/specs/2026-11-01-00-data-layer-series.md",

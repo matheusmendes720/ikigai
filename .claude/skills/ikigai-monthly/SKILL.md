@@ -30,6 +30,11 @@ Invariants:
 - A `desc` states the rationale. A decision without a rationale is not a decision.
 - The prior monthly decision is never rewritten.
 
+When to ask the owner:
+- The GAP is computed, but what the gap MEANS is a decision. Ask with `ask` and wait for the answer before writing the `desc`: the rationale is the owner's, and a rationale invented from a number is not a rationale.
+- An indicator has no actual, and the weeklies do not say whether that is a miss or a gap in the record. Ask which it is.
+- Everything else is settled by the arithmetic. Do not ask to confirm a gap you already computed.
+
 Done when:
 - the decision exists at its uid with the gap per indicator,
 - and the report names the uid, the gaps and the tools that ran.
