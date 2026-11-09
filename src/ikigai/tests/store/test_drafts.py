@@ -71,22 +71,18 @@ class FakeCursor:
 class FakeConnection:
     """The transaction's connection.
 
-    `ledger_rowcount` and `write_rowcount` are separate on purpose: the two
-    statements answer different questions — "has this key been used?" and "is
-    the revision still the one I read?" — and a fake that answers both the same
-    way cannot tell a replay from a conflict.
+    `write_rowcount` is the answer to the only statement that decides anything
+    here: "is the revision still the one I read?". There is no ledger to fake —
+    a draft has no idempotency key, and the revision guard is the whole guard.
     """
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, tuple[Any, ...]]] = []
-        self.ledger_rowcount = 1
         self.write_rowcount = 1
         self.rows: list[dict[str, Any]] = []
 
     async def execute(self, sql: str, params: tuple[Any, ...] = ()) -> FakeCursor:
         self.calls.append((sql, tuple(params)))
-        if "draft_keys" in sql:
-            return FakeCursor(self.ledger_rowcount)
         return FakeCursor(self.write_rowcount, rows=self.rows)
 
 
@@ -127,30 +123,31 @@ def _repo() -> tuple[DraftRepository, FakeClient]:
 # ---------------------------------------------------------------------------
 # 1. The write contract
 # ---------------------------------------------------------------------------
-async def test_a_save_carries_a_revision_and_an_idempotency_key() -> None:
-    """The same envelope an artifact write carries, applied to a draft."""
+async def test_a_save_carries_the_guard_and_no_idempotency_key() -> None:
+    """The same envelope an artifact write carries — minus the key it cannot honour.
+
+    A key built from the content and the second makes two saves of the same
+    text inside one second the same save, and for a CREATE it cannot work at
+    all: the caller does not know whether the draft exists, which is what the
+    conflict is for. The revision guard is the de-duplication, and it is
+    already here.
+    """
     fields = DraftSaveRequest.model_fields
-    for required in ("draft", "idempotency_key", "client_id"):
+    for required in ("draft", "client_id"):
         assert fields[required].is_required(), f"DraftSaveRequest.{required} must be required"
     assert "expected_revision" in fields, "a draft save without it cannot be guarded"
-
-
-async def test_a_save_that_repeats_a_consumed_key_is_unchanged() -> None:
-    """A client that retries after a dropped socket does not write twice."""
-    repo, client = _repo()
-    client.conn.ledger_rowcount = 0  # the ledger had the key already
-
-    outcome = await repo.save(
-        DraftSaveRequest(draft=_draft(), idempotency_key="k1", client_id="owner")
+    assert "idempotency_key" not in fields, (
+        "a draft has no idempotency key: the revision guard already de-duplicates a retry"
     )
-
-    assert outcome.outcome == "unchanged"
-    assert outcome.detail is not None
-    assert "already consumed" in outcome.detail
 
 
 async def test_a_save_over_a_stale_revision_is_a_conflict() -> None:
-    """Never a silent overwrite: one device's paragraph must not eat another's."""
+    """Never a silent overwrite: one device's paragraph must not eat another's.
+
+    This is also what a retry after a dropped socket gets: the first save
+    advanced the revision, so the retry arrives stale and is refused — which
+    is the correct answer, and the one the client rereads from.
+    """
     repo, client = _repo()
     client.conn.write_rowcount = 0
 
@@ -159,7 +156,6 @@ async def test_a_save_over_a_stale_revision_is_a_conflict() -> None:
             DraftSaveRequest(
                 draft=_draft(),
                 expected_revision=3,
-                idempotency_key="k2",
                 client_id="owner",
             )
         )
@@ -174,7 +170,7 @@ async def test_a_create_over_a_taken_id_is_a_conflict() -> None:
     client.conn.write_rowcount = 0
 
     with pytest.raises(ConflictError) as raised:
-        await repo.save(DraftSaveRequest(draft=_draft(), idempotency_key="k3", client_id="owner"))
+        await repo.save(DraftSaveRequest(draft=_draft(), client_id="owner"))
 
     assert "already exists" in str(raised.value)
     assert "expected_revision" in (raised.value.detail or "")
@@ -185,11 +181,7 @@ async def test_the_save_guard_is_on_the_revision_and_the_client() -> None:
     repo, client = _repo()
     client.conn.write_rowcount = 1
 
-    await repo.save(
-        DraftSaveRequest(
-            draft=_draft(), expected_revision=1, idempotency_key="k4", client_id="owner"
-        )
-    )
+    await repo.save(DraftSaveRequest(draft=_draft(), expected_revision=1, client_id="owner"))
 
     sql, params = next(
         (sql, params) for sql, params in client.conn.calls if sql.startswith("update ikig.drafts")
@@ -263,7 +255,7 @@ async def test_the_service_stamps_both_dates_on_the_first_save() -> None:
             )
 
     service = DraftService(Capturing())  # type: ignore[arg-type]
-    await service.save(_draft(created_at=NOW, updated_at=NOW), idempotency_key="k5")
+    await service.save(_draft(created_at=NOW, updated_at=NOW))
 
     stamped = saved[0].draft
     assert stamped.created_at > NOW, "the first save stamps the clock"
@@ -288,7 +280,6 @@ async def test_a_second_save_keeps_the_moment_the_draft_started() -> None:
     await service.save(
         _draft(created_at=NOW, updated_at=NOW),
         expected_revision=1,
-        idempotency_key="k6",
     )
 
     assert saved[0].draft.created_at == NOW, "the draft is still the same draft"
@@ -366,8 +357,28 @@ def test_the_draft_table_is_not_the_artifact_table() -> None:
     assert "create table ikig.artifacts" not in sql
 
 
-def test_the_ledger_names_the_draft_and_not_a_uid() -> None:
-    """`ikig.idempotency_keys` carries a `uid`; a draft has none."""
-    sql = _migration()
-    assert "create table ikig.draft_keys" in sql
-    assert re.search(r"draft_keys \([\s\S]*?draft_id\s+text\s+not null", sql)
+def test_the_ledger_was_removed_on_purpose() -> None:
+    """It could not be made correct, so it is gone rather than ignored.
+
+    A key built from the content and the second makes two saves of the same
+    text inside one second the same save — the second becomes a silent no-op.
+    And a CREATE cannot use one at all: the caller does not know whether the
+    draft exists. Leaving the table behind while the code stopped writing to it
+    would be the "field nobody reads" failure this repository keeps guarding
+    against, so a migration drops it.
+    """
+    history = _migration()  # 0006 created it
+    assert "create table ikig.draft_keys" in history
+
+    removal = (MIGRATIONS / "0008_drop_draft_ledger.sql").read_text(encoding="utf-8")
+    assert "drop table if exists ikig.draft_keys" in removal
+    assert "drop index if exists ikig.ix_draft_keys_draft" in removal
+
+
+def test_the_code_does_not_write_a_ledger_that_no_longer_exists() -> None:
+    """A write to a dropped table is a runtime error nobody would see in review."""
+    source = (Path(__file__).resolve().parents[3] / "data" / "drafts.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "draft_keys" not in source

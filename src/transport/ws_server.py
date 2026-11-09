@@ -49,7 +49,6 @@ Environment
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import os
 import secrets
@@ -121,18 +120,6 @@ def _optional_int(value: Any) -> int | None:
     if value is None or value == "":
         return None
     return int(value)
-
-
-def _draft_key(client_id: str, draft_id: str, body: str, at: datetime) -> str:
-    """The de-duplication key of one save.
-
-    It carries the CONTENT and the moment: two saves of the same text are the
-    same intent, so a client that retries after a dropped socket does not turn
-    one save into two. Two saves of different text are two saves, even a
-    second apart.
-    """
-    digest = hashlib.sha256(body.encode("utf-8")).hexdigest()[:16]
-    return f"draft:{client_id}:{draft_id}:{digest}:{at.isoformat(timespec='seconds')}"
 
 
 # The codes the service layer raises. A frame that carries one of them says
@@ -542,7 +529,6 @@ class Router:
         return await self.services.drafts.save(
             draft,
             expected_revision=_optional_int(frame.get("expected_revision")),
-            idempotency_key=_draft_key(client_id, draft.draft_id, draft.body, now),
         )
 
     async def _draft_get(self, client_id: str, frame: dict[str, Any]) -> Any:

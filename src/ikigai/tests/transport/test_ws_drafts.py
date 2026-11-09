@@ -51,10 +51,10 @@ class FakeDrafts:
         self.listed: list[str] = []
         self.read: list[tuple[str, str]] = []
 
-    async def save(self, draft: Draft, *, expected_revision: Any = None, idempotency_key: str) -> Any:
+    async def save(self, draft: Draft, *, expected_revision: Any = None) -> Any:
         if self.error is not None:
             raise self.error
-        self.saved.append((draft, expected_revision, idempotency_key))
+        self.saved.append((draft, expected_revision))
         return DraftOutcome(
             client_id=draft.client_id,
             draft_id=draft.draft_id,
@@ -148,11 +148,10 @@ async def test_a_draft_save_reaches_the_draft_service() -> None:
     assert frame["type"] == "result"
     assert frame["ok"] is True
     assert len(drafts.saved) == 1
-    saved, expected, key = drafts.saved[0]
+    saved, expected = drafts.saved[0]
     assert saved.draft_id == "nota-1"
     assert str(saved.kind) == "nota"
     assert expected is None, "a first save expects no revision"
-    assert key.startswith("draft:")
 
 
 async def test_the_frame_names_the_client_and_the_service_does_not() -> None:

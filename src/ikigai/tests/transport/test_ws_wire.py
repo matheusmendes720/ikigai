@@ -67,7 +67,7 @@ class Artifacts:
 class Drafts:
     """The draft service, in the shape the transport expects."""
 
-    async def save(self, draft: Any, *, expected_revision: Any = None, idempotency_key: str) -> Any:
+    async def save(self, draft: Any, *, expected_revision: Any = None) -> Any:
         from src.contracts.drafts import DraftOutcome
 
         return DraftOutcome(

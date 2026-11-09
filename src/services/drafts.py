@@ -43,7 +43,6 @@ class DraftService:
         draft: Draft,
         *,
         expected_revision: int | None = None,
-        idempotency_key: str,
     ) -> DraftOutcome:
         """Save the draft, stamped and guarded.
 
@@ -63,7 +62,6 @@ class DraftService:
         request = DraftSaveRequest(
             draft=stamped,
             expected_revision=expected_revision,
-            idempotency_key=idempotency_key,
             client_id=draft.client_id,
         )
         return await self._repo.save(request)

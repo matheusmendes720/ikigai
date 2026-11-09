@@ -24,8 +24,11 @@ Two rules, and they are the same two that govern every write here:
 
 - **One writer.** A save goes through the service layer, carries the revision
   it expects, and a stale revision is a conflict — never a silent overwrite.
-- **De-duplicated.** Every save carries an idempotency key, so a client that
-  retries after a dropped socket does not turn one save into two.
+- **Guarded, not de-duplicated.** There is no idempotency key: a retry carries
+  the revision it read, and once the first save has committed that revision is
+  stale, so the retry is a conflict and the client rereads. A content key
+  would make two saves of the same text inside one second the same save, and
+  silently drop the second.
 
 A draft is scoped to a CLIENT, not to the store: two devices composing at once
 are two drafts, and neither can see the other's. That is why the key is
@@ -70,18 +73,27 @@ class Draft(BaseModel):
 
 
 class DraftSaveRequest(BaseModel):
-    """The envelope of a save: the draft, the revision it expects, a key.
+    """The envelope of a save: the draft, and the revision it expects.
 
     It is deliberately the shape of `WriteRequest` — the same guard, the same
-    de-duplication, the same 409 — because a client that knows how to write an
-    artifact should not have to learn a second set of rules to save a draft.
+    409 — because a client that knows how to write an artifact should not have
+    to learn a second set of rules to save a draft.
+
+    It carries NO idempotency key, and that is a correction rather than an
+    omission. A key that identifies "this content at this second" makes two
+    saves of the same text inside one second the same save — so the second one
+    is silently a no-op. For a CREATE it cannot work at all: the caller does
+    not know whether the draft exists, which is exactly what the conflict is
+    for. The revision guard already de-duplicates a retry: a retry carries the
+    revision it read, and once the first save has committed that revision is
+    stale, so the retry is a 409 and the client rereads. That is the honest
+    answer, and it is the one the rest of the store gives.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     draft: Draft
     expected_revision: int | None = None
-    idempotency_key: str
     client_id: str
 
 

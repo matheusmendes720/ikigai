@@ -39,9 +39,9 @@ cliente (Telegram · TUI)
    ▼
 services/drafts.py             ← as regras; o ÚNICO writer de ikig.drafts
    ▼
-data/drafts.py                 ← persistência; revisão optimista + ledger
+data/drafts.py                 ← persistência; a guarda na revisão
    ▼
-ikig.drafts · ikig.draft_keys  ← migração 0006
+ikig.drafts                    ← migração 0006 · o ledger saiu na 0008
 ```
 
 ---
@@ -127,7 +127,7 @@ feed exige uma tabela de eventos, e o trigger de hoje anuncia sem persistir.
 | Peça | Ficheiro | Porque existe |
 |---|---|---|
 | O contrato | `src/contracts/drafts.py` | `Draft` (sem `uid` — não está no DOM), `DraftSaveRequest` (a mesma forma do `WriteRequest`), `DraftOutcome` |
-| O schema | `src/contracts/migrations/0006_drafts.sql` | `ikig.drafts` com chave `(client_id, draft_id)`; `ikig.draft_keys` para o ledger |
+| O schema | `src/contracts/migrations/0006_drafts.sql` · `0008_drop_draft_ledger.sql` | `ikig.drafts` com chave `(client_id, draft_id)`. O ledger de chaves da 0006 foi REMOVIDO na 0008 (§10.2) |
 | A persistência | `src/data/drafts.py` | save/get/list/discard; a guarda na revisão **e** no cliente |
 | As regras | `src/services/drafts.py` | o único writer; carimba o relógio, preserva o `created_at` |
 | A cablagem | `src/services/wiring.py` | `Services.drafts` |
@@ -143,6 +143,8 @@ feed exige uma tabela de eventos, e o trigger de hoje anuncia sem persistir.
   ledger tem uma coluna `uid` que aponta para um artifact; um draft não tem
   uid, e uma chave contra um uid inexistente é uma foreign key a apontar para
   o nada.
+  **Emendado em §10.2: o ledger foi REMOVIDO.** Escolher onde guardar a chave
+  era a pergunta errada — a chave em si não se pode acertar.
 - **`created_at` preservado no segundo save.** Re-carimbar a cada tecla tornava
   "quando é que eu comecei isto?" irrespondível.
 - **O `discard` corre numa transação.** O `client.execute` devolve **linhas**;
@@ -196,7 +198,7 @@ eventos).
 | 3 | Um draft não dispara o feed | nenhum frame `event` depois de um save | pôr o trigger a ler `drafts` e ver o evento chegar |
 | 4 | Uma revisão obsoleta é conflicto | 409 com `detail` "stale" | forçar `expected_revision` errado — o **`discard` foi o bug real aqui** |
 | 5 | Um cliente não lê o draft de outro | `list`/`get` de outro `client_id` devolve vazio/404 | tirar o `client_id` do `WHERE` e ver o teste falhar |
-| 6 | Um save repetido não escreve duas | `outcome=unchanged`, "already consumed" | apagar o ledger e ver a segunda escrita passar |
+| 6 | Um save repetido não escreve duas | a segunda chamada com a revisão antiga dá `conflict` | baixar a guarda e ver a segunda escrita passar |
 | 7 | O serviço não commita | `ast` do módulo não importa `ArtifactService` | importá-lo e ver o teste falhar |
 
 Todos os sete correm sem base de dados, exceto o 1 e o 2 quando exercidos
@@ -214,7 +216,6 @@ desaparece em silêncio.
 | **Retomar o feed** ~~Exige uma tabela de eventos~~ **SUBIU-SE — ver §10.1** | Exigia uma tabela de eventos: o trigger de `0004` anunciava sem persistir, e um `NOTIFY` não é lido por quem não estava ligado. | Feito: migração `0007` com `ikig.artifact_events` (sequência `bigserial`) + frame `resume` + `sequence` no `hello`. |
 
 ### 10.1 Emenda: o degrau do feed subiu-se na mesma série
-
 Escrito acima que retomar o feed ficava fora de âmbito, ele foi feito logo a
 seguir, e a ADR fica corrigida em vez de ficar bonita: um documento que diz
 "fora de escopo" sobre uma coisa que já corre é pior do que um documento
@@ -244,6 +245,37 @@ emendado.
 
 Isto não muda o veredito de §1: o vault continua a não ser escrito de volta
 (ADR-012), e a camada algorítmica continua adiada (ADR-037 D1).
+### 10.2 Emenda: o ledger de drafts saiu, porque não se podia acertar
+
+A §6 decidiu **onde** guardar a chave de idempotência de um draft. Correr o bot
+numa conversa real mostrou que a pergunta estava errada: a chave em si não é
+acertável.
+
+A chave era `draft:<cliente>:<draft_id>:<sha256(body)[:16]>:<segundo>`. Duas
+consequências, ambas medidas:
+
+- **Dois saves do MESMO texto dentro do mesmo segundo são a mesma chave**, e o
+  segundo passa a ser um no-op silencioso que responde `unchanged`. Na
+  conversa isso apareceu como `/rascunho nota` a "abrir" um rascunho sem ter
+  feito nada.
+- **Num CREATE não funciona nem em princípio.** Quem chama não sabe se o
+  rascunho existe — é exactamente para isso que serve o conflito. Uma chave
+  que tem de codificar uma revisão que o chamador não pode conhecer é uma
+  chave que mente.
+
+A guarda na revisão já faz o trabalho, e faz-o bem: um retry leva a revisão que
+leu, e depois do primeiro save ter passado essa revisão está obsoleta, portanto
+o retry é um 409 e o cliente relê. É a regra que o resto do store segue, e os
+drafts não precisam de uma segunda.
+
+**O que mudou:** a migração **0008** remove `ikig.draft_keys` (o `down`
+recria a tabela vazia — desfazer um esquema não é re-decidir um desenho), e o
+`DraftSaveRequest` deixou de ter `idempotency_key`. Deixar a coluna e o campo a
+apontar para o nada seria a falha do "campo que ninguém lê", que este
+repositório já tem na memória.
+
+**A lição:** uma tabela a mais não é o custo desta decisão; o custo é a
+mensagem de sucesso que diz que guardou quando não guardou.
 **Sobre "bi-direccional":** o transporte **já é** bi-direccional (chamadas num
 sentido, eventos no outro). O que o dono pediu pode já estar cumprido no que
 toca ao transporte, e ser só a *escrita de volta para o vault* que está barrada.
@@ -272,7 +304,7 @@ Cada uma falha sozinha, e nenhuma leva as outras:
 | o socket | o cliente fica sem canal | reconecta; os drafts estão no store |
 | o frame | `malformed` / `validation` com o id | corrige e reenvia |
 | a revisão | `conflict` + `detail` | relê e reaplica |
-| o ledger | a chave não é consumida | o retry escreve — e é por isso que a chave leva o conteúdo |
+| a revisão | o retry chega obsoleto | `conflict` com o `detail` a dizer "stale" — relê e reaplica |
 | o store | o socket responde `error`, o `/healthz` fecha | o container fica unhealthy, e é a verdade |
 | a migração | o `api` não arranca (aplica no arranque) | nada serve, e é a ordem correta |
 
