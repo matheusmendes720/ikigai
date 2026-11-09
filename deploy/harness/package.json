@@ -1,0 +1,13 @@
+{
+  "name": "ikigai-harness",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The harness facade: the pi agent behind an HTTP door, with a SQLite memory.",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "1.5.0"
+  }
+}

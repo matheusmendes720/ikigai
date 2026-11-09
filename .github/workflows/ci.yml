@@ -184,6 +184,12 @@ jobs:
           IKIGAI_BOT_TOKEN: ci-placeholder
           IKIGAI_BOT_ALLOWED_CHAT_IDS: ci-placeholder
           IKIGAI_WS_TOKEN: ci-placeholder
+          # The harness (the agent's container) refuses to start without a
+          # provider endpoint and a key. They are named here for the same
+          # reason as the others: the compose must RESOLVE, and the value is
+          # never the point.
+          HARNESS_PROVIDER_BASE_URL: https://ci-placeholder.invalid
+          HARNESS_PROVIDER_API_KEY: ci-placeholder
         run: docker compose -f deploy/compose.yml config --quiet
 
       - name: The image builds
@@ -191,6 +197,19 @@ jobs:
         with:
           context: .
           file: deploy/Dockerfile
+          push: false
+          cache-from: type=gha
+
+      # The harness has its OWN image, because the agent is external
+      # (ADR-037 D7) and does not belong in the canonical service's build. A
+      # harness image that no longer builds is a container that cannot come
+      # up — so it is checked HERE, on every pull request, with the same
+      # rigour as the canonical one.
+      - name: The harness image builds
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/harness/Dockerfile
           push: false
           cache-from: type=gha
 

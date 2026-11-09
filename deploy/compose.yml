@@ -35,7 +35,79 @@ services:
       # and the RLS policies touch is `ikig.`-qualified, and the schema itself
       # is created by 0001_init.sql.
     volumes:
-      - db-data:/var/lib/postgresql/data
+      # WHERE the store lives. The default is a Docker named volume, because
+      # that is what a local checkout wants: portable, disposable, and it
+      # never touches the root disk of a machine that has a real one.
+      #
+      # On the deployment box, `IKIGAI_PGDATA` points at a directory on the
+      # Cloud Volume — the block device that outlives a rebuilt server — so
+      # the DOM survives the server. The variable is the whole mechanism:
+      # a path is a bind mount, a name is a named volume, and the compose file
+      # does not have to know which one it is.
+      - ${IKIGAI_PGDATA:-db-data}:/var/lib/postgresql/data
+    # /dev/shm for the parallel HNSW build. Docker's default is 64MB, and
+    # pgvector fails the build when the shared memory is smaller than
+    # maintenance_work_mem — a failure that reads like a bug in the extension
+    # and is not one.
+    shm_size: "1g"
+    # The store's tuning, for a PGDATA that is not on a local disk.
+    #
+    # These are a CONTRACT, not preferences. The write path carries a
+    # revision and an idempotency key, and a stale revision is a 409 — so an
+    # acknowledged write that is not durable is a DOM that diverges from what
+    # the client believes. `synchronous_commit=off` does not corrupt
+    # anything: it loses the last acknowledged transactions on a crash, which
+    # is the same thing said out loud.
+    command:
+      - postgres
+      # -- memory -------------------------------------------------------
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - effective_cache_size=1GB
+      - -c
+      - work_mem=8MB
+      # The HNSW graph needs room: pgvector spills and the build crawls when
+      # it does not fit. 256MB x 2 workers + the leader stays under the 1GB
+      # of /dev/shm above.
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - max_parallel_maintenance_workers=2
+      - -c
+      - max_parallel_workers=3
+      # -- durability: DO NOT TOUCH -------------------------------------
+      - -c
+      - fsync=on
+      - -c
+      - synchronous_commit=on
+      - -c
+      - full_page_writes=on
+      # -- less fsync in a burst ----------------------------------------
+      # A checkpoint that writes 64MB of WAL at once is a burst of fsyncs on
+      # a device that does 5.000 IOPS. A bigger WAL spreads the same bytes.
+      - -c
+      - wal_compression=on
+      - -c
+      - max_wal_size=1GB
+      - -c
+      - checkpoint_completion_target=0.9
+      - -c
+      - checkpoint_timeout=15min
+      # -- it is an SSD, but it is on the network ------------------------
+      # The default random_page_cost says "spinning disk"; the volume is
+      # SSD-backed, so the planner should not avoid the index.
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - effective_io_concurrency=200
+      # -- vacuum earlier -----------------------------------------------
+      # A storage device that is not local is slow to rewrite, so the
+      # autovacuum thresholds come down.
+      - -c
+      - autovacuum_vacuum_scale_factor=0.05
+      - -c
+      - autovacuum_analyze_scale_factor=0.02
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${IKIGAI_DB_USER:-ikigai} -d ${IKIGAI_DB_NAME:-ikigai}"]
       interval: 5s
@@ -152,7 +224,15 @@ services:
       # container that only sees the baked copy cannot see a change until it
       # is rebuilt — and the retrieval layer would answer from last week's
       # memory while the vault says otherwise.
-      - ./vault:/app/vault:ro
+      #
+      # `../vault`, and NOT `./vault`: a relative path in a compose file is
+      # resolved against the PROJECT DIRECTORY, which is the directory of the
+      # compose file itself — `deploy/`. `./vault` therefore named
+      # `deploy/vault`, which is not in the repository: docker would have
+      # created it EMPTY, and the ingestion would have read nothing while
+      # looking healthy. The vault is tracked at the repository root, one
+      # level up.
+      - ../vault:/app/vault:ro
     restart: unless-stopped
 
   bot:
@@ -196,5 +276,70 @@ services:
       start_period: 20s
     restart: unless-stopped
 
+  harness:
+      # The AGENT (ADR-037 D7: the harness is external). It gets its OWN image
+      # and its OWN runtime, because it is not part of the canonical service:
+      # the api, the websocket, the ingestion and the bot share the contracts,
+      # the store client and the service layer, and the agent shares none of
+      # them — it speaks MCP to the api, exactly like the bot does, and it never
+      # opens the database.
+      #
+      # It is the sixth container of the compose and the first one that is NOT
+      # the Python image: the agent is a Node process. That is the point of
+      # ADR-037 D7 — the model runtime does not leak into the product.
+      build:
+        context: ..
+        dockerfile: deploy/harness/Dockerfile
+      image: ${IKIGAI_HARNESS_IMAGE:-ghcr.io/matheusmendes720/ikigai-harness:latest}
+      environment:
+        # The harness reaches the store through the api's MCP — the same door
+        # the bot uses. It is NOT given a DSN: two writers of one store is the
+        # thing ADR-037 D5 forbids, and a DSN in this container would be a
+        # second writer waiting to happen.
+        IKIGAI_MCP_URL: http://api:8000/mcp
+        # The provider and the model are ENVIRONMENT: the container talks to
+        # whatever endpoint the operator points it at, without a rebuild.
+        HARNESS_PROVIDER_ID: ${HARNESS_PROVIDER_ID:-harness}
+        HARNESS_PROVIDER_BASE_URL: ${HARNESS_PROVIDER_BASE_URL:?set HARNESS_PROVIDER_BASE_URL in .env}
+        HARNESS_PROVIDER_API: ${HARNESS_PROVIDER_API:-anthropic-messages}
+        HARNESS_PROVIDER_API_KEY: ${HARNESS_PROVIDER_API_KEY:?set HARNESS_PROVIDER_API_KEY in .env}
+        HARNESS_MODEL_ID: ${HARNESS_MODEL_ID:-MiniMax-M2.7}
+        HARNESS_MODEL_CONTEXT_WINDOW: ${HARNESS_MODEL_CONTEXT_WINDOW:-204800}
+        HARNESS_MODEL_MAX_TOKENS: ${HARNESS_MODEL_MAX_TOKENS:-131072}
+        HARNESS_MAX_SESSIONS: ${HARNESS_MAX_SESSIONS:-8}
+        HARNESS_SESSION_TTL_MS: ${HARNESS_SESSION_TTL_MS:-900000}
+        HARNESS_TIMEOUT_MS: ${HARNESS_TIMEOUT_MS:-600000}
+      depends_on:
+        api:
+          condition: service_healthy
+      volumes:
+        # The two PROSE inputs, mounted read-only: the image carries the prose
+        # of the commit it was built from, the mount carries the prose of NOW.
+        # The vault is never written by anything (ADR-012).
+        #
+        # `../strategics` and `../vault`, and NOT `./strategics` and `./vault`:
+        # a relative path in a compose file is resolved against the PROJECT
+        # DIRECTORY — the directory of the compose file, which is `deploy/`.
+        # `./vault` named `deploy/vault`, which is not in the repository: docker
+        # creates it empty, and the container reads nothing while looking
+        # healthy. Both trees are tracked at the repository root, one level up.
+        - ../strategics:/app/strategics:ro
+        - ../vault:/app/vault:ro
+        # The agent's own directory: its settings, its sessions and its
+        # credentials. A named volume, so a session survives the container.
+        - harness-state:/root/.pi/agent
+        # The PERSISTENT MEMORY: the SQLite database of what the agent learned.
+        # A volume of its own, so the memory outlives the image.
+        - harness-memory:/app/memory
+      ports:
+        # Bound to loopback: the harness is reached by the api (or the bot),
+        # not from the internet.
+        - "127.0.0.1:8002:8002"
+      restart: unless-stopped
+
 volumes:
   db-data:
+  # The agent's sessions and settings.
+  harness-state:
+  # The agent's persistent memory (SQLite).
+  harness-memory:
