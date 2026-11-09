@@ -397,7 +397,7 @@ deploy.
 
 | o que se mediu | valor |
 |---|---|
-| recusas de `/v1/routine` (502) | **12** (6 `monthly-review` + 6 `quarterly-plan`) |
+| recusas de `/v1/routine` (502) | **12** na primeira janela (6 `monthly-review` + 6 `quarterly-plan`); a segunda janela (40 tentativas, uma por minuto) só somou recusas |
 | o `pi` a trabalhar depois da rotina morrer | **48 min** (21:12:37Z → 22:00:06Z) |
 | o ficheiro de sessão a crescer | 708 linhas · 3,8 MB · a escrever às 22:31:58Z |
 | `busy_sessions` no health | **0**, com a sessão ocupada |
