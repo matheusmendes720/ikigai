@@ -40,6 +40,7 @@ Commands
 ``/busca <texto>``      search the store
 ``/uid <uid>``          read one artifact and its edges
 ``/memoria``            what the agent remembers about this chat
+``/start``              the handshake — what is connected, and what is not
 ``/help``               the catalogue
 
 And the ROUTINES — the cadences the agent runs, named after the published
@@ -87,6 +88,7 @@ import json
 import os
 import re
 import sys
+import time
 import unicodedata
 from datetime import UTC, datetime
 from typing import Any
@@ -122,6 +124,11 @@ ROUTINES: dict[str, str] = {
 #: The door to the agent, and the ceiling of a routine.
 HARNESS_URL_ENV = "IKIGAI_HARNESS_URL"
 HARNESS_TIMEOUT_ENV = "IKIGAI_HARNESS_TIMEOUT_S"
+
+#: The ceiling of ONE probe of the handshake, in seconds. The greeting has to
+#: arrive: an agent that is slow, or down, must produce a line that says so
+#: — not a greeting that never comes.
+HANDSHAKE_TIMEOUT_S = 10.0
 
 #: The kinds the bot may write. It is a projection of the owner's day, not
 #: an editor of the whole pyramid.
@@ -409,6 +416,11 @@ class Bot:
         if command == "/help":
             return _catalogue()
 
+        if command == "/start":
+            # The greeting, on demand: the same handshake the bot sends when
+            # it comes up — what is connected, and what is not.
+            return await self._handshake_text(chat_id)
+
         routine = command[1:] if command.startswith("/") else ""
         if routine in ROUTINES:
             return await self._start_routine(chat_id, routine, argument)
@@ -450,6 +462,61 @@ class Bot:
             return _render_bundle(bundle)
 
         return "Não conheço esse comando. /help"
+
+    async def _handshake(self) -> None:
+        """Greet the owner, and say what is connected.
+
+        A bot that comes up silently is a bot the owner cannot tell from a
+        dead one. So the FIRST thing it says is what it can reach — the
+        store, the agent, the agent's memory — and it says it only to the
+        allowed chats: the allowlist is the boundary, and this message goes
+        through it like every other one.
+
+        It runs BESIDE the poll loop, not in front of it: a greeting that
+        waits for a slow agent must never stop the bot from answering.
+        """
+        for chat_id in self._allowed:
+            try:
+                await self._send(chat_id, await self._handshake_text(chat_id))
+            except Exception as exc:  # a greeting that fails is not a crash
+                print(f"handshake failed: {exc}", file=sys.stderr)
+
+    async def _handshake_text(self, chat_id: str) -> str:
+        """The handshake: the store, the agent, and the agent's memory.
+
+        Each probe is BOUNDED, and each failure is REPORTED rather than
+        hidden: a greeting that says "everything is fine" while the agent is
+        closed would be the one lie this bot must not tell.
+        """
+        lines = ["🔌 Ligado."]
+
+        started = time.monotonic()
+        try:
+            await self._client.call("search_artifacts", {"query": {"limit": 1}})
+            elapsed = int((time.monotonic() - started) * 1000)
+            lines.append(f"• store: ok ({elapsed} ms)")
+        except Exception as exc:
+            lines.append(f"• store: falhou — {exc}")
+
+        harness = self._harness
+        if harness is None:
+            lines.append("• agente: sem porta (IKIGAI_HARNESS_URL)")
+        else:
+            try:
+                routines = await harness.routines(timeout_s=HANDSHAKE_TIMEOUT_S)
+                lines.append(f"• agente: ok — {len(routines)} rotinas")
+            except Exception as exc:
+                lines.append(f"• agente: falhou — {exc}")
+            if chat_id:
+                try:
+                    memory = await harness.memory(f"tg:{chat_id}", timeout_s=HANDSHAKE_TIMEOUT_S)
+                    entries = len(memory.get("entries") or [])
+                    lines.append(f"• memória: {entries} entrada(s) nesta conversa")
+                except Exception as exc:
+                    lines.append(f"• memória: falhou — {exc}")
+
+        lines.append("Comandos: /help")
+        return "\n".join(lines)
 
     async def _start_routine(self, chat_id: str, routine: str, argument: str) -> str:
         """Ask the agent to run a routine, and answer NOW.
@@ -511,8 +578,12 @@ class Bot:
         The poll asks Telegram for commands; the event stream carries the
         changes the store announces. A transport without events simply has
         nothing to listen to, and the second half returns at once.
+
+        The handshake is the third: the greeting that says what is
+        connected. It runs beside the other two, so a slow agent delays the
+        greeting and nothing else.
         """
-        await asyncio.gather(self._poll_loop(), self._event_loop())
+        await asyncio.gather(self._poll_loop(), self._event_loop(), self._handshake())
 
     async def _poll_loop(self) -> None:
         while True:
@@ -586,6 +657,7 @@ def _catalogue() -> str:
     lines.append("/busca <texto> — procura no store")
     lines.append("/uid <uid> — lê um artefato e suas arestas")
     lines.append("/memoria — o que o agente lembra desta conversa")
+    lines.append("/start — o handshake: o que está ligado")
     lines.append("")
     lines.append("Rotinas (o agente corre o ciclo e responde quando acabar):")
     for routine, description in ROUTINES.items():

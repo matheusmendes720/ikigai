@@ -99,20 +99,29 @@ class HarnessClient:
             payload["context"] = context
         return await self._post("/v1/routine", payload)
 
-    async def routines(self) -> list[str]:
-        """The routines the harness published — the projection it reads."""
-        body = await self._get("/v1/routines")
+    async def routines(self, timeout_s: float | None = None) -> list[str]:
+        """The routines the harness published — the projection it reads.
+
+        `timeout_s` bounds THIS call: the handshake that greets the owner
+        must not hang for the length of a routine when the agent is down.
+        """
+        body = await self._get("/v1/routines", timeout_s=timeout_s)
         items = body.get("routines") or []
         return [str(item["id"]) for item in items if isinstance(item, dict) and item.get("id")]
 
-    async def memory(self, session: str, limit: int = 20) -> dict[str, Any]:
+    async def memory(
+        self,
+        session: str,
+        limit: int = 20,
+        timeout_s: float | None = None,
+    ) -> dict[str, Any]:
         """What the agent remembers about a session.
 
         The session key is sanitised on both ends, so the caller sends the
         same raw key it sent when it ran the routine.
         """
         path = f"/v1/memory?session={quote(session)}&limit={limit}"
-        return await self._get(path)
+        return await self._get(path, timeout_s=timeout_s)
 
     async def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         try:
@@ -121,9 +130,12 @@ class HarnessClient:
             raise HarnessError(f"the harness did not answer: {exc}") from exc
         return self._body(response, path)
 
-    async def _get(self, path: str) -> dict[str, Any]:
+    async def _get(self, path: str, timeout_s: float | None = None) -> dict[str, Any]:
         try:
-            response = await self._http.get(f"{self._base}{path}")
+            response = await self._http.get(
+                f"{self._base}{path}",
+                timeout=httpx.Timeout(timeout_s) if timeout_s is not None else None,
+            )
         except httpx.HTTPError as exc:
             raise HarnessError(f"the harness did not answer: {exc}") from exc
         return self._body(response, path)

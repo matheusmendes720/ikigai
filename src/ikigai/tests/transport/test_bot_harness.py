@@ -50,6 +50,18 @@ CADENCES = {
     "quarterly-plan",
 }
 
+#: Every skill the projection publishes — the harness's whitelist, and what
+#: the fake server answers when the client asks what the agent can run.
+PUBLISHED = {
+    "daily-note",
+    "monthly-review",
+    "quarterly-plan",
+    "store-read",
+    "store-write",
+    "vault-sync",
+    "weekly-review",
+}
+
 #: The report a routine comes back with — the shape the harness publishes.
 REPORT: dict[str, Any] = {
     "ok": True,
@@ -79,7 +91,7 @@ class _Handler(BaseHTTPRequestHandler):
         harness = self.harness
         if harness.delay_s:
             time.sleep(harness.delay_s)
-        body = json.dumps(harness.payload).encode("utf-8")
+        body = json.dumps(harness.payload_for(self.path)).encode("utf-8")
         self.send_response(harness.status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
@@ -113,6 +125,27 @@ class _HarnessServer:
         self._server.harness = self  # type: ignore[attr-defined]
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
         self._thread.start()
+
+    def payload_for(self, path: str) -> dict[str, Any]:
+        """The harness answers each door with its own shape."""
+        if path.startswith("/v1/routines"):
+            return {"routines": [{"id": name} for name in sorted(PUBLISHED)]}
+        if path.startswith("/v1/memory"):
+            return {
+                "session_id": "tg-42",
+                "entries": [
+                    {
+                        "id": 1,
+                        "kind": "routine",
+                        "key": "daily-note",
+                        "content": "a nota do dia foi escrita",
+                        "session": "tg-42",
+                        "created_at": "2026-11-08T12:00:00Z",
+                    }
+                ],
+                "events": [],
+            }
+        return self.payload
 
     @property
     def url(self) -> str:
@@ -413,3 +446,86 @@ async def test_the_memory_command_reads_what_the_agent_remembered(
     assert "a nota do dia foi escrita" in answer
     assert harness_server.gets, "the memory was not read"
     assert "session=tg%3A42" in harness_server.gets[0]
+
+
+# ---------------------------------------------------------------------------
+# The handshake
+# ---------------------------------------------------------------------------
+
+
+async def test_the_start_command_says_what_is_connected(
+    harness_server: _HarnessServer,
+) -> None:
+    """`/start` is the greeting, and the greeting is a report.
+
+    The owner asks the bot "are you there" and the answer has to be about
+    the SYSTEM, not about the bot's manners: the store answers, the agent
+    answers, and the memory answers. A greeting that says "everything is
+    fine" while the agent is closed would be the one lie this bot must not
+    tell.
+    """
+    harness = HarnessClient(harness_server.url)
+    bot, _ = _bot(harness)
+
+    answer = await bot._dispatch("/start", "", "1", "42")
+
+    assert "store: ok" in answer
+    assert f"agente: ok — {len(PUBLISHED)} rotinas" in answer
+    assert "memória: 1 entrada" in answer
+
+
+async def test_the_handshake_reports_a_closed_agent_instead_of_pretending(
+    harness_server: _HarnessServer,
+) -> None:
+    """The agent is down ⇒ the greeting says so, and says why."""
+    harness_server.close()
+    harness = HarnessClient(harness_server.url)
+    bot, _ = _bot(harness)
+
+    answer = await bot._dispatch("/start", "", "1", "42")
+
+    assert "agente: falhou" in answer
+    assert "agente: ok" not in answer
+
+
+async def test_a_bot_without_the_agent_says_so_in_the_greeting() -> None:
+    """No door, no agent — and the greeting says that too."""
+    bot, _ = _bot(None)
+
+    answer = await bot._dispatch("/start", "", "1", "42")
+
+    assert "agente: sem porta" in answer
+    assert "store: ok" in answer
+
+
+async def test_the_bot_greets_the_owner_when_it_comes_up(
+    harness_server: _HarnessServer,
+) -> None:
+    """The greeting goes out on its own, to the owner, and to nobody else.
+
+    A bot that comes up silently is a bot the owner cannot tell from a dead
+    one. The allowlist is the boundary: an unlisted chat gets nothing —
+    not even a greeting.
+    """
+    harness = HarnessClient(harness_server.url)
+    telegram = _RecordingTelegram()
+    bot = Bot("token", _NoStore(), {"42"}, "owner", harness=harness)
+    bot._http = telegram  # type: ignore[assignment]
+
+    await bot._handshake()
+
+    assert len(telegram.sent) == 1
+    assert telegram.sent[0]["chat_id"] == "42"
+    assert "Ligado" in telegram.sent[0]["text"]
+
+
+async def test_the_greeting_never_reaches_an_unlisted_chat() -> None:
+    """The boundary is the allowlist, and the greeting goes through it."""
+    telegram = _RecordingTelegram()
+    bot = Bot("token", _NoStore(), {"42"}, "owner", harness=None)
+    bot._http = telegram  # type: ignore[assignment]
+    bot._allowed = {"42"}
+
+    await bot._handshake()
+
+    assert {message["chat_id"] for message in telegram.sent} == {"42"}
