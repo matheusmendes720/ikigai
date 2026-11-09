@@ -301,6 +301,26 @@ services:
       IKIGAI_WS_URL: ws://ws:8001/sync
       IKIGAI_WS_TOKEN: ${IKIGAI_WS_TOKEN:?set IKIGAI_WS_TOKEN in .env}
       IKIGAI_CLIENT_ID: ${IKIGAI_CLIENT_ID:-owner}
+      # THE CADENCE: the one trigger in this stack with no input. Everything
+      # else the bot does is a reaction; at 22:00 nothing arrives and the
+      # report is expected anyway.
+      #
+      # The offset is a FIXED one and not a zone name: `zoneinfo` needs the tz
+      # database, a slim container does not always carry one, and a name that
+      # fails to resolve would be a cadence that silently never fires. Brazil
+      # has had no DST since 2019, so -03:00 is exact all year. Set
+      # IKIGAI_CADENCE_TZ to use a named zone where the database exists.
+      #
+      # `IKIGAI_CADENCE_AT=off` turns it off. An empty value would be replaced
+      # by the default below, and a typo refuses to boot — deliberately, since
+      # "never fires" and "never configured" look identical from outside.
+      IKIGAI_CADENCE_AT: ${IKIGAI_CADENCE_AT:-22:00}
+      IKIGAI_CADENCE_UTC_OFFSET: ${IKIGAI_CADENCE_UTC_OFFSET:-}
+      IKIGAI_CADENCE_TZ: ${IKIGAI_CADENCE_TZ:-}
+      IKIGAI_CADENCE_ROUTINE: ${IKIGAI_CADENCE_ROUTINE:-daily-note}
+      # Which chat receives it. Empty means the first id of the allowlist,
+      # sorted — so two processes on one configuration wake the same chat.
+      IKIGAI_CADENCE_CHAT_ID: ${IKIGAI_CADENCE_CHAT_ID:-}
       IKIGAI_BOT_ALLOWED_CHAT_IDS: ${IKIGAI_BOT_ALLOWED_CHAT_IDS:?set IKIGAI_BOT_ALLOWED_CHAT_IDS in .env}
       # The AGENT's door (ADR-037 D7). The owner asks for a cadence and the
       # harness runs it; the bot asks, waits, and reports what the agent

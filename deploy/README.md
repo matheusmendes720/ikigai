@@ -80,6 +80,11 @@ MCP. It is never given a DSN.
 | `IKIGAI_HARNESS_URL` | no (default `http://harness:8002`) | the agent's door, as the bot sees it. Unset ⇒ the bot still writes and reads, and refuses the routines with a reason |
 | `IKIGAI_HARNESS_TIMEOUT_S` | no (default `600`) | the ceiling of a routine, in seconds. The harness bounds the run with the same number |
 | `IKIGAI_CLIENT_ID` | no (default `owner`) | the identity written on every write. It is written into the ROW; it is **not** the claim the RLS policies filter on — see below |
+| `IKIGAI_CADENCE_AT` | no (default `22:00`) | the time the daily report fires, `HH:MM`. `off` turns the cadence off; a malformed value refuses to boot, because "never fires" and "never configured" look identical from outside |
+| `IKIGAI_CADENCE_UTC_OFFSET` | no (default `-03:00`) | the clock the cadence reads. A **fixed offset**, not a zone name: `zoneinfo` needs a tz database a slim container may not carry, and Brazil has had no DST since 2019 |
+| `IKIGAI_CADENCE_TZ` | no | a named zone (`America/Sao_Paulo`), used **when this machine can resolve it**; it wins over the offset and falls back to it otherwise |
+| `IKIGAI_CADENCE_ROUTINE` | no (default `daily-note`) | which routine the cadence runs. It must be a skill in the published projection, or the harness refuses it |
+| `IKIGAI_CADENCE_CHAT_ID` | no | who receives it. Empty means the **first** id of the allowlist, sorted — so two processes on one configuration wake the same chat |
 | `IKIGAI_PGDATA` | no (default `db-data`) | where the store's PGDATA lives. A **path** is a bind mount, a **name** is a Docker named volume |
 | `IKIGAI_VAULT_ZONES_PATH` | no (default `zonas`) | where the knowledge zones live. A **path** is a bind mount, a **name** is a Docker named volume |
 

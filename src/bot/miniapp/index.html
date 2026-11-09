@@ -603,9 +603,11 @@
         stopPolling();
       } else {
         state.status = "offline";
-        state.message = state.session
-          ? "Sem ligação — a mostrar a última resposta recebida."
-          : "Sem ligação — a tentar novamente em instantes.";
+        state.message = error && error.code === "server"
+          ? "O servidor respondeu com um erro" + (error.message ? " (" + error.message + ")" : "") + "."
+          : (state.session
+              ? "Sem ligação — a mostrar a última resposta recebida."
+              : "Sem ligação — a tentar novamente em instantes.");
         state.pollDelay = Math.min(state.pollDelay * 2, POLL_MAX_MS);
       }
     }).then(function () {
@@ -677,7 +679,9 @@
         stopPolling();
       } else {
         state.status = "offline";
-        state.message = "Sem ligação — a resposta não foi enviada.";
+        state.message = error && error.code === "server"
+          ? "O servidor recusou a resposta" + (error.message ? " (" + error.message + ")" : "") + "."
+          : "Sem ligação — a resposta não foi enviada.";
         state.pollDelay = Math.min(state.pollDelay * 2, POLL_MAX_MS);
       }
     }).then(function () {
