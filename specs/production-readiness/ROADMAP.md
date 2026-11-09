@@ -331,6 +331,25 @@ Enquanto as perguntas não tiverem resposta dentro do prazo, `desc`, `okr` e
 `fase` ficam em **0** — e o G3 não fecha. Isto não é um defeito do produto:
 é o HITL a pedir uma decisão que só o dono pode tomar.
 
+**E há uma condição do ambiente que a medição não controla.** O box é
+redeployado por outra sessão, e cada recriação de contentor **mata a rotina a
+meio**: o agente vive dentro do contentor. Medido em 2026-11-09:
+
+| rotina | de → até | o que a matou |
+|---|---|---|
+| `monthly-review` | 20:21:55Z → 20:26:57Z | o socket do **cliente** (o `fetch` do probe morre aos 300 s) — o agente continuou a trabalhar até o reaper o matar, às 20:41:59Z |
+| `monthly-review` | 20:59:27Z → 21:12:37Z | a **recriação do contentor** por um deploy alheio (o box passou ao `c904d870`) |
+| `quarterly-plan` | 21:12:37Z → … | — |
+
+O que **sobrevive** ao deploy é o store (o `memory.sqlite` é um volume) e o
+ficheiro de sessão do `pi` (o `harness-state` é um volume). O que não
+sobrevive é o **turno**: o processo do agente vive no contentor.
+
+**A lição para a próxima medição:** um gate que depende de um agente que
+pergunta ao dono **precisa de uma janela sem deploys** — e de alguém que
+responda. Sem as duas coisas, o gate mede a disponibilidade do box, não o
+produto.
+
 ---
 
 ## 6. O que fica registado e não executado
