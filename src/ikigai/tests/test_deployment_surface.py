@@ -139,6 +139,48 @@ def test_the_compose_gives_the_bot_the_agent_door() -> None:
     assert "harness" in (bot.get("depends_on") or {}), "the bot starts before the agent it talks to"
 
 
+def test_the_provider_key_is_a_file_and_not_an_environment_variable() -> None:
+    """The agent's key must not travel in the environment.
+
+    An `environment:` entry is not a secret store. The engine keeps it in the
+    container's `Config.Env` — so `docker inspect` prints the key — and in
+    `/proc/1/environ` inside the container, where every process the agent
+    spawns inherits it. Measured on the box before this guard existed: the
+    125-character key was one `docker inspect` away from anyone allowed to run
+    `docker` there.
+
+    A file secret is mounted at `/run/secrets/<name>` and exists only inside
+    the container that declares it, so the two assertions are one contract:
+    the variable is gone AND the file is there. Keeping only the first would
+    pass for a compose that forgot to mount the key at all, and the agent
+    would fail at the first request with a message about authentication.
+    """
+    services = _compose_services()
+    environment = services["harness"].get("environment") or {}
+
+    assert "HARNESS_PROVIDER_API_KEY" not in environment, (
+        "the provider's key is in the container's environment: `docker inspect` "
+        "prints Config.Env, and every child process inherits it"
+    )
+
+    mounted = services["harness"].get("secrets") or []
+    names = {
+        entry if isinstance(entry, str) else str((entry or {}).get("source")) for entry in mounted
+    }
+    assert "harness_provider_key" in names, (
+        f"the harness mounts no provider-key secret: {sorted(names)}"
+    )
+
+    import yaml
+
+    document = yaml.safe_load(_compose())
+    declaration = (document.get("secrets") or {}).get("harness_provider_key") or {}
+    assert str(declaration.get("file") or "").endswith("harness_provider_key"), (
+        "the secret is not backed by a file: the key would come from somewhere "
+        f"the operator cannot protect: {declaration!r}"
+    )
+
+
 def test_the_agent_does_not_hold_a_dsn() -> None:
     """The agent is a client of the api, like every other client.
 

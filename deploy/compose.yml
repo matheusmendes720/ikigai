@@ -342,10 +342,18 @@ services:
         IKIGAI_MCP_URL: http://api:8000/mcp
         # The provider and the model are ENVIRONMENT: the container talks to
         # whatever endpoint the operator points it at, without a rebuild.
+        #
+        # The KEY is NOT here, and it is not an oversight. An `environment:`
+        # entry is not a secret store: `docker inspect` prints it, the
+        # container's `/proc/1/environ` holds it, and every child process
+        # inherits it. Measured on the box before this change: `docker inspect`
+        # returned the 125-character key in `Config.Env`, and
+        # `tr '\0' '\n' < /proc/1/environ` found it inside the container.
+        # It arrives as a FILE instead — see the `secrets:` block at the bottom
+        # of this file and the `!cat` in the harness's entrypoint.
         HARNESS_PROVIDER_ID: ${HARNESS_PROVIDER_ID:-harness}
         HARNESS_PROVIDER_BASE_URL: ${HARNESS_PROVIDER_BASE_URL:?set HARNESS_PROVIDER_BASE_URL in .env}
         HARNESS_PROVIDER_API: ${HARNESS_PROVIDER_API:-anthropic-messages}
-        HARNESS_PROVIDER_API_KEY: ${HARNESS_PROVIDER_API_KEY:?set HARNESS_PROVIDER_API_KEY in .env}
         HARNESS_MODEL_ID: ${HARNESS_MODEL_ID:-MiniMax-M2.7}
         HARNESS_MODEL_CONTEXT_WINDOW: ${HARNESS_MODEL_CONTEXT_WINDOW:-204800}
         HARNESS_MODEL_MAX_TOKENS: ${HARNESS_MODEL_MAX_TOKENS:-131072}
@@ -374,11 +382,44 @@ services:
         # The PERSISTENT MEMORY: the SQLite database of what the agent learned.
         # A volume of its own, so the memory outlives the image.
         - harness-memory:/app/memory
+      secrets:
+        # The provider's key, mounted at /run/secrets/harness_provider_key.
+        # The engine writes it there and nothing else sees it: it is not in the
+        # environment, so `docker inspect` cannot print it and no child process
+        # inherits it. The entrypoint gives pi the PATH — `"apiKey": "!cat
+        # /run/secrets/harness_provider_key"` — and pi resolves the value when
+        # it is first needed.
+        - harness_provider_key
       ports:
         # Bound to loopback: the harness is reached by the api (or the bot),
         # not from the internet.
         - "127.0.0.1:8002:8002"
       restart: unless-stopped
+
+secrets:
+  # The provider's API key, as a FILE.
+  #
+  # WHY A FILE AND NOT A VARIABLE: the compose used to pass
+  # `HARNESS_PROVIDER_API_KEY` as an environment entry, and an environment
+  # entry is not a secret store. `docker inspect` prints it in `Config.Env`;
+  # `/proc/1/environ` inside the container holds it; every process the agent
+  # spawns inherits it. Measured on the box before this change — the key was
+  # one `docker inspect` away from anyone who could run `docker` there.
+  #
+  # A file secret is written by the engine at `/run/secrets/<name>` and exists
+  # only inside the container that declares it. The engine does not encrypt it
+  # at rest, so the filesystem protects it: `deploy/secrets/` is gitignored and
+  # the file is mode 600, owned by the deploy user.
+  #
+  # Regenerate it (never commit it):
+  #   install -m 600 /dev/null deploy/secrets/harness_provider_key
+  #   printf '%s' '<the key>' > deploy/secrets/harness_provider_key
+  #
+  # NO TRAILING NEWLINE, on purpose: `!cat` passes the bytes through, and a
+  # newline inside an Authorization header breaks the request. `printf '%s'`,
+  # never `echo`.
+  harness_provider_key:
+    file: ./secrets/harness_provider_key
 
 volumes:
   db-data:
