@@ -46,6 +46,9 @@ httpx = "^0.27"
 # there (`pythonpath = ["src", "../.."]`) and a container sets it explicitly.
 # The distribution does not ship the data layer as a top-level package,
 # because the import identity would then be `contracts`, not `src.contracts`.
+starlette = ">=1.0"
+uvicorn = ">=0.34"
+websockets = ">=15.0"
 
 [tool.poetry.scripts]
 # The console scripts of the legacy harness (ikigai-maintainer-mcp,

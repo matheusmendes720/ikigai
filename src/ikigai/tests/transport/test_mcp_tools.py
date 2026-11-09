@@ -76,6 +76,7 @@ async def test_a_conflict_reaches_the_caller_with_its_code(transport: Any) -> No
             artifacts=FailingArtifacts(),  # type: ignore[arg-type]
             relations=FailingRelations(),  # type: ignore[arg-type]
             embeddings=FailingEmbeddings(),  # type: ignore[arg-type]
+            changes=object(),  # type: ignore[arg-type]
         )
     )
     try:
@@ -110,6 +111,7 @@ async def test_a_missing_artifact_reaches_the_caller_with_its_code(transport: An
             artifacts=FailingArtifacts(),  # type: ignore[arg-type]
             relations=object(),  # type: ignore[arg-type]
             embeddings=object(),  # type: ignore[arg-type]
+            changes=object(),  # type: ignore[arg-type]
         )
     )
     try:
@@ -182,6 +184,7 @@ async def test_the_edges_reach_the_service(transport: Any) -> None:
             artifacts=CapturingArtifacts(),  # type: ignore[arg-type]
             relations=object(),  # type: ignore[arg-type]
             embeddings=object(),  # type: ignore[arg-type]
+            changes=object(),  # type: ignore[arg-type]
         )
     )
     try:
@@ -236,6 +239,7 @@ async def test_the_tool_keeps_the_typed_kind(transport: Any) -> None:
             artifacts=CapturingArtifacts(),  # type: ignore[arg-type]
             relations=object(),  # type: ignore[arg-type]
             embeddings=object(),  # type: ignore[arg-type]
+            changes=object(),  # type: ignore[arg-type]
         )
     )
     try:

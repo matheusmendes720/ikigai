@@ -24,7 +24,7 @@ outside the product.
 | Piece | What it is | Where it lives |
 |---|---|---|
 | **The store** | One Postgres + pgvector. The DOM lives in the `ikig` schema. The only state. | `src/contracts/migrations/` · `src/data/` |
-| **The transport** | **Our own MCP**, six tools, over HTTP. The only writer. | `src/transport/mcp_server.py` (ADR-011) |
+| **The transport** | **Our own MCP**, six tools, over HTTP — and, beside it, the websocket that carries the changes the store announces. The only writer. | `src/transport/mcp_server.py` (ADR-011) · `src/transport/ws_server.py` (ADR-039) |
 | **The client** | Telegram. A projection of the DOM, never a fork of it. | `src/bot/main.py` |
 | **The agent** | **The `pi` harness — external.** It reads the project's MCP servers from `.pi/mcp.json` and its skills from `.pi/skills/`. Nothing in this repository imports it. | `specs/harness/` · `.pi/` |
 
@@ -56,7 +56,10 @@ that imports one is a drift, not a feature.
 - Start the service: `cd deploy && docker compose up -d --build`
 - Apply the migrations: `cd deploy && docker compose exec api python -m src.contracts.migrations.apply up`
 - Healthcheck: `cd deploy && docker compose exec api python -m src.transport.healthcheck`
-- `deploy/compose.yml` runs three roles off one image: `db`, `api`, `bot`
+- `deploy/compose.yml` runs five roles off one image: `db`, `api`, `ws`, `sync`, `bot`
+- Ingest the vault into the store: `cd deploy && docker compose exec sync python -m src.services.sync`
+- Feed the vector index for rows written before it was fed:
+  `cd deploy && docker compose exec api python -m src.services.embeddings backfill`
 - Wire the harness to a running api: `mkdir -p .pi/skills && cp -r specs/harness/skills/* .pi/skills/`
 - Prove the wiring answers: `pi mcp list` — the api is connected, with its six tools
 
@@ -93,8 +96,8 @@ that imports one is a drift, not a feature.
 - `src/contracts/` — the DOM (Pydantic v2, frozen) + the versioned SQL and its runner
 - `src/data/` — the store client: pooled Postgres, retries, transactions
 - `src/services/` — the domain rules; the ONLY writer of the store
-- `src/transport/` — our MCP transport (FastMCP) over the services + the healthcheck
-- `src/bot/` — the Telegram client; a projection of the DOM
+- `src/transport/` — our MCP transport (FastMCP) over the services, the websocket sync channel, and the healthcheck
+- `src/bot/` — the Telegram client; a projection of the DOM, over MCP or over the websocket
 - `src/ikigai/` — the Poetry package: the strategics loader + the canonical suite
 - `vault/` — the markdown prose: INPUT to the store, append-only
 - `strategics/` — the PT-BR strategic prose (published; the fork beside it is not)
@@ -104,7 +107,7 @@ that imports one is a drift, not a feature.
 - `specs/production-readiness/` — the product state, the plan to close the gap, and the
   roadmap: `PRODUCT.md` · `TECH.md` · `ROADMAP.md`
 - `deploy/` — the container: Dockerfile, compose.yml, the env contract
-- `code-docs/adr/` — the five decisions the contracts rest on (011, 013, 014, 033, 037)
+- `code-docs/adr/` — the decisions the contracts rest on (011, 013, 014, 033, 037, 039)
 - `docs/` — the index, and the data-layer spec series under `docs/superpowers/specs/`
 - `data/` — runtime state (gitignored); one tracked marker under `data/investigation_queue/`
 - `.claude/skills/` — the published projection of the four cadence skills
@@ -141,9 +144,12 @@ that imports one is a drift, not a feature.
 | The store client | `src/data/client.py`, `repository.py` | **source**, not runtime state |
 | The domain rules | `src/services/` | validation, versioning, idempotency, the conflict contract |
 | The MCP tool surface | `src/transport/mcp_server.py` | exactly six tools; transport via `IKIGAI_MCP_TRANSPORT` (ADR-011) |
-| The Telegram client | `src/bot/main.py` | speaks MCP; never opens a database; fails closed |
+| The websocket sync channel | `src/transport/ws_server.py` | the SAME six tools, plus the store's changes (ADR-039) |
+| The vault ingestion | `src/services/sync.py` | `python -m src.services.sync` — the prose into the store and the index |
+| The change feed | `src/services/changes.py` | the store's own announcements, as domain events |
+| The Telegram client | `src/bot/main.py` | speaks MCP or the websocket; never opens a database; fails closed |
 | The healthcheck | `src/transport/healthcheck.py` | measures the DATA PLANE, not the surface (C-2) |
-| The container | `deploy/Dockerfile`, `compose.yml` | one image, three roles |
+| The container | `deploy/Dockerfile`, `compose.yml` | one image, five roles |
 | The harness contract | `specs/harness/router.md` | how an agent finds its prompt, its skill, its cadence |
 | The skill projection | `specs/harness/skills/<id>/SKILL.md` | the source; `pi` loads the copy in `.pi/skills/` |
 | The drift net | `src/ikigai/tests/` | the published surface, the layering, the versioning |
@@ -160,6 +166,7 @@ that imports one is a drift, not a feature.
 | `VaultSync` | `src/services/sync.py` | reads the vault prose, upserts it, writes nothing back |
 | `build_services` | `src/services/wiring.py` | the composition root — the service layer, not the transport |
 | `mcp` | `src/transport/mcp_server.py` | the FastMCP server the harness connects to |
+| `Router` | `src/transport/ws_server.py` | the websocket: the same tools, plus the events the store pushes |
 | `Bot` | `src/bot/main.py` | the Telegram loop, owner-only |
 
 ## Anti-patterns (this project)
@@ -199,9 +206,14 @@ that imports one is a drift, not a feature.
 
 - Branch from `main`; never push to `main` directly
 - Conventional commits: `feat:` / `fix:` / `docs:` / `refactor:` / `chore:` / `test:`
-- PR template: `.github/PULL_REQUEST_TEMPLATE.md`; CI green (the five-package matrix)
-  before merge
-- Open the PR with `gh pr create` once CI is green
+- PR template: `.github/PULL_REQUEST_TEMPLATE.md`; CI green (the five-package matrix
+  and the container job) before merge
+- Open the PR with `gh pr create` once CI is green — **with `--repo
+  matheusmendes720/ikigai`**. The owner's checkout carries a leftover `upstream`
+  remote from the retired runtime (the taskdog bridge), and `gh` resolves the
+  repository from it: the command then fails with "No commits between main and
+  <branch>", which reads like a broken push and is not one. Either name the
+  repository or remove the remote (`git remote remove upstream`).
 
 ## Security
 

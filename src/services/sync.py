@@ -26,8 +26,12 @@ file between the two trees.
 
 from __future__ import annotations
 
+import argparse
+import asyncio
 import hashlib
+import os
 import re
+import sys
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -37,8 +41,9 @@ from src.contracts.common import UEID
 from src.contracts.dom import ArtifactKind, Relation, RelationType, WriteRequest, make_uid
 from src.contracts.dom_kinds import KIND_MODELS
 from src.data.repository import ArtifactRepository
+from src.services.embeddings import EmbeddingService
 
-__all__ = ["SyncReport", "VaultSource", "VaultSync", "default_sources"]
+__all__ = ["SyncReport", "VaultSource", "VaultSync", "default_sources", "main"]
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 _HEADING_RE = re.compile(r"^#\s+(.+)$", re.MULTILINE)
@@ -68,6 +73,16 @@ _PERSONA_KINDS: dict[str, ArtifactKind] = {
 
 _ARCHIVE_DIR = "99-archive"
 _LAYOUTS = ("closing", "persona")
+
+#: Where the ingestion reads its trees from, when the container says so.
+#:
+#: Each entry is ``<path>=<layout>``, comma-separated. The separator is ``=``
+#: and not ``:`` because a Windows path carries colons of its own, and a
+#: separator that breaks on half the machines is a separator nobody trusts.
+VAULT_ROOTS_ENV = "IKIGAI_VAULT_ROOTS"
+
+#: How long the loop waits between two ingestion runs, in seconds.
+SYNC_INTERVAL_ENV = "IKIGAI_VAULT_SYNC_INTERVAL"
 
 
 @dataclass(frozen=True)
@@ -100,7 +115,29 @@ def default_sources() -> list[VaultSource]:
     Both are included: the closing tree is where prose is written today, and
     the persona tree is where the real content already is. Which one wins for
     a given file is decided by the file, not by the order.
+
+    ``IKIGAI_VAULT_ROOTS`` overrides it, and a container needs that: the vault
+    is a VOLUME there, mounted at a path of the deployment's choosing, not at
+    the path the repository happens to use. Each entry is ``<path>=<layout>``.
     """
+    override = (os.environ.get(VAULT_ROOTS_ENV) or "").strip()
+    if override:
+        sources: list[VaultSource] = []
+        for entry in override.split(","):
+            entry = entry.strip()
+            if not entry:
+                continue
+            path, _, layout = entry.rpartition("=")
+            if not path or layout not in _LAYOUTS:
+                raise ValueError(
+                    f"{VAULT_ROOTS_ENV} entry {entry!r} is not '<path>=<layout>', "
+                    f"and the layout is one of {list(_LAYOUTS)}"
+                )
+            sources.append(VaultSource(Path(path), layout))
+        if not sources:
+            raise ValueError(f"{VAULT_ROOTS_ENV} is set but names no tree")
+        return sources
+
     repo_root = Path(__file__).resolve().parents[2]
     return [
         VaultSource(repo_root / "vault" / "ikigai" / "closing-2026", "closing"),
@@ -212,10 +249,12 @@ class VaultSync:
         *,
         sources: list[VaultSource] | None = None,
         client_id: str = "vault-sync",
+        embeddings: EmbeddingService | None = None,
     ) -> None:
         self._repo = repo
         self._sources = list(sources) if sources is not None else default_sources()
         self._client_id = client_id
+        self._embeddings = embeddings
 
     async def ingest(self) -> SyncReport:
         report = SyncReport()
@@ -314,7 +353,13 @@ class VaultSync:
         )
 
         try:
-            outcome = await self._repo.upsert(request)
+            # The vector rides with the row, the same way it does for a client
+            # write: prose that lands in the store and never in the vector
+            # index is prose the retrieval layer cannot find.
+            embedding = None
+            if self._embeddings is not None:
+                embedding = await self._embeddings.embed_artifact(artifact)
+            outcome = await self._repo.upsert(request, embedding=embedding)
         except Exception as exc:  # one bad file must not stop the run
             report.skipped.append(f"{relative}: {exc}")
             return
@@ -388,3 +433,70 @@ class VaultSync:
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+def _report_line(report: SyncReport) -> str:
+    return (
+        f"scanned={report.scanned} created={report.created} updated={report.updated} "
+        f"unchanged={report.unchanged} relations={report.relations} "
+        f"skipped={len(report.skipped)}"
+    )
+
+
+async def _run(interval: int) -> int:
+    """Ingest, then wait, then ingest again — forever, or once."""
+    from src.data.client import DataClient
+    from src.data.repository import ArtifactRepository
+
+    client = DataClient()
+    repo = ArtifactRepository(client)
+    sync = VaultSync(repo, embeddings=EmbeddingService(client))
+
+    while True:
+        try:
+            report = await sync.ingest()
+            print(_report_line(report), flush=True)
+            for skipped in report.skipped:
+                print(f"skipped: {skipped}", file=sys.stderr, flush=True)
+        except Exception as exc:  # a failed round is not a dead loop
+            print(f"ingestion failed: {exc}", file=sys.stderr, flush=True)
+        if interval <= 0:
+            return 0
+        await asyncio.sleep(interval)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the ingestion.
+
+    The skill says "run the ingestion" and used to name nothing to run: the
+    service existed and the routine had no command. This is that command.
+
+        python -m src.services.sync                  # one round, then stop
+        python -m src.services.sync --interval 60    # every minute, forever
+
+    The interval also comes from ``IKIGAI_VAULT_SYNC_INTERVAL``, which is how
+    the container asks for the loop without changing the command.
+    """
+    parser = argparse.ArgumentParser(prog="python -m src.services.sync")
+    parser.add_argument(
+        "--interval",
+        type=int,
+        default=None,
+        help="seconds between two runs; 0 (the default) runs once and stops",
+    )
+    args = parser.parse_args(argv)
+
+    raw_interval = args.interval
+    if raw_interval is None:
+        raw_interval = int((os.environ.get(SYNC_INTERVAL_ENV) or "0").strip() or 0)
+
+    # Before the loop exists: the store's driver refuses Windows' default
+    # event loop, and the policy has to be chosen before the loop is created.
+    from src.services.wiring import prepare_runtime
+
+    prepare_runtime()
+    return asyncio.run(_run(raw_interval))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

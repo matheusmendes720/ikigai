@@ -469,6 +469,7 @@ vault/.db
 !/src/ikigai/tests/test_published_scope_is_clean.py
 !/src/ikigai/tests/test_lint_target_is_not_vacuous.py
 !/src/ikigai/tests/test_code_review_gate_integrity.py
+!/src/ikigai/tests/test_deployment_surface.py
 !/src/ikigai/tests/test_ignore_rules_are_platform_invariant.py
 !/src/ikigai/tests/skills/
 !/src/ikigai/tests/contracts/
@@ -522,6 +523,7 @@ vault/.db
 !/code-docs/adr/ADR-014-ueid-canonical-format.md
 !/code-docs/adr/ADR-033-ueid-single-source-mandate.md
 !/code-docs/adr/ADR-037-data-layer-canonical-turn.md
+!/code-docs/adr/ADR-039-websocket-sync-transport.md
 
 # The dated audits and plans of the system that was replaced.
 /docs/diagnostics/

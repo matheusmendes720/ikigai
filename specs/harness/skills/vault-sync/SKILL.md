@@ -14,14 +14,16 @@ Ingests the markdown trees under `vault/` into the store. The direction is one w
 ## Contract
 
 Trigger:    Markdown under `vault/` changed, or a store-backed read returns content that is behind the prose.
-Inputs:    The vault trees declared in `src/services/sync.py`, the store connection, and the write requests built from the markdown.
+Inputs:    The vault trees named by `IKIGAI_VAULT_ROOTS` (or `default_sources()`), the store connection, and the write requests built from the markdown.
 Outputs:   A report with the counts of scanned, created, updated, unchanged and skipped, and every skipped file with its reason.
 Steps:
 1. Read the design first: `specs/data-layer/TECH.md`, then `src/services/sync.py` for the mapping.
 2. Confirm the store is reachable. The variable name is in `src/contracts/store.py`. A missing variable is a configuration error, not a reason to fall back to local state.
-3. Run the ingestion. It reads the trees from `default_sources()`, skips README files, locates the kind and the quarter from the layout, computes the body hash and compares it with the stored revision.
+3. Run the ingestion — it has a command: `python -m src.services.sync` (one round) or `python -m src.services.sync --interval 60` (on a timer, which is what the container runs). It reads the trees from `default_sources()`, skips README files, locates the kind and the quarter from the layout, computes the body hash and compares it with the stored revision.
    Two layouts exist. The closing layout is `<quarter>/<kind>/<file>.md`, where the quarter directory sits in front of the kind directory. The persona layout is flat, one directory per tier: dreams, objectives, projects, ikigai_state, deliverables.
+   In a container the trees are named by the environment: `IKIGAI_VAULT_ROOTS=/app/vault/ikigai/closing-2026=closing`.
 4. Write through `src/services/artifacts.py` into `src/data/repository.py`. Every write carries an idempotency key, a `client_id` and the expected revision. The idempotency key is built from the layout, the relative path and the body hash, so an unchanged file is recognised as already ingested.
+   The write carries the VECTOR too (ADR-039): prose that lands in the store and never in the vector index is prose the retrieval layer cannot find.
 5. Report the counters and every skipped file with its reason.
 
 Invariants:

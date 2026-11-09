@@ -39,9 +39,11 @@ def test_migration_files_exist() -> None:
         "0001_init.sql",
         "0002_indexes.sql",
         "0003_rls.sql",
+        "0004_artifact_events.sql",
         "0001_init.down.sql",
         "0002_indexes.down.sql",
         "0003_rls.down.sql",
+        "0004_artifact_events.down.sql",
     ):
         path = MIGRATIONS / name
         assert path.exists(), f"{name} is missing"

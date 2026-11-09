@@ -9,7 +9,7 @@ client's edit disappears.
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import AsyncIterator, Mapping, Sequence
 from typing import Any
 
 from src.contracts.dom import (
@@ -40,12 +40,17 @@ try:  # pragma: no cover — the driver is an optional runtime dependency
 except ImportError:  # pragma: no cover
     Jsonb = None
 
-__all__ = ["ArtifactRepository"]
+__all__ = ["ARTIFACT_EVENTS_CHANNEL", "ArtifactRepository"]
 
 _ARTIFACT_COLUMNS = (
     "uid, kind, title, body, body_hash, parent_uid, quarter, status, revision, "
     "created_at, updated_at, deleted_at"
 )
+
+#: The channel the change trigger announces on. It is named in one place, and
+#: the migration that raises it names the same one — a channel that does not
+#: match is a listener that waits forever.
+ARTIFACT_EVENTS_CHANNEL = "ikig_artifact_events"
 
 
 def _to_artifact(row: Mapping[str, Any]) -> Artifact:
@@ -102,7 +107,18 @@ class ArtifactRepository:
     def __init__(self, client: DataClient) -> None:
         self._client = client
 
-    async def upsert(self, req: WriteRequest) -> WriteOutcome:
+    async def upsert(
+        self,
+        req: WriteRequest,
+        embedding: Sequence[float] | None = None,
+    ) -> WriteOutcome:
+        """Write the artifact, its edges and its vector in ONE transaction.
+
+        The vector rides with the row on purpose. A row with a body and no
+        vector is a row the semantic index cannot see, and the search that
+        silently finds nothing is worse than one that fails: it reports "there
+        is no such thing" about something the store holds.
+        """
         artifact = req.artifact
         uid = str(artifact.uid)
         async with self._client.transaction() as conn:
@@ -124,21 +140,27 @@ class ArtifactRepository:
                 )
 
             if req.expected_revision is None:
-                outcome, revision = await self._create(conn, req)
+                outcome, revision = await self._create(conn, req, embedding)
             else:
-                outcome, revision = await self._update(conn, req)
+                outcome, revision = await self._update(conn, req, embedding)
 
             await self._write_extension(conn, artifact)
             await self._insert_revision(conn, artifact, revision, req.client_id)
             await self._write_relations(conn, req.relations)
         return WriteOutcome(uid=artifact.uid, revision=revision, outcome=outcome)
 
-    async def _create(self, conn: Any, req: WriteRequest) -> tuple[str, int]:
+    async def _create(
+        self,
+        conn: Any,
+        req: WriteRequest,
+        embedding: Sequence[float] | None = None,
+    ) -> tuple[str, int]:
         artifact = req.artifact
         cursor = await conn.execute(
             "insert into ikig.artifacts (uid, kind, title, body, body_hash, parent_uid, "
-            "quarter, status, revision, client_id, created_at, updated_at) "
-            "values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (uid) do nothing",
+            "quarter, status, revision, client_id, created_at, updated_at, embedding) "
+            "values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::vector) "
+            "on conflict (uid) do nothing",
             (
                 str(artifact.uid),
                 str(artifact.kind),
@@ -152,6 +174,7 @@ class ArtifactRepository:
                 req.client_id,
                 artifact.created_at,
                 artifact.updated_at,
+                _vector_literal(embedding) if embedding is not None else None,
             ),
         )
         if cursor.rowcount == 0:
@@ -161,11 +184,17 @@ class ArtifactRepository:
             )
         return "created", artifact.revision
 
-    async def _update(self, conn: Any, req: WriteRequest) -> tuple[str, int]:
+    async def _update(
+        self,
+        conn: Any,
+        req: WriteRequest,
+        embedding: Sequence[float] | None = None,
+    ) -> tuple[str, int]:
         artifact = req.artifact
         cursor = await conn.execute(
             "update ikig.artifacts set title=%s, body=%s, body_hash=%s, parent_uid=%s, "
-            "quarter=%s, status=%s, kind=%s, revision=revision+1, updated_at=now() "
+            "quarter=%s, status=%s, kind=%s, revision=revision+1, updated_at=now(), "
+            "embedding=%s::vector "
             "where uid=%s and revision=%s and deleted_at is null",
             (
                 artifact.title,
@@ -175,6 +204,7 @@ class ArtifactRepository:
                 artifact.quarter,
                 artifact.status,
                 str(artifact.kind),
+                _vector_literal(embedding) if embedding is not None else None,
                 str(artifact.uid),
                 req.expected_revision,
             ),
@@ -373,9 +403,21 @@ class ArtifactRepository:
         for relation in relations:
             await self.upsert_relation(relation, conn=conn)
 
-    async def search(self, query: SearchQuery) -> SearchResult:
+    async def search(
+        self,
+        query: SearchQuery,
+        embedding: Sequence[float] | None = None,
+    ) -> SearchResult:
+        """Find artifacts. The semantic path needs the QUERY's vector.
+
+        The vector is passed IN, never computed here. The data layer does not
+        know which model wrote the rows, and a query vector from another model
+        lands in another space — where the cosine distance between two spaces
+        is a number, not a meaning. The service layer owns the provider, so it
+        owns the query vector too.
+        """
         if query.semantic:
-            return await self._search_semantic(query)
+            return await self._search_semantic(query, embedding)
         return await self._search_structured(query)
 
     async def _search_structured(self, query: SearchQuery) -> SearchResult:
@@ -418,9 +460,18 @@ class ArtifactRepository:
         rows = await self._client.execute(sql, tuple(params))
         return self._page(rows, query.limit)
 
-    async def _search_semantic(self, query: SearchQuery) -> SearchResult:
+    async def _search_semantic(
+        self,
+        query: SearchQuery,
+        embedding: Sequence[float] | None = None,
+    ) -> SearchResult:
         if not query.text:
             return SearchResult(artifacts=())
+        if embedding is None:
+            raise InvalidPayloadError(
+                "a semantic search needs the query vector — the service layer "
+                "embeds the query with the same provider that wrote the rows"
+            )
         clauses = ["deleted_at is null", "embedding is not null"]
         params: list[Any] = []
         if query.kinds:
@@ -431,13 +482,12 @@ class ArtifactRepository:
             clauses.append("quarter = %s")
             params.append(query.quarter)
 
-        embedding = await self._embed_for_search(query.text)
         where = " and ".join(clauses)
         sql = (
             f"select {_ARTIFACT_COLUMNS} from ikig.artifacts where {where} "
             "order by embedding <=> %s::vector limit %s"
         )
-        params.extend([embedding, query.limit])
+        params.extend([_vector_literal(embedding), query.limit])
         rows = await self._client.execute(sql, tuple(params))
         return SearchResult(artifacts=tuple(_to_artifact(row) for row in rows))
 
@@ -451,6 +501,39 @@ class ArtifactRepository:
             "update ikig.artifacts set embedding = %s::vector where uid = %s",
             (_vector_literal(embedding), str(uid)),
         )
+
+    async def artifacts_without_embedding(self, limit: int = 500) -> list[dict[str, Any]]:
+        """The rows the vector index cannot see yet.
+
+        The backfill reads them, embeds them and writes the vector back. It is
+        the repair for a store that was written before the vectors were — or
+        whose provider changed underneath it.
+        """
+        rows = await self._client.execute(
+            "select uid, title, body from ikig.artifacts "
+            "where embedding is null and deleted_at is null "
+            "order by updated_at, uid limit %s",
+            (limit,),
+        )
+        return [dict(row) for row in rows]
+
+    async def artifact_events(self) -> AsyncIterator[Mapping[str, Any]]:
+        """The store's change notifications, as they arrive.
+
+        The trigger on ``ikig.artifacts`` announces every write on the channel
+        ``ARTIFACT_EVENTS_CHANNEL``, so a process that did NOT write the row
+        still learns that it changed. That is what makes the websocket a
+        sync channel and not a mirror of its own writes: the vault ingestion
+        runs in its own container, and its writes have to reach the clients.
+        """
+        async with self._client.listen(ARTIFACT_EVENTS_CHANNEL) as notifies:
+            async for notify in notifies:
+                try:
+                    payload = json.loads(notify.payload)
+                except (TypeError, ValueError):
+                    continue
+                if isinstance(payload, dict):
+                    yield payload
 
     async def count(self) -> int:
         row = await self._client.fetch_one("select count(*) as n from ikig.artifacts")

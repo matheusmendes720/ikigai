@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from src.data.client import DataClient, ensure_compatible_event_loop
 from src.data.repository import ArtifactRepository
 from src.services.artifacts import ArtifactService
+from src.services.changes import ChangeFeed
 from src.services.embeddings import EmbeddingService
 from src.services.relations import RelationService
 
@@ -32,6 +33,7 @@ class Services:
     artifacts: ArtifactService
     relations: RelationService
     embeddings: EmbeddingService
+    changes: ChangeFeed
 
 
 def prepare_runtime() -> None:
@@ -54,11 +56,18 @@ def build_services() -> Services:
 
     Nothing here connects: the store client opens its pool on first use, so
     building the wiring is cheap and never fails on a missing driver.
+
+    The embedder is wired into the artifact service ON PURPOSE. The service is
+    the layer that decides what a row's vector is, and a service with no
+    embedder writes rows the semantic index cannot see — which is how the
+    retrieval layer came to answer "nothing found" about everything.
     """
     client = DataClient()
     repo = ArtifactRepository(client)
+    embeddings = EmbeddingService(client)
     return Services(
-        artifacts=ArtifactService(repo),
+        artifacts=ArtifactService(repo, embeddings),
         relations=RelationService(repo),
-        embeddings=EmbeddingService(client),
+        embeddings=embeddings,
+        changes=ChangeFeed(repo),
     )

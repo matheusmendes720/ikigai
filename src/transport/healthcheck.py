@@ -50,6 +50,7 @@ Run::
 
 from __future__ import annotations
 
+import argparse
 import os
 import socket
 import sys
@@ -109,28 +110,61 @@ def _client_address(bind_host: str) -> str:
     )
 
 
-def _check_transport() -> None:
-    address = _client_address(transport_host())
-    port = transport_port()
+def check_reachable(host: str, port: int) -> None:
+    """Prove that a client can reach an address.
+
+    The address is the one a CLIENT uses — not the bind address — because a
+    server bound to every interface also answers the loopback, and a check
+    against the loopback passes on a service no other container can reach.
+    """
+    address = _client_address(host)
     with socket.create_connection((address, port), timeout=5):
         return
 
 
-def main() -> None:
+def probe(dsn: str, host: str, port: int) -> None:
+    """Both halves of the data plane, for a transport that is not the MCP one.
+
+    The websocket server has the same obligation as the api: the container
+    must not report healthy while the store is unreachable or while the
+    surface nobody can dial is the only thing that answers. It raises on
+    failure; the caller decides what to do with that.
+    """
+    _check_store(dsn)
+    check_reachable(host, port)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """The probe, for the transport this process serves.
+
+    ``--host`` and ``--port`` name the surface to measure. Without them it is
+    the MCP transport's address — the api is what the image's HEALTHCHECK
+    runs. The websocket server passes its own, because it is a different
+    surface on a different port and a probe that measures the wrong one
+    reports a green lie.
+    """
+    parser = argparse.ArgumentParser(prog="python -m src.transport.healthcheck")
+    parser.add_argument("--host", default=None, help="the address to dial")
+    parser.add_argument("--port", type=int, default=None, help="the port to dial")
+    args = parser.parse_args(argv)
+
     dsn = os.environ.get(STORE_DSN_ENV)
     if not dsn:
         print(f"{STORE_DSN_ENV} is not set", file=sys.stderr)
-        raise SystemExit(1)
+        return 1
+
+    host = args.host if args.host is not None else transport_host()
+    port = args.port if args.port is not None else transport_port()
 
     try:
-        _check_store(dsn)
-        _check_transport()
+        probe(dsn, host, port)
     except Exception as exc:  # a healthcheck reports, it does not raise
         print(f"unhealthy: {exc}", file=sys.stderr)
-        raise SystemExit(1) from exc
+        return 1
 
     print("healthy")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
