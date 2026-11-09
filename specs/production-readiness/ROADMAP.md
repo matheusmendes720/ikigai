@@ -4,7 +4,7 @@
 **Data:** 2026-11-09 (remedição; a primeira versão é de 2026-11-06)
 **Estado:** execução — as decisões D1–D4 estão fechadas; os gates G1–G5 são a sequência
 **Âncora:** [`PRODUCT.md`](./PRODUCT.md) (o que é e em que estado) · [`TECH.md`](./TECH.md) (o plano e os PASS)
-**Código medido:** `e675b438` · **remedição de 2026-11-09**: box `ab2a9f0c`, store com 1 954 artefactos
+**Código medido:** `d2c94570` (box, PR #43) · **remedição de 2026-11-09**: store com 1 955 artefactos
 
 > Este documento liga a **árvore de planeamento** (o que existe e o que falta
 > em cada nível), o **grafo de dependências** (o que tem de vir antes do quê) e
@@ -150,7 +150,7 @@ que conta como falha, e a variante manual (para o VPS, quando o box voltar).
 | **Falso positivo** | o agente responder em prosa sem chamar tool nenhuma — o critério é a **tool chamada** e a **linha no store**, não a resposta |
 | **Falsificação** | apontar `.pi/mcp.json` para uma porta errada ⇒ `pi mcp list` tem de mostrar o erro, e o gate tem de reprovar |
 | **Invariantes** | B10, B1 |
-| **Medido em 2026-11-09** | **`daily-note` PROVADO** — correu no box, escreveu a `nota` do tipo certo (`not:2026-11-09:74dfed05:…`), revisão 1→**4**, com o corpo a citar o plano ingerido. As outras três **fizeram perguntas ao dono e ficaram à espera** (HITL, ADR-041): `revisao`, `desc`, `okr` e `fase` continuam a **0** no store até as respostas chegarem (§5.1) |
+| **Medido em 2026-11-09** | **`daily-note` PROVADO** — correu no box, escreveu a `nota` do tipo certo (`not:2026-11-09:74dfed05:…`), revisão 1→**4**, com o corpo a citar o plano ingerido. **`weekly-review` PROVADO** — escreveu a `revisao` `rev:2026-w45:03d48a5c:2bcfa8fa6c363cc2` (`kind=revisao`, `quarter=Q4-2026`, `status=closed`, rev **1**), com **todos** os campos que o tipo exige e arestas `references` → o plano trimestral. O `monthly-review` e o `quarterly-plan` **perguntaram ao dono e ficaram à espera** (HITL, ADR-041) — e uma das perguntas tem resposta: *"B — Correção do Trajeto do Q4-2026"* (§5.1, §5.2) |
 
 ### G4 · Telegram — *o dono escreve do telefone, e editar revisa*
 
@@ -213,7 +213,7 @@ herança.
 | **B7** o healthcheck mede o plano de dados | G1 | a inserção de sonda passa (ou é recusada pela RLS) — nunca `select 1` | provado (não remedido hoje) |
 | **B8** a prosa entra pelo vault e sai como linhas tipadas | G2 | uma linha por ficheiro ingerido, com o `body_hash` certo | **provado** — 1 954 artefactos (1 953 com `vault_path`); `sha256(ficheiro)` = `body_hash` em **40/40**; e a `search_artifacts` devolveu o artefacto cujo `body_hash` é o do ficheiro |
 | **B9** o grounding estratégico chega ao agente | G2, G3 | o índice tem os 9 documentos e o agente os cita | **parcial** — o *agente* cita o grounding (o "AG3" vive no `pln:deep-agent-build-q4-2026:…`), mas o caminho escrito **falha**: `load_strategics` devolve **0 documentos** e índice **vazio** (§5.1) |
-| **B10** a cadência produz o artefacto do seu tipo, com os campos que o tipo exige | G3 | o `pi` produz uma `desc` com `rationale`, um `okr` com `key_result` | **parcial** — o `daily-note` produz a `nota` do tipo certo (revisão 1→4); `revisao`/`desc`/`okr`/`fase` ainda são **0** — as três rotinas fazem **perguntas ao dono** (HITL) e ficam à espera da resposta (§5.1) |
+| **B10** a cadência produz o artefacto do seu tipo, com os campos que o tipo exige | G3 | o `pi` produz uma `desc` com `rationale`, um `okr` com `key_result` | **parcial** — o `daily-note` produz a `nota` do tipo certo (revisão 1→4) e o `weekly-review` produz a `revisao` do tipo certo (`rev:2026-w45:…`, rev 1, **todos** os campos exigidos, com arestas para o plano trimestral). `desc`, `okr` e `fase` continuam a **0**: o `monthly-review` e o `quarterly-plan` **perguntam ao dono** (HITL) e o trabalho só avança depois da resposta (§5.1, §5.2) |
 
 **Contagem**: **8 provadas** (4 delas remedidas hoje) · **2 parciais** · **0 não
 provadas**. Antes (2026-11-06): 5 · 3 · 2. **Depois da O4**: 10 provadas, e o
@@ -238,6 +238,7 @@ reproduzível fora do store — e por isso é verificável.
 | B8 · a search devolve o artefacto certo | 1 hit, `body_hash` **igual** ao do ficheiro |
 | B2 · escritas concorrentes | 1 aceite · 1 recusada · **0 sobrescritas** |
 | B1 · a nota do dono relida pelo `pi` | revisão **4**, `opened_at` 01:31:44Z → `read_at` 13:12Z |
+| B10 · a `revisao` do `weekly-review` | `rev:2026-w45:03d48a5c:2bcfa8fa6c363cc2` — rev **1**, `kind=revisao`, `quarter=Q4-2026`, `status=closed`, **todos** os campos que o tipo exige, e arestas `references` → o plano trimestral |
 
 **O que ficou FALSIFICADO — e é uma correcção a fazer:**
 
@@ -257,18 +258,78 @@ reproduzível fora do store — e por isso é verificável.
 
 **O que ficou à espera do dono (e porquê):**
 
-O `daily-note` correu e escreveu. As outras três rotinas **fizeram perguntas
-ao dono e ficaram à espera** — é o HITL a funcionar (ADR-041), não uma falha:
+O `daily-note` correu e escreveu; o `weekly-review` também — depois de as
+perguntas expirarem sem resposta, o agente seguiu com a **leitura dele** (a
+W45, a semana fechada que ainda não tinha revisão) e escreveu a `revisao`. As
+perguntas ao dono são o HITL a funcionar (ADR-041), não uma falha:
 
-| Rotina | Pergunta | Opções |
-|---|---|---|
-| `weekly-review` | que semana cobrir: a W45 (fechada, sem revisão registada) ou a W46 (a correr)? | W45 · W46 |
-| `weekly-review` | o gate AG3 (MERGE ou DISCARD do gateway órfão) sai do plano ou permanece, vencido? | Sai do plano · Permanece (not started) |
-| `monthly-review` | que janela cobrir: Outubro de 2026, o Q4-2026 até agora, ou Novembro em curso? | Outubro · Q4 até agora · Novembro |
+| Rotina | Pergunta | Opções | Como ficou |
+|---|---|---|---|
+| `weekly-review` | que semana cobrir: a W45 (fechada, sem revisão registada) ou a W46 (a correr)? | W45 · W46 | expirou (19:21:10Z) · o agente escolheu a W45 e escreveu a `revisao` |
+| `weekly-review` | o gate AG3 (MERGE ou DISCARD do gateway órfão) sai do plano ou permanece, vencido? | Sai do plano · Permanece (not started) | expirou (19:25:21Z) · o agente seguiu com a leitura dele |
+| `monthly-review` | que janela cobrir: Outubro de 2026, o Q4-2026 até agora, ou Novembro em curso? | Outubro · Q4 até agora · Novembro | expirou (20:37:48Z) · sem `desc` escrita |
+| `quarterly-plan` | rodar o Teste de Fogo contra o Q3-2026, ou corrigir o trajeto do Q4-2026 sem quarter novo? | A — Teste de Fogo · B — Correção do Trajeto | **respondida** às 20:01:30Z: *"B — Correção do Trajeto do Q4-2026: materializar o plano vigente, sem quarter novo"* — **a resposta chegou depois de a rotina já ter morrido** (§5.2) |
 
 A pergunta suspende a chamada da ferramenta do agente até haver resposta
-(prazo: **15 minutos**), e a resposta é o botão no Telegram. Sem a resposta
-deles, `revisao`, `desc`, `okr` e `fase` ficam em **0** — e o G3 não fecha.
+(prazo: **15 minutos**), e a resposta é o botão no Telegram. O HITL está
+**provado ponta a ponta**: a pergunta do `quarterly-plan` chegou ao Telegram
+do dono e ele respondeu. O que não está provado é o que vem **depois** da
+resposta — e a razão está medida na §5.2.
+
+### 5.2 A incoerência dos tetos: porque é que uma rotina que pergunta não podia terminar
+
+Medido no box em 2026-11-09, e corrigido no PR #43.
+
+**O sintoma.** O `monthly-review` morreu aos **302 s** com *"fetch failed"*, e
+o contentor estava de pé há **58 minutos** — sem deploy nenhum. O `pi`
+continuou a trabalhar: a pergunta foi feita às 20:22:48Z, o agente juntou
+evidência até 20:41:53Z, e o trabalho **foi para o lixo** porque o dono nunca
+soube.
+
+**Os três tetos, e o que eles diziam:**
+
+| teto | onde | valor | o que permitia |
+|---|---|---|---|
+| o prazo da pergunta ao dono | `HARNESS_OWNER_TIMEOUT_MS` | 900 s | o agente espera 15 min pela resposta |
+| o prazo da rotina | `HARNESS_TIMEOUT_MS` | 600 s | a rotina morre aos 10 min |
+| o socket do bot | `IKIGAI_HARNESS_TIMEOUT_S` | 630 s | o bot espera 10 min e meio |
+
+**A rotina morria antes de a pergunta expirar.** Uma rotina que pergunta ao
+dono não podia, por construção, esperar pela resposta: o prazo da rotina era
+menor do que o prazo da pergunta. É a incoerência que o PR #43 corrige — o
+prazo da rotina passa a ser **derivado** do prazo da pergunta
+(`OWNER_TIMEOUT_MS + 5 min`), e o socket do bot a esperar mais do que isso.
+
+**O "fetch failed" não era do servidor.** O isolamento (três casos, o mesmo
+handler, a mesma demora de 310 s, no Node 24 do próprio box) diz quem matou:
+
+| caso | servidor | cliente | resultado |
+|---|---|---|---|
+| A | `requestTimeout` por omissão | `http` cru (sem timeout) | **OK aos 310,1 s** — o default do servidor *não* corta a resposta |
+| B | `requestTimeout = 0` | `http` cru | **OK aos 310,1 s** |
+| C | `requestTimeout = 0` | `fetch` (o undici tem `headersTimeout` de 300 s) | **FALHOU aos 301,0 s** (`UND_ERR_HEADERS_TIMEOUT`) |
+
+O limite de 300 s vinha do **cliente** — e o prazo do cliente nunca foi
+próprio do produto para fixar. O que o produto é dono é a **ordem dos seus
+próprios tetos**, e era essa ordem que estava errada.
+
+**Um segundo defeito, medido na mesma noite (ainda por corrigir).** A sessão
+do dono tem um turno de cada vez, e o harness recusa o segundo pedido com
+*"Agent is already processing"* — recusa **correcta**, mas o `finally` do
+pedido recusado põe `busy = false` no turno que **está a correr**. O reaper
+(15 min sem uso) viu a sessão como livre e **matou o `pi` a meio do
+trabalho**, às 20:41:59Z — o agente estava a escrever nesse momento. A
+sessão tem `entry.chain` (`server.mjs:377`) desde o início: a serialização
+está desenhada e não está implementada. Corrigir isso muda o contrato de
+concorrência (a segunda rotina passa a **esperar** a vez em vez de ser
+recusada) — é decisão do dono, e fica fora do PR #43.
+
+### 5.3 O que a medição deixou por medir
+
+O `monthly-review` e o `quarterly-plan` continuam a **perguntar** ao dono.
+Enquanto as perguntas não tiverem resposta dentro do prazo, `desc`, `okr` e
+`fase` ficam em **0** — e o G3 não fecha. Isto não é um defeito do produto:
+é o HITL a pedir uma decisão que só o dono pode tomar.
 
 ---
 
