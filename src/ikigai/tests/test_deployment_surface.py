@@ -867,3 +867,118 @@ def test_the_readiness_probe_does_not_spend_tokens() -> None:
         "the probe now makes the model answer — that spends tokens on every "
         "healthcheck, which is a cost decision and not a technical one"
     )
+
+
+# ─── the ceilings agree with each other ─────────────────────────────────────
+#
+# Measured on the box (2026-11-09): the monthly review died at 302 s with the
+# container UP (58 min of uptime, no deploy) and the agent still writing. The
+# caller saw "fetch failed" — and the agent kept working, so the work landed in
+# the store with nobody told.
+#
+# The isolation (three cases, the same handler, the same 310 s delay, on the
+# box's own Node 24):
+#
+#   A · server with the default `requestTimeout` + a client with no timeout
+#       -> OK at 310.1 s      (the server's default does NOT cut the response)
+#   B · server with `requestTimeout = 0`       + a client with no timeout
+#       -> OK at 310.1 s
+#   C · server with `requestTimeout = 0`       + `fetch` (undici's default
+#       headersTimeout is 300 s)
+#       -> FAILED at 301.0 s, `UND_ERR_HEADERS_TIMEOUT`
+#
+# So the 300 s that killed the run came from the CLIENT, not from the server —
+# and the client's ceiling was never the product's to set. What the product
+# DOES own is the order of its own ceilings, and that order was wrong: the
+# run's ceiling (10 min) was SHORTER than the question's (15 min), so a
+# routine that asked the owner could never finish, and the bot's socket (630 s)
+# was 30 s from the run's ceiling.
+
+
+def test_the_server_patience_outlives_the_run() -> None:
+    """The server must not be able to cut a run that its own ceiling allows.
+
+    Node's `requestTimeout` (300 s by default) governs the RECEIVING of the
+    request, not the sending of the response — the isolation above shows the
+    response arriving at 310 s against a server with the default. So this is
+    not a claim about what killed the run; it is a claim about the order of the
+    product's own ceilings: the server declares a patience derived from the
+    run's, so no future change to Node's defaults can cut a run that the
+    harness itself allowed.
+
+    Falsifiable by construction: against the old server.mjs the first
+    assertion fails, because the server never declared its patience.
+    """
+    code = _js_code(_harness_server())
+    assert "server.requestTimeout" in code, (
+        "the harness does not declare the server's patience — Node's default "
+        "is 300 s, and nothing ties the server to the run it is allowed to take"
+    )
+    assert "RUN_TIMEOUT_MS + REQUEST_MARGIN_MS" in code, (
+        "the server's patience is not derived from the run's ceiling, so the "
+        "two can drift apart again — and the server is the one that dies"
+    )
+
+
+def test_a_run_outlives_the_question_it_asks() -> None:
+    """A routine that asks the owner waits for the answer — so the run's
+    ceiling has to be LONGER than the question's.
+
+    The agent is suspended on the question (ADR-041, `owner.mjs`): the call
+    blocks until the owner answers or the question's deadline passes. A run
+    whose ceiling is shorter than the question's dies with the owner still
+    reading, and no routine that asks anything can ever finish.
+
+    Measured on the box (2026-11-09): the run's ceiling was 10 min and the
+    question's 15 min — no routine that asked a question could complete.
+    """
+    code = _js_code(_harness_server())
+    run_line = next(
+        (line for line in code.splitlines() if "const RUN_TIMEOUT_MS" in line),
+        "",
+    )
+    assert run_line, "the harness has no ceiling of one routine"
+    assert "OWNER_TIMEOUT_MS" in run_line, (
+        "the routine's ceiling is not derived from the question's ceiling, so a "
+        "routine that asks the owner can die while the owner is still reading"
+    )
+
+
+def test_the_declared_ceilings_agree_with_each_other() -> None:
+    """The three ceilings — the question's, the run's, the bot's — must agree.
+
+    They live in three places (the harness's code, the compose, the bot's
+    client), and nothing in the code connected them: the compose declared a
+    10-minute run, a 15-minute question and a 10-minute bot, while Node
+    killed the socket at 5. A routine that asked the owner could not finish
+    on any of the three paths.
+
+    The order is the contract: the bot's socket waits longer than the
+    harness's socket, which waits longer than the run, which waits longer
+    than the question.
+    """
+    services = _compose_services()
+    harness_env = (services.get("harness") or {}).get("environment") or {}
+    bot_env = (services.get("bot") or {}).get("environment") or {}
+
+    def declared(raw: Any) -> int:
+        """The default of a compose value: `${NAME:-1200000}` -> 1200000."""
+        text = str(raw or "")
+        assert ":-" in text, f"{text!r} declares no default"
+        return int(text.split(":-", 1)[1].rstrip("}"))
+
+    run_ms = declared(harness_env.get("HARNESS_TIMEOUT_MS"))
+    owner_ms = declared(harness_env.get("HARNESS_OWNER_TIMEOUT_MS"))
+    bot_s = declared(bot_env.get("IKIGAI_HARNESS_TIMEOUT_S"))
+
+    assert run_ms > owner_ms, (
+        f"the run's ceiling ({run_ms} ms) is not longer than the question's "
+        f"({owner_ms} ms): a routine that asks the owner dies while the owner "
+        "is still reading"
+    )
+    assert bot_s * 1000 >= run_ms, (
+        f"the bot's ceiling ({bot_s} s) is shorter than the harness's run "
+        f"({run_ms} ms): the bot gives up before the harness answers, and the "
+        "owner is told the routine failed while the agent is still working"
+    )
+
