@@ -359,6 +359,52 @@ def test_the_ingestion_declares_a_healthcheck_it_can_pass() -> None:
     )
 
 
+def test_the_ssh_step_passes_names_and_keeps_values_in_env() -> None:
+    """`appleboy/ssh-action` copies NAMES from `envs`, never `KEY=VALUE`.
+
+    Written after three deploys failed on the same line, with every secret
+    correctly set:
+
+        bash: line 3: IKIGAI_DEPLOY_PATH: the deploy path is not set
+
+    The step had `envs: IKIGAI_IMAGE=…,IKIGAI_DEPLOY_PATH=${{ secrets.… }}`.
+    The action treats `envs` as a LIST OF NAMES and reads the values from the
+    step's `env:`; given `KEY=VALUE` it forwards nothing, so the remote script
+    dies on `: "${IKIGAI_DEPLOY_PATH:?…}"` before it deploys anything. The log
+    makes it worse by showing the variable as present, because GitHub masks the
+    value as `***`.
+
+    The guard checks both halves: no `=` inside `envs`, and every name it lists
+    is declared in `env:` — a name with no value is the same empty string.
+    """
+    import yaml
+
+    document = yaml.safe_load(_deploy_workflow())
+    steps = [
+        step for job in (document.get("jobs") or {}).values() for step in (job.get("steps") or [])
+    ]
+    ssh = [step for step in steps if "ssh-action" in str(step.get("uses") or "")]
+    assert ssh, "no appleboy/ssh-action step in the deploy workflow"
+
+    step = ssh[0]
+    envs = str((step.get("with") or {}).get("envs") or "")
+    assert envs, "the ssh step passes no variables to the remote script"
+
+    names = [name.strip() for name in envs.split(",") if name.strip()]
+    offenders = [name for name in names if "=" in name]
+    assert not offenders, (
+        f"envs contains 'KEY=VALUE' ({offenders}). The action forwards names only, "
+        "so these arrive empty on the remote and the deploy dies at its first guard"
+    )
+
+    declared = set((step.get("env") or {}).keys())
+    missing = [name for name in names if name not in declared]
+    assert not missing, (
+        f"envs names variables the step does not declare: {missing}. "
+        "A name without a value in `env:` is an empty string on the remote"
+    )
+
+
 def test_the_deploy_runs_compose_from_the_directory_that_holds_it() -> None:
     """`docker compose` with no `-f` looks for a compose file in the CURRENT
     directory, and the repository root has none: the compose file is

@@ -149,16 +149,25 @@ jobs:
 
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1
-        # `envs` is what reaches the REMOTE script. The step's own `env:` is
-        # the runner's environment and the remote never sees it — so a script
-        # that reads a variable the step declared, and not the action, reads
-        # an empty string on the other side. This is the difference between a
-        # deploy that works and a `cd ""` that fails with the secrets set.
+        # TWO PARTS, and getting one of them wrong fails at line 3 of the
+        # script, before anything is deployed.
+        #
+        # `env:` is the step's own environment — the values. `envs` is the list
+        # of NAMES the action copies into the remote script. `envs` does NOT
+        # accept `KEY=VALUE`: given `IKIGAI_DEPLOY_PATH=/opt/…` it passes
+        # nothing, and the remote dies on `: "${IKIGAI_DEPLOY_PATH:?…}"` with
+        # "the deploy path is not set" — while the log shows the variable
+        # "present" because GitHub masked the value. Measured on this workflow:
+        # three deploys failed exactly there, with every secret set.
+        env:
+          IKIGAI_IMAGE: ${{ steps.target.outputs.tag }}
+          IKIGAI_HARNESS_IMAGE: ${{ steps.target.outputs.harness }}
+          IKIGAI_DEPLOY_PATH: ${{ secrets.IKIGAI_DEPLOY_PATH }}
         with:
           host: ${{ secrets.IKIGAI_DEPLOY_HOST }}
           username: ${{ secrets.IKIGAI_DEPLOY_USER }}
           key: ${{ secrets.IKIGAI_DEPLOY_SSH_KEY }}
-          envs: IKIGAI_IMAGE=${{ steps.target.outputs.tag }},IKIGAI_HARNESS_IMAGE=${{ steps.target.outputs.harness }},IKIGAI_DEPLOY_PATH=${{ secrets.IKIGAI_DEPLOY_PATH }}
+          envs: IKIGAI_IMAGE,IKIGAI_HARNESS_IMAGE,IKIGAI_DEPLOY_PATH
           script: |
             set -eu
 
