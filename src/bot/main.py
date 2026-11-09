@@ -993,12 +993,29 @@ class Bot:
         await self._client.call("upsert_artifact", arguments)
         uid = str(arguments["artifact"]["uid"])
         self._own_writes.add(uid)
-        await self._client.draft(
-            "discard",
-            client_id=self._client_id,
-            draft_id=self._draft_key(chat_id),
-            expected_revision=int(draft["revision"]),
-        )
+        try:
+            await self._client.draft(
+                "discard",
+                client_id=self._client_id,
+                draft_id=self._draft_key(chat_id),
+                expected_revision=int(draft["revision"]),
+            )
+        except RuntimeError as exc:
+            if "conflict" not in str(exc):
+                raise
+            # The write LANDED. Only the CLOSE was refused, because the draft
+            # moved under the bot — another session edited it between the read
+            # and the discard. The guard is right to refuse it: discarding that
+            # draft would throw the other session's edit away.
+            #
+            # Saying "I could not do it" would be a lie about the store — the
+            # artifact IS there. And saying nothing about the draft would
+            # leave it open, swallowing the next paragraph the owner writes.
+            self._open.pop(chat_id, None)
+            return (
+                f"Guardado ({kind.value}), mas o rascunho ficou aberto — "
+                f"outra sessão mudou-o entretanto.\n{uid}"
+            )
         self._open.pop(chat_id, None)
         return f"Guardado ({kind.value}).\n{uid}"
 
