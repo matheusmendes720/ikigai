@@ -81,7 +81,12 @@ const PI_PROVIDER = process.env.HARNESS_PROVIDER_ID || "";
 // empty, so the routine used to report `ok: true` with nothing in it — a
 // green answer for a request that never reached a model.
 const FALLBACK_PROVIDER = process.env.HARNESS_FALLBACK_PROVIDER || "deepseek";
-const FALLBACK_MODEL = process.env.HARNESS_FALLBACK_MODEL || "deepseek-v4.1-flash";
+// The API ID, not the catalogue name. DeepSeek's own `/models` lists
+// `deepseek-flash` and `deepseek-v4-pro`; asking for `deepseek-v4.1-flash` —
+// the name pi's bundled catalogue uses for the same tier — returns
+// 400 "The supported API model names are deepseek-flash, deepseek-v4-pro".
+// Measured on the box, so the default here is the one the API accepts.
+const FALLBACK_MODEL = process.env.HARNESS_FALLBACK_MODEL || "deepseek-flash";
 // The codes that mean "the provider refused", not "the request was wrong".
 // A 400 or a 401 is a configuration problem: retrying it elsewhere hides the
 // mistake and costs a second round trip.

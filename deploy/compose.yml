@@ -366,7 +366,10 @@ services:
         # agent forever — RpcClient has no `extension_ui`). So the retry lives
         # in `server.mjs`.
         HARNESS_FALLBACK_PROVIDER: ${HARNESS_FALLBACK_PROVIDER:-deepseek}
-        HARNESS_FALLBACK_MODEL: ${HARNESS_FALLBACK_MODEL:-deepseek-v4.1-flash}
+        # The API ID. DeepSeek lists `deepseek-flash` and `deepseek-v4-pro`;
+        # `deepseek-v4.1-flash` is the name pi's bundled catalogue uses for the
+        # same tier and the API rejects it with a 400 (measured on the box).
+        HARNESS_FALLBACK_MODEL: ${HARNESS_FALLBACK_MODEL:-deepseek-flash}
         HARNESS_FALLBACK_BASE_URL: ${HARNESS_FALLBACK_BASE_URL:-https://api.deepseek.com}
         HARNESS_FALLBACK_ON: ${HARNESS_FALLBACK_ON:-429,500,502,503,504,timeout}
         HARNESS_MODEL_CONTEXT_WINDOW: ${HARNESS_MODEL_CONTEXT_WINDOW:-204800}
