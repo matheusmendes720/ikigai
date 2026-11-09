@@ -976,6 +976,13 @@ def test_the_declared_ceilings_agree_with_each_other() -> None:
         f"({owner_ms} ms): a routine that asks the owner dies while the owner "
         "is still reading"
     )
+    assert run_ms >= owner_ms + 10 * 60 * 1000, (
+        f"the run's ceiling ({run_ms} ms) leaves the agent less than 10 minutes "
+        f"to work after the question expires ({owner_ms} ms + 10 min): "
+        "measured on the box (2026-11-09), a 5-minute margin was not enough — "
+        "the monthly review's questions expired at 21:41:53Z and the run was "
+        "cut at 21:47:21Z, with the agent still working"
+    )
     assert bot_s * 1000 >= run_ms, (
         f"the bot's ceiling ({bot_s} s) is shorter than the harness's run "
         f"({run_ms} ms): the bot gives up before the harness answers, and the "
