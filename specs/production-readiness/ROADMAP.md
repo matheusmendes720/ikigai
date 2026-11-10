@@ -359,13 +359,15 @@ vigente, sem quarter novo"*, e o plano vigente é o que já lá estava, ingerido
 
 **E há uma condição do ambiente que a medição não controla.** O box é
 redeployado por outra sessão, e cada recriação de contentor **mata a rotina a
-meio**: o agente vive dentro do contentor. Medido em 2026-11-09:
+meio**: o agente vive dentro do contentor. Medido em 2026-11-09 e 2026-11-10 —
+**cinco** medições mortas, e o histórico do workflow `Deploy` diz quando:
 
 | rotina | de → até | o que a matou |
 |---|---|---|
 | `monthly-review` | 20:21:55Z → 20:26:57Z | o socket do **cliente** (o `fetch` do probe morre aos 300 s) — o agente continuou a trabalhar até o reaper o matar, às 20:41:59Z |
 | `monthly-review` | 20:59:27Z → 21:12:37Z | a **recriação do contentor** por um deploy alheio (o box passou ao `c904d870`) |
 | `quarterly-plan` | 21:12:37Z → 22:00:06Z | **não foi morto** — o turno continuou **48 minutos** depois de a rotina ser abandonada pelo harness (§5.4) |
+| `monthly-review` (G6, pela **entrada do produto**: `POST /v1/routine`) | 04:37:46Z → 04:53:5xZ | o deploy `f3db3046` (PR #51), **04:53:52Z → 04:57:06Z** — o contentor foi recriado **antes** do prazo da pergunta (04:58:38Z), e um segundo deploy, `b75478bf` (PR #53, **05:14:57Z → 05:18:14Z**), levou os logs do contentor anterior (§5.4) |
 
 O que **sobrevive** ao deploy é o store (o `memory.sqlite` é um volume) e o
 ficheiro de sessão do `pi` (o `harness-state` é um volume). O que não
@@ -379,7 +381,8 @@ produto.
 ### 5.4 A sessão do dono não largou o turno — e o healthcheck não viu
 
 Medido em 2026-11-09, entre 21:12Z e 22:35Z; a janela do dono foi seguida até
-2026-11-10T04:58Z (o HITL) e o A/B da expiração correu às 05:10Z.
+2026-11-10T04:58Z (o HITL), o A/B da expiração correu às 05:10Z e o A/B do
+tecto da rotina às 05:25Z.
 
 **O sintoma.** O `monthly-review` invocado por `/v1/routine` foi **recusado
 6/6 vezes** com *"Agent is already processing"*; o `quarterly-plan`, **6/6
@@ -448,6 +451,50 @@ não é fiável.
 continuar a ser **recusada com 502**; e se uma pergunta expirada conta como
 *uma* pergunta — o `pi` perguntou **18** na sessão, e 16 expiraram — ou como
 *nenhuma*.
+
+#### A janela de 2026-11-10: a entrada do produto, e o tecto que dispara
+
+**O que a medição provou.** O `monthly-review` foi invocado pela **entrada do
+produto** — `POST /v1/routine`, com um cliente HTTP cru — e não por uma
+chamada interna:
+
+| o que se mediu | valor |
+|---|---|
+| a rotina arrancou pela entrada do produto | **04:37:46Z** (`routine.started`, sessão `tg-2115322359`) |
+| o agente trabalhou ~15 min e perguntou ao dono | **04:52:38Z** (`question.asked` `2550719e440a`, prazo **04:58:38Z** — o agente escolheu um tecto de 6 min, não os 15 do default) |
+| o ficheiro de sessão do `pi` parou | **04:52:37.963Z** — **274 ms antes** de a pergunta ser registada; a última linha é o raciocínio antes do `ask` |
+| o que o agente escreveu depois | **nada** — nenhuma pergunta nova, nenhum artefacto no store, nenhum `routine.finished`/`routine.failed` |
+
+⇒ **O HITL suspende o turno, e a suspensão vê-se no ficheiro da sessão.** O
+agente não "acabou" nem "falhou": ficou **pendurado na pergunta**, à espera de
+uma resposta que não veio. É o comportamento certo (ADR-041) — e é a primeira
+vez que a suspensão aparece pelo lado do ficheiro, e não só pelo log de
+eventos.
+
+**E o que a matou não foi o produto.** Dois deploys alheios, lidos no histórico
+do workflow `Deploy` (`gh run list --workflow Deploy`): o `f3db3046` (PR #51)
+entre **04:53:52Z e 04:57:06Z** recriou o contentor **antes** do prazo da
+pergunta (04:58:38Z) e matou o turno; o `b75478bf` (PR #53), entre
+**05:14:57Z e 05:18:14Z**, levou com ele os logs do contentor anterior. ⇒ **A
+medição ficou inconclusiva** — e a lição é a de §5.3: um gate que depende de um
+agente que pergunta ao dono precisa de uma janela sem deploys **e** de alguém
+que responda. As duas coisas faltaram.
+
+**O tecto da rotina, provado com um A/B.** Já que a medição morreu, mediu-se o
+tecto em vez de o lamentar — e o tecto **dispara**:
+
+| o que se mediu | valor |
+|---|---|
+| experimento | `POST /v1/routine` com `timeout_ms: 45000`, sessão descartável `probe-ceiling2`, rotina `store-read` |
+| o `pi` foi **abatido** a meio do turno | 05:25:21Z (13 s depois do arranque) |
+| o tecto disparou | **05:25:54.287Z** — `routine.failed` com *"Timeout collecting events"*, **45.003 s** depois do arranque (o limite eram 45.000) |
+| o cliente recebeu | **HTTP 502** — `{"ok":false,"error":"the routine failed: Timeout collecting events…"}` |
+| o health depois | `busy_sessions: 0` — o `finally` (`server.mjs:678-681`) correu e o contador desceu |
+
+⇒ **O tecto da rotina é real.** Um agente que morre a meio não passa do tecto,
+o cliente recebe um 502 **com a causa**, e a sessão fica livre. Isto fecha a
+pergunta que §5.2 deixou aberta: os tectos estão **ordenados** (PR #43, PR #47)
+e agora está medido que são **cumpridos**.
 
 ### 5.5 O grafo saiu de cabeça para baixo
 
