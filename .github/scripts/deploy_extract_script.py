@@ -37,9 +37,7 @@ def remote_script() -> str:
         (_repo_root() / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")
     )
     step = next(
-        s
-        for s in workflow["jobs"]["deploy"]["steps"]
-        if s.get("name") == "Deploy over SSH"
+        s for s in workflow["jobs"]["deploy"]["steps"] if s.get("name") == "Deploy over SSH"
     )
     match = re.search(r"<<'DEPLOY_SCRIPT'\n(.*?)\nDEPLOY_SCRIPT\n", step["run"], re.DOTALL)
     if match is None:
