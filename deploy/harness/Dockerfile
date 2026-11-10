@@ -67,6 +67,9 @@ COPY deploy/harness/owner.mjs /app/harness/owner.mjs
 COPY deploy/harness/stop.mjs /app/harness/stop.mjs
 # The refusal: what a busy session answers, in the products words.
 COPY deploy/harness/refusal.mjs /app/harness/refusal.mjs
+# The ceiling: what a run's own clock means — it kills the agent it was
+# running, because a rejected promise does not stop a process.
+COPY deploy/harness/ceiling.mjs /app/harness/ceiling.mjs
 # The `ask` tool: the MCP server the agent spawns to reach the owner.
 COPY deploy/harness/owner-mcp.mjs /app/harness/owner-mcp.mjs
 COPY deploy/harness/entrypoint.sh /app/harness/entrypoint.sh

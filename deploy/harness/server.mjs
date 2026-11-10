@@ -50,6 +50,12 @@ import {
 } from "./runtimes.mjs";
 import { createStopSignal, requestStop, stoppedRun } from "./stop.mjs";
 import { sessionBusyRefusal } from "./refusal.mjs";
+import {
+  Ceiling,
+  ceilingRun,
+  killExpiredAgent,
+  releaseEntry as releaseSessionEntry,
+} from "./ceiling.mjs";
 
 // ── configuration ────────────────────────────────────────────────────────────
 // Everything is an environment variable: this file ships in a container and a
@@ -86,6 +92,21 @@ const OWNER_TIMEOUT_MS = Number(process.env.HARNESS_OWNER_TIMEOUT_MS || 15 * 60 
 // wall clock) — the agent was still working when the run was cut. The margin
 // is 15 minutes: the question, and then the work.
 const RUN_TIMEOUT_MS = Number(process.env.HARNESS_TIMEOUT_MS || OWNER_TIMEOUT_MS + 15 * 60 * 1000);
+// THE SDK'S TIMER IS A BACKSTOP, NOT THE AUTHORITY.
+//
+// WHY IT EXISTS AT ALL: the SDK's `collectEvents(timeout)` timer only
+// REJECTS a promise — it never touches the process. So it cannot end a run
+// that has to kill its agent.
+//
+// WHY IT IS LONGER THAN THE HARNESS'S CLOCK: two timers on the same deadline
+// race, and the winner decides what the run answers. The harness's own clock
+// is the one that knows whether to kill the agent, so it must fire FIRST.
+// Measured on the box (2026-11-10): the SDK's timer rejected at 01:30:00Z,
+// the run answered `routine.failed`, and the agent kept writing until
+// 01:33:08Z — three minutes of writes after the owner was told the routine
+// had failed. With the harness's clock firing first, the agent is killed at
+// the deadline and the run says so.
+const SDK_BACKSTOP_MS = Number(process.env.HARNESS_SDK_BACKSTOP_MS || 5 * 1000);
 // The margin between the run's ceiling and the SERVER's patience.
 //
 // WHAT THIS IS NOT: a fix for the 300 s that killed the monthly review on
@@ -423,6 +444,10 @@ async function acquire(sessionId, runtime) {
   });
   const entry = {
     client,
+    // The session this entry IS. A chat is one conversation and every run of
+    // it shares this key — so a release that looked the id up could stop an
+    // agent that belongs to a DIFFERENT run. The entry carries its own name.
+    sessionId,
     routine: "",
     lastUsed: Date.now(),
     // THE TURNS IN FLIGHT, COUNTED — not a flag.
@@ -457,6 +482,18 @@ async function acquire(sessionId, runtime) {
   };
   sessions.set(sessionId, entry);
   return entry;
+}
+
+/**
+ * Forget a session and stop the agent it was holding.
+ *
+ * The ENTRY is passed and not looked up: the session id is the CONVERSATION,
+ * and two runs of the same chat share it. A release that looked the id up
+ * could stop an agent that belongs to a DIFFERENT run — a run that started
+ * after this one and is holding a live turn.
+ */
+async function releaseEntry(entry) {
+  await releaseSessionEntry(entry, sessions);
 }
 
 async function release(sessionId) {
@@ -672,10 +709,31 @@ async function runRoutine({
     let text = "";
     let failure = null;
     let fellBack = null;
+    // THE CEILING OF THIS RUN, as a fact the harness owns.
+    //
+    // WHY THE HARNESS OWNS IT: the SDK's timeout only REJECTS a promise
+    // (`collectEvents` → `reject(new Error("Timeout collecting events…"))`);
+    // it never touches the process. So the SDK's timer is a BACKSTOP — it is
+    // given more time than the harness's own clock, so that the clock below
+    // is always the first to fire and the harness is always the one that
+    // decides. A run whose agent is still working when the clock runs out
+    // has to kill that agent, and only the harness can do it.
+    const ceiling = new Ceiling(timeout);
+    // The harness's clock. It is the ONLY authority on "the run is over".
+    let clearClock = null;
+    const clock = new Promise((_, reject) => {
+      const timer = setTimeout(() => {
+        ceiling.hit();
+        reject(new Error(`the routine exceeded its ceiling of ${timeout} ms`));
+      }, timeout);
+      // The timer must not hold the process open on its own.
+      timer.unref?.();
+      clearClock = () => clearTimeout(timer);
+    });
     try {
-      // THE RACE: the agent's turn, or the stop. Whichever comes first ends
-      // the run — and the stop WINS by a mile, because the owner's thumb is
-      // on the button while the agent is still thinking.
+      // THE RACE: the agent's turn, or the stop, or the clock. Whichever
+      // comes first ends the run — and the stop WINS by a mile, because the
+      // owner's thumb is on the button while the agent is still thinking.
       //
       // Without this race the stop only killed the agent, and the run waited
       // for an event that would never come: measured on the box (2026-11-09),
@@ -684,15 +742,60 @@ async function runRoutine({
       // "started" and never said "cancelled". The agent was dead the whole
       // time — the store stayed untouched — but the gate says the run is
       // cancelled WITHIN TWO SECONDS, and it was not.
+      //
+      // THE CLOCK IS THE THIRD ARM, and it is the arm that KILLS. Measured on
+      // the box (2026-11-10): the cadence run's ceiling was 30 minutes, the
+      // run answered `routine.failed` at 01:30:00Z, and the agent kept
+      // working until 01:33:08Z — three minutes of writes AFTER the owner
+      // was told the routine had failed. A run that ends must leave NO agent
+      // working behind it: the Stop kills it, and so does the clock.
       events = await Promise.race([
-        entry.client.promptAndWait(prompt, undefined, timeout),
+        // The SDK's timer is a BACKSTOP, not the authority: it is given more
+        // time than the harness's clock, so the clock below always fires
+        // first and the harness always decides. Measured: the SDK's timeout
+        // rejected the promise and the agent carried on for three more
+        // minutes, because a rejected promise does not kill a process.
+        entry.client.promptAndWait(prompt, undefined, timeout + SDK_BACKSTOP_MS),
         stop.promise.then(() => {
           throw new Error("the routine was cancelled");
         }),
+        clock,
       ]);
       text = (await entry.client.getLastAssistantText()) || textFromEvents(events);
     } catch (err) {
       failure = err && err.message ? err.message : String(err);
+      // THE AGENT IS KILLED WHEN THE CLOCK RUNS OUT.
+      //
+      // WHY: the turn is an EVENT, and the clock is the end of the WAIT for
+      // it — not the end of the work. The agent is still running, still
+      // holding the store open, and still writing. A run that has answered
+      // "failed" and left a live agent behind is a run whose writes land with
+      // nobody waiting for them: measured on the box (2026-11-10), the failed
+      // run was answered at 01:30:00Z and the agent wrote until 01:33:08Z.
+      //
+      // So the clock STOPS the agent, exactly like the Stop does — and the
+      // two differ in the ANSWER, not in the kill: a stop answers
+      // "cancelled" (the owner decided), a clock answers "failed" (the clock
+      // decided).
+      //
+      // THE KILL IS THE SESSION'S RELEASE, and not just `client.stop()`: a
+      // released session is FORGOTTEN, so the next routine of that chat
+      // spawns a fresh `pi`. Stopping the process and keeping the session
+      // would leave the pool holding a DEAD agent, and the next run of that
+      // chat would fail on a client that no longer answers.
+      //
+      // It is THIS entry's release, and not the session's: the chat is one
+      // conversation, and a release that looked the id up could stop an agent
+      // that belongs to another run of the same chat.
+      //
+      // The release happens HERE and not in the `finally`: the `finally` also
+      // runs on the SUCCESS path, and killing a healthy agent because the run
+      // finished would throw the conversation away on every turn.
+      await killExpiredAgent(ceiling, () => releaseEntry(entry));
+    } finally {
+      // The clock is the harness's own; once the run has settled, it must not
+      // fire into a run that is already over.
+      if (clearClock) clearClock();
     }
 
     // The owner pressed Stop. The agent's process is gone, so the turn ended
@@ -716,6 +819,44 @@ async function runRoutine({
         client: clientKey,
         duration_ms: Date.now() - started,
       };
+    }
+
+    // THE CLOCK RAN OUT. This is its own answer, and it is not a cancellation.
+    //
+    // WHY IT IS NOT "cancelled": nobody pressed Stop. The owner did not
+    // decide anything — the CLOCK did. A run that answers "cancelled" for a
+    // timeout tells the owner their routine was stopped by them, and that is
+    // a lie about what happened.
+    //
+    // WHY IT IS NOT THE FALLBACK'S BUSINESS: the fallback is for a provider
+    // that REFUSED. The clock running out is the harness giving up, and
+    // repeating the same work on another provider would double the wait the
+    // owner already waited through. So the ceiling is checked BEFORE the
+    // refusal is looked at.
+    //
+    // WHY IT IS ITS OWN EVENT: the harness's memory is the record of what
+    // happened, and "the clock ran out" and "the provider refused" are
+    // different facts. Measured on the box (2026-11-10), the run that ran out
+    // of time was logged as a plain `routine.failed`, and the cause was only
+    // recoverable from the text of the error.
+    const expired = ceilingRun(ceiling, failure);
+    if (expired) {
+      memory.logEvent({
+        kind: "routine.timed_out",
+        key: routine,
+        session: sessionId,
+        payload: {
+          chat_id,
+          runtime: runtime.id,
+          client: clientKey,
+          ceiling_ms: timeout,
+          error: expired.error,
+        },
+      });
+      throw Object.assign(new Error(`the routine failed: ${expired.error}`), {
+        status: 502,
+        timedOut: true,
+      });
     }
 
     // A provider refusal is NOT a thrown error: the turn ends with an assistant
