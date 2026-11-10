@@ -336,9 +336,67 @@ e o reaper, a evictação e a sondagem olham para a contagem. A recusa
 que está a correr.
 
 **Fica por decidir:** se a segunda rotina deve **esperar a sua vez**. A
-sessão tem `entry.chain` (`server.mjs:377`) desde o início: a serialização
+sessão tem `entry.chain` (`server.mjs:432`) desde o início: a serialização
 está desenhada e não está implementada. Implementá-la muda o contrato de
-concorrência — é decisão do dono.
+concorrência — é decisão do dono. **Essa decisão já tem medição**, na
+subsection seguinte.
+
+#### O contrato de concorrência, medido
+
+Medido em 2026-11-10, 11:44:41Z–11:45:27Z, no box do dono, pela porta real
+(`POST /v1/routine` — o mesmo caminho que o bot usa).
+
+**O A/B.** Duas rotinas `store-read` na **mesma** sessão `probe-conc-1`, a
+segunda **4 s** depois da primeira. `store-read` é read-only: escreve zero
+artefactos, zero relações e zero ficheiros.
+
+| | pedido A (o primeiro) | pedido B (4 s depois) |
+|---|---|---|
+| resposta | **HTTP 200**, `ok: true`, 46 201 ms | **HTTP 502**, recusado |
+| a causa | — | *"Agent is already processing. Specify streamingBehavior ('steer' or 'followUp') to queue the message."* |
+| os eventos | `routine.started` → `routine.finished` | `routine.started` → `routine.failed` |
+| o store | 0 escritas | 0 escritas |
+
+**O que a medição acrescenta ao que se sabia.**
+
+1. **A recusa é do SDK, não do harness.** A mensagem é a do `pi`, e o harness
+   transforma-a em 502 (`server.mjs:715`). **Não há guarda no harness**:
+   `entry.chain` (`server.mjs:432`) existe desde o início e **nunca é lido nem
+   escrito** — a serialização está desenhada, não implementada. O que recusa
+   hoje é um **acidente do SDK**, não um contrato declarado.
+2. **A recusa é rápida e não toca no turno que está a correr.** B foi recusada
+   **2 552 ms** depois do seu próprio `routine.started`; o health respondeu
+   `live_sessions: 1, busy_sessions: 1` em **todas as 23 sondas** dos ~44 s de
+   sobreposição, e A terminou normal (200, 46 201 ms). ⇒ A contagem de turnos
+   (PR #45) aguenta uma recusa real: recusar **não** liberta o turno em curso.
+3. **O log over-declara arranques.** O pedido recusado também escreve
+   `routine.started`: o log conta **2 arranques** e **1 acabamento**. Quem
+   conta rotinas pelo log vê mais do que existiu.
+4. **A recusa nomeia as alternativas — e o SDK diz o que elas fazem.** Na
+   type-definition do próprio pacote
+   (`/app/harness/node_modules/@earendil-works/pi-coding-agent/dist/core/agent-session.d.ts`):
+   `streamingBehavior: "steer" | "followUp"`, *"when streaming, how to queue the
+   message: `steer` (interrupt) or `followUp` (wait)"*; e o cliente RPC expõe
+   `followUp()` — *"queue a follow-up message to be processed after the agent
+   finishes"*. ⇒
+   **"esperar a vez" já existe como primitiva do SDK** e não precisa de
+   `entry.chain`. Mas `promptAndWait(message, images?, timeout?)` **não tem**
+   `streamingBehavior`: com a chamada de hoje, o harness só pode ser recusado.
+
+**As três opções, e o que cada uma custa.**
+
+| opção | o que o dono vê | o que a medição diz |
+|---|---|---|
+| **recusar** (o que o produto faz hoje) | 502 em ~2,5 s, e o pedido é reenviado | é o que está medido e **funciona**: o turno em curso não é tocado, o health não mente, o store fica intacto. A fraqueza: a mensagem é a do **SDK**, em inglês, e não diz ao dono o que fazer |
+| **esperar a vez** (`followUp`, ou `entry.chain`) | nada durante a espera; a resposta depois | serializa de facto — o `followUp` do SDK **é** a fila, e há primitivas para a esperar (`collectEvents`, `waitForIdle`). O custo é o do §5.2: **um pedido que espera é um pedido que expira sem o dono saber**; e o pedido entra na **mesma sessão**, já com o contexto da rotina anterior |
+| **steer** | a 2.ª mensagem entra no turno em curso | é *"interrupt"* na type-definition do SDK: muda o que a 1.ª rotina está a fazer, a meio da escrita. Numa loja em que a escrita tem de ser **uma por artefacto, com revisão**, isto é **fora de questão** |
+
+**A recomendação da casa: recusar — mas recusar *declarado*.** O harness deve
+recusar **antes** de chamar o `pi`, com uma mensagem que diga o que está a
+acontecer e o que fazer; e o `/v1/health` deve dizer que a sessão está
+ocupada. O precedente está medido no §5.2: o `monthly-review` morreu aos 302 s
+sem que ninguém soubesse — o que mata o dono não é a espera, é o silêncio.
+**A escolha é do dono**: recusar declarado, esperar a vez, ou steer.
 
 ### 5.3 O que a medição deixou por medir
 
@@ -447,10 +505,12 @@ estado é a verdade; o log subdeclara, e um contador de expirações tirado do l
 não é fiável.
 
 **Fica por decidir (dono):** se a segunda rotina deve **esperar a sua vez**
-(`entry.chain`, `server.mjs:377`, desenhada desde o início e não implementada) ou
-continuar a ser **recusada com 502**; e se uma pergunta expirada conta como
-*uma* pergunta — o `pi` perguntou **18** na sessão, e 16 expiraram — ou como
-*nenhuma*.
+(`entry.chain`, `server.mjs:432`, desenhada desde o início e não implementada) ou
+continuar a ser **recusada com 502** — **medido em 2026-11-10: a recusa existe,
+é rápida, não toca no turno que está a correr, e a própria mensagem de recusa
+nomeia as alternativas** (`followUp` = fila, `steer` = interromper; §5.2, *"O
+contrato de concorrência, medido"*); e se uma pergunta expirada conta como *uma*
+pergunta — o `pi` perguntou **18** na sessão, e 16 expiraram — ou como *nenhuma*.
 
 #### A janela de 2026-11-10: a entrada do produto, e o tecto que dispara
 
@@ -489,7 +549,7 @@ tecto em vez de o lamentar — e o tecto **dispara**:
 | o `pi` foi **abatido** a meio do turno | 05:25:21Z (13 s depois do arranque) |
 | o tecto disparou | **05:25:54.287Z** — `routine.failed` com *"Timeout collecting events"*, **45.003 s** depois do arranque (o limite eram 45.000) |
 | o cliente recebeu | **HTTP 502** — `{"ok":false,"error":"the routine failed: Timeout collecting events…"}` |
-| o health depois | `busy_sessions: 0` — o `finally` (`server.mjs:678-681`) correu e o contador desceu |
+| o health depois | `busy_sessions: 0` — o `finally` (`server.mjs:753-754`) correu e o contador desceu |
 
 ⇒ **O tecto da rotina é real.** Um agente que morre a meio não passa do tecto,
 o cliente recebe um 502 **com a causa**, e a sessão fica livre. Isto fecha a
