@@ -346,3 +346,53 @@ def test_every_test_module_is_published_or_retired() -> None:
         + ". The suite runs them here and not in a clone. Name them back in the "
         ".gitignore (they ship) or in LEGACY_TEST_MODULES (they do not)."
     )
+
+
+def test_no_published_markdown_carries_a_junk_byte() -> None:
+    """A NUL or a BOM in the published prose is junk — and it hides.
+
+    MEASURED on the box (2026-11-09): five of the nine strategic documents
+    carried a UTF-8 BOM **and** one NUL byte where a digit belonged — the text
+    read ``See \\x000-ÍNDICE-PROGRESSIVO.md`` — and the loader, which anchors
+    the frontmatter pattern on the FIRST byte, saw no frontmatter and indexed
+    **no document at all**. A fifth NUL turned up in the vault's evidence file,
+    in the same place: the first digit of a numbered sequence.
+
+    The corruption was invisible. The files are readable, the agent reads them
+    by name, the store carries them, and the suite is green — but a NUL makes
+    git treat the file as binary, so the diff that would have shown the damage
+    showed "Bin 4806 -> 4723 bytes" instead of a line.
+
+    This is the same class the `.gitignore` spends its first section on (the
+    junk a malformed shell redirect leaves behind), one level up: junk INSIDE
+    a file that is otherwise legitimate.
+
+    Falsification: put a NUL back into any published markdown and this fails.
+    """
+    tracked = _tracked(REPO_ROOT)
+    if not tracked:
+        return
+
+    offenders: list[str] = []
+    for relative in sorted(tracked):
+        if not relative.endswith(".md"):
+            continue
+        path = REPO_ROOT / relative
+        if not path.exists():
+            continue
+        raw = path.read_bytes()
+        problems: list[str] = []
+        nuls = raw.count(b"\x00")
+        if nuls:
+            problems.append(f"{nuls} NUL")
+        if raw.startswith(b"\xef\xbb\xbf"):
+            problems.append("BOM")
+        if problems:
+            offenders.append(f"{relative} ({', '.join(problems)})")
+
+    assert not offenders, (
+        "published markdown carries junk bytes: "
+        + "; ".join(offenders)
+        + ". A NUL hides the frontmatter from the parser, and a BOM hides it "
+        "from git's diff."
+    )

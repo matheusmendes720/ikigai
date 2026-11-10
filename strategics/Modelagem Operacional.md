@@ -1,3 +1,7 @@
+---
+tags: [strategic]
+---
+
 
 Vou ajudar a **refinar a lógica** e expandir o **modelo integrado (PAE + Estrutura Hierárquica)**, subdividindo-o nos 3 níveis principais da pirâmide de desempenho (**Estratégico, Tático e Operacional**). Depois, criaremos dois documentos distintos: um para **Planejamento** e outro para **Análise**, que atendam às necessidades de cada nível.  
 

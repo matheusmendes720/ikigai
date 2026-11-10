@@ -1,10 +1,10 @@
 # ikigai — ROADMAP
 
 **Feature id:** `production-readiness`
-**Data:** 2026-11-09 (remedição; a primeira versão é de 2026-11-06)
+**Data:** 2026-11-10 (remedição; a primeira versão é de 2026-11-06)
 **Estado:** execução — as decisões D1–D4 estão fechadas; os gates G1–G5 são a sequência
 **Âncora:** [`PRODUCT.md`](./PRODUCT.md) (o que é e em que estado) · [`TECH.md`](./TECH.md) (o plano e os PASS)
-**Código medido:** `506f406a` (box, PR #47) · **remedição de 2026-11-09**: store com 1 974 artefactos
+**Código medido:** `5fc8e03d` (box, PR #49) · **remedição de 2026-11-09**: store com 1 974 artefactos · **remedição de 2026-11-10**: o grounding indexado (PR #52)
 
 > Este documento liga a **árvore de planeamento** (o que existe e o que falta
 > em cada nível), o **grafo de dependências** (o que tem de vir antes do quê) e
@@ -138,6 +138,7 @@ que conta como falha, e a variante manual (para o VPS, quando o box voltar).
 | **Falsificação** | remover o `tags:` de um `strategics/*.md` ⇒ o índice perde-o ⇒ o teste falha |
 | **Invariantes** | B8, B9 |
 | **Medido em 2026-11-09** | **(a) PROVADO** — 1 974 artefactos (1 953 com `vault_path` — os 21 restantes são os que o `pi` escreveu hoje), `sha256(ficheiro)` = `body_hash` em 40/40, e a search devolve o artefacto com o hash do ficheiro. **(b) FALSIFICADO** — `load_strategics` devolve **0 documentos** e índice **vazio**: os 9 ficheiros não têm frontmatter, e o loader filtra por `tags:` contendo *"strategic"*. O gate **não fecha** até isto ser corrigido (§5.1) |
+| **Remedido em 2026-11-10** | **(b) PROVADO** — `load_strategics(<raiz real>)` devolve **9 documentos** (95 167 chars) e o índice **não está vazio**. O caminho escrito do gate **fecha**: os 9 ficheiros de `strategics/` têm `tags: [strategic]`, o BOM saiu dos 5 que o tinham, e o byte NUL que estava no lugar do `0` foi reposto (§5.6) |
 
 ### G3 · Harness — *o `pi` corre uma rotina de verdade*
 
@@ -150,7 +151,7 @@ que conta como falha, e a variante manual (para o VPS, quando o box voltar).
 | **Falso positivo** | o agente responder em prosa sem chamar tool nenhuma — o critério é a **tool chamada** e a **linha no store**, não a resposta |
 | **Falsificação** | apontar `.pi/mcp.json` para uma porta errada ⇒ `pi mcp list` tem de mostrar o erro, e o gate tem de reprovar |
 | **Invariantes** | B10, B1 |
-| **Medido em 2026-11-09** | **`daily-note` PROVADO** — correu no box, escreveu a `nota` do tipo certo (`not:2026-11-09:74dfed05:…`), revisão 1→**4**, com o corpo a citar o plano ingerido. **`weekly-review` PROVADO** — escreveu a `revisao` `rev:2026-w45:03d48a5c:2bcfa8fa6c363cc2` (`kind=revisao`, `quarter=Q4-2026`, `status=closed`, rev **1**), com **todos** os campos que o tipo exige e arestas `references` → o plano trimestral. **`monthly-review` PROVADO** — escreveu a `desc` `des:revisao-mensal-q4-2026:a68c4ee7:af5237c5596d44d4` (22:24:09Z): `kind=desc`, `quarter=Q4-2026`, rev **1**, `status=provisional`, com **`decision` e `rationale` preenchidos** em `ikig.artifact_decs` e **16 arestas `references`** na mesma transação (§5.4). **`quarterly-plan` PROVADO** — escreveu **5 `fase`**, **5 `okr`** (com `objective` **e** `key_result` preenchidos em `ikig.artifact_okr`, 5/5) e **7 `kpi`**, todos com `quarter=Q4-2026`, ligados por `parent_of`/`derives_from` — mas **com o `parent_of` invertido** (§5.5), e **sem `onda`**: as 6 `onda` do store são as ingeridas do vault e nenhuma tem uma aresta |
+| **Medido em 2026-11-09** | **`daily-note` PROVADO** — correu no box, escreveu a `nota` do tipo certo (`not:2026-11-09:74dfed05:…`), revisão 1→**4**, com o corpo a citar o plano ingerido. **`weekly-review` PROVADO** — escreveu a `revisao` `rev:2026-w45:03d48a5c:2bcfa8fa6c363cc2` (`kind=revisao`, `quarter=Q4-2026`, `status=closed`, rev **1**), com **todos** os campos que o tipo exige e arestas `references` → o plano trimestral. **`monthly-review` PROVADO** — escreveu a `desc` `des:revisao-mensal-q4-2026:a68c4ee7:af5237c5596d44d4` (22:24:09Z): `kind=desc`, `quarter=Q4-2026`, rev **1**, `status=provisional`, com **`decision` e `rationale` preenchidos** em `ikig.artifact_decs` e **16 arestas `references`** na mesma transação (§5.4). **`quarterly-plan` PROVADO** — escreveu **5 `fase`**, **5 `okr`** (com `objective` **e** `key_result` preenchidos em `ikig.artifact_okr`, 5/5) e **7 `kpi`**, todos com `quarter=Q4-2026`, ligados por `parent_of`/`derives_from` — mas **com o `parent_of` invertido** (§5.5), e **sem `onda`**: as 6 `onda` do store são as ingeridas do vault (`ond:placeholder:*`) — as 3 do Q4 têm 4 arestas, mas todas de **entrada**, porque a rotina nunca as materializou (§5.3) |
 
 ### G4 · Telegram — *o dono escreve do telefone, e editar revisa*
 
@@ -212,10 +213,10 @@ herança.
 | **B6** o transporte nunca transporta SQL | G1, G3 | zero `select\|insert\|update\|delete` em `mcp_server.py` | provado (não remedido hoje) |
 | **B7** o healthcheck mede o plano de dados | G1 | a inserção de sonda passa (ou é recusada pela RLS) — nunca `select 1` | provado (não remedido hoje) |
 | **B8** a prosa entra pelo vault e sai como linhas tipadas | G2 | uma linha por ficheiro ingerido, com o `body_hash` certo | **provado** — 1 974 artefactos (1 953 com `vault_path`; os 21 restantes são os que o `pi` escreveu hoje, sem `vault_path`); `sha256(ficheiro)` = `body_hash` em **40/40**; e a `search_artifacts` devolveu o artefacto cujo `body_hash` é o do ficheiro |
-| **B9** o grounding estratégico chega ao agente | G2, G3 | o índice tem os 9 documentos e o agente os cita | **parcial** — o *agente* cita o grounding (o "AG3" vive no `pln:deep-agent-build-q4-2026:…`), mas o caminho escrito **falha**: `load_strategics` devolve **0 documentos** e índice **vazio** (§5.1) |
+| **B9** o grounding estratégico chega ao agente | G2, G3 | o índice tem os 9 documentos e o agente os cita | **provado** — o *agente* cita o grounding (o "AG3" vive no `pln:deep-agent-build-q4-2026:…`) **e** o caminho escrito funciona: `load_strategics(<raiz real>)` devolve **9 documentos** (95 167 chars) e o índice não está vazio (§5.6) |
 | **B10** a cadência produz o artefacto do seu tipo, com os campos que o tipo exige | G3 | o `pi` produz uma `desc` com `rationale`, um `okr` com `key_result` | **provado** — a `desc` `des:revisao-mensal-q4-2026:a68c4ee7:af5237c5596d44d4` (22:24:09Z, rev 1) tem `decision` **e** `rationale` preenchidos em `ikig.artifact_decs`, e 16 arestas `references`; e os 5 `okr` do `quarterly-plan` têm `objective` **e** `key_result` preenchidos em `ikig.artifact_okr` (5/5). A cadência correu — a entrada `/v1/routine` é que esteve recusada enquanto a sessão do dono tinha outro turno (§5.4) |
 
-**Contagem**: **9 provadas** (5 delas remedidas hoje) · **1 parcial** · **0 não
+**Contagem**: **10 provadas** (6 delas remedidas hoje) · **0 parciais** · **0 não
 provadas**. Antes (2026-11-06): 5 · 3 · 2. **Depois da O4**: 10 provadas, e o
 único teste que falta é o dos 14 dias.
 
@@ -242,21 +243,24 @@ reproduzível fora do store — e por isso é verificável.
 | B10 · a `desc` do `monthly-review` | `des:revisao-mensal-q4-2026:a68c4ee7:af5237c5596d44d4` — rev **1**, `kind=desc`, `quarter=Q4-2026`, `status=provisional`, `decision` **e** `rationale` preenchidos em `ikig.artifact_decs`, **16 arestas** `references` |
 | B10 · os `okr` do `quarterly-plan` | **5/5** com `objective` **e** `key_result` preenchidos em `ikig.artifact_okr` — e 7 `kpi` com `metric`, `target`, `period` e `direction` em `ikig.artifact_kpi` |
 
-**O que ficou FALSIFICADO — e é uma correcção a fazer:**
+**O que ficou FALSIFICADO — e foi corrigido em 2026-11-10 (PR #52):**
 
-> **G2 (b) é falso hoje.** `load_strategics(<raiz real>)` devolve **0
-> documentos** e um índice **vazio** — os 9 ficheiros de `strategics/` estão lá,
-> mas **nenhum tem frontmatter**, e o loader filtra por `tags:` contendo
+> **G2 (b) era falso.** `load_strategics(<raiz real>)` devolveva **0
+> documentos** e um índice **vazio** — os 9 ficheiros de `strategics/` estavam lá,
+> mas **nenhum tinha frontmatter**, e o loader filtra por `tags:` contendo
 > *"strategic"*. O critério do gate pede 9 documentos e um índice não vazio.
 >
-> O grounding **chega** ao agente por outro caminho — o `plano` trimestral
+> O grounding **chegava** ao agente por outro caminho — o `plano` trimestral
 > ingerido (`02-q4-2026/01-plano-trimestral/deep-agent-build-q4-2026.md`),
-> que é onde o "AG3" vive. Mas o caminho **escrito** no gate não funciona, e
+> que é onde o "AG3" vive. Mas o caminho **escrito** no gate não funcionava, e
 > um gate que não funciona é um gate que não prova nada.
 >
-> **A correcção:** dar frontmatter `tags: [strategic]` aos 9 ficheiros — ou
-> alinhar o filtro do loader com o que o gate promete. Uma das duas; e um
-> guard que conte os documentos.
+> **A correcção foi do lado dos ficheiros**, não do filtro: `tags: [strategic]`
+> nos 9, o BOM fora dos 5 que o tinham, e o byte NUL reposto onde devia estar o
+> `0` — o loader é um **contrato documentado**, e quem estava desobrigado era o
+> corpus. As guardas novas contam os documentos e proíbem o lixo nos bytes
+> (§5.6). **Agora:** `load_strategics` devolve **9 documentos** (95 167 chars)
+> e o índice não está vazio.
 
 **O que ficou à espera do dono (e porquê):**
 
@@ -612,6 +616,53 @@ baixo é um grafo que mente sobre o plano.
 **O que fecha isto:** a regra precisa de **uma frase** que não admita duas
 leituras — `PARENT_OF` corre do pai para o filho, `DERIVES_FROM` corre do que
 deriva para a origem. Sem ela, o mesmo texto produziu 13 arestas invertidas.
+
+### 5.6 O grounding volta a ser indexado — e os bytes de lixo que o escondiam
+
+Medido em 2026-11-10 (PR #52).
+
+**O defeito tinha duas camadas, e a segunda era invisível num editor.** O
+loader filtra por `tags:` contendo *"strategic"*, e **nenhum** dos 9 ficheiros
+de `strategics/` tinha frontmatter — essa era a camada visível. Mas por baixo
+havia outra: **5 dos 9** levavam **BOM UTF-8** no primeiro byte, e a regex do
+`frontmatter_compat.py` está **ancorada no 1.º byte** — o BOM esconde o
+frontmatter. E, por baixo do BOM, **5 dos 9** tinham um **byte NUL** onde
+devia estar o `0` (`See <NUL>0-ÍNDICE-PROGRESSIVO.md`). O ficheiro
+`vault/evidence/agentic-md-explore-current.md` tinha **5 NULs**.
+
+**A correcção foi do lado dos ficheiros, não do filtro.** O loader é um
+**contrato documentado** — o filtro por `tags:` está no código e no teste;
+quem estava desobrigado era o corpus. `tags: [strategic]` nos 9 · BOM fora nos
+5 · NUL → `0` nos 5 dos `strategics/` e nos 5 do ficheiro do vault. E o
+protocolo do repo foi cumprido até ao fim: **133** ficheiros `.md` versionados,
+**0** com BOM ou NUL depois da reparação, e o **texto** de cada um dos 10
+tocados **igual ao do blob anterior, linha a linha** — a comparação é feita
+contra os **blobs**, não contra a cópia de trabalho.
+
+**Uma consequência da reparação, dita com todas as letras.** Seis dos
+ficheiros estavam em CRLF (e um era *misto*) — as excepções dos 133: os outros
+**127** são LF. O `core.autocrlf=true` do repo normaliza CRLF→LF no blob, e o
+ficheiro do vault **não** levou `tags: [strategic]` (o âmbito declarado eram os
+**9**). ⇒ O blob passa a LF, que é a convenção do repo; a **árvore de trabalho
+do dono continua CRLF**, sem churn. E, com o NUL fora, o git deixa de tratar
+estes ficheiros como binários: o diff passa a mostrar **linhas**.
+
+**O que a medição dá agora.** `load_strategics(<raiz real>)` devolve **9
+documentos** (corpos com 94 861 chars, índice com **95 167**) e o índice não
+está vazio ⇒ o gate **G2 (b) fecha**.
+
+**As guardas novas** (adicionar é permitido; afrouxar um guard, nunca):
+
+| guarda | o que prende | falsificação |
+|---|---|---|
+| `test_the_published_strategic_prose_is_indexed` | os 9 ficheiros publicados continuam indexados | sem a tag ⇒ 1 failed |
+| `test_no_published_markdown_carries_a_junk_byte` | nenhum `.md` publicado leva BOM nem NUL | com o NUL de volta ⇒ 1 failed |
+
+**E o que fica medido, e não provado.** O loader é **chamado por ninguém**: as
+seis tools do ADR-011 não têm uma de strategics, e o `pi` leu os ficheiros de
+`strategics/` com a sua própria tool (26 chamadas, 19:25Z–22:31Z) — não pelo
+índice. ⇒ O caminho **escrito** está pronto e o gate fecha; o caminho **usado**
+é outro. O grounding chega ao agente, mas por um **bypass**, não pelo contrato.
 
 ---
 
