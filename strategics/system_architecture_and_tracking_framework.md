@@ -1,3 +1,7 @@
+---
+tags: [strategic]
+---
+
 # Algorithmic Life OS: Systemic Architecture & Tracking Framework
 
 
