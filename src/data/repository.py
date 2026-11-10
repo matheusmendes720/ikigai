@@ -473,10 +473,21 @@ class ArtifactRepository:
             clauses.append("vault_path like %s escape E'\\\\'")
             params.append(_zone_pattern(query.zone))
         if query.text:
-            clauses.append(
-                "to_tsvector('portuguese', coalesce(title,'') || ' ' || coalesce(body,'')) "
-                "@@ plainto_tsquery('portuguese', %s)"
-            )
+            # The COLUMN, not the expression — migration 0009.
+            #
+            # The expression `to_tsvector('portuguese', title || body)` looks
+            # equivalent and is not: the planner cannot estimate how many
+            # rows a COMPUTED expression matches, so it guesses. For a rare
+            # term the guess is good and it uses the index (0.4ms); for a
+            # common one the guess is bad and it SCANS — computing the
+            # Portuguese stemmer over the whole body of every row it visits.
+            # Measured on the corpus: 1 500ms for the query that the column
+            # answers in 6ms, and 20 069ms to stem 1 990 bodies once.
+            #
+            # A materialized column is computed ONCE, at write time, and the
+            # planner can estimate a column. The semantics are identical —
+            # the same configuration, the same stemming, the same match.
+            clauses.append("search_vector @@ plainto_tsquery('portuguese', %s)")
             params.append(query.text)
         if query.cursor:
             last_updated, last_uid = _decode_cursor(query.cursor)
