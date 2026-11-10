@@ -206,6 +206,9 @@ RETIRED_EXCEPTIONS = (
     "code-docs/adr/ADR-041-runtime-routing-and-human-in-the-loop.md",
     # The routing table in the repository, and the harness's own gate (ADR-042).
     "code-docs/adr/ADR-042-routing-table-in-the-repository.md",
+    # The write-back to the vault: the store writes the prose, and the prose
+    # never rewrites the store (ADR-043).
+    "code-docs/adr/ADR-043-vault-write-back.md",
     # The pivot's own series, and the record of the cut that preceded it.
     "docs/superpowers/specs/2026-10-30-05-cut.md",
     "docs/superpowers/specs/2026-11-01-00-data-layer-series.md",

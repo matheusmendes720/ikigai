@@ -5,7 +5,7 @@ single architectural decision: Status, Date, Context, Decision, Consequences,
 Alternatives, Implementation Rules. Append-only — ADRs are immutable once
 Accepted; superseded ADRs are linked, never edited.
 
-> **This index lists seven.** The repository publishes the decisions the
+> **This index lists ten.** The repository publishes the decisions the
 > current scope rests on, and nothing else: the ADRs of an architecture that
 > was replaced describe a system that is not published, and a reader has no
 > way to tell that from a description of the one that is.
@@ -27,6 +27,9 @@ Accepted; superseded ADRs are linked, never edited.
 | `ADR-037-data-layer-canonical-turn.md` | Accepted | 2026-11-01 | **Virada canônica: camada de dados primeiro** — unified DOM + Postgres store + services/MCP transport; the harness `pi` reused; Telegram as client; the algorithms deferred |
 | `ADR-039-websocket-sync-transport.md` | Accepted | 2026-11-08 | **O canal websocket e a camada de recuperação que o alimenta** — o vetor escrito com o artefacto, o store a anunciar as suas mudanças, um canal bidireccional ao lado do MCP |
 | `ADR-040-client-state-and-drafts.md` | Accepted | 2026-11-09 | **O estado do cliente e os drafts** — a prosa a meio como cidadão do store, num terceiro tipo de frame; o sync bi-direccional e o *hysteresis* ficam de fora com a razão escrita |
+| `ADR-041-runtime-routing-and-human-in-the-loop.md` | Accepted | 2026-11-09 | **O routing do runtime e o humano no circuito** — a pergunta bloqueante e o painel que a responde |
+| `ADR-042-routing-table-in-the-repository.md` | Accepted | 2026-11-09 | **A tabela de routing no repositório** — o routing versionado, e o gate que o harness corre |
+| `ADR-043-vault-write-back.md` | Accepted | 2026-11-10 | **O `vault_write`** — escrever a prosa de volta sem segundo canónico: o store escreve, a prosa nunca reescreve o store; o alvo, o conflito e o commit |
 
 ---
 
@@ -51,6 +54,8 @@ Accepted; superseded ADRs are linked, never edited.
 | **Data-layer canonical turn (2026-11-01)** | `ADR-037-data-layer-canonical-turn.md` — DOM + store + services/MCP |
 | The websocket sync channel and the retrieval layer | `ADR-039-websocket-sync-transport.md` — the vector written with the artifact, the store announcing its changes |
 | The client state, and the drafts | `ADR-040-client-state-and-drafts.md` — prose in progress as a store citizen, and what is deliberately out of scope |
+| The runtime routing, and the human in the loop | `ADR-041-runtime-routing-and-human-in-the-loop.md` · `ADR-042-routing-table-in-the-repository.md` — the blocking question, and the routing table that is versioned with the code |
+| **The write-back to the vault** | `ADR-043-vault-write-back.md` — the store writes the prose; the prose never rewrites the store |
 | The series that specified the pivot | [`docs/superpowers/specs/2026-11-01-00-data-layer-series.md`](../../docs/superpowers/specs/2026-11-01-00-data-layer-series.md) |
 | The cut that preceded the pivot | [`docs/superpowers/specs/2026-10-30-05-cut.md`](../../docs/superpowers/specs/2026-10-30-05-cut.md) |
 
@@ -62,7 +67,7 @@ When adding a new ADR:
 
 1. **Append-only** — never edit an Accepted ADR. Supersede, don't rewrite.
 2. **Filename convention** — `ADR-NNN-kebab-slug.md`.
-3. **Numbering** — sequential: **ADR-038 is reserved** for the single-player-store decision (`specs/production-readiness/ROADMAP.md` O2), so the next free number is **ADR-041**. ADR-039 is the websocket sync channel; ADR-040 is the client state and the drafts.
+3. **Numbering** — sequential: **ADR-038 is reserved** for the single-player-store decision (`specs/production-readiness/ROADMAP.md` O2), so the next free number is **ADR-044**. ADR-039 is the websocket sync channel; ADR-040 is the client state and the drafts; ADR-041 and ADR-042 are the runtime routing; ADR-043 is the write-back to the vault.
 4. **Cross-reference** — every ADR points to canonical source (file + line range or section).
 5. **Update this README** — add the row to the index table.
 6. **Publish it deliberately.** The ignore rules exclude `code-docs/adr/*.md`

@@ -285,3 +285,56 @@ def test_the_installed_skills_match_the_projection() -> None:
         "the harness's copy of these skills drifted from the projection: "
         + ", ".join(drifted)
     )
+
+
+# ---------------------------------------------------------------------------
+# 7. The relation direction is stated, everywhere the agent reads it
+# ---------------------------------------------------------------------------
+#
+# `PARENT_OF` has a direction, and the canonical contract says which: the edge
+# starts at the artifact being written (store-write, step 4) and the plan's
+# write carries `PARENT_OF` to the phases (quarterly-plan, step 4) — the
+# PARENT is the source.
+#
+# MEASURED on the box (2026-11-09), on the edges the `quarterly-plan` wrote:
+# 13 of 13 `parent_of` edges carried the CHILD as the source — the hierarchy
+# upside down — while 9 of 9 `derives_from` edges carried the derived artifact
+# as the source, which is the right way round. Two sentences a step apart said
+# "the source is the artifact being written" and "PARENT_OF to the phases", and
+# the agent read the second as "the child points at its parent". The relation
+# is append-only, so the thirteen edges stay in the graph.
+#
+# The repair is prose: ONE sentence that admits a single reading, in the
+# canonical contract and in every copy the agent loads. This holds it there.
+RELATION_DIRECTION_PHRASE = "the direction of an edge is the direction of its name"
+
+
+def test_the_relation_direction_is_stated_where_the_agent_reads_it() -> None:
+    """`PARENT_OF` runs from the parent to the child, and every copy says so.
+
+    The canonical contract (SKILL-SPECS.md) wins over the projection
+    (router.md §1), so the sentence has to be in BOTH — and in the projection
+    of each routine that writes edges, because the agent loads a routine's
+    skill and not the whole contract.
+
+    Falsification: remove the sentence from any of the three files and this
+    test fails.
+    """
+    sources = {
+        "specs/harness/SKILL-SPECS.md": "the canonical contract",
+        "specs/harness/skills/store-write/SKILL.md": "the write projection",
+        "specs/harness/skills/quarterly-plan/SKILL.md": "the quarterly projection",
+    }
+    missing: list[str] = []
+    for relative, what in sources.items():
+        path = REPO_ROOT / relative
+        if not path.exists():
+            missing.append(f"{relative} (missing)")
+            continue
+        text = path.read_text(encoding="utf-8").replace("\r\n", "\n").lower()
+        if RELATION_DIRECTION_PHRASE not in text:
+            missing.append(f"{relative} ({what})")
+
+    assert not missing, (
+        "the direction of the relations is not stated in: " + ", ".join(missing)
+    )
