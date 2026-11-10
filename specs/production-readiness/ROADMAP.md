@@ -419,6 +419,21 @@ a do SDK**. Do lado do cliente, o `HarnessError` transporta o status — sem ele
 "recusada" e "falhou" eram a mesma frase — e o guard em
 `test_bot_harness_refusal.py` prende a frase do dono.
 
+**E no box, depois do deploy** (2026-11-10, 15:37:11Z–15:37:19Z, imagem
+`sha-8b4aec37`): o **mesmo** A/B, a mesma rotina, o mesmo intervalo de 4 s.
+
+| | pedido A (o primeiro) | pedido B (4 s depois) |
+|---|---|---|
+| resposta | **HTTP 200**, `ok: true`, 8 053 ms | **HTTP 409** — *"the session is busy: the routine did not start"* / *"another routine is running in this session; wait for it to finish and send "store-read" again"* |
+| os eventos | `routine.started` → `routine.finished` | **`routine.refused`** — e **nenhum** `routine.started` |
+| a saúde | `live_sessions: 1`, `busy_sessions: 1`, e o `/v1/session` diz **`busy: true`** | — |
+| o store | 1 974 | 1 974 |
+
+⇒ A recusa é do **produto**, com a frase do produto, e o log conta **um
+arranque** — não dois. O `routine.failed` do SDK já não aparece: o que
+aparece é `routine.refused`, e o turno que estava a correr terminou
+normal (200, 8 053 ms), intacto.
+
 ### 5.3 O que a medição deixou por medir
 
 **O `monthly-review` e o `quarterly-plan` já não estão à espera.** O
