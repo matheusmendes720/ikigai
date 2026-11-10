@@ -560,6 +560,9 @@ deploy/secrets/
 !/code-docs/adr/ADR-041-runtime-routing-and-human-in-the-loop.md
 # The routing table in the repository, and the harness's own gate (ADR-042).
 !/code-docs/adr/ADR-042-routing-table-in-the-repository.md
+# The write-back: the store writes the prose, and the prose never rewrites the
+# store (ADR-043).
+!/code-docs/adr/ADR-043-vault-write-back.md
 
 # The dated audits and plans of the system that was replaced.
 /docs/diagnostics/
