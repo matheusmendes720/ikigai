@@ -47,6 +47,7 @@ if str(REVIEW_SCRIPTS) not in sys.path:
 import code_review  # noqa: E402
 from code_review_checks import _manager_prefix  # noqa: E402
 from code_review_model import CheckResult, CheckStatus  # noqa: E402
+from code_review_model import run as code_review_run  # noqa: E402
 from code_review_topology import PACKAGES, ROOT_ENV_PACKAGE  # noqa: E402
 
 
@@ -149,6 +150,64 @@ def test_the_root_bucket_names_no_environment_the_tree_lacks() -> None:
     assert not joined.strip().endswith(("mypy", "ruff", "pytest")), (
         f"the root bucket runs a bare tool name ({joined}), so the tool comes "
         "from the reviewer's shell instead of from a published environment."
+    )
+
+
+def test_no_package_runs_a_bare_tool_name() -> None:
+    """No package may reach for a tool the reviewer's shell happens to have.
+
+    The `ruff-only` packages used to run a bare `ruff`. The review job
+    installs no Ruff — only the quality-gates matrix does, in its own step —
+    so the whole review died with `FileNotFoundError: 'ruff'` and the log
+    showed a traceback where the report should have been.
+
+    The rule is the same for every package: the tool comes from an
+    environment the tree publishes, through that environment's interpreter.
+    The Ruff the lock pins (`ruff==0.17.3`) is the very Ruff the matrix
+    installs, so the review measures the version the gate measures.
+    """
+    offenders: list[str] = []
+
+    for spec in PACKAGES:
+        prefix = _manager_prefix(spec)
+        joined = " ".join(prefix)
+
+        if not prefix:
+            offenders.append(f"{spec.name}: no environment at all")
+            continue
+        if joined.strip().endswith(("mypy", "ruff", "pytest")):
+            offenders.append(f"{spec.name}: bare tool name ({joined})")
+            continue
+        if spec.manager == "ruff-only" and "-m" not in prefix:
+            offenders.append(
+                f"{spec.name}: runs through {joined} — the tool has to come "
+                "from the published environment's interpreter"
+            )
+
+    assert not offenders, (
+        "the review asks the reviewer's shell for a tool: "
+        + "; ".join(offenders)
+        + ". A gate that depends on the PATH of whoever runs it measures a "
+        "different tree on every machine — and dies where the tool is absent."
+    )
+
+
+def test_a_missing_executable_is_a_reported_failure_not_a_crash() -> None:
+    """A tool that is not there must be REPORTED, not raise.
+
+    `subprocess.run` raises `FileNotFoundError` for an absent executable, and
+    that exception escaped every check: one missing tool took the whole
+    report down, so the checks that did run said nothing and the step ended
+    on a traceback. The `|| true` in the workflow then hid it.
+
+    A missing tool is a fact about the environment. The review reports it as
+    a failed check with the reason attached.
+    """
+    result = code_review_run(["code_review-no-such-tool-exists"])
+
+    assert result.returncode != 0, "an absent executable must not look like success"
+    assert "not found" in (result.stderr or "").lower(), (
+        "the failure does not say what was missing: " + repr(result.stderr)
     )
 
 

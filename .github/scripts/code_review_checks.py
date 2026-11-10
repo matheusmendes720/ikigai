@@ -69,6 +69,20 @@ def _manager_prefix(spec: PackageSpec | None) -> list[str]:
         return [tool("poetry"), "run"]
     if spec.manager == "uv":
         return [tool("uv"), "run"]
+    if spec.manager == "ruff-only":
+        # A `ruff-only` package has NO environment of its own: the CI matrix
+        # lints it with a pip-installed Ruff, and the published tree ships no
+        # manifest and no lock for it. Asking the reviewer's shell for a bare
+        # `ruff` therefore made the review depend on the reviewer's PATH —
+        # and the review job installs no Ruff at all, so the whole report
+        # died with `FileNotFoundError: 'ruff'`.
+        #
+        # The ONE published environment pins the very same Ruff the matrix
+        # installs (`ruff==0.17.3`, see src/ikigai/poetry.lock), so the tool
+        # runs through that interpreter — `python -m ruff` — and the review
+        # measures the version the gate measures, on every host, in every
+        # clone.
+        return [root_env_python(), "-m"]
     return []
 
 

@@ -60,12 +60,20 @@ jobs:
             --review-format \
             --gate
 
+      # The full report runs EVERY check — type, lint, format, naming, tests.
+      # It is the step that shows the whole picture, so it must not end on a
+      # traceback: `|| true` swallowed the `FileNotFoundError: 'ruff'` crash
+      # for weeks, and the job stayed green while the report never printed.
+      #
+      # The report is NOT a gate (`--gate` is absent), so a failing check
+      # inside it does not fail the job — but a CRASH now does, and that is
+      # the point: a report that could not be produced is not a green
+      # review.
       - name: Full master review report
         run: |
           python .github/scripts/code_review.py \
             --base ${{ github.base_ref }} \
-            --review-format || true
-        continue-on-error: true
+            --review-format
 
   quality-gates:
     name: Quality Gates (${{ matrix.package }})
