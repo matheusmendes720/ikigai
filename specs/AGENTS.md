@@ -1,12 +1,12 @@
 # AGENTS.md — `specs/`
 
-**15 tracked files in 9 directories — created: distinct domain.** The specs are the
+**18 tracked files in 11 directories — created: distinct domain.** The specs are the
 least derivable part of the tree: every other directory can be read off its code,
 this one can only be read off its documents.
 
 ## OVERVIEW
-`specs/` holds **15 tracked files across 9 directories**: one harness contract
-(`harness/`), one feature tech spec (`data-layer/`), one planning set
+`specs/` holds **18 tracked files across 11 directories**: one harness contract
+(`harness/`), two feature tech specs (`data-layer/`, `miniapp/`), one planning set
 (`production-readiness/`), and the seven skill projections the harness loads
 (`harness/skills/`).
 
@@ -29,6 +29,7 @@ specs/
 ├── harness/skills/<id>/SKILL.md       # 7 projections the harness loads
 │   ├── daily-note · weekly-review · monthly-review · quarterly-plan
 │   └── store-read · store-write · vault-sync
+├── miniapp/TECH.md                    # the panel inside the Telegram (ADR-044)
 └── production-readiness/
     ├── PRODUCT.md                     # what the product is, and its measured state
     ├── TECH.md                        # the plan that closes the measured gap
@@ -45,6 +46,7 @@ specs/
 | The prompts, one per role | `harness/SYSTEM-PROMPTS.md` | the roles a cold agent can hold |
 | The skill contracts | `harness/SKILL-SPECS.md` | the routines; the three engineering skills have no projection |
 | The canonical data-layer contract | `data-layer/TECH.md` | ADR-037 anchored; written before the scope cut |
+| The panel inside the Telegram | `miniapp/TECH.md` | the three routes, the credential, and how the proof is read |
 | Why a decision was made | `code-docs/adr/ADR-0*.md` | ADR-037 is the current scope decision |
 
 ## CONVENTIONS
