@@ -254,9 +254,31 @@ function piArgs(sessionId, { provider, model } = {}) {
     sessionId,
     // Extensions are OFF on purpose. `RpcClient` does not implement the
     // `extension_ui` sub-protocol, so an extension that opens a dialog would
-    // block the agent forever with nobody to answer it. The MCP client is
-    // CORE (not an extension), so the harness keeps its way into the store.
+    // block the agent forever with nobody to answer it.
+    //
+    // AND THE MCP CLIENT IS ONE OF THOSE EXTENSIONS. This comment used to say
+    // the opposite — "The MCP client is CORE (not an extension), so the
+    // harness keeps its way into the store" — and that sentence was FALSE.
+    // `pi`'s own documentation lists `builtin:mcp` among the built-in
+    // extensions and says `--no-extensions` disables them too
+    // (`docs/settings.md`), and names this exact combination as the one that
+    // keeps only MCP: "`pi -ne -e builtin:mcp` keeps only the built-in MCP
+    // support" (`docs/cli.md`).
+    //
+    // MEASURED on the box (2026-11-10), with `--no-extensions` alone: asked
+    // what it had, the agent answered "Ferramentas de um servidor MCP chamado
+    // `ikigai`: nenhuma — apenas as quatro ferramentas nativas", and a whole
+    // `daily-note` run made **480 tool calls** — 438 `bash`, 32 `read`, 9
+    // `write`, 1 `edit`, and **zero** store tools — because it had to write
+    // its own JSON-RPC client in Node to reach the store at all. That run
+    // then burned its 30-minute ceiling, wrote two decisions and no daily
+    // note, and answered `routine.failed`.
+    //
+    // So `-e builtin:mcp` is not decoration: it is the difference between an
+    // agent that HAS the six tools and one that scripts around their absence.
     "--no-extensions",
+    "-e",
+    "builtin:mcp",
     // The project configuration (`.pi/mcp.json`, `.pi/skills/`) is only read
     // after the project is trusted. Without this, the harness would start
     // with no store to talk to — and would fail with a message that says
