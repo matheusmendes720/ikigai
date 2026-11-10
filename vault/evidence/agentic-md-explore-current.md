@@ -1,7 +1,3 @@
----
-tags: [strategic]
----
-
 # Agentic Markdown System — Current State Inventory
 Generated: 2026-06-30
 Source scan: codebase + vault + .omo/plans + .omo/drafts
