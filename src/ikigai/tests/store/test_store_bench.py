@@ -24,6 +24,31 @@ Three things have to be true for a number here to mean anything:
 
 If the corpus cannot be built here, the test skips and reports that the
 number was NOT measured — an invented p95 would be worse than none.
+
+THE PENDING LIST — why the corpus is VACUUMED, and not only ANALYSED
+
+The migrations run first and the seed second, so the GIN index already exists
+when the corpus is written: every row of the corpus lands in the index's
+PENDING LIST instead of in the index itself. The pending list is merged into
+the index by a VACUUM, and until it is merged the planner prices a scan of
+that index as if it had to read the whole list — so it refuses the index and
+answers the search with a scan of the table.
+
+Measured on this corpus, the same query, before and after the VACUUM:
+
+    before:  Seq Scan on artifacts                    (cost=0.00..507.00)
+              index: 138 pages                        execution: 8,3 ms
+    after:   Bitmap Index Scan on ix_artifacts_search_vector  (cost=0.00..21.54)
+              index: 220 pages                        execution: 1,7 ms
+
+Both answers are correct and both are fast. Only one of them is the search
+the indexes exist for, and what separates them is not the corpus — it is
+whether the index was settled before anybody asked.
+
+This is what production looks like: the migration builds the index over the
+rows that ALREADY EXIST, and a CREATE INDEX writes them straight into the
+index rather than into a pending list. The store's index is settled the
+moment the migration commits.
 """
 
 from __future__ import annotations
@@ -168,7 +193,7 @@ def _seed(dsn: str) -> None:
         conn.execute(
             "update ikig.artifacts set embedding = "
             "(('[' || array_to_string(array_fill((mod(hashtext(uid), 100) / 100.0)::float8, "
-            f"array[1536]), ',') || ']'))::vector "
+            "array[1536]), ',') || ']'))::vector "
             "where uid ~ '^kpi:bench-[0-9]+:' "
             "and (split_part(split_part(uid, ':', 2), '-', 2)::int % "
             + str(EMBEDDED_EVERY)
@@ -180,6 +205,26 @@ def _seed(dsn: str) -> None:
         # this in the deployment; the bench has to do it itself, or it
         # measures a planner that has never seen the corpus it searches.
         conn.execute("analyze ikig.artifacts")
+        # And it is VACUUMED, which is a different thing and matters more
+        # than it looks.
+        #
+        # The corpus was written AFTER the index was created, so it is all
+        # in the GIN's pending list — and the planner prices an index with a
+        # pending list as if it had to read the whole list. It therefore
+        # refuses the index and scans the table: the search still answers,
+        # still fast, but not through the index the store was given.
+        #
+        # The VACUUM merges the pending list into the index (measured on this
+        # corpus: the index grows from 138 to 220 pages) and the planner
+        # picks the index again. This is what production looks like — the
+        # migration builds the index over the rows that already exist, and
+        # a CREATE INDEX writes them straight into the index.
+        conn.commit()
+        conn.autocommit = True
+        try:
+            conn.execute("vacuum (analyze) ikig.artifacts")
+        finally:
+            conn.autocommit = False
 
 
 @requires_store
@@ -300,8 +345,86 @@ async def test_the_planner_uses_an_index(store_dsn: str) -> None:
                 f"the {name} search scans the table instead of using an index: "
                 f"a search that greps the vault is what the indexes exist to prevent"
             )
-            assert "Index Scan" in plan, (
-                f"the {name} search used no index at all: {plan}"
+            assert "Index Scan" in plan, f"the {name} search used no index at all: {plan}"
+    finally:
+        await client.close()
+
+
+@requires_store
+async def test_the_search_never_recomputes_the_vector(store_dsn: str) -> None:
+    """The vector is READ at query time, never recomputed.
+
+    The plan that made this product slow was a scan that recomputed
+    `to_tsvector()` — the Portuguese stemmer — over the body of every row it
+    visited: 20 069 ms to stem 1 990 bodies, against 60 ms for the titles
+    alone. The materialized column (`0009`) is what makes that plan
+    impossible, and this is the assertion that says so BEHAVIOURIALLY:
+    whatever plan the planner picks — index, bitmap, scan — the vector is
+    read, never computed.
+
+    A test that reads the migration as text can be satisfied by a perfect
+    migration and a query that asks for the expression anyway. This one asks
+    the server what it actually did, on the SQL the repository sends.
+    """
+    from src.data.client import DataClient
+    from src.data.repository import ArtifactRepository
+
+    client = DataClient(store_dsn)
+    try:
+        searches = {
+            "structured": (
+                SearchQuery(kinds=(ArtifactKind.KPI,), quarter="Q4-2026", limit=20),
+                None,
+            ),
+            "full-text": (SearchQuery(text="benchmark numero", limit=20), None),
+            "semantic": (
+                SearchQuery(text="texto de benchmark numero", semantic=True, limit=20),
+                _query_vector("texto de benchmark numero"),
+            ),
+        }
+        for name, (query, embedding) in searches.items():
+            recorder = _RecordingClient(client)
+            repo = ArtifactRepository(recorder)
+            await repo.search(query, embedding=embedding)
+            assert recorder.calls, f"the {name} search sent no SQL"
+            sql, params = recorder.calls[0]
+            rows = await client.execute(f"explain (analyze) {sql}", params)
+            plan = "\n".join(str(row["QUERY PLAN"]) for row in rows)
+            print(f"--- the {name} search's plan ---\n{plan}", flush=True)
+            assert "to_tsvector(" not in plan, (
+                f"the {name} search recomputes the vector instead of reading it: "
+                f"that is the scan that cost 20 069 ms of stemming over the vault"
             )
+    finally:
+        await client.close()
+
+
+@requires_store
+async def test_the_store_carries_the_search_index(store_dsn: str) -> None:
+    """The GIN over the column is IN THE STORE, not only in the migration file.
+
+    The plan above is only possible if the index exists — and the plan is
+    the only thing that proves it is USED. A migration that says it creates
+    a GIN over the column, and a store where that index is absent, is a
+    store whose searches are greps with extra steps. The catalogue is where
+    the difference shows.
+    """
+    from src.data.client import DataClient
+
+    client = DataClient(store_dsn)
+    try:
+        rows = await client.execute(
+            "select indexdef from pg_indexes "
+            "where schemaname = 'ikig' and tablename = 'artifacts' "
+            "and indexname = 'ix_artifacts_search_vector'"
+        )
+        assert rows, (
+            "the store has no ix_artifacts_search_vector: every full-text search "
+            "is a scan of the table"
+        )
+        definition = str(rows[0]["indexdef"]).lower()
+        assert "using gin (search_vector)" in definition, (
+            f"the search index is not a GIN over the column: {definition}"
+        )
     finally:
         await client.close()
