@@ -429,6 +429,42 @@ one, and the store held **1 974 artifacts before and 1 974 after**. The claim th
 measurement is the narrow one: **the agent of THIS run is gone**, so the note it was writing
 never arrives.
 
+**WHAT G8 WAS MEASURED AGAINST.** On the box, 2026-11-10, with the deployed stack and the bot
+stopped for the duration (the bot announces every change that is not its own to the owner's
+Telegram, and a probe's writes would read as the owner's work). Two `WebSocketClient`s — the
+published one, not a probe's own socket — subscribed to `ws://ws:8001/sync`, and the writes went
+through the **same path the phone uses**: `McpClient` plus `_write_arguments` from
+`src/bot/main.py`, the same envelope and the same contract.
+
+| what the gate asks | what was measured |
+|---|---|
+| a write from the phone appears on the desktop through the ws | **yes** — 3 writes, 3 events, on both clients |
+| neither reorders | `seq` `[10589, 10590, 10591]` on BOTH clients, strictly increasing, no duplicates |
+| the two clients agree | the **same** uid list and the **same** `seq` list |
+| the gap closes after a disconnect | desktop parked at 10591, 2 writes missed, reconnect → `[10592, 10593]`, in order, nothing repeated |
+| the store is left as it was | **1 974 artifacts before and 1 974 after** |
+
+The latency measured from the moment the phone DECIDES to write is **84–95 ms** on a warm path
+(the first write of a burst pays ~1 200 ms, which is the pool and the MCP handshake warming up,
+not the feed). And the event lands **42–56 ms BEFORE the write's own HTTP answer returns** — the
+`NOTIFY` travels with the write, the answer has further to go. A client that waited for its own
+answer before telling anyone would be slower than the store already is.
+
+**THE TIP IS THE STORE'S `max(seq)`, AND THAT IS WHAT MAKES `lost` HONEST.** The `hello` frame
+and the `resume` answer both report the tip, and on a healthy stack they agree with
+`select max(seq) from ikig.artifact_events` — measured: `hello` 10511, `resume.tip` 10511,
+`max(seq)` 10511. The log is PRUNED rather than gap-free (it kept 79 rows spanning `seq` 951 to
+10 511), which is exactly why `resume` answers `floor` and `lost` beside the events: a `since`
+below the floor is a client that missed something the store already forgot, and that is a
+different answer from "nothing happened". A probe that asks `resume since=0` on this log gets
+`lost: true` — correctly, and it must not be read as a defect.
+
+**WHAT G8 DOES *NOT* CLAIM.** One Telegram `chat_id` is one conversation on every device; there
+is no `device_id` in a message update (§7). So "the phone and the desktop converge" is measured
+on two **websocket clients of the store**, which is the part the ws owns. The part that needs a
+second physical device — the same chat writing from two phones — is the owner's half, like the
+Stop button in G7.
+
 ---
 
 ## 12. Decisions that are not mine to take
