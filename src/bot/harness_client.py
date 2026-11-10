@@ -58,7 +58,17 @@ class HarnessError(RuntimeError):
 
     The message is what the owner reads when a routine dies, so it names the
     cause the harness gave — not "something went wrong".
+
+    The STATUS is the other half, and it is what tells a REFUSAL from a
+    FAILURE: a busy session answers 409 (a conflict with the state of the
+    session), and the request is fine — it just has to wait for the turn that
+    is running. "A rotina foi recusada" and "a rotina falhou" are different
+    sentences, and the owner acts differently on each.
     """
+
+    def __init__(self, message: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
 
 
 class HarnessClient:
@@ -286,5 +296,8 @@ class HarnessClient:
         if response.status_code >= 400:
             error = str(body.get("error") or f"HTTP {response.status_code}")
             detail = str(body.get("detail") or "").strip()
-            raise HarnessError(f"{error} ({detail})" if detail else error)
+            raise HarnessError(
+                f"{error} ({detail})" if detail else error,
+                status=response.status_code,
+            )
         return body

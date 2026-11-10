@@ -49,6 +49,7 @@ import {
   routeClient,
 } from "./runtimes.mjs";
 import { createStopSignal, requestStop, stoppedRun } from "./stop.mjs";
+import { sessionBusyRefusal } from "./refusal.mjs";
 
 // ── configuration ────────────────────────────────────────────────────────────
 // Everything is an environment variable: this file ships in a container and a
@@ -584,6 +585,34 @@ async function runRoutine({
   const timeout = Math.min(Number(timeout_ms) || RUN_TIMEOUT_MS, RUN_TIMEOUT_MS);
 
   const entry = await acquire(sessionId, runtime);
+
+  // THE REFUSAL, DECLARED. A session has a turn in flight: a second routine
+  // does not wait, and does not interrupt — it is refused HERE, before the
+  // agent is called, with the harness's own status and sentence.
+  //
+  // Measured on the box (2026-11-10, 11:44:41Z-11:45:27Z): the agent's SDK
+  // refused the second prompt ("Agent is already processing..."), the harness
+  // turned that into a 502, and the SDK's prompt wrote `routine.started` for
+  // a request that never ran — the log counted two starts and one finish.
+  //
+  // The refusal is now OURS: the status (409), the sentence and the event
+  // (`routine.refused`) are the product's, and the turn that is running is
+  // not touched — the count below is never incremented for a refusal, and
+  // the refusal is not a `routine.failed`.
+  if (entry.turns > 0) {
+    const refusal = sessionBusyRefusal(routine);
+    memory.logEvent({
+      kind: "routine.refused",
+      key: routine,
+      session: sessionId,
+      payload: { chat_id, runtime: runtime.id, client: clientKey, reason: refusal.detail },
+    });
+    throw Object.assign(new Error(refusal.error), {
+      status: refusal.status,
+      detail: refusal.detail,
+    });
+  }
+
   // THE TURN IS COUNTED, not flagged: a request that is REFUSED must not
   // release the mark of the turn that is running (see the counter's note in
   // `acquire`).
@@ -944,10 +973,14 @@ const server = createServer(async (req, res) => {
       const client = String(url.searchParams.get("client") || "");
       const routed = routeClient(registry, client);
       const sessionId = sanitiseSessionId(client || "anon-0");
+      // The session's own truth: is a routine running in it RIGHT NOW? A
+      // client that cannot see that will ask anyway, and be refused.
+      const entry = sessions.get(sessionId);
       return json(res, 200, {
         client,
         session_id: sessionId,
         runtime: describeRuntime(routed.runtime, [...routines.keys()]),
+        busy: Boolean(entry && entry.turns > 0),
         questions: owner.pending(sessionId),
       });
     }

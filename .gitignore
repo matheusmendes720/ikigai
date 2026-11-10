@@ -491,6 +491,8 @@ vault/.db
 # The clock and the table: a next-run that is off by an hour, and a Markdown
 # table the client renders as debris. Both are wrong without a socket too.
 !/src/ikigai/tests/test_bot_cadence.py
+# A recusa e a falha: uma rotina recusada nao e uma rotina que falhou.
+!/src/ikigai/tests/test_bot_harness_refusal.py
 # The deploy's SHAPE — the script it carries, the retry, the key. Every
 # failure this pipeline had was a failure of shape, not of logic.
 !/src/ikigai/tests/test_deploy_transport.py

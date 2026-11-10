@@ -104,7 +104,7 @@ from src.bot.channel import (
     question_text,
 )
 from src.bot.draft import REFRESH_S, Draft, Drafts
-from src.bot.harness_client import DEFAULT_TIMEOUT_S, HarnessClient
+from src.bot.harness_client import DEFAULT_TIMEOUT_S, HarnessClient, HarnessError
 from src.bot.rich import markdown_table, plain_table, report_markdown, rich_payload
 from src.bot.router import callback_data, parse_callback, route
 from src.bot.ws_client import WebSocketClient
@@ -161,6 +161,13 @@ MINIAPP_PORT_ENV = "IKIGAI_MINIAPP_PORT"
 #: arrive: an agent that is slow, or down, must produce a line that says so
 #: — not a greeting that never comes.
 HANDSHAKE_TIMEOUT_S = 10.0
+
+#: The status the harness answers when a routine is REFUSED because the
+#: session is busy. It is the harness's own contract
+#: (`deploy/harness/refusal.mjs`), and the bot reads it to say "recusada"
+#: instead of "falhou" — the request did not run, and the owner is told to
+#: try again, not that the routine broke.
+HARNESS_BUSY_STATUS = 409
 
 #: How often the bot looks at the agent's log for a question the agent asked.
 #: It is a poll, not a push: the harness is a process behind a socket, and a
@@ -1304,6 +1311,15 @@ class Bot:
             # stop handler sends: a cancelled run did not FAIL, and saying
             # it failed would be a lie about the agent.
             raise
+        except HarnessError as exc:
+            # A REFUSAL is not a failure. The session was busy: the request
+            # did not run, and the owner is told to try again — "falhou"
+            # would be a lie about a routine that never started.
+            if exc.status != HARNESS_BUSY_STATUS:
+                await self._send(chat_id, f"A rotina {routine} falhou: {exc}")
+                return
+            await self._send(chat_id, _refused_message(routine))
+            return
         except Exception as exc:
             # A routine that dies in the background is a routine that never
             # happened. The owner is told WHY.
@@ -1352,6 +1368,15 @@ class Bot:
             await asyncio.sleep(max(wait, 1.0))
             try:
                 await self._run_cadence(cadence)
+            except HarnessError as exc:
+                if exc.status != HARNESS_BUSY_STATUS:
+                    print(f"cadence failed: {exc}", file=sys.stderr)
+                    await self._send(cadence.chat_id, f"A rotina {cadence.routine} falhou: {exc}")
+                    return
+                # A cadence that was refused is not a cadence that failed:
+                # the session was busy, and the night is not lost.
+                print(f"cadence refused: {exc}", file=sys.stderr)
+                await self._send(cadence.chat_id, _refused_message(cadence.routine))
             except Exception as exc:  # a nightly failure must not be silent
                 print(f"cadence failed: {exc}", file=sys.stderr)
                 await self._send(cadence.chat_id, f"A rotina {cadence.routine} falhou: {exc}")
@@ -1585,6 +1610,19 @@ def _catalogue() -> str:
     for routine, description in ROUTINES.items():
         lines.append(f"/{routine} [texto] — {description}")
     return "\n".join(lines)
+
+
+def _refused_message(routine: str) -> str:
+    """What the owner reads when a routine is REFUSED, not failed.
+
+    The harness said why (the session is busy) and what to do (wait, then ask
+    again); this is the same thing in the owner's language. The harness's own
+    sentence stays in the log, where the operator reads it.
+    """
+    return (
+        f"A rotina {routine} foi recusada — a sessão já tem outra rotina a correr. "
+        "Espera que ela termine e pede outra vez."
+    )
 
 
 def _render_routine(routine: str, result: dict[str, Any]) -> str:
