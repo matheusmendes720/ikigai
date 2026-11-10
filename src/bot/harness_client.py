@@ -87,6 +87,7 @@ class HarnessClient:
         context: dict[str, Any] | None = None,
         date: str | None = None,
         client: str | None = None,
+        client_run_id: str | None = None,
     ) -> dict[str, Any]:
         """Run a routine and wait for the agent's report.
 
@@ -100,6 +101,11 @@ class HarnessClient:
         answers it. It is the same key as the session, today — `tg:<chat_id>`
         — but it is sent separately because the two are different things: the
         session is the conversation, the client is the door.
+
+        `client_run_id` NAMES this run. A chat is one session, so every
+        routine the owner starts in it shares the session key — and a Stop
+        from a preview that is already over would land on the NEXT routine of
+        that chat and kill it. The name is what says which run a stop means.
         """
         payload: dict[str, Any] = {
             "routine": routine,
@@ -116,11 +122,15 @@ class HarnessClient:
             payload["client"] = client
         if context:
             payload["context"] = context
+        if client_run_id:
+            payload["client_run_id"] = client_run_id
         return await self._post("/v1/routine", payload)
 
     async def cancel_routine(
         self,
         session_id: str,
+        *,
+        client_run_id: str | None = None,
         timeout_s: float = CANCEL_TIMEOUT_S,
     ) -> dict[str, Any]:
         """Stop a routine that is running.
@@ -130,11 +140,18 @@ class HarnessClient:
         stops listening. So a stop has to reach the harness, or the owner
         cancels a routine that goes on to write the note they cancelled.
 
+        `client_run_id` names the run to stop, and it is the same name the
+        run was started with. Without it, a stop that arrives late would
+        stop whatever this session happens to be running — which, in a chat
+        that runs a routine every night, is the NEXT one.
+
         The answer says whether there WAS something to stop: a stop that
         arrives after the run is over cancels nothing, and the owner is told
         so rather than being given a stop that stopped nothing.
         """
-        payload = {"session_id": session_id}
+        payload: dict[str, Any] = {"session_id": session_id}
+        if client_run_id:
+            payload["client_run_id"] = client_run_id
         return await self._post("/v1/routine/cancel", payload, timeout_s=timeout_s)
 
     async def route(self, client: str, timeout_s: float | None = None) -> dict[str, Any]:

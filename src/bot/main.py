@@ -903,7 +903,13 @@ class Bot:
         harness = self._harness
         if harness is not None:
             try:
-                await harness.cancel_routine(self._client_key(chat_id))
+                # The NAME of the run being stopped — the same name it was
+                # started with. A chat is ONE session, so a stop without the
+                # name would land on whatever this session runs next.
+                await harness.cancel_routine(
+                    self._client_key(chat_id),
+                    client_run_id=str(draft.draft_id),
+                )
             except Exception as exc:
                 # The owner asked for a stop and the harness did not take it.
                 # The bot says so — silently claiming a stop that did not
@@ -1287,6 +1293,11 @@ class Bot:
                 # because the two are different things — the session is the
                 # conversation, the client is the door.
                 client=self._client_key(chat_id),
+                # The NAME of this run: the preview's id. The Stop carries
+                # it, so the harness knows which run the owner meant — a chat
+                # is one session, and a stop that arrives late must not kill
+                # the NEXT routine of that chat.
+                client_run_id=str(draft.draft_id) if draft is not None else None,
             )
         except asyncio.CancelledError:
             # The owner pressed Stop. The message they get is the one the

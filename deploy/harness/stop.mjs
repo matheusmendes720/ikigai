@@ -23,6 +23,40 @@
  */
 
 /**
+ * The signal a run waits on.
+ *
+ * WHY A RUN CANNOT LEARN ABOUT A STOP BY WAITING: the agent's turn is an
+ * EVENT. The SDK settles `promptAndWait` when the agent says it is done
+ * (`agent_settled`), and a KILLED agent never says it — the process is gone,
+ * so the event is never emitted. Measured on the box (2026-11-09): a run that
+ * was stopped answered nothing for 20 minutes, until the run's own ceiling
+ * rejected the collection, and the harness's event log said "started" and
+ * never said "cancelled".
+ *
+ * So the stop has to be TOLD to the run, and this is the telling: a promise
+ * that resolves when the stop arrives, which the run races against its turn.
+ */
+export function createStopSignal() {
+  const waiters = new Set();
+  let fired = false;
+  return {
+    /** What the run waits on. It resolves when the stop arrives. */
+    promise: new Promise((resolve) => {
+      waiters.add(resolve);
+    }),
+    /** Has it fired? */
+    fired: () => fired,
+    /** Fire it: every waiter settles, and it never fires twice. */
+    fire() {
+      if (fired) return;
+      fired = true;
+      for (const resolve of waiters) resolve();
+      waiters.clear();
+    },
+  };
+}
+
+/**
  * A stop was asked for. What it means, and whether it marked anything.
  *
  * `entry` is the session — the live `pi` process and the turn in flight. It
@@ -34,8 +68,16 @@
  * cleared by a request that was REFUSED, and a session that was busy a
  * moment ago must not look idle now (the reaper kills idle sessions, and
  * it once killed a live agent mid-write because of exactly that).
+ *
+ * `runToken` names the RUN the stop is for. It is not decoration: a chat is
+ * ONE session, so every routine the owner starts in it shares the session
+ * key. A Stop button from a preview that is already over would therefore
+ * land on the NEXT routine of that chat and kill it — the owner pressed
+ * Stop on the daily-note and the weekly-review died instead. The token is
+ * what says which run the owner meant, and a stop that names no live run
+ * changes nothing.
  */
-export function requestStop(entry) {
+export function requestStop(entry, runToken) {
   if (!entry) {
     return { cancelled: false, reason: "there is no session for that key" };
   }
@@ -44,7 +86,18 @@ export function requestStop(entry) {
     // session — a stop that arrives late must not cancel tomorrow.
     return { cancelled: false, reason: "nothing was running" };
   }
+  const wanted = normaliseToken(runToken);
+  const live = entry.runTokens || new Map();
+  if (!live.has(wanted)) {
+    // The run this stop names is not the one in flight: it is over, or it
+    // never was. Nothing to stop.
+    return { cancelled: false, reason: "the run it names is not the one in flight" };
+  }
   entry.cancelled = true;
+  // Tell the runs that are waiting. The agent's turn will never settle on
+  // its own — a killed agent does not say it is done — so this is the only
+  // way they learn that they were stopped.
+  for (const stop of entry.stops || []) stop.fire();
   return { cancelled: true, reason: "the run was stopped" };
 }
 
@@ -64,4 +117,17 @@ export function stoppedRun(entry, failure) {
     error: "the routine was cancelled",
     detail: failure || null,
   };
+}
+
+/**
+ * A token, or nothing.
+ *
+ * A run without a token is a run that cannot be named: it is the run of a
+ * client that does not name its runs (the cadence), and its token is `null`
+ * — which is a token like any other. Equality is what decides, so a
+ * token-less stop matches a token-less run and nothing else.
+ */
+function normaliseToken(raw) {
+  if (raw === undefined || raw === null || raw === "") return null;
+  return String(raw);
 }
