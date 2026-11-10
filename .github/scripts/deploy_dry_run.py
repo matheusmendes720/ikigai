@@ -58,9 +58,7 @@ def build(script: str, repo_path: str, image: str, harness_image: str) -> str:
 
 def main() -> None:
     if len(sys.argv) < 5:
-        raise SystemExit(
-            f"usage: {sys.argv[0]} IN.sh OUT.sh REPO_PATH IMAGE HARNESS_IMAGE"
-        )
+        raise SystemExit(f"usage: {sys.argv[0]} IN.sh OUT.sh REPO_PATH IMAGE HARNESS_IMAGE")
     source = Path(sys.argv[1]).read_text(encoding="utf-8")
     out = Path(sys.argv[2])
     script = build(source, sys.argv[3], sys.argv[4], sys.argv[5])

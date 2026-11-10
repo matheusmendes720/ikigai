@@ -16,9 +16,9 @@ Environment:
     PROJECT_NUMBER — the GitHub Project number (find in project URL)
 """
 
+import argparse
 import os
 import sys
-import argparse
 from pathlib import Path
 
 try:
@@ -61,31 +61,29 @@ def sync_labels():
     labels_file = Path(__file__).parent.parent / "labels.yml"
 
     import yaml
+
     with open(labels_file) as f:
         labels_def = yaml.safe_load(f)
 
-    existing = {l.name for l in repo.get_labels()}
+    existing = {lbl.name for lbl in repo.get_labels()}
     for label in labels_def:
         name = label["name"]
         if name in existing:
             print(f"  [exists] {name}")
         else:
             repo.create_label(
-                name=name,
-                color=label["color"].lstrip("#"),
-                description=label["description"]
+                name=name, color=label["color"].lstrip("#"), description=label["description"]
             )
             print(f"  [created] {name}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="GitHub Project Board Manager")
-    parser.add_argument("--assign-issue", type=int, metavar="N",
-                        help="Issue number to assign")
-    parser.add_argument("--to-column", metavar="COL",
-                        help="Column name to move issue to")
-    parser.add_argument("--sync-labels", action="store_true",
-                        help="Sync labels from labels.yml to repo")
+    parser.add_argument("--assign-issue", type=int, metavar="N", help="Issue number to assign")
+    parser.add_argument("--to-column", metavar="COL", help="Column name to move issue to")
+    parser.add_argument(
+        "--sync-labels", action="store_true", help="Sync labels from labels.yml to repo"
+    )
     args = parser.parse_args()
 
     if args.sync_labels:

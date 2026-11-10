@@ -17,12 +17,10 @@ Requires: GitPython
 
 from __future__ import annotations
 
-import os
-import sys
 import argparse
 import subprocess
+import sys
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[2]  # repo root
 WORKTREE_DIR = ROOT.parent / "life-worktrees"  # parent dir for all worktrees
@@ -55,8 +53,7 @@ def cmd_add(name: str, branch: str | None, path: Path | None):
         run(["git", "checkout", "--orphan", branch], cwd=ROOT)
 
     result = run(
-        ["git", "worktree", "add", "--checkpoint", "-b", branch, str(worktree_path)],
-        cwd=ROOT
+        ["git", "worktree", "add", "--checkpoint", "-b", branch, str(worktree_path)], cwd=ROOT
     )
     if result.returncode != 0:
         print(f"[ERROR] Failed to add worktree: {result.stderr}", file=sys.stderr)
@@ -67,7 +64,7 @@ def cmd_add(name: str, branch: str | None, path: Path | None):
     if uv_result.returncode != 0:
         print(f"[WARN] uv sync failed in worktree: {uv_result.stderr}", file=sys.stderr)
     else:
-        print(f"  uv sync complete")
+        print("  uv sync complete")
 
     print(f"[OK] Worktree '{name}' created at {worktree_path}")
     return 0
@@ -90,7 +87,15 @@ def cmd_remove(name: str):
 def cmd_prune():
     """Prune stale worktree references."""
     result = run(["git", "worktree", "prune"], cwd=ROOT)
-    print(f"[OK] Pruned stale worktree entries")
+    # The exit code was thrown away and "[OK]" was printed either way: a
+    # failed prune was reported as a success.
+    if result.returncode != 0:
+        print(
+            f"[ERROR] Failed to prune stale worktree entries: {result.stderr.strip()}",
+            file=sys.stderr,
+        )
+        return 1
+    print("[OK] Pruned stale worktree entries")
     return 0
 
 
@@ -99,9 +104,12 @@ if __name__ == "__main__":
     parser.add_argument("--list", action="store_true", help="List all worktrees")
     parser.add_argument("--add", metavar="NAME", help="Add a new worktree")
     parser.add_argument("--remove", metavar="NAME", help="Remove a worktree by name")
-    parser.add_argument("--branch", metavar="BRANCH", help="Branch name for --add (default: feature/worktree-NAME)")
-    parser.add_argument("--path", metavar="PATH", type=Path,
-                        help="Path for --add (default: ../life-worktrees/NAME)")
+    parser.add_argument(
+        "--branch", metavar="BRANCH", help="Branch name for --add (default: feature/worktree-NAME)"
+    )
+    parser.add_argument(
+        "--path", metavar="PATH", type=Path, help="Path for --add (default: ../life-worktrees/NAME)"
+    )
     parser.add_argument("--prune", action="store_true", help="Prune stale worktree references")
     args = parser.parse_args()
 

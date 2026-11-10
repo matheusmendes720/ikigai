@@ -30,14 +30,12 @@ Requires:
 
 from __future__ import annotations
 
-import os
-import sys
-import json
-import subprocess
 import argparse
+import json
+import os
+import subprocess
+import sys
 from pathlib import Path
-from dataclasses import dataclass
-
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -108,7 +106,7 @@ subsystem/docs
     },
     {
         "title": "operational: Implement pav habit sync --tw command",
-        "body": """## Description
+        "body": r"""## Description
 Add a new CLI command `pav habit sync --tw` that exports habit streaks to Taskwarrior as UDAs.
 
 ## Proposed CLI
@@ -254,11 +252,14 @@ def gh_graphql(query: str, variables: dict | None = None) -> dict:
 
 def get_repo_node_id(owner: str, repo: str) -> str:
     """Get the repository's node ID."""
-    data = gh_graphql("""
+    data = gh_graphql(
+        """
     query($owner: String!, $repo: String!) {
       repository(owner: $owner, name: $repo) { id }
     }
-    """, {"owner": owner, "repo": repo})
+    """,
+        {"owner": owner, "repo": repo},
+    )
     return data["data"]["repository"]["id"]
 
 
@@ -266,37 +267,44 @@ def create_project_board(name: str, owner: str, repo: str) -> str:
     """Create a GitHub Project V2 board and return its URL."""
     repo_node_id = get_repo_node_id(owner, repo)
 
-    data = gh_graphql("""
+    data = gh_graphql(
+        """
     mutation($ownerId: ID!, $title: String!) {
       createProjectV2(input: {ownerId: $ownerId, title: $title}) {
         projectV2 { id number url }
       }
     }
-    """, {"ownerId": repo_node_id, "title": name})
+    """,
+        {"ownerId": repo_node_id, "title": name},
+    )
 
     proj = data["data"]["createProjectV2"]["projectV2"]
     return f"https://github.com/{owner}/{repo}/projects/{proj['number']}"
 
 
 def add_project_fields(project_url: str) -> None:
-    """Add XP-aligned custom fields to a project via GraphQL."""
-    # Extract project ID from URL
+    """Name the board whose custom fields have to be created by hand.
+
+    The fields need project-admin rights that the API does not grant to this
+    token, so this script does not create them: it names the board and the
+    three clicks.
+
+    The URL is https://github.com/<owner>/<repo>/projects/<number> — the
+    owner is the FOURTH part from the end and the repository the third. They
+    used to be read the other way round, and the GraphQL lookup that stood
+    here asked for the repository as if it were a user login — and then threw
+    the answer away. The lookup is gone with the bug: it cost an API call
+    and its result was never read.
+    """
     parts = project_url.rstrip("/").split("/")
     number = parts[-1]
-    owner = parts[-3]
-    repo = parts[-4]
-
-    # Get project node ID
-    data = gh_graphql("""
-    query($owner: String!, $number: Int!) {
-      projectV2(number: $number) { id }
-      user(login: $owner) { projectV2(number: $number) { id } }
-    }
-    """, {"owner": owner, "number": int(number)})
+    owner = parts[-4]
+    repo = parts[-3]
 
     # Note: Full field creation requires project admin rights
     # Use the web UI or gh project edit for field creation
     sys.stderr.write("Note: Create custom fields manually via the web UI:\n")
+    sys.stderr.write(f"  Board: {owner}/{repo} — project {number}\n")
     sys.stderr.write("  Settings > Fields > New field\n")
     sys.stderr.write("  Required: Status (Single select), Priority (Single select),\n")
     sys.stderr.write("            Size (Number), Domain (Single select), Sprint (Iteration)\n")
@@ -307,16 +315,18 @@ def setup_wiki_submodule() -> int:
     wiki_dir = ROOT / "docs" / "wiki"
 
     if wiki_dir.exists():
-        sys.stderr.write(f"docs/wiki/ already exists. Skip.\n")
+        sys.stderr.write("docs/wiki/ already exists. Skip.\n")
         return 0
-
-    wiki_url = f"https://github.com/matheusmendes720/ikigai.wiki.git"
 
     sys.stderr.write("Note: The wiki repository (ikigai.wiki.git) must be initialized first.\n")
     sys.stderr.write("  1. Go to: https://github.com/matheusmendes720/ikigai/wiki/_new\n")
     sys.stderr.write("  2. Create a Home page with any content\n")
-    sys.stderr.write("  3. Then run: git clone https://github.com/matheusmendes720/ikigai.wiki.git docs/wiki\n")
-    sys.stderr.write("  4. Then run: git submodule add https://github.com/matheusmendes720/ikigai.wiki.git docs/wiki\n")
+    sys.stderr.write(
+        "  3. Then run: git clone https://github.com/matheusmendes720/ikigai.wiki.git docs/wiki\n"
+    )
+    sys.stderr.write(
+        "  4. Then run: git submodule add https://github.com/matheusmendes720/ikigai.wiki.git docs/wiki\n"
+    )
     return 0
 
 
@@ -333,11 +343,17 @@ def add_starter_issues() -> int:
             label_args += ["--label", lbl]
 
         cmd = [
-            "gh", "issue", "create",
-            "--title", spec["title"],
-            "--body", spec["body"],
-            "--repo", f"{owner}/{repo}",
-        ] + label_args
+            "gh",
+            "issue",
+            "create",
+            "--title",
+            spec["title"],
+            "--body",
+            spec["body"],
+            "--repo",
+            f"{owner}/{repo}",
+            *label_args,
+        ]
 
         result = run(cmd)
         if result.returncode == 0:
@@ -356,8 +372,21 @@ def add_to_project(project_url: str) -> int:
     repo = os.environ.get("REPO_NAME", "ikigai")
 
     # Get open issues
-    result = run(["gh", "issue", "list", "--repo", f"{owner}/{repo}",
-                  "--state", "open", "--json", "number,title", "-q", ".[:]"])
+    result = run(
+        [
+            "gh",
+            "issue",
+            "list",
+            "--repo",
+            f"{owner}/{repo}",
+            "--state",
+            "open",
+            "--json",
+            "number,title",
+            "-q",
+            ".[:]",
+        ]
+    )
     if result.returncode != 0:
         sys.stderr.write(f"Failed to list issues: {result.stderr}\n")
         return 1
@@ -375,17 +404,25 @@ def add_to_project(project_url: str) -> int:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="GitHub Project Board Setup — XP / Monorepo optimized")
-    parser.add_argument("--create-board", action="store_true",
-                        help="Create a new GitHub Project V2 board")
-    parser.add_argument("--add-starter-issues", action="store_true",
-                        help="Create starter issues for initial project setup")
-    parser.add_argument("--add-to-project", metavar="URL",
-                        help="Add open issues to a project board URL")
-    parser.add_argument("--setup-wiki-submodule", action="store_true",
-                        help="Clone wiki and add as git submodule")
-    parser.add_argument("--project-name", default="Life OS Sprint",
-                        help="Name for the project board")
+        description="GitHub Project Board Setup — XP / Monorepo optimized"
+    )
+    parser.add_argument(
+        "--create-board", action="store_true", help="Create a new GitHub Project V2 board"
+    )
+    parser.add_argument(
+        "--add-starter-issues",
+        action="store_true",
+        help="Create starter issues for initial project setup",
+    )
+    parser.add_argument(
+        "--add-to-project", metavar="URL", help="Add open issues to a project board URL"
+    )
+    parser.add_argument(
+        "--setup-wiki-submodule", action="store_true", help="Clone wiki and add as git submodule"
+    )
+    parser.add_argument(
+        "--project-name", default="Life OS Sprint", help="Name for the project board"
+    )
     args = parser.parse_args()
 
     owner = os.environ.get("REPO_OWNER", "matheusmendes720")
@@ -398,7 +435,9 @@ if __name__ == "__main__":
             add_project_fields(url)
         except Exception as e:
             sys.stderr.write(f"  ❌ Failed: {e}\n")
-            sys.stderr.write("  Try via web: https://github.com/matheusmendes720/ikigai/projects/new\n")
+            sys.stderr.write(
+                "  Try via web: https://github.com/matheusmendes720/ikigai/projects/new\n"
+            )
             sys.exit(1)
 
     if args.add_to_project:
