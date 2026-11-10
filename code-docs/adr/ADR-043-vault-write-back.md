@@ -1,0 +1,368 @@
+# ADR-043 — O `vault_write`: escrever a prosa de volta, sem segundo canónico
+
+**Status:** Accepted
+**Date:** 2026-11-10
+**Deciders:** human (Matheus) + agent
+**Scope:** quem escreve markdown no vault do VPS, em que árvore, com que regra de conflito e com que commit
+**Anchor:** [ADR-037](./ADR-037-data-layer-canonical-turn.md) D4 · [ADR-039](./ADR-039-websocket-sync-transport.md) · [ADR-040](./ADR-040-client-state-and-drafts.md) §10 · ADR-012 (`vault_write` sole writer — **não publicada**, citada por ADR-037)
+
+---
+
+## 1. Veredito
+
+**Entra:** um escritor de prosa — o `vault_write` — que **lê do store e escreve
+markdown** numa **árvore nova no volume do VPS**, e que faz `commit` local sem
+`push`. É o inverso exacto da ingestão.
+
+**Não entra, e a razão fica escrita:**
+
+| Coisa | Veredito | Porquê |
+|---|---|---|
+| escrever no `vault/` do clone git do VPS | **recusado** | o deploy faz `git reset --hard origin/main` a cada run: o que não for commited é apagado, e o que for commited diverge do `origin` sem mechanism de merge |
+| `push` para o GitHub a partir do VPS | **recusado** | o VPS passa a ser writer do repositório; o `contents: read` do CI e o remote sem credencial mostram que hoje não é |
+| escrever em artefactos **que já vieram de um ficheiro** | **recusado** | seria um segundo canónico: o markdown e o store a mandar um no outro sobre o mesmo artefacto |
+| regenerar o markdown de tudo a partir do store | **recusado** | reescreve prosa que o dono editou à mão, sem conflito — é last-write-wins com o markdown a perder |
+| "bi-direccional" como nome | **rejeitado** | a ingestão já é uma escrita no store; o que entra é a **direita inversa**, não as duas |
+
+**A regra que substitui ADR-012:** *o store escreve a prosa; a prosa nunca
+reescreve o store.* O `vault/` continua append-only, e o `vault_write` é o
+único que escreve nele.
+
+**A decisão que muda tudo:** o alvo é **uma árvore nova no volume**, não o
+`vault/` do clone git. Três factos medidos no VPS a 2026-11-10:
+
+1. `/opt/mathe/ikigai/vault` é o working tree de um clone git, e o deploy faz
+   `git reset --hard origin/main` — o directório é **descartável por desenho**.
+2. `/mnt/volume-fsn1-1/vault` é o directório do Syncthing (`folder id =
+   "notas-estudo"`, `type="sendreceive"`), partilhado com o `windows-pc`. O
+   Syncthing está `active`, com `fsWatcherEnabled="true"`.
+3. A ingestão monta o **clone git** em `/app/vault:ro` e o **volume** em
+   `/app/zonas:ro`. Duas árvores, dois regimes, um só leitor.
+
+O `vault_write` escreve na **segunda** — a que o Syncthing traz para o desktop
+— e o clone git fica como está: leitura, `ro`, descartável.
+
+---
+
+## 2. A pilha
+
+```text
+                    ┌──────────────────────────────────┐
+   agente (pi) ────▶│  store (Postgres + pgvector)    │  ← canónico
+   Telegram     ────▶│  ikig.artifacts + vault_path     │
+                    └──────────────┬───────────────────┘
+                                   │
+                    ┌──────────────▼───────────────────┐
+                    │  VAULT_WRITE (NOVO)              │
+                    │  lê store → escreve markdown     │
+                    │  · só artefactos SEM vault_path  │
+                    │  · commit local, sem push        │
+                    └──────────────┬───────────────────┘
+                                   │  escreve
+                                   ▼
+        /mnt/volume-fsn1-1/vault-escrita/   ← ÁRVORE NOVA (NOVA)
+                   (Syncthing sendreceive)
+                                   │
+                                   ▼
+                      windows-pc (desktop)
+```
+
+**O que NÃO está neste diagrama, e porquê:**
+
+- **Nenhum `push`.** O `origin` continua a ser escrito pelo CI, a partir de
+  commits que o dono revê. O `vault_write` não recebe credencial de escrita do
+  GitHub, e o token que o deploy usa (`contents: read`, `packages: write`) não
+  a tem.
+- **Nenhuma escrita no clone git.** `git reset --hard` continua a ser seguro
+  porque o directório continua descartável.
+- **Nenhuma escrita de volta no store.** O `vault_write` escreve ficheiros, não
+  artefactos. A ingestão continua a ser a única que escreve no store a partir
+  de ficheiros.
+
+---
+
+## 3. Justificativa
+
+### 3.1 O que o dono pediu, e o que era realmente a falta
+
+O pedido foi "bi-directional read/write sync with vault". Medido, o que existe
+hoje é:
+
+| Direcção | Estado | Onde |
+|---|---|---|
+| vault → store | ✅ | `src/services/sync.py`, timer de 60s |
+| store → clientes | ✅ | ADR-039, websocket + replay |
+| clientes → store | ✅ | 6 tools MCP, `revision` + `idempotency_key` |
+| **store → vault** | ❌ | não existe |
+
+Falta **uma** seta. O que entra não é "bi-direccional" — a ingestão já escreve
+no store. O que entra é a seta invertida, e ela tem de ser escrita com a
+regra do conflito, porque é a seta que pode destruir trabalho.
+
+### 3.2 Porque é que o alvo não pode ser o `vault/` do clone git
+
+O deploy (`deploy.yml`, passo "Deploy over SSH") executa, por esta ordem:
+
+```bash
+git fetch --all --tags --prune
+git checkout -q -B main origin/main
+git reset --hard origin/main
+```
+
+`git reset --hard` **descarta** qualquer alteração no working tree. Duas
+consequências, e as duas são fatais a um escritor de prosa:
+
+1. **Sem `commit`:** o que o `vault_write` escrevesse desaparecia no deploy
+   seguinte. Um ficheiro de nota que vive menos tempo que um deploy é um
+   ficheiro que ninguém lê.
+2. **Com `commit`:** o commit local fica no clone, e o próximo `reset --hard
+   origin/main` **volta atrás dele**. O ficheiro desapareceria do mesmo modo —
+   só um pouco mais tarde, e com a ilusão de que tinha sido gravado.
+
+O `git reset --hard` não é um acidente do pipeline: é o que garante que o que
+corre no servidor é exactamente o commit que o CI testou (ADR-037 D3). O
+escritor de prosa **não pode** viver nesse directório sem quebrar a garantia
+que faz o deploy valer alguma coisa.
+
+### 3.3 Porque é que o `push` não entra
+
+O remote do clone do VPS é `https://github.com/matheusmendes720/ikigai.git`,
+**sem credential helper** — não há nada no servidor que lhe permita escrever. E
+o workflow de deploy tem `permissions: contents: read`, `packages: write`: o
+token do CI lê o código e publica imagens, e **não** escreve no repositório.
+
+Dar ao VPS um token com `contents: write` seria dar ao servidor a chave da
+casa. E o que o `vault_write` precisaria de push? Nada que o Syncthing não
+faça melhor: o Syncthing **já** traz o volume para o desktop, com watcher de
+ficheiro activo (`fsWatcherDelayS="10"`), sem token, sem branch, sem conflito
+de merge.
+
+### 3.4 A regra do conflito: quem ganha
+
+O dono decidiu: **o store ganha em campo estruturado; o markdown que diverge
+é um conflito explícito.**
+
+Isto é ADR-037 D4 com nome próprio. D4 diz que o Postgres é canónico num
+campo estruturado e que o markdown é a prosa de onde ele veio. A regra
+escrita aqui é mais específica e é verificável:
+
+> **O `vault_write` escreve um artefacto num ficheiro. Nunca reescreve um
+> ficheiro que já existe.**
+
+Ou seja: **o `vault_write` só escreve ficheiros novos**, para artefactos que
+**não têm `vault_path`** — os que o agente criou no store e que nunca
+existiram como ficheiro. Um artefacto que já tem `vault_path` tem um
+ficheiro que já existe, e esse ficheiro é de quem o escreveu.
+
+É por isso que o âmbito é *só os artefactos sem `vault_path`*: essa coluna,
+criada na migração `0005_vault_path.sql`, **já é a resposta à pergunta
+"isto já é um ficheiro?"**. A migração diz, nos seus próprios comentários:
+
+> *A write-back needs to know which file to write, and the store is the only
+> place that knows.*
+
+O `vault_path` foi construído para isto. A peça já estava feita; o que
+faltava era a decisão de a usar.
+
+### 3.5 Porque é que isto não é um loop
+
+O medo legítimo: escrita no vault → ingestão lê o ficheiro → store actualiza →
+`vault_write` escreve de novo → ...
+
+O ciclo **fecha** porque a identidade o fecha. A ingestão calcula a identidade
+do artefacto a partir do `ueid` declarado no frontmatter quando existe
+(`VaultSync._uid_for`), e o `vault_write` escreve **o `ueid` do store no
+frontmatter** do ficheiro que cria. Logo:
+
+1. o `vault_write` escreve `not:2026-11-10:abc123:def456` no frontmatter;
+2. a ingestão lê o ficheiro, encontra o `ueid`, e usa **aquele** uid;
+3. o artefacto que a ingestão escreve **é** o mesmo que o `vault_write`
+   pretendia escrever — o mesmo uid, a mesma revisão;
+4. o `body_hash` do ficheiro é o do corpo, e a ingestão vê que a escrita já
+   está lá: `unchanged`.
+
+A segunda passagem não muda nada. E o `vault_write` só escreve artefactos
+**sem** `vault_path` — depois da primeira passagem o artefacto **tem**
+`vault_path`, e o escritor deixa de lhe tocar. O ciclo não é infinito: é
+**fechado em uma volta**, e o estado final é o mesmo nos dois lados.
+
+O inverso também é verdade, e é o que torna a regra do conflito honesta: se o
+dono editar à mão um ficheiro que o `vault_write` criou, a ingestão leva essa
+edição para o store (é o comportamento normal de quem lê ficheiros), e o
+`vault_write` **já não escreve nesse artefacto** — porque ele tem `vault_path`.
+A mão do dono na Keyboard nunca é sobrescrita por uma máquina.
+
+---
+
+## 4. A ponte que já existe
+
+Nada disto precisa de um novo primitivo. O que já lá está:
+
+| Peça | Onde | Porque serve |
+|---|---|---|
+| `vault_path` | `src/contracts/dom.py:104`, migração `0005` | diz **que ficheiro** é este artefacto. `NULL` = nunca foi ficheiro = o `vault_write` pode escrevê-lo |
+| `ueid` no frontmatter | `VaultSync._uid_for` (`sync.py:564`) | fecha o ciclo: o ficheiro escrito carrega a identidade do store |
+| `body_hash` | `src/contracts/dom.py:90` | diz se o ficheiro e o store estão de acordo; é o que torna a reescrita idempotente |
+| `client_id` | `WriteRequest` | distingue o escritor (`vault-write`) do dono e da ingestão (`vault-sync`) — quem escreveu é visível no store |
+| `revision` | ADR-037 D5 | se o ficheiro é reescrito, a revisão sobe; o store nunca é sobrescrito em silêncio |
+| O `client_id` do actor | `sync.py` `_client_id = "vault-sync"` | o `vault_write` nasce com `"vault-write"` — as duas escritas ficam distinguíveis no `ikig.artifacts` |
+| A árvore do Syncthing | `folder id="notas-estudo"`, `sendreceive`, `windows-pc` | é a entrega: o ficheiro chega ao desktop sem token e sem branch |
+| `git reset --hard` | `deploy.yml` | **deixa de ser um problema** quando o escritor não vive no clone git |
+
+O que **não** existe e esta ADR não precisa: uma tool MCP nova, um canal novo,
+um protocolo novo. O `vault_write` é um serviço como o `VaultSync` — e, como
+o `VaultSync`, um comando de container.
+
+---
+
+## 5. O que está quebrado, com evidência
+
+Medido no VPS a 2026-11-10 (`hetzner-vpn`, imagem `sha-d5e36106`):
+
+| # | Facto | Como se mediu | Consequência |
+|---|---|---|---|
+| 1 | O `vault/` do VPS é o working tree de um clone git | `docker inspect ikigai-sync-1` → `Source=/opt/mathe/ikigai/vault` | o alvo do deploy e o alvo do ingestion são o **mesmo** directório |
+| 2 | O deploy descarta esse directório | `deploy.yml`: `git reset --hard origin/main` | escrever lá é escrever num ficheiro que o próximo deploy apaga |
+| 3 | O volume é Syncthing, não git | `config.xml`: `folder id="notas-estudo" type="sendreceive" path="/mnt/volume-fsn1-1/vault"`; `ls .git` → não existe | a árvore nova não é git — e não precisa de ser |
+| 4 | O Syncthing está vivo e a observar | `systemctl is-active syncthing@mathe` → `active`; `fsWatcherEnabled="true"`, `fsWatcherDelayS="10"` | a entrega ao desktop é automática e por evento, não por polling |
+| 5 | O VPS não tem credencial de escrita no GitHub | `git config --get credential.helper` → vazio; `.git/config` só tem `fetch` | `push` exigiria um token novo — e dava ao servidor `contents: write` |
+| 6 | O CI também não escreve no repositório | `deploy.yml`: `permissions: contents: read, packages: write` | o padrão do repo é: **o CI publica imagens, não código** |
+| 7 | As duas árvores estão montadas `ro` | `docker inspect`: `/app/vault (ro)`, `/app/zonas (ro)` | hoje **nenhum** container escreve markdown. O que entra muda isto, e só numa |
+| 8 | O store tem 1 954 artefactos e distingue os seus autores | `group by client_id` → `vault-sync: 1953`, `pi-harness/tg-box-01: 1` | a autoria já é um dado do store. O `vault_write` é o terceiro autor, e aparece como tal |
+
+O item 7 é o que torna esta ADR **uma troca de invariante**, não um
+incremento: hoje a frase "o vault nunca é escrito por nada" é verdade em todo
+o sistema (ADR-012, citado por `compose.yml:405`), e depois desta ADR deixa de
+ser.
+
+---
+
+## 6. Inventário, com a razão de cada peça
+
+| # | Peça | Ficheiro | Porque existe |
+|---|---|---|---|
+| 1 | `VaultWrite` | `src/services/vault_write.py` (novo) | o serviço que traduz store → markdown. Espelha `VaultSync`, que traduz markdown → store |
+| 2 | O comando | `python -m src.services.vault_write` | o `vault-sync` skill diz "run the ingestion" e nomeava nada; a skill do `vault_write` dirá "run the write-back" e nomeará isto |
+| 3 | `IKIGAI_VAULT_WRITE_ROOTS` | env | a árvore onde escreve. Sem ela, não escreve — como o `IKIGAI_VAULT_ROOTS` da ingestão |
+| 4 | O contentor `write` | `deploy/compose.yml` (novo) | a sua própria cadência: escreve em render, e não em request |
+| 5 | O mount `rw` | `deploy/compose.yml` | **só** a árvore nova. O `/app/vault` e o `/app/zonas` continuam `ro` |
+| 6 | `client_id = "vault-write"` | `src/services/vault_write.py` | o store tem de dizer quem escreveu. Sem isto, o actor é indistinguível da ingestão |
+| 7 | O `ueid` no frontmatter | `src/services/vault_write.py` | fecha o ciclo (§3.5). É a peça que impede o loop |
+| 8 | O `body_hash` do artefacto | já existe | o que torna a reescrita idempotente: o mesmo corpo é o mesmo ficheiro |
+| 9 | A guarda de conflito | `src/services/vault_write.py` | o ficheiro existe e o `body_hash` **não** bate ⇒ **conflito explícito**, não escrita |
+
+**O que não entra:** nenhuma tool MCP nova (o `vault_write` é uma serviço
+interno, não uma superfície pública — o agente não o invoca), nenhuma migração
+(o `vault_path` já existe), nenhum endpoint, nenhum token novo.
+
+---
+
+## 7. Dia zero
+
+O que fica verdade no primeiro commit desta ADR:
+
+1. O `vault/` do clone git **continua `ro`** em todos os contentores, e
+   continua descartável pelo `git reset --hard`.
+2. O `/app/zonas` **continua `ro`** — a ingestão não muda de regime.
+3. **Nenhum** contentor escreve markdown. A árvore nova ainda não existe.
+4. O store tem `vault_path` em 1 954 artefactos ingeridos, e `NULL` nos que o
+   agente criou — a distinção que o âmbito usa já é um facto medido.
+5. O `vault_write` **não** existe. Ninguém o pode chamar.
+6. ADR-012 continua por substituir: o `vault_write` como **único** writer do
+   vault é a decisão que esta ADR substitui.
+
+---
+
+## 8. Evolução
+
+| Quando | O que muda |
+|---|---|
+| **Agora** | o `vault_write` escreve ficheiros **novos** para artefactos sem `vault_path`, na árvore nova do volume |
+| **Se o dono quiser editar** | o `vault_write` passa a poder reescrever os **seus** ficheiros (os que tem `vault_path`), com o conflito explícito: só reescreve se o `body_hash` do store bater com o do ficheiro |
+| **Se o Syncthing deixar de ser a entrega** | o `vault_write` passa a fazer `commit` + `push` numa branch do GitHub — e nesse dia o VPS precisa de `contents: write`, que é uma decisão de segurança à parte |
+| **Se o `vault/` do clone git deixar de ser descartável** | o deploy deixa de fazer `reset --hard` no `vault/` — e o `vault_write` pode escrever lá |
+
+Cada uma destas é uma **emenda** a esta ADR, não um redimensionamento: o
+invariante central — *o store escreve a prosa, a prosa não reescreve o store* —
+não muda em nenhuma delas.
+
+---
+
+## 9. Passos com PASS falsificável
+
+| # | Passo | PASS | Como se falsifica |
+|---|---|---|---|
+| 1 | A árvore nova é **separada** da do clone git | `docker inspect` mostra `Source=/mnt/volume-fsn1-1/...` e **não** `/opt/mathe/ikigai/vault` | apontar o `IKIGAI_VAULT_WRITE_ROOTS` ao clone git ⇒ o teste falha |
+| 2 | O `vault/` e o `/app/zonas` continuam `ro` | `docker inspect` diz `ro` nos dois | pôr `rw` no `sync` ⇒ o teste falha |
+| 3 | Só se escreve o que **não** tem `vault_path` | um artefacto com `vault_path` não ganha ficheiro | pôr `vault_path` no `body` de um artefacto novo ⇒ o teste falha |
+| 4 | O ficheiro escrito carrega o `ueid` do store | o frontmatter tem `ueid:` e o valor é o uid do artefacto | escrever o slug em vez do uid ⇒ o teste falha |
+| 5 | A reescrita é idempotente | duas voltas ⇒ o `body_hash` do ficheiro não muda | escrever o timestamp no corpo ⇒ o teste falha |
+| 6 | O ciclo fecha | ingestion depois do write-back ⇒ `unchanged`, e o `revision` não sobe | retirar o `ueid` do frontmatter ⇒ a ingestão cria um **segundo** artefacto e o teste falha |
+| 7 | Conflito é explícito | um `body_hash` divergente ⇒ o ficheiro **não** é reescrito, e há um registo | reescrever na mesma ⇒ o teste falha |
+| 8 | A autoria é visível | o artefacto escrito tem `client_id = "vault-write"` | escrever com o `client_id` da ingestão ⇒ o teste falha |
+| 9 | **Nenhum** `push` | o contentor não tem `contents: write` e não tem token de GitHub | pôr um token no `.env` ⇒ o teste falha |
+| 10 | O `vault/` do clone git é **descartável** | `git reset --hard origin/main` **depois** do write-back não altera nada | o write-back escrever no clone git ⇒ o teste falha |
+
+---
+
+## 10. Fora de escopo
+
+| Coisa | Porque fica de fora | O que a reabre |
+|---|---|---|
+| **`push` para o GitHub a partir do VPS** | o VPS não tem credencial e não deve ter; o Syncthing entrega ao desktop sem token | o Syncthing deixar de ser a via de entrega |
+| **Escrever no `vault/` do clone git** | o `git reset --hard` do deploy apaga-o | o deploy deixar de fazer `reset --hard` no `vault/` |
+| **Reescrever ficheiros que já existem** | é onde a prosa do dono seria destruída | o §8 "se o dono quiser editar", com o conflito medido |
+| **Escrever no store a partir do markdown** | a ingestão já faz isso; dois escritores do store é o que ADR-037 D5 proíbe | nunca, sem outra ADR |
+| **O `vault_write` como tool MCP** | é um serviço interno, não uma superfície pública; o agente não o invoca | um cliente externo que precise de mandar exportar |
+| **Round-trip completo (store → vault → store)** | o §3.5 mostra que o ciclo já fecha numa volta, por causa do `ueid`. Fazê-lo duas vezes é o bug, não a prova | nunca |
+| **Índice/compressão "hysteresis"** | ADR-037 D1 adia a camada algorítmica | dados reais e uma ADR que a promova |
+
+---
+
+## 11. Decisões com default
+
+| # | Decisão | Default | O que a muda |
+|---|---|---|---|
+| D1 | O alvo é uma **árvore nova no volume** (`/mnt/volume-fsn1-1/vault-escrita`), **não** o `vault/` do clone git | árvore nova no volume | o Syncthing deixar de ser a entrega, ou o deploy deixar de resetar |
+| D2 | A **regra do conflito**: o store ganha em campo estruturado; markdown divergente é **conflito explícito** | conflito explícito, e o ficheiro não é reescrito | o dono decidir que o markdown é canónico — o que inverteria ADR-037 D4 |
+| D3 | O **âmbito**: só artefactos **sem** `vault_path` — os que o agente criou e que nunca foram ficheiro | só sem `vault_path` | o dono querer que o escritor também mantenha os seus ficheiros (§8) |
+| D4 | O `vault_write` faz `commit` local e **nenhum** `push` | commit local | o Syncthing deixar de entregar, e o token de escrita ser aceite |
+| D5 | A **identidade** é o `ueid` do store, escrito no frontmatter | `ueid` no frontmatter | nada — sem ela o ciclo abre |
+| D6 | A **autoria** é `client_id = "vault-write"`, distinto de `vault-sync` | `vault-write` | nada |
+| D7 | O `vault_write` é um **serviço + comando**, não uma tool MCP | serviço | um cliente externo que precise de exportar |
+| D8 | A **cadência** é própria (o `write` contentor, com o seu intervalo) | contentor próprio | o `sync` absorver a escrita — mas então os dois regimes (ro/rw) colidem no mesmo contentor |
+
+---
+
+## 12. Camadas de falha
+
+Cada uma falha sozinha, e nenhuma leva as outras:
+
+| Camada | Se falhar | O que se vê |
+|---|---|---|
+| o `uid` | o artefacto não tem identidade | nada é escrito, e o log diz qual |
+| a árvore de destino | não existe, ou não é escrevível | o contentor escreve no log e **não** escreve ficheiro nenhum |
+| o ficheiro existe e o `body_hash` diverge | **conflito** | o ficheiro fica como está, e a divergência é registada — nunca sobrescrita |
+| o `commit` | o directório não é um repo git | o ficheiro **já** está no disco (o Syncthing leva-o na mesma); só o registo git se perde |
+| o `push` | — | não existe nesta ADR. Se algum dia existir, a falha é do `push`, e o ficheiro já está no disco |
+| o Syncthing | o desktop não recebe | o ficheiro está no volume; o dono vê-o quando a sincronização voltar |
+| a ingestão | o `vault/` não é lido | o store fica como estava; o ficheiro novo espera |
+| o store | não responde | o `vault_write` não escreve; o contentor fica unhealthy, e é a verdade |
+
+**A ordem importa:** o ficheiro escreve-se **antes** do `commit`, e o `commit`
+**antes** de qualquer entrega externa. Perder o `commit` custa um registo;
+perder o ficheiro custa a prosa.
+
+---
+
+## 13. Referências
+
+- [ADR-037](./ADR-037-data-layer-canonical-turn.md) — D4 (o store é canónico num campo estruturado), D5 (uma escrita, versionada, conflito = 409), D6 (seis tools)
+- [ADR-039](./ADR-039-websocket-sync-transport.md) — o store a anunciar as suas mudanças; a vía que o `vault_write` vai ler
+- [ADR-040](./ADR-040-client-state-and-drafts.md) §10 — o sync bi-direccional **recusado**, e a condição exacta que a reabre: *"Uma ADR que substitua ADR-012 explicitamente, com a direção, o conflito e o lock escritos."* Esta é essa ADR.
+- `ADR-012` — `vault_write` como único writer do vault. **Não publicada**: fica no disco do dono e na história (ADR-037 §"publicação independente"). **Esta ADR substitui-a** no ponto único que a tornava binding: o `vault_write` deixa de ser o escritor de um `vault/` local e passa a ser o escritor de uma árvore no volume, com o conflito explícito e o `commit` local.
+- `src/contracts/migrations/0005_vault_path.sql` — a migração que já continha a resposta: *"A write-back needs to know which file to write, and the store is the only place that knows."*
+- `src/services/sync.py` — `VaultSync._uid_for` (o `ueid` declarado vence), `VaultSync._ingest_file` (o `body_hash` que decide se algo mudou)
+- `src/contracts/dom.py:90,104` — `body_hash` e `vault_path`
+- `specs/production-readiness/ROADMAP.md` — G2 (a prosa entra) e a track **T5 · `vault_write`** (ADR-012), que esta ADR cumpre
+- `deploy/compose.yml:405` — *"The vault is never written by anything (ADR-012)"* — a frase que deixa de ser verdadeira, e porquê
