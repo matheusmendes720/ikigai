@@ -263,7 +263,7 @@ reproduzível fora do store — e por isso é verificável.
 O `daily-note` correu e escreveu; o `weekly-review` também — depois de as
 perguntas expirarem sem resposta, o agente seguiu com a **leitura dele** (a
 W45, a semana fechada que ainda não tinha revisão) e escreveu a `revisao`. O
-`monthly-review` fez o mesmo: **cinco** perguntas expiradas, e escreveu a
+`monthly-review` fez o mesmo: **dez** perguntas expiradas, e escreveu a
 `desc` com os gaps calculados a partir do store. As perguntas ao dono são o
 HITL a funcionar (ADR-041), não uma falha:
 
@@ -271,11 +271,11 @@ HITL a funcionar (ADR-041), não uma falha:
 |---|---|---|---|
 | `weekly-review` | que semana cobrir: a W45 (fechada, sem revisão registada) ou a W46 (a correr)? | W45 · W46 | expirou (19:21:10Z) · o agente escolheu a W45 e escreveu a `revisao` |
 | `weekly-review` | o gate AG3 (MERGE ou DISCARD do gateway órfão) sai do plano ou permanece, vencido? | Sai do plano · Permanece (not started) | expirou (19:25:21Z) · o agente seguiu com a leitura dele |
-| `monthly-review` | que janela cobrir: Outubro de 2026, o Q4-2026 até agora, ou Novembro em curso? | Outubro · Q4 até agora · Novembro | expirou **5 vezes** (a última às 22:25:09Z) · o agente seguiu com a leitura dele e escreveu a `desc` (§5.4) |
-| `monthly-review` | os gaps de B0–B2 estão ou não registados? | NÃO FEITO · FEITO e não registado · Misturado | expirou (22:25:09Z) · o `pi` calculou os gaps **a partir do store** e escreveu-os na `rationale` |
+| `monthly-review` | que janela cobrir: Outubro de 2026, o Q4-2026 até agora, ou Novembro em curso? | Outubro · Q4 até agora · Novembro | expirou **4 vezes** (20:22:48Z, 21:29:53Z, 21:42:21Z, 21:58:31Z) · o agente seguiu com a leitura dele e escreveu a `desc` (§5.4) |
+| `monthly-review` | os gaps de B0–B2 estão ou não registados? | NÃO FEITO · FEITO e não registado · Misturado | expirou **4 vezes** (21:29:53Z, 21:42:23Z, 21:58:29Z, 22:14:46Z) · o `pi` calculou os gaps **a partir do store** e escreveu-os na `rationale` |
 | `quarterly-plan` | rodar o Teste de Fogo contra o Q3-2026, ou corrigir o trajeto do Q4-2026 sem quarter novo? | A — Teste de Fogo · B — Correção do Trajeto | **respondida** às 20:01:30Z: *"B — Correção do Trajeto do Q4-2026: materializar o plano vigente, sem quarter novo"* — **a resposta chegou depois de a rotina já ter morrido** (§5.2) |
-| `quarterly-plan` | o split das ondas: 3 ondas (a estratégia) ou 1 onda (o plano vigente)? | 3 ondas · 1 onda | **sem resposta** — o `pi` voltou a perguntar às 22:27:17Z, e é o que **segura a sessão** (§5.4) |
-| `quarterly-plan` | o gate AG3 (gateway órfão) sai do plano ou permanece, vencido? | Sai do plano · Permanece | **sem resposta** — a mesma pergunta, reaberta às 22:27:19Z |
+| `quarterly-plan` | o split das ondas: 3 ondas (a estratégia) ou 1 onda (o plano vigente)? | 3 ondas · 1 onda | **sem resposta** — perguntada **5 vezes** (21:22:00Z, 22:27:17Z, 22:43:03Z, 22:58:11Z, 01:33:08Z) e as 5 expiraram (§5.4) |
+| `quarterly-plan` | o gate AG3 (gateway órfão) sai do plano ou permanece, vencido? | Sai do plano · Permanece | **respondida** às 22:41:26Z: *"A — MERGE: cherry-pick para branch limpa e rodar os testes"* — a decisão ficou registada numa `desc` (§5.4) |
 
 A pergunta suspende a chamada da ferramenta do agente até haver resposta
 (prazo: **15 minutos**), e a resposta é o botão no Telegram. O HITL está
@@ -343,16 +343,19 @@ concorrência — é decisão do dono.
 ### 5.3 O que a medição deixou por medir
 
 **O `monthly-review` e o `quarterly-plan` já não estão à espera.** O
-`monthly-review` escreveu a `desc` às 22:24:09Z, depois de **cinco** perguntas
+`monthly-review` escreveu a `desc` às 22:24:09Z, depois de **dez** perguntas
 expiradas sem resposta; o `quarterly-plan` escreveu as 5 `fase`, os 5 `okr` e os
 7 `kpi`, com os campos tipados preenchidos (§5.4, §5.5).
 
 **O que fica por medir — as `onda` do quarter.** As 6 `onda` que existem no
-store são as **ingeridas** do vault (`02-q4-2026/02-onda-{1,2,3}/placeholder.md`),
-e **nenhuma tem uma aresta** — o `pi` perguntou ao dono se o quarter leva 3 ondas
-ou 1 (§5.1) e a pergunta continua sem resposta. O `plano` do quarter também
+store são as **ingeridas** do vault (`ond:placeholder:*` — 3 de Q3-2026, 3 de
+Q4-2026). As 3 do Q4 **têm** 4 arestas, mas são todas **de entrada** (3
+`evidences` da nota de 2026-11-09 e 1 `references` da revisão da W45): a rotina
+nunca as materializou, e o `pi` perguntou ao dono se o quarter leva 3 ondas ou 1
+(§5.1) — **5 vezes**, e as 5 expiraram (§5.4). O `plano` do quarter também
 **não foi escrito** pela rotina: o dono escolheu *"B — materializar o plano
-vigente, sem quarter novo"*, e o plano vigente é o que já lá estava, ingerido.
+vigente, sem quarter novo"*, e o plano vigente é o que já lá estava, ingerido
+(`pln:deep-agent-build-q4-2026:bd40d7ab:…`, criado a 2026-11-09 00:23:19Z).
 
 **E há uma condição do ambiente que a medição não controla.** O box é
 redeployado por outra sessão, e cada recriação de contentor **mata a rotina a
@@ -375,7 +378,8 @@ produto.
 
 ### 5.4 A sessão do dono não largou o turno — e o healthcheck não viu
 
-Medido em 2026-11-09, entre 21:12Z e 22:35Z.
+Medido em 2026-11-09, entre 21:12Z e 22:35Z; a janela do dono foi seguida até
+2026-11-10T04:58Z (o HITL) e o A/B da expiração correu às 05:10Z.
 
 **O sintoma.** O `monthly-review` invocado por `/v1/routine` foi **recusado
 6/6 vezes** com *"Agent is already processing"*; o `quarterly-plan`, **6/6
@@ -401,19 +405,49 @@ deploy.
 | o `pi` a trabalhar depois da rotina morrer | **48 min** (21:12:37Z → 22:00:06Z) |
 | o ficheiro de sessão a crescer | 708 linhas · 3,8 MB · a escrever às 22:31:58Z |
 | `busy_sessions` no health | **0**, com a sessão ocupada |
-| perguntas ao dono sem resposta | **5** expiradas, no mesmo turno |
+| perguntas ao dono, na sessão `tg-2115322359` | **18** em 9 h 12 min (19:40:15Z → 04:52:38Z): **2** respondidas, **16** expiradas |
 
 **O que o `pi` fez, e está certo.** A regra do tool `ask` é explícita: *"The
 owner did not answer in time. Continue with your best reading and say that the
-owner did not answer."* Depois de cinco expirações, o agente escreveu a `desc`
+owner did not answer."* Depois de **dez** expirações, o agente escreveu a `desc`
 com a leitura do store e disse, no relatório, que o dono não respondeu. **É o
 HITL a funcionar** (ADR-041) — mas custa cinco voltas de relógio por pergunta,
 e a pergunta continua aberta enquanto isso.
 
+**Uma pergunta expirada não se gasta: o `pi` volta a perguntar.** A pergunta das
+ondas foi feita **5 vezes**, e as 5 expiraram. O próprio agente diz porquê, no
+texto da pergunta: *"reenvio; a pergunta anterior expirou sem resposta"* (3.ª)
+e *"nova tentativa; as 3 perguntas anteriores expiraram sem resposta"* (5.ª).
+Cada expiração devolve o turno ao `pi`, e o `pi` abre uma pergunta nova com um
+prazo novo de 15 min — **nada limita as re-perguntas**. E as `onda` continuam
+por escrever, porque o skill só as materializa depois da resposta (§5.3).
+
+| pergunta das ondas | id | prazo | como a `pi` a descreveu |
+|---|---|---|---|
+| 21:22:00Z | `a0c4528cd1c5` | 21:34:00Z | a primeira |
+| 22:27:17Z | `01f59064dcc8` | 22:42:17Z | *"PLANO TRIMESTRAL — split das ondas"* |
+| 22:43:03Z | `040225c67db2` | 22:58:03Z | *"(reenvio; a pergunta anterior expirou sem resposta)"* |
+| 22:58:11Z | `1ce7997798b1` | 23:08:11Z | *"3 ondas … ou 1 onda do quarter inteiro?"* |
+| 01:33:08Z | `27a239bb8520` | 01:45:08Z | *"(nova tentativa; as 3 perguntas anteriores expiraram sem resposta)"* |
+
+**E o log de eventos pode não saber que a pergunta expirou.** A expiração não é
+um timer: é observada por quem faz *polling*. `owner.read()`
+(`deploy/harness/owner.mjs:136-150`) muda o estado **e regista**
+`question.expired`; `owner.pending()` (`owner.mjs:200-212`) muda o estado **em
+silêncio**. A/B medido no box (2026-11-10T05:10Z, sessão `probe-expiracao-ab`,
+prazo de 3 s nas duas): a pergunta expirada pelo `/v1/session` deixou o log com
+**1 evento** (só `question.asked`); a expirada pelo `/v1/owner/answer` deixou o
+log com **3** (o `question.expired` incluído). Na sessão do dono o **estado na
+base** regista **16** expirações e o **log de eventos** só **15** — a 18.ª
+pergunta (prazo 04:58:38Z) está `expired` na base e **não tem evento**. O
+estado é a verdade; o log subdeclara, e um contador de expirações tirado do log
+não é fiável.
+
 **Fica por decidir (dono):** se a segunda rotina deve **esperar a sua vez**
 (`entry.chain`, `server.mjs:377`, desenhada desde o início e não implementada) ou
 continuar a ser **recusada com 502**; e se uma pergunta expirada conta como
-*uma* pergunta — o `pi` perguntou cinco — ou como *nenhuma*.
+*uma* pergunta — o `pi` perguntou **18** na sessão, e 16 expiraram — ou como
+*nenhuma*.
 
 ### 5.5 O grafo saiu de cabeça para baixo
 
@@ -440,6 +474,14 @@ O `derives_from` está **correcto em 9/9** (o `src` é o que deriva); o
 `parent_of` está **invertido em 13/13** (o `src` é o filho). E o campo
 `parent_uid`, que o `pi` preencheu bem (`okr.parent_uid = fase`,
 `fase.parent_uid = plano`), diz exactamente o contrário das arestas.
+
+**A contagem está presa à janela, e o store tem mais.** Em 2026-11-10T05:12Z o
+store tinha **17** `parent_of` — **13** dos quais são os da janela
+(21:34:08Z–21:42:45Z) e os outros **4** são **sondas de medição**
+(`tar:probe-rel`, `fas:probe-relsem`, `fas:probe-relsem2` — uid com `probe` no
+meio). As sondas contam como arestas e não desfazem o defeito: as **13** do
+produto continuam invertidas, e as 4 sondas também. É o mesmo número a
+dizer de duas maneiras — o que separa o produto da medição é o uid.
 
 **O `pi` descobriu-o sozinho, e tarde.** Às 22:30:44Z, no seu raciocínio:
 *"my earlier materialization wrote fase → plan parent_of, which is inverted"* —
