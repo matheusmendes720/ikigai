@@ -242,6 +242,22 @@ is the one that matters: a bot that only stops waiting leaves an agent working, 
 that keeps working keeps writing. A run that was stopped answers **"cancelled", not "failed"** —
 a cancelled routine did not fail, and the owner is told the truth.
 
+**THE STOP NAMES THE RUN.** A chat is ONE session, so every routine the owner starts in it
+shares the session key. A Stop from a preview that is already over would therefore land on the
+NEXT routine of that chat and kill it — the owner pressed Stop on the daily-note and the
+weekly-review died instead. So a run is NAMED: the preview's id travels to the harness as the
+run's token, and a stop that names no live run changes nothing. The token lives as long as the
+run, and dies with it.
+
+**THE RUN IS TOLD, NOT INFERRED.** The agent's turn is an **event** (`agent_settled`), and a
+killed agent never emits it. So a run cannot learn that it was stopped by waiting for its own
+turn to fail — it has to be told, and the harness's stop signal is the telling. Measured on
+the box before that was fixed: the agent was dead (no `pi` in the container's process table) and
+the store was untouched (1 973 artifacts before and after), but the run answered **nothing for
+twenty minutes**, until its own ceiling rejected the collection — and the harness's event log
+said "started" and never said "cancelled". The run now races its turn against the stop signal,
+so a stop ends the run in milliseconds.
+
 **WHAT THE PREVIEW IS NOT.** It carries the **state** of the run, not the **tokens** of the
 report: the harness does not publish the agent's text as it is generated, so there is nothing to
 stream into it yet. The finished report is still sent as a message — a draft is a thirty-second
@@ -393,6 +409,14 @@ note at the END of its turn (the skill's step 5). So a stop before that write le
 untouched; a stop after it keeps what was already written, because a note that exists is a note
 the owner asked for, and deleting it would be the opposite of stopping. The gate's promise is
 about the write that had not happened yet.
+
+**WHAT G7 WAS MEASURED AGAINST.** On the box, 2026-11-09: a `daily-note` started, the stop
+fired 3 s in, and the store held **1 973 artifacts before and 1 973 after** — the agent was
+killed (no `pi` left in the container's process table) and nothing was written. The run's own
+answer is what the fix made true: it now comes back as `cancelled` in the same milliseconds the
+stop took, instead of waiting for the run's ceiling twenty minutes later. The **button** is
+still the owner's half: start a routine, press **Stop**, and the answer must be "parada", not
+"falhou".
 
 ---
 

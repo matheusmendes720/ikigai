@@ -70,17 +70,27 @@ class FakeHarness:
         self.started = asyncio.Event()
         self.release = asyncio.Event()
         self.cancelled: list[str] = []
+        #: The NAME of each run that was started, and of each stop. The name
+        #: is what says which run a stop means.
+        self.run_names: list[str | None] = []
+        self.stop_names: list[str | None] = []
         self.result: dict[str, Any] = {"text": "o relatório", "duration_ms": 1234}
 
     async def run_routine(self, routine: str, **kwargs: Any) -> dict[str, Any]:
         self.started.set()
+        self.run_names.append(kwargs.get("client_run_id"))
         await self.release.wait()
         return self.result
 
     async def cancel_routine(
-        self, session_id: str, timeout_s: float | None = None
+        self,
+        session_id: str,
+        *,
+        client_run_id: str | None = None,
+        timeout_s: float | None = None,
     ) -> dict[str, Any]:
         self.cancelled.append(session_id)
+        self.stop_names.append(client_run_id)
         return {"ok": True, "cancelled": True}
 
 
@@ -229,6 +239,31 @@ async def test_a_stopped_run_sends_no_report() -> None:
 
     assert not any("relatório" in text for text in bot.outbox), (
         f"the stopped run still sent its report: {bot.outbox}"
+    )
+
+
+async def test_the_run_is_named_after_the_preview_and_the_stop_carries_the_name() -> None:
+    """The name is what says WHICH run a stop means.
+
+    A chat is ONE session, so every routine the owner starts in it shares the
+    session key. A Stop from a preview that is already over would therefore
+    land on the NEXT routine of that chat and kill it — the owner pressed
+    Stop on the daily-note and the weekly-review died instead. The preview's
+    id is unique per run, so it is the name both sides use."""
+    harness = FakeHarness()
+    bot = _bot(harness)
+    await bot._start_routine("2115322359", "daily-note", "")
+    await harness.started.wait()
+    draft_id = bot.http.drafts()[0]["draft_id"]
+
+    assert harness.run_names == [str(draft_id)], (
+        f"the run was started without a name: {harness.run_names}"
+    )
+
+    await _stop(bot, draft_id)
+
+    assert harness.stop_names == [str(draft_id)], (
+        f"the stop reached the harness without the name of the run it stops: {harness.stop_names}"
     )
 
 

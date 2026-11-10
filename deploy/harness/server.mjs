@@ -48,7 +48,7 @@ import {
   readRegistryConfig,
   routeClient,
 } from "./runtimes.mjs";
-import { requestStop, stoppedRun } from "./stop.mjs";
+import { createStopSignal, requestStop, stoppedRun } from "./stop.mjs";
 
 // ── configuration ────────────────────────────────────────────────────────────
 // Everything is an environment variable: this file ships in a container and a
@@ -418,6 +418,17 @@ async function acquire(sessionId, runtime) {
     // route and read by the run itself, so the two agree on one fact: a
     // cancelled run answers "cancelled", not "failed".
     cancelled: false,
+    // The tokens of the runs in flight, COUNTED. A chat is ONE session, so
+    // every routine the owner starts in it shares this key — and a Stop
+    // button from a preview that is already over would land on the NEXT
+    // routine of that chat. The token is what says which run the owner
+    // meant. It is counted because two runs can share a name (a run with no
+    // name at all), and the first one to end must not take the other's away.
+    runTokens: new Map(),
+    // The stop signals of the runs in flight. A run cannot learn it was
+    // stopped by waiting: the agent's turn is an EVENT, and a killed agent
+    // never emits it. So the stop is told to the run, and this is the telling.
+    stops: new Set(),
     chain: Promise.resolve(),
     runtime: runtime?.id || DEFAULT_RUNTIME_ID,
   };
@@ -528,7 +539,17 @@ function textFromEvents(events) {
   return out;
 }
 
-async function runRoutine({ routine, session_id, chat_id, client, message, context, date, timeout_ms }) {
+async function runRoutine({
+  routine,
+  session_id,
+  chat_id,
+  client,
+  message,
+  context,
+  date,
+  timeout_ms,
+  client_run_id,
+}) {
   if (!routines.has(routine)) {
     throw Object.assign(
       new Error(`unknown routine: ${routine}`),
@@ -568,6 +589,16 @@ async function runRoutine({ routine, session_id, chat_id, client, message, conte
   // `acquire`).
   entry.turns += 1;
   entry.lastUsed = Date.now();
+  // THE RUN IS NAMED, so a stop can say which run it means. The token is
+  // the client's own handle for this run — the preview's id, for the bot.
+  const runToken = client_run_id === undefined || client_run_id === null ? null : String(client_run_id);
+  entry.runTokens.set(runToken, (entry.runTokens.get(runToken) ?? 0) + 1);
+  // THE SIGNAL THIS RUN WAITS ON. The agent's turn is an EVENT, and a killed
+  // agent never emits it — so a run cannot learn that it was stopped by
+  // waiting for its own turn to fail. It has to be told, and the stop route
+  // tells it.
+  const stop = createStopSignal();
+  entry.stops.add(stop);
   try {
     const prompt = buildPrompt(routine, {
       session_id: sessionId,
@@ -591,7 +622,23 @@ async function runRoutine({ routine, session_id, chat_id, client, message, conte
     let failure = null;
     let fellBack = null;
     try {
-      events = await entry.client.promptAndWait(prompt, undefined, timeout);
+      // THE RACE: the agent's turn, or the stop. Whichever comes first ends
+      // the run — and the stop WINS by a mile, because the owner's thumb is
+      // on the button while the agent is still thinking.
+      //
+      // Without this race the stop only killed the agent, and the run waited
+      // for an event that would never come: measured on the box (2026-11-09),
+      // a stopped run answered NOTHING for 20 minutes, until the run's own
+      // ceiling rejected the collection, and the harness's log said
+      // "started" and never said "cancelled". The agent was dead the whole
+      // time — the store stayed untouched — but the gate says the run is
+      // cancelled WITHIN TWO SECONDS, and it was not.
+      events = await Promise.race([
+        entry.client.promptAndWait(prompt, undefined, timeout),
+        stop.promise.then(() => {
+          throw new Error("the routine was cancelled");
+        }),
+      ]);
       text = (await entry.client.getLastAssistantText()) || textFromEvents(events);
     } catch (err) {
       failure = err && err.message ? err.message : String(err);
@@ -706,6 +753,15 @@ async function runRoutine({ routine, session_id, chat_id, client, message, conte
   } finally {
     entry.turns = Math.max(0, entry.turns - 1);
     entry.lastUsed = Date.now();
+    // The run is over: its token and its signal go with it. A token that
+    // outlived its run would let a Stop from a preview that is already over
+    // land on the NEXT run of this session — and kill it. The token is
+    // COUNTED, so a run that shared a name with another one does not take
+    // the other's name away with it.
+    const holders = entry.runTokens.get(runToken) ?? 0;
+    if (holders <= 1) entry.runTokens.delete(runToken);
+    else entry.runTokens.set(runToken, holders - 1);
+    entry.stops.delete(stop);
   }
 }
 
@@ -973,7 +1029,10 @@ const server = createServer(async (req, res) => {
       const body = await readBody(req);
       const sessionId = sanitiseSessionId(body.session_id || "");
       const entry = sessions.get(sessionId);
-      const outcome = requestStop(entry);
+      // The token names the RUN the stop is for. A chat is one session, so
+      // without it a Stop from a preview that is already over would land on
+      // the next routine of that chat and kill it.
+      const outcome = requestStop(entry, body.client_run_id);
       if (outcome.cancelled && entry) {
         await release(sessionId);
       }
@@ -995,6 +1054,7 @@ const server = createServer(async (req, res) => {
         context: body.context,
         date: body.date,
         timeout_ms: body.timeout_ms,
+        client_run_id: body.client_run_id,
       });
       return json(res, 200, out);
     }
