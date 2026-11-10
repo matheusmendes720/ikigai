@@ -412,11 +412,22 @@ about the write that had not happened yet.
 
 **WHAT G7 WAS MEASURED AGAINST.** On the box, 2026-11-09: a `daily-note` started, the stop
 fired 3 s in, and the store held **1 973 artifacts before and 1 973 after** — the agent was
-killed (no `pi` left in the container's process table) and nothing was written. The run's own
-answer is what the fix made true: it now comes back as `cancelled` in the same milliseconds the
-stop took, instead of waiting for the run's ceiling twenty minutes later. The **button** is
-still the owner's half: start a routine, press **Stop**, and the answer must be "parada", not
-"falhou".
+killed and nothing was written. The run's own answer is what the fix made true: it now comes
+back as `cancelled` in the same milliseconds the stop took, instead of waiting for the run's
+ceiling twenty minutes later. The **button** is still the owner's half: start a routine, press
+**Stop**, and the answer must be "parada", not "falhou".
+
+**WHAT "THE AGENT WAS KILLED" MEANS, MEASURED PROCESS BY PROCESS.** The old measurement said
+"no `pi` left in the container's process table". That was true of the RUN's agent and not of the
+table, which another probe was sharing — a table read at one instant cannot say WHICH agent it
+is talking about. Re-measured on the box, 2026-11-10, on a freshly deployed container whose
+baseline was **zero agents**: the agent of the run was BORN about a second into the run (a `pi`
+appeared in the process table), the stop named that run, and the agent was GONE within **242 ms**
+of the `routine.cancelled` event — the container went back to zero. The run settled in **96 ms**
+(the gate is 2 000 ms), the stop that named ANOTHER run was refused without touching the live
+one, and the store held **1 974 artifacts before and 1 974 after**. The claim that survives the
+measurement is the narrow one: **the agent of THIS run is gone**, so the note it was writing
+never arrives.
 
 ---
 
