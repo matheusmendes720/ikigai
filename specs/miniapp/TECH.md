@@ -163,6 +163,35 @@ and body), because the bot has no access log of its own. It is calibrated
 before it is trusted: one request without a credential (must be 401) and one
 with a payload signed by the bot on the box (must be 200 with the session).
 
+### 6.1 The measured result
+
+The proof passed on 2026-11-10 at 13:53, from **Telegram Desktop** — a client
+Telegram, delivering Telegram's own payload. The observer counted:
+
+```
+POST /api/session  2 -> 4
+GET  /             16 -> 18
+HTTP/1.1 200       16 -> 20
+HTTP/1.1 401        2 -> 2      (the calibration 401s, unchanged)
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) … Chrome/157.0.0.0 … Edg/157.0.0.0
+```
+
+and the 200 body carried `"session":{"id":"tg-2115322359"`. The panel itself,
+rendered inside Telegram's WebView, showed `SESSÃO tg-2115322359`,
+`CLIENTE tg:2115322359`, runtime `owner`, and artifacts.
+
+**How it was opened, and the limit of automation.** The inline button of a
+message is **not** an automation element: Telegram exposes the message as a
+`ListItem` and the button is nothing at all. A bot-menu button set to
+`web_app` **is** an element (`HistoryView::BotMenuButton`), so it can be
+invoked — which is how the proof was driven without a human touch. This is a
+property of the client, not of the panel: on a phone it is one tap.
+
+On this machine, injected **keyboard** works (`keybd_event`, `SendKeys`) while
+injected **mouse** does not (`mouse_event`, `SendInput` with
+`MOUSEEVENTF_ABSOLUTE`, and `PostMessage` of mouse messages are all ignored by
+a Qt window) — measured against a control window, not assumed.
+
 ---
 
 ## 7. What is not published

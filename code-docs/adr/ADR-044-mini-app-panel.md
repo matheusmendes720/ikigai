@@ -118,11 +118,11 @@ O que o painel acrescenta é **uma superfície**, não uma capacidade.
 
 ## 5. O que está quebrado, com evidência
 
-### 5.1 A prova que falta é a do caminho, não a do código
+### 5.1 A prova do caminho — feita, e o que ela mede
 
-Tudo o que roda hoje foi provado com um `initData` **assinado por nós**, na
-caixa. Isso prova que o código valida e que a página lê. **Não prova que o
-Telegram entrega a carga** — que é o que o produto precisa.
+Até 2026-11-10, tudo o que rodava tinha sido provado com um `initData`
+**assinado por nós**, na caixa. Isso provava que o código valida e que a página
+lê — **não** que o Telegram entrega a carga, que é o que o produto precisa.
 
 O verificador do servidor está calibrado para essa distinção:
 
@@ -135,9 +135,25 @@ O observador (`tcpdump` em 8003, ambos os sentidos) é o que distingue: uma
 sessão aceite, com o User-Agent de um browser — e não `curl/8.21.0`, que é o
 que a calibração deixa.
 
-**Estado medido em 2026-11-10:** `POST /api/session` = 0 respostas 200 com
-sessão; os únicos `POST` são os da calibração (401, `curl/8.21.0`). A prova
-real **não aconteceu ainda**.
+**Estado medido em 2026-11-10, 13:53 — a prova passou.** Um cliente **Telegram
+real** (Telegram Desktop 7.3.3; por dentro, o WebView Edge/157) entregou a
+carga. O servidor viu:
+
+```
+POST /api/session → 200 {"ok":true,"session":{"id":"tg-2115322359",…}}
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+            (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0
+```
+
+Contagens no observador: `POST /api/session` 2→4, `GET /` 16→18, `HTTP/1.1 200`
+16→20; os `401` de calibração ficaram os mesmos 2. O painel, renderizado dentro
+do WebView do Telegram, mostrou `SESSÃO: tg-2115322359`, `CLIENTE:
+tg:2115322359`, runtime `owner`, artefactos (12) e `PERGUNTAS (nada por
+responder)`.
+
+Isto é a prova que o produto precisa: **a assinatura do Telegram foi a que
+abriu a porta** — nenhuma credencial nossa — e a sessão do dono aparece no
+painel.
 
 ### 5.2 O painel só é alcançável dentro da tailnet
 
@@ -163,19 +179,38 @@ byte-a-byte a do repositório (mesmo conteúdo, sha do contentor
 1252 linhas são as mesmas). O `GET /v1/routing?client=tg:2115322359` responde
 `routed: true`, runtime `owner`, `session_id: tg-2115322359`.
 
-### 5.4 O que não é do produto (medido, e registado para não se repetir)
+### 5.4 O ecrã do dono: o que está quebrado, o que não está, e por onde entrou
 
-A janela do Telegram Desktop do dono está **cloaked** (`DWMWA_CLOAKED_SUSPEND`,
-`IsWindowVisible=true`, `IsIconic=false`) e nenhuma via automática a
-destrava: `ShowWindow`, `SetWindowPos`, `BringWindowToTop`,
-`WindowPattern.SetWindowVisualState`, `TransformPattern.Move`, clique na barra
-de tarefas, clique na bandeja e `Win+Ctrl+←/→` injectado. E **não** é um
-problema de desktop virtual: `IVirtualDesktopManager` diz
-`onCurrentDesktop=true` e o **mesmo** `desktopId` do MCode. O input injectado
-não comuta desktops (a cloak do MCode nunca muda) — o Windows ignora
-hotkeys de shell vindos de `SendInput`.
+A janela do Telegram Desktop do dono está **cloaked**
+(`DWMWA_CLOAKED_SUSPEND`, `IsWindowVisible=true`, `IsIconic=false`) em **todos**
+os desktops virtuais — as hotkeys de comuta de desktop injectadas comutam
+mesmo (o *tooltip* "Desktop 4" prova-o), mas a cloak nunca sai. Não é um
+problema de desktop virtual: a janela está no mesmo desktop Win32 e na mesma
+sessão que o MCode (`GetThreadDesktop` e `OpenInputDesktop` dão o mesmo
+`Default`).
 
-Isto **não é uma falha do produto** — é o男子的 ecrã. Fica escrito para que
+O que está medido sobre o input desta máquina:
+
+| Via | Veredicto |
+|---|---|
+| `keybd_event` / `SendKeys` | **funciona** — `GetAsyncKeyState` confirma a tecla premida e os caracteres chegam ao alvo |
+| `mouse_event` / `SendInput` com `MOUSEEVENTF_ABSOLUTE` | **não funciona** — num formulário próprio, visível (pixel vermelho verificado por baixo do cursor, e a janela por baixo do cursor é o próprio formulário): o clique não dispara |
+| `PostMessage` de mouse para a janela Qt | **ignorado** — o clique não seleccionou o chat |
+| **UIA (UI Automation)** | **funciona** — a árvore do Telegram tem 3663 elementos; o `InvokePattern` abre o chat |
+
+O que a UIA **não** expõe são os botões *inline* do teclado da mensagem: a
+mensagem aparece como `ListItem` e o botão não é elemento nenhum. Por isso um
+botão *inline* **não** se carrega por automação nesta máquina — é um toque
+humano (no telemóvel, um toque).
+
+**Por onde a prova entrou.** O botão de menu do bot (`setChatMenuButton` com
+`web_app` para o mesmo URL do Mini App) transforma o botão «Menu» do chat num
+atirador da Web App — e esse botão **é** exposto pela UIA
+(`HistoryView::BotMenuButton`, nome «Painel»): o `InvokePattern` abriu o Mini
+App dentro do WebView do Telegram. O menu foi reposto em `commands` depois da
+prova.
+
+Isto **não é uma falha do produto** — é o ecrã dele. Fica escrito para que
 a próxima sessão não gaste horas a re-descobri-lo, e para que a prova seja
 lida **no servidor**, que é onde ela é provável.
 
@@ -212,22 +247,23 @@ O que está **publicado e a correr**, medido em 2026-11-10:
 - o routing resolve `tg:2115322359` → `owner` (tabela versionada, montada
   read-only);
 - o gate de CI do `src-bot` corre o Node 24 da imagem e os testes da página;
-- o bot tem o comando `/painel` e o botão «📊 Abrir painel».
+- o bot tem o comando `/painel` e o botão «📊 Abrir painel»;
+- a **prova real passou**: um cliente Telegram entregou a carga e o servidor
+  aceitou a sessão `tg-2115322359` (§5.1).
 
 O que **falta**, escrito para não se perder:
 
-- a prova num cliente Telegram real (§5.1);
-- um ADR publicado (este) e uma spec publicada;
-- uma decisão sobre a rota pública (§8).
+- uma decisão sobre a rota pública (§8.2).
 
 ---
 
 ## 8. Evolução
 
-1. **A prova, primeiro.** O dono abre o painel **dentro do Telegram**, num
-   cliente real (telemóvel com Tailscale ligado, ou Telegram Desktop, ou
-   Telegram Web). A prova é lida **no servidor**: um `POST /api/session` com
-   `200`, o `session.id` certo e um User-Agent de browser.
+1. **A prova, feita em 2026-11-10.** O dono abriu o painel **dentro do
+   Telegram Desktop** (cliente real); a prova foi lida **no servidor**: um
+   `POST /api/session` com `200`, o `session.id` certo e um User-Agent de
+   browser. Para o telemóvel, o caminho é o mesmo botão, com o Tailscale
+   ligado — o painel só é alcançável dentro da tailnet (§5.2).
 2. **A rota pública, depois.** Se o dono quiser o painel no telemóvel sem
    Tailscale, o caminho é o **Tailscale Funnel** — que exige: (a) activar o
    Funnel no admin da tailnet; (b) versionar a rota no repositório, ao lado de
@@ -251,7 +287,7 @@ O que **falta**, escrito para não se perder:
 | 2 | A porta fecha sem credencial | `POST /api/session` sem `init_data` → 401 `the initData carries no hash` | devolve 200 com sessão |
 | 3 | A porta fecha com credencial errada | `initData` de outro bot → 401 `the initData does not match this bot` | devolve 200 |
 | 4 | A porta abre com a assinatura certa | `initData` assinado pelo bot → 200 com `session.id` = `tg-2115322359` | 401, ou 200 sem a sessão |
-| 5 | **A prova real** | um cliente **Telegram** entrega a carga: o servidor vê `POST /api/session` → 200, `session.id` = `tg-2115322359`, e um User-Agent de browser (≠ `curl/…`) | o `POST` vem de `curl`, ou não vem |
+| 5 | **A prova real** — **PASSOU em 2026-11-10 13:53** | um cliente **Telegram** entrega a carga: o servidor vê `POST /api/session` → 200, `session.id` = `tg-2115322359`, e um User-Agent de browser (≠ `curl/…`) | o `POST` vem de `curl`, ou não vem |
 | 6 | A página lê pela porta que já existe | a resposta 200 traz `session`, `questions`, `events` e `artifacts` | falta um deles, ou traz `artifacts` vazio com o store de pé |
 | 7 | O painel não escreve | nenhum pedido do painel chega ao store como escrita (só leitura via MCP) | aparece uma escrita no store com origem no painel |
 | 8 | O routing é o do chat | `GET /v1/routing?client=tg:2115322359` → `routed: true`, runtime `owner` | `routed: false`, ou um runtime diferente do do chat |
