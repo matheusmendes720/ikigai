@@ -1,3 +1,7 @@
+---
+tags: [strategic]
+---
+
 # Algorithmic Life OS: Design Systems & Knowledge Tracking
 
 

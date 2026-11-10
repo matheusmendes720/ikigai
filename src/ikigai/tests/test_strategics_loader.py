@@ -147,3 +147,34 @@ def test_load_strategics_preserves_sha256(tmp_path: Path) -> None:
 
     ctx = load_strategics(tmp_path)
     assert len(ctx.documents[0].sha256) == 64  # sha256 hex length
+
+
+def test_the_published_strategic_prose_is_indexed() -> None:
+    """The nine strategic documents are the grounding — and the loader sees them.
+
+    MEASURED on the box (2026-11-09): `load_strategics(Path('/app'))` returned
+    **ZERO documents and an empty index**. The loader is published and tested,
+    and on the real tree it loaded nothing — because none of the nine files
+    carried the `tags: [strategic]` that its own docstring names as the
+    precondition, and five of them began with a UTF-8 BOM that pushed the
+    frontmatter off the first byte the parser anchors on.
+
+    The gate (ROADMAP G2/b) asks for the nine documents and a non-empty index.
+    This is that assertion, on the real tree: EVERY published strategic
+    document is indexed. A file that falls out of the index falls out of the
+    grounding silently — the agent still reads it by name, and nobody says so.
+
+    Falsification: remove the tag from any one of the nine, and this fails.
+    """
+    from strategics.loader import load_strategics
+
+    repo_root = Path(__file__).resolve().parent.parent.parent.parent
+    prose = sorted((repo_root / "strategics").glob("*.md"))
+    assert prose, "the strategic prose is not published"
+
+    ctx = load_strategics(repo_root)
+    indexed = {doc.path.name for doc in ctx.documents}
+    missing = [p.name for p in prose if p.name not in indexed]
+    assert not missing, "these strategic documents are not indexed: " + ", ".join(missing)
+    assert len(ctx.documents) >= 9, f"the grounding is short: {len(ctx.documents)} documents"
+    assert ctx.index.strip(), "the strategic index is empty"

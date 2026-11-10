@@ -391,18 +391,50 @@ is a **projection** (ADR-037 D8), and the DOM does not know it exists.
 
 ## 11. Gates — ordered, each falsifiable
 
-| # | Gate | PASS |
-|---|---|---|
-| G1 | The deploy is green and the stack is current | `docker compose ps` shows six healthy services; `/start` lists store, agent and memory |
-| G2 | One routine end to end | `/daily-note teste` → the agent answers, `/busca teste` finds the artifact, `/memoria` shows the session |
-| G3 | A cadence fires itself | the daily note exists at 22:05 with no human message, and the run is in the harness memory |
-| G4 | The router routes | "fecha o dia de ontem" runs `daily-note` with `date=yesterday`; "asdkjh" answers with buttons, not a 500 |
-| G5 | The store repeats itself | the same query, twice, returns the same uid set and the same order |
-| G6 | HITL commits | **Guardar** writes once; the same button twice writes once (idempotency key); a stale revision is a 409 |
-| G7 | Stop stops | the Stop button cancels the run within 2 s, and no artifact is written |
-| G8 | Two clients converge | a write from the phone appears on the desktop through the ws, and neither reorders |
+| # | Gate | PASS | Status |
+|---|---|---|---|
+| G1 | The deploy is green and the stack is current | `docker compose ps` shows six healthy services; `/start` lists store, agent and memory | **PASS** |
+| G2 | One routine end to end | `/daily-note teste` → the agent answers, `/busca teste` finds the artifact, `/memoria` shows the session | **PASS** |
+| G3 | A cadence fires itself | the daily note exists at 22:05 with no human message, and the run is in the harness memory | **RED** |
+| G4 | The router routes | "fecha o dia de ontem" runs `daily-note` with `date=yesterday`; "asdkjh" answers with buttons, not a 500 | **PASS (by test)** |
+| G5 | The store repeats itself | the same query, twice, returns the same uid set and the same order | **PASS** |
+| G6 | HITL commits | **Guardar** writes once; the same button twice writes once (idempotency key); a stale revision is a 409 | **PASS** |
+| G7 | Stop stops | the Stop button cancels the run within 2 s, and no artifact is written | **PASS** |
+| G8 | Two clients converge | a write from the phone appears on the desktop through the ws, and neither reorders | **PASS** |
 
 G1–G2 are the deployment; G3–G8 are this spec. Nothing below G2 is testable while G1 is red.
+
+**THE TRACKER, AND WHAT ITS WORDS MEAN.** One status per gate, and three values only:
+
+- **PASS** — the whole clause was measured and holds. The line below says where.
+- **RED** — it was measured and it does **not** hold. A red gate is a defect with a date, not a
+  to-do.
+- **UNKNOWN** — no measurement was found, in this session or in the repository. It is written as
+  UNKNOWN rather than guessed, because a gate nobody measured and a gate that passed look
+  identical in a table that only records intent.
+
+| Gate | Where the PASS comes from | What is left |
+|---|---|---|
+| **G1** | 2026-11-10, on the box: six `ikigai-*` containers `healthy` on image `sha-11d004bb` (api, bot, db, harness, sync, ws) | the `/start` half — the owner's chat |
+| **G2** | 2026-11-10, all three halves: the routine's note (`Relatório Diário — 2026-11-09`, revision 4) is returned by `search_artifacts`, reads back by uid, and the harness memory holds `routine.started` + `routine.finished` for `tg-box-01` | — |
+| **G3** | 2026-11-10, **failed**: the cadence fires on its own — `routine.started` at **01:00:00Z** (= 22:00 in the configured −03:00), `client=tg:2115322359`, no human message — but the run wrote **two `desc`** (`des:ag3-gateway-merge`, the AG3 decision) and **no daily note**, then answered `routine.failed` at **01:30:00Z**. The only daily note in the store is 2026-11-09's, written by a manual run | the daily note the gate promises, and why the run ends in `failed` half an hour in |
+| **G4** | 2026-11-10, **by test only**: 11 cases in `src/ikigai/tests/test_bot_router.py` — a sentence names a routine, the relative day is carried as a slot, accents and case do not change the reading, a sentence that names none is refused, two routines is an abstention, a button token round-trips and a forged one is refused | the live half — the owner typing "asdkjh" and getting buttons, not a 500 |
+| **G5** | 2026-11-10, on the box: the same `search_artifacts` query twice → 10 uids, **the same list in the same order** | — |
+| **G6** | 2026-11-10, on the box: `created` (rev 1) → the same `idempotency_key` again → **`unchanged`**, rev 1; a stale `expected_revision=999` → **`conflict`**, and the artifact kept revision 1 | the button itself, in the owner's chat |
+| **G7** | 2026-11-10, on the box: the run settles in **55 ms** (gate: 2 000), the agent of the run is **born** and **gone** 222 ms after `routine.cancelled`, **1 974 artifacts before and after** | the button itself, in the owner's chat |
+| **G8** | 2026-11-10, on the box: `seq` `[10589, 10590, 10591]` on **both** clients, strictly increasing, no duplicates; the gap closes at `[10592, 10593]` after a disconnect; **1 974 before and after** | a second physical device |
+
+**THE LETTERS ARE NOT UNIQUE IN THIS REPOSITORY.** `specs/production-readiness/ROADMAP.md` has
+its own `G1`–`G5` — the *deployment* gates (store, content, harness, Telegram, delivery) — and
+they are not these. `ROADMAP`'s `G2` is "the prose enters and the grounding arrives", whose (b)
+half is **RED**: measured 2026-11-10 on the deployed image, `load_strategics(/app)` returns
+**0 documents** from **9 files**, because the loader keeps only files whose frontmatter carries
+`tags: … strategic` and none of the nine has frontmatter. The grounding reaches the agent by
+another path (the ingested quarterly plan), but the path the gate names does not work. A fix is
+open as PR #52 (frontmatter on the nine files, plus a guard that counts them); it is green in CI
+and **unmerged**, so the gate stays red until it lands. A reader who takes "G2 is green" from one
+document and "G2 is red" from the other is not confused — they are reading two different gates
+that were given the same name.
 
 **WHAT "NO ARTIFACT IS WRITTEN" MEANS.** The store is append-only, and the routine writes its
 note at the END of its turn (the skill's step 5). So a stop before that write leaves the store
@@ -428,6 +460,42 @@ of the `routine.cancelled` event — the container went back to zero. The run se
 one, and the store held **1 974 artifacts before and 1 974 after**. The claim that survives the
 measurement is the narrow one: **the agent of THIS run is gone**, so the note it was writing
 never arrives.
+
+**WHAT G8 WAS MEASURED AGAINST.** On the box, 2026-11-10, with the deployed stack and the bot
+stopped for the duration (the bot announces every change that is not its own to the owner's
+Telegram, and a probe's writes would read as the owner's work). Two `WebSocketClient`s — the
+published one, not a probe's own socket — subscribed to `ws://ws:8001/sync`, and the writes went
+through the **same path the phone uses**: `McpClient` plus `_write_arguments` from
+`src/bot/main.py`, the same envelope and the same contract.
+
+| what the gate asks | what was measured |
+|---|---|
+| a write from the phone appears on the desktop through the ws | **yes** — 3 writes, 3 events, on both clients |
+| neither reorders | `seq` `[10589, 10590, 10591]` on BOTH clients, strictly increasing, no duplicates |
+| the two clients agree | the **same** uid list and the **same** `seq` list |
+| the gap closes after a disconnect | desktop parked at 10591, 2 writes missed, reconnect → `[10592, 10593]`, in order, nothing repeated |
+| the store is left as it was | **1 974 artifacts before and 1 974 after** |
+
+The latency measured from the moment the phone DECIDES to write is **84–95 ms** on a warm path
+(the first write of a burst pays ~1 200 ms, which is the pool and the MCP handshake warming up,
+not the feed). And the event lands **42–56 ms BEFORE the write's own HTTP answer returns** — the
+`NOTIFY` travels with the write, the answer has further to go. A client that waited for its own
+answer before telling anyone would be slower than the store already is.
+
+**THE TIP IS THE STORE'S `max(seq)`, AND THAT IS WHAT MAKES `lost` HONEST.** The `hello` frame
+and the `resume` answer both report the tip, and on a healthy stack they agree with
+`select max(seq) from ikig.artifact_events` — measured: `hello` 10511, `resume.tip` 10511,
+`max(seq)` 10511. The log is PRUNED rather than gap-free (it kept 79 rows spanning `seq` 951 to
+10 511), which is exactly why `resume` answers `floor` and `lost` beside the events: a `since`
+below the floor is a client that missed something the store already forgot, and that is a
+different answer from "nothing happened". A probe that asks `resume since=0` on this log gets
+`lost: true` — correctly, and it must not be read as a defect.
+
+**WHAT G8 DOES *NOT* CLAIM.** One Telegram `chat_id` is one conversation on every device; there
+is no `device_id` in a message update (§7). So "the phone and the desktop converge" is measured
+on two **websocket clients of the store**, which is the part the ws owns. The part that needs a
+second physical device — the same chat writing from two phones — is the owner's half, like the
+Stop button in G7.
 
 ---
 

@@ -1,3 +1,7 @@
+---
+tags: [strategic]
+---
+
 # 00 — ÍNDICE PROGRESSIVO: Guidelines Teóricos
 
 > **Mapa de navegação exclusivo da camada estratégica/tática/operacional** do Algorithmic Life OS.
