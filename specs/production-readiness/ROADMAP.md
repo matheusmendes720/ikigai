@@ -508,6 +508,18 @@ pergunta (prazo 04:58:38Z) está `expired` na base e **não tem evento**. O
 estado é a verdade; o log subdeclara, e um contador de expirações tirado do log
 não é fiável.
 
+**E a base, pelo outro lado, também mente: o `pending` over-declara.** Medido
+em 2026-11-10T12:05Z, a tabela `questions` tinha **4** perguntas em
+`state = 'pending'` **com o prazo já vencido** — `71c3ebd8033d` (prazo
+2026-11-09T14:07:08Z), `97ad71db4d89` (19:21:10Z), `8a342f3c4aaa` (19:36:36Z)
+e `e8f3913c957c` (2026-11-10T05:20:15Z). É a mesma coisa vista do outro lado:
+**a expiração é observada, não agendada** — uma pergunta só muda de estado
+quando alguém a lê, e ninguém a leu. ⇒ `state = 'pending'` **não é** a lista
+de perguntas em aberto. O **caminho do produto está certo** (`owner.pending()`
+expira em silêncio e não devolve a pergunta, e o `/v1/session` nunca mostra uma
+pergunta vencida), mas uma **consulta crua** à tabela devolve perguntas mortas
+há horas — e a mais antiga estava morta há **21 h 58 min**.
+
 **Fica por decidir (dono):** se a segunda rotina deve **esperar a sua vez**
 (`entry.chain`, `server.mjs:432`, desenhada desde o início e não implementada) ou
 continuar a ser **recusada com 502** — **medido em 2026-11-10: a recusa existe,
