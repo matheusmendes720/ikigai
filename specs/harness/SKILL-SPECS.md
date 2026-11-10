@@ -86,8 +86,10 @@ Steps:
    hierarchy, DEPENDS_ON for sequence, EVIDENCES for provenance, DERIVES_FROM
    for lineage, REFERENCES for citation, SUPERSEDES for replacement, BLOCKS for
    contention. The edge starts at the artifact being written, so the source is
-   the uid from step 2. A destination that does not exist is NOT_FOUND: the
-   edge is refused and nothing is written.
+   the uid from step 2. The direction of an edge is the direction of its name:
+   PARENT_OF runs from the parent to the child, and DERIVES_FROM runs from the
+   artifact that derives to the one it derives from. A destination that does not
+   exist is NOT_FOUND: the edge is refused and nothing is written.
 5. Call upsert_artifact with the WriteRequest: the artifact, the relations from
    step 4, expected_revision, a non-empty idempotency_key, and a client_id.
    The idempotency key identifies the intent, not the moment: build it from the
@@ -328,11 +330,16 @@ Steps:
    opens the Correcao do Trajeto: the correction is written before the new plan.
 4. Write the PLANO for the new quarter, with its plan tier and its quarter. Set
    the quarter on every artifact that belongs to it. The plan's write carries
-   its own edges: PARENT_OF to the phases.
+   its own edges: PARENT_OF to the phases - the plan is the source and the
+   phase is the destination. The direction of an edge is the direction of its
+   name: PARENT_OF runs from the parent to the child, and DERIVES_FROM runs
+   from the artifact that derives to the one it derives from.
 5. Write the FASE rows of the plan, the OKR objectives with their key results
    and targets, and the ONDA waves of the quarter. Each of those writes carries
    the edges that start at it: PARENT_OF from a phase to its waves, from a wave
-   to its tasks, and DERIVES_FROM when a wave comes from an objective.
+   to its tasks, and DERIVES_FROM when a wave comes from an objective. The
+   source is always the artifact being written - the phase for its waves, the
+   wave for its tasks.
 6. Report the plan uid, the uids of the phases, objectives and waves, the
    Teste de Fogo verdict, and the tools that ran.
 Invariants:
