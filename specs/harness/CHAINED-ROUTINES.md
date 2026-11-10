@@ -417,7 +417,7 @@ G1–G2 are the deployment; G3–G8 are this spec. Nothing below G2 is testable 
 |---|---|---|
 | **G1** | 2026-11-10, on the box: six `ikigai-*` containers `healthy` on image `sha-11d004bb` (api, bot, db, harness, sync, ws) | the `/start` half — the owner's chat |
 | **G2** | 2026-11-10, all three halves: the routine's note (`Relatório Diário — 2026-11-09`, revision 4) is returned by `search_artifacts`, reads back by uid, and the harness memory holds `routine.started` + `routine.finished` for `tg-box-01` | — |
-| **G3** | 2026-11-10, **failed**: the cadence fires on its own — `routine.started` at **01:00:00Z** (= 22:00 in the configured −03:00), `client=tg:2115322359`, no human message — but the run wrote **two `desc`** (`des:ag3-gateway-merge`, the AG3 decision) and **no daily note**, then answered `routine.failed` at **01:30:00Z**. The only daily note in the store is 2026-11-09's, written by a manual run | the daily note the gate promises, and why the run ends in `failed` half an hour in |
+| **G3** | 2026-11-10, **failed**: the cadence fires on its own — `routine.started` at **01:00:00Z** (= 22:00 in the configured −03:00), `client=tg:2115322359`, no human message — but the run wrote **two `desc`** (`des:ag3-gateway-merge`, the AG3 decision) and **no daily note**, then answered `routine.failed` at **01:30:00Z**. The only daily note in the store is 2026-11-09's, written by a manual run | the daily note the gate promises. **Two causes, both measured, both now fixed** — see "WHAT THE G3 RUN WAS MEASURED AGAINST" below |
 | **G4** | 2026-11-10, **by test only**: 11 cases in `src/ikigai/tests/test_bot_router.py` — a sentence names a routine, the relative day is carried as a slot, accents and case do not change the reading, a sentence that names none is refused, two routines is an abstention, a button token round-trips and a forged one is refused | the live half — the owner typing "asdkjh" and getting buttons, not a 500 |
 | **G5** | 2026-11-10, on the box: the same `search_artifacts` query twice → 10 uids, **the same list in the same order** | — |
 | **G6** | 2026-11-10, on the box: `created` (rev 1) → the same `idempotency_key` again → **`unchanged`**, rev 1; a stale `expected_revision=999` → **`conflict`**, and the artifact kept revision 1 | the button itself, in the owner's chat |
@@ -496,6 +496,50 @@ is no `device_id` in a message update (§7). So "the phone and the desktop conve
 on two **websocket clients of the store**, which is the part the ws owns. The part that needs a
 second physical device — the same chat writing from two phones — is the owner's half, like the
 Stop button in G7.
+
+**WHAT THE G3 RUN WAS MEASURED AGAINST — TWO CAUSES, NOT ONE.** The cadence run of 2026-11-10
+(01:00:00Z, no human message) failed at 01:30:00Z. Both causes below were measured, and both
+are fixed; the gate stays **RED** until a cadence run lands a `nota`.
+
+**Cause 1 — the agent had no store tools at all.** The run's session made **480 tool calls: 438
+`bash`, 32 `read`, 9 `write`, 1 `edit`, and ZERO store tools**. Asked what it had, it answered
+"Ferramentas de um servidor MCP chamado `ikigai`: **nenhuma**". It had been writing its own
+JSON-RPC client in Node to reach the store. The cause was in `deploy/harness/server.mjs`:
+`piArgs()` passed `--no-extensions`, and the comment beside it claimed the MCP client was CORE.
+`pi`'s own documentation (`docs/settings.md`) lists `builtin:mcp` among the built-in extensions
+and says `--no-extensions` disables them too; `docs/cli.md` names the combination that keeps
+only MCP: **`pi -ne -e builtin:mcp`**. Fixed in PR #61 and **proved live**: a new session lists
+`mcp__ikigai__search_artifacts|get_artifact|upsert_artifact|delete_artifact|list_relations|embed_text`
+plus `mcp__owner__ask`.
+
+**Cause 2 — the ceiling was a PROMISE and not a KILL.** The run answered `routine.failed` at
+01:30:00Z and the agent **kept writing until 01:33:08Z** — three minutes of writes after the
+owner was told the routine had failed. The SDK's `promptAndWait` passes the ceiling to
+`collectEvents(timeout)`, and that timer only **rejects a promise**; it never touches the
+process. The agent's turn is an EVENT, and a rejected promise does not kill the thing that was
+going to emit it. This is the exact mirror of the G7 defect: there, a run that ended left a live
+agent; here, the run that ENDED BY TIMEOUT left a live agent. Fixed: the harness owns the clock
+(the SDK's timer is a backstop, given 5 s more so the harness always decides), and a run whose
+clock ran out **releases its session** — the agent dies and the session is forgotten, so the next
+routine of that chat spawns a fresh `pi`. The answer is `timedOut`, not `cancelled`: nobody
+pressed Stop, and the clock is not the owner.
+
+**Cause 3 — the skill had nothing to say about an empty set.** Measured on the box: the store
+holds **0** `tarefa` artifacts alive (the only two ever written were probes, both deleted), and
+**5** `fase` rows for Q4-2026 (B0–B4, each with its window and its "Done quando"), **5** `okr`,
+**7** `kpi`, **1** `revisao`. The `daily-note` skill classified `tarefa` only, and said nothing
+about a set that comes back empty — so the agent improvised: it wrote **two `desc`** and **no
+note**. The note that WORKED (2026-11-09, revision 4, written through MCP) classified the
+**phases and the plan's decision gate**, and said so in its own §1: with no artifact of the
+kinds that represent work, "the planned tasks" are B0–B4 and the §4.1 gate. The skill now says
+so: a phase is planned work and is classified like a task; an empty set is a **fact about the
+day** that goes IN the note; and it is never a reason to write a different artifact, to invent
+work, or to ask (a cadence fires at 22:00 with nobody watching — a question nobody answers holds
+the run until its ceiling).
+
+**THE PROOF OF G3 IS THE CADENCE, AND IT IS NOT CONTROLLED BY A PROBE.** The 22:00 run is the
+first run with the six tools; a probe cannot stand in for it. The gate closes when the note
+exists at 22:05 with no human message, and the run is in the harness memory.
 
 ---
 
