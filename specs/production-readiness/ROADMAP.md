@@ -400,7 +400,24 @@ recusar **antes** de chamar o `pi`, com uma mensagem que diga o que está a
 acontecer e o que fazer; e o `/v1/health` deve dizer que a sessão está
 ocupada. O precedente está medido no §5.2: o `monthly-review` morreu aos 302 s
 sem que ninguém soubesse — o que mata o dono não é a espera, é o silêncio.
-**A escolha é do dono**: recusar declarado, esperar a vez, ou steer.
+
+**A escolha foi: recusar declarado** (dono, 2026-11-10). E o que isso
+significa, medido no código:
+
+| | antes | agora |
+|---|---|---|
+| quem recusa | o SDK do `pi` (*"Agent is already processing…"*), por acidente | o harness, **antes** de chamar o `pi` |
+| o que o dono lê | a frase de um terceiro, sobre um parâmetro que ele não tem | *"a rotina foi recusada — a sessão já tem outra rotina a correr. Espera que ela termine e pede outra vez."* |
+| o status | 502 (uma falha) | **409** (um conflito com o estado da sessão) |
+| o log | `routine.started` + `routine.failed` — **2 arranques, 1 acabamento** | `routine.refused` — **0 arranques** |
+| a sessão ocupada | ninguém a podia ver | o `/v1/session` diz `busy: true` |
+
+O contrato vive em `deploy/harness/refusal.mjs` (uma função pura, testável
+sem agente e sem base de dados) e o guard em
+`deploy/harness/test/refusal.test.mjs` prende a frase: **é do produto, não é
+a do SDK**. Do lado do cliente, o `HarnessError` transporta o status — sem ele
+"recusada" e "falhou" eram a mesma frase — e o guard em
+`test_bot_harness_refusal.py` prende a frase do dono.
 
 ### 5.3 O que a medição deixou por medir
 
