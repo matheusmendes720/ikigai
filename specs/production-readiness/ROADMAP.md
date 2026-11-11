@@ -138,7 +138,8 @@ que conta como falha, e a variante manual (para o VPS, quando o box voltar).
 | **Falsificação** | remover o `tags:` de um `strategics/*.md` ⇒ o índice perde-o ⇒ o teste falha |
 | **Invariantes** | B8, B9 |
 | **Medido em 2026-11-09** | **(a) PROVADO** — 1 974 artefactos (1 953 com `vault_path` — os 21 restantes são os que o `pi` escreveu hoje), `sha256(ficheiro)` = `body_hash` em 40/40, e a search devolve o artefacto com o hash do ficheiro. **(b) FALSIFICADO** — `load_strategics` devolve **0 documentos** e índice **vazio**: os 9 ficheiros não têm frontmatter, e o loader filtra por `tags:` contendo *"strategic"*. O gate **não fecha** até isto ser corrigido (§5.1) |
-| **Remedido em 2026-11-10** | **(b) PROVADO** — `load_strategics(<raiz real>)` devolve **9 documentos** (95 167 chars) e o índice **não está vazio**. O caminho escrito do gate **fecha**: os 9 ficheiros de `strategics/` têm `tags: [strategic]`, o BOM saiu dos 5 que o tinham, e o byte NUL que estava no lugar do `0` foi reposto (§5.6) |
+| **Remedido em 2026-11-10** | **(b) PROVADO** — `load_strategics(<raiz real>)` devolve **9 documentos** (95 169 chars) e o índice **não está vazio**. O caminho escrito do gate **fecha**: os 9 ficheiros de `strategics/` têm `tags: [strategic]`, o BOM saiu dos 5 que o tinham, e o byte NUL que estava no lugar do `0` foi reposto (§5.6) |
+| **Remedido em 2026-11-11** | **(b) PROVADO** — na imagem desplegada `sha-c935e180`: `load_strategics(/app)` devolve **9 documentos** e um índice de **95 169 chars** (os corpos, **94 861**) — o mesmo número que o PR #52 mediu e que o corpus do repositório devolve. O `95 167` que este ROADMAP trazia era o mesmo número com os dígitos trocados |
 
 ### G3 · Harness — *o `pi` corre uma rotina de verdade*
 
@@ -213,7 +214,7 @@ herança.
 | **B6** o transporte nunca transporta SQL | G1, G3 | zero `select\|insert\|update\|delete` em `mcp_server.py` | provado (não remedido hoje) |
 | **B7** o healthcheck mede o plano de dados | G1 | a inserção de sonda passa (ou é recusada pela RLS) — nunca `select 1` | provado (não remedido hoje) |
 | **B8** a prosa entra pelo vault e sai como linhas tipadas | G2 | uma linha por ficheiro ingerido, com o `body_hash` certo | **provado** — **1 976 artefactos vivos, todos com `vault_path`** (2026-11-11); `sha256(ficheiro)` = `body_hash` em **40/40** (2026-11-09) e em **23/23** na árvore do write-back (2026-11-11); a `search_artifacts` devolveu o artefacto cujo `body_hash` é o do ficheiro; e a **seta invertida** também está medida — o store escreve a prosa, e a ingestão volta a lê-la **sem duplicar e sem reescrever** (`created=0 updated=0 unchanged=1976`) — §5.7 |
-| **B9** o grounding estratégico chega ao agente | G2, G3 | o índice tem os 9 documentos e o agente os cita | **provado** — o *agente* cita o grounding (o "AG3" vive no `pln:deep-agent-build-q4-2026:…`) **e** o caminho escrito funciona: `load_strategics(<raiz real>)` devolve **9 documentos** (95 167 chars) e o índice não está vazio (§5.6) |
+| **B9** o grounding estratégico chega ao agente | G2, G3 | o índice tem os 9 documentos e o agente os cita | **provado** — o *agente* cita o grounding (o "AG3" vive no `pln:deep-agent-build-q4-2026:…`) **e** o caminho escrito funciona: `load_strategics(<raiz real>)` devolve **9 documentos** (95 169 chars) e o índice não está vazio (§5.6) |
 | **B10** a cadência produz o artefacto do seu tipo, com os campos que o tipo exige | G3 | o `pi` produz uma `desc` com `rationale`, um `okr` com `key_result` | **provado** — a `desc` `des:revisao-mensal-q4-2026:a68c4ee7:af5237c5596d44d4` (22:24:09Z, rev 1) tem `decision` **e** `rationale` preenchidos em `ikig.artifact_decs`, e 16 arestas `references`; e os 5 `okr` do `quarterly-plan` têm `objective` **e** `key_result` preenchidos em `ikig.artifact_okr` (5/5). A cadência correu — a entrada `/v1/routine` é que esteve recusada enquanto a sessão do dono tinha outro turno (§5.4) |
 
 **Contagem**: **10 provadas** (6 delas remedidas hoje) · **0 parciais** · **0 não
@@ -259,7 +260,7 @@ reproduzível fora do store — e por isso é verificável.
 > nos 9, o BOM fora dos 5 que o tinham, e o byte NUL reposto onde devia estar o
 > `0` — o loader é um **contrato documentado**, e quem estava desobrigado era o
 > corpus. As guardas novas contam os documentos e proíbem o lixo nos bytes
-> (§5.6). **Agora:** `load_strategics` devolve **9 documentos** (95 167 chars)
+> (§5.6). **Agora:** `load_strategics` devolve **9 documentos** (95 169 chars)
 > e o índice não está vazio.
 
 **O que ficou à espera do dono (e porquê):**
@@ -680,7 +681,7 @@ do dono continua CRLF**, sem churn. E, com o NUL fora, o git deixa de tratar
 estes ficheiros como binários: o diff passa a mostrar **linhas**.
 
 **O que a medição dá agora.** `load_strategics(<raiz real>)` devolve **9
-documentos** (corpos com 94 861 chars, índice com **95 167**) e o índice não
+documentos** (corpos com 94 861 chars, índice com **95 169**) e o índice não
 está vazio ⇒ o gate **G2 (b) fecha**.
 
 **As guardas novas** (adicionar é permitido; afrouxar um guard, nunca):
