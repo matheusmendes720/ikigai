@@ -264,6 +264,24 @@ vps-hetzner.tail78a4a0.ts.net → A 185.40.234.55 / .75 / .198
 
 A página **responde** e a porta de dados está **fechada**, do lado de fora.
 
+**E o certificado é de confiança pública.** Medido na caixa, com o store de CAs
+do sistema (sem nenhuma CA do Tailscale instalada):
+
+```
+subject = CN=vps-hetzner.tail78a4a0.ts.net
+issuer  = C=US, O=Let's Encrypt, CN=YE1
+notBefore = Nov  9 03:16:25 2026 GMT    notAfter = Feb  7 03:24:24 2027 GMT
+SAN     = DNS:vps-hetzner.tail78a4a0.ts.net
+
+Verify return code: 0 (ok)
+Protocol: TLSv1.3    Cipher: TLS_AES_128_GCM_SHA256
+```
+
+Isto não é um detalhe: o painel abre-se dentro do **WebView do Telegram**, e
+um WebView recusa um certificado que não chains até uma CA pública. Um painel
+publicado com um certificado auto-assinado abriria no `curl` da caixa e **não**
+abriria no telemóvel do dono.
+
 ---
 
 ## 6. Inventário, com a razão de cada peça
@@ -393,6 +411,7 @@ Cada uma falha sozinha, e nenhuma leva as outras:
 | o gate do contrato | o job do CI não corre | a superfície fica sem porta — e é a razão de o job existir |
 | o gate do efeito | a superfície publicada não responde de fora | o deploy fica **vermelho**: a rota está declarada e não está no ar |
 | o gate do efeito | a porta de dados responde `200` | o deploy fica **vermelho**: uma superfície publicada com a porta aberta é pior do que nenhuma |
+| o gate do efeito | o runner não consegue abrir a socket | o gate **distingue** as duas coisas: o `curl exit` é reportado à parte do código HTTP, e a mensagem diz «a superfície pode estar publicada, mas o runner não a alcança» — em vez de dizer «não está publicada», que seria mentira |
 
 ---
 
