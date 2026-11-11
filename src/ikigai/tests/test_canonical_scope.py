@@ -218,6 +218,8 @@ RETIRED_EXCEPTIONS = (
     # The amendment to the write-back: the writer records what it wrote
     # (ADR-047).
     "code-docs/adr/ADR-047-write-back-records-what-it-wrote.md",
+    # The search returns the identity, and the prose is fetched apart (ADR-046).
+    "code-docs/adr/ADR-046-search-returns-identity.md",
     # The pivot's own series, and the record of the cut that preceded it.
     "docs/superpowers/specs/2026-10-30-05-cut.md",
     "docs/superpowers/specs/2026-11-01-00-data-layer-series.md",

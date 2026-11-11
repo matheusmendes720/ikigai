@@ -577,6 +577,8 @@ deploy/secrets/
 !/code-docs/adr/ADR-045-public-route-and-its-gate.md
 # The amendment to the write-back: the writer records what it wrote (ADR-047).
 !/code-docs/adr/ADR-047-write-back-records-what-it-wrote.md
+# The search returns the identity, and the prose is fetched apart (ADR-046).
+!/code-docs/adr/ADR-046-search-returns-identity.md
 
 # The dated audits and plans of the system that was replaced.
 /docs/diagnostics/

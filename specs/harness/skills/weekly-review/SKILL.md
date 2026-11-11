@@ -20,9 +20,10 @@ Steps:
 1. Search for what the week was supposed to deliver: `search_artifacts` with `kinds=(plano, onda, okr, kpi)` and the quarter.
 2. Search for the tasks of the period: `search_artifacts` with `kinds=(tarefa,)`.
 3. Search for the notes of the week: `search_artifacts` with `kinds=(nota,)` and the quarter.
-4. Classify each planned item as done, partly done, not started or dropped, and cite the evidence for the classification. An item with no evidence stays open.
-5. Write the review with `upsert_artifact`. The body carries the classification and the evidence. Set the quarter. The write carries the `REFERENCES` edges to what the review reviews: each edge starts at the review, so the review and its edges land together.
-6. Report the review uid, the counts per class and the tools that ran.
+4. Read what you are about to classify with `get_artifact` at depth 0 — the prose of each planned item, and the prose of each note that is the evidence. The search returns the identity of a hit, not its body (ADR-046); what an item SAYS comes from the read.
+5. Classify each planned item as done, partly done, not started or dropped, and cite the evidence for the classification. An item with no evidence stays open.
+6. Write the review with `upsert_artifact`. The body carries the classification and the evidence. Set the quarter. The write carries the `REFERENCES` edges to what the review reviews: each edge starts at the review, so the review and its edges land together.
+7. Report the review uid, the counts per class and the tools that ran.
 
 Invariants:
 - The count is arithmetic over the state in the store. There is no LLM in the count.

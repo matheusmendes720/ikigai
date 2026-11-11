@@ -5,7 +5,7 @@ single architectural decision: Status, Date, Context, Decision, Consequences,
 Alternatives, Implementation Rules. Append-only — ADRs are immutable once
 Accepted; superseded ADRs are linked, never edited.
 
-> **This index lists eleven.** The repository publishes the decisions the
+> **This index lists twelve.** The repository publishes the decisions the
 > current scope rests on, and nothing else: the ADRs of an architecture that
 > was replaced describe a system that is not published, and a reader has no
 > way to tell that from a description of the one that is.
@@ -30,6 +30,7 @@ Accepted; superseded ADRs are linked, never edited.
 | `ADR-041-runtime-routing-and-human-in-the-loop.md` | Accepted | 2026-11-09 | **O routing do runtime e o humano no circuito** — a pergunta bloqueante e o painel que a responde |
 | `ADR-042-routing-table-in-the-repository.md` | Accepted | 2026-11-09 | **A tabela de routing no repositório** — o routing versionado, e o gate que o harness corre |
 | `ADR-043-vault-write-back.md` | Accepted | 2026-11-10 | **O `vault_write`** — escrever a prosa de volta sem segundo canónico: o store escreve, a prosa nunca reescreve o store; o alvo, o conflito e o commit |
+| `ADR-046-search-returns-identity.md` | Accepted | 2026-11-11 | **A busca devolve a identidade** — a prosa sai do `search_artifacts` e lê-se com `get_artifact`; o payload cai 43× e a métrica de 14 dias fica alcançável |
 | `ADR-047-write-back-records-what-it-wrote.md` | Accepted | 2026-11-11 | **Emenda à ADR-043** — o `vault_write` regista no store o que escreveu: o PASS 6 obriga-o, e a tensão do §2/§10 fica resolvida por escrito |
 
 ---
@@ -58,6 +59,7 @@ Accepted; superseded ADRs are linked, never edited.
 | The runtime routing, and the human in the loop | `ADR-041-runtime-routing-and-human-in-the-loop.md` · `ADR-042-routing-table-in-the-repository.md` — the blocking question, and the routing table that is versioned with the code |
 | **The write-back to the vault** | `ADR-043-vault-write-back.md` — the store writes the prose; the prose never rewrites the store |
 | **The write-back's record of what it wrote** | `ADR-047-write-back-records-what-it-wrote.md` — the amendment to ADR-043 |
+| **What a search carries** | `ADR-046-search-returns-identity.md` — the search answers "which"; the read answers "what" |
 | The series that specified the pivot | [`docs/superpowers/specs/2026-11-01-00-data-layer-series.md`](../../docs/superpowers/specs/2026-11-01-00-data-layer-series.md) |
 | The cut that preceded the pivot | [`docs/superpowers/specs/2026-10-30-05-cut.md`](../../docs/superpowers/specs/2026-10-30-05-cut.md) |
 
@@ -69,7 +71,7 @@ When adding a new ADR:
 
 1. **Append-only** — never edit an Accepted ADR. Supersede, don't rewrite.
 2. **Filename convention** — `ADR-NNN-kebab-slug.md`.
-3. **Numbering** — sequential: **ADR-038 is reserved** for the single-player-store decision (`specs/production-readiness/ROADMAP.md` O2), so the next free number is **ADR-046**. ADR-039 is the websocket sync channel; ADR-040 is the client state and the drafts; ADR-041 and ADR-042 are the runtime routing; ADR-043 is the write-back to the vault; ADR-047 amends ADR-043.
+3. **Numbering** — sequential: **ADR-038 is reserved** for the single-player-store decision (`specs/production-readiness/ROADMAP.md` O2), so the next free number is **ADR-048**. ADR-039 is the websocket sync channel; ADR-040 is the client state and the drafts; ADR-041 and ADR-042 are the runtime routing; ADR-043 is the write-back to the vault; ADR-046 is what a search carries; ADR-047 amends ADR-043.
 4. **Cross-reference** — every ADR points to canonical source (file + line range or section).
 5. **Update this README** — add the row to the index table.
 6. **Publish it deliberately.** The ignore rules exclude `code-docs/adr/*.md`

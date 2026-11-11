@@ -19,7 +19,7 @@ Outputs:    A `nota` artifact for the day with its uid, and the counts of done, 
 Steps:
 1. Search for the work of the period: `search_artifacts` with `{"query": {"kinds": ["tarefa", "fase", "plano"], "quarter": "Q4-2026", "limit": 20}}`. The quarter is spelled `Q4-2026` — quarter-year — and the day in the context gives it. Search WITH it: a search without the quarter returns every plan in the store and has to be paged.
 2. Search for what is already recorded today: `search_artifacts` with `{"query": {"kinds": ["nota"], "quarter": "Q4-2026", "limit": 20}}`.
-3. Read each task that has evidence with `get_artifact` at depth 1, to see its relations.
+3. Read each task that has evidence with `get_artifact` at depth 1 — its prose (the window, the "Done quando") AND its relations. The search does not carry the body (ADR-046): what a task SAYS comes from this call, not from the search.
 4. Classify every task as done, partly done, not started or dropped. Cite the evidence: the note uid, or the relation that proves it. An item with no evidence stays open.
 5. Write the note with `upsert_artifact`. The body carries the classification and the evidence. Set the quarter and the note date. The write carries the `EVIDENCES` edges to each task the note speaks about: the edge starts at the note, so the note and the edges that make it evidence land together.
 6. Report the note uid, the counts per class, the evidence per class and the tools that ran.

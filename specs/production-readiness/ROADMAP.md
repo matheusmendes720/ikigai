@@ -737,6 +737,46 @@ sobe uma revisão (ADR-037 D5).
 imagem actual, a percorrer a seta inteira. É o gate armado para
 2026-11-12T01:00Z: a nota nova tem de aparecer como ficheiro, com o `sha256`
 igual ao `body_hash`, **+1 revisão do `vault-write`** e **zero da ingestão**.
+### 5.8 A métrica de 14 dias falhava por 78 ms — e a causa era o payload
+
+Medido no box a 2026-11-11 (imagem `sha-8e30bc93`), contra o store de
+produção. A métrica de 14 dias (ADR-037 §8) tem três condições, e a terceira
+é *uma busca estruturada abaixo de **100 ms** em p95*.
+
+| Caminho | p50 | p95 |
+|---|---:|---:|
+| `search_artifacts` por MCP over HTTP | 99,64 ms | **177,95 ms** |
+| o mesmo, noutra medição (caixa a carregar) | 146,92 ms | **272,02 ms** |
+| o mesmo search **em processo** (o store) | 10,61 ms | 16,77 ms |
+| o transporte **fixo** (`tools/list`, sem store) | 25,81 ms | 68,21 ms |
+
+**O store não era o gargalo** — 10,6 ms de um orçamento de 100 ms. A diferença
+era o payload: a página de vinte hits pesava **384 999 bytes**, dos quais
+**365 744 (95,0 %)** eram os **corpos** da prosa do dono. Sem eles o payload
+é **8 898 bytes** — 43× menos. E com `limit=1` (43 KB) o p95 desce para
+**76,52 ms**: o caminho não era lento, o **tamanho** era.
+
+**A decisão: ADR-046.** A busca devolve a identidade (`ArtifactSummary`) e a
+prosa lê-se com `get_artifact`, a uma chamada de distância. O `store-read` já
+descrevia esse padrão ("narrow with `search_artifacts` before fetching
+anything") — era o contrato que estava desalinhado da própria skill.
+
+**O que fica medido, e não provado.** O p95 de **depois** da mudança ainda não
+foi medido em produção: o número acima é uma **previsão** ancorada na curva
+medida com o payload pequeno, e a previsão não é a prova. O que a prova é a
+remedição no box, depois do deploy.
+
+**As guardas novas** (adicionar é permitido; afrouxar um guard, nunca):
+
+| guarda | o que prende | falsificação |
+|---|---|---|
+| `test_the_summary_carries_no_prose` | o sumário da busca não tem o campo `body` | pôr o campo ⇒ 1 failed |
+| `test_the_artifact_is_the_summary_plus_the_prose` | o artefacto é o sumário e a prosa — os dois não divergem | um campo a um só ⇒ 1 failed |
+| `test_the_search_result_holds_summaries` | o tipo do resultado é o sumário | tipar com `Artifact` ⇒ 1 failed |
+| `test_the_search_sql_does_not_select_the_prose` | a coluna não está no `SELECT` da busca | pôr `body` nas colunas ⇒ 1 failed |
+| `test_the_prose_is_still_reachable_through_get_artifact` | a prosa continua a uma chamada de distância | tirá-la do read path ⇒ 1 failed |
+| `test_the_payload_does_not_grow_with_the_prose` | o payload é o mesmo com 500 KB de corpo por hit | meter o corpo no sumário ⇒ 1 failed |
+| `test_the_search_still_answers_the_same_artifacts` | a resposta não mudou — uid, kind, title, quarter, status, path, revisão e hash | perder um campo ⇒ 1 failed |
 
 ---
 

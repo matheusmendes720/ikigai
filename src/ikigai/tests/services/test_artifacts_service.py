@@ -20,6 +20,7 @@ from src.contracts.dom import (
     Artifact,
     ArtifactBundle,
     ArtifactKind,
+    ArtifactSummary,
     Relation,
     RelationType,
     SearchQuery,
@@ -50,6 +51,24 @@ def _artifact(slug: str = "taxa", title: str = "Taxa", revision: int = 1) -> Art
         revision=revision,
         created_at=NOW,
         updated_at=NOW,
+    )
+
+
+def _summary(artifact: Artifact) -> ArtifactSummary:
+    """The artifact without its prose — what the search returns (ADR-046)."""
+    return ArtifactSummary(
+        uid=artifact.uid,
+        kind=artifact.kind,
+        title=artifact.title,
+        body_hash=artifact.body_hash,
+        parent_uid=artifact.parent_uid,
+        quarter=artifact.quarter,
+        status=artifact.status,
+        vault_path=artifact.vault_path,
+        revision=artifact.revision,
+        created_at=artifact.created_at,
+        updated_at=artifact.updated_at,
+        deleted_at=artifact.deleted_at,
     )
 
 
@@ -137,7 +156,11 @@ class FakeRepository:
             and (not query.kinds or artifact.kind in query.kinds)
             and (query.quarter is None or artifact.quarter == query.quarter)
         ]
-        return SearchResult(artifacts=tuple(found[: query.limit]))
+        # The summaries, not the artifacts: the store's search does not carry
+        # the prose (ADR-046), and a double that did would test a fiction.
+        return SearchResult(
+            artifacts=tuple(_summary(artifact) for artifact in found[: query.limit])
+        )
 
     async def get_with_relations(self, uid: object, depth: int = 1) -> ArtifactBundle:
         key = str(uid)

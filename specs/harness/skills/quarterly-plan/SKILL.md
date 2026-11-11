@@ -20,10 +20,11 @@ Steps:
 1. Search for the dreams in force: `search_artifacts` with `kinds=(sonho,)`.
 2. Search for the verdict and the decisions of the closing quarter: `search_artifacts` with `kinds=(revisao, desc)` and the closing quarter.
 3. Search for what closed and what did not: `search_artifacts` with `kinds=(okr, kpi)` and the closing quarter.
-4. Run the Teste de Fogo against the closing quarter. A verdict that is not PASS opens the Correção do Trajeto: the correction is written before the new plan.
-5. Write the `plano` with `upsert_artifact`, with its plan tier and its quarter. Set the quarter on every artifact that belongs to it. The plan's write carries its own edges: `PARENT_OF` to the phases — the plan is the source and the phase is the destination. The direction of an edge is the direction of its name: `PARENT_OF` runs from the parent to the child, and `DERIVES_FROM` runs from the artifact that derives to the one it derives from.
-6. Write the `fase` rows of the plan, the `okr` objectives with their key results and targets, and the `onda` waves of the quarter. Each of those writes carries the edges that start at it: `PARENT_OF` from a phase to its waves, from a wave to its tasks, and `DERIVES_FROM` when a wave comes from an objective. The source is always the artifact being written — the phase for its waves, the wave for its tasks.
-7. Report the plan uid, the uids of the phases, objectives and waves, the Teste de Fogo verdict, and the tools that ran.
+4. Read what the Teste de Fogo is computed from with `get_artifact` at depth 0 — the dreams, the verdict, the objectives and the indicators. The search returns the identity of a hit, not its body (ADR-046); the verdict is computed over what the artifacts SAY.
+5. Run the Teste de Fogo against the closing quarter. A verdict that is not PASS opens the Correção do Trajeto: the correction is written before the new plan.
+6. Write the `plano` with `upsert_artifact`, with its plan tier and its quarter. Set the quarter on every artifact that belongs to it. The plan's write carries its own edges: `PARENT_OF` to the phases — the plan is the source and the phase is the destination. The direction of an edge is the direction of its name: `PARENT_OF` runs from the parent to the child, and `DERIVES_FROM` runs from the artifact that derives to the one it derives from.
+7. Write the `fase` rows of the plan, the `okr` objectives with their key results and targets, and the `onda` waves of the quarter. Each of those writes carries the edges that start at it: `PARENT_OF` from a phase to its waves, from a wave to its tasks, and `DERIVES_FROM` when a wave comes from an objective. The source is always the artifact being written — the phase for its waves, the wave for its tasks.
+8. Report the plan uid, the uids of the phases, objectives and waves, the Teste de Fogo verdict, and the tools that ran.
 
 Invariants:
 - The plan is a new artifact. The closing quarter's plan is never edited.

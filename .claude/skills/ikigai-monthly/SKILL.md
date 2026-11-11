@@ -21,9 +21,10 @@ Steps:
 2. Search for the indicators with their targets and periods: `search_artifacts` with `kinds=(kpi,)` and the quarter.
 3. Search for the weeklies that carry the actuals: `search_artifacts` with `kinds=(revisao,)` and the quarter.
 4. Search for the decisions already recorded: `search_artifacts` with `kinds=(desc,)` and the quarter.
-5. Compare each indicator's `actual` against its `target` and compute the gap. The values are Decimal, never float: a KPI that loses precision is a wrong KPI.
-6. Write the decision with `upsert_artifact`. A `desc` records a decision and why it was taken, so the body states what the gap means and what is being decided about it. The write carries the edges to the objectives and the indicators the decision speaks about: each edge starts at the decision, so the decision and its edges land together.
-7. Report the decision uid, the gap per indicator and the tools that ran.
+5. Read each indicator and each objective with `get_artifact` at depth 0. The target, the actual and the period are stated in the artifact's frontmatter, and the search returns the identity of a hit, not its body (ADR-046) — the gap is computed over what the artifact SAYS.
+6. Compare each indicator's `actual` against its `target` and compute the gap. The values are Decimal, never float: a KPI that loses precision is a wrong KPI.
+7. Write the decision with `upsert_artifact`. A `desc` records a decision and why it was taken, so the body states what the gap means and what is being decided about it. The write carries the edges to the objectives and the indicators the decision speaks about: each edge starts at the decision, so the decision and its edges land together.
+8. Report the decision uid, the gap per indicator and the tools that ran.
 
 Invariants:
 - The comparison is arithmetic over the store. There is no LLM in the gap.

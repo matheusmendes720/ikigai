@@ -131,17 +131,22 @@ Outputs:   The artifacts found, the artifact read with its relations and
 Steps:
 1. Narrow with search_artifacts before fetching anything. The query carries text,
    kinds, quarter, status, parent_uid, semantic, limit and cursor. The limit
-   goes from 1 to 200 and defaults to 20.
+   goes from 1 to 200 and defaults to 20. The result is the IDENTITY of each
+   hit — uid, kind, title, quarter, status, parent, revision, the path it came
+   from — and NOT its prose (ADR-046).
 2. Page with the cursor. The cursor is opaque: take next_cursor from the result
    and pass it back verbatim. Never construct one.
 3. Read one artifact with get_artifact and the depth you need: depth 1 returns
    the artifact, its relations and its immediate neighbours; depth 0 returns the
-   artifact and its edges only.
+   artifact and its edges only. The PROSE is here and not in the search: depth 0
+   is the cheap read of what an artifact SAYS.
 4. Walk the graph with list_relations. Narrow with the relation type when the
    edge type matters. Keep a visited set so a cycle terminates.
 5. Report the fields that came from where, and name the source of each one.
 Invariants:
 - This skill is read-only. It writes no artifact, no relation and no file.
+- The search does not carry the body. A report that says what an artifact says
+  reads it with get_artifact first — and says which call it came from.
 - An artifact missing from one place is reported as missing. It is not
   reconstructed from a neighbour.
 - The uid format is defined once, in src/contracts/common.py.
@@ -211,7 +216,9 @@ Steps:
      period;
    - search_artifacts with kinds=(nota,) and the quarter, for the notes already
      written today;
-   - get_artifact on each task that has evidence, to read its relations.
+   - get_artifact on each task that has evidence, to read its prose and its
+     relations. The search does not carry the body (ADR-046): what a task SAYS
+     comes from this call.
 3. Classify each task as done, partly done, not started or dropped, and cite the
    evidence: the note uid or the relation that proves it. An item with no
    evidence stays open.
@@ -247,7 +254,10 @@ Steps:
    - search_artifacts with kinds=(plano, onda, okr, kpi) and the quarter;
    - search_artifacts with kinds=(tarefa,) for the period;
    - search_artifacts with kinds=(nota,) and the quarter, for the notes of the
-     week.
+     week;
+   - get_artifact at depth 0 on what is about to be classified and on the notes
+     that are its evidence. The search returns the identity of a hit, not its
+     body (ADR-046); what an item SAYS comes from the read.
 3. Classify each planned item as done, partly done, not started or dropped, and
    cite the evidence for the classification.
 4. Write the REVISAO with the classification and the evidence. Set the quarter.
@@ -287,10 +297,14 @@ Steps:
      that carry the actuals;
    - search_artifacts with kinds=(desc,) and the quarter, for the decisions
      already recorded.
-3. Compare each indicator's actual against its target and compute the gap. The
+3. get_artifact at depth 0 on each indicator and each objective. The target, the
+   actual and the period are stated in the artifact's frontmatter, and the
+   search returns the identity of a hit, not its body (ADR-046) — the gap is
+   computed over what the artifact SAYS.
+4. Compare each indicator's actual against its target and compute the gap. The
    indicator carries Decimal values, never float: a KPI that loses precision is
    a wrong KPI.
-4. Write the DESC with the decision, the rationale and the outcome. A DESC
+5. Write the DESC with the decision, the rationale and the outcome. A DESC
    records a decision and why it was taken, so the body states what the gap
    means and what is being decided about it. The write carries the edges to the
    objectives and the indicators the decision speaks about: each edge starts at
@@ -326,21 +340,24 @@ Steps:
      verdict and the decisions;
    - search_artifacts with kinds=(okr, kpi) and the closing quarter, for what
      closed and what did not.
-3. Run the Teste de Fogo against the closing quarter. A verdict that is not PASS
+3. get_artifact at depth 0 on the dreams, the verdict, the objectives and the
+   indicators. The search returns the identity of a hit, not its body
+   (ADR-046); the verdict is computed over what the artifacts SAY.
+4. Run the Teste de Fogo against the closing quarter. A verdict that is not PASS
    opens the Correcao do Trajeto: the correction is written before the new plan.
-4. Write the PLANO for the new quarter, with its plan tier and its quarter. Set
+5. Write the PLANO for the new quarter, with its plan tier and its quarter. Set
    the quarter on every artifact that belongs to it. The plan's write carries
    its own edges: PARENT_OF to the phases - the plan is the source and the
    phase is the destination. The direction of an edge is the direction of its
    name: PARENT_OF runs from the parent to the child, and DERIVES_FROM runs
    from the artifact that derives to the one it derives from.
-5. Write the FASE rows of the plan, the OKR objectives with their key results
+6. Write the FASE rows of the plan, the OKR objectives with their key results
    and targets, and the ONDA waves of the quarter. Each of those writes carries
    the edges that start at it: PARENT_OF from a phase to its waves, from a wave
    to its tasks, and DERIVES_FROM when a wave comes from an objective. The
    source is always the artifact being written - the phase for its waves, the
    wave for its tasks.
-6. Report the plan uid, the uids of the phases, objectives and waves, the
+7. Report the plan uid, the uids of the phases, objectives and waves, the
    Teste de Fogo verdict, and the tools that ran.
 Invariants:
 - The plan is a new artifact. The closing quarter's plan is never edited.

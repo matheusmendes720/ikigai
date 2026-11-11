@@ -7,6 +7,11 @@ artifact IS; it never states how a client should render it.
 The spine (`Artifact`) holds only what every kind shares. Kind-specific fields
 live in `dom_kinds.py` as typed subclasses, so no client can invent a field and
 no kind degrades into a free-shape JSON blob.
+
+The prose has its own boundary: `ArtifactSummary` is the spine WITHOUT the
+body, and it is what a search returns (ADR-046). The body is the largest thing
+the store holds, and a search that carried it would pay for the owner's whole
+vault on every call.
 """
 
 from __future__ import annotations
@@ -26,6 +31,7 @@ __all__ = [
     "ArtifactBundle",
     "ArtifactKind",
     "ArtifactRevision",
+    "ArtifactSummary",
     "Relation",
     "RelationType",
     "SearchQuery",
@@ -78,15 +84,32 @@ a consumer what kind of thing it is holding.
 """
 
 
-class Artifact(BaseModel):
-    """The spine. Every kind inherits these fields; nothing else is common."""
+class ArtifactSummary(BaseModel):
+    """The spine WITHOUT the prose — what a search hands back.
+
+    The body is the largest thing the store holds: a vault file is tens of
+    kilobytes of the owner's own writing, and a page of twenty of them is a
+    payload every caller pays for on every call. Measured on the box
+    (ADR-046 §5): the search of twenty hits was 384 999 bytes, of which
+    365 744 were bodies. Without them it is 8 898 bytes — forty-three times
+    less, and the difference between a search that misses the product's own
+    latency criterion and one that meets it.
+
+    So the search returns the identity and the metadata — WHICH artifact — and
+    the prose is read on demand, one artifact at a time, with `get_artifact`.
+    That is the shape the read skill already described ("narrow with
+    `search_artifacts` before fetching anything"); the contract now says it.
+
+    `body_hash` stays: it is the provenance of the prose, and it is what the
+    write-back compares the file against to decide whether a divergence is a
+    conflict.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     uid: UEID
     kind: ArtifactKind
     title: str
-    body: str | None = None
     body_hash: str | None = None
     parent_uid: UEID | None = None
     quarter: str | None = None
@@ -106,6 +129,17 @@ class Artifact(BaseModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None
+
+
+class Artifact(ArtifactSummary):
+    """The spine. Every kind inherits these fields; nothing else is common.
+
+    This is the artifact WITH its prose, and it is what a write carries and
+    what `get_artifact` returns. The search returns the summary instead: see
+    `ArtifactSummary` for the measurement that decided it.
+    """
+
+    body: str | None = None
 
 
 class RelationType(StrEnum):
@@ -187,9 +221,17 @@ class SearchQuery(BaseModel):
 
 
 class SearchResult(BaseModel):
+    """What a search found: the artifacts, WITHOUT their prose.
+
+    The prose is not here by decision (ADR-046): the search answers "which
+    artifacts", and `get_artifact` answers "what does this one say". A search
+    that carried the body would make the answer to the second question cost
+    the price of the first — twenty vault files on every call.
+    """
+
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    artifacts: tuple[Artifact, ...]
+    artifacts: tuple[ArtifactSummary, ...]
     next_cursor: str | None = None
     total_estimate: int | None = None
 
