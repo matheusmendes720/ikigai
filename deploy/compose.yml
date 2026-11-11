@@ -223,7 +223,13 @@ services:
       # The zones tree is read with the `zones` layout, where the first path
       # segment IS the zone (`1_norte`, `2_projeto`, `6_permanentes`) and the
       # zone decides the kind of the artifact.
-      IKIGAI_VAULT_ROOTS: ${IKIGAI_VAULT_ROOTS:-/app/vault/ikigai/closing-2026=closing,/app/zonas=zones}
+      #
+      # The third tree is the write-back's own (`escrita` layout): the
+      # directory IS the kind. It is read HERE, read-only, because the
+      # ingestion is what brings the owner's hand-edits of those files back
+      # into the store — the cycle closes because the file carries the
+      # artifact's `ueid` (ADR-043 §3.5).
+      IKIGAI_VAULT_ROOTS: ${IKIGAI_VAULT_ROOTS:-/app/vault/ikigai/closing-2026=closing,/app/zonas=zones,/app/vault-escrita=escrita}
       IKIGAI_EMBEDDING_PROVIDER: ${IKIGAI_EMBEDDING_PROVIDER:-local}
       IKIGAI_EMBEDDING_BASE_URL: ${IKIGAI_EMBEDDING_BASE_URL:-}
       IKIGAI_EMBEDDING_MODEL: ${IKIGAI_EMBEDDING_MODEL:-}
@@ -259,6 +265,11 @@ services:
       # fills; the default is an EMPTY named volume, which is the honest
       # answer for a checkout that has no zones.
       - ${IKIGAI_VAULT_ZONES_PATH:-zonas}:/app/zonas:ro
+      # The write-back's tree, READ-ONLY here. The writer (the `write`
+      # service) has it mounted read-write; the ingestion only reads what
+      # the writer produced, and the owner's edits of those files come back
+      # into the store through this mount.
+      - ${IKIGAI_VAULT_WRITE_PATH:-vault-escrita}:/app/vault-escrita:ro
     healthcheck:
       # The ingestion is a WORKER: it holds a DSN and serves no surface. It
       # cannot inherit the image's healthcheck — that one dials the MCP
@@ -268,6 +279,72 @@ services:
       # health would never finish. What the ingestion actually depends on is
       # the STORE: it writes the vault into it, and the retrieval layer reads
       # it back. So the check measures the store.
+      test:
+        - CMD-SHELL
+        - "python -m src.transport.healthcheck --store-only"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  write:
+    # The write-back: the store writes the prose back into a tree of
+    # markdown (ADR-043). It is the inverse of the ingestion above, and it
+    # is its own container because it is the ONLY writer of that tree — and
+    # because writing is not a request: it has its own cadence.
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: ${IKIGAI_IMAGE:-ikigai:local}
+    # The writer runs as the user that OWNS the tree, not as root.
+    #
+    # The tree is delivered by the Syncthing, and the Syncthing runs as the
+    # owner (`mathe`, uid 1000 on the box). The Syncthing applies an incoming
+    # change by writing a temporary file INSIDE the directory and renaming it
+    # over the target — so it needs to be able to write in the directories
+    # the writer creates. A writer that runs as root creates directories the
+    # Syncthing cannot write in, and the owner's hand on those files stops
+    # coming back to the store — silently, because the file is there and
+    # looks fine.
+    user: "${IKIGAI_WRITE_USER:-1000:1000}"
+    command:
+      - sh
+      - -c
+      - "exec python -m src.services.vault_write --interval ${IKIGAI_VAULT_WRITE_INTERVAL:-300}"
+    environment:
+      IKIGAI_STORE_DSN: postgresql://${IKIGAI_DB_USER:-ikigai}:${IKIGAI_DB_PASSWORD}@db:5432/${IKIGAI_DB_NAME:-ikigai}
+      # The tree it writes into. NOT the repository's `vault/`: the deploy
+      # does `git reset --hard origin/main`, so that directory is
+      # disposable by design, and a file that lives less time than a deploy
+      # is a file nobody reads (ADR-043 §3.2).
+      #
+      # There is no token here, and no remote: the writer makes a local
+      # commit when the tree is a repository, and NEVER pushes. The Syncthing
+      # delivers the file to the desktop without a credential.
+      IKIGAI_VAULT_WRITE_ROOTS: ${IKIGAI_VAULT_WRITE_ROOTS:-/app/vault-escrita}
+      IKIGAI_EMBEDDING_PROVIDER: ${IKIGAI_EMBEDDING_PROVIDER:-local}
+      IKIGAI_EMBEDDING_BASE_URL: ${IKIGAI_EMBEDDING_BASE_URL:-}
+      IKIGAI_EMBEDDING_MODEL: ${IKIGAI_EMBEDDING_MODEL:-}
+      IKIGAI_EMBEDDING_API_KEY: ${IKIGAI_EMBEDDING_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      # The schema before the prose, as the ingestion does: the api applies
+      # the migrations when it boots.
+      api:
+        condition: service_healthy
+    volumes:
+      # THE ONLY READ-WRITE MOUNT IN THE DEPLOYMENT.
+      #
+      # `/app/vault` (the repository's clone) and `/app/zonas` (the owner's
+      # knowledge tree) stay read-only everywhere: the owner edits those,
+      # and nothing a machine writes may land on them. This mount is the
+      # tree of its own, and only this one is writable.
+      - ${IKIGAI_VAULT_WRITE_PATH:-vault-escrita}:/app/vault-escrita:rw
+    healthcheck:
+      # A worker, like the ingestion: it holds a DSN and serves no surface.
+      # What it depends on is the STORE, so the check measures the store.
       test:
         - CMD-SHELL
         - "python -m src.transport.healthcheck --store-only"
@@ -572,6 +649,13 @@ volumes:
   # checkout has no zones; the deployment replaces it with the directory
   # Syncthing fills (IKIGAI_VAULT_ZONES_PATH).
   zonas:
+  # The write-back's tree (ADR-043) — the sibling of `zonas` on the volume.
+  #
+  # A named volume by default, for the same reason as `zonas`: a local
+  # checkout has no such tree. The deployment replaces it with the directory
+  # the Syncthing fills (IKIGAI_VAULT_WRITE_PATH), and that directory is the
+  # ONLY one the deployment mounts read-write.
+  vault-escrita:
   # The agent's sessions and settings.
   harness-state:
   # The agent's persistent memory (SQLite).

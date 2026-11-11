@@ -1028,3 +1028,144 @@ def test_a_refused_request_cannot_release_a_running_turn() -> None:
         "the eviction does not skip the sessions with a turn in flight"
     )
 
+
+
+# ---------------------------------------------------------------------------
+# The write-back (ADR-043)
+# ---------------------------------------------------------------------------
+
+
+def test_the_write_back_is_deployed_as_a_service_of_its_own() -> None:
+    """Writing is not a request: it has its own cadence, and its own mounts.
+
+    A writer that shared the ingestion's container would share its mounts —
+    and the ingestion's mounts are the owner's prose, read-only on purpose.
+    """
+    services = _compose_services()
+    assert "write" in services, "the write-back is not deployed"
+
+    command = " ".join(str(part) for part in (services["write"].get("command") or []))
+    assert "src.services.vault_write" in command, (
+        f"the write container runs something else: {command!r}"
+    )
+
+
+def test_the_owners_trees_are_read_only_in_every_container() -> None:
+    """PASS 2: the `vault/` and the `/app/zonas` stay read-only, everywhere.
+
+    The owner edits those two trees by hand. A machine that can write there
+    is a machine that can eat the owner's prose, and the read-only mount is
+    the only thing that says no.
+    """
+    services = _compose_services()
+    for name, service in services.items():
+        for volume in service.get("volumes") or []:
+            text = str(volume)
+            if not text.endswith(":rw"):
+                continue
+            target = text.split(":")[-2]
+            assert target not in ("/app/vault", "/app/zonas"), (
+                f"the {name} container mounts {target} read-write: the owner's "
+                "prose is not a machine's to overwrite"
+            )
+
+
+def test_the_write_back_writes_in_a_tree_of_its_own() -> None:
+    """PASS 1: the tree is not the clone the deploy discards.
+
+    The deploy does `git reset --hard origin/main` over the repository's
+    `vault/`: a file written there is a file that does not exist after the
+    next deploy, and a commit made there is a commit the next deploy undoes.
+    """
+    services = _compose_services()
+    writable = [
+        str(volume)
+        for volume in (services["write"].get("volumes") or [])
+        if str(volume).endswith(":rw")
+    ]
+    assert len(writable) == 1, (
+        f"the write-back has {len(writable)} writable mounts: {writable}"
+    )
+    assert "vault-escrita" in writable[0], (
+        f"the write-back does not write in its own tree: {writable[0]!r}"
+    )
+    assert "IKIGAI_VAULT_PATH" not in writable[0], (
+        "the write-back writes in the repository's own vault: the deploy "
+        "discards that directory with `git reset --hard`"
+    )
+
+
+def test_the_write_back_is_told_where_to_write() -> None:
+    """The tree comes from the environment, as the ingestion's does.
+
+    Without it the writer has nowhere to write, and it writes nothing —
+    which is the right answer for a writer with no tree, but not a
+    deployment.
+    """
+    environment = _compose_services()["write"].get("environment") or {}
+    roots = str(environment.get("IKIGAI_VAULT_WRITE_ROOTS") or "")
+    assert roots, "the write-back is not told where to write"
+    assert "vault-escrita" in roots, f"the write-back writes in {roots!r}"
+
+
+def test_the_write_back_never_pushes() -> None:
+    """PASS 9: no push, and no credential to push with.
+
+    The tree is delivered by the Syncthing, which needs no token and no
+    branch. A writer that pushed would make the VPS a writer of the
+    repository — a credential the deploy's token does not have, and one it
+    must not be given.
+    """
+    write = _compose_services()["write"]
+    environment = write.get("environment") or {}
+    for name in environment:
+        upper = name.upper()
+        assert "TOKEN" not in upper and "GITHUB" not in upper, (
+            f"the write-back holds {name}: a credential to push with"
+        )
+
+    command = " ".join(str(part) for part in (write.get("command") or []))
+    assert "push" not in command, f"the write container pushes: {command!r}"
+
+    source = (REPO_ROOT / "src" / "services" / "vault_write.py").read_text(encoding="utf-8")
+    assert '"push"' not in source, "the writer calls a push"
+    assert "git push" not in source, "the writer calls a push"
+
+
+def test_the_ingestion_reads_the_tree_the_write_back_writes() -> None:
+    """The cycle closes because the ingestion reads what the writer wrote.
+
+    The write-back's tree is mounted read-only into the ingestion, and the
+    `escrita` layout is named in the deployment. Without the second half the
+    files the writer produces would sit on the volume and never come back to
+    the store — and the owner's hand on them would be lost.
+    """
+    sync = _compose_services()["sync"]
+    volumes = " ".join(str(volume) for volume in (sync.get("volumes") or []))
+    assert "/app/vault-escrita:ro" in volumes, (
+        "the ingestion does not read the tree the write-back writes: the "
+        "cycle would not close"
+    )
+    environment = sync.get("environment") or {}
+    assert "=escrita" in str(environment.get("IKIGAI_VAULT_ROOTS") or ""), (
+        "the ingestion does not read the write-back's tree with the `escrita` layout"
+    )
+
+
+def test_the_write_back_runs_as_the_user_that_owns_the_tree() -> None:
+    """The writer is not root, and the reason is the Syncthing.
+
+    The Syncthing applies an incoming change by writing a temporary file
+    INSIDE the directory and renaming it over the target — so it needs to be
+    able to write in the directories the writer creates. A writer that runs as
+    root creates directories the Syncthing cannot write in, and the owner's
+    hand on those files stops coming back to the store. Silently: the file is
+    there, it looks right, and it never changes again.
+    """
+    write = _compose_services()["write"]
+    user = str(write.get("user") or "")
+
+    assert user, "the write-back declares no user: it would run as root"
+    assert not user.startswith("0:") and user != "root", (
+        f"the write-back runs as {user!r}: the Syncthing cannot update what it creates"
+    )
