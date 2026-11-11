@@ -395,7 +395,7 @@ is a **projection** (ADR-037 D8), and the DOM does not know it exists.
 |---|---|---|---|
 | G1 | The deploy is green and the stack is current | `docker compose ps` shows six healthy services; `/start` lists store, agent and memory | **PASS** |
 | G2 | One routine end to end | `/daily-note teste` → the agent answers, `/busca teste` finds the artifact, `/memoria` shows the session | **PASS** |
-| G3 | A cadence fires itself | the daily note exists at 22:05 with no human message, and the run is in the harness memory | **PASS** |
+| G3 | A cadence fires itself | the daily note exists at 22:05 with no human message, and the run is in the harness memory | **RED** |
 | G4 | The router routes | "fecha o dia de ontem" runs `daily-note` with `date=yesterday`; "asdkjh" answers with buttons, not a 500 | **PASS (by test)** |
 | G5 | The store repeats itself | the same query, twice, returns the same uid set and the same order | **PASS** |
 | G6 | HITL commits | **Guardar** writes once; the same button twice writes once (idempotency key); a stale revision is a 409 | **PASS** |
@@ -415,9 +415,9 @@ G1–G2 are the deployment; G3–G8 are this spec. Nothing below G2 is testable 
 
 | Gate | Where the PASS comes from | What is left |
 |---|---|---|
-| **G1** | 2026-11-10, on the box: six `ikigai-*` containers `healthy` on image `sha-11d004bb` (api, bot, db, harness, sync, ws) | the `/start` half — the owner's chat |
+| **G1** | 2026-11-11, on the box: six `ikigai-*` containers `healthy` on image `sha-c935e180` (api, bot, db, harness, sync, ws) — the deployed image is the current `main` (PR #74) — and `/v1/health` answers `ok: true` with `live_sessions: 0`, `busy_sessions: 0`, seven routines and no problems | the `/start` half — the owner's chat |
 | **G2** | 2026-11-10, all three halves: the routine's note (`Relatório Diário — 2026-11-09`, revision 4) is returned by `search_artifacts`, reads back by uid, and the harness memory holds `routine.started` + `routine.finished` for `tg-box-01` | — |
-| **G3** | 2026-11-11, **passed**: the cadence fired on its own — `routine.started` at **01:00:00Z** (= 22:00 in the configured −03:00), `client=tg:2115322359`, `message=""` — and wrote **`not:2026-11-11:74dfed05:d6ad7bd8023c5f59`**, "Relatório Diário — 2026-11-11", `quarter=Q4-2026`, revision 1, `client_id=pi-tg-2115322359`, **9 items classified** (3 done · 0 partly · 5 not started · 1 dropped), each with its evidence, and the `EVIDENCES` edges landed with the note. The run finished in **~82 s** (01:00:00Z → 01:01:22Z) with no human message and no question asked | the store holds three daily notes in a row now (2026-11-09 rev 4, 2026-11-10, 2026-11-11) — the "one note per night" property is **measured for one night only**; the second is tomorrow's run |
+| **G3** | 2026-11-11, **the note landed once — on the build that carries the fixes**: the cadence fired on its own — `routine.started` at **2026-11-11T01:00:00.130Z** (= 22:00 in the configured −03:00), `client=tg:2115322359`, `message=""` — and wrote **`not:2026-11-11:74dfed05:d6ad7bd8023c5f59`**, "Relatório Diário — 2026-11-11", `quarter=Q4-2026`, `client_id=pi-tg-2115322359`, **9 items classified** (3 done · 0 partly · 5 not started · 1 dropped), each with its evidence, and the `EVIDENCES` edges landed with the note. The run finished in **86 s** (`routine.finished` at **2026-11-11T01:01:26.173Z**), with no human message and no question asked. **The night before, the same cadence fired and DIED**: `routine.started` at **2026-11-10T01:00:00.129Z**, `routine.failed` at **2026-11-10T01:30:00.135Z** — exactly **1 800 006 ms** later, "Timeout collecting events" — and it wrote **nothing** (the note for 2026-11-10 in the store was written at **17:52:47Z** by a *manual* run). That night ran on a build that has since been retired: the two fixes it was missing (#61, the store tools, merged **2026-11-10T13:32Z**; #65, the ceiling that kills the agent, merged **16:26Z**) landed **before** the night that passed | the gate is RED for a reason that is **still in the code**, and it is not the retired night: **the cadence shares the owner's session** (`session_id=f"tg:{cadence.chat_id}"` — `src/bot/main.py:1440`), so a night when the owner is in conversation is a night the entry is **refused** (409, `routine.refused`) — and `next_run` returns the next occurrence, so **the night is not retried and no note is written** (`src/bot/cadence.py:74-86`). The bot tells the owner it was refused; its own comment says *"the night is not lost"* (`src/bot/main.py:1416-1417`), which is false. The fix is a session of the cadence's own. And the deployed image (`sha-c935e180`) has **not** run the cadence yet: the next firing is 2026-11-12T01:00Z, and it will be the first to write through the vault-write path |
 | **G4** | 2026-11-10, **by test only**: 11 cases in `src/ikigai/tests/test_bot_router.py` — a sentence names a routine, the relative day is carried as a slot, accents and case do not change the reading, a sentence that names none is refused, two routines is an abstention, a button token round-trips and a forged one is refused | the live half — the owner typing "asdkjh" and getting buttons, not a 500 |
 | **G5** | 2026-11-10, on the box: the same `search_artifacts` query twice → 10 uids, **the same list in the same order** | — |
 | **G6** | 2026-11-10, on the box: `created` (rev 1) → the same `idempotency_key` again → **`unchanged`**, rev 1; a stale `expected_revision=999` → **`conflict`**, and the artifact kept revision 1 | the button itself, in the owner's chat |
@@ -427,14 +427,17 @@ G1–G2 are the deployment; G3–G8 are this spec. Nothing below G2 is testable 
 **THE LETTERS ARE NOT UNIQUE IN THIS REPOSITORY.** `specs/production-readiness/ROADMAP.md` has
 its own `G1`–`G5` — the *deployment* gates (store, content, harness, Telegram, delivery) — and
 they are not these. `ROADMAP`'s `G2` is "the prose enters and the grounding arrives", whose (b)
-half is **RED**: measured 2026-11-10 on the deployed image, `load_strategics(/app)` returns
+half **was RED**: measured 2026-11-10 on the deployed image, `load_strategics(/app)` returned
 **0 documents** from **9 files**, because the loader keeps only files whose frontmatter carries
-`tags: … strategic` and none of the nine has frontmatter. The grounding reaches the agent by
-another path (the ingested quarterly plan), but the path the gate names does not work. A fix is
-open as PR #52 (frontmatter on the nine files, plus a guard that counts them); it is green in CI
-and **unmerged**, so the gate stays red until it lands. A reader who takes "G2 is green" from one
-document and "G2 is red" from the other is not confused — they are reading two different gates
-that were given the same name.
+`tags: … strategic` and none of the nine had frontmatter. **That is fixed, and the gate is
+green.** PR #52 (frontmatter on the nine files, the BOM and NUL bytes out, and a guard that
+counts them) **landed 2026-11-10T12:42:43Z**; re-measured on the deployed image
+(`sha-c935e180`, 2026-11-11) `load_strategics(/app)` returns **9 documents** and an index of
+**95 169 chars** — not empty. The number reproduces in the repository's own corpus
+(`load_strategics(<repo>)` → 9 documents, 95 169 chars) and it is the number PR #52 measured;
+the ROADMAP carried it with the digits transposed (`95 167`), corrected in the same PR. A reader
+who takes "G2 is green" from one document and "G2 is red" from the other is not confused —
+they are reading two different gates that were given the same name.
 
 **WHAT "NO ARTIFACT IS WRITTEN" MEANS.** The store is append-only, and the routine writes its
 note at the END of its turn (the skill's step 5). So a stop before that write leaves the store
@@ -497,9 +500,12 @@ on two **websocket clients of the store**, which is the part the ws owns. The pa
 second physical device — the same chat writing from two phones — is the owner's half, like the
 Stop button in G7.
 
-**WHAT THE G3 RUN WAS MEASURED AGAINST — THREE CAUSES, NOT ONE.** The cadence run of 2026-11-10
-(01:00:00Z, no human message) failed at 01:30:00Z. All three causes below were measured, and all
-three are fixed; the gate stays **RED** until a cadence run lands a `nota`.
+**WHAT THE G3 RUN OF 2026-11-10 WAS MEASURED AGAINST — THREE CAUSES, NOT ONE.** The cadence run of
+2026-11-10 (01:00:00Z, no human message) failed at 01:30:00Z. All three causes below were
+measured, and all three are fixed — and the run of 2026-11-11 landed a `nota` **on the build that
+carries the fixes**. The gate is **RED** for a different reason, and the reason is still in the
+code: the cadence shares the owner's session, so a busy session refuses the night, and the night
+is not retried (the row above).
 
 **Cause 1 — the agent had no store tools at all.** The run's session made **480 tool calls: 438
 `bash`, 32 `read`, 9 `write`, 1 `edit`, and ZERO store tools**. Asked what it had, it answered
@@ -544,12 +550,21 @@ exists at 22:05 with no human message, and the run is in the harness memory.
 **WHAT THE CADENCE RUN OF 2026-11-11 WAS MEASURED AGAINST.** It fired on its own, at
 **01:00:00Z** (= 22:00 in −03:00), with `message=""` and no human in the room.
 
-| when | what |
-|---|---|
-| 01:00:00Z | `routine.started`, `daily-note`, `client=tg:2115322359` |
-| 01:00:07Z | the agent's first tool call — and the first three were **refused by the schema** |
-| 01:01:21Z | the write: `not:2026-11-11:74dfed05:d6ad7bd8023c5f59`, revision 1, `created` |
-| 01:01:22Z | `routine.finished`, ~82 s in |
+| when | what | where it can still be read |
+|---|---|---|
+| 2026-11-11T01:00:00.130Z | `routine.started`, `daily-note`, `client=tg:2115322359` | the ledger |
+| 01:00:07Z | the agent's first tool call — and the first three were **refused by the schema** | that night's container — **gone** |
+| 01:01:21Z | the write: `not:2026-11-11:74dfed05:d6ad7bd8023c5f59`, revision 1, `created` | that night's container — **gone** |
+| 2026-11-11T01:01:26.173Z | `routine.finished`, **86 s** in | the ledger |
+
+The two boundaries are read from the harness's ledger (`/app/memory/memory.sqlite`, a **volume**):
+it outlived the container and still holds the pair of nights. The two times in the middle were
+read from that night's container, and they **cannot be read again** — the container was recreated
+on 2026-11-11 and its log went with it. The artifact itself is in the store:
+`not:2026-11-11:74dfed05:d6ad7bd8023c5f59`, `created_at 2026-11-11 01:00:00Z` (a nota's
+`created_at` is the day it carries — `src/services/sync.py:512-524`), at **revision 3** today:
+the run wrote revision 1, and the vault-write path wrote the prose back twice since
+(2026-11-11T05:05:03.968897Z).
 
 The note is **"Relatório Diário — 2026-11-11"**, `quarter=Q4-2026`, `client_id=pi-tg-2115322359`,
 and it classified **9 items** — 3 done (the AG3 gate decided, the note of 2026-11-10, and the
