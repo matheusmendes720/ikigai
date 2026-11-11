@@ -403,12 +403,76 @@ jobs:
           SURFACE_URL: ${{ steps.surface.outputs.url }}
         run: |
           base="${SURFACE_URL%/}"
-          page=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$base/")
+          host="${base#https://}"; host="${host%%:*}"; host="${host%%/*}"
+
+          # WHAT the runner sees, BEFORE it asks. A gate that fails without
+          # saying what it found is a gate that has to be debugged from
+          # scratch; the address the runner resolved is half the answer.
+          echo "resolving $host from the runner (outside the tailnet):"
+          getent ahosts "$host" | awk '{print "  " $1}' | sort -u | head -12
+
+          # THE PROBE, WITH ITS DIAGNOSTICS. The exit code of curl is kept
+          # apart from the HTTP code: a failing TLS handshake prints
+          # NOTHING on stdout, and a gate that only reads the HTTP code
+          # cannot tell "not published" from "the runner could not open the
+          # socket".
+          #
+          # The diagnostics go to STDERR and the result to STDOUT, so that
+          # the caller can read the result without parsing a report. The
+          # `|| rc=$?` is what keeps `set -e` from killing the step on the
+          # very failure it is meant to report.
+          probe() {
+            local what="$1"; shift
+            local code rc errfile
+            errfile="$RUNNER_TEMP/curl.err"
+            rc=0
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "$@" 2>"$errfile") || rc=$?
+            {
+              echo "  $what -> http='$code' curl_exit=$rc"
+              if [ "$rc" -ne 0 ]; then
+                echo "    curl said: $(head -3 "$errfile" | tr '\n' ' ')"
+              fi
+            } >&2
+            echo "$code $rc"
+          }
+
+          # THREE TRIES, with a growing wait. The funnel's edge is a SHARED
+          # public ingress: a runner can be handed an address that does not
+          # answer, and a single attempt would then report a surface that is
+          # published as one that is not. The gate answers about the SURFACE,
+          # not about the luck of one edge.
+          page=""; page_rc=0; door=""; door_rc=0
+          for attempt in 1 2 3; do
+            echo "attempt $attempt:"
+            read -r page page_rc <<< "$(probe 'GET /' "$base/")"
+            read -r door door_rc <<< "$(probe 'POST /api/session' -X POST -d '{}' "$base/api/session")"
+            if [ "$page_rc" -eq 0 ] && [ "$page" = "200" ] && [ "$door_rc" -eq 0 ] && [ "$door" = "401" ]; then
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              wait_s=$((attempt * 15))
+              echo "  not yet; waiting ${wait_s}s"
+              sleep "$wait_s"
+            fi
+          done
+
+          if [ "$page_rc" -ne 0 ]; then
+            echo "::error::the runner could not open the published surface at $base/ (curl exit $page_rc) — the surface may be published, but the runner cannot reach it"
+            echo ""
+            echo "the same request, one family at a time:"
+            for family in -4 -6; do
+              probe "GET / (curl $family)" curl $family "$base/" 2>/dev/null || true
+            done
+            exit 1
+          fi
           if [ "$page" != "200" ]; then
             echo "::error::the published surface's page answered '$page' at $base/ — the surface is not published"
             exit 1
           fi
-          door=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 -X POST -d '{}' "$base/api/session")
+          if [ "$door_rc" -ne 0 ]; then
+            echo "::error::the runner could not reach the data door at $base/api/session (curl exit $door_rc)"
+            exit 1
+          fi
           if [ "$door" != "401" ]; then
             echo "::error::the published surface's data door answered '$door' — it must answer 401 without Telegram's signature"
             exit 1
