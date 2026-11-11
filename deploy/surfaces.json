@@ -9,7 +9,7 @@
       "target": "http://127.0.0.1:8003",
       "mode": "funnel",
       "auth": "telegram-initdata",
-      "state": "pending"
+      "state": "published"
     }
   }
 }

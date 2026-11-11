@@ -29,10 +29,12 @@ consequência que elas passam a suportar.
    configuração antes e depois para restaurar o que não é seu se algo a
    mexer.
 
-**A tabela entra com `state: pending`.** O Funnel **não está concedido**
-nesta tailnet (`cap/funnel-ports` = `null`) — o passo é do dono, no admin da
-Tailscale. Um repositório pode declarar uma rota que ainda não foi publicada;
-o que não pode é declarar uma rota que foi publicada sem o dono o dizer.
+**A tabela está com `state: published`.** A rota foi publicada (medido, §5.6) e o
+estado no repositório diz o que é: **publicado ≠ decidido** continua a valer — o
+estado é uma palavra do dono, não um facto que o código deduza — mas a palavra
+já foi dita. Um repositório que declarasse `pending` com o Funnel ligado seria
+um repositório a mentir sobre o que está no ar, e a mentira acabaria num
+deploy que volta a desligar o que o dono ligou.
 
 **Não entra, e a razão fica escrita:**
 
@@ -43,6 +45,7 @@ o que não pode é declarar uma rota que foi publicada sem o dono o dizer.
 | Um CDN à frente da superfície | **Não** | o Funnel já é a porta pública, com o certificado que o Telegram exige (HTTPS). Um CDN traz um problema novo — a chave do `initData` tem de chegar ao backend, e um proxy que reescreve o pedido muda o que o backend vê. |
 | O `funnel reset` como "limpeza" | **Não, nunca** | medido: apaga o config **todo** — o 443, o 8443 e o 8444 de outra deployment. |
 | O Funnel concedido pelo pipeline | **Não** | é uma capacidade da tailnet, decidida no admin da Tailscale. O pipeline publica o que a tabela diz; não concede o que a tailnet permite. |
+| O Funnel ligado à mão, sem o repositório | **Não** | foi o que custou o incidente de §5.1. O que se aplica na caixa tem de ser o que a tabela diz — e a tabela está no repositório. |
 
 ---
 
@@ -170,15 +173,44 @@ vps-hetzner.tail78a4a0.ts.net:8444  ->  {"/":{"Proxy":"http://127.0.0.1:3000"}}
 *"must specify either --service=svc:<name> or --all"*) — a reparação só é
 possível pela CLI `serve`/`funnel`.
 
-### 5.4 O estado do Funnel nesta tailnet
+### 5.4 O estado do Funnel: como se lê, e como se lê mal
+
+A primeira leitura foi **errada**, e a errada é instructive.
 
 ```
-cap/funnel-ports?ports=443,8443,10000   →  null
+SelfNode.CapMap["https://tailscale.com/cap/funnel-ports?ports=443,8443,10000"]  →  null
+SelfNode.CapMap["funnel"]                                                        →  null
 ```
 
-O Funnel **não está concedido**. É o passo (1) da rota pública, e é do dono
-no admin da Tailscale. Por isso a tabela entra com `state: pending`: o
-repositório declara a rota, e o estado diz que ela ainda não foi publicada.
+Esse `null` foi lido como «o Funnel não está concedido» — e é a leitura que o
+ADR-044 também registou. **Não é disso que o `null` quer dizer.** Depois de
+forçar um refresh do netmap (`tailscale debug force-netmap-update`, um no-op
+que volta a pedir o mapa ao control plane) e depois de **publicar** a
+superfície, o `null` **continua igual**. Um `null` no `CapMap` é a ausência de
+uma *restrição* de portas — o link ao lado é o formulário de activação — e não
+uma negação.
+
+**A leitura que prova é o próprio CLI, e o mundo:**
+
+```
+$ tailscale funnel status
+# Funnel on:
+#     - https://vps-hetzner.tail78a4a0.ts.net:8443
+```
+
+E, quanto ao JSON, `AllowFunnel` é um **mapa** `host:port → true`, no topo —
+não um booleano. Antes da publicação era `null` (nenhum host); agora é:
+
+```
+AllowFunnel = { "vps-hetzner.tail78a4a0.ts.net:8443": true }
+```
+
+O 443 **não** lá está, e é assim que tem de estar: nesse host vivem o api MCP,
+o harness e três rotas de outra sessão.
+
+**Corolário:** o sinal que prova a publicação é o **mundo a responder** — o
+`GET /` a `200` num endereço público que não é da tailnet. Nenhum campo do
+`serve status` substitui isso.
 
 ### 5.5 O que a superfície está a fazer hoje
 
@@ -186,19 +218,51 @@ Medido depois do PR #64 (`40cf3eb7`), 6 contentores `healthy` na imagem do
 merge: `GET /` → `200`; `POST /api/session` sem credencial → `401`; a rota do
 painel na tailnet (`https://vps-hetzner.tail78a4a0.ts.net:8443/`) → `200`.
 Ou seja: a porta de dados está **fechada** e a página **responde** — o que
-falta é a rota pública.
+faltava era a rota pública.
 
-### 5.6 O comando de publicação ainda não foi executado
+### 5.6 A publicação, medida
+
+O comando de publicação **foi executado** — pelo **aplicador do
+reposititório**, com uma cópia da tabela em `state: published`, e não à mão:
 
 ```
-sudo tailscale funnel --bg --https=8443 --set-path=/ http://127.0.0.1:8003
+IKIGAI_SURFACES_TABLE=/tmp/surfaces-published.json bash /tmp/apply-surfaces.sh
 ```
 
-Este comando **não** foi corrido: publicá-lo é publicar a superfície, e a
-publicação é o passo do dono. A correcção dele é **inferida** da semântica
-medida em §5.3 — e o aplicador não confia na inferência: fotografa a
-configuração antes e depois, compara os handlers de **todas** as outras
-superfícies e restaura os que tiverem mudado.
+```
+Available on the internet:
+
+https://vps-hetzner.tail78a4a0.ts.net:8443/
+|-- proxy http://127.0.0.1:8003
+
+Funnel started and running in the background.
+
+=== what changed in the box's routes ===
+  the handlers are identical (only the publication flag can have moved)
+
+=== the other surfaces are untouched? ===
+  OK: the other surfaces' handlers are exactly as they were
+
+codigo de saida: 0
+```
+
+O diff das rotas, **antes e depois**, é **vazio** — as sete linhas (o 443 com
+os cinco paths, o 8443 e o 8444) são as mesmas. O 443 continua *tailnet only*.
+
+E a prova de fora da tailnet, forçando os **A públicos** do hostname (o caminho
+que o runner do GitHub faz, e que não passa pela tailnet):
+
+```
+vps-hetzner.tail78a4a0.ts.net → A 185.40.234.55 / .75 / .198
+                                AAAA 2a00:dd80:20::55 / ::873 / ::a8e
+
+[185.40.234.55]   GET / → 200    POST /api/session → 401
+[185.40.234.75]   GET / → 200    POST /api/session → 401
+[185.40.234.198]  GET / → 200    POST /api/session → 401
+[2a00:dd80:20::55]   GET / → 200    POST /api/session → 401
+```
+
+A página **responde** e a porta de dados está **fechada**, do lado de fora.
 
 ---
 
@@ -232,9 +296,6 @@ git add .github/workflows/ci.yml .github/workflows/deploy.yml
 cd src/ikigai && poetry run pytest tests/test_published_surface.py -q     # 35 verdes
 poetry run ruff check src/ && poetry run ruff format --check src/
 poetry run mypy -p src.ikigai.src
-
-# a rota que o dono vai publicar (NÃO é corrido por esta ADR)
-sudo tailscale funnel --bg --https=8443 --set-path=/ http://127.0.0.1:8003
 ```
 
 O **flip** para `published` é uma palavra na tabela:
@@ -244,17 +305,24 @@ O **flip** para `published` é uma palavra na tabela:
 +      "state": "published"
 ```
 
+E **é o deploy que publica** — não uma mão no `tailscale`:
+
+```bash
+# na caixa, o que o deploy corre (e o que mediu a publicação, §5.6):
+bash apply-surfaces.sh          #  →  tailscale funnel --bg --https=8443 --set-path=/ http://127.0.0.1:8003
+```
+
 ---
 
 ## 8. Evolução
 
 | Ordem | O quê | Porquê agora |
 |---|---|---|
-| 1 | **o flip para `published`** | depende do dono activar o Funnel no admin da Tailscale. Quando isso acontecer: uma palavra na tabela, um commit, e o deploy aplica e o gate de efeito mede. |
-| 2 | **o botão do menu do bot** | ADR-044 §5.4: o botão de menu (`setChatMenuButton` com `web_app`) é o que a UIA expõe e o que abre o Mini App. Tê-lo de pé em produção é uma linha — e é o que torna o painel alcançável a partir de um telemóvel. |
-| 3 | **uma segunda superfície** | a tabela já é uma tabela: acrescentar `athena` ou `hefesto` é uma entrada, com a sua porta de dados e o seu estado. O aplicador e os guards não mudam. |
-| 4 | **a tabela por ambiente** | hoje a tabela é uma coisa do repositório. Quando houver um segundo deployment, o `IKIGAI_SURFACES_FILE` aponta para outro sítio — já é possível sem mudar código. |
-| 5 | **o client's address no `.env`** | hoje o `.env` tem o `IKIGAI_MINIAPP_URL` como fallback. Quando o fallback deixar de ser preciso, sai — para não haver duas verdades a sobreviverem lado a lado. |
+| 1 | **o botão do menu do bot** | ADR-044 §5.4: o botão de menu (`setChatMenuButton` com `web_app`) é o que a UIA expõe e o que abre o Mini App. Tê-lo de pé em produção é uma linha — e é o que torna o painel alcançável a partir de um telemóvel, agora que a rota é pública. |
+| 2 | **uma segunda superfície** | a tabela já é uma tabela: acrescentar `athena` ou `hefesto` é uma entrada, com a sua porta de dados e o seu estado. O aplicador e os guards não mudam. |
+| 3 | **a tabela por ambiente** | hoje a tabela é uma coisa do repositório. Quando houver um segundo deployment, o `IKIGAI_SURFACES_FILE` aponta para outro sítio — já é possível sem mudar código. |
+| 4 | **o client's address no `.env`** | hoje o `.env` tem o `IKIGAI_MINIAPP_URL` como fallback. Quando o fallback deixar de ser preciso, sai — para não haver duas verdades a sobreviverem lado a lado. |
+| 5 | **a superfície, sem o dono por perto** | o Funnel é um_proxy público_: qualquer um na internet pode bater à porta. A porta de dados está fechada pela assinatura do Telegram, mas a *página* é pública — e isso é uma decisão de produto que ainda não foi escrita. |
 
 ---
 
@@ -272,6 +340,8 @@ O **flip** para `published` é uma palavra na tabela:
 | 8 | A rota pública existe | `GET /` → `200` **de fora** da tailnet | com o Funnel desligado, ver a sondagem falhar (ou nem sair) |
 | 9 | A porta de dados está fechada | `POST /api/session` sem credencial → `401` | publicar uma superfície com a porta aberta e ver o gate falhar |
 | 10 | O dono é quem decide | o gate de efeito só pergunta quando a tabela diz `published` | com `state: pending`, o gate não pergunta — e isso **não** é uma falha |
+| 11 | As outras superfícies ficam intactas | o diff das rotas antes/depois do aplicador é **vazio** (medido: sete linhas antes, as mesmas sete depois) | declarar uma superfície no 443 e ver o diff da rota de outra sessão |
+| 12 | O Funnel fica só onde foi declarado | `AllowFunnel` (um **mapa** `host:port → true`) só tem o 8443 | publicar o 443 e ver o `AllowFunnel` ganhar o 443 |
 
 ---
 
@@ -295,7 +365,7 @@ O **flip** para `published` é uma palavra na tabela:
 |---|---|---|---|
 | D1 | Onde a rota vive | `deploy/surfaces.json`, versionada | um segundo deployment, que precisa da sua |
 | D2 | O caminho da tabela no contentor | `/etc/ikigai/surfaces.json` | `IKIGAI_SURFACES_FILE` |
-| D3 | O estado de uma superfície | `pending` — **publicado ≠ decidido** | a tabela (`"state"`), e só o dono |
+| D3 | O estado de uma superfície | `pending` — **publicado ≠ decidido**; hoje o `miniapp` está em `published` | a tabela (`"state"`), e só o dono |
 | D4 | O URL do painel | o mesmo nos dois estados: `https://host:8443/` | nada: o Funnel não move o painel |
 | D5 | Se a tabela é recusada | o consumidor recusa e **não dá Morada nenhuma**; o chat continua, o botão não é enviado | nada: o fail-closed é o invariante |
 | D6 | Se o ambiente ainda conta | sim, como **fallback** — a tabela primeiro | o dono, quando o fallback deixar de ser preciso |
@@ -318,7 +388,8 @@ Cada uma falha sozinha, e nenhuma leva as outras:
 | o aplicador | a tabela não está lá, ou o `jq` não existe | o deploy **falha** (código 1), em vez de publicar sem saber o que publica |
 | o aplicador | o `tailscale` recusa o comando | o deploy falha, e a rota fica como estava |
 | o aplicador | um comando mexeu num handler de outra superfície | a guarda apanha a diferença e **restaura** a partir da fotografia; o deploy falha na mesma |
-| o Funnel | não está concedido na tailnet | o `funnel` falha; a rota continua dentro da tailnet — o `serve` do `pending` é o estado correcto |
+| o Funnel | a tailnet não tem a capacidade, ou o CLI recusa | o `funnel` falha; o deploy fica **vermelho** e a rota continua como estava — dentro da tailnet, que é o estado correcto enquanto o dono não a publica |
+| o Funnel | o comando corre, mas a página não responde de fora | o gate de efeito apanha: `GET /` não é `200` num endereço público — o deploy fica **vermelho** |
 | o gate do contrato | o job do CI não corre | a superfície fica sem porta — e é a razão de o job existir |
 | o gate do efeito | a superfície publicada não responde de fora | o deploy fica **vermelho**: a rota está declarada e não está no ar |
 | o gate do efeito | a porta de dados responde `200` | o deploy fica **vermelho**: uma superfície publicada com a porta aberta é pior do que nenhuma |

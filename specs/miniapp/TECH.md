@@ -220,7 +220,7 @@ it is published:
       "target": "http://127.0.0.1:8003",
       "mode": "funnel",
       "auth": "telegram-initdata",
-      "state": "pending"
+      "state": "published"
     }
   }
 }
@@ -242,6 +242,11 @@ the owner writes it. `pending` means *declared, reachable inside the tailnet*;
 `published` means *on the internet*. The **address is the same in both** — the
 funnel does not move the panel, it removes the tailnet-only restriction from
 it — so the button in the Telegram keeps working across the flip.
+
+The panel is **published**: `https://vps-hetzner.tail78a4a0.ts.net:8443/`
+answers `200` from a public address, and `POST /api/session` answers `401`
+there too. What the funnel publishes is the **page**; what it does not publish
+is the owner's session.
 
 **The 443 is not publishable.** On this host, 443 carries the MCP api, the
 agent's harness and three routes of another project. The panel has a host of
