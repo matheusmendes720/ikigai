@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-11-10
+**Medido:** 2026-11-11 — a seta foi percorrida ponta a ponta sobre o store real (§5.1, §9.1)
 **Deciders:** human (Matheus) + agent
 **Scope:** quem escreve markdown no vault do VPS, em que árvore, com que regra de conflito e com que commit
 **Anchor:** [ADR-037](./ADR-037-data-layer-canonical-turn.md) D4 · [ADR-039](./ADR-039-websocket-sync-transport.md) · [ADR-040](./ADR-040-client-state-and-drafts.md) §10 · ADR-012 (`vault_write` sole writer — **não publicada**, citada por ADR-037)
@@ -41,6 +42,15 @@ reescreve o store.* O `vault/` continua append-only, e o `vault_write` é o
 
 O `vault_write` escreve na **segunda** — a que o Syncthing traz para o desktop
 — e o clone git fica como está: leitura, `ro`, descartável.
+
+**E a seta está medida.** Em 2026-11-11, na imagem `sha-c935e180`, a seta foi
+percorrida ponta a ponta sobre o store real: **23 ficheiros** escritos na árvore
+do volume, **23/23** com `sha256(ficheiro) == body_hash(store)`, **23/23** com o
+`ueid` da sua linha no frontmatter, e **1 976 artefactos vivos, todos com
+`vault_path`** — o escritor não tem backlog. A ingestão que segue o write-back
+diz `created=0 updated=0 unchanged=1976`: o ciclo fecha sem duplicar e sem
+reescrever. O que fica por medir é a **noite** — uma nota nova, gerada pelo
+`pi`, a percorrer a seta inteira na imagem actual (§5.1, §9.1).
 
 ---
 
@@ -235,6 +245,53 @@ incremento: hoje a frase "o vault nunca é escrito por nada" é verdade em todo
 o sistema (ADR-012, citado por `compose.yml:405`), e depois desta ADR deixa de
 ser.
 
+### 5.1 O que foi medido, e quando (2026-11-11)
+
+Medido no VPS (`hetzner`, imagem `sha-c935e180`, contentores com dois minutos de
+vida), pela **sonda versionada** `deploy/probes/vault-arrow.sh` — que mede os
+factos abaixo e **sai com código diferente de zero** quando um deles é falso — e
+por SQL directo ao store:
+
+| # | Facto | Como se mediu | Resultado |
+|---|---|---|---|
+| 1 | O escritor escreve ficheiros | `find /mnt/volume-fsn1-1/vault-escrita -name '*.md'` | **23** ficheiros |
+| 2 | O ficheiro **é** o que o store diz | `sha256sum` de cada ficheiro contra o `body_hash` da sua linha | **23/23 iguais**, 0 divergentes, 0 ausentes |
+| 3 | O ficheiro carrega a identidade | `grep "ueid: <uid>"` em cada ficheiro | **23/23** com o `ueid` da sua linha |
+| 4 | O store sabe onde o ficheiro está | `select count(*) … where deleted_at is null and vault_path is not null` | **1 976 de 1 976** — o backlog do escritor é **zero** (`scanned=0`) |
+| 5 | O ciclo fecha sem duplicar | a linha da ingestão: `scanned=1977 created=0 updated=0 unchanged=1976 skipped=25`, quatro rondas seguidas | **created=0** e **updated=0** — a ingestão não escreve nada |
+| 6 | A ingestão não mexe nas revisões | `ikig.artifact_revisions` das 23 linhas escritas | **zero** revisões de `vault-sync`; todas são do `vault-write` |
+| 7 | A escrita do escritor é versionada | o mesmo `artifact_revisions` | **+1 revisão** por artefacto, via `expected_revision` — uma revisão que se mexe é um conflito, nunca uma sobrescrita (ADR-037 D5) |
+| 8 | As árvores estão separadas | `docker inspect` das montagens | `write`: só `/app/vault-escrita`, **rw**; `sync`: `/app/vault`, `/app/vault-escrita` e `/app/zonas`, os três **ro** |
+| 9 | A árvore escrita não é git | `ls .git` na raiz da árvore | não existe — e o registo de `commit` é *skipped*, por desenho (§12) |
+| 10 | O `vault/` do clone git ficou intacto | `git -C /app/vault status --porcelain` | **vazio** — o `reset --hard` do deploy continua seguro |
+| 11 | A entrega ao desktop está montada | Syncthing: pasta `notas-escrita`, `sendreceive`, `fsWatcherEnabled=true`; `rest/db/status` | `needFiles: 0`, `errors: 0`, `pullErrors: 0`, 23 ficheiros dos dois lados — **ver o ficheiro no desktop é do dono** |
+
+**A nota da corrida de 2026-11-11** é o caso mais completo, porque é o
+artefacto que o `pi` escreveu do zero: `not:2026-11-11:74dfed05:d6ad7bd8023c5f59`
+→ `nota/relat-rio-di-rio-2026-11-11-q4-2026-d6ad7bd8.md`, `sha256` =
+`body_hash` = `e1ebbcb4…`, `ueid:` no frontmatter, `rev=3`, e a ingestão a dizer
+`unchanged`.
+
+**Uma correcção ao que a ADR prometia.** O passo 5 do §9 dizia *"duas voltas ⇒ o
+`body_hash` do ficheiro não muda"*. Medido: **o ficheiro é uma função do estado
+do store** — e o estado do store inclui o `updated_at`. Quando o `updated_at` da
+linha se mexe, os bytes mudam, e o escritor reescreve o ficheiro para volver a
+bater. Numa janela de vinte minutos observada na caixa, **18 dos 23** ficheiros
+foram reescritos por isso (mtime 05:05Z contra 04:45Z). O que é verdadeiro — e
+é o que a ADR queria dizer — é: **duas voltas sobre o mesmo estado do store dão
+os mesmos bytes.** E o escritor **é** um escritor: a sua escrita também é
+versionada, e também sobe uma revisão (ADR-037 D5).
+
+**O `UPDATE` sem revisão.** O log de eventos regista um `UPDATE` às
+05:05:03.968897 nas linhas escritas, e a revisão **não** subiu. Com o código de
+hoje isso é impossível — `_update` faz sempre `revision=revision+1`
+(`src/data/repository.py:228`) — logo esse `UPDATE` pertence a um **build
+transitório**, deployments de outra sessão nessa janela, e **não se repete** na
+imagem actual (quatro rondas seguidas com `updated=0`).
+
+**O que não está medido:** a **noite** — uma nota nova, escrita pelo `pi` na
+imagem actual, a percorrer a seta inteira. É o gate armado para 2026-11-12T01:00Z.
+
 ---
 
 ## 6. Inventário, com a razão de cada peça
@@ -296,12 +353,27 @@ não muda em nenhuma delas.
 | 2 | O `vault/` e o `/app/zonas` continuam `ro` | `docker inspect` diz `ro` nos dois | pôr `rw` no `sync` ⇒ o teste falha |
 | 3 | Só se escreve o que **não** tem `vault_path` | um artefacto com `vault_path` não ganha ficheiro | pôr `vault_path` no `body` de um artefacto novo ⇒ o teste falha |
 | 4 | O ficheiro escrito carrega o `ueid` do store | o frontmatter tem `ueid:` e o valor é o uid do artefacto | escrever o slug em vez do uid ⇒ o teste falha |
-| 5 | A reescrita é idempotente | duas voltas ⇒ o `body_hash` do ficheiro não muda | escrever o timestamp no corpo ⇒ o teste falha |
-| 6 | O ciclo fecha | ingestion depois do write-back ⇒ `unchanged`, e o `revision` não sobe | retirar o `ueid` do frontmatter ⇒ a ingestão cria um **segundo** artefacto e o teste falha |
+| 5 | A reescrita é idempotente | duas voltas sobre o **mesmo estado do store** ⇒ o `body_hash` do ficheiro não muda | escrever o timestamp no corpo ⇒ o teste falha |
+| 6 | O ciclo fecha | ingestion depois do write-back ⇒ `unchanged`, e o `revision` **não sobe por causa da ingestão** | retirar o `ueid` do frontmatter ⇒ a ingestão cria um **segundo** artefacto e o teste falha |
 | 7 | Conflito é explícito | um `body_hash` divergente ⇒ o ficheiro **não** é reescrito, e há um registo | reescrever na mesma ⇒ o teste falha |
 | 8 | A autoria é visível | o artefacto escrito tem `client_id = "vault-write"` | escrever com o `client_id` da ingestão ⇒ o teste falha |
 | 9 | **Nenhum** `push` | o contentor não tem `contents: write` e não tem token de GitHub | pôr um token no `.env` ⇒ o teste falha |
 | 10 | O `vault/` do clone git é **descartável** | `git reset --hard origin/main` **depois** do write-back não altera nada | o write-back escrever no clone git ⇒ o teste falha |
+
+### 9.1 O que foi medido, passo a passo (2026-11-11)
+
+| Passo | Como se mediu | Estado |
+|---|---|---|
+| 1 · a árvore nova é **separada** da do clone git | `docker inspect` das montagens | **provado** — `/mnt/volume-fsn1-1/vault-escrita` (rw) no `write`; o clone git é `/app/vault` (ro) |
+| 2 · o `vault/` e o `/app/zonas` continuam `ro` | o mesmo `docker inspect` | **provado** — as três montagens do `sync` são `rw=false` |
+| 3 · só se escreve o que **não** tem `vault_path` | `scanned=0` depois da primeira volta, com **1 976** linhas vivas **todas** com `vault_path` | **provado** — o escritor não tem backlog |
+| 4 · o ficheiro escrito carrega o `ueid` | `grep` em 23 ficheiros | **provado** — 23/23 |
+| 5 · a reescrita é idempotente | duas rondas sobre o mesmo estado do store | **provado, com a ressalva do §5.1** — o ficheiro é função do **estado do store**, `updated_at` incluído |
+| 6 · o ciclo fecha | a ingestão depois do write-back | **provado** — `created=0 updated=0 unchanged=1976`, e **zero** revisões de `vault-sync` nas 23 linhas |
+| 7 · o conflito é explícito | — | **não medido** — nenhum conflito ocorreu na caixa; o ramo existe e está coberto pelo teste unitário |
+| 8 · a autoria é visível | o `client_id` das revisões | **provado** — as revisões do escritor são `vault-write`, as da ingestão `vault-sync`: distinguíveis |
+| 9 · **nenhum** `push` | a árvore não é git; o contentor não tem credencial do GitHub | **provado** — o `commit` é *skipped* por desenho (§12) |
+| 10 · o `vault/` do clone git é **descartável** | `git -C /app/vault status --porcelain` | **provado** — vazio: nada foi escrito no clone, e o `reset --hard` continua seguro |
 
 ---
 
@@ -366,3 +438,6 @@ perder o ficheiro custa a prosa.
 - `src/contracts/dom.py:90,104` — `body_hash` e `vault_path`
 - `specs/production-readiness/ROADMAP.md` — G2 (a prosa entra) e a track **T5 · `vault_write`** (ADR-012), que esta ADR cumpre
 - `deploy/compose.yml:405` — *"The vault is never written by anything (ADR-012)"* — a frase que deixa de ser verdadeira, e porquê
+- `deploy/probes/vault-arrow.sh` — a sonda versionada da medição de 2026-11-11: mede os factos do §5.1 e sai com código diferente de zero quando um deles é falso
+- `src/ikigai/tests/store/test_vault_write_cycle.py` — o PASS 6 contra o Postgres real: a ingestão escreve zero e a revisão não sobe
+- `src/ikigai/tests/services/test_vault_write_back.py` — a lógica do escritor com um store falso
