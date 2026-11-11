@@ -16,6 +16,7 @@ from src.contracts.dom import (
     Artifact,
     ArtifactBundle,
     ArtifactKind,
+    ArtifactSummary,
     Relation,
     RelationType,
     SearchQuery,
@@ -49,6 +50,15 @@ _ARTIFACT_COLUMNS = (
     "revision, created_at, updated_at, deleted_at"
 )
 
+#: The search does not carry the prose (ADR-046), and the column is ABSENT from
+#: its SELECT — not selected and blanked afterwards. A body that is fetched and
+#: thrown away still crossed the wire, still cost the transfer, and still had to
+#: be built in the server's memory.
+_SUMMARY_COLUMNS = (
+    "uid, kind, title, body_hash, parent_uid, quarter, status, vault_path, "
+    "revision, created_at, updated_at, deleted_at"
+)
+
 #: The channel the change trigger announces on. It is named in one place, and
 #: the migration that raises it names the same one — a channel that does not
 #: match is a listener that waits forever.
@@ -61,6 +71,29 @@ def _to_artifact(row: Mapping[str, Any]) -> Artifact:
         kind=row["kind"],
         title=row["title"],
         body=row["body"],
+        body_hash=row["body_hash"],
+        parent_uid=row["parent_uid"],
+        quarter=row["quarter"],
+        status=row["status"],
+        vault_path=row["vault_path"],
+        revision=row["revision"],
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+        deleted_at=row["deleted_at"],
+    )
+
+
+def _to_summary(row: Mapping[str, Any]) -> ArtifactSummary:
+    """The same artifact WITHOUT the prose.
+
+    The fields are read from the same row, in the same order, as the artifact's
+    — one list of names, two builders. A summary that grew a field the artifact
+    does not have would be a field the store never fills.
+    """
+    return ArtifactSummary(
+        uid=row["uid"],
+        kind=row["kind"],
+        title=row["title"],
         body_hash=row["body_hash"],
         parent_uid=row["parent_uid"],
         quarter=row["quarter"],
@@ -501,7 +534,7 @@ class ArtifactRepository:
 
         where = " and ".join(clauses)
         sql = (
-            f"select {_ARTIFACT_COLUMNS} from ikig.artifacts where {where} "
+            f"select {_SUMMARY_COLUMNS} from ikig.artifacts where {where} "
             "order by updated_at desc, uid desc limit %s"
         )
         params.append(query.limit + 1)
@@ -535,12 +568,12 @@ class ArtifactRepository:
 
         where = " and ".join(clauses)
         sql = (
-            f"select {_ARTIFACT_COLUMNS} from ikig.artifacts where {where} "
+            f"select {_SUMMARY_COLUMNS} from ikig.artifacts where {where} "
             "order by embedding <=> %s::vector limit %s"
         )
         params.extend([_vector_literal(embedding), query.limit])
         rows = await self._client.execute(sql, tuple(params))
-        return SearchResult(artifacts=tuple(_to_artifact(row) for row in rows))
+        return SearchResult(artifacts=tuple(_to_summary(row) for row in rows))
 
     async def _embed_for_search(self, text: str) -> str:
         from src.services.embeddings import local_embedding
@@ -714,7 +747,7 @@ class ArtifactRepository:
     def _page(rows: Sequence[Mapping[str, Any]], limit: int) -> SearchResult:
         has_more = len(rows) > limit
         visible = rows[:limit]
-        artifacts = tuple(_to_artifact(row) for row in visible)
+        artifacts = tuple(_to_summary(row) for row in visible)
         next_cursor = None
         if has_more and artifacts:
             last = artifacts[-1]
