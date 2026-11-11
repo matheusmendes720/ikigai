@@ -215,6 +215,9 @@ RETIRED_EXCEPTIONS = (
     # The published surface: the route of the panel in the repository, and the
     # gate of its own that watches it (ADR-045).
     "code-docs/adr/ADR-045-public-route-and-its-gate.md",
+    # The amendment to the write-back: the writer records what it wrote
+    # (ADR-047).
+    "code-docs/adr/ADR-047-write-back-records-what-it-wrote.md",
     # The pivot's own series, and the record of the cut that preceded it.
     "docs/superpowers/specs/2026-10-30-05-cut.md",
     "docs/superpowers/specs/2026-11-01-00-data-layer-series.md",
