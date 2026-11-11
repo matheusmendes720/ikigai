@@ -483,3 +483,121 @@ def test_a_note_does_not_become_a_kpi_because_it_says_target() -> None:
     fields = typed_from_meta(ArtifactKind.NOTA, {"target": "2026", "metric": "x"})
 
     assert fields == {}, f"a note was read as a KPI: {fields}"
+
+
+# ---------------------------------------------------------------------------
+# The body that already was a file
+# ---------------------------------------------------------------------------
+
+_AGENT_BODY = (
+    "---\n"
+    "type: decision\n"
+    "kind: desc\n"
+    "quarter: Q4-2026\n"
+    "period: 2026-11-09->2026-11-20\n"
+    "decision: MERGE do gateway orfao.\n"
+    "decider: owner\n"
+    "outcome: recorded\n"
+    "tags: [decision-gate, AG3]\n"
+    "---\n"
+    "\n"
+    "A decisao, com o seu contexto.\n"
+)
+
+
+def _with_agent_body() -> Any:
+    artifact = _artifact(kind=ArtifactKind.DESC, title="Decisao AG3")
+    return artifact.model_copy(update={"body": _AGENT_BODY})
+
+
+def test_a_body_that_already_carries_a_frontmatter_still_gets_the_identity() -> None:
+    """The `ueid` is written even when the body already has a frontmatter.
+
+    MEASURED on the box (2026-11-11), with the first version of the
+    writer: 18 of the 23 artifacts the store held had a body that already
+    carried a frontmatter — the agent's own vocabulary. Those files were
+    written verbatim, WITHOUT the `ueid`, and the ingestion did not
+    recognise them: it derived an identity from the path and created a
+    SECOND artifact for the same prose. The store went from 1 976 rows to
+    1 994.
+
+    The file is the store's file, so it states the store's identity. The
+    body's own frontmatter is kept — the agent's vocabulary is information
+    the owner reads — and the store's fields win where the two overlap.
+    """
+    artifact = _with_agent_body()
+    content = render_artifact(artifact)
+
+    assert f"ueid: {artifact.uid}" in content, (
+        "the file does not carry the store's identity: the ingestion would "
+        "create a second artifact for the same prose"
+    )
+    assert f"title: {artifact.title}" in content, (
+        "the file states no title: the ingestion would take the file's "
+        "filename for the artifact's title"
+    )
+    # The agent's own vocabulary survives.
+    assert "type: decision" in content
+    assert "period: 2026-11-09->2026-11-20" in content
+    assert "decision: MERGE do gateway orfao." in content
+    # And the prose is untouched.
+    assert "A decisao, com o seu contexto." in content
+
+
+async def test_the_cycle_closes_for_an_artifact_whose_body_was_already_a_file(
+    tmp_path: Path,
+) -> None:
+    """The regression of the 18 duplicates, as a test.
+
+    The writer writes the file, and the ingestion that follows has to
+    recognise it as the SAME artifact — not create a second one. This is
+    the case that broke on the box, and it is the case the first version of
+    the writer got wrong.
+    """
+    artifact = _with_agent_body()
+    store = FakeStore([artifact])
+
+    await VaultWrite(store, root=tmp_path).write_back()
+
+    sync = VaultSync(store, sources=[VaultSource(tmp_path, "escrita")])  # type: ignore[arg-type]
+    ingestion = await sync.ingest()
+
+    assert ingestion.created == 0, (
+        f"the ingestion created a second artifact for the same prose: {ingestion}"
+    )
+    assert ingestion.unchanged == 1, (
+        f"the ingestion did not recognise the file: {ingestion}"
+    )
+    assert len(store.artifacts) == 1
+
+
+async def test_the_writer_completes_a_file_of_its_own_that_lost_the_identity(
+    tmp_path: Path,
+) -> None:
+    """A file the writer wrote BEFORE it carried the identity is completed.
+
+    That is the state the first version of the writer left on the box: the
+    file was the store's own body, without the `ueid`. It is not the
+    owner's prose — the hash says so — and the writer completes it instead
+    of reporting a conflict about its own work.
+    """
+    artifact = _artifact()
+    # The store's body IS the file: the hash says so. That is what tells
+    # the writer this is its own file and not the owner's prose.
+    artifact = artifact.model_copy(
+        update={
+            "body_hash": hashlib.sha256((artifact.body or "").encode("utf-8")).hexdigest(),
+        }
+    )
+    repo = RecordingRepository([artifact])
+    writer = VaultWrite(repo, root=tmp_path)
+    target = tmp_path / relative_path_for(artifact)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(artifact.body or "", encoding="utf-8", newline="\n")
+
+    report = await writer.write_back()
+
+    assert report.conflicts == 0, "the writer reported a conflict about its own file"
+    assert report.written == 1
+    content = target.read_text(encoding="utf-8")
+    assert f"ueid: {artifact.uid}" in content
