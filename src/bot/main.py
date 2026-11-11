@@ -170,6 +170,20 @@ HANDSHAKE_TIMEOUT_S = 10.0
 #: try again, not that the routine broke.
 HARNESS_BUSY_STATUS = 409
 
+#: How long the cadence waits before trying the night again, in seconds.
+#:
+#: A busy session is a CONVERSATION, and a conversation lasts minutes, not
+#: hours. A quarter of an hour is long enough that the owner is not pestered
+#: and short enough that the note still lands in the night.
+CADENCE_RETRY_S = 900
+
+#: How many times the night is tried again before it is declared lost.
+#:
+#: Eight attempts of fifteen minutes is two hours. The ceiling is what keeps
+#: a refusal from becoming an infinite loop, and it is what makes the loss
+#: FINITE and sayable: past it, the owner is told the note does not exist.
+CADENCE_RETRY_MAX = 8
+
 #: How often the bot looks at the agent's log for a question the agent asked.
 #: It is a poll, not a push: the harness is a process behind a socket, and a
 #: poll is the simplest thing that cannot lose an event. Two seconds is fast
@@ -473,10 +487,10 @@ class Bot:
 
         WHY A SEAT OF ITS OWN. A session is a conversation, and a conversation
         has one turn in flight: the harness REFUSES a second routine in the
-        same session (409, `routine.refused`). The cadence used to sit in the
-        owner's own session, so a night when the owner was in conversation was
-        a night the note was not written — and a refused night is a LOST
-        night: `next_run` returns the next occurrence, so nothing retries it.
+        same session (409, `routine.refused`). The cadence sat in the owner's
+        own session, so a night when the owner was in conversation was a
+        night the note was not written — and a refused night is a LOST night:
+        `next_run` returns the next occurrence, so nothing retried it.
 
         MEASURED, on the box, 2026-11-11: the ledger holds the pair of nights
         — `routine.started` at 2026-11-10T01:00:00.129Z with `routine.failed`
@@ -485,6 +499,11 @@ class Bot:
         (86 s, the note was written) — and the refusal that costs a night is
         the same mechanism measured by hand (`routine.refused`, 409, the
         session's own turn in flight).
+
+        THE OWNER DECIDED IT (2026-11-11, PR #80), and it does not pre-empt
+        the retry (PR #79): the seat removes the COMMON cause — the owner's
+        conversation no longer holds the night — and the retry stays as the
+        net for anything else that refuses.
 
         The CLIENT is still the owner's chat (`tg:<chat_id>`): the routing, the
         runtime and the report are unchanged. Only the SEAT is different — the
@@ -1463,31 +1482,90 @@ class Bot:
                 file=sys.stderr,
             )
             await asyncio.sleep(max(wait, 1.0))
-            try:
-                await self._run_cadence(cadence)
-            except HarnessError as exc:
-                if exc.status != HARNESS_BUSY_STATUS:
-                    print(f"cadence failed: {exc}", file=sys.stderr)
-                    await self._send(cadence.chat_id, f"A rotina {cadence.routine} falhou: {exc}")
-                    return
-                # A cadence that was refused is not a cadence that failed:
-                # the session was busy. BUT THE NIGHT IS LOST — the routine
-                # did not run, the note was not written, and `next_run`
-                # returns the next occurrence, so nothing retries it. The
-                # owner is told, because a night that vanishes without a word
-                # is the kind of silence this repo keeps refusing.
-                #
-                # With the cadence in a seat of its own this is the path that
-                # should not happen: the owner's conversation no longer holds
-                # the night. It stays, because a session can still be busy —
-                # and a refusal that says nothing is a lost night.
-                print(f"cadence refused: {exc}", file=sys.stderr)
-                await self._send(cadence.chat_id, _refused_message(cadence.routine))
-            except Exception as exc:  # a nightly failure must not be silent
+            await self._run_the_night(cadence)
+
+    async def _run_the_night(self, cadence: Cadence) -> None:
+        """One night of the cadence: the run, and the retries if it is refused.
+
+        **THE NIGHT IS A UNIT.** The day is said ONCE, here, and every attempt
+        of the same night writes the note of that day — see `_run_cadence`.
+        """
+        # THE DAY OF THIS NIGHT, said ONCE.
+        night = run_day(datetime.now(UTC))
+        try:
+            await self._run_cadence(cadence, day=night)
+        except HarnessError as exc:
+            if exc.status != HARNESS_BUSY_STATUS:
                 print(f"cadence failed: {exc}", file=sys.stderr)
                 await self._send(cadence.chat_id, f"A rotina {cadence.routine} falhou: {exc}")
+                return
+            # A cadence that was refused is not a cadence that failed: the
+            # session was busy. AND THE NIGHT IS NOT LOST — it is tried
+            # again, until the ceiling says it is lost.
+            #
+            # This comment used to claim the night was not lost while the
+            # code did the opposite: the loop went back to `next_run()`,
+            # which returns TOMORROW, and the note of the night simply
+            # never existed. The claim was false, and the fix is here.
+            #
+            # AND THE COMMON CAUSE IS GONE (PR #80): the cadence has a seat
+            # of its own, so the owner's conversation no longer holds the
+            # night. The retry stays as the net for anything else that
+            # refuses — but it should not fire on an ordinary night.
+            print(f"cadence refused: {exc}", file=sys.stderr)
+            await self._send(cadence.chat_id, _refused_night_message(cadence.routine))
+            await self._retry_cadence(cadence, night)
+        except Exception as exc:  # a nightly failure must not be silent
+            print(f"cadence failed: {exc}", file=sys.stderr)
+            await self._send(cadence.chat_id, f"A rotina {cadence.routine} falhou: {exc}")
 
-    async def _run_cadence(self, cadence: Cadence) -> None:
+    async def _retry_cadence(self, cadence: Cadence, night: str) -> None:
+        """The night, tried again — because a busy session is not a lost night.
+
+        **WHAT THIS IS FOR.** Measured on the code (2026-11-11): the cadence
+        runs in the OWNER's session (`session_id=f"tg:{cadence.chat_id}"`), so
+        a night when the owner is in conversation with the bot is a night the
+        harness REFUSES (409, `routine.refused`) — and the loop then went back
+        to `next_run()`, which returns tomorrow. The note of that night was
+        never written, and the bot's own comment said the night was not lost.
+
+        **THE NIGHT IS THE NIGHT'S.** The day is passed in, not computed here:
+        every attempt writes the note of the same day, so a retry that crossed
+        midnight UTC cannot name tomorrow — and tomorrow's own run would then
+        be swallowed by the idempotency key (the store eats a repeated key
+        BEFORE it looks at the body) and tomorrow's note would vanish without
+        a word.
+
+        **THE CEILING IS THE TRUTH.** Past the attempts, the night IS lost,
+        and the owner is told so. A night that disappears without a word is
+        the failure this whole path exists to prevent.
+        """
+        for attempt in range(1, CADENCE_RETRY_MAX + 1):
+            await asyncio.sleep(CADENCE_RETRY_S)
+            try:
+                await self._run_cadence(cadence, day=night)
+            except HarnessError as exc:
+                if exc.status != HARNESS_BUSY_STATUS:
+                    print(f"cadence failed on the retry: {exc}", file=sys.stderr)
+                    await self._send(cadence.chat_id, f"A rotina {cadence.routine} falhou: {exc}")
+                    return
+                print(
+                    f"cadence refused again ({attempt}/{CADENCE_RETRY_MAX}): {exc}",
+                    file=sys.stderr,
+                )
+            except Exception as exc:  # a nightly failure must not be silent
+                print(f"cadence failed on the retry: {exc}", file=sys.stderr)
+                await self._send(cadence.chat_id, f"A rotina {cadence.routine} falhou: {exc}")
+                return
+            else:
+                print(
+                    f"cadence wrote the night on the retry ({attempt}/{CADENCE_RETRY_MAX})",
+                    file=sys.stderr,
+                )
+                return
+        await self._send(cadence.chat_id, _lost_night_message(cadence.routine))
+
+    async def _run_cadence(self, cadence: Cadence, *, day: str | None = None) -> None:
         """Run the routine, then send what it produced as a rich message."""
         harness = self._harness
         if harness is None:
@@ -1499,7 +1577,13 @@ class Bot:
         # it from the clock; the bot says it now, so the guess cannot drift.
         # The rule lives in one function because the note's uid AND its
         # idempotency key are derived from this day — see `run_day`.
-        note_day = run_day(datetime.now(UTC))
+        #
+        # THE DAY IS THE NIGHT'S, NOT THE ATTEMPT'S. Every attempt of the same
+        # night writes the note of the SAME day: a retry that crossed midnight
+        # UTC would name tomorrow, and the store would swallow tomorrow's own
+        # run as `unchanged` — it eats a repeated key BEFORE it looks at the
+        # body — and tomorrow's note would vanish without a word.
+        note_day = day or run_day(datetime.now(UTC))
 
         result = await harness.run_routine(
             cadence.routine,
@@ -1742,6 +1826,38 @@ def _refused_message(routine: str) -> str:
     return (
         f"A rotina {routine} foi recusada — a sessão já tem outra rotina a correr. "
         "Espera que ela termine e pede outra vez."
+    )
+
+
+def _refused_night_message(routine: str) -> str:
+    """What the owner reads when the NIGHT is refused.
+
+    The same refusal as the manual one, with a different truth attached: the
+    owner did not ask for this, so "pede outra vez" is not theirs to do — the
+    cadence asks again by itself, and the night is not lost.
+
+    It is sent ONCE (on the first refusal), not on every attempt: a message
+    every fifteen minutes is noise, and noise is how a real warning stops
+    being read.
+    """
+    return (
+        f"A rotina {routine} foi recusada — a sessão já tem outra rotina a correr. "
+        f"A noite não se perde: o bot volta a tentar daqui a {CADENCE_RETRY_S // 60} minutos."
+    )
+
+
+def _lost_night_message(routine: str) -> str:
+    """What the owner reads when the night IS lost.
+
+    Said out loud, because it happened: the ceiling of the retries passed
+    with the session still busy, and the note of that night does not exist. A
+    night that disappears without a word is the failure this path exists to
+    prevent — the note of a day is the record of that day, and a missing
+    record is a hole in the owner's own memory of it.
+    """
+    return (
+        f"A rotina {routine} não conseguiu correr esta noite — a sessão esteve "
+        "ocupada em todas as tentativas. A nota desta noite não existe."
     )
 
 
