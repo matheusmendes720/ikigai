@@ -282,6 +282,40 @@ um WebView recusa um certificado que não chains até uma CA pública. Um painel
 publicado com um certificado auto-assinado abriria no `curl` da caixa e **não**
 abriria no telemóvel do dono.
 
+### 5.7 O primeiro gate de efeito falhou — e a falha não era do que ele mede
+
+O primeiro deploy com `state: published` deixou o gate **vermelho**, com o
+runner a sair com o **código 35** do `curl` (erro de ligação TLS). Duas
+coisas estavam erradas ao mesmo tempo:
+
+- **O gate não sabia o que tinha encontrado.** Com `curl -s -o /dev/null -w
+  '%{http_code}'`, o código HTTP vai para o stdout e o erro do TLS para o
+  stderr — e o gate lia o stdout. Um `200` que não chegou e uma superfície que
+  não está publicada davam o **mesmo** código de saída, e a mensagem dizia
+  «a superfície não está publicada». Mandava o dono procurar um problema que
+  não existia.
+- **A falha era transitória.** A borda do Funnel é um **ingress público
+  partilhado**: o runner recebeu um endereço que não respondeu naquele
+  momento. Na corrida seguinte, com o mesmo código, o mesmo runner resolveu os
+  seis endereços públicos e respondeu à primeira:
+
+```
+resolving vps-hetzner.tail78a4a0.ts.net from the runner (outside the tailnet):
+  185.40.234.198   185.40.234.55   185.40.234.75
+  2a00:dd80:20::55  2a00:dd80:20::873  2a00:dd80:20::a8e
+attempt 1:
+  GET / -> http='200' curl_exit=0
+  POST /api/session -> http='401' curl_exit=0
+the surface answers 200 and its data door answers 401: published, and closed
+```
+
+Por isso o gate passou a **tentar três vezes**, com espera a crescer, e a
+**distinguir as duas falhas**: o `curl exit` é reportado à parte do código
+HTTP, e a mensagem de erro diz «a superfície pode estar publicada, mas o
+runner não a alcança» quando o problema é de transporte.
+
+O gate responde sobre a **superfície**, não sobre a sorte de uma borda.
+
 ---
 
 ## 6. Inventário, com a razão de cada peça
