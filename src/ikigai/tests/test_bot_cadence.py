@@ -12,7 +12,11 @@ from typing import Any
 
 import pytest
 
+#: The module the cadence's constants live in — the tests shorten the wait,
+#: and a test that waits fifteen minutes is a test nobody runs.
+from src.bot import main as bot_main
 from src.bot.cadence import Cadence, cadence_from_env, run_day
+from src.bot.harness_client import HarnessError
 from src.bot.main import Bot
 from src.bot.rich import markdown_table, plain_table, report_markdown, rich_payload
 
@@ -326,3 +330,159 @@ def test_the_owners_day_is_ONE_BEHIND_the_run_day() -> None:
 
     assert run_day(now) == "2026-11-11"
     assert now.astimezone(owner).strftime("%Y-%m-%d") == "2026-11-10"
+
+
+# ─── the night is not lost ───────────────────────────────────────────────────
+
+
+class _RefusingHarness:
+    """A harness that REFUSES the first `refusals` runs, and answers after.
+
+    The refusal is the harness's own: 409, the session is busy. It is what the
+    cadence meets when the owner is in conversation with the bot.
+    """
+
+    def __init__(self, refusals: int, text: str = "escrevi a nota do dia") -> None:
+        self._refusals = refusals
+        self._text = text
+        self.calls: list[tuple[str, str, str, str, str | None]] = []
+
+    async def run_routine(
+        self,
+        routine: str,
+        *,
+        session_id: str,
+        chat_id: str,
+        message: str,
+        date: str | None = None,
+    ) -> dict[str, Any]:
+        self.calls.append((routine, session_id, chat_id, message, date))
+        if len(self.calls) <= self._refusals:
+            raise HarnessError(
+                "the session is busy: the routine did not start",
+                status=bot_main.HARNESS_BUSY_STATUS,
+            )
+        return {"text": self._text, "duration_ms": 2500}
+
+
+class _NightBot(_QuietBot):
+    """A bot that remembers what it SENT — the owner's half of the night."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.sent: list[str] = []
+
+    async def _send(
+        self,
+        chat_id: str,
+        text: str,
+        buttons: Any = None,
+        web_app: Any = None,
+    ) -> None:
+        self.sent.append(text)
+
+
+def _night_bot(harness: Any, cadence: Cadence) -> _NightBot:
+    return _NightBot(
+        "token",
+        _Store([]),
+        {"42"},
+        "owner",
+        harness=harness,
+        cadence=cadence,
+    )
+
+
+async def test_a_refused_night_is_tried_again(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A busy session is not a lost night.
+
+    Measured on the code (2026-11-11): the cadence runs in the OWNER's session
+    (`session_id=f"tg:{cadence.chat_id}"`), so a night when the owner is in
+    conversation with the bot is a night the harness REFUSES — and the loop
+    used to go straight back to `next_run()`, which returns TOMORROW. The note
+    of that night never existed, while the bot's own comment claimed the night
+    was not lost.
+    """
+    monkeypatch.setattr(bot_main, "CADENCE_RETRY_S", 0)
+    harness = _RefusingHarness(refusals=1)
+    cadence = Cadence(at=time(22, 0), routine="daily-note", chat_id="42")
+    bot = _night_bot(harness, cadence)
+
+    await bot._run_the_night(cadence)
+
+    assert len(harness.calls) == 2, (
+        "a noite recusada não foi tentada outra vez — a nota do dia nunca chega a existir"
+    )
+
+
+async def test_the_retry_writes_the_note_of_the_NIGHT_and_not_of_the_attempt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The day is the night's, not the attempt's.
+
+    The note's uid AND its idempotency key derive from the day, and the store
+    swallows a repeated key as `unchanged` BEFORE it looks at the body — so a
+    retry that crossed midnight UTC would name tomorrow, and tomorrow's own
+    run would be swallowed: tomorrow's note would vanish without a word.
+    """
+    monkeypatch.setattr(bot_main, "CADENCE_RETRY_S", 0)
+    harness = _RefusingHarness(refusals=1)
+    cadence = Cadence(at=time(22, 0), routine="daily-note", chat_id="42")
+    bot = _night_bot(harness, cadence)
+
+    await bot._run_the_night(cadence)
+
+    days = {call[4] for call in harness.calls}
+    assert len(days) == 1, (
+        f"as tentativas escreveram dias diferentes: {days} — uma delas nomeia a nota de outra noite"
+    )
+
+    # And the day can be IMPOSED — that is what makes every attempt of the
+    # same night write the same note, whatever day the retry lands on.
+    await bot._run_cadence(cadence, day="2026-11-12")
+    assert harness.calls[-1][4] == "2026-11-12", (
+        "a rotina não aceitou o dia da noite — cada tentativa escreveria a nota "
+        "do dia em que calhou"
+    )
+
+
+async def test_a_night_that_never_runs_is_declared_LOST(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The ceiling is the truth: past it, the night IS lost — and it is said.
+
+    A night that disappears without a word is the failure this path exists to
+    prevent: the note of a day is the record of that day.
+    """
+    monkeypatch.setattr(bot_main, "CADENCE_RETRY_S", 0)
+    monkeypatch.setattr(bot_main, "CADENCE_RETRY_MAX", 3)
+    harness = _RefusingHarness(refusals=99)
+    cadence = Cadence(at=time(22, 0), routine="daily-note", chat_id="42")
+    bot = _night_bot(harness, cadence)
+
+    await bot._run_the_night(cadence)
+
+    assert len(harness.calls) == 4, (
+        f"as tentativas não têm tecto: {len(harness.calls)} tentativas "
+        f"(a primeira mais {bot_main.CADENCE_RETRY_MAX} re-tentativas)"
+    )
+    assert any("não existe" in text for text in bot.sent), (
+        f"a noite perdida não foi dita ao dono: {bot.sent}"
+    )
+
+
+def test_the_refused_night_says_the_night_is_not_lost() -> None:
+    """The message the owner reads when the NIGHT is refused.
+
+    The manual refusal says "pede outra vez" — and that is right, because the
+    owner asked. The night is not the owner's to ask again: the cadence asks
+    again by itself.
+    """
+    night = bot_main._refused_night_message("daily-note")
+    manual = bot_main._refused_message("daily-note")
+
+    assert "não se perde" in night
+    assert "não se perde" not in manual, (
+        "a recusa manual não é a recusa da noite: o dono pediu, e o que se lhe "
+        "diz é para pedir outra vez"
+    )
