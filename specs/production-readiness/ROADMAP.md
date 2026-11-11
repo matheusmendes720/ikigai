@@ -767,6 +767,46 @@ foi medido em produção: o número acima é uma **previsão** ancorada na curva
 medida com o payload pequeno, e a previsão não é a prova. O que a prova é a
 remedição no box, depois do deploy.
 
+**A REMEDIAÇÃO (2026-11-11, depois do deploy do PR #77).** Medida no box, pelo
+caminho real (MCP over HTTP, contra o store de produção), em **regime
+permanente** — aquecida primeiro, como o bench da store mede
+(`tests/store/test_store_bench.py`): o `SELECT` da busca é um statement novo,
+e o driver prepara-o e o servidor planeia-o nas primeiras execuções.
+
+| Caminho | p50 | p95 | payload | hits |
+|---|---:|---:|---:|---:|
+| **estruturada** (`kinds` + `quarter`) — a que a métrica nomeia | 53,15 ms | **74,35 ms** | 8 216 B | 7 |
+| texto cheio (`text`) | 59,49 ms | 127,72 ms | 21 210 B | 20 |
+| semântica (`semantic`) | 53,88 ms | 137,29 ms | 20 696 B | 20 |
+
+| | antes | depois |
+|---|---:|---:|
+| p50 pelo MCP | 99,64 ms | **52,97 ms** |
+| p95 pelo MCP (regime permanente) | 177,95 ms | **81,08 ms** |
+| payload de uma página de vinte | 384 999 B | **21 209 B** |
+| o store, em processo | 10,61 ms | **2,23 ms** |
+
+⇒ **A condição da métrica (p95 < 100 ms na busca estruturada) fecha: 74,35 ms.**
+A previsão da ADR-046 §7 (a faixa dos 60–80 ms) bateu.
+
+**O que fica medido, e ainda não passa.** O texto cheio e a semântica estão
+**acima** dos 100 ms no p95 (127,72 ms e 137,29 ms). E o store não é a razão:
+o mesmo search em processo custa **2,23 ms**. O que resta é o **transporte** —
+22,41 ms de p50 no `tools/list` (que não toca o store) e ~30 ms de maquinaria
+de tool call. Isto é o ADR-011, e é a próxima peça.
+
+**A rampa de aquecimento é real e tem de ser dita.** Logo após o deploy, as
+primeiras chamadas custam 84–223 ms e as últimas 51–65 ms: um p95 medido sem
+aquecer mede a **preparação do statement**, não a busca. A mesma razão pela
+qual o bench da store tem um passo `_settle`.
+
+**A identidade sobreviveu.** 1 976 artefactos vivos, 1 976 com `vault_path`,
+**23** com o `ueid` no corpo — exactamente as 23 escritas pelo `vault_write`. A
+autoria ficou como estava (`vault-sync` 1 953, `pi-agent` 18, e os cinco
+restantes). E a busca devolve **20 hits, sem `body`**, com os campos do
+sumário — e o `get_artifact` devolve a prosa (19 987 bytes) a uma chamada de
+distância.
+
 **As guardas novas** (adicionar é permitido; afrouxar um guard, nunca):
 
 | guarda | o que prende | falsificação |
