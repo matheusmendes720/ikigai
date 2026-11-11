@@ -248,6 +248,45 @@ jobs:
         working-directory: deploy/harness
         run: node --test "test/*.test.mjs"
 
+  published-surface:
+    name: The published surface (gate próprio)
+    runs-on: ubuntu-latest
+    # The Mini App is PUBLISHED code: it is a door the internet can knock on,
+    # and its ROUTE — where it lives and whether it is published at all —
+    # lives in the repository (`deploy/surfaces.json`, ADR-045).
+    #
+    # The `src-bot` entry above gates the page's JavaScript, and the
+    # `ikigai` entry gates the bot's Python — but NOTHING gated the surface
+    # itself: not the table, not the mount that carries it into the
+    # container, not the applier that puts the route on the box. A route that
+    # is declared in one place and applied from another is a route that drifts
+    # the first time one of them is edited.
+    #
+    # This job is the surface's own gate: it fails when the table stops
+    # agreeing with the deployment, and when the applier grows a shape that
+    # could take a host that belongs to another service.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      # The guards live in the canonical package's suite, so they run with
+      # the environment that also runs the rest of the tests — and they are
+      # asked of the CONSUMER (the bot's own loader), not of a second
+      # implementation of its rules.
+      - name: Install Ikigai environment (Poetry)
+        working-directory: src/ikigai
+        run: poetry install
+
+      - name: The surface's own guards
+        working-directory: src/ikigai
+        run: poetry run pytest tests/test_published_surface.py -q
+
   container:
     name: Container
     runs-on: ubuntu-latest
