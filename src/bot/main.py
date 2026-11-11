@@ -439,9 +439,15 @@ class Bot:
         # question that is not open, so a stale entry here costs one
         # complaint, not a wrong answer.
         self._awaiting: dict[str, str] = {}
-        # The event cursor of each chat's session: what the bot has already
-        # seen of the agent's log. The same shape as the store's change feed
+        # The event cursor of each SESSION: what the bot has already seen of
+        # the agent's log. The same shape as the store's change feed
         # (ADR-039) — the client says what it has and gets what it does not.
+        #
+        # ONE CURSOR PER SESSION, and not per chat: the feed's tip is the tip
+        # of the WHOLE log, while the rows are filtered by session. A cursor
+        # that took the global tip would skip this session's own events
+        # whenever another session wrote in between — and with the cadence in
+        # a session of its own, that is every night.
         self._cursors: dict[str, int] = {}
         # The clock. `None` is a bot that runs exactly as it did before the
         # cadence existed: a deployment that does not set a time is not a
@@ -461,6 +467,41 @@ class Bot:
         of the same key is one key that finds nothing.
         """
         return f"tg:{chat_id}"
+
+    def _cadence_session_id(self, chat_id: str) -> str:
+        """The session the CADENCE runs in — a seat of its own.
+
+        WHY A SEAT OF ITS OWN. A session is a conversation, and a conversation
+        has one turn in flight: the harness REFUSES a second routine in the
+        same session (409, `routine.refused`). The cadence used to sit in the
+        owner's own session, so a night when the owner was in conversation was
+        a night the note was not written — and a refused night is a LOST
+        night: `next_run` returns the next occurrence, so nothing retries it.
+
+        MEASURED, on the box, 2026-11-11: the ledger holds the pair of nights
+        — `routine.started` at 2026-11-10T01:00:00.129Z with `routine.failed`
+        at 01:30:00.135Z (the note was never written) and `routine.started` at
+        2026-11-11T01:00:00.130Z with `routine.finished` at 01:01:26.173Z
+        (86 s, the note was written) — and the refusal that costs a night is
+        the same mechanism measured by hand (`routine.refused`, 409, the
+        session's own turn in flight).
+
+        The CLIENT is still the owner's chat (`tg:<chat_id>`): the routing, the
+        runtime and the report are unchanged. Only the SEAT is different — the
+        cadence speaks at 22:00 with nobody watching, and it must not take the
+        owner's place while he is there.
+        """
+        return f"cadence:{chat_id}"
+
+    def _session_keys(self, chat_id: str) -> list[str]:
+        """The sessions that belong to a chat: the conversation and the cadence.
+
+        Both are the agent's work FOR THIS CHAT, so both are read: a question
+        the night asked and a note the night wrote are the owner's business,
+        and a view that showed only one of the two would hide the night from
+        him.
+        """
+        return [self._client_key(chat_id), self._cadence_session_id(chat_id)]
 
     async def _send(
         self,
@@ -999,16 +1040,32 @@ class Bot:
             await asyncio.sleep(RUNTIME_POLL_S)
 
     async def _drain_runtime(self, chat_id: str) -> None:
-        """Read what the agent did since the last time, and draw it."""
+        """Read what the agent did since the last time, and draw it.
+
+        EVERY session of the chat: the conversation and the cadence. The
+        question the night asked is the owner's question too — and a question
+        that is hidden is a question nobody can answer.
+        """
+        for session in self._session_keys(chat_id):
+            await self._drain_session(chat_id, session)
+
+    async def _drain_session(self, chat_id: str, session: str) -> None:
+        """One session's half of the agent's log."""
         harness = self._harness
         if harness is None:
             return
-        since = self._cursors.get(chat_id, 0)
-        page = await harness.events(self._client_key(chat_id), since=since)
+        since = self._cursors.get(session, 0)
+        page = await harness.events(session, since=since)
         events = page.get("events") or []
-        tip = int(page.get("tip") or 0)
-        if events:
-            self._cursors[chat_id] = tip or since
+        if not events:
+            return
+        # THE CURSOR IS THIS PAGE'S OWN TIP, not the feed's global tip.
+        #
+        # The feed answers with the tip of the WHOLE log, while the rows are
+        # filtered by session. A cursor that took the global tip would skip
+        # this session's events whenever another session wrote in between —
+        # and with the cadence in a session of its own, that is every night.
+        self._cursors[session] = max(int(event.get("seq") or 0) for event in events)
         for event in events:
             if event.get("kind") != "question.asked":
                 continue
@@ -1414,7 +1471,16 @@ class Bot:
                     await self._send(cadence.chat_id, f"A rotina {cadence.routine} falhou: {exc}")
                     return
                 # A cadence that was refused is not a cadence that failed:
-                # the session was busy, and the night is not lost.
+                # the session was busy. BUT THE NIGHT IS LOST — the routine
+                # did not run, the note was not written, and `next_run`
+                # returns the next occurrence, so nothing retries it. The
+                # owner is told, because a night that vanishes without a word
+                # is the kind of silence this repo keeps refusing.
+                #
+                # With the cadence in a seat of its own this is the path that
+                # should not happen: the owner's conversation no longer holds
+                # the night. It stays, because a session can still be busy —
+                # and a refusal that says nothing is a lost night.
                 print(f"cadence refused: {exc}", file=sys.stderr)
                 await self._send(cadence.chat_id, _refused_message(cadence.routine))
             except Exception as exc:  # a nightly failure must not be silent
@@ -1437,7 +1503,7 @@ class Bot:
 
         result = await harness.run_routine(
             cadence.routine,
-            session_id=f"tg:{cadence.chat_id}",
+            session_id=self._cadence_session_id(cadence.chat_id),
             chat_id=cadence.chat_id,
             message="",
             # THE DAY, SAID OUT LOUD. A cadence run carries no message, so the
@@ -1537,8 +1603,8 @@ class Bot:
             return "O agente não está configurado neste bot (IKIGAI_HARNESS_URL)."
         if not chat_id:
             return "Não sei de que sessão ler."
-        result = await harness.memory(f"tg:{chat_id}")
-        return _render_memory(result)
+        pages = [await harness.memory(session) for session in self._session_keys(chat_id)]
+        return _render_memory(_merge_memory(pages))
 
     async def run(self) -> None:
         """Every half of the loop: what arrives, what changes, and the clock.
@@ -1702,6 +1768,28 @@ def _render_routine(routine: str, result: dict[str, Any]) -> str:
     if receipt:
         lines.append("(" + " · ".join(receipt) + ")")
     return "\n".join(lines)
+
+
+def _merge_memory(pages: list[dict[str, Any]]) -> dict[str, Any]:
+    """Two sessions' memory as ONE page.
+
+    The entries keep the harness's order (the newest first), so the renderer
+    sees the same shape it saw when a chat had one session. The night is the
+    owner's: the note the cadence wrote is the agent's memory of HIS chat,
+    and a view that hid it would hide the night.
+    """
+    entries: list[dict[str, Any]] = []
+    events: list[dict[str, Any]] = []
+    for page in pages:
+        for entry in page.get("entries") or []:
+            if isinstance(entry, dict):
+                entries.append(entry)
+        for event in page.get("events") or []:
+            if isinstance(event, dict):
+                events.append(event)
+    entries.sort(key=lambda entry: int(entry.get("id") or 0), reverse=True)
+    events.sort(key=lambda event: int(event.get("seq") or 0))
+    return {"entries": entries, "events": events}
 
 
 def _render_memory(result: dict[str, Any]) -> str:
