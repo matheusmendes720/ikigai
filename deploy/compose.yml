@@ -649,6 +649,13 @@ volumes:
   # checkout has no zones; the deployment replaces it with the directory
   # Syncthing fills (IKIGAI_VAULT_ZONES_PATH).
   zonas:
+  # The write-back's tree (ADR-043) — the sibling of `zonas` on the volume.
+  #
+  # A named volume by default, for the same reason as `zonas`: a local
+  # checkout has no such tree. The deployment replaces it with the directory
+  # the Syncthing fills (IKIGAI_VAULT_WRITE_PATH), and that directory is the
+  # ONLY one the deployment mounts read-write.
+  vault-escrita:
   # The agent's sessions and settings.
   harness-state:
   # The agent's persistent memory (SQLite).
