@@ -279,11 +279,172 @@ async def test_the_cadence_runs_the_routine_and_sends_a_rich_table() -> None:
     assert "escrevi a nota do dia" in markdown
     assert fallback.startswith("daily-note"), "o fallback repete o título"
     routine, session_id, chat_id, message, date = harness.calls[0]
-    assert (routine, session_id, chat_id, message) == ("daily-note", "tg:42", "42", "")
+    # A SESSAO DA CADENCIA, e nao a do dono: a sessao tem um turno em voo e
+    # uma noite recusada e uma noite sem nota (medido no box, 2026-11-11).
+    assert (routine, session_id, chat_id, message) == ("daily-note", "cadence:42", "42", "")
     assert date == run_day(datetime.now(UTC)), (
         "a cadência não disse ao agente que dia é — a nota levaria o dia que o "
         "agente adivinhou"
     )
+
+
+# ─── the seat ─────────────────────────────────────────────────────────────────
+
+
+class _Feed:
+    """A harness that answers the event feed and the state of a question."""
+
+    def __init__(self, events_by_session: dict[str, list[dict[str, Any]]]) -> None:
+        self._events = events_by_session
+        self.seen: list[tuple[str, int]] = []
+
+    async def events(self, session: str, since: int = 0, limit: int = 200) -> dict[str, Any]:
+        self.seen.append((session, since))
+        rows = [row for row in self._events.get(session, []) if int(row.get("seq") or 0) > since]
+        # The tip is GLOBAL, like the real one: `SELECT MAX(seq) FROM events`.
+        return {"events": rows, "tip": 9999}
+
+    async def question(self, question_id: str, timeout_s: float | None = None) -> dict[str, Any]:
+        return {"state": "pending"}
+
+
+class _SendingBot(Bot):
+    """A bot that records what it sends instead of calling Telegram."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.sent: list[tuple[str, str]] = []
+
+    async def _send(
+        self,
+        chat_id: str,
+        text: str,
+        buttons: Any | None = None,
+        web_app: tuple[str, str] | None = None,
+    ) -> None:
+        self.sent.append((chat_id, text))
+
+
+def _asking_bot(feed: Any) -> _SendingBot:
+    return _SendingBot("token", _Store([]), {"42"}, "owner", harness=feed)
+
+
+def _question(seq: int, question_id: str = "q1") -> dict[str, Any]:
+    return {
+        "seq": seq,
+        "kind": "question.asked",
+        "payload": {
+            "id": question_id,
+            "kind": "choice",
+            "question": "Isto e uma nota?",
+            "options": ["nota", "sonho"],
+            "client": "",
+            "deadline_at": 0,
+        },
+    }
+
+
+async def test_the_cadence_sits_in_a_session_of_its_own() -> None:
+    """The owner's conversation and the night are TWO conversations.
+
+    A session has one turn in flight, and the harness REFUSES a second
+    routine in it (409). The cadence used to sit in the owner's session, so a
+    night when the owner was in conversation was a night with no note — and a
+    refused night is a lost night: `next_run` returns the next occurrence and
+    nothing retries it.
+
+    Measured on the box, 2026-11-11: the ledger holds the pair of nights —
+    `routine.started` 2026-11-10T01:00:00.129Z with `routine.failed` at
+    01:30:00.135Z (no note), and `routine.started` 2026-11-11T01:00:00.130Z
+    with `routine.finished` at 01:01:26.173Z (86 s, the note).
+    """
+    harness = _Harness("escrevi a nota do dia")
+    cadence = Cadence(at=time(22, 0), routine="daily-note", chat_id="42")
+    bot = _bot(_Store([]), harness, cadence)
+
+    await bot._run_cadence(cadence)
+
+    _, session_id, _, _, _ = harness.calls[0]
+    assert session_id == "cadence:42", (
+        "a cadência voltou a sentar-se na conversa do dono — uma sessão tem um "
+        "turno em voo, e uma noite recusada é uma noite sem nota"
+    )
+    assert session_id != bot._client_key("42")
+
+
+async def test_the_owner_is_asked_what_the_night_asked() -> None:
+    """A question the night asked is the owner's question too.
+
+    The cadence has a seat of its own, so its questions live in its own
+    session — and a feed that read only the conversation's session would hide
+    them. A question that is hidden is a question nobody can answer.
+    """
+    feed = _Feed({"cadence:42": [_question(7)]})
+    bot = _asking_bot(feed)
+
+    await bot._drain_runtime("42")
+
+    assert bot.sent, "a pergunta da noite não chegou ao dono"
+    assert "nota" in bot.sent[-1][1]
+
+
+async def test_the_feed_reads_both_sessions_of_the_chat() -> None:
+    """The conversation's log and the night's log are both the chat's."""
+    feed = _Feed({})
+    bot = _asking_bot(feed)
+
+    await bot._drain_runtime("42")
+
+    sessions = [session for session, _ in feed.seen]
+    assert sessions == ["tg:42", "cadence:42"], (
+        "o feed lê uma sessão só — a noite deixa de existir para o dono"
+    )
+
+
+async def test_the_cursor_is_this_sessions_own_tip() -> None:
+    """The feed's tip is GLOBAL; the cursor must not be.
+
+    The feed answers with `SELECT MAX(seq) FROM events` — the tip of the whole
+    log — while the rows are filtered by session. A cursor that took the
+    global tip would skip this session's own events whenever another session
+    wrote in between.
+    """
+    feed = _Feed({"tg:42": [_question(7)], "cadence:42": [_question(9, "q2")]})
+    bot = _asking_bot(feed)
+
+    await bot._drain_runtime("42")
+    await bot._drain_runtime("42")
+
+    assert bot._cursors["tg:42"] == 7, "o cursor saltou o tip da sua própria sessão"
+    assert bot._cursors["cadence:42"] == 9
+
+
+async def test_the_memory_shows_the_night_too() -> None:
+    """The nightly note is the agent's memory of THIS chat.
+
+    `/memoria` reads the sessions of the chat — the conversation and the
+    cadence. A view that showed only one of the two would hide the night from
+    the owner.
+    """
+
+    class _Memory:
+        def __init__(self) -> None:
+            self.seen: list[str] = []
+
+        async def memory(self, session: str, limit: int = 20) -> dict[str, Any]:
+            self.seen.append(session)
+            if session == "cadence:42":
+                return {"entries": [{"id": 2, "key": "daily-note", "content": "a noite"}]}
+            return {"entries": [{"id": 1, "key": "store-read", "content": "a conversa"}]}
+
+    memory = _Memory()
+    bot = _SendingBot("token", _Store([]), {"42"}, "owner", harness=memory)
+
+    text = await bot._memory("42")
+
+    assert memory.seen == ["tg:42", "cadence:42"], "o /memoria lia uma sessão só"
+    assert "a noite" in text, "a noite desapareceu da memoria do dono"
+    assert "a conversa" in text
 
 
 # ─── the day ─────────────────────────────────────────────────────────────────
