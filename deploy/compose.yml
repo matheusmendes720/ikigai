@@ -345,6 +345,25 @@ services:
       # owner to a page that does not exist.
       IKIGAI_MINIAPP_PORT: ${IKIGAI_MINIAPP_PORT:-8003}
       IKIGAI_MINIAPP_URL: ${IKIGAI_MINIAPP_URL:-}
+      # The table of the PUBLISHED SURFACES (ADR-045): where the panel is,
+      # and whether it is published. It lives in the repository and is
+      # mounted read-only, because a route that lives in the box's `.env` is
+      # a second truth — and a second truth is edited by hand and never
+      # reviewed.
+      #
+      # The variable can still point somewhere else: what changes is the
+      # DEFAULT, not the capability (ADR-042 D2).
+      IKIGAI_SURFACES_FILE: ${IKIGAI_SURFACES_FILE:-/etc/ikigai/surfaces.json}
+    volumes:
+      # The table of the published surfaces, mounted READ-ONLY.
+      #
+      # `./surfaces.json`, and not `../surfaces.json`: the relative path in a
+      # compose file is resolved against the PROJECT DIRECTORY — the directory
+      # that holds the compose file, `deploy/`. The file is versioned, so the
+      # mount always finds it; a mount of a file IN MISSING makes docker
+      # create a DIRECTORY, and the bot would read no table while looking
+      # healthy.
+      - ./surfaces.json:/etc/ikigai/surfaces.json:ro
     ports:
       # The Mini App's surface. Bound to loopback on purpose: the public
       # door is the proxy that owns the certificate, not this port.

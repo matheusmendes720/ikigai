@@ -496,6 +496,10 @@ vault/.db
 # The deploy's SHAPE — the script it carries, the retry, the key. Every
 # failure this pipeline had was a failure of shape, not of logic.
 !/src/ikigai/tests/test_deploy_transport.py
+# The published surface: the table of the routes, the consumer, the applier
+# and the two gates. A door the internet can knock on is published code, and
+# published code has a gate of its own (ADR-045).
+!/src/ikigai/tests/test_published_surface.py
 # The guard that a published module is a CLONE's module: it asks git which
 # files are tracked, which is the one thing the suite cannot take for granted.
 !/src/ikigai/tests/test_every_imported_module_is_tracked.py
@@ -568,6 +572,9 @@ deploy/secrets/
 # The Mini App: the owner's panel, inside the Telegram, with Telegram's own
 # identity (ADR-044).
 !/code-docs/adr/ADR-044-mini-app-panel.md
+# The published surface: the route of the panel in the repository, and the
+# gate of its own that watches it (ADR-045).
+!/code-docs/adr/ADR-045-public-route-and-its-gate.md
 
 # The dated audits and plans of the system that was replaced.
 /docs/diagnostics/

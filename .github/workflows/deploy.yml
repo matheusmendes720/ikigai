@@ -319,6 +319,20 @@ jobs:
             # down must not fail the deploy of the store.
             docker compose up -d --wait --wait-timeout 240 db api ws sync bot
             docker compose ps
+
+            # THE PUBLISHED SURFACES. The route lives in the repository
+            # (`deploy/surfaces.json`); this applies it to the box's tailscale
+            # config, after the services are up, and it touches ONLY the
+            # host:port and path the table declares.
+            #
+            # It runs AFTER the compose wait on purpose: the route points at a
+            # service, and a route that points at a service that is not up yet
+            # is a route that answers with a 502.
+            if [ ! -f apply-surfaces.sh ]; then
+              echo "::error::deploy/apply-surfaces.sh is missing — the declared route would not be applied"
+              exit 1
+            fi
+            bash apply-surfaces.sh
             DEPLOY_SCRIPT
 
             # THE ATTEMPT. Three tries, with a growing wait, because the
@@ -354,3 +368,49 @@ jobs:
               sleep "$wait_s"
               attempt=$((attempt + 1))
             done
+
+  published-surface:
+    name: The published surface (live, outside the tailnet)
+    needs: deploy
+    runs-on: ubuntu-latest
+    # THE EFFECT GATE. The contract gate lives in the CI (`ci.yml`, the job
+    # *The published surface (gate próprio)*); this one measures the EFFECT:
+    # the surface the repository declares as published has to answer FROM
+    # OUTSIDE the tailnet, and its data door has to be closed.
+    #
+    # The runner is not in the tailnet, and that is the whole point of
+    # probing from here: a probe from inside the tailnet would answer even
+    # with the funnel off, and would prove nothing about publication.
+    #
+    # It runs only when the table says `published`. A surface that is
+    # declared but not published is not a failure — it is a decision that has
+    # not been taken yet (ADR-045 D3).
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The surface, as the repository declares it
+        id: surface
+        run: |
+          state=$(jq -r '.surfaces.miniapp.state // "absent"' deploy/surfaces.json)
+          url=$(jq -r '.surfaces.miniapp | "https://" + .host + (if .https_port == 443 then "" else ":" + (.https_port|tostring) end) + .path' deploy/surfaces.json)
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "the surface is declared as '$state' at $url"
+
+      - name: The surface answers from outside the tailnet
+        if: steps.surface.outputs.state == 'published'
+        env:
+          SURFACE_URL: ${{ steps.surface.outputs.url }}
+        run: |
+          base="${SURFACE_URL%/}"
+          page=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$base/")
+          if [ "$page" != "200" ]; then
+            echo "::error::the published surface's page answered '$page' at $base/ — the surface is not published"
+            exit 1
+          fi
+          door=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 -X POST -d '{}' "$base/api/session")
+          if [ "$door" != "401" ]; then
+            echo "::error::the published surface's data door answered '$door' — it must answer 401 without Telegram's signature"
+            exit 1
+          fi
+          echo "the surface answers 200 and its data door answers 401: published, and closed"

@@ -1,0 +1,15 @@
+{
+  "surfaces": {
+    "miniapp": {
+      "label": "Ikigai Mini App",
+      "service": "bot",
+      "host": "vps-hetzner.tail78a4a0.ts.net",
+      "https_port": 8443,
+      "path": "/",
+      "target": "http://127.0.0.1:8003",
+      "mode": "funnel",
+      "auth": "telegram-initdata",
+      "state": "pending"
+    }
+  }
+}

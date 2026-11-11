@@ -107,6 +107,7 @@ from src.bot.draft import REFRESH_S, Draft, Drafts
 from src.bot.harness_client import DEFAULT_TIMEOUT_S, HarnessClient, HarnessError
 from src.bot.rich import markdown_table, plain_table, report_markdown, rich_payload
 from src.bot.router import callback_data, parse_callback, route
+from src.bot.surfaces import miniapp_url
 from src.bot.ws_client import WebSocketClient
 from src.contracts.dom import ArtifactKind, make_uid
 from src.contracts.dom_kinds import KIND_MODELS
@@ -1048,11 +1049,11 @@ class Bot:
         Telegram's identity attached — which is what makes the page able to
         prove who is asking.
         """
-        url = (os.environ.get(MINIAPP_URL_ENV) or "").strip()
+        url = _miniapp_url()
         if not url:
             await self._send(
                 chat_id,
-                "O painel não está configurado neste bot (IKIGAI_MINIAPP_URL).",
+                "O painel não está configurado neste bot (deploy/surfaces.json).",
             )
             return
         await self._send(
@@ -1755,6 +1756,21 @@ def _miniapp_port() -> int:
     except ValueError:
         return 0
     return port if 1 <= port <= 65535 else 0
+
+
+def _miniapp_url() -> str:
+    """The address the panel's button points at.
+
+    The TABLE is the truth (ADR-045): the route lives in the repository,
+    mounted read-only, so the deployment cannot drift away from what the
+    repository declares. The environment is the FALLBACK, for a checkout
+    without the mount — a box that carries the address in its `.env` has two
+    truths, and a second truth is one nobody reviews.
+    """
+    url = miniapp_url()
+    if url:
+        return url
+    return (os.environ.get(MINIAPP_URL_ENV) or "").strip()
 
 
 async def _serve(bot: Bot) -> None:
