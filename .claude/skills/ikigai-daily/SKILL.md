@@ -53,17 +53,24 @@ recognised the last one.
 
 ## How the tools are called
 
-**`search_artifacts` TAKES A LIST OF KIND NAMES AND A NUMBER.** Measured on the
-box, 2026-11-11: the run of 01:00Z sent
-`{"query": {"kinds": {"item": "nota"}, "limit": "20"}}` and the schema REFUSED
-it — an object is not a list, and `"20"` is not a number — so the run fell
-back to searching by text. The call that answers is:
+**`search_artifacts` TAKES A LIST OF KIND NAMES.** Measured on the box,
+2026-11-11: the run of 01:00Z sent `kinds` as an OBJECT — `{"item": "nota"}` —
+and the contract refused it:
 
-    {"query": {"kinds": ["tarefa", "fase", "plano"], "quarter": "Q4-2026", "limit": 20}}
+    query.kinds
+      Input should be a valid tuple [type=tuple_type, input_value={'item': 'nota'}, input_type=dict]
 
-`kinds` is a LIST OF STRINGS, `limit` is a NUMBER, and both go inside `query`.
-A search WITHOUT the quarter returns every plan in the store and has to be
-paged; the quarter's own work is one page.
+Only `kinds` was named: a number written as text is coerced and accepted, so
+the refusal was the object, not the quotes. The call that answers is:
+
+```json
+{"query": {"kinds": ["tarefa", "fase", "plano"], "quarter": "Q4-2026", "limit": 20}}
+```
+
+`kinds` is a LIST OF STRINGS and it goes inside `query`. A search WITHOUT the
+quarter returns every plan in the store and has to be paged; the quarter's own
+work is one page — measured, that search answers **7 rows** (5 `fase`, 2
+`plano`).
 
 **THE UID IS FOUR SEGMENTS, AND THE LAST TWO ARE HEX.** Measured: the first
 write of the manual run of 2026-11-10 was REFUSED, because its uid was

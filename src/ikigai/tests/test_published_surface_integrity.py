@@ -41,6 +41,7 @@ rots.
 from __future__ import annotations
 
 import ast
+import json
 import os
 import re
 import subprocess
@@ -252,6 +253,47 @@ def test_the_published_cadence_skills_are_the_projection() -> None:
             drifted.append(f"{target_name} (drifted)")
 
     assert not drifted, "the published cadence skills are not the projection: " + ", ".join(drifted)
+
+
+def test_the_daily_note_skill_prescribes_calls_the_CONTRACT_accepts() -> None:
+    """The skill's own call has to satisfy the contract it is written against.
+
+    Measured on the box, 2026-11-11: the cadence run sent `kinds` as an
+    OBJECT (`{"item": "nota"}`) and the contract refused it — `query.kinds:
+    Input should be a valid tuple` — so the run fell back to searching by
+    text, and the day's note was built without the quarter's work. A skill
+    that prescribes a call nobody validated is a skill that fails at 22:00, in
+    a run nobody watches, so the prescription is parsed and validated HERE,
+    against the same model the API validates with.
+    """
+    from src.contracts.dom import SearchQuery
+
+    skill = (REPO_ROOT / "specs" / "harness" / "skills" / "daily-note" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+
+    steps = skill.split("Steps:", 1)[-1].split("## ", 1)[0]
+    prescriptions = re.findall(r'\{"query": \{.*?\}\}', steps)
+
+    assert prescriptions, (
+        "the daily-note skill prescribes no call at all — it cannot be wrong, "
+        "but it cannot work either"
+    )
+
+    for raw in prescriptions:
+        query = json.loads(raw)["query"]
+        # The contract is the authority: this is the model the API validates with.
+        SearchQuery.model_validate(query)
+        assert isinstance(query.get("kinds"), list), (
+            "kinds is a LIST of names — the contract refused an object on the "
+            "box (query.kinds: Input should be a valid tuple)"
+        )
+        assert all(isinstance(kind, str) for kind in query["kinds"]), (
+            "kinds carries kind NAMES, not objects"
+        )
+        assert query.get("quarter"), (
+            "a search without the quarter returns every plan in the store and has to be paged"
+        )
 
 
 def test_no_junk_named_root_directory_holds_a_tracked_file() -> None:
