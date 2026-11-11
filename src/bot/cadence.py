@@ -37,7 +37,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from datetime import time as clock_time
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-__all__ = ["Cadence", "cadence_from_env"]
+__all__ = ["Cadence", "cadence_from_env", "run_day"]
 
 AT_ENV = "IKIGAI_CADENCE_AT"
 OFFSET_ENV = "IKIGAI_CADENCE_UTC_OFFSET"
@@ -119,6 +119,32 @@ def _parse_zone(raw: str) -> ZoneInfo | None:
         return ZoneInfo(raw.strip())
     except (ZoneInfoNotFoundError, ValueError):
         return None
+
+
+def run_day(now: datetime) -> str:
+    """The day a run names — the day the note it writes carries.
+
+    **THE DAY IS THE RUN'S OWN UTC DAY, AND IT HAS TO ADVANCE ONCE PER RUN.**
+
+    The daily cycle fires at 22:00 in the owner's zone, which is 01:00Z of the
+    NEXT day. Measured on the box (2026-11-11): the run of 01:00:00Z wrote
+    `not:2026-11-11:74dfed05:d6ad7bd8023c5f59` — the note names the UTC day of
+    the run, and the day before it named the day before that.
+
+    That is not a detail, it is the CONTRACT. The note's uid AND its
+    idempotency key are both derived from this day, and the store swallows a
+    repeated key as `unchanged` BEFORE it even looks at the body
+    (`ikig.idempotency_keys`, `on conflict do nothing`). So the day has to
+    advance by one on every run — and a rule that named the owner's local day
+    would name 2026-11-11 on the night of the 10th, which is the day the note
+    of 2026-11-11 already carries. The second write of that night would be a
+    silent no-op, and the owner's nightly note would vanish without a word.
+
+    So the day is the run's UTC day, it is handed to the agent instead of
+    being guessed by it, and the rule lives in ONE function so that changing
+    it is a single decision and not a drift.
+    """
+    return now.astimezone(UTC).strftime("%Y-%m-%d")
 
 
 def cadence_from_env(env: Mapping[str, str], allowed: set[str]) -> Cadence | None:

@@ -95,7 +95,7 @@ from typing import Any
 
 import httpx
 
-from src.bot.cadence import Cadence, cadence_from_env
+from src.bot.cadence import Cadence, cadence_from_env, run_day
 from src.bot.channel import (
     Question,
     answer_buttons,
@@ -1389,11 +1389,22 @@ class Bot:
             # about a configuration the handshake already reports.
             return
 
+        # THE DAY THE NOTE WILL CARRY, said out loud. The agent used to guess
+        # it from the clock; the bot says it now, so the guess cannot drift.
+        # The rule lives in one function because the note's uid AND its
+        # idempotency key are derived from this day — see `run_day`.
+        note_day = run_day(datetime.now(UTC))
+
         result = await harness.run_routine(
             cadence.routine,
             session_id=f"tg:{cadence.chat_id}",
             chat_id=cadence.chat_id,
             message="",
+            # THE DAY, SAID OUT LOUD. A cadence run carries no message, so the
+            # agent has nothing to name the day from except the clock — and
+            # the clock is UTC, which at 22:00 in -03:00 is already the next
+            # day. Handing it the day removes the guess.
+            date=note_day,
         )
 
         zone = cadence.zone or timezone(cadence.offset)
