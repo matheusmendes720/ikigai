@@ -1,10 +1,10 @@
 # ikigai — ROADMAP
 
 **Feature id:** `production-readiness`
-**Data:** 2026-11-10 (remedição; a primeira versão é de 2026-11-06)
+**Data:** 2026-11-11 (remedição; a primeira versão é de 2026-11-06)
 **Estado:** execução — as decisões D1–D4 estão fechadas; os gates G1–G5 são a sequência
 **Âncora:** [`PRODUCT.md`](./PRODUCT.md) (o que é e em que estado) · [`TECH.md`](./TECH.md) (o plano e os PASS)
-**Código medido:** `5fc8e03d` (box, PR #49) · **remedição de 2026-11-09**: store com 1 974 artefactos · **remedição de 2026-11-10**: o grounding indexado (PR #52)
+**Código medido:** `5fc8e03d` (box, PR #49) · **remedição de 2026-11-09**: store com 1 974 artefactos · **remedição de 2026-11-10**: o grounding indexado (PR #52) · **remedição de 2026-11-11**: a seta store→vault medida ponta a ponta (§5.7)
 
 > Este documento liga a **árvore de planeamento** (o que existe e o que falta
 > em cada nível), o **grafo de dependências** (o que tem de vir antes do quê) e
@@ -212,7 +212,7 @@ herança.
 | **B5** o bot nunca abre a base de dados | G4 | o bot não tem DSN no compose e fala MCP | provado (não remedido hoje) |
 | **B6** o transporte nunca transporta SQL | G1, G3 | zero `select\|insert\|update\|delete` em `mcp_server.py` | provado (não remedido hoje) |
 | **B7** o healthcheck mede o plano de dados | G1 | a inserção de sonda passa (ou é recusada pela RLS) — nunca `select 1` | provado (não remedido hoje) |
-| **B8** a prosa entra pelo vault e sai como linhas tipadas | G2 | uma linha por ficheiro ingerido, com o `body_hash` certo | **provado** — 1 974 artefactos (1 953 com `vault_path`; os 21 restantes são os que o `pi` escreveu hoje, sem `vault_path`); `sha256(ficheiro)` = `body_hash` em **40/40**; e a `search_artifacts` devolveu o artefacto cujo `body_hash` é o do ficheiro |
+| **B8** a prosa entra pelo vault e sai como linhas tipadas | G2 | uma linha por ficheiro ingerido, com o `body_hash` certo | **provado** — **1 976 artefactos vivos, todos com `vault_path`** (2026-11-11); `sha256(ficheiro)` = `body_hash` em **40/40** (2026-11-09) e em **23/23** na árvore do write-back (2026-11-11); a `search_artifacts` devolveu o artefacto cujo `body_hash` é o do ficheiro; e a **seta invertida** também está medida — o store escreve a prosa, e a ingestão volta a lê-la **sem duplicar e sem reescrever** (`created=0 updated=0 unchanged=1976`) — §5.7 |
 | **B9** o grounding estratégico chega ao agente | G2, G3 | o índice tem os 9 documentos e o agente os cita | **provado** — o *agente* cita o grounding (o "AG3" vive no `pln:deep-agent-build-q4-2026:…`) **e** o caminho escrito funciona: `load_strategics(<raiz real>)` devolve **9 documentos** (95 167 chars) e o índice não está vazio (§5.6) |
 | **B10** a cadência produz o artefacto do seu tipo, com os campos que o tipo exige | G3 | o `pi` produz uma `desc` com `rationale`, um `okr` com `key_result` | **provado** — a `desc` `des:revisao-mensal-q4-2026:a68c4ee7:af5237c5596d44d4` (22:24:09Z, rev 1) tem `decision` **e** `rationale` preenchidos em `ikig.artifact_decs`, e 16 arestas `references`; e os 5 `okr` do `quarterly-plan` têm `objective` **e** `key_result` preenchidos em `ikig.artifact_okr` (5/5). A cadência correu — a entrada `/v1/routine` é que esteve recusada enquanto a sessão do dono tinha outro turno (§5.4) |
 
@@ -695,6 +695,48 @@ seis tools do ADR-011 não têm uma de strategics, e o `pi` leu os ficheiros de
 `strategics/` com a sua própria tool (26 chamadas, 19:25Z–22:31Z) — não pelo
 índice. ⇒ O caminho **escrito** está pronto e o gate fecha; o caminho **usado**
 é outro. O grounding chega ao agente, mas por um **bypass**, não pelo contrato.
+
+### 5.7 A remediação de 2026-11-11: a seta invertida, medida ponta a ponta
+
+O que faltava era **uma seta**: o store escrevia a prosa para o dono, e a
+ingestão trazia a prosa do vault para o store — mas o store **não** escrevia a
+prosa de volta. O ADR-043 fechou essa seta (o `vault_write`, PR #69), e o que
+faltava era a **medição**: o mecanismo estava implementado, e nenhuma prova
+dizia que ele fecha.
+
+A medição correu no VPS (imagem `sha-c935e180`), pela sonda versionada
+[`deploy/probes/vault-arrow.sh`](../../deploy/probes/vault-arrow.sh) — que
+**sai com código diferente de zero** quando um dos factos é falso — e por SQL
+directo ao store.
+
+| Facto | Medido | Resultado |
+|---|---|---|
+| O ficheiro escrito **é** o que o store diz | `sha256sum` de cada ficheiro contra o `body_hash` da sua linha | **23/23** iguais, 0 divergentes, 0 ausentes |
+| O ficheiro carrega a identidade | `grep "ueid: <uid>"` | **23/23** |
+| O store sabe onde o ficheiro está | `count(*) … where vault_path is not null` | **1 976 de 1 976** artefactos vivos — o escritor não tem backlog (`scanned=0`) |
+| O ciclo fecha | a linha da ingestão | `scanned=1977 created=0 updated=0 unchanged=1976 skipped=25`, **quatro rondas seguidas** |
+| A ingestão não mexe nas revisões | `ikig.artifact_revisions` das 23 linhas escritas | **zero** revisões de `vault-sync` — todas são do `vault-write` |
+| As árvores estão separadas | `docker inspect` das montagens | `write`: só a árvore nova, **rw**; `sync`: as três, **ro** |
+| O `vault/` do clone git ficou intacto | `git -C /app/vault status --porcelain` | **vazio** — o `reset --hard` do deploy continua seguro |
+| A entrega ao desktop está montada | Syncthing: pasta `notas-escrita`, `sendreceive` | `needFiles: 0`, `errors: 0` — **ver o ficheiro no desktop é do dono** |
+
+**A nota da corrida de 2026-11-11** é o caso mais completo, porque foi escrita
+do zero pelo `pi`: `not:2026-11-11:74dfed05:d6ad7bd8023c5f59` →
+`nota/relat-rio-di-rio-2026-11-11-q4-2026-d6ad7bd8.md`, com `sha256` =
+`body_hash` = `e1ebbcb4…` e o `ueid:` no frontmatter.
+
+**Uma correcção ao que a ADR prometia.** O ficheiro escrito é uma **função do
+estado do store** — e o estado do store inclui o `updated_at`. Quando esse campo
+se mexe, os bytes mudam, e o escritor reescreve o ficheiro para volver a bater
+(numa janela de vinte minutos, **18 dos 23** foram reescritos por isso). O que
+é verdadeiro é o mais estreito: **duas voltas sobre o mesmo estado do store dão
+os mesmos bytes.** E o escritor **é** um escritor: a sua escrita é versionada e
+sobe uma revisão (ADR-037 D5).
+
+**O que fica por medir:** a **noite** — uma nota nova, escrita pelo `pi` na
+imagem actual, a percorrer a seta inteira. É o gate armado para
+2026-11-12T01:00Z: a nota nova tem de aparecer como ficheiro, com o `sha256`
+igual ao `body_hash`, **+1 revisão do `vault-write`** e **zero da ingestão**.
 
 ---
 

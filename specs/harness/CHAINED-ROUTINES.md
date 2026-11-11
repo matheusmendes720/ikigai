@@ -401,6 +401,7 @@ is a **projection** (ADR-037 D8), and the DOM does not know it exists.
 | G6 | HITL commits | **Guardar** writes once; the same button twice writes once (idempotency key); a stale revision is a 409 | **PASS** |
 | G7 | Stop stops | the Stop button cancels the run within 2 s, and no artifact is written | **PASS** |
 | G8 | Two clients converge | a write from the phone appears on the desktop through the ws, and neither reorders | **PASS** |
+| G9 | The prose reaches the desktop | the note the cadence wrote is a file in the write-back tree, with the same bytes the store holds, and the ingestion that follows writes nothing | **UNKNOWN** — armed for 2026-11-12T01:00Z |
 
 G1–G2 are the deployment; G3–G8 are this spec. Nothing below G2 is testable while G1 is red.
 
@@ -423,6 +424,7 @@ G1–G2 are the deployment; G3–G8 are this spec. Nothing below G2 is testable 
 | **G6** | 2026-11-10, on the box: `created` (rev 1) → the same `idempotency_key` again → **`unchanged`**, rev 1; a stale `expected_revision=999` → **`conflict`**, and the artifact kept revision 1 | the button itself, in the owner's chat |
 | **G7** | 2026-11-10, on the box: the run settles in **55 ms** (gate: 2 000), the agent of the run is **born** and **gone** 222 ms after `routine.cancelled`, **1 974 artifacts before and after** | the button itself, in the owner's chat |
 | **G8** | 2026-11-10, on the box: `seq` `[10589, 10590, 10591]` on **both** clients, strictly increasing, no duplicates; the gap closes at `[10592, 10593]` after a disconnect; **1 974 before and after** | a second physical device |
+| **G9** | the arrow itself is measured (2026-11-11, ADR-043 §5.1, by `deploy/probes/vault-arrow.sh`): **23** files written, **23/23** with `sha256` == the store's `body_hash` and the store's `ueid` in the frontmatter, **1 976** live artifacts and **all** of them with a `vault_path` (the writer's backlog is zero), and the ingestion saying `created=0 updated=0 unchanged=1976` — **zero** revisions written by `vault-sync` on those lines | **the night**: the note of 2026-11-12T01:00Z has to go through the arrow on the current image — one file, the same bytes, **+1 revision from `vault-write`** and **zero from the ingestion** |
 
 **THE LETTERS ARE NOT UNIQUE IN THIS REPOSITORY.** `specs/production-readiness/ROADMAP.md` has
 its own `G1`–`G5` — the *deployment* gates (store, content, harness, Telegram, delivery) — and
@@ -496,6 +498,32 @@ is no `device_id` in a message update (§7). So "the phone and the desktop conve
 on two **websocket clients of the store**, which is the part the ws owns. The part that needs a
 second physical device — the same chat writing from two phones — is the owner's half, like the
 Stop button in G7.
+
+**WHAT G9 WAS MEASURED AGAINST.** The box, 2026-11-11 at 10:12Z, image `sha-c935e180`, against
+the **real** store (1 976 artifacts alive) and the real tree of the writer
+(`/mnt/volume-fsn1-1/vault-escrita`, 23 files). The measurement is
+`deploy/probes/vault-arrow.sh` — which **exits non-zero** when a fact is false — run against the
+running stack, not against a fixture.
+
+| what | measured |
+|---|---|
+| the file is what the store says | `sha256(file)` == `body_hash(store)`, **23/23**, 0 diverged, 0 missing |
+| the file carries the identity | the frontmatter's `ueid:` is the store's uid, **23/23** |
+| the store knows where the file is | **1 976 of 1 976** live artifacts have a `vault_path`; the writer's log says `scanned=0` |
+| the cycle closes | the ingestion: `scanned=1977 created=0 updated=0 unchanged=1976 skipped=25`, four rounds in a row |
+| the ingestion does not touch them | `ikig.artifact_revisions` on those 23 lines: **zero** revisions by `vault-sync` |
+| the trees are separate | `write`: only the new tree, `rw`; `sync`: all three, `ro` |
+| the git clone of the vault is untouched | `git -C /app/vault status --porcelain` → empty |
+| the desktop delivery is wired | Syncthing folder `notas-escrita` (`sendreceive`, watcher on): `needFiles: 0`, `errors: 0` |
+
+**WHAT G9 DOES *NOT* CLAIM.** That the arrow works is already measured (ADR-043 §5.1) — and it was
+measured over 23 files written in **two** rounds, the second of them after a write that moved the
+store's `updated_at` without moving the revision, which today's `_update` cannot do. The gate is
+narrower: **a note written by the current image, going through the whole arrow** — one file, the
+same bytes, **+1 revision from `vault-write`** and **zero from the ingestion**. That is the night
+of 2026-11-12T01:00Z. And the file reaching the **desktop** is still the owner's half: the box is
+in sync (`needFiles: 0`), but seeing the file on the `windows-pc` is a physical thing, like the
+Stop button in G7 and the second device in G8.
 
 **WHAT THE G3 RUN WAS MEASURED AGAINST — THREE CAUSES, NOT ONE.** The cadence run of 2026-11-10
 (01:00:00Z, no human message) failed at 01:30:00Z. All three causes below were measured, and all
