@@ -15,6 +15,7 @@ from typing import Any
 from src.contracts.dom import (
     Artifact,
     ArtifactBundle,
+    ArtifactKind,
     Relation,
     RelationType,
     SearchQuery,
@@ -23,6 +24,7 @@ from src.contracts.dom import (
     WriteRequest,
 )
 from src.contracts.dom_kinds import (
+    KIND_MODELS,
     DecisionArtifact,
     KPIArtifact,
     OKRArtifact,
@@ -565,6 +567,75 @@ class ArtifactRepository:
             (limit,),
         )
         return [dict(row) for row in rows]
+
+    async def artifacts_without_vault_path(self, limit: int = 500) -> list[Artifact]:
+        """The artifacts that were never a file.
+
+        A NULL `vault_path` is the answer to "does this artifact already
+        exist as a file?", and the write-back (`vault_write.py`) is the only
+        writer that asks it: the artifacts that HAVE one belong to whoever
+        wrote that file.
+
+        The rows come back in the order they were last touched, so the
+        write-back works through the backlog instead of always starting at
+        the same place.
+
+        The artifacts come back TYPED: a KPI comes back as a KPI, with the
+        metric and the target it has in the store. The spine alone would
+        describe a KPI as a title with no numbers — and a file written from
+        that would be a husk, with the very measurement that makes it a KPI
+        left behind in the database.
+        """
+        rows = await self._client.execute(
+            f"select {_ARTIFACT_COLUMNS} from ikig.artifacts "
+            "where vault_path is null and deleted_at is null "
+            "order by updated_at, uid limit %s",
+            (limit,),
+        )
+        return await self._with_typed_fields(rows)
+
+    async def _with_typed_fields(self, rows: Sequence[Mapping[str, Any]]) -> list[Artifact]:
+        """The same artifacts, rebuilt with the typed fields of their kind.
+
+        The typed fields live in a table of their own — a KPI's metric is in
+        `artifact_kpi`, not in the spine — so a kind that has one is read
+        from that table and put back into its model.
+
+        An artifact whose typed row is missing or does not fit its model is
+        returned as the spine alone: the write-back still writes a file for
+        it, and the store keeps the typed row it has. What is NOT done is a
+        guess: a half-read KPI is reported as what it is, not as a KPI with
+        invented numbers.
+        """
+        if not rows:
+            return []
+
+        by_uid = {str(row["uid"]): row for row in rows}
+        extras: dict[str, dict[str, Any]] = {}
+        for kind in {ArtifactKind(row["kind"]) for row in rows}:
+            table = KIND_TABLES.get(kind)
+            if table is None:
+                continue
+            uids = [uid for uid, row in by_uid.items() if row["kind"] == kind]
+            typed_rows = await self._client.execute(
+                f"select * from ikig.{table} where uid = any(%s)",
+                (uids,),
+            )
+            for typed_row in typed_rows:
+                extras[str(typed_row["uid"])] = {
+                    name: value for name, value in typed_row.items() if name != "uid"
+                }
+
+        artifacts: list[Artifact] = []
+        for row in rows:
+            uid = str(row["uid"])
+            kind = ArtifactKind(row["kind"])
+            payload = {**dict(row), **extras.get(uid, {})}
+            try:
+                artifacts.append(KIND_MODELS[kind].model_validate(payload))
+            except Exception:
+                artifacts.append(_to_artifact(row))
+        return artifacts
 
     async def artifact_events(self) -> AsyncIterator[Mapping[str, Any]]:
         """The store's change notifications, as they arrive.

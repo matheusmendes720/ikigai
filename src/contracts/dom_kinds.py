@@ -18,8 +18,10 @@ data.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from decimal import Decimal
-from typing import Annotated, Literal
+from enum import StrEnum
+from typing import Annotated, Any, Literal, get_origin
 
 from pydantic import Field
 
@@ -28,6 +30,7 @@ from .dom import Artifact, ArtifactKind
 
 __all__ = [
     "KIND_MODELS",
+    "KIND_TYPED_FIELDS",
     "ArtifactPayload",
     "DecisionArtifact",
     "FaseArtifact",
@@ -39,6 +42,8 @@ __all__ = [
     "RevisaoArtifact",
     "SonhoArtifact",
     "TarefaArtifact",
+    "typed_fields",
+    "typed_from_meta",
 ]
 
 
@@ -170,3 +175,91 @@ forbids extra fields, so a KPI's `metric` and `target` only survive the wire
 if the parameter is the typed model; and the repository writes the extension
 tables by `isinstance`, so a bare spine drops the typed fields in silence.
 """
+
+# ---------------------------------------------------------------------------
+# The typed fields, as the MARKDOWN carries them
+# ---------------------------------------------------------------------------
+
+_SPINE_FIELDS = frozenset(Artifact.model_fields)
+"""The fields every artifact has. What a kind adds on top of them is its own."""
+
+KIND_TYPED_FIELDS: dict[ArtifactKind, tuple[str, ...]] = {
+    kind: tuple(name for name in model.model_fields if name not in _SPINE_FIELDS)
+    for kind, model in KIND_MODELS.items()
+}
+"""Which fields belong to which kind — read off the MODELS, never written twice.
+
+The typed fields of a kind are exactly the ones its model adds to the spine,
+so the map cannot drift from the models: a new field on `KPIArtifact` is in
+here the moment the model declares it, and a field that is not on the model is
+not in here at all.
+
+Two things read this map, and they must agree: the write-back, which renders
+these fields into the frontmatter of the file it writes, and the ingestion,
+which reads them back out of it. A vocabulary written twice is two
+vocabularies, and the second one is the one that loses a KPI's metric.
+"""
+
+
+def _plain(value: Any) -> Any:
+    """A value the YAML writer can represent.
+
+    PyYAML has no representer for `Decimal` — it raises instead of writing
+    something — and a KPI's target is a `Decimal` because a KPI that loses
+    precision is a wrong KPI. The text is exact, and the ingestion turns it
+    back into a `Decimal` on the way in.
+    """
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, StrEnum):
+        return str(value.value)
+    if isinstance(value, (list, tuple)):
+        return [_plain(item) for item in value]
+    return value
+
+
+def typed_fields(artifact: Artifact) -> dict[str, Any]:
+    """The typed fields of an artifact, as the frontmatter states them.
+
+    The fields that are not there are left out: a KPI with no target says so
+    by not saying it, and a frontmatter full of empty values is a frontmatter
+    that lies about what is known.
+    """
+    out: dict[str, Any] = {}
+    for name in KIND_TYPED_FIELDS.get(artifact.kind, ()):
+        value = getattr(artifact, name, None)
+        if value is None:
+            continue
+        out[name] = _plain(value)
+    return out
+
+
+def typed_from_meta(kind: ArtifactKind, meta: Mapping[str, Any]) -> dict[str, Any]:
+    """The typed fields a FILE declares — for its kind, and only for its kind.
+
+    The kind is what scopes this. A `target:` in the frontmatter of a note is
+    the note's target, not a KPI's, and reading it as one would invent a
+    field the file never claimed: the model forbids extra fields, so the file
+    would be refused and the owner's prose would stop being ingested.
+
+    A value whose shape does not fit the field is left out rather than
+    coerced: a file that says `ikigai_vectors: passion` has not declared a
+    vector, and guessing would put a wrong word in the store.
+    """
+    model = KIND_MODELS.get(kind)
+    if model is None:
+        return {}
+    out: dict[str, Any] = {}
+    for name in KIND_TYPED_FIELDS.get(kind, ()):
+        if name not in meta:
+            continue
+        value = meta[name]
+        if value is None or value == "":
+            continue
+        annotation = model.model_fields[name].annotation
+        if get_origin(annotation) in (tuple, list):
+            if not isinstance(value, (list, tuple)):
+                continue
+            value = list(value)
+        out[name] = value
+    return out

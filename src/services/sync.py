@@ -44,11 +44,11 @@ from typing import Any, Literal
 
 from src.contracts.common import UEID
 from src.contracts.dom import ArtifactKind, Relation, RelationType, WriteRequest, make_uid
-from src.contracts.dom_kinds import KIND_MODELS
+from src.contracts.dom_kinds import KIND_MODELS, typed_from_meta
 from src.data.repository import ArtifactRepository
 from src.services.embeddings import EmbeddingService
 
-__all__ = ["SyncReport", "VaultSource", "VaultSync", "default_sources", "main"]
+__all__ = ["SyncReport", "VaultSource", "VaultSync", "default_sources", "main", "slugify"]
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 _HEADING_RE = re.compile(r"^#\s+(.+)$", re.MULTILINE)
@@ -97,7 +97,7 @@ _ZONE_KINDS: dict[str, ArtifactKind] = {
 _ZONE_DEFAULT_KIND = ArtifactKind.NOTA
 
 _ARCHIVE_DIR = "99-archive"
-_LAYOUTS = ("closing", "persona", "zones")
+_LAYOUTS = ("closing", "persona", "zones", "escrita")
 
 #: Where the ingestion reads its trees from, when the container says so.
 #:
@@ -115,7 +115,7 @@ class VaultSource:
     """One markdown tree to ingest, and the shape it is laid out in."""
 
     root: Path
-    layout: Literal["closing", "persona", "zones"]
+    layout: Literal["closing", "persona", "zones", "escrita"]
 
 
 @dataclass
@@ -170,7 +170,13 @@ def default_sources() -> list[VaultSource]:
     ]
 
 
-def _slugify(text: str) -> str:
+def slugify(text: str) -> str:
+    """The filesystem-safe name of a piece of text.
+
+    Public because the write-back (`vault_write.py`) names its files by the
+    same rule: two writers that slug differently would write two names for
+    one thing.
+    """
     slug = _SLUG_RE.sub("-", text.lower()).strip("-")
     slug = slug[:62].strip("-")
     if not slug:
@@ -357,6 +363,37 @@ def _locate_zones(path: Path, root: Path) -> tuple[ArtifactKind, str | None] | N
     return kind, quarter
 
 
+def _locate_escrita(path: Path, root: Path) -> tuple[ArtifactKind, str | None] | None:
+    """Find the kind of a file in the write-back tree.
+
+    The first path segment IS the kind, in the DOM's own vocabulary (`nota`,
+    `plano`, `kpi`). It is the layout the write-back writes in, and it is
+    the only one that carries the kind EXACTLY: the zones layout decides the
+    kind by a table of buckets, so everything that is not a dream or a plan
+    would come back as a note — and the round trip would quietly change what
+    a thing is.
+
+    The quarter travels in the file's name, as it does in every other layout:
+    the ingestion reads it from the stem.
+    """
+    try:
+        relative = path.relative_to(root)
+    except ValueError:
+        return None
+    if len(relative.parts) < 2:
+        return None
+    try:
+        kind = ArtifactKind(relative.parts[0])
+    except ValueError:
+        # A directory that is not a kind holds no artifact of the DOM.
+        return None
+    quarter = None
+    match = _SLUG_QUARTER_RE.search(path.stem)
+    if match:
+        quarter = f"Q{match.group(1)}-{match.group(2)}"
+    return kind, quarter
+
+
 class VaultSync:
     """Reads the vault's markdown and upserts it into the store."""
 
@@ -402,6 +439,8 @@ class VaultSync:
             return _locate_closing(path, source.root)
         if source.layout == "persona":
             return _locate_persona(path, source.root)
+        if source.layout == "escrita":
+            return _locate_escrita(path, source.root)
         return _locate_zones(path, source.root)
 
     async def _ingest_file(
@@ -461,10 +500,14 @@ class VaultSync:
         updated = _timestamp(meta.get("updated_at")) or _timestamp(meta.get("updated"))
         if updated is not None:
             fields["updated_at"] = updated
-        if kind is ArtifactKind.SONHO:
-            vectors = meta.get("ikigai_vectors")
-            if isinstance(vectors, list) and vectors:
-                fields["ikigai_vectors"] = tuple(vectors)
+        # The typed fields of THIS kind, as the file declares them.
+        #
+        # The kind scopes the vocabulary: a `target:` in the frontmatter of a
+        # note is the note's target, not a KPI's. Reading it as one would
+        # invent a field the file never claimed, and the model forbids extra
+        # fields — so the file would be refused and the owner's prose would
+        # stop being ingested.
+        fields.update(typed_from_meta(kind, meta))
 
         # The file did not change — but the MAPPING might have. A file whose
         # frontmatter used to be unreadable and is read NOW has another title
@@ -579,7 +622,7 @@ class VaultSync:
                 return UEID(declared)
             except ValueError:
                 pass
-        slug = _slugify(path.stem)
+        slug = slugify(path.stem)
         digest = hashlib.sha256(relative.encode("utf-8")).hexdigest()
         return make_uid(kind, slug, digest[:8], digest[8:24])
 
