@@ -574,6 +574,25 @@ one is the owner's own manual run of 17:52Z the day before (`not:2026-11-10:...`
   hex characters — and the store refused it. The agent then copied the previous note's uid and
   it went in. The skill now states the shape: `not:<day>:<8 hex>:<16 hex>`.
 
+**AND THE PRESCRIPTION WAS THEN CALLED, ON THE DEPLOYED API.** A skill that tells the agent to
+call a shape nobody tried is a skill that fails at 22:00, in a run nobody watches. So the call
+the skill now prescribes was called against the live API — with the MCP handshake, because the
+agent does the handshake too:
+
+| the call | what the API answered |
+|---|---|
+| `{"query": {"kinds": ["tarefa", "fase", "plano"], "quarter": "Q4-2026", "limit": 20}}` | **HTTP 200 · 7 rows** — 5 `fase` and 2 `plano`, the quarter's whole work in one page |
+| `{"query": {"kinds": ["nota"], "quarter": "Q4-2026", "limit": 20}}` | **HTTP 200 · 3 rows** — the three daily notes, in a row |
+| `{"query": {"kinds": {"item": "nota"}, "quarter": "Q4-2026", "limit": "20"}}` — what the run sent | **REFUSED**: `query.kinds — Input should be a valid tuple [type=tuple_type, input_value={'item': 'nota'}, input_type=dict]` |
+| `{"query": {"kinds": ["plano"], "limit": 20}}` — without the quarter | **HTTP 200 · 20 rows**, the limit — it pages |
+
+Two things came out of that table. The refusal names **`kinds` alone**: a number written as
+text is coerced and accepted, so the object was the whole defect — and the skill says so now,
+instead of blaming the quotes. And the prescription is a **drift test**
+(`test_the_daily_note_skill_prescribes_calls_the_CONTRACT_accepts`): the JSON in the skill's
+steps is parsed and validated against `SearchQuery`, the very model the API validates with, so a
+skill that goes back to prescribing an object fails the suite instead of failing at 22:00.
+
 **THE DAY OF THE NOTE, AND WHY IT IS NOT THE OWNER'S.** The note names **2026-11-11** — the
 run's own UTC day — while the owner's report is titled with the local day, **2026-11-10**. The
 two are one day apart BY CONSTRUCTION: the cycle fires at 22:00 in −03:00, which is 01:00Z of
