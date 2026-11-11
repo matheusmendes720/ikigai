@@ -1062,6 +1062,45 @@ class Bot:
             web_app=("📊 Abrir painel", url),
         )
 
+    async def _menu_button(self) -> None:
+        """The chat's Menu button, pointing at the panel.
+
+        The panel has two doors, and this is the one that is always there:
+        the `/painel` command sends a button inside a message, and the Menu
+        button sits under the input box — one tap, no command, and it works
+        from a phone that has never heard of a tailnet (ADR-045, a rota é
+        pública).
+
+        It is set AT STARTUP, from the address the table declares, and not
+        by a hand in the box: a menu button that only exists because
+        somebody ran a script is a menu button nobody reviews, and one that
+        a reset takes away. The bot owns its own UI, the repository owns the
+        address, and the two meet here.
+
+        A deployment with no panel has no address — and then the menu is left
+        exactly as it is. Failing closed here means the chat keeps the
+        buttons it had, not that it loses them.
+        """
+        url = _miniapp_url()
+        if not url:
+            return
+        for chat_id in sorted(self._allowed):
+            payload = {
+                "chat_id": chat_id,
+                "menu_button": {
+                    "type": "web_app",
+                    "text": "Painel",
+                    "web_app": {"url": url},
+                },
+            }
+            try:
+                await self._http.post(
+                    f"{TELEGRAM_API}/bot{self._token}/setChatMenuButton",
+                    json=payload,
+                )
+            except Exception as exc:  # a menu button is not a reason to crash
+                print(f"the menu button was not set: {exc}", file=sys.stderr)
+
     async def _show_draft(self, chat_id: str) -> str:
         draft = await self._read_draft(chat_id)
         if draft is None:
@@ -1520,6 +1559,8 @@ class Bot:
         The cadence is the fourth, and the only one with no input: it sleeps
         until the wall clock says it is time, and the loop dies with the
         process. Nothing is lost that a clock can reconstruct.
+
+        The menu button is the fifth: it runs once, at startup, and returns.
         """
         await asyncio.gather(
             self._poll_loop(),
@@ -1527,6 +1568,7 @@ class Bot:
             self._runtime_loop(),
             self._handshake(),
             self._cadence_loop(),
+            self._menu_button(),
         )
 
     async def _poll_loop(self) -> None:

@@ -347,6 +347,70 @@ def test_the_bot_reads_the_table_before_the_environment(monkeypatch: pytest.Monk
     )
 
 
+class _FakeTelegram:
+    """The Telegram API, as far as the menu button is concerned."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, dict[str, Any]]] = []
+
+    async def post(self, url: str, json: dict[str, Any]) -> Any:
+        self.calls.append((url, json))
+        return None
+
+
+async def _bot_with_a_fake_telegram() -> tuple[Any, _FakeTelegram]:
+    from src.bot.main import Bot
+
+    bot = Bot("token", None, {"42"}, "owner")
+    await bot._http.aclose()
+    fake = _FakeTelegram()
+    bot._http = fake
+    return bot, fake
+
+
+async def test_the_chat_menu_points_at_the_declared_surface(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The Menu button is the surface's door INSIDE the chat.
+
+    It is set by the bot, at startup, with the address the table declares —
+    so the button follows the route instead of carrying a second copy of it.
+    """
+    monkeypatch.setenv("IKIGAI_SURFACES_FILE", str(TABLE))
+    monkeypatch.delenv("IKIGAI_MINIAPP_URL", raising=False)
+
+    bot, fake = await _bot_with_a_fake_telegram()
+    await bot._menu_button()
+
+    assert len(fake.calls) == 1, f"the menu button was not set: {fake.calls}"
+    url, payload = fake.calls[0]
+    assert url.endswith("/setChatMenuButton")
+    button = payload["menu_button"]
+    assert button["type"] == "web_app"
+    assert button["web_app"]["url"] == "https://vps-hetzner.tail78a4a0.ts.net:8443/", (
+        "the menu button points somewhere else than the declared surface"
+    )
+    assert payload["chat_id"] == "42"
+
+
+async def test_without_a_panel_the_menu_is_left_alone(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """A deployment with no panel does not take the chat's Menu button away.
+
+    Failing closed here means the chat keeps the buttons it had — not that
+    it loses them because a table is missing.
+    """
+    monkeypatch.setenv("IKIGAI_SURFACES_FILE", str(tmp_path / "absent.json"))
+    monkeypatch.delenv("IKIGAI_MINIAPP_URL", raising=False)
+
+    bot, fake = await _bot_with_a_fake_telegram()
+    await bot._menu_button()
+
+    assert fake.calls == [], f"the menu button was touched without a panel: {fake.calls}"
+
+
 # ── The deployment ───────────────────────────────────────────────────────────
 def test_the_compose_mounts_the_table_read_only() -> None:
     """The table reaches the container, and it cannot be written from there.

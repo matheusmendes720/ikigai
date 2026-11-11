@@ -357,6 +357,17 @@ O **flip** para `published` é uma palavra na tabela:
 +      "state": "published"
 ```
 
+E o **bot** põe o Menu do chat a abrir o painel, à partida:
+
+```
+src/bot/main.py  →  _menu_button()   →  setChatMenuButton { type: web_app, text: "Painel" }
+```
+
+com o URL que a **tabela** declara. Não é uma chamada avulsa na caixa: um botão
+de menu que só existe porque alguém correu um script é um botão que ninguém
+revê, e que um *reset* leva. O bot é dono do seu UI, o repositório é dono do
+endereço, e os dois encontram-se aí.
+
 E **é o deploy que publica** — não uma mão no `tailscale`:
 
 ```bash
@@ -370,11 +381,33 @@ bash apply-surfaces.sh          #  →  tailscale funnel --bg --https=8443 --set
 
 | Ordem | O quê | Porquê agora |
 |---|---|---|
-| 1 | **o botão do menu do bot** | ADR-044 §5.4: o botão de menu (`setChatMenuButton` com `web_app`) é o que a UIA expõe e o que abre o Mini App. Tê-lo de pé em produção é uma linha — e é o que torna o painel alcançável a partir de um telemóvel, agora que a rota é pública. |
+| 1 | **a prova no telemóvel, sem Tailscale** | tudo o que foi medido foi `curl`. O caminho do dono é abrir o Telegram no telemóvel e tocar no painel — e é a única prova que ninguém fez ainda (ADR-044 §5.1 mediu o caminho **dentro** da tailnet). O botão do Menu (§7) deixa isso a um toque. |
 | 2 | **uma segunda superfície** | a tabela já é uma tabela: acrescentar `athena` ou `hefesto` é uma entrada, com a sua porta de dados e o seu estado. O aplicador e os guards não mudam. |
 | 3 | **a tabela por ambiente** | hoje a tabela é uma coisa do repositório. Quando houver um segundo deployment, o `IKIGAI_SURFACES_FILE` aponta para outro sítio — já é possível sem mudar código. |
 | 4 | **o client's address no `.env`** | hoje o `.env` tem o `IKIGAI_MINIAPP_URL` como fallback. Quando o fallback deixar de ser preciso, sai — para não haver duas verdades a sobreviverem lado a lado. |
-| 5 | **a superfície, sem o dono por perto** | o Funnel é um_proxy público_: qualquer um na internet pode bater à porta. A porta de dados está fechada pela assinatura do Telegram, mas a *página* é pública — e isso é uma decisão de produto que ainda não foi escrita. |
+
+### 8.1 A decisão que a publicação impôs: a página é pública, a sessão é do dono
+
+O Funnel é um **proxy público**: a partir de agora, qualquer pessoa na internet
+pode bater à porta do painel. O que o Funnel publica é a **página** — o HTML, os
+42 002 bytes, e a palavra «não autenticado» para quem não traz a assinatura.
+O que ele **não** publica é a **sessão**: `POST /api/session` sem a assinatura
+do Telegram responde `401`, e o `initData` é o que prova quem pergunta
+(ADR-044 §3).
+
+**Isto é uma decisão de produto, e é do dono** — e ela fica escrita aqui para
+que ninguém a descubra num incidente:
+
+> A página do painel é pública. A sessão do dono é dele.
+
+O que a torna aceitável não é a sorte: é que a **identidade continua a ser do
+Telegram**, e não do Funnel. O Funnel entrega bytes; quem os pode pedir é o
+Telegram. Um proxy que servisse a sessão seria outra coisa — e é por isso que
+a porta de dados está fechada por *design* (ADR-044 §3), e não por acidente.
+
+A consequência prática: a página pode ser vista por toda a gente, e o que
+ela mostra — a rotina em curso, as perguntas à espera, o que o agente fez —
+só a quem o Telegram reconhece.
 
 ---
 
@@ -394,6 +427,8 @@ bash apply-surfaces.sh          #  →  tailscale funnel --bg --https=8443 --set
 | 10 | O dono é quem decide | o gate de efeito só pergunta quando a tabela diz `published` | com `state: pending`, o gate não pergunta — e isso **não** é uma falha |
 | 11 | As outras superfícies ficam intactas | o diff das rotas antes/depois do aplicador é **vazio** (medido: sete linhas antes, as mesmas sete depois) | declarar uma superfície no 443 e ver o diff da rota de outra sessão |
 | 12 | O Funnel fica só onde foi declarado | `AllowFunnel` (um **mapa** `host:port → true`) só tem o 8443 | publicar o 443 e ver o `AllowFunnel` ganhar o 443 |
+| 13 | O Menu do chat aponta para a superfície | o mesmo teste: o bot põe `setChatMenuButton` com o URL **da tabela** | pôr `IKIGAI_MINIAPP_URL` com outro endereço e ver o botão continuar a ir para o da tabela |
+| 14 | Sem painel, o Menu fica como estava | o mesmo teste: sem URL, o bot **não** toca no menu | dar ao bot uma tabela vazia e ver nenhuma chamada ao Telegram |
 
 ---
 
@@ -424,6 +459,8 @@ bash apply-surfaces.sh          #  →  tailscale funnel --bg --https=8443 --set
 | D7 | O que o aplicador pode tocar | só o `host:port` e o path declarados | nada: é o que a medição obriga |
 | D8 | Se o gate pergunta quando o estado é `pending` | não — uma superfície declarada e não publicada é uma decisão em falta, não uma falha | o estado na tabela |
 | D9 | Onde vive o gate do efeito | no `deploy.yml`, depois do deploy, num runner fora da tailnet | nada: é o único sítio sem corrida |
+| D10 | Quem pode ver a página | **toda a gente** — a página é pública; quem vê a *sessão* é quem o Telegram reconhece (§8.1) | o dono, que é quem decide |
+| D11 | Quem põe o Menu do chat | **o bot**, à partida, com o URL da tabela | nada: um botão posto à mão é um botão que ninguém revê |
 
 ---
 
