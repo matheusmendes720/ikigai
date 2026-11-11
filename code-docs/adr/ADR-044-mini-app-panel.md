@@ -155,20 +155,27 @@ Isto é a prova que o produto precisa: **a assinatura do Telegram foi a que
 abriu a porta** — nenhuma credencial nossa — e a sessão do dono aparece no
 painel.
 
-### 5.2 O painel só é alcançável dentro da tailnet
+### 5.2 O painel só era alcançável dentro da tailnet
 
-Medido na caixa:
+Medido na caixa, **antes** da rota pública (ADR-045):
 
 ```
 https://vps-hetzner.tail78a4a0.ts.net:8443 (tailnet only)
 |-- / proxy http://127.0.0.1:8003
 ```
 
-`tailnet only` é literal: o `tailscale serve` não expõe para a internet, e o
-**Funnel não está concedido** neste tailnet
-(`cap/funnel-ports?ports=443,8443,10000` = `null`). Um telemóvel sem
-Tailscale **não abre o painel** — e os pares Android da tailnet estão
-`offline` (o `POCO F8 Pro` foi visto há 1 dia).
+`tailnet only` era literal: o `tailscale serve` não expõe para a internet. Um
+telemóvel sem Tailscale **não abria o painel** — e os pares Android da tailnet
+estavam `offline` (o `POCO F8 Pro` foi visto há 1 dia).
+
+**Isto deixou de ser verdade.** O Funnel está ligado ao 8443 (ADR-045 §5.6), e
+o painel responde `200` num endereço **público**; a porta de dados continua
+fechada (`POST /api/session` → `401` sem a assinatura do Telegram). O que a
+publicação não dá é a sessão do dono a quem não a tem.
+
+Uma correcção a este registo: o `cap/funnel-ports` = `null` que aqui foi lido
+como «o Funnel não está concedido» **não diz isso** — é a ausência de uma
+restrição de portas, não uma negação (ADR-045 §5.4).
 
 ### 5.3 O que o painel mostra hoje, medido
 
@@ -298,7 +305,8 @@ O que **falta**, escrito para não se perder:
 
 ## 10. Fora de escopo
 
-- **Publicar na internet** — decisão do dono, depois da prova (§8.2).
+- **Publicar na internet** — decisão do dono, depois da prova (§8.2). **Feito**:
+  a rota pública vive no repositório e tem gate próprio (ADR-045).
 - **Um terminal para o painel** — outro produto.
 - **Escrever no store pelo painel** — ADR-037 D5/D8; nunca.
 - **Dar o bot token ao agente** — nunca.
