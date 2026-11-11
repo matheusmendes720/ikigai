@@ -7,12 +7,12 @@ the client renders as debris. Both are pure, so both are tested here.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, datetime, time, timedelta, timezone
 from typing import Any
 
 import pytest
 
-from src.bot.cadence import Cadence, cadence_from_env
+from src.bot.cadence import Cadence, cadence_from_env, run_day
 from src.bot.main import Bot
 from src.bot.rich import markdown_table, plain_table, report_markdown, rich_payload
 
@@ -208,12 +208,18 @@ class _Store:
 class _Harness:
     def __init__(self, text: str) -> None:
         self._text = text
-        self.calls: list[tuple[str, str, str, str]] = []
+        self.calls: list[tuple[str, str, str, str, str | None]] = []
 
     async def run_routine(
-        self, routine: str, *, session_id: str, chat_id: str, message: str
+        self,
+        routine: str,
+        *,
+        session_id: str,
+        chat_id: str,
+        message: str,
+        date: str | None = None,
     ) -> dict[str, Any]:
-        self.calls.append((routine, session_id, chat_id, message))
+        self.calls.append((routine, session_id, chat_id, message, date))
         return {"text": self._text, "duration_ms": 2500}
 
 
@@ -268,4 +274,55 @@ async def test_the_cadence_runs_the_routine_and_sends_a_rich_table() -> None:
     assert "O dia de anteontem" not in markdown, "só o que foi escrito hoje entra"
     assert "escrevi a nota do dia" in markdown
     assert fallback.startswith("daily-note"), "o fallback repete o título"
-    assert harness.calls[0] == ("daily-note", "tg:42", "42", "")
+    routine, session_id, chat_id, message, date = harness.calls[0]
+    assert (routine, session_id, chat_id, message) == ("daily-note", "tg:42", "42", "")
+    assert date == run_day(datetime.now(UTC)), (
+        "a cadência não disse ao agente que dia é — a nota levaria o dia que o "
+        "agente adivinhou"
+    )
+
+
+# ─── the day ─────────────────────────────────────────────────────────────────
+
+
+def test_the_run_day_is_the_utc_day_of_the_run() -> None:
+    """01:00Z on the 11th is 22:00 on the 10th, and the note names the 11th.
+
+    Measured on the box, 2026-11-11: the cadence run of 01:00:00Z wrote
+    `not:2026-11-11:74dfed05:d6ad7bd8023c5f59` — the note carries the run's own
+    UTC day.
+    """
+    assert run_day(_utc(2026, 11, 11, 1, 0)) == "2026-11-11"
+
+
+def test_the_run_day_advances_ONE_per_night() -> None:
+    """The uid AND the idempotency key are derived from this day.
+
+    A repeated key is swallowed by the store as `unchanged` BEFORE it looks at
+    the body (`ikig.idempotency_keys`, `on conflict do nothing`), so a day
+    that repeats would make the night's note vanish without a word. The rule
+    that advances once per run is the contract, and this is what holds it.
+    """
+    nights = [
+        run_day(_utc(2026, 11, 11, 1, 0)),
+        run_day(_utc(2026, 11, 12, 1, 0)),
+        run_day(_utc(2026, 11, 13, 1, 0)),
+    ]
+
+    assert nights == ["2026-11-11", "2026-11-12", "2026-11-13"]
+    assert len(set(nights)) == len(nights), "um dia repetido é uma nota que não pode ser escrita"
+
+
+def test_the_owners_day_is_ONE_BEHIND_the_run_day() -> None:
+    """The report is titled with the owner's day; the note names the run's.
+
+    This is the disagreement the owner has to settle (§11 of the tracker): the
+    daily cycle fires at 22:00 in -03:00, which is 01:00Z of the NEXT day, so
+    the two are one day apart BY CONSTRUCTION. The test states it, so that
+    whoever moves one of them has to move this too.
+    """
+    now = _utc(2026, 11, 11, 1, 0)
+    owner = timezone(timedelta(hours=-3))
+
+    assert run_day(now) == "2026-11-11"
+    assert now.astimezone(owner).strftime("%Y-%m-%d") == "2026-11-10"

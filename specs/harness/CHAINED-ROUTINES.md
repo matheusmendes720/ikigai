@@ -395,7 +395,7 @@ is a **projection** (ADR-037 D8), and the DOM does not know it exists.
 |---|---|---|---|
 | G1 | The deploy is green and the stack is current | `docker compose ps` shows six healthy services; `/start` lists store, agent and memory | **PASS** |
 | G2 | One routine end to end | `/daily-note teste` → the agent answers, `/busca teste` finds the artifact, `/memoria` shows the session | **PASS** |
-| G3 | A cadence fires itself | the daily note exists at 22:05 with no human message, and the run is in the harness memory | **RED** |
+| G3 | A cadence fires itself | the daily note exists at 22:05 with no human message, and the run is in the harness memory | **PASS** |
 | G4 | The router routes | "fecha o dia de ontem" runs `daily-note` with `date=yesterday`; "asdkjh" answers with buttons, not a 500 | **PASS (by test)** |
 | G5 | The store repeats itself | the same query, twice, returns the same uid set and the same order | **PASS** |
 | G6 | HITL commits | **Guardar** writes once; the same button twice writes once (idempotency key); a stale revision is a 409 | **PASS** |
@@ -417,7 +417,7 @@ G1–G2 are the deployment; G3–G8 are this spec. Nothing below G2 is testable 
 |---|---|---|
 | **G1** | 2026-11-10, on the box: six `ikigai-*` containers `healthy` on image `sha-11d004bb` (api, bot, db, harness, sync, ws) | the `/start` half — the owner's chat |
 | **G2** | 2026-11-10, all three halves: the routine's note (`Relatório Diário — 2026-11-09`, revision 4) is returned by `search_artifacts`, reads back by uid, and the harness memory holds `routine.started` + `routine.finished` for `tg-box-01` | — |
-| **G3** | 2026-11-10, **failed**: the cadence fires on its own — `routine.started` at **01:00:00Z** (= 22:00 in the configured −03:00), `client=tg:2115322359`, no human message — but the run wrote **two `desc`** (`des:ag3-gateway-merge`, the AG3 decision) and **no daily note**, then answered `routine.failed` at **01:30:00Z**. The only daily note in the store is 2026-11-09's, written by a manual run | the daily note the gate promises. **Two causes, both measured, both now fixed** — see "WHAT THE G3 RUN WAS MEASURED AGAINST" below |
+| **G3** | 2026-11-11, **passed**: the cadence fired on its own — `routine.started` at **01:00:00Z** (= 22:00 in the configured −03:00), `client=tg:2115322359`, `message=""` — and wrote **`not:2026-11-11:74dfed05:d6ad7bd8023c5f59`**, "Relatório Diário — 2026-11-11", `quarter=Q4-2026`, revision 1, `client_id=pi-tg-2115322359`, **9 items classified** (3 done · 0 partly · 5 not started · 1 dropped), each with its evidence, and the `EVIDENCES` edges landed with the note. The run finished in **~82 s** (01:00:00Z → 01:01:22Z) with no human message and no question asked | the store holds three daily notes in a row now (2026-11-09 rev 4, 2026-11-10, 2026-11-11) — the "one note per night" property is **measured for one night only**; the second is tomorrow's run |
 | **G4** | 2026-11-10, **by test only**: 11 cases in `src/ikigai/tests/test_bot_router.py` — a sentence names a routine, the relative day is carried as a slot, accents and case do not change the reading, a sentence that names none is refused, two routines is an abstention, a button token round-trips and a forged one is refused | the live half — the owner typing "asdkjh" and getting buttons, not a 500 |
 | **G5** | 2026-11-10, on the box: the same `search_artifacts` query twice → 10 uids, **the same list in the same order** | — |
 | **G6** | 2026-11-10, on the box: `created` (rev 1) → the same `idempotency_key` again → **`unchanged`**, rev 1; a stale `expected_revision=999` → **`conflict`**, and the artifact kept revision 1 | the button itself, in the owner's chat |
@@ -497,9 +497,9 @@ on two **websocket clients of the store**, which is the part the ws owns. The pa
 second physical device — the same chat writing from two phones — is the owner's half, like the
 Stop button in G7.
 
-**WHAT THE G3 RUN WAS MEASURED AGAINST — TWO CAUSES, NOT ONE.** The cadence run of 2026-11-10
-(01:00:00Z, no human message) failed at 01:30:00Z. Both causes below were measured, and both
-are fixed; the gate stays **RED** until a cadence run lands a `nota`.
+**WHAT THE G3 RUN WAS MEASURED AGAINST — THREE CAUSES, NOT ONE.** The cadence run of 2026-11-10
+(01:00:00Z, no human message) failed at 01:30:00Z. All three causes below were measured, and all
+three are fixed; the gate stays **RED** until a cadence run lands a `nota`.
 
 **Cause 1 — the agent had no store tools at all.** The run's session made **480 tool calls: 438
 `bash`, 32 `read`, 9 `write`, 1 `edit`, and ZERO store tools**. Asked what it had, it answered
@@ -540,6 +540,112 @@ the run until its ceiling).
 **THE PROOF OF G3 IS THE CADENCE, AND IT IS NOT CONTROLLED BY A PROBE.** The 22:00 run is the
 first run with the six tools; a probe cannot stand in for it. The gate closes when the note
 exists at 22:05 with no human message, and the run is in the harness memory.
+
+**WHAT THE CADENCE RUN OF 2026-11-11 WAS MEASURED AGAINST.** It fired on its own, at
+**01:00:00Z** (= 22:00 in −03:00), with `message=""` and no human in the room.
+
+| when | what |
+|---|---|
+| 01:00:00Z | `routine.started`, `daily-note`, `client=tg:2115322359` |
+| 01:00:07Z | the agent's first tool call — and the first three were **refused by the schema** |
+| 01:01:21Z | the write: `not:2026-11-11:74dfed05:d6ad7bd8023c5f59`, revision 1, `created` |
+| 01:01:22Z | `routine.finished`, ~82 s in |
+
+The note is **"Relatório Diário — 2026-11-11"**, `quarter=Q4-2026`, `client_id=pi-tg-2115322359`,
+and it classified **9 items** — 3 done (the AG3 gate decided, the note of 2026-11-10, and the
+note itself), 0 partly done, 5 not started (the merge and the phases B0–B4), 1 dropped (Onda 2's
+deferral) — each with the evidence that proves it, and the `EVIDENCES` edges landed with the
+note. It also names a divergence it found: the KPI of daily reports still reads `actual: 1`
+while three daily notes exist. The store went from **1 974 to 1 976** artefacts, and the second
+one is the owner's own manual run of 17:52Z the day before (`not:2026-11-10:...`).
+
+**THE RUN GOT TWO THINGS WRONG ON THE WAY, AND BOTH ARE NOW IN THE SKILL.**
+
+- **The `kinds` argument was refused by the schema.** The run sent
+  `{"query": {"kinds": {"item": "nota"}, "limit": "20"}}` — an object where a list belongs, and
+  a string where a number belongs — and the schema said no. The agent said so in its own
+  report (*"as chamadas com `kinds` foram rejeitadas pelo schema nesta passagem"*) and fell
+  back to searching by text, which is why the note is good but was not built on the structured
+  search. The manual run of the day before, on another provider, had sent
+  `{"kinds": ["fase"], "quarter": "Q4-2026", "limit": 20}` and it answered. The skill now
+  carries the exact call, and the exact shape: a LIST of kind names and a NUMBER.
+- **The first uid was refused.** The manual run's first write carried
+  `not:2026-11-10:daily:tg2115322359` — `daily` is not hex and `tg2115322359` is not sixteen
+  hex characters — and the store refused it. The agent then copied the previous note's uid and
+  it went in. The skill now states the shape: `not:<day>:<8 hex>:<16 hex>`.
+
+**THE DAY OF THE NOTE, AND WHY IT IS NOT THE OWNER'S.** The note names **2026-11-11** — the
+run's own UTC day — while the owner's report is titled with the local day, **2026-11-10**. The
+two are one day apart BY CONSTRUCTION: the cycle fires at 22:00 in −03:00, which is 01:00Z of
+the next day.
+
+It cannot simply be made "the owner's day". The note's uid AND its idempotency key are both
+derived from the day, and the store swallows a repeated key as `unchanged` **before it even
+looks at the body** (`ikig.idempotency_keys`, `on conflict do nothing`). A rule that named the
+local day would name 2026-11-11 on the night of the 10th — the very day the note of
+2026-11-11 already carries — and that night's write would be a **silent no-op**: the note
+vanishes and nobody says so. (And if the key were different, the create would be refused with
+a 409 — *"the uid is taken"* — or the agent would revise yesterday's note to get around it.)
+
+So the day the run hands the agent is the run's UTC day, which is the day the store already
+carries (2026-11-09, 2026-11-10, 2026-11-11), and the rule lives in one function
+(`run_day`) with a test that says it must advance once per run. **What is left to the owner is
+the report's title**: whether the owner's message should name the run's day (2026-11-11, like
+the note) or the day that just ended (2026-11-10, like the table of "today" it carries).
+
+**WHAT THE CEILING WAS MEASURED AGAINST — THE AGENT DIES, PROCESS BY PROCESS.** The fix for
+cause 2 is measured on the box, 2026-11-10, on the deployed image `sha-46d22cc0`, with a
+`store-read` routine (read-only: it cannot pollute the store) and a ceiling of **25 000 ms**:
+
+| moment | the agent (`pi`) | the agent's MCP child | the session file |
+|---|---|---|---|
+| baseline | 0 | 0 | — |
+| t = 3,1 s | **1** (pid 1189) | 1 (pid 1201) | 32 470 B |
+| t = 6,6 s | 1 | 1 | 36 547 B |
+| t = 10,0 s | 1 | 1 | 58 399 B |
+| t = 13,5 s → 20,3 s | 1 | 1 | 58 399 B (frozen) |
+| **t = 25,3 s → http 502** | **0** | **0** | 58 399 B (frozen) |
+| t = 30,3 s | 0 | 0 | 58 399 B (frozen) |
+
+The answer was `{"ok":false,"error":"the routine failed: the routine exceeded its ceiling of
+25000 ms"}` with **http 502**, the event was **`routine.timed_out`** (`ceiling_ms: 25000`), and the
+pool's `live_sessions` went back to **0** — the entry was FORGOTTEN, so the next routine of that
+chat spawns a fresh `pi`.
+
+The second half of the claim is the session file: it **stopped growing at 58 399 B**, and its last
+write is at 16:42:14Z — **before** the ceiling (16:42:31Z). The old defect answered at the
+ceiling and kept writing for three minutes; here nothing is written after the clock runs out. The
+agent's MCP server (`owner-mcp.mjs`, the `ask` tool) dies with it: no orphan is left holding the
+port.
+
+**HOW THE AGENT WAS COUNTED, AND WHY THE FIRST TWO COUNTS PROVED NOTHING.** The needle was wrong
+twice, and both times the counter read the wrong thing. The first count looked for `--mode rpc`
+in `/proc/<pid>/cmdline` and **counted the probe itself** — the probe's own source carried the
+literal in its argv, so the counter read 1 before, 1 during and 1 after, and proved nothing. The
+second count looked for `pi-coding-agent`, which is **never** in the cmdline: the agent rewrites
+its `process.title`, so `/proc/<pid>/cmdline` reads exactly `pi`. The needle that works is the
+agent's own title, and the probe skips its own pid besides. A counter that counts itself is worse
+than no counter: it looks like a measurement.
+
+**WHAT ELSE THE CADENCE HAD TO GET RIGHT, MEASURED BEFORE THE RUN.** Three things were measured
+on the box on 2026-11-10, before the 22:00 run, because a run nobody watches cannot be corrected
+once it is over:
+
+- **The search the note rests on.** `search_artifacts` with `kinds=(tarefa,)` and the quarter
+  returns **0** rows — the store holds no `tarefa` alive. The quarter's work is in the kinds
+  that carry it: with `kinds=(tarefa, fase, plano)` and `quarter=Q4-2026` the search returns
+  **7 rows** (5 `fase`, 2 `plano`), one page, under the limit of 20. A search WITHOUT the quarter
+  returns every plan in the store (226) and pages. The skill now says so in step 1.
+- **The day the note names.** The cadence runs with `message=""`, so the agent has nothing to
+  name the day from except the clock — and the clock is UTC, which at 22:00 in −03:00 is already
+  the next day. The note in the store (`date: 2026-11-09`, written at 01:31Z = 22:31 local the
+  night before) names the **UTC** day, while the bot titles the owner's report with the **local**
+  day: two artefacts about the same evening, naming two different days. The bot now says the day
+  out loud (`date=run_day(...)`), so the agent does not guess it — and the rule, and why it
+  cannot be the owner's day, are in "THE DAY OF THE NOTE" above.
+- **The quarter's spelling.** `Q4-2026` — quarter-year. Measured on the box: the 5 `fase`, the 2
+  `plano`, the 7 `kpi`, the 5 `okr` and the 1 `revisao` of the period all carry `Q4-2026`, and
+  223 of the 226 `plano` carry **no** quarter at all.
 
 ---
 
