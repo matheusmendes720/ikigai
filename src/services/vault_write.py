@@ -53,7 +53,7 @@ from src.contracts.dom import Artifact, WriteRequest
 from src.contracts.dom_kinds import typed_fields
 from src.data.repository import ArtifactRepository
 from src.services.embeddings import EmbeddingService
-from src.services.sync import slugify
+from src.services.sync import slugify, split_front_matter
 
 __all__ = [
     "CLIENT_ID",
@@ -118,35 +118,20 @@ def default_root() -> Path | None:
     return Path(entries[0])
 
 
-def _has_front_matter(body: str) -> bool:
-    """Whether the text already carries a YAML frontmatter."""
-    return body.startswith("---\n") or body.startswith("---\r\n")
+def _store_fields(artifact: Artifact) -> dict[str, Any]:
+    """What the store states about the artifact, for the frontmatter.
 
+    The `ueid` is the piece that closes the cycle: without it the ingestion
+    derives an identity from the path, and the same prose arrives twice.
 
-def render_artifact(artifact: Artifact) -> str:
-    """The markdown the store becomes.
+    The `title` is there for the same reason — the ingestion derives the
+    title from the file, and a file that states no title is a file whose
+    title is its own filename.
 
-    The frontmatter carries what the ingestion reads back: the `ueid` (which
-    closes the cycle), the title and the status (which the ingestion derives
-    from the file, and which therefore have to be the ones the store holds),
-    the creation date (a fact about the prose, not a reading of the
-    clock), and the typed fields of the kind — a KPI's metric and target, an
-    OKR's objective, a decision's rationale. Without them the file would be
-    a title with no content, and the kind would lose the very numbers that
-    make it what it is.
-
-    NO `updated_at`: the clock would make every run a different file, and a
-    write-back that rewrites the file on every pass is a write-back that
-    fights the owner's edits.
+    The dates are the artifact's own, never the clock: `updated_at` is a
+    fact about the prose (when it last changed), and the store is where
+    that fact lives. A clock here would make every round a different file.
     """
-    body = artifact.body or ""
-    if _has_front_matter(body):
-        # The body IS a file already — the ingestion wrote it back after the
-        # owner edited it. Writing it verbatim is what keeps the frontmatter
-        # from being written twice, and what keeps the file's hash equal to
-        # the store's.
-        return body
-
     fields: dict[str, Any] = {
         "ueid": str(artifact.uid),
         "title": artifact.title,
@@ -155,16 +140,55 @@ def render_artifact(artifact: Artifact) -> str:
         fields["status"] = artifact.status
     if artifact.created_at:
         fields["created_at"] = artifact.created_at.isoformat()
+    if artifact.updated_at:
+        fields["updated_at"] = artifact.updated_at.isoformat()
     fields.update(typed_fields(artifact))
+    return fields
 
+
+def _dump_front_matter(fields: dict[str, Any]) -> str:
+    """The frontmatter block, as YAML."""
     try:
         import yaml
 
-        block = yaml.safe_dump(fields, sort_keys=False, allow_unicode=True).rstrip("\n")
+        return yaml.safe_dump(fields, sort_keys=False, allow_unicode=True).rstrip("\n")
     except ImportError:  # pragma: no cover — PyYAML is a declared dependency
-        block = "\n".join(f"{key}: {value}" for key, value in fields.items())
+        return "\n".join(f"{key}: {value}" for key, value in fields.items())
 
-    return f"---\n{block}\n---\n\n{body.rstrip()}\n"
+
+def render_artifact(artifact: Artifact) -> str:
+    """The markdown the store becomes.
+
+    The frontmatter carries what the ingestion reads back: the `ueid` (which
+    closes the cycle), the title and the status (which the ingestion derives
+    from the file, and which therefore have to be the ones the store holds),
+    the dates (facts about the prose, not a reading of the clock), and the
+    typed fields of the kind — a KPI's metric and target, an OKR's
+    objective, a decision's rationale. Without them the file would be a
+    title with no content, and the kind would lose the very numbers that
+    make it what it is.
+
+    A body that ALREADY carries a frontmatter — the agent's, with its own
+    vocabulary — keeps it: the store's fields are MERGED into it, and the
+    store's win where the two overlap (ADR-037 D4: on a structured field,
+    the store is canonical).
+
+    That merge is not cosmetic. A file written without the `ueid` is a file
+    the ingestion does not recognise: it derives an identity from the path,
+    and the same prose arrives in the store twice. Measured on the box, with
+    the first version of this writer: 18 of 23 files, and 18 duplicate
+    artifacts in the store.
+    """
+    body = artifact.body or ""
+    fields = _store_fields(artifact)
+
+    declared, prose = split_front_matter(body)
+    if declared:
+        merged = {**declared, **fields}
+    else:
+        merged = fields
+
+    return f"---\n{_dump_front_matter(merged)}\n---\n\n{prose.rstrip()}\n"
 
 
 def relative_path_for(artifact: Artifact) -> str:
@@ -270,23 +294,32 @@ class VaultWrite:
         relative = relative_path_for(artifact)
         target = self._root / relative
 
+        should_write = True
         if target.exists():
             existing = _hash(target.read_text(encoding="utf-8"))
-            if existing != digest:
-                # THE CONFLICT. The file on disk is not the file the store
-                # describes: somebody edited it. It is not rewritten — the
-                # prose of a human is not last-write-wins — and the
-                # divergence is recorded.
+            if existing == digest:
+                # The file is already what the store describes. The store
+                # may still not know it exists — that is the case where a
+                # previous round wrote the file and the write to the store
+                # was refused — so the record is still made below.
+                report.unchanged += 1
+                should_write = False
+            elif existing != artifact.body_hash:
+                # THE CONFLICT. The file on disk is neither what the store
+                # describes nor the store's own body: somebody edited it.
+                # It is not rewritten — the prose of a human is not
+                # last-write-wins — and the divergence is recorded.
                 report.conflicts += 1
                 report.skipped.append(f"{relative}: the file on disk differs from the store")
                 return
-            # The file is already what the store describes. The store may
-            # still not know it exists — that is the case where a previous
-            # round wrote the file and the write to the store was refused —
-            # so the record is still made below.
-            report.unchanged += 1
+            # Otherwise the file IS the store's own body: the writer's own
+            # file, written before it carried the identity. It is not the
+            # owner's prose, and the writer completes it — that is the piece
+            # that closes the cycle.
         else:
             target.parent.mkdir(parents=True, exist_ok=True)
+
+        if should_write:
             # LF, always: the file travels to a Windows desktop through the
             # Syncthing, and a file whose bytes depend on the platform that
             # wrote it is a file whose hash is a property of the machine.

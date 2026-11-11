@@ -48,7 +48,15 @@ from src.contracts.dom_kinds import KIND_MODELS, typed_from_meta
 from src.data.repository import ArtifactRepository
 from src.services.embeddings import EmbeddingService
 
-__all__ = ["SyncReport", "VaultSource", "VaultSync", "default_sources", "main", "slugify"]
+__all__ = [
+    "SyncReport",
+    "VaultSource",
+    "VaultSync",
+    "default_sources",
+    "main",
+    "slugify",
+    "split_front_matter",
+]
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 _HEADING_RE = re.compile(r"^#\s+(.+)$", re.MULTILINE)
@@ -210,6 +218,23 @@ def _front_matter(text: str) -> dict[str, Any]:
         # broken one is the only thing lost.
         return _front_matter_lines(match.group(1))
     return loaded if isinstance(loaded, dict) else {}
+
+
+def split_front_matter(text: str) -> tuple[dict[str, Any], str]:
+    """The frontmatter of a text, and the prose that follows it.
+
+    Public because the write-back needs the SAME reading of a frontmatter
+    that the ingestion has — two readers of the same block are two
+    vocabularies, and the second one is the one that loses a field.
+
+    The prose comes back AS IT IS: the bytes, not a re-serialization. A
+    writer that re-dumped it would change the owner's words to change a
+    delimiter.
+    """
+    match = _FRONT_MATTER_RE.match(text)
+    if match is None:
+        return {}, text
+    return _front_matter(text), text[match.end() :]
 
 
 def _front_matter_lines(block: str) -> dict[str, Any]:
