@@ -408,13 +408,13 @@ is a **projection** (ADR-037 D8), and the DOM does not know it exists.
 |---|---|---|---|
 | G1 | The deploy is green and the stack is current | `docker compose ps` shows six healthy services; `/start` lists store, agent and memory | **PASS** |
 | G2 | One routine end to end | `/daily-note teste` → the agent answers, `/busca teste` finds the artifact, `/memoria` shows the session | **PASS** |
-| G3 | A cadence fires itself | the daily note exists at 22:05 with no human message, and the run is in the harness memory | **RED** |
+| G3 | A cadence fires itself | the daily note exists at 22:05 with no human message, and the run is in the harness memory | **PASS** |
 | G4 | The router routes | "fecha o dia de ontem" runs `daily-note` with `date=yesterday`; "asdkjh" answers with buttons, not a 500 | **PASS (by test)** |
 | G5 | The store repeats itself | the same query, twice, returns the same uid set and the same order | **PASS** |
 | G6 | HITL commits | **Guardar** writes once; the same button twice writes once (idempotency key); a stale revision is a 409 | **PASS** |
 | G7 | Stop stops | the Stop button cancels the run within 2 s, and no artifact is written | **PASS** |
 | G8 | Two clients converge | a write from the phone appears on the desktop through the ws, and neither reorders | **PASS** |
-| G9 | The prose reaches the desktop | the note the cadence wrote is a file in the write-back tree, with the same bytes the store holds, and the ingestion that follows writes nothing | **UNKNOWN** — armed for 2026-11-12T01:00Z |
+| G9 | The prose reaches the desktop | the note the cadence wrote is a file in the write-back tree, with the same bytes the store holds, and the ingestion that follows writes nothing | **PASS** |
 
 G1–G2 are the deployment; G3–G8 are this spec. Nothing below G2 is testable while G1 is red.
 
@@ -431,13 +431,13 @@ G1–G2 are the deployment; G3–G8 are this spec. Nothing below G2 is testable 
 |---|---|---|
 | **G1** | 2026-11-11, on the box: six `ikigai-*` containers `healthy` on image `sha-c935e180` (api, bot, db, harness, sync, ws) — the deployed image is the current `main` (PR #74) — and `/v1/health` answers `ok: true` with `live_sessions: 0`, `busy_sessions: 0`, seven routines and no problems | the `/start` half — the owner's chat |
 | **G2** | 2026-11-10, all three halves: the routine's note (`Relatório Diário — 2026-11-09`, revision 4) is returned by `search_artifacts`, reads back by uid, and the harness memory holds `routine.started` + `routine.finished` for `tg-box-01` | — |
-| **G3** | 2026-11-11, **the note landed once — on the build that carries the fixes**: the cadence fired on its own — `routine.started` at **2026-11-11T01:00:00.130Z** (= 22:00 in the configured −03:00), `client=tg:2115322359`, `message=""` — and wrote **`not:2026-11-11:74dfed05:d6ad7bd8023c5f59`**, "Relatório Diário — 2026-11-11", `quarter=Q4-2026`, `client_id=pi-tg-2115322359`, **9 items classified** (3 done · 0 partly · 5 not started · 1 dropped), each with its evidence, and the `EVIDENCES` edges landed with the note. The run finished in **86 s** (`routine.finished` at **2026-11-11T01:01:26.173Z**), with no human message and no question asked. **The night before, the same cadence fired and DIED**: `routine.started` at **2026-11-10T01:00:00.129Z**, `routine.failed` at **2026-11-10T01:30:00.135Z** — exactly **1 800 006 ms** later, "Timeout collecting events" — and it wrote **nothing** (the note for 2026-11-10 in the store was written at **17:52:47Z** by a *manual* run). That night ran on a build that has since been retired: the two fixes it was missing (#61, the store tools, merged **2026-11-10T13:32Z**; #65, the ceiling that kills the agent, merged **16:26Z**) landed **before** the night that passed | the gate is RED, and it is not the retired night. **THE REASON CHANGED ON 2026-11-11:** a night that a busy session refused WAS lost — the cadence runs in the owner's session (`session_id=f"tg:{cadence.chat_id}"` — `src/bot/main.py:1440`), so a night when the owner is in conversation is a night the entry is **refused** (409, `routine.refused`), and `next_run` returned the next occurrence, so **no note was written** (`src/bot/cadence.py:74-86`); the bot told the owner it was refused, and its own comment said *"the night is not lost"*, which was false. **That is fixed**: the night is now retried every 15 minutes (eight attempts, two hours), every attempt writes the note of the **night's** day, and past the ceiling the owner is told the night was lost (`_retry_cadence`, `src/bot/main.py`). **What is left** is the other half: the cadence still runs in the owner's session — whether it should have one of its own is the owner's decision (§12) — and the deployed image (`sha-c935e180`) has **not** run the cadence yet: the next firing is 2026-11-12T01:00Z, and it will be the first to write through the vault-write path |
+| **G3** | 2026-11-12, **the cadence fired itself, nobody watching, and the note landed**: the run is in the harness ledger (`/app/memory/memory.sqlite`, a volume) — `routine.started` at **2026-11-12T01:00:00.134Z** (= 22:00 in −03:00), `daily-note`, `session=tg-2115322359`, `client=tg:2115322359`, `date=2026-11-12`; `routine.finished` at **01:02:25.808Z** — **145,7 s** in — with **no** `routine.failed`/`routine.timed_out` in between and **no fallback** (`fell_back: null`). **There was no human message**: the agent's own session file shows its only user turn of that night was `/skill:daily-note` plus the session context (`date`, `now`) — nothing else. The note it wrote is **`not:2026-11-12:74dfed05:d6ad7bd8023c5f59`**, "Relatório Diário — 2026-11-12", `quarter=Q4-2026`, `iso_week=2026-W46`, `onda=2`, `fase=B3`, `status=closed`, `client_id=pi-tg-2115322359`, **14 197 chars**, and it classified **11 items** (4 done · 0 partly · 6 not started · 1 dropped), completion **4/11**, with **6 `evidences` edges** (the note of 2026-11-11, the weekly review W46, the AG3 decision, `fas:b3`, `fas:b2`, `kpi:relatorios-diarios`). The bot armed the next night itself: `cadence: daily-note in 24.0h (at 2026-11-13T01:00:00+00:00)` | the same measurement repeats every night — `deploy/probes/night-arrow.sh` takes the day and fails when a fact is false |
 | **G4** | 2026-11-10, **by test only**: 11 cases in `src/ikigai/tests/test_bot_router.py` — a sentence names a routine, the relative day is carried as a slot, accents and case do not change the reading, a sentence that names none is refused, two routines is an abstention, a button token round-trips and a forged one is refused | the live half — the owner typing "asdkjh" and getting buttons, not a 500 |
 | **G5** | 2026-11-10, on the box: the same `search_artifacts` query twice → 10 uids, **the same list in the same order** | — |
 | **G6** | 2026-11-10, on the box: `created` (rev 1) → the same `idempotency_key` again → **`unchanged`**, rev 1; a stale `expected_revision=999` → **`conflict`**, and the artifact kept revision 1 | the button itself, in the owner's chat |
 | **G7** | 2026-11-10, on the box: the run settles in **55 ms** (gate: 2 000), the agent of the run is **born** and **gone** 222 ms after `routine.cancelled`, **1 974 artifacts before and after** | the button itself, in the owner's chat |
 | **G8** | 2026-11-10, on the box: `seq` `[10589, 10590, 10591]` on **both** clients, strictly increasing, no duplicates; the gap closes at `[10592, 10593]` after a disconnect; **1 974 before and after** | a second physical device |
-| **G9** | the arrow itself is measured (2026-11-11, ADR-043 §5.1, by `deploy/probes/vault-arrow.sh`): **23** files written, **23/23** with `sha256` == the store's `body_hash` and the store's `ueid` in the frontmatter, **1 976** live artifacts and **all** of them with a `vault_path` (the writer's backlog is zero), and the ingestion saying `created=0 updated=0 unchanged=1976` — **zero** revisions written by `vault-sync` on those lines | **the night**: the note of 2026-11-12T01:00Z has to go through the arrow on the current image — one file, the same bytes, **+1 revision from `vault-write`** and **zero from the ingestion** |
+| **G9** | 2026-11-12, **the note went through the whole arrow on the current image** (`sha-f2fcf4f4`), measured by `deploy/probes/night-arrow.sh` (exit 0): the file **`nota/relat-rio-di-rio-2026-11-12-q4-2026-d6ad7bd8.md`** (14 580 B, mtime 01:02:19.956738Z) has `sha256` = `dfc3954d…` — **equal to the store's `body_hash`** — and carries the `ueid` of its line; the note's revisions are **rev 1 by `pi-tg-2115322359`** (01:02:19.028846Z) and **rev 2 by `vault-write`** (01:02:19.987204Z) — **zero** by `vault-sync`; one idempotency key, `vault-write:not:2026-11-12:…:dfc3954d9a8aa7ab:1`; the ingestion that followed says `scanned=1979 created=0 updated=0 unchanged=1978`; the store holds **1 978 live artifacts and all 1 978 have a `vault_path`**; and the Syncthing folder `notas-escrita` — which watches the writer's tree — is `idle` with `needFiles: 0`, `errors: 0`, `pullErrors: 0`, **25 files on both sides** | the file being seen on the `windows-pc`: the box is in sync, but the screen is the owner's, like the Stop button in G7 and the second device in G8 |
 
 **THE LETTERS ARE NOT UNIQUE IN THIS REPOSITORY.** `specs/production-readiness/ROADMAP.md` has
 its own `G1`–`G5` — the *deployment* gates (store, content, harness, Telegram, delivery) — and
@@ -532,25 +532,62 @@ running stack, not against a fixture.
 | the git clone of the vault is untouched | `git -C /app/vault status --porcelain` → empty |
 | the desktop delivery is wired | Syncthing folder `notas-escrita` (`sendreceive`, watcher on): `needFiles: 0`, `errors: 0` |
 
-**WHAT G9 DOES *NOT* CLAIM.** That the arrow works is already measured (ADR-043 §5.1) — and it was
+**WHAT G9 DOES *NOT* CLAIM.** That the arrow works is measured (ADR-043 §5.1) — and it was
 measured over 23 files written in **two** rounds, the second of them after a write that moved the
-store's `updated_at` without moving the revision, which today's `_update` cannot do. The gate is
+store's `updated_at` without moving the revision, which today's `_update` cannot do. The gate was
 narrower: **a note written by the current image, going through the whole arrow** — one file, the
-same bytes, **+1 revision from `vault-write`** and **zero from the ingestion**. That is the night
-of 2026-11-12T01:00Z. And the file reaching the **desktop** is still the owner's half: the box is
-in sync (`needFiles: 0`), but seeing the file on the `windows-pc` is a physical thing, like the
-Stop button in G7 and the second device in G8.
+same bytes, **+1 revision from `vault-write`** and **zero from the ingestion**. That was the night
+of 2026-11-12T01:00Z, and it **passed** (the block below). What the gate does not claim is the
+**desktop**: the box is in sync (`needFiles: 0`), but seeing the file on the `windows-pc` is a
+physical thing, like the Stop button in G7 and the second device in G8.
 
-**WHAT THE G3 RUN WAS MEASURED AGAINST — THREE CAUSES, NOT ONE.** The cadence run of 2026-11-10
-(01:00:00Z, no human message) failed at 01:30:00Z. All three causes below were measured, and all
-three are fixed; the gate stays **RED** until a cadence run lands a `nota`.
+**THE NIGHT OF 2026-11-12, MEASURED — THE RUN (G3) AND THE ARROW (G9).** The box, image
+`sha-f2fcf4f4`, measured by `deploy/probes/night-arrow.sh` — which **exits non-zero** when a fact
+is false — against the **real** store and the **real** tree of the writer.
+
+| the run | measured |
+|---|---|
+| it fired itself | `routine.started` at **2026-11-12T01:00:00.134Z** (= 22:00 in −03:00), `daily-note`, `session=tg-2115322359`, `client=tg:2115322359`, `date=2026-11-12` |
+| nobody was there | the agent's own session file: its only user turn of that night was `/skill:daily-note` plus the session context (`date`, `now`) — **no human sentence** |
+| it finished | `routine.finished` at **01:02:25.808Z** — **145,7 s** — with **no** `routine.failed`/`routine.timed_out` in between, and **no fallback** (`fell_back: null`) |
+| the note landed | `not:2026-11-12:74dfed05:d6ad7bd8023c5f59`, "Relatório Diário — 2026-11-12", `quarter=Q4-2026`, `iso_week=2026-W46`, `onda=2`, `fase=B3`, `status=closed`, `client_id=pi-tg-2115322359`, **14 197 chars** |
+| it classified | **11 items** (4 done · 0 partly · 6 not started · 1 dropped), completion **4/11** |
+| it left the evidence | **6 `evidences` edges** (the note of 2026-11-11, the weekly review W46, the AG3 decision, `fas:b3`, `fas:b2`, `kpi:relatorios-diarios`) |
+| the bot armed the next night itself | `cadence: daily-note in 24.0h (at 2026-11-13T01:00:00+00:00)` |
+
+| the arrow | measured |
+|---|---|
+| the file is what the store says | `nota/relat-rio-di-rio-2026-11-12-q4-2026-d6ad7bd8.md` (14 580 B, mtime 01:02:19.956738Z): `sha256` = `dfc3954d…` == the store's `body_hash` |
+| the file carries the identity | its frontmatter's `ueid:` is the store's uid |
+| the writer is the only author | rev 1 by `pi-tg-2115322359` (01:02:19.028846Z), rev 2 by `vault-write` (01:02:19.987204Z) — **zero** by `vault-sync`; one idempotency key: `vault-write:not:2026-11-12:…:dfc3954d9a8aa7ab:1` |
+| the cycle closes | the ingestion: `scanned=1979 created=0 updated=0 unchanged=1978 skipped=25`; the writer's round: `scanned=1 written=1 skipped=1` (the skip is the git commit, by design) |
+| the store knows where every file is | **1 978 of 1 978** live artifacts have a `vault_path` |
+| the delivery is wired | Syncthing `notas-escrita` watches the writer's tree (`/mnt/volume-fsn1-1/vault-escrita`): `idle`, `needFiles: 0`, `errors: 0`, `pullErrors: 0`, **25 files on both sides** |
+
+**THE PROBE WAS FALSIFIED BEFORE IT WAS BELIEVED.** `deploy/probes/night-arrow.sh` is a probe and
+not a report, so it was broken on purpose, three ways, and it had to fail every time: a night that
+never happened (`2026-11-08` → **6 failures**, exit 1), a file with **one byte** changed (the
+`sha256` check fails, exit 1), and a **human sentence** injected into that night's turn in the
+agent's session file (the "no human message" check fails, exit 1). The third one found a real bug
+in the probe: `SESSION_DIR` is read by the JS **inside** the container, and `docker exec` does not
+inherit the host's environment — so the probe was reading the real session file while claiming to
+read the fake one. Fixed with `docker exec -e`.
+
+**THE OTHER LINE OF THAT NIGHT WENT THE SAME WAY.** The store grew by **two** artifacts, not one:
+the night's note, and the weekly review `rev:2026-w46:5c1e9a33:cc03eb19e37836a4` (created
+2026-11-11T23:23:30Z, revision 1 by `pi-tg-2115322359` at 23:26:51Z, revision 2 by `vault-write` at
+23:27:18Z, `sha256` = `af16d254…` == the store's `body_hash`). Same arrow, same author, same zero
+from the ingestion — the arrow is not a special case of the nightly note.
 
 **WHAT THE G3 RUN OF 2026-11-10 WAS MEASURED AGAINST — THREE CAUSES, NOT ONE.** The cadence run of
 2026-11-10 (01:00:00Z, no human message) failed at 01:30:00Z. All three causes below were
 measured, and all three are fixed — and the run of 2026-11-11 landed a `nota` **on the build that
-carries the fixes**. The gate is **RED** for a different reason, and the reason is still in the
-code: the cadence shares the owner's session, so a busy session refuses the night, and the night
-is not retried (the row above).
+carries the fixes**. The gate then stayed **RED** for a different reason, and that reason was still
+in the code: the cadence shares the owner's session, so a busy session refuses the night, and the
+night was not retried. **That reason is gone too** — the night is retried every 15 minutes, and
+every attempt writes the note of the **night's** day (the row above) — and the gate is **PASS**:
+the run of 2026-11-12 fired on its own, with no human message, and landed its note (the block
+above).
 
 **Cause 1 — the agent had no store tools at all.** The run's session made **480 tool calls: 438
 `bash`, 32 `read`, 9 `write`, 1 `edit`, and ZERO store tools**. Asked what it had, it answered

@@ -734,10 +734,15 @@ se mexe, os bytes mudam, e o escritor reescreve o ficheiro para volver a bater
 os mesmos bytes.** E o escritor **é** um escritor: a sua escrita é versionada e
 sobe uma revisão (ADR-037 D5).
 
-**O que fica por medir:** a **noite** — uma nota nova, escrita pelo `pi` na
-imagem actual, a percorrer a seta inteira. É o gate armado para
-2026-11-12T01:00Z: a nota nova tem de aparecer como ficheiro, com o `sha256`
-igual ao `body_hash`, **+1 revisão do `vault-write`** e **zero da ingestão**.
+**A noite, medida (2026-11-12).** O gate armado para 2026-11-12T01:00Z
+**passou**: a nota nova (`not:2026-11-12:74dfed05:d6ad7bd8023c5f59`) apareceu
+como ficheiro (`nota/relat-rio-di-rio-2026-11-12-q4-2026-d6ad7bd8.md`), com o
+`sha256` igual ao `body_hash`, **+1 revisão do `vault-write`** e **zero da
+ingestão** — e com a cadência a disparar sozinha, às 01:00:00.134Z, sem
+mensagem humana. Medido pela **sonda versionada**
+`deploy/probes/night-arrow.sh`, que sai com código ≠ 0 quando um facto é falso
+e que foi falsificada de propósito, três vezes, antes de ser acreditada.
+Detalhe na ADR-043 §5.2.
 ### 5.8 A métrica de 14 dias falhava por 78 ms — e a causa era o payload
 
 Medido no box a 2026-11-11 (imagem `sha-8e30bc93`), contra o store de
