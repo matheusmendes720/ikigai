@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-11-10
-**Medido:** 2026-11-11 — a seta foi percorrida ponta a ponta sobre o store real (§5.1, §9.1)
+**Medido:** 2026-11-11 — a seta foi percorrida ponta a ponta sobre o store real (§5.1, §9.1) · 2026-11-12 — a **noite**: uma nota nova do `pi` a percorrer a seta inteira (§5.2, §9.1)
 **Deciders:** human (Matheus) + agent
 **Scope:** quem escreve markdown no vault do VPS, em que árvore, com que regra de conflito e com que commit
 **Anchor:** [ADR-037](./ADR-037-data-layer-canonical-turn.md) D4 · [ADR-039](./ADR-039-websocket-sync-transport.md) · [ADR-040](./ADR-040-client-state-and-drafts.md) §10 · ADR-012 (`vault_write` sole writer — **não publicada**, citada por ADR-037)
@@ -49,8 +49,15 @@ do volume, **23/23** com `sha256(ficheiro) == body_hash(store)`, **23/23** com o
 `ueid` da sua linha no frontmatter, e **1 976 artefactos vivos, todos com
 `vault_path`** — o escritor não tem backlog. A ingestão que segue o write-back
 diz `created=0 updated=0 unchanged=1976`: o ciclo fecha sem duplicar e sem
-reescrever. O que fica por medir é a **noite** — uma nota nova, gerada pelo
-`pi`, a percorrer a seta inteira na imagem actual (§5.1, §9.1).
+reescrever.
+
+**E a noite está medida.** A 2026-11-12, na imagem `sha-f2fcf4f4`, a **noite**
+correu sem ninguém: a cadência disparou às **01:00:00.134Z**, o único turno do
+agente foi `/skill:daily-note` mais o contexto — **sem frase humana** — e a nota
+que ela escreveu, `not:2026-11-12:74dfed05:d6ad7bd8023c5f59`, percorreu a seta
+inteira: ficheiro com os **mesmos bytes** (`sha256` == `body_hash`), **+1 revisão
+do `vault-write`**, **zero da ingestão**, e o Syncthing com `needFiles: 0` (§5.2,
+§9.1).
 
 ---
 
@@ -289,8 +296,48 @@ hoje isso é impossível — `_update` faz sempre `revision=revision+1`
 transitório**, deployments de outra sessão nessa janela, e **não se repete** na
 imagem actual (quatro rondas seguidas com `updated=0`).
 
-**O que não está medido:** a **noite** — uma nota nova, escrita pelo `pi` na
-imagem actual, a percorrer a seta inteira. É o gate armado para 2026-11-12T01:00Z.
+**O que estava por medir:** a **noite** — uma nota nova, escrita pelo `pi` na
+imagem actual, a percorrer a seta inteira. Foi medida a 2026-11-12 (§5.2).
+
+### 5.2 A noite, medida (2026-11-12)
+
+O que faltava à §5.1 era a **noite**: uma nota nova, escrita pelo `pi` na imagem
+actual, a percorrer a seta inteira. Medido no VPS a 2026-11-12 (imagem
+`sha-f2fcf4f4`), pela **sonda versionada** `deploy/probes/night-arrow.sh` — que
+mede os factos abaixo e **sai com código diferente de zero** quando um deles é
+falso — e por SQL directo ao store:
+
+| # | Facto | Como se mediu | Resultado |
+|---|---|---|---|
+| 1 | A cadência disparou sozinha | o ledger do harness: `routine.started` | **2026-11-12T01:00:00.134Z**, `daily-note`, `date=2026-11-12`, sessão `tg-2115322359` |
+| 2 | **Não havia mensagem humana** | o ficheiro de sessão do próprio agente: o único turno de utilizador da noite | `/skill:daily-note` mais o contexto (`date`, `now`) — **nada mais** |
+| 3 | A corrida acabou | `routine.finished` | **01:02:25.808Z** — **145,7 s** — sem `routine.failed` nem `routine.timed_out`, e sem queda para o modelo de reserva (`fell_back: null`) |
+| 4 | A nota aterrou | `select … from ikig.artifacts where kind='nota'` | `not:2026-11-12:74dfed05:d6ad7bd8023c5f59`, "Relatório Diário — 2026-11-12", `Q4-2026`, `2026-W46`, `client_id=pi-tg-2115322359`, **14 197 caracteres** |
+| 5 | A nota classificou o dia | o corpo da nota | **11 itens** (4 feito · 0 parcial · 6 não iniciado · 1 descartado), completion **4/11** |
+| 6 | A nota deixou a evidência | `ikig.artifact_relations` | **6 arestas `evidences`** (a nota de 11-11, a revisão W46, a decisão AG3, `fas:b3`, `fas:b2`, `kpi:relatorios-diarios`) |
+| 7 | O ficheiro **é** o que o store diz | `sha256sum` do ficheiro contra o `body_hash` da linha | `nota/relat-rio-di-rio-2026-11-12-q4-2026-d6ad7bd8.md` (14 580 B): `dfc3954d…` == `body_hash` — **iguais** |
+| 8 | A autoria é do escritor | `ikig.artifact_revisions` da nota | rev 1 por `pi-tg-2115322359` (01:02:19.028846Z), rev 2 por `vault-write` (01:02:19.987204Z), **zero** de `vault-sync` |
+| 9 | O ciclo fecha | a linha da ingestão depois do write-back | `scanned=1979 created=0 updated=0 unchanged=1978 skipped=25`; o escritor: `scanned=1 written=1 skipped=1` (o *skip* é o `commit`, por desenho) |
+| 10 | O store sabe onde está cada ficheiro | `select count(*) … where deleted_at is null and vault_path is not null` | **1 978 de 1 978** |
+| 11 | A entrega ao desktop está montada | Syncthing `notas-escrita`, `rest/db/status` | `idle`, `needFiles: 0`, `errors: 0`, `pullErrors: 0`, **25 ficheiros dos dois lados** |
+
+**A sonda foi falsificada antes de ser acreditada.** Uma sonda que só imprime
+é um relatório. `deploy/probes/night-arrow.sh` foi estragada de propósito, de
+três maneiras, e tinha de falhar todas as três: uma noite que nunca aconteceu
+(`2026-11-08` → **6 falhas**, saída 1), um ficheiro com **um byte** mudado (a
+verificação do `sha256` falha, saída 1), e uma **frase humana** injectada no
+turno da noite, dentro do ficheiro de sessão do agente (a verificação de «sem
+mensagem humana» falha, saída 1). A terceira encontrou um defeito real da
+sonda: o `SESSION_DIR` é lido pelo JS **dentro** do contentor, e o `docker exec`
+não herda o ambiente do host — a sonda lia o ficheiro de sessão verdadeiro
+enquanto dizia ler o falso. Corrigido com `docker exec -e`.
+
+**A outra linha da mesma noite foi pela mesma seta.** O store cresceu **dois**
+artefactos, não um: a nota da noite, e a revisão semanal
+`rev:2026-w46:5c1e9a33:cc03eb19e37836a4` (criada 2026-11-11T23:23:30Z, rev 1
+por `pi-tg-2115322359` às 23:26:51Z, rev 2 por `vault-write` às 23:27:18Z,
+`sha256` = `af16d254…` == `body_hash`). Mesma seta, mesmo autor, zero da
+ingestão — a seta não é um caso especial da nota diária.
 
 ---
 
@@ -374,6 +421,8 @@ não muda em nenhuma delas.
 | 8 · a autoria é visível | o `client_id` das revisões | **provado** — as revisões do escritor são `vault-write`, as da ingestão `vault-sync`: distinguíveis |
 | 9 · **nenhum** `push` | a árvore não é git; o contentor não tem credencial do GitHub | **provado** — o `commit` é *skipped* por desenho (§12) |
 | 10 · o `vault/` do clone git é **descartável** | `git -C /app/vault status --porcelain` | **provado** — vazio: nada foi escrito no clone, e o `reset --hard` continua seguro |
+| 11 · a **noite** percorre a seta inteira | `deploy/probes/night-arrow.sh 2026-11-12` | **provado** — a nota da noite, o ficheiro com os mesmos bytes, **+1 revisão do `vault-write`** e **zero da ingestão** (§5.2) |
+| 12 · a sonda não é um relatório | a mesma sonda, estragada de propósito | **provado** — falhou nas três falsificações, uma delas depois de um defeito real da própria sonda (§5.2) |
 
 ---
 
@@ -439,5 +488,7 @@ perder o ficheiro custa a prosa.
 - `specs/production-readiness/ROADMAP.md` — G2 (a prosa entra) e a track **T5 · `vault_write`** (ADR-012), que esta ADR cumpre
 - `deploy/compose.yml:405` — *"The vault is never written by anything (ADR-012)"* — a frase que deixa de ser verdadeira, e porquê
 - `deploy/probes/vault-arrow.sh` — a sonda versionada da medição de 2026-11-11: mede os factos do §5.1 e sai com código diferente de zero quando um deles é falso
+- `deploy/probes/night-arrow.sh` — a sonda versionada da **noite**: mede os factos do §5.2 — a corrida disparou sozinha, sem mensagem humana, e a nota percorreu a seta inteira — e sai com código diferente de zero quando um deles é falso. Aceita o dia (`bash deploy/probes/night-arrow.sh 2026-11-12`) e, sem argumento, mede a última noite do ledger
+- `specs/harness/CHAINED-ROUTINES.md` §11 — o tracker dos gates, onde o G3 (a cadência dispara-se) e o G9 (a prosa chega ao desktop) estão medidos por esta noite
 - `src/ikigai/tests/store/test_vault_write_cycle.py` — o PASS 6 contra o Postgres real: a ingestão escreve zero e a revisão não sobe
 - `src/ikigai/tests/services/test_vault_write_back.py` — a lógica do escritor com um store falso
