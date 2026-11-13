@@ -743,6 +743,17 @@ mensagem humana. Medido pela **sonda versionada**
 `deploy/probes/night-arrow.sh`, que sai com código ≠ 0 quando um facto é falso
 e que foi falsificada de propósito, três vezes, antes de ser acreditada.
 Detalhe na ADR-043 §5.2.
+
+**E a noite seguinte passou também** (2026-11-13, imagem `sha-276d56aa`): os
+oito factos verdadeiros outra vez, a nota `not:2026-11-13:74dfed05:d6ad7bd8023c5f59`
+com os mesmos bytes no ficheiro, **+1 revisão do `vault-write`** e **zero da
+ingestão**, Syncthing com `needFiles: 0`. **Duas noites seguidas.**
+
+**E a nota encontrou uma lacuna no sistema dela própria:** nomeou o **fecho da
+revisão semanal da W46 como devido e não escrito**. Não é um defeito: `Cadence` é
+**uma rotina, uma vez por dia** (`src/bot/cadence.py:64-86`), e o bot tem uma
+só cadência (`src/bot/main.py:1410`) — **nada no sistema agenda a revisão
+semanal**, e o ledger confirma que ela correu **uma vez**, à mão.
 ### 5.8 A métrica de 14 dias falhava por 78 ms — e a causa era o payload
 
 Medido no box a 2026-11-11 (imagem `sha-8e30bc93`), contra o store de

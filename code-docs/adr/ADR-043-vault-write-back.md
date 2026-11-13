@@ -339,6 +339,31 @@ por `pi-tg-2115322359` às 23:26:51Z, rev 2 por `vault-write` às 23:27:18Z,
 `sha256` = `af16d254…` == `body_hash`). Mesma seta, mesmo autor, zero da
 ingestão — a seta não é um caso especial da nota diária.
 
+**E a noite seguinte passou também.** A 2026-11-13, na imagem `sha-276d56aa` (a
+que o PR #81 deixou na caixa), a mesma sonda mediu os mesmos oito factos e
+todos foram verdadeiros: `routine.started` às **01:00:00.150Z**, o turno do
+agente outra vez só a invocação do skill, `routine.finished` às **01:01:03.387Z**
+(**63,2 s**), a nota `not:2026-11-13:74dfed05:d6ad7bd8023c5f59` (13 856
+caracteres, **12 itens** classificados, completion **4/12 = 0.33**, **6 arestas
+`evidences`**), o ficheiro `nota/relat-rio-di-rio-2026-11-13-q4-2026-d6ad7bd8.md`
+com `sha256` = `41c2854c…` == `body_hash`, revisão 1 do `pi` e revisão 2 do
+`vault-write` com **zero** da ingestão, **1 979 de 1 979** artefactos vivos com
+`vault_path`, e o Syncthing com `needFiles: 0` e **26** ficheiros dos dois lados.
+**Duas noites seguidas, as duas com os oito factos verdadeiros** — e o bot
+re-armou a terceira sozinho (`daily-note in 24.0h`, 2026-11-14T01:00:00Z).
+
+**O que a nota da segunda noite encontrou no sistema dela própria.** A nota de
+2026-11-13 nomeou, entre o que classificou como *não iniciado*, o **fecho da
+revisão semanal da W46 — «que era devido hoje»** — e o store concorda:
+`rev:2026-w46:5c1e9a33` continua na revisão 2, com a leitura intercalar
+(`date_end: 2026-11-11`), e o fecho nunca foi escrito. A causa está no código e
+não é um defeito: `Cadence` é **uma rotina, uma vez por dia, a uma hora de
+relógio** (`src/bot/cadence.py:64-86`), a rotina vem do ambiente
+(`src/bot/cadence.py:170-184`), e o bot tem **uma** cadência
+(`src/bot/main.py:1410`) — logo **nada no sistema agenda a revisão semanal**. O
+ledger confirma: `weekly-review` correu **uma vez**, a **2026-11-11T23:23:30Z**,
+na sessão do dono — uma corrida à mão, a uma hora que nenhum relógio escolheu.
+
 ---
 
 ## 6. Inventário, com a razão de cada peça
