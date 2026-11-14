@@ -352,6 +352,50 @@ com `sha256` = `41c2854c…` == `body_hash`, revisão 1 do `pi` e revisão 2 do
 **Duas noites seguidas, as duas com os oito factos verdadeiros** — e o bot
 re-armou a terceira sozinho (`daily-note in 24.0h`, 2026-11-14T01:00:00Z).
 
+**E a terceira noite passou também — com outro modelo.** A 2026-11-14, na imagem
+`sha-7736ad04`, a corrida disparou às **01:00:00.131Z** e, **19 segundos depois**,
+caiu para o modelo de reserva: o primário (`harness/MiniMax-M2.7`) respondeu
+**429 "Token Plan usage limit reached"** e a corrida continuou em
+`deepseek/deepseek-flash`, acabando às **01:01:16.915Z** (**76,8 s**). A nota
+`not:2026-11-14:74dfed05:d6ad7bd8023c5f59` saiu com **13 407 caracteres**,
+**11 itens** classificados (3 feito · 0 parcial · 7 não iniciado · 1 descartado),
+completion **3/11 = 0.27**, **6 arestas `evidences`** — e o ficheiro
+`nota/relat-rio-di-rio-2026-11-14-q4-2026-d6ad7bd8.md` com `sha256` =
+`91e17397…` == `body_hash`, revisão 1 do `pi` e revisão 2 do `vault-write` com
+**zero** da ingestão, **1 980 de 1 980** artefactos vivos com `vault_path`, e o
+Syncthing com `needFiles: 0` e **27** ficheiros dos dois lados. **Três noites
+seguidas.**
+
+**A nota que o modelo de reserva escreveu é a mesma nota.** A queda não é uma nota
+pior: as seis noites, com as marcas do contrato:
+
+| a noite | arestas de evidência | corpo | quem a escreveu |
+|---|---:|---:|---|
+| 2026-11-09 | 4 | 10 786 chars | uma corrida manual |
+| 2026-11-10 | 4 | 8 745 chars | a **reserva** (caiu) |
+| 2026-11-11 | 4 | 10 060 chars | o primário |
+| 2026-11-12 | 6 | 14 197 chars | o primário |
+| 2026-11-13 | 6 | 13 856 chars | o primário |
+| 2026-11-14 | 6 | 13 407 chars | a **reserva** (caiu) |
+
+**O critério da sonda estava errado, e foi corrigido medido, não em silêncio.** A
+sonda contava *"a corrida não caiu para a reserva"* entre os seus factos. Na noite
+de 2026-11-14 esse check ficou vermelho porque a **quota do dono** acabou — e a
+cadeia estava inteira. Um facto sobre a quota não é um facto sobre a cadeia, por
+isso a queda passou a ser **REPORTADA** (um `AVISO`, com o provider e a razão
+impressos, e a sonda continua a sair com 0) e o facto que decide passou a ser a
+**nota**: tem de trazer as marcas do contrato — as arestas de evidência e um corpo
+que seja uma nota e não um toco. O check novo foi falsificado antes de ser
+acreditado: com a consulta das arestas estragada a sonda fica vermelha (0
+arestas), e com o limiar do corpo estragado também.
+
+**O que a caixa corre, medido.** A caixa corre `HARNESS_MODEL_ID=MiniMax-M2.7`
+como primário, com `HARNESS_FALLBACK_PROVIDER=deepseek` e
+`HARNESS_FALLBACK_MODEL=deepseek-flash` como reserva — os mesmos defaults que o
+`deploy/harness/README.md` documenta. A reserva é alcançada quando o primário
+responde 429: **cinco** vezes em 2026-11-10 e **uma** vez em 2026-11-14, todas com
+o mesmo *Token Plan usage limit reached*.
+
 **O que a nota da segunda noite encontrou no sistema dela própria.** A nota de
 2026-11-13 nomeou, entre o que classificou como *não iniciado*, o **fecho da
 revisão semanal da W46 — «que era devido hoje»** — e o store concorda:

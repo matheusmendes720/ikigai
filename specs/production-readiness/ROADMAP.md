@@ -749,6 +749,13 @@ oito factos verdadeiros outra vez, a nota `not:2026-11-13:74dfed05:d6ad7bd8023c5
 com os mesmos bytes no ficheiro, **+1 revisão do `vault-write`** e **zero da
 ingestão**, Syncthing com `needFiles: 0`. **Duas noites seguidas.**
 
+**E a terceira noite passou também** (2026-11-14, imagem `sha-7736ad04`) — com
+um detalhe que mudou um critério da sonda: a corrida **caiu para o modelo de
+reserva** (o primário, `MiniMax-M2.7`, respondeu **429 "Token Plan usage
+limit reached"**), a cadeia aguentou e a nota saiu com as mesmas marcas do
+contrato (6 arestas, 13 407 chars, 11 itens). A queda passou a ser **reportada**
+(um `AVISO`), e o que decide passou a ser a nota. **Três noites seguidas.**
+
 **E a nota encontrou uma lacuna no sistema dela própria:** nomeou o **fecho da
 revisão semanal da W46 como devido e não escrito**. Não é um defeito: `Cadence` é
 **uma rotina, uma vez por dia** (`src/bot/cadence.py:64-86`), e o bot tem uma
