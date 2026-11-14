@@ -8,7 +8,9 @@
 #   1. the cadence fired ITSELF: a routine.started in the cadence hour whose
 #      agent turn is the skill invocation and NOTHING else (no human sentence)
 #   2. the run FINISHED: a routine.finished after it, and no failure between
-#   3. the note LANDED: a live `nota` artifact, written that day, by the agent
+#   3. the note LANDED: a live `nota` artifact, written that day, by the agent —
+#      and it carries the CONTRACT'S MARKS (its evidence edges, a body that is
+#      a note and not a stub)
 #   4. the arrow: the file's sha256 == the store's body_hash
 #   5. the authorship: +1 revision by `vault-write`, ZERO by `vault-sync`
 #   6. the ingestion wrote NOTHING: created=0 updated=0
@@ -18,6 +20,12 @@
 #
 # It EXITS NON-ZERO when a fact is false. A probe that only prints is a report,
 # and a report does not keep anybody honest.
+#
+# IT ALSO REPORTS, WITHOUT FAILING. A run that fell back to the reserve model
+# (the primary answered 429 — the owner's quota, not a defect) is printed as
+# an AVISO: the chain held, and the owner still gets to see which model wrote
+# his night. Measured 2026-11-14: the fallback's note carried the contract's
+# marks exactly like the primary's.
 #
 # Usage:  bash deploy/probes/night-arrow.sh [YYYY-MM-DD]
 #
@@ -45,10 +53,15 @@ SESSION_DIR="${SESSION_DIR:-}"
 DAY="${1:-}"
 
 failures=0
+warnings=0
 
 say() { printf '%s\n' "$*"; }
 ok() { printf 'OK    %s\n' "$*"; }
 bad() { printf 'FALHA %s\n' "$*"; failures=$((failures + 1)); }
+# A WARNING IS A FACT THAT IS NOT A FAILURE. It is printed as loudly as a
+# failure and it does not stop the probe: what the gate asks is whether the
+# CHAIN held, and a fact about the owner's quota is not the chain.
+warn() { printf 'AVISO %s\n' "$*"; warnings=$((warnings + 1)); }
 
 q() { docker exec "$DB_CONTAINER" psql -U ikigai -d ikigai -t -A -F'|' -c "$1"; }
 
@@ -256,10 +269,20 @@ print("|".join([
   else
     bad "$n_failures falha(s) entre o inicio e o fim"
   fi
+  # A FALLBACK IS NOT A DEFECT — IT IS A REPORT.
+  #
+  # The harness falls back to the reserve model when the primary provider
+  # refuses, and the common refusal is a 429: the owner's quota, not a bug.
+  # Measured on the box (2026-11-14): the primary answered 429 "Token Plan
+  # usage limit reached", the run continued on `deepseek-flash`, and the note
+  # it left carried the contract's marks exactly like the ones the primary
+  # wrote (6 evidence edges, 13 407 chars). So the fact that DECIDES is the
+  # note, not the provider — and the fallback is printed, loudly, so the
+  # owner sees which model wrote his night.
   if [ "$fell_back" = "None" ] || [ "$fell_back" = "null" ] || [ -z "$fell_back" ]; then
-    ok "a corrida nao caiu para o modelo de reserva (fell_back=$fell_back)"
+    ok "a corrida correu no modelo primario (sem queda para a reserva)"
   else
-    bad "a corrida caiu para o modelo de reserva: $fell_back"
+    warn "a corrida CAIU para o modelo de reserva: $fell_back"
   fi
 fi
 
@@ -287,6 +310,19 @@ if [ -n "$DAY_MEASURED" ]; then
       pi-*) ok "a nota foi escrita pelo agente (client_id=$client_id)" ;;
       *) bad "a nota nao foi escrita pelo agente (client_id=$client_id)" ;;
     esac
+
+    # THE CONTRACT'S MARKS. A note that carries them classified the day and
+    # left its evidence; a note without them is a stub, whatever wrote it.
+    # This is what a fallback has to keep: the chain is about the note, not
+    # about the model that wrote it.
+    marks="$(q "select (select count(*) from ikig.artifact_relations where src_uid = '$NOTE_UID'),
+                     (select length(body) from ikig.artifacts where uid = '$NOTE_UID');")"
+    IFS='|' read -r edges body_len <<<"$marks"
+    if [ "${edges:-0}" -ge 1 ] && [ "${body_len:-0}" -ge 1000 ]; then
+      ok "a nota tem a marca do contrato: $edges aresta(s) de evidencia e $body_len caracteres"
+    else
+      bad "a nota nao tem a marca do contrato: ${edges:-0} aresta(s) de evidencia (minimo 1), ${body_len:-0} caracteres (minimo 1000)"
+    fi
   fi
 fi
 
@@ -405,8 +441,12 @@ print("|".join([str(d.get("state")),str(d.get("needFiles")),str(d.get("errors"))
 fi
 
 say ""
-if [ "$failures" -eq 0 ]; then
+if [ "$failures" -eq 0 ] && [ "$warnings" -eq 0 ]; then
   say "=== night-arrow: TUDO PROVADO (noite $DAY_MEASURED) ==="
+  exit 0
+fi
+if [ "$failures" -eq 0 ]; then
+  say "=== night-arrow: TUDO PROVADO, COM $warnings AVISO(S) (noite $DAY_MEASURED) ==="
   exit 0
 fi
 say "=== night-arrow: $failures FALHA(S) (noite $DAY_MEASURED) ==="
