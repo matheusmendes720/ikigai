@@ -1,15 +1,16 @@
 # AGENTS.md — `src/data/`
 
-**Score 4 (3 modules, 100% code, ~640 LOC, 4 public names) — created: distinct domain (the store's only writer).** The Postgres layer: pooled connections, retries, and the artifact repository.
+**Score 11 (4 modules, 100% code, ~1265 LOC) — distinct domain: the store's only writer.** The Postgres layer: pooled connections, retries, and the artifact repository.
 
 ## OVERVIEW
-Two modules and nothing else. `client.py` moves bytes and manages connections; `repository.py` maps the DOM onto SQL. Neither knows what an artifact *means* — that belongs to `src/services/`.
+Three modules and nothing else. `client.py` moves bytes and manages connections; `repository.py` maps the DOM onto SQL; `drafts.py` owns the draft table. None of them knows what an artifact *means* — that belongs to `src/services/`.
 
 ## WHERE TO LOOK
 | Module | Role |
 |---|---|
 | `client.py` | `DataClient` — pool, retry, transaction helper, healthcheck. `StoreNotConfiguredError`, `StoreUnavailableError`. |
-| `repository.py` | `ArtifactRepository` — every read and write the DOM allows against the store. |
+| `repository.py` | `ArtifactRepository` — every read and write the DOM allows against the store (767 lines; the largest file under `src/`). |
+| `drafts.py` | `DraftRepository` — the draft table, the one hard-deleted one. |
 | `__init__.py` | package docstring only; no re-exports. |
 
 ## CONVENTIONS
@@ -22,6 +23,11 @@ Two modules and nothing else. `client.py` moves bytes and manages connections; `
 - **The revision history is append-only.** `_insert_revision` writes a JSONB snapshot of every write into `ikig.artifact_revisions` — never an update, never a delete.
 - **Embeddings are rendered as a pgvector literal.** `_vector_literal()` builds `"[0.1,0.2]"` text and lets the column cast it, which keeps the `pgvector` Python package out of the dependency set; `set_embedding` casts with `%s::vector`.
 - **The `Jsonb` adapter is optional** — `psycopg.types.json.Jsonb` is imported under `try/except ImportError` and falls back to a plain dict.
+- **Search returns summaries, not prose** (ADR-046). `body` is absent from the search SELECT entirely — not selected and blanked — so a result set never carries the vault's markdown.
+- **Full-text search reads the materialized `search_vector` column** (migration `0009`), not a `to_tsvector()` expression: an expression is re-computed per row and the planner cannot estimate it (measured 1500 ms → 6 ms).
+- **Relations travel WITH the artifact, in one transaction.** The graph is written with the node or not at all.
+- **The change log lives here.** `ARTIFACT_EVENTS_CHANNEL = "ikig_artifact_events"` plus `artifact_events` / `events_since` / `event_tip` / `event_floor` / `prune_events`; the channel name is declared on ONE side only — the test compares it with the service's.
+- **Drafts are hard-deleted** (the only table that is); artifacts never are.
 
 ## ANTI-PATTERNS
 - **Never write a query that bypasses the revision guard.** Every update filters on `uid = %s and revision = %s and deleted_at is null`; dropping the `revision` predicate turns optimistic concurrency into a last-write-wins race.
@@ -31,5 +37,6 @@ Two modules and nothing else. `client.py` moves bytes and manages connections; `
 - **Never widen `KIND_TABLES` from this module.** `_write_extension` branches on the *model type*, so a new kind needs a model, a table entry and a migration — three places, not one.
 
 ## NOTES
-- The SQL issued here lives in `src/contracts/migrations/0001_init.sql` … `0003_rls.sql`. The schema is `ikig`; the tables are `ikig.artifacts`, `ikig.artifact_relations`, `ikig.artifact_revisions`, `ikig.idempotency_keys`, plus one extension table per typed kind.
+- The SQL issued here lives in `src/contracts/migrations/0001_init.sql` … `0009_materialized_search_vector.sql`. The schema is `ikig`; the tables are `ikig.artifacts`, `ikig.artifact_relations`, `ikig.artifact_revisions`, `ikig.idempotency_keys`, `ikig.drafts`, plus one extension table per typed kind.
 - Row-level security filters on the `client_id` JWT claim, so another client's rows are invisible rather than an error. `ForbiddenError` means an explicit denial.
+- Windows: psycopg's async driver refuses the ProactorEventLoop — `ensure_compatible_event_loop()` installs a selector policy *before* the loop exists, and `with_connect_timeout()` adds the default 10 s connect timeout.
