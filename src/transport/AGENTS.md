@@ -1,6 +1,6 @@
 # AGENTS.md — `src/transport/`
 
-**Score 7 (3 modules, 100% code, ~560 LOC, 6 tools) — created: distinct domain (the only surface a client speaks).** MCP over the service layer, and the websocket beside it.
+**Score 11 (4 modules, 100% code, ~1100 LOC, 6 tools) — distinct domain: the only surface a client speaks.** MCP over the service layer, and the websocket beside it.
 
 ## OVERVIEW
 Exactly six tools, each expressing one domain intent. A tool that exposed a table would be a database RPC with a nicer name. The transport holds **no persistence logic and no queries of its own** — it turns intent into a service call and turns the service's typed errors back into something the agent can act on. The harness is external (ADR-037 D7): this module is the tool surface, not a framework around an agent.
@@ -17,9 +17,9 @@ changes the store announces. The MCP transport is untouched.
 | Wiring | `Services` dataclass, `build_services()`, `get_services()`, `set_services()` |
 | Transport selection | `resolve_transport()` — reads `IKIGAI_MCP_TRANSPORT` (ADR-011) |
 | Entry point | `main()` → `mcp.run(transport=...)` |
-| The websocket | `ws_server.py` — `Router`, `build_app()`; `WS /sync` and `GET /healthz` |
+| The websocket | `ws_server.py` — `Router`, `build_app()` (676 lines); `WS /sync` and `GET /healthz` |
 | The websocket's tool registry | built FROM the MCP server — `Router.load_tools()` |
-| The healthcheck | `healthcheck.py` — the data plane, for any transport (`--host`/`--port`) |
+| The healthcheck | `healthcheck.py` — the data plane, for any transport (`--host`/`--port`, `--store-only`) |
 
 ## CONVENTIONS
 - **The surface is exactly six tools and it is drift-guarded.** The transport test asserts the set of registered tool names and asserts that every tool carries a description.
@@ -29,6 +29,8 @@ changes the store announces. The MCP transport is untouched.
 - **`get_services()` builds the wiring once per process and caches it; `set_services()` replaces it.** Tests, and any bootstrap that injects a client, use `set_services`.
 - **The transport is selected by env, not by code.** `stdio` (local), `http` → `streamable-http`, `sse`.
 - **The bind address is resolved HERE, not by FastMCP.** FastMCP takes the host as a constructor argument and reads nothing from the environment — `mcp.run()` accepts only the transport, and the default host is the loopback. `transport_host()` and `transport_port()` read `FASTMCP_HOST` / `FASTMCP_PORT` and are handed to the constructor, so the server and the healthcheck cannot drift apart. A container that set the env and trusted the library would get a server no other container can reach.
+- **The healthcheck measures the DATA PLANE (C-2).** It writes a row and rolls it back; `select 1` passes even when RLS hides every row from that client. `--store-only` measures the half a worker with no surface depends on (the store), and the reachability check measures the other half.
+- **The websocket carries four frame kinds** — call, event, draft, resume — and `Router` dispatches them; the frames are a wire contract, so their shape is asserted in `src/ikigai/tests/transport/test_ws_wire.py`.
 
 ## ANTI-PATTERNS
 - **Never add a seventh tool without updating the drift test.** The expected set lives in `src/ikigai/tests/transport/test_mcp_tools.py`; a new tool is a contract change, not a convenience.
@@ -39,6 +41,7 @@ changes the store announces. The MCP transport is untouched.
 - **Never give the websocket its own tool list.** Its registry is built from the MCP server (`Router.load_tools()`), and the test holds the two equal. A second list is a list that drifts.
 - **Never let the websocket write without the token.** `IKIGAI_WS_TOKEN` is required; without it the server refuses to start. A write channel with no secret is a public write channel.
 - **Never put SQL in the websocket.** The store's announcements arrive through `src/services/changes.py`; the transport forwards them.
+- **Never make a draft a tool.** A draft is state, not an intent: the tool surface stays six, and the draft ops live in the websocket frames.
 
 ## COMMANDS
 ```bash

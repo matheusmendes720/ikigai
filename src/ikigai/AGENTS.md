@@ -12,7 +12,9 @@ src/ikigai/
 ├── poetry.lock          # Poetry lockfile (source of truth for this project)
 ├── uv.lock              # ALSO present — see ANTI-PATTERNS
 ├── src/                 # the ONLY installable package left: strategics/
+│                       #   strategics/ — loader + frontmatter shim
 ├── tests/               # the drift net — the canonical test suite
+│                       #   17 top-level guards + transport/ store/ services/ contracts/
 └── README.md
 ```
 
@@ -23,7 +25,8 @@ src/ikigai/
 | Canonical MCP surface (6 tools) | `src/transport/mcp_server.py` (repo root, ADR-011) |
 | Data-layer contracts | `src/contracts/` (repo root — canonical Pydantic v2) |
 | Planner layer (memory, reflection) | the agent is EXTERNAL (ADR-037 D7) — the harness is `pi`, and it is not in this repository |
-| Drift net | `tests/test_canonical_scope.py`, `tests/test_drift_invariants.py`, `tests/test_gitignore_root_scope.py` |
+| Drift net — the guard layer | `tests/test_canonical_scope.py`, `tests/test_drift_invariants.py`, `tests/test_gitignore_root_scope.py` |
+| Drift net — the behaviour layer | `tests/transport/`, `tests/store/`, `tests/services/`, `tests/contracts/` — see `tests/AGENTS.md` |
 | Transport tests | `tests/transport/test_mcp_tools.py` |
 
 ## CONVENTIONS
@@ -31,6 +34,8 @@ src/ikigai/
 - **No console scripts.** `ikigai-maintainer-mcp`, `ikigai-deep-agent`, `paperclip` and `paperclipai-bridge` were removed with the harness — they only started the PC-local server. The cloud harness is specified in `specs/harness/`.
 - **The MCP SDK stays a declared dependency** (`mcp = "^1.1"`) because this package's own suite (`tests/transport/`) exercises the canonical transport from this venv.
 - **Pytest config lives in this project's `pyproject.toml`**: `testpaths = ["tests"]`, `pythonpath = ["src", "../.."]`, `addopts = "-v --tb=short"`. Root `pytest.ini` is a separate, root-only config.
+- **The suite is not published.** `tests/` is not in `packages`; it is the drift net, not a wheel
+  artifact. The venv exists so the suite can run, not so the tests can ship.
 - **`souls/`, `tools/`, `contracts/`, `docs/` and `scripts/` are not published.** They were the personas, the dev CLIs, the meta-planner contracts and the documentation of a runtime that is gone; nothing imported them. A drift test names them.
 
 ## ANTI-PATTERNS
