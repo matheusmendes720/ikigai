@@ -53,9 +53,10 @@ Never hand-build one.
 | 5 | `weekly-review` | The weekly cycle runs, plan vs actual | store, `strategics/` |
 | 6 | `monthly-review` | The monthly cycle runs, objectives vs results | store, `strategics/` |
 | 7 | `quarterly-plan` | The quarterly cycle runs | store, `strategics/` |
-| 8 | `contract-change-drift-test` | A contract or an invariant changed | `src/contracts/`, drift net |
-| 9 | `ci-green-gate` | Before a push or a release | `.github/` |
-| 10 | `release-deploy` | The service is deployed or upgraded | `src/contracts/migrations/` |
+| 8 | `converse` | The owner talks to the agent in prose | `src/transport/` |
+| 9 | `contract-change-drift-test` | A contract or an invariant changed | `src/contracts/`, drift net |
+| 10 | `ci-green-gate` | Before a push or a release | `.github/` |
+| 11 | `release-deploy` | The service is deployed or upgraded | `src/contracts/migrations/` |
 
 ---
 
@@ -154,6 +155,41 @@ Done when:
 - every requested field is reported with its source,
 - or the report states that the uid exists nowhere, with the search that showed
   it.
+```
+
+### converse
+
+```
+Trigger:    The owner talks to the agent in prose — a free sentence in
+            conversation mode (`/conversa`), or `/converse <text>`.
+Inputs:     The owner's sentence, verbatim, and the session's prior turns.
+Outputs:    A prose answer in the owner's language (PT-BR), grounded in the
+            store and the strategic prose. Prose to keep is offered as a DRAFT
+            in the message; the owner saves it through the bot's draft flow.
+Steps:
+1. Read the sentence as a turn in a conversation, not a query to report on.
+   Answer what was asked, in prose, in PT-BR.
+2. Ground every claim about the owner's data: narrow with search_artifacts, read
+   the prose with get_artifact, and name the uid the claim came from. A claim
+   with no source is said to be unsourced.
+3. For strategy questions, ground in the strategic prose the same way — search
+   the strategy kind, read it, cite it. Do not invent a framework.
+4. Keep the thread: the session remembers the prior turns. Refer back to what
+   was already said instead of re-asking.
+5. When the owner asks to write something down, draft the prose in the answer and
+   tell them to save it with /guardar (or open a draft with /rascunho). This
+   skill writes nothing itself.
+Invariants:
+- This skill is read-only. It writes no artifact, no relation and no file.
+  Writing is the owner's decision, through the draft flow or store-write.
+- The search does not carry the body: a claim about what an artifact says reads
+  it with get_artifact first, and names the uid.
+- An answer in prose is still grounded: no invented fact, no reconstructed
+  neighbour. What the store does not hold is said to be missing.
+- The uid format is defined once, in src/contracts/common.py.
+Done when:
+- the owner's turn is answered in prose, grounded where it makes a claim,
+- and any prose to keep is offered as a draft for the owner to save, not written.
 ```
 
 ### vault-sync

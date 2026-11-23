@@ -53,6 +53,7 @@ CADENCES = {
 #: Every skill the projection publishes — the harness's whitelist, and what
 #: the fake server answers when the client asks what the agent can run.
 PUBLISHED = {
+    "converse",
     "daily-note",
     "monthly-review",
     "quarterly-plan",
