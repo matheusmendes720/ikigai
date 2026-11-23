@@ -265,6 +265,21 @@ _COMMANDS: dict[str, tuple[str, str]] = {
     "/okr": ("<objetivo>", "registra o objetivo e o key result — duas linhas"),
 }
 
+#: The read and session commands, one source for `/help` and the palette.
+#: `/help` is last: the palette lists it, the catalogue does not list itself.
+_UTILITY_COMMANDS: dict[str, tuple[str, str]] = {
+    "/busca": ("<texto>", "procura no store"),
+    "/uid": ("<uid>", "lê um artefato e suas arestas"),
+    "/rascunho": ("<tipo>", "abre um rascunho; sem argumento, mostra o que está lá"),
+    "/guardar": ("", "fecha o rascunho como artefato"),
+    "/descartar": ("", "deita fora o rascunho"),
+    "/rascunhos": ("", "o que ficou a meio, lido do store"),
+    "/memoria": ("", "o que o agente lembra desta conversa"),
+    "/painel": ("", "o painel da sessão, dentro do chat"),
+    "/start": ("", "o handshake: o que está ligado"),
+    "/help": ("", "esta lista de comandos"),
+}
+
 _SLUG_STRIP = re.compile(r"[^a-z0-9]+")
 
 
@@ -637,7 +652,7 @@ class Bot:
             # it comes up — what is connected, and what is not.
             return await self._handshake_text(chat_id)
 
-        routine = command[1:] if command.startswith("/") else ""
+        routine = command[1:].replace("_", "-") if command.startswith("/") else ""
         if routine in ROUTINES or routine in AGENT_ROLES:
             return await self._start_routine(chat_id, routine, argument)
 
@@ -1172,6 +1187,37 @@ class Bot:
             except Exception as exc:  # a menu button is not a reason to crash
                 print(f"the menu button was not set: {exc}", file=sys.stderr)
 
+    async def _command_palette(self) -> None:
+        """The "/" autocomplete: every command the bot answers, set at startup.
+
+        Telegram only autocompletes what `setMyCommands` published, so a command
+        that is not registered is invisible: the owner who types "/" sees nothing
+        and concludes the bot has no commands. The palette is the same surface
+        `/help` lists — the writable kinds, the four cadences, the three roles —
+        registered once beside the menu button, not per chat. Telegram refuses a
+        hyphen in a command name, so the cadences and roles are published with
+        underscores — and the dispatcher reads them back as the canonical ids.
+        """
+        commands = [
+            {"command": name.lstrip("/").replace("-", "_"), "description": desc}
+            for name, (_, desc) in sorted(_COMMANDS.items())
+        ]
+        commands += [
+            {"command": name.lstrip("/"), "description": desc}
+            for name, (_, desc) in _UTILITY_COMMANDS.items()
+        ]
+        commands += [
+            {"command": name.replace("-", "_"), "description": desc}
+            for name, desc in sorted({**ROUTINES, **AGENT_ROLES}.items())
+        ]
+        try:
+            await self._http.post(
+                f"{TELEGRAM_API}/bot{self._token}/setMyCommands",
+                json={"commands": commands},
+            )
+        except Exception as exc:  # the palette is not a reason to crash
+            print(f"the command palette was not set: {exc}", file=sys.stderr)
+
     async def _show_draft(self, chat_id: str) -> str:
         draft = await self._read_draft(chat_id)
         if draft is None:
@@ -1704,6 +1750,7 @@ class Bot:
         process. Nothing is lost that a clock can reconstruct.
 
         The menu button is the fifth: it runs once, at startup, and returns.
+        The command palette is the sixth: the same once, for the "/" autocomplete.
         """
         await asyncio.gather(
             self._poll_loop(),
@@ -1712,6 +1759,7 @@ class Bot:
             self._handshake(),
             self._cadence_loop(),
             self._menu_button(),
+            self._command_palette(),
         )
 
     async def _poll_loop(self) -> None:
@@ -1793,15 +1841,12 @@ def _catalogue() -> str:
     for command in WRITABLE:
         usage, description = _COMMANDS[command]
         lines.append(f"{command} {usage} — {description}")
-    lines.append("/busca <texto> — procura no store")
-    lines.append("/uid <uid> — lê um artefato e suas arestas")
-    lines.append("/rascunho <tipo> — abre um rascunho; sem argumento, mostra o que está lá")
-    lines.append("/guardar — fecha o rascunho como artefato")
-    lines.append("/descartar — deita fora o rascunho")
-    lines.append("/rascunhos — o que ficou a meio, lido do store")
-    lines.append("/memoria — o que o agente lembra desta conversa")
-    lines.append("/painel — o painel da sessão, dentro do chat")
-    lines.append("/start — o handshake: o que está ligado")
+    for command, (usage, description) in _UTILITY_COMMANDS.items():
+        if command == "/help":
+            continue
+        lines.append(
+            f"{command} {usage} — {description}" if usage else f"{command} — {description}"
+        )
     lines.append("")
     lines.append("Rotinas (o agente corre o ciclo e responde quando acabar):")
     for routine, description in ROUTINES.items():
