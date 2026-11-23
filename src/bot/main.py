@@ -144,6 +144,22 @@ ROUTINES: dict[str, str] = {
     "quarterly-plan": "planeja o trimestre — fases, OKRs e ondas",
 }
 
+#: The routable ROLES — what the agent does when it is ASKED, as distinct from
+#: what it does on a clock. The harness publishes every skill in the projection
+#: (`loadRoutines` reads `specs/harness/skills/`), and three of them are not
+#: cadences. `CHAINED-ROUTINES.md` §2.2 names this gap and closes it: "the bot's
+#: command surface grows from four routines to seven".
+#:
+#: Kept apart from ``ROUTINES`` on purpose. That table is the deterministic
+#: intent table — the phrases a sentence can match without a model — and a
+#: guard pins it to the four cadences. A role is not a phrase: it is reached by
+#: a command, or by a sentence the table does not recognise.
+AGENT_ROLES: dict[str, str] = {
+    "store-read": "responde com o que o store guarda — não escreve nada",
+    "store-write": "escreve prosa no store, com pré-visualização e Stop",
+    "vault-sync": "sincroniza a prosa do vault para o store",
+}
+
 #: The door to the agent, and the ceiling of a routine.
 HARNESS_URL_ENV = "IKIGAI_HARNESS_URL"
 HARNESS_TIMEOUT_ENV = "IKIGAI_HARNESS_TIMEOUT_S"
@@ -247,6 +263,21 @@ _COMMANDS: dict[str, tuple[str, str]] = {
     "/fase": ("<texto>", "registra a fase do plano"),
     "/desc": ("<decisão>", "registra a decisão e o porquê — duas linhas"),
     "/okr": ("<objetivo>", "registra o objetivo e o key result — duas linhas"),
+}
+
+#: The read and session commands, one source for `/help` and the palette.
+#: `/help` is last: the palette lists it, the catalogue does not list itself.
+_UTILITY_COMMANDS: dict[str, tuple[str, str]] = {
+    "/busca": ("<texto>", "procura no store"),
+    "/uid": ("<uid>", "lê um artefato e suas arestas"),
+    "/rascunho": ("<tipo>", "abre um rascunho; sem argumento, mostra o que está lá"),
+    "/guardar": ("", "fecha o rascunho como artefato"),
+    "/descartar": ("", "deita fora o rascunho"),
+    "/rascunhos": ("", "o que ficou a meio, lido do store"),
+    "/memoria": ("", "o que o agente lembra desta conversa"),
+    "/painel": ("", "o painel da sessão, dentro do chat"),
+    "/start": ("", "o handshake: o que está ligado"),
+    "/help": ("", "esta lista de comandos"),
 }
 
 _SLUG_STRIP = re.compile(r"[^a-z0-9]+")
@@ -439,6 +470,11 @@ class Bot:
         # The agent's door. Without it the bot still writes, searches and
         # reads — it just cannot run a routine, and it says so.
         self._harness = harness
+        # What the harness actually publishes, asked once. The projection is
+        # the source; these tables are a projection of it. `None` means "not
+        # asked yet", and an unreachable harness is not cached — the next
+        # sentence asks again.
+        self._published: list[str] | None = None
         # The routines in flight. The task is HELD on purpose: a task nobody
         # references may be collected mid-run, and the owner's answer would
         # never arrive.
@@ -616,8 +652,8 @@ class Bot:
             # it comes up — what is connected, and what is not.
             return await self._handshake_text(chat_id)
 
-        routine = command[1:] if command.startswith("/") else ""
-        if routine in ROUTINES:
+        routine = command[1:].replace("_", "-") if command.startswith("/") else ""
+        if routine in ROUTINES or routine in AGENT_ROLES:
             return await self._start_routine(chat_id, routine, argument)
 
         if command == "/memoria":
@@ -803,23 +839,59 @@ class Bot:
         lines = len(grown.splitlines())
         return f"Anotado. {lines} linha(s) no rascunho. /guardar quando estiver."
 
+    async def _published_routines(self) -> list[str]:
+        """What the harness publishes, asked once and cached.
+
+        The projection is the source (`specs/harness/skills/`); the bot's
+        tables are a projection of it. A routine the harness does not publish
+        is refused with a 403, so a button for it is a button that cannot
+        work: the palette is built from the answer, not from this file.
+
+        A harness that does not answer is not a reason to show nothing. The
+        local union is the fallback and nothing is cached, so the next
+        sentence asks again — the handshake already says the agent is down.
+        """
+        if self._published is not None:
+            return self._published
+        local = [*ROUTINES, *AGENT_ROLES]
+        harness = self._harness
+        if harness is None:
+            return local
+        try:
+            published = await harness.routines(timeout_s=HANDSHAKE_TIMEOUT_S)
+        except (HarnessError, httpx.HTTPError, ValueError):
+            return local
+        self._published = published or local
+        return self._published
+
     async def _route_or_ask(self, chat_id: str, text: str) -> Answer:
-        """A sentence with no draft open: a routine, or a question back.
+        """A sentence with no draft open: a routine, the agent, or a question.
 
         The deterministic table answers first, because it is the half that
         cannot invent a routine id — and the harness refuses an id it does not
         know, so a confident guess is a 400 in the owner's face.
 
-        When the table abstains, the answer is a question with the four
-        routines as buttons. That is strictly better than the old answer
-        ("there is no open draft"), which was true and described a feature the
-        owner was not using.
+        When the table abstains and the agent is configured, the sentence is a
+        QUESTION and the agent answers it: `store-read` is the published skill
+        whose trigger is "a text", and it writes nothing — no artifact, no
+        relation, no file. That is the conversation the owner asked for, and
+        it is read-only, so a sentence this bot misreads costs a read.
+
+        Without the agent the honest answer is still the question with the
+        buttons: a sentence this bot cannot act on is not a draft.
         """
         routed = route(text, ROUTINES)
         if routed is not None:
             return await self._start_routine(chat_id, routed.routine, routed.slots.get("when", ""))
 
-        rows: Keyboard = [[(f"/{routine}", "run", routine)] for routine in ROUTINES]
+        published = await self._published_routines()
+        # The door opens only on a CONFIRMED publication. A harness that did
+        # not answer is not a licence to send it a routine it may refuse: the
+        # fallback union is for the buttons, not for the dispatch.
+        if self._published is not None and "store-read" in self._published:
+            return await self._start_routine(chat_id, "store-read", text)
+
+        rows: Keyboard = [[(f"/{routine}", "run", routine)] for routine in published]
         return (
             "Não há rascunho aberto, e não percebi se é uma rotina.\n"
             "Escolhe uma, ou começa um rascunho com /rascunho <tipo>.",
@@ -1115,6 +1187,37 @@ class Bot:
             except Exception as exc:  # a menu button is not a reason to crash
                 print(f"the menu button was not set: {exc}", file=sys.stderr)
 
+    async def _command_palette(self) -> None:
+        """The "/" autocomplete: every command the bot answers, set at startup.
+
+        Telegram only autocompletes what `setMyCommands` published, so a command
+        that is not registered is invisible: the owner who types "/" sees nothing
+        and concludes the bot has no commands. The palette is the same surface
+        `/help` lists — the writable kinds, the four cadences, the three roles —
+        registered once beside the menu button, not per chat. Telegram refuses a
+        hyphen in a command name, so the cadences and roles are published with
+        underscores — and the dispatcher reads them back as the canonical ids.
+        """
+        commands = [
+            {"command": name.lstrip("/").replace("-", "_"), "description": desc}
+            for name, (_, desc) in sorted(_COMMANDS.items())
+        ]
+        commands += [
+            {"command": name.lstrip("/"), "description": desc}
+            for name, (_, desc) in _UTILITY_COMMANDS.items()
+        ]
+        commands += [
+            {"command": name.replace("-", "_"), "description": desc}
+            for name, desc in sorted({**ROUTINES, **AGENT_ROLES}.items())
+        ]
+        try:
+            await self._http.post(
+                f"{TELEGRAM_API}/bot{self._token}/setMyCommands",
+                json={"commands": commands},
+            )
+        except Exception as exc:  # the palette is not a reason to crash
+            print(f"the command palette was not set: {exc}", file=sys.stderr)
+
     async def _show_draft(self, chat_id: str) -> str:
         draft = await self._read_draft(chat_id)
         if draft is None:
@@ -1260,6 +1363,9 @@ class Bot:
         else:
             try:
                 routines = await harness.routines(timeout_s=HANDSHAKE_TIMEOUT_S)
+                # The palette is built from this answer, so it is cached here:
+                # the handshake already paid for the question.
+                self._published = routines
                 lines.append(f"• agente: ok — {len(routines)} rotinas")
             except Exception as exc:
                 lines.append(f"• agente: falhou — {exc}")
@@ -1644,6 +1750,7 @@ class Bot:
         process. Nothing is lost that a clock can reconstruct.
 
         The menu button is the fifth: it runs once, at startup, and returns.
+        The command palette is the sixth: the same once, for the "/" autocomplete.
         """
         await asyncio.gather(
             self._poll_loop(),
@@ -1652,6 +1759,7 @@ class Bot:
             self._handshake(),
             self._cadence_loop(),
             self._menu_button(),
+            self._command_palette(),
         )
 
     async def _poll_loop(self) -> None:
@@ -1733,19 +1841,22 @@ def _catalogue() -> str:
     for command in WRITABLE:
         usage, description = _COMMANDS[command]
         lines.append(f"{command} {usage} — {description}")
-    lines.append("/busca <texto> — procura no store")
-    lines.append("/uid <uid> — lê um artefato e suas arestas")
-    lines.append("/rascunho <tipo> — abre um rascunho; sem argumento, mostra o que está lá")
-    lines.append("/guardar — fecha o rascunho como artefato")
-    lines.append("/descartar — deita fora o rascunho")
-    lines.append("/rascunhos — o que ficou a meio, lido do store")
-    lines.append("/memoria — o que o agente lembra desta conversa")
-    lines.append("/painel — o painel da sessão, dentro do chat")
-    lines.append("/start — o handshake: o que está ligado")
+    for command, (usage, description) in _UTILITY_COMMANDS.items():
+        if command == "/help":
+            continue
+        lines.append(
+            f"{command} {usage} — {description}" if usage else f"{command} — {description}"
+        )
     lines.append("")
     lines.append("Rotinas (o agente corre o ciclo e responde quando acabar):")
     for routine, description in ROUTINES.items():
         lines.append(f"/{routine} [texto] — {description}")
+    lines.append("")
+    lines.append("Papéis (o agente responde ao que lhe perguntas):")
+    for role, description in AGENT_ROLES.items():
+        lines.append(f"/{role} [texto] — {description}")
+    lines.append("")
+    lines.append("Ou escreve uma frase: sem rascunho aberto, ela vai ao agente como pergunta.")
     return "\n".join(lines)
 
 
