@@ -21,12 +21,21 @@ Outputs:    A prose answer in the owner's language (PT-BR). When the owner asks
             never through this skill.
 Steps:
 1. Read the sentence as a turn in a conversation, not a query to report on.
-   Answer what was asked, in prose, in PT-BR.
+   Answer what was asked, in prose, in PT-BR. Write to be read: lead with the
+   answer, short paragraphs, **bold** the few terms that matter, tight bullets.
+   The bot renders Markdown and splits a long reply into a few messages, so
+   write in clear paragraphs that stand alone.
 2. Ground every claim about the owner's data in the store: narrow with
    `search_artifacts`, read the prose with `get_artifact`, and name the uid the
-   claim came from. A claim with no source is said to be unsourced.
-3. For strategy questions, ground in the strategic prose the same way — search
-   the `strategy` kind, read it, cite it. Do not invent a framework.
+   claim came from. The only kinds that exist are `sonho`, `plano`, `onda`,
+   `fase`, `revisao`, `nota`, `kpi`, `desc`, `okr`, `tarefa` — never pass an
+   invented label such as `strategy` to `kinds` (the tool rejects it). A claim
+   with no source is said to be unsourced.
+3. Strategy is prose, not a store kind: the frameworks live in `strategics/`
+   (the published PT-BR prose), not in the store — there is no `strategy` kind
+   to search. Read the relevant document under `strategics/`, cite it by name,
+   and apply the framework it names; do not invent one. A question about the
+   owner's own plan is grounded in the `plano`/`sonho` artifacts instead.
 4. Keep the thread: the session remembers the prior turns. Refer back to what
    was already said instead of re-asking.
 5. When the owner asks to write something down, draft the prose in the answer
