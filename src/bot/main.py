@@ -158,6 +158,7 @@ AGENT_ROLES: dict[str, str] = {
     "store-read": "responde com o que o store guarda — não escreve nada",
     "store-write": "escreve prosa no store, com pré-visualização e Stop",
     "vault-sync": "sincroniza a prosa do vault para o store",
+    "converse": "conversa em prosa, fundamentada no store — não escreve nada",
 }
 
 #: The door to the agent, and the ceiling of a routine.
@@ -276,6 +277,7 @@ _UTILITY_COMMANDS: dict[str, tuple[str, str]] = {
     "/rascunhos": ("", "o que ficou a meio, lido do store"),
     "/memoria": ("", "o que o agente lembra desta conversa"),
     "/painel": ("", "o painel da sessão, dentro do chat"),
+    "/conversa": ("", "liga/desliga o modo conversa com o agente"),
     "/start": ("", "o handshake: o que está ligado"),
     "/help": ("", "esta lista de comandos"),
 }
@@ -489,6 +491,12 @@ class Bot:
         # question that is not open, so a stale entry here costs one
         # complaint, not a wrong answer.
         self._awaiting: dict[str, str] = {}
+        # The chats in CONVERSATION mode: a free sentence goes to `converse`
+        # (prose, grounded, threaded) instead of the `store-read` report. It is
+        # a routing PREFERENCE, not session state — the conversation lives in
+        # the harness (one session per chat), so a restart loses the mode but
+        # not the memory. `/conversa` toggles it; the default is off.
+        self._converse: set[str] = set()
         # The event cursor of each chat's session: what the bot has already
         # seen of the agent's log. The same shape as the store's change feed
         # (ADR-039) — the client says what it has and gets what it does not.
@@ -655,6 +663,9 @@ class Bot:
         routine = command[1:].replace("_", "-") if command.startswith("/") else ""
         if routine in ROUTINES or routine in AGENT_ROLES:
             return await self._start_routine(chat_id, routine, argument)
+
+        if command == "/conversa":
+            return await self._toggle_converse(chat_id)
 
         if command == "/memoria":
             return await self._memory(chat_id)
@@ -872,10 +883,11 @@ class Bot:
         know, so a confident guess is a 400 in the owner's face.
 
         When the table abstains and the agent is configured, the sentence is a
-        QUESTION and the agent answers it: `store-read` is the published skill
-        whose trigger is "a text", and it writes nothing — no artifact, no
-        relation, no file. That is the conversation the owner asked for, and
-        it is read-only, so a sentence this bot misreads costs a read.
+        QUESTION and the agent answers it. The default door is `store-read`: it
+        reads the store and answers, writes nothing — no artifact, no relation,
+        no file — so a sentence this bot misreads costs a read. With conversation
+        mode on (`/conversa`), the sentence goes to `converse` instead: prose the
+        owner can talk back to, threaded by the harness session, still read-only.
 
         Without the agent the honest answer is still the question with the
         buttons: a sentence this bot cannot act on is not a draft.
@@ -885,6 +897,16 @@ class Bot:
             return await self._start_routine(chat_id, routed.routine, routed.slots.get("when", ""))
 
         published = await self._published_routines()
+        # Conversation mode: the owner asked to TALK, not to be reported at.
+        # The `converse` role answers in prose and the harness session carries
+        # the thread. The deterministic table still won above — a cadence
+        # phrase is a cadence, even mid-conversation.
+        if (
+            chat_id in self._converse
+            and self._published is not None
+            and "converse" in self._published
+        ):
+            return await self._start_routine(chat_id, "converse", text)
         # The door opens only on a CONFIRMED publication. A harness that did
         # not answer is not a licence to send it a routine it may refuse: the
         # fallback union is for the buttons, not for the dispatch.
@@ -896,6 +918,30 @@ class Bot:
             "Não há rascunho aberto, e não percebi se é uma rotina.\n"
             "Escolhe uma, ou começa um rascunho com /rascunho <tipo>.",
             rows,
+        )
+
+    async def _toggle_converse(self, chat_id: str) -> str:
+        """Turn conversation mode on or off for this chat.
+
+        On: a free sentence goes to the `converse` role — the agent answers in
+        prose, grounds itself in the store, and the harness session carries the
+        thread. Off: the default door (`store-read`) answers a free sentence as
+        a read-only report. The mode is a preference; the conversation itself
+        lives in the harness either way, so toggling does not lose the thread.
+        """
+        if not chat_id:
+            return "Não sei a quem devolver a conversa."
+        if chat_id in self._converse:
+            self._converse.discard(chat_id)
+            return "Modo conversa desligado. A frase livre volta ao store-read."
+        await self._published_routines()
+        if self._published is None or "converse" not in self._published:
+            return "O agente não publica a conversa (converse). Não posso ligar o modo."
+        self._converse.add(chat_id)
+        return (
+            "Modo conversa ligado. Escreve à vontade — o agente responde em prosa, "
+            "fundamenta-se no store e lembra o fio da conversa. "
+            "/conversa outra vez para desligar."
         )
 
     async def _on_callback(self, callback: dict[str, Any]) -> None:

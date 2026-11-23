@@ -1,7 +1,7 @@
 """The command palette: the "/" autocomplete the owner actually sees.
 
 Telegram only autocompletes what `setMyCommands` published, and it refuses a
-hyphen in a command name. The bot answered twenty-five commands and registered
+hyphen in a command name. The bot answered twenty-seven commands and registered
 none, so typing "/" showed an empty list. These guards pin the registration,
 not the prose: the palette carries exactly the commands the bot answers, the
 underscore aliases dispatch to the canonical cadence and role ids, startup

@@ -1,7 +1,7 @@
 """The conversation door: a sentence the intent table does not know.
 
 The owner asked to talk to an agent, not to be handed four buttons. The
-harness publishes seven skills; three are roles, not cadences. `store-read`
+harness publishes eight skills; four are roles, not cadences. `store-read`
 is the one whose trigger is "a text" and which writes nothing — so a sentence
 the deterministic table abstains on becomes a question to it, and the answer
 comes back through the same preview + Stop guard a cadence uses.
