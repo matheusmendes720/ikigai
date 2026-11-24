@@ -491,6 +491,10 @@ vault/.db
 # The clock and the table: a next-run that is off by an hour, and a Markdown
 # table the client renders as debris. Both are wrong without a socket too.
 !/src/ikigai/tests/test_bot_cadence.py
+# The second clock, and the first one that must not have moved: a review that
+# has to land on Sunday on the owner's clock, beside a nightly note that still
+# lands every night. Wrong without a socket too.
+!/src/ikigai/tests/test_bot_weekly_cadence.py
 # A recusa e a falha: uma rotina recusada nao e uma rotina que falhou.
 !/src/ikigai/tests/test_bot_harness_refusal.py
 # The deploy's SHAPE — the script it carries, the retry, the key. Every

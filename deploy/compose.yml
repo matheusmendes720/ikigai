@@ -398,6 +398,23 @@ services:
       # Which chat receives it. Empty means the first id of the allowlist,
       # sorted — so two processes on one configuration wake the same chat.
       IKIGAI_CADENCE_CHAT_ID: ${IKIGAI_CADENCE_CHAT_ID:-}
+      # THE WEEKLY REVIEW: the same clock, one day a week, its own variables.
+      #
+      # It fires Sunday 20:00 on the owner's clock — deliberately BEFORE the
+      # 22:00 nightly note, so the two never land on the same instant and the
+      # review's prose is in the store while the note of that day is written.
+      #
+      # `IKIGAI_WEEKLY_AT=off` turns it off, the same words as the daily. The
+      # time is its own; the clock it is measured on is NOT — the offset and
+      # the zone above are reused, because one person's Sunday evening is one
+      # hour wherever both clocks are set. `IKIGAI_WEEKLY_WEEKDAY` moves the
+      # day (a name or 0-6, Sunday by default); an empty
+      # IKIGAI_WEEKLY_CHAT_ID means the first id of the allowlist, so both
+      # cadences wake the same chat.
+      IKIGAI_WEEKLY_AT: ${IKIGAI_WEEKLY_AT:-20:00}
+      IKIGAI_WEEKLY_WEEKDAY: ${IKIGAI_WEEKLY_WEEKDAY:-sunday}
+      IKIGAI_WEEKLY_ROUTINE: ${IKIGAI_WEEKLY_ROUTINE:-weekly-review}
+      IKIGAI_WEEKLY_CHAT_ID: ${IKIGAI_WEEKLY_CHAT_ID:-}
       IKIGAI_BOT_ALLOWED_CHAT_IDS: ${IKIGAI_BOT_ALLOWED_CHAT_IDS:?set IKIGAI_BOT_ALLOWED_CHAT_IDS in .env}
       # The AGENT's door (ADR-037 D7). The owner asks for a cadence and the
       # harness runs it; the bot asks, waits, and reports what the agent

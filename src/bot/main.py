@@ -95,7 +95,7 @@ from typing import Any
 
 import httpx
 
-from src.bot.cadence import Cadence, cadence_from_env, run_day
+from src.bot.cadence import Cadence, cadence_from_env, run_day, weekly_cadence_from_env
 from src.bot.channel import (
     Question,
     answer_buttons,
@@ -457,6 +457,7 @@ class Bot:
         events: Any | None = None,
         harness: HarnessClient | None = None,
         cadence: Cadence | None = None,
+        weekly: Cadence | None = None,
     ) -> None:
         self._token = token
         self._client = client
@@ -511,6 +512,10 @@ class Bot:
         # cadence existed: a deployment that does not set a time is not a
         # deployment that wanted one.
         self._cadence = cadence
+        # The weekly sibling of the same clock. `None` is the same promise: a
+        # deployment that never asks for a review gets the bot it had before
+        # this line existed, and the nightly note is not touched by it.
+        self._weekly = weekly
         # The PREVIEWS: the drafts the owner watches while a routine runs,
         # and the Stop button they carry. Telegram owns their lifetime; the
         # bot owns the mapping from a draft's id to the work behind it,
@@ -1573,7 +1578,7 @@ class Bot:
             # instead of leaving the owner pressing a button that does
             # nothing. The registry forgets it on its own (MAX_REMEMBERED).
 
-    async def _cadence_loop(self) -> None:
+    async def _cadence_loop(self, cadence: Cadence | None) -> None:
         """Sleep until the clock says it is time, run, and schedule again.
 
         The wait is recomputed from the wall clock on every pass rather than
@@ -1581,10 +1586,13 @@ class Bot:
         the wrong hour — and a restart needs no state to recover, because the
         next occurrence is a function of the current time.
 
+        One loop, whichever clock it carries: the daily passes `self._cadence`
+        and the weekly passes `self._weekly`, and `next_run` is what differs.
+        `None` is a clock nobody set, and the loop simply is not there.
+
         A cadence that dies is a cadence that never happened, so the failure
         is reported to the chat that was supposed to receive the report.
         """
-        cadence = self._cadence
         if cadence is None:
             return
 
@@ -1845,9 +1853,11 @@ class Bot:
         connected. It runs beside the other three, so a slow agent delays the
         greeting and nothing else.
 
-        The cadence is the fourth, and the only one with no input: it sleeps
+        The cadence is the half with no input at all: it sleeps
         until the wall clock says it is time, and the loop dies with the
-        process. Nothing is lost that a clock can reconstruct.
+        process. Nothing is lost that a clock can reconstruct. The weekly
+        review is the same loop carrying the other clock — a sibling, so the
+        two cadences can neither share a timer nor starve each other.
 
         The menu button is the fifth: it runs once, at startup, and returns.
         The command palette is the sixth: the same once, for the "/" autocomplete.
@@ -1857,7 +1867,8 @@ class Bot:
             self._event_loop(),
             self._runtime_loop(),
             self._handshake(),
-            self._cadence_loop(),
+            self._cadence_loop(self._cadence),
+            self._cadence_loop(self._weekly),
             self._menu_button(),
             self._command_palette(),
         )
@@ -2211,8 +2222,10 @@ def main() -> None:
     # The clock. A time that is SET and malformed raises here, on purpose: a
     # bot that boots with a cadence it silently ignores looks exactly like a
     # bot with no cadence at all, and nobody finds out until a report is
-    # missing at the end of the day.
+    # missing at the end of the day. The weekly review is the same promise on
+    # its own variables, and a deployment that sets neither gets one clock.
     cadence = cadence_from_env(os.environ, allowed)
+    weekly = weekly_cadence_from_env(os.environ, allowed)
 
     bot = Bot(
         token,
@@ -2222,6 +2235,7 @@ def main() -> None:
         events=events,
         harness=harness,
         cadence=cadence,
+        weekly=weekly,
     )
     # `_serve` runs the chat's loop AND the Mini App's surface, in one
     # process: the panel is served by the bot because the bot is the only
