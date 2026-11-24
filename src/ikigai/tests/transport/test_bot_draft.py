@@ -106,6 +106,14 @@ class RecordingBot(Bot):
     async def _send(self, chat_id: str, text: str, buttons: Any = None) -> None:
         self.outbox.append(text)
 
+    async def _send_rich(self, chat_id: str, markdown: str, fallback: str) -> None:
+        # Every routine report renders rich now (the owner's decision), so the
+        # report travels sendRichMessage, not the plain _send above. Record the
+        # rich delivery too: "the report was sent" and "the stopped run sent no
+        # report" must both see the channel the report actually travels.
+        await super()._send_rich(chat_id, markdown, fallback)
+        self.outbox.append(markdown)
+
 
 def _bot(harness: Any = None, allowed: set[str] | None = None) -> RecordingBot:
     return RecordingBot(

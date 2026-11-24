@@ -114,6 +114,12 @@ from src.contracts.dom_kinds import KIND_MODELS
 
 TELEGRAM_API = "https://api.telegram.org"
 
+#: The ceiling of ONE plain ``sendMessage`` — Telegram's own limit, and the
+#: length `_send` clips at. It bounds only the short plain messages (receipts,
+#: buttons, errors, the failure note): a routine-completion report always goes
+#: rich via `_send_chunked`, short or long (owner decision 2026-11-24).
+_PLAIN_SEND_LIMIT = 4000
+
 #: One row of buttons: (label, verb, argument). The verb is what
 #: `parse_callback` gives back, and the argument is what the verb acts on —
 #: a routine id, or nothing for a decision that is already in the chat.
@@ -538,7 +544,7 @@ class Bot:
         kind of button because it is a different kind of thing — a surface,
         not a verb — and Telegram's payload for the two is not the same.
         """
-        payload: dict[str, Any] = {"chat_id": chat_id, "text": text[:4000]}
+        payload: dict[str, Any] = {"chat_id": chat_id, "text": text[:_PLAIN_SEND_LIMIT]}
         rows: list[list[dict[str, Any]]] = []
         if buttons:
             rows = [
@@ -1546,7 +1552,19 @@ class Bot:
             if routine == "converse":
                 await self._send_converse(chat_id, str(result.get("text") or ""))
             else:
-                await self._send(chat_id, _render_routine(routine, result))
+                report = _render_routine(routine, result)
+                # Every routine report goes out RICH — the agent's Markdown
+                # renders (headers, lists, tables, code), short or long, exactly
+                # like the cadence already delivers (owner decision 2026-11-24:
+                # full rich on the manual door). A short report is one rich
+                # message; a long one is chunked whole: the `✔ routine` frame
+                # rides in the first chunk, the receipt in the last, and nothing
+                # is thrown away. The old plain path both clipped a long report
+                # at 4000 AND showed the agent's Markdown as literal raw text;
+                # `_send_chunked` ends both. If sendRichMessage is refused,
+                # `_send_rich` falls back to the plain chunk, so the report still
+                # arrives whole.
+                await self._send_chunked(chat_id, report)
         finally:
             if keepalive is not None:
                 keepalive.cancel()
@@ -1772,22 +1790,34 @@ class Bot:
             print(f"sendRichMessage failed: {exc}", file=sys.stderr)
         await self._send(chat_id, fallback)
 
+    async def _send_chunked(self, chat_id: str, text: str) -> None:
+        """A message too long for one send, delivered WHOLE in readable pieces.
+
+        The rich path renders the Markdown and `chunk_markdown` splits it under
+        the ceiling of one message, so the owner reads the whole text instead of
+        the part that fit. Each chunk carries its own honest plain fallback, so
+        a client the rich API cannot reach still receives the whole text, in
+        pieces. An empty message is said as such rather than dropped.
+
+        This delivers; it does not decide. What the text IS — a conversation, a
+        framed report — belongs to the caller, which renders it and hands it
+        here when it no longer fits in one plain send.
+        """
+        body = text.strip()
+        if not body:
+            await self._send(chat_id, "(sem resposta)")
+            return
+        for chunk in chunk_markdown(body):
+            await self._send_rich(chat_id, chunk, fallback=chunk)
+
     async def _send_converse(self, chat_id: str, prose: str) -> None:
         """The conversation, as readable messages.
 
-        The agent's prose is Markdown; the rich path renders it, and a long
-        answer is split into a few digestible messages instead of one wall the
-        API truncates. There is no report frame here — no `✔ converse`, no
-        receipt — because the owner asked to talk, not to be reported at. Each
-        chunk carries its own honest plain fallback, so a client the rich API
-        cannot reach still receives the whole answer, in pieces.
+        The agent's prose is Markdown, so it travels the chunked path. There is
+        no report frame here — no `✔ converse`, no receipt — because the owner
+        asked to talk, not to be reported at.
         """
-        text = prose.strip()
-        if not text:
-            await self._send(chat_id, "(sem resposta)")
-            return
-        for chunk in chunk_markdown(text):
-            await self._send_rich(chat_id, chunk, fallback=chunk)
+        await self._send_chunked(chat_id, prose)
 
     async def _memory(self, chat_id: str) -> str:
         """What the agent remembers about this chat."""
