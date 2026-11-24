@@ -105,7 +105,7 @@ from src.bot.channel import (
 )
 from src.bot.draft import REFRESH_S, Draft, Drafts
 from src.bot.harness_client import DEFAULT_TIMEOUT_S, HarnessClient, HarnessError
-from src.bot.rich import markdown_table, plain_table, report_markdown, rich_payload
+from src.bot.rich import chunk_markdown, markdown_table, plain_table, report_markdown, rich_payload
 from src.bot.router import callback_data, parse_callback, route
 from src.bot.surfaces import miniapp_url
 from src.bot.ws_client import WebSocketClient
@@ -1539,7 +1539,14 @@ class Bot:
                 # stop, and the owner is told so instead of the report being
                 # cut in half.
                 draft.finished = True
-            await self._send(chat_id, _render_routine(routine, result))
+            # A conversation is delivered as readable prose — Markdown
+            # rendered, split into digestible messages, no report framing (the
+            # prose IS the answer). Every other routine keeps the report frame:
+            # what ran, how long, and the memory receipt (SYSTEM-PROMPTS §5).
+            if routine == "converse":
+                await self._send_converse(chat_id, str(result.get("text") or ""))
+            else:
+                await self._send(chat_id, _render_routine(routine, result))
         finally:
             if keepalive is not None:
                 keepalive.cancel()
@@ -1764,6 +1771,23 @@ class Bot:
         except Exception as exc:
             print(f"sendRichMessage failed: {exc}", file=sys.stderr)
         await self._send(chat_id, fallback)
+
+    async def _send_converse(self, chat_id: str, prose: str) -> None:
+        """The conversation, as readable messages.
+
+        The agent's prose is Markdown; the rich path renders it, and a long
+        answer is split into a few digestible messages instead of one wall the
+        API truncates. There is no report frame here — no `✔ converse`, no
+        receipt — because the owner asked to talk, not to be reported at. Each
+        chunk carries its own honest plain fallback, so a client the rich API
+        cannot reach still receives the whole answer, in pieces.
+        """
+        text = prose.strip()
+        if not text:
+            await self._send(chat_id, "(sem resposta)")
+            return
+        for chunk in chunk_markdown(text):
+            await self._send_rich(chat_id, chunk, fallback=chunk)
 
     async def _memory(self, chat_id: str) -> str:
         """What the agent remembers about this chat."""
