@@ -107,7 +107,25 @@ class ArtifactService:
         wrote the rows. Embedding it in the data layer instead would mean two
         spaces: the rows written by one model and the query written by another,
         compared by a cosine distance that means nothing.
+
+        The date window is checked before the store is asked: `since` after
+        `until` is a window that matches nothing, and a search that answers
+        "nothing" for a request that meant "everything in June" is a silent
+        bug, not an empty page.
         """
+        if query.since is not None and query.until is not None:
+            try:
+                inverted = query.since > query.until
+            except TypeError as exc:
+                # One stamp carries a zone and the other does not, so there is
+                # no "after" to ask about. The store would not disagree: it
+                # would read the naive one in its own session zone and answer
+                # with the wrong rows.
+                raise InvalidPayloadError(
+                    "since and until must both carry a timezone offset"
+                ) from exc
+            if inverted:
+                raise InvalidPayloadError("since must not be after until")
         embedding: list[float] | None = None
         if query.semantic and query.text:
             if self._embeddings is None:
