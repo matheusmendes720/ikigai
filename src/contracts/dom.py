@@ -215,6 +215,13 @@ class SearchQuery(BaseModel):
     # client never has to know how the path is spelled. A tree with no zones
     # (the closing tree) simply has nothing under this filter.
     zone: str | None = None
+    # The window on the date axis, which is `updated_at` — the same column the
+    # search sorts on and the cursor encodes, so a window and a page can never
+    # disagree about which rows are newer. The interval is CLOSED on both
+    # ends: `since` is `updated_at >= since`, `until` is `updated_at <= until`,
+    # so an artifact stamped exactly on a bound is inside the window.
+    since: datetime | None = None
+    until: datetime | None = None
     semantic: bool = False
     limit: int = Field(default=20, ge=1, le=200)
     cursor: str | None = None

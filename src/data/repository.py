@@ -507,6 +507,12 @@ class ArtifactRepository:
         if query.zone is not None:
             clauses.append("vault_path like %s escape E'\\\\'")
             params.append(_zone_pattern(query.zone))
+        if query.since is not None:
+            clauses.append("updated_at >= %s::timestamptz")
+            params.append(query.since)
+        if query.until is not None:
+            clauses.append("updated_at <= %s::timestamptz")
+            params.append(query.until)
         if query.text:
             # The COLUMN, not the expression — migration 0009.
             #
@@ -565,6 +571,12 @@ class ArtifactRepository:
         if query.zone is not None:
             clauses.append("vault_path like %s escape E'\\\\'")
             params.append(_zone_pattern(query.zone))
+        if query.since is not None:
+            clauses.append("updated_at >= %s::timestamptz")
+            params.append(query.since)
+        if query.until is not None:
+            clauses.append("updated_at <= %s::timestamptz")
+            params.append(query.until)
 
         where = " and ".join(clauses)
         sql = (
