@@ -181,6 +181,27 @@ class _RecordingTelegram:
         raise AssertionError("the bot must not poll in this test")
 
 
+class _OkResponse:
+    """What Telegram answers when the rich message was accepted."""
+
+    def json(self) -> dict[str, Any]:
+        return {"ok": True}
+
+
+class _RichTelegram(_RecordingTelegram):
+    """A recorder that accepts the rich API, so the rich path is exercised.
+
+    The base recorder returns nothing, which `_send_rich` reads as a refusal
+    and falls back to plain. Every routine report now renders rich (the
+    owner's decision), so the door's report is read off the rich payload —
+    here every post is accepted, exactly as the real Bot API accepts it.
+    """
+
+    async def post(self, url: str, json: dict[str, Any]) -> _OkResponse:
+        await super().post(url, json)
+        return _OkResponse()
+
+
 class _NoStore(McpClient):
     """A client double that writes nothing — the bot is not testing the store."""
 
@@ -202,8 +223,8 @@ def harness_server() -> Any:
         server.close()
 
 
-def _bot(harness: HarnessClient | None) -> tuple[Bot, _RecordingTelegram]:
-    telegram = _RecordingTelegram()
+def _bot(harness: HarnessClient | None) -> tuple[Bot, _RichTelegram]:
+    telegram = _RichTelegram()
     bot = Bot("token", _NoStore(), {"42"}, "owner", harness=harness)
     bot._http = telegram  # type: ignore[assignment]
     return bot, telegram
@@ -363,7 +384,9 @@ async def test_a_routine_command_does_not_block_the_bot(harness_server: _Harness
     await asyncio.gather(*tasks)
 
     assert len(telegram.sent) == 1, "the owner never got the agent's report"
-    report = telegram.sent[0]["text"]
+    # Every routine report renders rich now (the owner's decision), so the
+    # report is read off the rich payload, not a plain fallback.
+    report = telegram.sent[0]["rich_message"]["markdown"]
     assert REPORT["text"] in report
     assert "9.4s" in report, "the receipt does not say how long the run took"
 
