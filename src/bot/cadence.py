@@ -37,7 +37,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from datetime import time as clock_time
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-__all__ = ["Cadence", "cadence_from_env", "run_day"]
+__all__ = ["Cadence", "cadence_from_env", "run_day", "weekly_cadence_from_env"]
 
 AT_ENV = "IKIGAI_CADENCE_AT"
 OFFSET_ENV = "IKIGAI_CADENCE_UTC_OFFSET"
@@ -45,12 +45,43 @@ TZ_ENV = "IKIGAI_CADENCE_TZ"
 ROUTINE_ENV = "IKIGAI_CADENCE_ROUTINE"
 CHAT_ENV = "IKIGAI_CADENCE_CHAT_ID"
 
+#: The weekly sibling. Its OWN time, routine and chat — so a deployment can
+#: turn the review on without touching the nightly note — and the SAME owner
+#: clock: the offset and the zone are the daily's variables, because one
+#: person's 20:00 is one hour wherever two clocks are set.
+WEEKLY_AT_ENV = "IKIGAI_WEEKLY_AT"
+WEEKLY_ROUTINE_ENV = "IKIGAI_WEEKLY_ROUTINE"
+WEEKLY_CHAT_ENV = "IKIGAI_WEEKLY_CHAT_ID"
+WEEKDAY_ENV = "IKIGAI_WEEKLY_WEEKDAY"
+
 #: The owner's clock, and the default the deployment runs on.
 DEFAULT_OFFSET = "-03:00"
 DEFAULT_ROUTINE = "daily-note"
+DEFAULT_WEEKLY_ROUTINE = "weekly-review"
+#: Sunday: the week ends, and the review reads it before the night's note.
+DEFAULT_WEEKLY_WEEKDAY = 6
 
 _AT_RE = re.compile(r"^(\d{1,2}):(\d{2})$")
+_WEEKDAY_RE = re.compile(r"^[0-6]$")
 _OFFSET_RE = re.compile(r"^([+-])(\d{1,2})(?::?(\d{2}))?$")
+
+#: `datetime.weekday()` numbering, both spellings, lowercase.
+_WEEKDAY_NAMES: dict[str, int] = {
+    "monday": 0,
+    "tuesday": 1,
+    "wednesday": 2,
+    "thursday": 3,
+    "friday": 4,
+    "saturday": 5,
+    "sunday": 6,
+    "mon": 0,
+    "tue": 1,
+    "wed": 2,
+    "thu": 3,
+    "fri": 4,
+    "sat": 5,
+    "sun": 6,
+}
 
 #: The spellings that mean "I turned it off".
 #:
@@ -63,36 +94,67 @@ _OFF_VALUES = frozenset({"off", "none", "no", "never"})
 
 @dataclass(frozen=True)
 class Cadence:
-    """One routine, once a day, at a wall-clock time."""
+    """One routine, at a wall-clock time: once a day, or once a week.
+
+    `weekday is None` is the daily cadence — the shape the product shipped
+    first, and the one that has not changed.
+
+    `weekday` set (0=Monday..6=Sunday, the `datetime.weekday()` convention)
+    makes it weekly: the next occurrence lands on that weekday and on no
+    other. The recurrence is still COMPUTED from the wall clock and never
+    stored, so a weekly review has the same two properties the daily note has:
+    a restart cannot deliver the same review twice, and a week the machine
+    slept through is lost rather than replayed at a strange hour.
+    """
 
     at: clock_time
     routine: str
     chat_id: str
     offset: timedelta = timedelta(0)
     zone: ZoneInfo | None = None
+    weekday: int | None = None
 
     def next_run(self, now: datetime) -> datetime:
         """The first occurrence of `at` strictly after `now`, in UTC.
 
         Strictly after, and that is what makes a restart safe: a process that
         wakes at 22:00:00.4 asks for the next one and gets tomorrow, so no
-        restart loop can deliver the same daily note twice.
+        restart loop can deliver the same daily note twice. A weekly cadence
+        gets the same rule one unit larger: waking at the instant the review
+        fires asks for NEXT week, and only the weekday's own day is a
+        candidate.
         """
         zone = self.zone or timezone(self.offset)
         local = now.astimezone(zone)
         candidate = local.replace(hour=self.at.hour, minute=self.at.minute, second=0, microsecond=0)
+        if self.weekday is None:
+            if candidate <= local:
+                candidate += timedelta(days=1)
+            return candidate.astimezone(UTC)
+
+        # `% 7` walks FORWARD: the same weekday today is 0 days away and the
+        # one before it is six ahead. Then the hour decides, and an instant
+        # that has already passed on the target day pushes a whole week.
+        days_ahead = (self.weekday - local.weekday()) % 7
+        candidate += timedelta(days=days_ahead)
         if candidate <= local:
-            candidate += timedelta(days=1)
+            candidate += timedelta(days=7)
         return candidate.astimezone(UTC)
 
 
-def _parse_at(raw: str) -> clock_time:
+def _parse_at(raw: str, *, at_env: str = AT_ENV) -> clock_time:
+    """`HH:MM`, and the message names the variable that was actually read.
+
+    The daily and the weekly cadence share the grammar and not the variable:
+    a typo in `IKIGAI_WEEKLY_AT` must say so, or the owner hunts for a bad
+    nightly time that was never wrong.
+    """
     match = _AT_RE.match(raw.strip())
     if match is None:
-        raise ValueError(f"{AT_ENV}={raw!r} is not HH:MM")
+        raise ValueError(f"{at_env}={raw!r} is not HH:MM")
     hour, minute = int(match.group(1)), int(match.group(2))
     if not (0 <= hour <= 23 and 0 <= minute <= 59):
-        raise ValueError(f"{AT_ENV}={raw!r} is not a real time of day")
+        raise ValueError(f"{at_env}={raw!r} is not a real time of day")
     return clock_time(hour=hour, minute=minute)
 
 
@@ -106,6 +168,27 @@ def _parse_offset(raw: str) -> timedelta:
     if hours > 14 or minutes > 59:
         raise ValueError(f"{OFFSET_ENV}={raw!r} is outside every real time zone")
     return sign * timedelta(hours=hours, minutes=minutes)
+
+
+def _parse_weekday(raw: str) -> int:
+    """The weekday the review lands on, in `datetime.weekday()` numbering.
+
+    Empty means Sunday. The name is accepted whole or short, in any case, and
+    so is the digit — the deployment writes `sunday` because a number in a
+    YAML file is a thing nobody can read at 3am.
+
+    A value that is neither raises: a weekday that could not be read would
+    silently move the review to a day nobody asked for, which is worse than a
+    cadence that refuses to boot.
+    """
+    value = raw.strip().lower()
+    if not value:
+        return DEFAULT_WEEKLY_WEEKDAY
+    if value in _WEEKDAY_NAMES:
+        return _WEEKDAY_NAMES[value]
+    if _WEEKDAY_RE.match(value):
+        return int(value)
+    raise ValueError(f"{WEEKDAY_ENV}={raw!r} is not a weekday (monday..sunday, mon..sun, or 0-6)")
 
 
 def _parse_zone(raw: str) -> ZoneInfo | None:
@@ -182,3 +265,47 @@ def cadence_from_env(env: Mapping[str, str], allowed: set[str]) -> Cadence | Non
         return None
 
     return Cadence(at=at, routine=routine, chat_id=chat_id, offset=offset, zone=zone)
+
+
+def weekly_cadence_from_env(env: Mapping[str, str], allowed: set[str]) -> Cadence | None:
+    """The weekly review the environment asks for, or `None`.
+
+    The same contract as `cadence_from_env`, beside it and not inside it: the
+    weekly has its own `AT` / `ROUTINE` / `CHAT_ID` / `WEEKDAY`, and borrows
+    the daily's `UTC_OFFSET` and `TZ`. A deployment that sets no
+    `IKIGAI_WEEKLY_AT` gets a bot with no weekly clock at all, and the daily
+    note is untouched.
+
+    Where it differs, deliberately: no chat is an error here and not a silent
+    `None`. The daily returns `None` because no cadence at all is the
+    pre-existing configuration; here the time IS set, the owner asked for a
+    review, and nobody to send it to is a mistake to report, not a state to
+    return to.
+    """
+    raw_at = (env.get(WEEKLY_AT_ENV) or "").strip()
+    if not raw_at or raw_at.lower() in _OFF_VALUES:
+        return None
+
+    at = _parse_at(raw_at, at_env=WEEKLY_AT_ENV)
+
+    raw_offset = (env.get(OFFSET_ENV) or DEFAULT_OFFSET).strip()
+    offset = _parse_offset(raw_offset)
+
+    raw_tz = (env.get(TZ_ENV) or "").strip()
+    zone = _parse_zone(raw_tz) if raw_tz else None
+
+    weekday = _parse_weekday(env.get(WEEKDAY_ENV) or "")
+
+    routine = (
+        env.get(WEEKLY_ROUTINE_ENV) or DEFAULT_WEEKLY_ROUTINE
+    ).strip() or DEFAULT_WEEKLY_ROUTINE
+
+    chat_id = (env.get(WEEKLY_CHAT_ENV) or "").strip() or (sorted(allowed)[0] if allowed else "")
+    if not chat_id:
+        raise ValueError(
+            f"a weekly cadence needs a chat: set {WEEKLY_CHAT_ENV} or IKIGAI_BOT_ALLOWED_CHAT_IDS"
+        )
+
+    return Cadence(
+        at=at, routine=routine, chat_id=chat_id, offset=offset, zone=zone, weekday=weekday
+    )
