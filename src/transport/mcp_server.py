@@ -15,9 +15,10 @@ from __future__ import annotations
 import functools
 import os
 from collections.abc import Awaitable, Callable, Mapping
-from typing import Any, TypeVar
+from typing import Annotated, Any, TypeVar
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import BeforeValidator
 
 from src.contracts.common import UEID
 from src.contracts.dom import (
@@ -32,6 +33,33 @@ from src.contracts.dom import (
 from src.contracts.dom_kinds import ArtifactPayload
 from src.contracts.errors import DataLayerError
 from src.services.wiring import Services, build_services, prepare_runtime
+
+
+def _flatten_wrapped(value: Any) -> list[Any]:
+    if isinstance(value, dict):
+        out: list[Any] = []
+        for item in value.values():
+            out.extend(_flatten_wrapped(item))
+        return out
+    if isinstance(value, (list, tuple)):
+        out = []
+        for item in value:
+            out.extend(_flatten_wrapped(item))
+        return out
+    return [value]
+
+
+def _normalize_search_query(value: Any) -> Any:
+    # The external harness (ADR-037 D7) has delivered `kinds` wrapped —
+    # {item:[..]} or [{item:str}] — which the strict tuple rejects. This is the
+    # boundary that faces that client, so it unwraps the container here; the
+    # enum still validates every leaf, and the DOM stays pure.
+    if isinstance(value, dict) and "kinds" in value:
+        return {**value, "kinds": _flatten_wrapped(value["kinds"])}
+    return value
+
+
+SearchQueryInput = Annotated[SearchQuery, BeforeValidator(_normalize_search_query)]
 
 __all__ = [
     "Services",
@@ -117,7 +145,7 @@ def _translate_errors(
 
 @mcp.tool()
 @_translate_errors
-async def search_artifacts(query: SearchQuery) -> SearchResult:
+async def search_artifacts(query: SearchQueryInput) -> SearchResult:
     """Busca por índice estruturado, texto completo ou semântica.
 
     Use this to answer "what do we know about X" without reading the vault.
