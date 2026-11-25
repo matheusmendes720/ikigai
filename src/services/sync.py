@@ -487,6 +487,21 @@ class VaultSync:
         report.scanned += 1
         existing = await self._repo.get(uid)
 
+        # Provenance guard (ADR-037 D4 — the store wins). The vault file is
+        # unchanged since the vault last wrote it, yet the store body has
+        # diverged: a client edited it. The vault has no new prose to offer, so
+        # re-ingesting would clobber the client's correction with stale bytes.
+        # Provenance comes from the revision log, not the row's client_id (which
+        # is the creator's, never rewritten on update).
+        if existing is not None and existing.body_hash != body_hash:
+            last_vault = await self._repo.last_revision_by_client(uid, self._client_id)
+            if last_vault is not None and last_vault.snapshot.get("body_hash") == body_hash:
+                report.skipped.append(
+                    f"{relative}: store advanced by a client (revision {existing.revision}); "
+                    f"vault unchanged — not overwritten"
+                )
+                return
+
         fields: dict[str, Any] = {
             "uid": uid,
             "kind": kind,

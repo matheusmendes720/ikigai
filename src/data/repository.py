@@ -16,6 +16,7 @@ from src.contracts.dom import (
     Artifact,
     ArtifactBundle,
     ArtifactKind,
+    ArtifactRevision,
     ArtifactSummary,
     Relation,
     RelationType,
@@ -405,6 +406,33 @@ class ArtifactRepository:
         if artifact is None:
             raise NotFoundError(f"no artifact with uid {uid}")
         return artifact
+
+    async def last_revision_by_client(self, uid: Any, client_id: str) -> ArtifactRevision | None:
+        """The most recent revision a given client wrote, or None.
+
+        The provenance source for the vault sync. The artifacts row's
+        ``client_id`` is the CREATOR's — the update path does not rewrite it —
+        so it cannot say who wrote the CURRENT body. The append-only revision
+        log records the writer of every revision; reading the vault's own
+        latest snapshot here is what tells the sync whether a file still holds
+        the bytes the vault last wrote.
+        """
+        row = await self._client.fetch_one(
+            "select uid, revision, snapshot, author, client_id, created_at "
+            "from ikig.artifact_revisions where uid = %s and client_id = %s "
+            "order by revision desc limit 1",
+            (str(uid), client_id),
+        )
+        if row is None:
+            return None
+        return ArtifactRevision(
+            uid=row["uid"],
+            revision=row["revision"],
+            snapshot=row["snapshot"],
+            author=row["author"],
+            client_id=row["client_id"],
+            created_at=row["created_at"],
+        )
 
     async def get_with_relations(self, uid: Any, depth: int = 1) -> ArtifactBundle:
         artifact = await self.require(uid)

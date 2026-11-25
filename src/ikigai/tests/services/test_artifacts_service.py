@@ -20,6 +20,7 @@ from src.contracts.dom import (
     Artifact,
     ArtifactBundle,
     ArtifactKind,
+    ArtifactRevision,
     ArtifactSummary,
     Relation,
     RelationType,
@@ -83,6 +84,7 @@ class FakeRepository:
         # The vector each artifact was written with, so a test can ask
         # whether the retrieval layer was fed.
         self.embeddings: dict[str, list[float] | None] = {}
+        self.revisions: list[ArtifactRevision] = []
 
     async def get(self, uid: object) -> Artifact | None:
         return self.artifacts.get(str(uid))
@@ -116,6 +118,7 @@ class FakeRepository:
             self.artifacts[uid] = req.artifact
             self.embeddings[uid] = list(embedding) if embedding is not None else None
             self.written_relations.extend(req.relations)
+            self._record_revision(req.artifact, req.client_id)
             return WriteOutcome(
                 uid=req.artifact.uid,
                 revision=req.artifact.revision,
@@ -129,6 +132,7 @@ class FakeRepository:
         self.artifacts[uid] = updated
         self.embeddings[uid] = list(embedding) if embedding is not None else None
         self.written_relations.extend(req.relations)
+        self._record_revision(updated, req.client_id)
         return WriteOutcome(uid=updated.uid, revision=updated.revision, outcome="updated")
 
     async def soft_delete(self, uid: object, expected_revision: int) -> WriteOutcome:
@@ -138,9 +142,7 @@ class FakeRepository:
             raise NotFoundError(f"no artifact with uid {key}")
         if existing.revision != expected_revision:
             raise ConflictError(f"{key} was changed by someone else")
-        deleted = existing.model_copy(
-            update={"revision": existing.revision + 1, "deleted_at": NOW}
-        )
+        deleted = existing.model_copy(update={"revision": existing.revision + 1, "deleted_at": NOW})
         self.artifacts[key] = deleted
         return WriteOutcome(uid=existing.uid, revision=deleted.revision, outcome="updated")
 
@@ -174,9 +176,7 @@ class FakeRepository:
         )
         return ArtifactBundle(artifact=artifact, relations=relations)
 
-    async def list_relations(
-        self, uid: object, rel: RelationType | None = None
-    ) -> list[Relation]:
+    async def list_relations(self, uid: object, rel: RelationType | None = None) -> list[Relation]:
         key = str(uid)
         return [
             relation
@@ -188,6 +188,22 @@ class FakeRepository:
     async def upsert_relation(self, relation: Relation) -> None:
         self.relations = [r for r in self.relations if r != relation]
         self.relations.append(relation)
+
+    def _record_revision(self, artifact: Artifact, client_id: str) -> None:
+        self.revisions.append(
+            ArtifactRevision(
+                uid=artifact.uid,
+                revision=artifact.revision,
+                snapshot=artifact.model_dump(),
+                author=client_id,
+                client_id=client_id,
+                created_at=NOW,
+            )
+        )
+
+    async def last_revision_by_client(self, uid: object, client_id: str) -> ArtifactRevision | None:
+        matches = [r for r in self.revisions if str(r.uid) == str(uid) and r.client_id == client_id]
+        return max(matches, key=lambda r: r.revision) if matches else None
 
 
 def _request(
@@ -226,9 +242,7 @@ async def test_stale_revision_conflicts_and_keeps_the_stored_value() -> None:
 
     await service.upsert(_request())
     with pytest.raises(ConflictError):
-        await service.upsert(
-            _request(expected_revision=99, idempotency_key="key-2", title="Outro")
-        )
+        await service.upsert(_request(expected_revision=99, idempotency_key="key-2", title="Outro"))
     stored = repo.artifacts[_uid("taxa")]
     assert stored.title == "Taxa"
 
@@ -385,7 +399,7 @@ async def test_embedding_cache_calls_the_provider_once() -> None:
     service = EmbeddingService(provider=provider)
     first = await service.embed("mesma nota")
     second = await service.embed("mesma nota")
-    other = await service.embed("outra nota")
+    await service.embed("outra nota")
 
     assert first == second
     assert len(first) == service.dim
@@ -454,9 +468,7 @@ async def test_sync_skips_readmes_and_archived_material(tmp_path: Path) -> None:
     vault = tmp_path / "closing-2026"
     (vault / "02-q4-2026" / "00-sonho").mkdir(parents=True)
     (vault / "02-q4-2026" / "00-sonho" / "README.md").write_text("# Sonhos\n", encoding="utf-8")
-    (vault / "02-q4-2026" / "00-sonho" / "sonho-01.md").write_text(
-        "# Sonho um\n", encoding="utf-8"
-    )
+    (vault / "02-q4-2026" / "00-sonho" / "sonho-01.md").write_text("# Sonho um\n", encoding="utf-8")
     (vault / "99-archive").mkdir(parents=True)
     (vault / "99-archive" / "antigo.md").write_text("# Antigo\n", encoding="utf-8")
 
@@ -496,18 +508,12 @@ async def test_sync_reads_the_flat_persona_layout(tmp_path: Path) -> None:
     for group in ("dreams", "objectives", "projects", "ikigai_state", "deliverables"):
         (persona / group).mkdir(parents=True)
 
-    (persona / "dreams" / "vaga-remota-2026.md").write_text(
-        "# Sonho\n", encoding="utf-8"
-    )
+    (persona / "dreams" / "vaga-remota-2026.md").write_text("# Sonho\n", encoding="utf-8")
     (persona / "objectives" / "q3-2026-primeira-vaga.md").write_text(
         "# Objetivo\n", encoding="utf-8"
     )
-    (persona / "projects" / "onda-q3-1-pipeline.md").write_text(
-        "# Onda\n", encoding="utf-8"
-    )
-    (persona / "ikigai_state" / "q3-2026-mid-review.md").write_text(
-        "# Revisão\n", encoding="utf-8"
-    )
+    (persona / "projects" / "onda-q3-1-pipeline.md").write_text("# Onda\n", encoding="utf-8")
+    (persona / "ikigai_state" / "q3-2026-mid-review.md").write_text("# Revisão\n", encoding="utf-8")
     (persona / "deliverables" / "byd-process-tracker.md").write_text(
         "# Deliverable\n", encoding="utf-8"
     )
