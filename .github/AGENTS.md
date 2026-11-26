@@ -4,72 +4,56 @@ CI workflows, the PR-review orchestrator and the repository's GitHub metadata.
 A distinct domain: automation, not product code.
 
 ## OVERVIEW
-Two workflows and a Python review orchestrator — the only consumer of `.github/scripts/`.
+Five CI jobs, one deploy workflow, and the review tooling under `scripts/`
+(it has its own guide: `scripts/AGENTS.md`). Automation, not product code.
 
 ## WHERE TO LOOK
 | Task | File | Notes |
 |------|------|-------|
-| CI pipeline | `workflows/ci.yml` | 2 jobs: `code-review-checks` (the review gate) and `quality-gates` (a 5-package matrix) |
-| Review orchestrator CLI | `scripts/code_review.py` | `--base --files --type-only --test-only --missing --gate --json --package` |
-| Shared process/env layer | `scripts/code_review_model.py` | `ROOT`, `CheckStatus`, `CheckResult`, `ReviewReport`, `PackageSpec`, `tool()`, `run()` |
-| Package matrix | `scripts/code_review_topology.py` | `PACKAGES` (5), `Bucket`, `build_buckets()`, `diff_touched_lines()` |
-| Individual checks | `scripts/code_review_checks.py` | mypy / ruff / ruff-format / naming / pytest / missing-tests |
-| Worktree helper | `scripts/git_worktree_manager.py` | `--list --add --remove --prune` |
-| Project board | `scripts/project_board.py`, `scripts/project_board_setup.py` | Projects v2 via GitHub CLI / GraphQL |
-| Labels | `labels.yml` | canonical label set |
+| CI pipeline | `workflows/ci.yml` | 5 jobs: `code-review-checks`, `quality-gates` (5-package matrix), `harness`, `published-surface`, `container` |
+| Deploy pipeline | `workflows/deploy.yml` | builds + publishes 2 GHCR images, SSH deploy, live surface probe |
+| Review tooling | `scripts/` | the PR-review orchestrator — see `scripts/AGENTS.md` |
+| Labels | `labels.yml` | canonical label set (27) |
 | PR template | `PULL_REQUEST_TEMPLATE.md` | what a pull request must say |
 
 ## CONVENTIONS
-- **Package isolation is the design.** The repo root is not a package. Every
-  check runs inside the owning package's own env with its own mypy/Ruff
-  config. `PackageSpec` mirrors the `quality-gates` matrix exactly: **ikigai**,
-  **src-contracts**, **src-data**, **src-services**, **src-transport**.
-- **The root bucket has no package, so it runs in the published environment.**
-  The one published environment is the `ikigai` Poetry project: the review
-  resolves `poetry env info --executable` and calls the tool through that
-  interpreter, with the working directory at the repository root (where the
-  root `mypy.ini` is declared). Before the pivot the root bucket ran
-  `uv run --frozen --extra dev` against a root project that existed on the
-  owner's disk and in no clone — it failed with rc=2, and the gate reported
-  nothing at all.
-- **Ruff policy is pinned for the root bucket** —
-  `CANONICAL_SELECT="E,F,W,I,N,UP,B,A,C4,PT,RUF"`, `IGNORE=E501`, line-length
-  100, `py311` — because Ruff 0.16 changed its default rule set.
-- **Diff attribution.** Only findings on lines the diff *added* fail; pre-existing debt is reported separately and never blocks the change.
-- **Env hygiene.** `run()` strips `PYTHONPATH` / `PYTHONHOME` / `MYPYPATH` from
-  the inherited environment before applying the package env, so a foreign
-  `pydantic_core` cannot shadow the package's.
-- **Windows tool resolution.** `tool()` prefers `~/.local/bin/<name>.exe` on
-  `nt`; a missing manager is *reported*, never fatal.
+- **The deploy ships ONE immutable artifact.** The image is built once on the
+  runner and the server runs THAT image. Two images (canonical + harness,
+  ADR-037 D7); tags are `sha-<commit>` only — no floating `latest`.
+- **Plain SSH, not `appleboy/ssh-action`** (deploy.yml): the release CDN's
+  504s killed six consecutive runs; the runner's own `ssh` downloads nothing.
+  Values are interpolated into the remote script on the RUNNER, and the key
+  never leaves the runner as a file with mode 600.
+- **GHCR packages are private**: the job logs in with its own `GITHUB_TOKEN`
+  (or an explicit PAT), never `docker compose pull`; a pull is retried 5x
+  with a growing wait.
+- **A deploy is green only if the service is healthy**: `docker compose up -d
+  --wait --wait-timeout 240 db api ws sync bot`. The harness is deliberately
+  NOT waited for — it measures the provider.
+- **The remote script is READ, not copied** (`deploy_extract_script.py`
+  extracts it from the workflow's heredoc): a copy would be a second version
+  that drifts.
+- **The published surface is probed from OUTSIDE the tailnet**: the page must
+  answer 200 and the data door must answer 401 without Telegram's signature.
+- **CI pins tool versions**: `pip install ruff==0.17.3` for every `ruff-only`
+  package — an open range makes the gate move with the day.
 
 ## ANTI-PATTERNS
-- **Never invoke mypy with a path.** The package's canonical target is
-  authoritative (`-p src.ikigai.src`); a path invocation gives Ikigai a second
-  module identity and mypy aborts with "Source file found twice under
-  different module names".
-- **Never rewrite a lockfile** during a review. Never inherit the reviewer's
-  own env (`PYTHONPATH`/`PYTHONHOME`/`MYPYPATH`).
-- **Never treat unparsable output as a pass.** Unparsable mypy output = FAIL;
-  pytest rc=5 ("no tests ran") = FAIL.
-- The naming check inspects **function-local names only** (flagging module
-  names produced 52 false positives), and the pytest parser reads only the
-  tail — the summary comes last.
-- **All four modules `code_review.py` imports are tracked** (`code_review.py`,
-  `code_review_checks.py`, `code_review_model.py`, `code_review_topology.py`),
-  so a fresh clone runs the `code-review-checks` job. Keep new sibling modules
-  tracked as well — an untracked helper breaks CI with a `ModuleNotFoundError`.
-- Docstrings advertise `python -m github.scripts.<mod>`, but no `github`
-  package exists and `.github` is not importable — the working form is
-  `python .github/scripts/<mod>.py`. Likewise `code_review.py`'s docstring
-  advertises `--open` while argparse defines `--open-issues`.
-- `project_board.assign_issue_to_column()` is a stub that prints a message
-  (Projects v2 needs GraphQL).
+- **Never swallow the review report with `|| true`** (ci.yml): it hid
+  `FileNotFoundError: 'ruff'` for weeks while the job stayed green and the
+  report never printed. The report is not a gate, but a crash fails the job.
+- **Never ship a floating image tag** (`latest`, a branch tag) — `sha-<commit>`
+  only.
+- **Never read a secret from a tracked file**: secrets come from the
+  environment, the job's own token, or a file secret on the server.
+- Stale, pre-ADR-037: `labels.yml` still carries `subsystem/operational`,
+  `subsystem/vibe-ops`, `subsystem/life-cli`, `subsystem/taskwarrior`, and
+  `project_board_setup.py`'s starter issues reference label names
+  (`type/infrastructure`) that `labels.yml` does not define.
 
 ## COMMANDS
 ```bash
-python .github/scripts/code_review.py --base main --review-format
-python .github/scripts/code_review.py --base main --test-only --missing
-python .github/scripts/code_review.py --base main --gate
-python .github/scripts/git_worktree_manager.py --list
-python .github/scripts/project_board.py --sync-labels
+docker compose -f deploy/compose.yml config --quiet   # the container job
+node --test "deploy/harness/test/*.test.mjs"          # the harness job
 ```
+The review CLI, the deploy helpers and the board tooling: `scripts/AGENTS.md`.

@@ -19,8 +19,8 @@ PT-BR strategic prose (`strategics/*.md`).
 
 ```text
 src/ikigai/src/
-└── strategics/
-    ├── __init__.py
+└── strategics/            # the ONLY published package (installed name: `strategics`)
+    ├── __init__.py        # re-exports StrategicDoc, StrategicsContext, load_strategics
     ├── frontmatter_compat.py   # the YAML frontmatter shim (self-contained)
     └── loader.py               # loads strategics/*.md — NEVER writes
 ```
@@ -30,6 +30,7 @@ src/ikigai/src/
 | Task | Location |
 |---|---|
 | Load strategic prose | `strategics/loader.py` |
+| The 1.x frontmatter API on PyYAML | `strategics/frontmatter_compat.py` — `loads`/`dumps`/`Post` |
 | Serve the agent surface over MCP | `src/transport/mcp_server.py` (canonical transport, ADR-011) |
 | The unified model | `src/contracts/dom.py` |
 | The domain rules | `src/services/` |
@@ -41,12 +42,16 @@ src/ikigai/src/
   `from strategics.loader import ...` — there is no `ikigai.*` prefix.
 - The loader is **read-only**: it never writes to `strategics/`, the vault, or
   any data file.
+- The loader **filters by tag**: only `*.md` under `<vault>/strategics/` whose
+  frontmatter carries a tag containing `strategic` are loaded; each document
+  carries its own `sha256`.
 - The agent layer is planner-only per ADR-013 — no PAV math, no scoring or
   policy tools.
 - The frontmatter shim is **self-contained** on purpose: it imports nothing
   from the repository but PyYAML. The tree it used to live in
   (`sys_ikigai/vault/`) is unpublished, so a shim that imported from there
-  would break the published package.
+  would break the published package. It re-implements the python-frontmatter
+  1.x `loads`/`dumps`/`Post` surface because the 3.x package dropped it.
 
 ## ANTI-PATTERNS
 
