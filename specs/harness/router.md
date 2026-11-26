@@ -66,7 +66,42 @@ The proportion behind the cadence: five days of execution, three weeks of analys
 
 ---
 
-## 4. Rules that hold across every role
+## 4. The strategic vocabulary — kind → level
+
+The owner thinks in the five levels of `strategics/Hierarquia de Objetivos.md`:
+**Sonhos → Objetivos → Metas → Tarefas → Atividades**. The DOM has ten kinds; the
+mapping is a PROJECTION (ADR-037 D2), not a schema change. Every user-facing
+output names the level, never the kind.
+
+| DOM kind | Nível | Range temporal | Lente |
+|----------|-------|----------------|-------|
+| `sonho` | **Sonho** | 6–12 meses | `#estratégico` |
+| `plano` | **Objetivo** (articulação) | trimestre | `#estratégico` |
+| `fase` | **Objetivo** (linha do plano) | trimestre | `#estratégico` |
+| `onda` | **Objetivo** | 15 dias | `#tático` |
+| `okr` | **Objetivo** | 15 dias | `#tático` |
+| `revisao` | **Meta** | semana | `#tático` |
+| `kpi` | **Meta** | semana | `#tático` |
+| `tarefa` | **Tarefa** | 5 dias úteis | `#tático` |
+| `nota` | **Atividade** | dia | `#operacional` |
+| `desc` | **Evidência** (cross-level) | — | attaches to its target |
+
+**Level ≠ range.** The level is the position in the decomposition; the range is
+the cycle the artifact spans. `plano` sits at the objective articulation but is
+QUARTER-scoped — never render it as a 15-day entity. The range comes from the
+artifact's `quarter` + `created_at`, never from the level alone.
+
+**`desc` is evidence, not a level.** A decision is ABOUT a dream, a plan, a wave;
+the renderer attaches it to the entity it relates to via the `REFERENCES` edges,
+not as a standalone strategic entity.
+
+**The chain.** The strategic chain reads `parent_uid` edges (note → task → meta
+→ objective → dream), bounded to 5 hops and cycle-safe. A missing link is named
+`sem vínculo` — never fabricated.
+
+---
+
+## 5. Rules that hold across every role
 
 | Rule | Where it is enforced |
 |------|---------------------|
@@ -83,7 +118,7 @@ The proportion behind the cadence: five days of execution, three weeks of analys
 
 ---
 
-## 5. Failures you will actually hit
+## 6. Failures you will actually hit
 
 | Failure | What it means | What to do |
 |---------|---------------|------------|
@@ -97,7 +132,7 @@ The proportion behind the cadence: five days of execution, three weeks of analys
 
 ---
 
-## 6. What is not published
+## 7. What is not published
 
 The previous scope is not in the published tree and must not be created: the operator CLI, the fork mesh, the local vector store, the legacy entity model with its state machines, the legacy harness, and the legacy runtime contracts under `sys_ikigai/`. If a routine appears to need one of them, that is a gap in the routine, not a reason to resurrect the surface.
 

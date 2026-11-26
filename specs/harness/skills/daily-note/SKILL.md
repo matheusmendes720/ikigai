@@ -22,7 +22,18 @@ Steps:
 3. Read each task that has evidence with `get_artifact` at depth 1 — its prose (the window, the "Done quando") AND its relations. The search does not carry the body (ADR-046): what a task SAYS comes from this call, not from the search.
 4. Classify every task as done, partly done, not started or dropped. Cite the evidence: the note uid, or the relation that proves it. An item with no evidence stays open.
 5. Write the note with `upsert_artifact`. The body carries the classification and the evidence. Set the quarter and the note date. The write carries the `EVIDENCES` edges to each task the note speaks about: the edge starts at the note, so the note and the edges that make it evidence land together.
-6. Report the note uid, the counts per class, the evidence per class and the tools that ran.
+6. Render the report per the Response Contract (SKILL-SPECS.md), in the owner's
+   five levels — never the DOM kinds, never a UEID in the default output:
+   - **Strategic chain**: for each classified task name the chain Sonho →
+     Objetivo → Meta → Tarefa → Atividade, reading `parent_uid` edges bounded to
+     5 hops with a visited set (cycle-safe). A missing link is `sem vínculo`.
+   - **Temporal window**: the quarter and the day — the day the run handed you.
+   - **Lens**: `#operacional` for the day's activity, `#tático` for the tasks.
+   - **Next action**: the concrete next step with cost, or "aberto — a prosa não
+     nomeia o próximo passo".
+   - **Counts and evidence per class** (done / partly / not started / dropped).
+   The uid and the tools that ran are the technical receipt: the owner fetches
+   them with `/detalhe <uid>`, never inline.
 
 ## The day, its quarter and its title
 
