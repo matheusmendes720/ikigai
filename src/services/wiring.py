@@ -24,6 +24,7 @@ from src.services.changes import ChangeFeed
 from src.services.drafts import DraftService
 from src.services.embeddings import EmbeddingService
 from src.services.relations import RelationService
+from src.services.sync import VaultSync
 
 __all__ = ["Services", "build_services", "prepare_runtime"]
 
@@ -40,6 +41,10 @@ class Services:
     #: tool: the tool surface is the six of ADR-037 D6, and a draft is reached
     #: over the websocket's own frames (ADR-040).
     drafts: DraftService
+    #: The vault ingestion shares the SAME pool and repository as every other
+    #: service (one composition root). None when a caller builds a partial
+    #: wiring; build_services always populates it.
+    vault_sync: VaultSync | None = None
 
 
 def prepare_runtime() -> None:
@@ -77,4 +82,5 @@ def build_services() -> Services:
         embeddings=embeddings,
         changes=ChangeFeed(repo),
         drafts=DraftService(DraftRepository(client)),
+        vault_sync=VaultSync(repo, embeddings=embeddings),
     )
