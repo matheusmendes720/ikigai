@@ -26,8 +26,11 @@ Steps:
    The bot renders Markdown and splits a long reply into a few messages, so
    write in clear paragraphs that stand alone.
 2. Ground every claim about the owner's data in the store: narrow with
-   `search_artifacts`, read the prose with `get_artifact`, and name the uid the
-   claim came from. The only kinds that exist are `sonho`, `plano`, `onda`,
+   `search_artifacts`, read the prose with `get_artifact`, and name the strategic
+   chain the claim came from — `Sonho X → Objetivo Y → Meta Z diz que…` — per the
+   Response Contract, reading `parent_uid` bounded to 5 hops (cycle-safe), a
+   missing link named `sem vínculo`. The uid is the technical receipt, behind
+   `/detalhe`, not inline. The only kinds that exist are `sonho`, `plano`, `onda`,
    `fase`, `revisao`, `nota`, `kpi`, `desc`, `okr`, `tarefa` — never pass an
    invented label such as `strategy` to `kinds` (the tool rejects it). A claim
    with no source is said to be unsourced.
