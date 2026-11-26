@@ -42,6 +42,41 @@ Never hand-build one.
 
 ---
 
+## Response Contract — every user-facing output
+
+The owner reads the five levels of `router.md` §4 (Sonho / Objetivo / Meta /
+Tarefa / Atividade), not the DOM's kinds and not UEIDs. Every report a skill
+renders for the owner follows this contract. It is a contract on the OUTPUT, not
+on the DOM — the store keeps its kinds and identifiers unchanged.
+
+Four required sections, in this order:
+
+1. **Strategic chain** — one line per entity, naming the full chain in the
+   owner's vocabulary: `Sonho: <nome> → Objetivo: <nome> → Meta: <semana> —
+   <estado>`. The chain reads `parent_uid` edges, bounded to 5 hops and
+   cycle-safe (a visited set). A missing link is named `sem vínculo`; it is
+   never fabricated. `desc` attaches to the entity it decides about as evidence.
+2. **Temporal window** — situate the fact in its cycle: `Q4-2026 · W47
+   (17–23 Nov) · 3 de 5 dias úteis`. The quarter is the artifact's `quarter`; the
+   week derives from `created_at`; the day-count is arithmetic over the notes.
+   Level ≠ range: a `plano` is quarter-scoped, never a 15-day entity.
+3. **Strategic lens** — one tag per entity, from the level (`router.md` §4):
+   `#estratégico`, `#tático` or `#operacional`. Derived at output time, not stored.
+4. **Next concrete action** — one line per entity with an estimated cost and a
+   deadline: `reescrever a fase B3 · ~15 min · antes da W48`. When the prose
+   names no next step, say `aberto — a prosa não nomeia o próximo passo`.
+
+Optional fifth section: **semiotic subtext** — when the classification reveals a
+tension the numbers alone do not surface, name it in one sentence. This is the
+agent's judgment, not a template slot.
+
+**What is HIDDEN by default.** UEIDs, revision numbers, `body_hash`, tool names
+and duration are the technical receipt. They never ride in the default output;
+the owner fetches them on demand with `/detalhe <uid>`. Telegram has no
+collapsible `<details>` element, so the receipt is a separate command, not a fold.
+
+---
+
 ## Index
 
 | # | Skill | Trigger | Primary surface |
@@ -173,10 +208,12 @@ Steps:
    The bot renders Markdown and splits a long reply into a few messages, so
    write in clear paragraphs that stand alone.
 2. Ground every claim about the owner's data: narrow with search_artifacts, read
-   the prose with get_artifact, and name the uid the claim came from. The only
-   kinds that exist are sonho, plano, onda, fase, revisao, nota, kpi, desc, okr,
-   tarefa — never pass an invented label such as strategy to kinds (the tool
-   rejects it). A claim with no source is said to be unsourced.
+   the prose with get_artifact, and name the strategic chain the claim came from
+   (Sonho X → Objetivo Y → Meta Z diz que…), per the Response Contract. The uid is
+   the technical receipt, behind /detalhe — not inline. The only kinds that exist
+   are sonho, plano, onda, fase, revisao, nota, kpi, desc, okr, tarefa — never pass
+   an invented label such as strategy to kinds (the tool rejects it). A claim with
+   no source is said to be unsourced.
 3. Strategy is prose, not a store kind: the frameworks live in strategics/ (the
    published PT-BR prose), not in the store — there is no strategy kind to
    search. Read the relevant document under strategics/, cite it by name, and
@@ -271,8 +308,10 @@ Steps:
    The write carries the EVIDENCES edges to each task the note speaks about:
    the edge starts at the note, so the note is written together with the edges
    that make it evidence.
-5. Report the note uid, the counts per class, the evidence per class and the
-   tools that ran.
+5. Render the report per the Response Contract: the strategic chain in the five
+   levels, the temporal window, the lens and the next action, with the counts and
+   the evidence per class. The uid and the tools are the technical receipt,
+   fetched with /detalhe — never in the default output.
 Invariants:
 - The note is a new artifact. The previous day's note is never rewritten.
 - Every classification cites evidence. A recollection is not evidence.
@@ -307,7 +346,10 @@ Steps:
 4. Write the REVISAO with the classification and the evidence. Set the quarter.
    The write carries the REFERENCES edges to what the review reviews: each edge
    starts at the review, so the review and its edges land together.
-5. Report the review uid, the counts per class and the tools that ran.
+5. Render the report per the Response Contract: the strategic chain in the five
+   levels, the temporal window, the lens and the next action, with the counts per
+   class. The uid, the revision and the tools are the technical receipt, fetched
+   with /detalhe — never in the default output.
 Invariants:
 - The pipeline is arithmetic over state in the store. There is no LLM in the
   count.
