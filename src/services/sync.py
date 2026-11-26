@@ -715,12 +715,10 @@ def _report_line(report: SyncReport) -> str:
 
 async def _run(interval: int) -> int:
     """Ingest, then wait, then ingest again — forever, or once."""
-    from src.data.client import DataClient
-    from src.data.repository import ArtifactRepository
+    from src.services.wiring import build_services
 
-    client = DataClient()
-    repo = ArtifactRepository(client)
-    sync = VaultSync(repo, embeddings=EmbeddingService(client))
+    sync = build_services().vault_sync
+    assert sync is not None
 
     while True:
         try:
