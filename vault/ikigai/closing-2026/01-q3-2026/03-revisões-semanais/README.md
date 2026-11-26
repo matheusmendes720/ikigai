@@ -37,3 +37,29 @@ Each review takes **~30–45 minutes** and is done on Friday afternoon or Sunday
 - Updated onda state.
 - Open items carried into next week's reports.
 - Decisions to lock or pivot.
+
+---
+
+## What actually exists (appended 2026-11-23)
+
+> The list above is the scaffold's target: 13 files, one per ISO week. The
+> **Correction of the Trajectory C1** (2026-11-08) replaced that with "one review
+> per week with commits > 0; a week at zero is one line in the next review".
+>
+> | File | Commits | Status |
+> |---|---:|---|
+> | `2026-W35.md` | 224 | written 2026-11-23 |
+> | `2026-W36.md` | 119 | written 2026-11-23 |
+> | `2026-W37.md` | 104 | written 2026-11-23 |
+> | `2026-W38.md` | 174 | written 2026-11-23 |
+> | `2026-W39.md` | 83 | written 2026-11-23 |
+> | W28–W34 | 0 | **no file** — the seven empty weeks are the table in `revisao-q3-2026-consolidada.md` §1 |
+>
+> **5 reviews for 5 weeks with commits. 0 files for the weeks at zero.** The
+> consolidated review stays as the quarter's aggregate; it is not replaced by
+> these five.
+>
+> The measurements (commits per week, prefix breakdown, milestones) come from
+> `git log --date=format:'%G-W%V'`, run on 2026-11-23.
+
+*Appended 2026-11-23.*

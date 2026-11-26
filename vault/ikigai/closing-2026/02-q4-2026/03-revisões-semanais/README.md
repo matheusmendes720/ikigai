@@ -38,3 +38,36 @@ Each review takes **~30–45 minutes** and is done on Friday afternoon or Sunday
 - Open items carried into next week's reports.
 - Decisions to lock or pivot.
 - Year-end retrospective inputs (week 52/53).
+
+---
+
+## What actually exists (appended 2026-11-23)
+
+> The list above is the scaffold's target: 13 files, one per ISO week. The
+> **Correction of the Trajectory C1** (2026-11-08) replaced that with "one review
+> per week with commits > 0; a week at zero is one line in the next review".
+
+| File | Commits | Status |
+|---|---:|---|
+| `2026-W40.md` | 30 | written 2026-11-23 |
+| `2026-W41.md` | 14 | written 2026-11-23 |
+| `2026-W42.md` | 7 | written 2026-11-23 |
+| `2026-W43.md` | **0** | **no file** — the empty week is one line inside `2026-W44.md` |
+| `2026-W44.md` | 28 | written 2026-11-23 |
+| `2026-W45.md` | 69 | written 2026-11-08 (the first review of the quarter — not rewritten) |
+| `2026-W46.md` | 142 | written 2026-11-23 |
+| `2026-W47.md` | 1 | written 2026-11-23 |
+
+> **7 reviews for the 7 weeks with commits; 0 files for the week at zero.**
+> That is C1's PASS, spelled out: *"ao fim de 4 semanas, existe uma revisão por
+> cada semana com commits > 0, e zero revisões em semanas a zero"*.
+>
+> **Note on the elapsed window.** The table in §5 of the plan says
+> `Elapsed | W41–W45`. W40 (2026-09-28 → 10-04) has 30 commits and belongs to the
+> Q4 by the retrospective plan's own reckoning (`q3-2026-plano-retro.md` §2);
+> its review is filed here. **The quarter's elapsed set is W40–W45 — six weeks,
+> one more than the table says.**
+>
+> The measurements come from `git log --date=format:'%G-W%V'`, run on 2026-11-23.
+
+*Appended 2026-11-23.*
