@@ -277,6 +277,7 @@ _COMMANDS: dict[str, tuple[str, str]] = {
 _UTILITY_COMMANDS: dict[str, tuple[str, str]] = {
     "/busca": ("<texto>", "procura no store"),
     "/uid": ("<uid>", "lê um artefato e suas arestas"),
+    "/detalhe": ("<uid>", "o recibo técnico: uid, revisão, arestas"),
     "/rascunho": ("<tipo>", "abre um rascunho; sem argumento, mostra o que está lá"),
     "/guardar": ("", "fecha o rascunho como artefato"),
     "/descartar": ("", "deita fora o rascunho"),
@@ -725,6 +726,12 @@ class Bot:
                 return "Qual o uid?"
             bundle = await self._client.call("get_artifact", {"uid": argument, "depth": 1})
             return _render_bundle(bundle)
+
+        if command == "/detalhe":
+            if not argument:
+                return "Qual o uid? /detalhe <uid>"
+            bundle = await self._client.call("get_artifact", {"uid": argument, "depth": 1})
+            return _render_receipt(bundle)
 
         return "Não conheço esse comando. /help"
 
@@ -2068,6 +2075,20 @@ def _render_memory(result: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+_KIND_LEVEL: dict[str, str] = {
+    "sonho": "Sonho",
+    "plano": "Objetivo",
+    "fase": "Objetivo",
+    "onda": "Objetivo",
+    "okr": "Objetivo",
+    "revisao": "Meta",
+    "kpi": "Meta",
+    "tarefa": "Tarefa",
+    "nota": "Atividade",
+    "desc": "Evidência",
+}
+
+
 def _render_search(result: Any) -> str:
     """Render a search result.
 
@@ -2085,8 +2106,9 @@ def _render_search(result: Any) -> str:
     for item in items[:10]:
         if not isinstance(item, dict):
             continue
-        title = item.get("title") or item.get("uid") or "?"
-        lines.append(f"• {title}\n  {item.get('uid', '')}")
+        title = item.get("title") or "?"
+        level = _KIND_LEVEL.get(str(item.get("kind", "")), "")
+        lines.append(f"• {title}" + (f" · {level}" if level else ""))
     return "\n".join(lines)
 
 
@@ -2098,6 +2120,24 @@ def _render_bundle(bundle: Any) -> str:
     lines = [f"{artifact.get('title', '?')}\n{artifact.get('uid', '')}"]
     if artifact.get("body"):
         lines.append(str(artifact["body"])[:800])
+    if relations:
+        lines.append("arestas: " + ", ".join(str(r.get("rel", "?")) for r in relations[:10]))
+    return "\n".join(lines)
+
+
+def _render_receipt(bundle: Any) -> str:
+    """The technical receipt, on demand (/detalhe). The UEID lives here, not in
+    the default output — the owner pulls it when they want the machinery."""
+    if not isinstance(bundle, dict):
+        return str(bundle)
+    artifact = bundle.get("artifact") or {}
+    relations = bundle.get("relations") or []
+    lines = [
+        f"uid: {artifact.get('uid', '?')}",
+        f"kind: {artifact.get('kind', '?')} · rev: {artifact.get('revision', '?')}",
+        f"body_hash: {artifact.get('body_hash', '?')}",
+        f"quarter: {artifact.get('quarter', '?')} · status: {artifact.get('status', '?')}",
+    ]
     if relations:
         lines.append("arestas: " + ", ".join(str(r.get("rel", "?")) for r in relations[:10]))
     return "\n".join(lines)
